@@ -1370,7 +1370,196 @@
   },
   "statistics": {
     "title": "Statistics",
-    "stub": "Statistics are not built yet. This area will show usage across all LLM providers."
+    "error": "Statistics could not be read right now. They come back when the IDE reads Claude Code transcripts again.",
+    "empty": {
+      "title": "No statistics yet",
+      "text": "Numbers appear after the first agent turn on this Mac or the first minute of work in the IDE."
+    },
+    "filters": {
+      "period": "Period",
+      "source": "Whose agents",
+      "scope": "Projects"
+    },
+    "periods": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "30 days",
+      "all": "All time"
+    },
+    "sources": {
+      "all": "All",
+      "ide": "In IDE",
+      "outside": "Outside IDE"
+    },
+    "scopes": {
+      "all": "All projects",
+      "project": "This project"
+    },
+    "scan": {
+      "label": "Reading Claude Code transcripts",
+      "progress": "Reading Claude Code transcripts: {{files}} of {{filesTotal}} files, {{bytes}} of {{bytesTotal}}. The numbers below are still growing."
+    },
+    "delta": {
+      "new": "new",
+      "flat": "same",
+      "previous": {
+        "today": "Yesterday by this time: {{value}}",
+        "week": "Previous 7 days at this point: {{value}}",
+        "month": "Previous 30 days at this point: {{value}}",
+        "all": "Previous period: {{value}}"
+      }
+    },
+    "humanSince": "Code by hand and presence are counted from {{date}}.",
+    "humanNotYet": "Code by hand and presence are counted from now on.",
+    "week": "Week of {{date}}",
+    "nothing": "Nothing in this period",
+    "you": "You",
+    "agents": "Agents",
+    "changes": "+{{added}} -{{removed}}",
+    "overview": {
+      "title": "Overview",
+      "code": "Code",
+      "linesUnit": "lines changed",
+      "codeFoot": "{{changes}} lines, {{files}} files by agents",
+      "codeShare": "You {{you}}, agents {{agents}}",
+      "agentTime": "Agent time",
+      "agentTimeUnit": "summed",
+      "wall": "Wall-clock {{value}}",
+      "measured": "Measured live",
+      "estimated": "Estimated",
+      "estimateShare": "Measured live {{measured}}, estimated {{estimated}}",
+      "presence": "Your presence",
+      "sessions_one": "{{count}} work session, longest {{longest}}",
+      "sessions_other": "{{count}} work sessions, longest {{longest}}",
+      "tokens": "Tokens & cost",
+      "tokensUnit": "tokens",
+      "cost": "{{cost}} at API prices, cache {{cache}}"
+    },
+    "code": {
+      "title": "Code",
+      "chart": "Lines changed by you and by agents",
+      "empty": "No code changes in this period",
+      "yourLines": "Your lines",
+      "agentLines": "Agent lines",
+      "typed": "Typed characters",
+      "pasted": "Pasted characters",
+      "files": "Files by agents",
+      "agentShare": "Agents' share",
+      "languages": "Languages",
+      "noExtension": "no extension"
+    },
+    "time": {
+      "title": "Time",
+      "chart": "Your presence and agent work",
+      "empty": "No activity in this period",
+      "present": "You present",
+      "working": "Agents working",
+      "withoutYou": "Agents worked without you",
+      "summed": "Agent turns, summed",
+      "wall": "Agents, wall-clock",
+      "estimated": "Estimated from transcripts",
+      "presence": "Your presence"
+    },
+    "habits": {
+      "title": "When you work",
+      "metric": "What the calendar shows",
+      "presence": "Presence",
+      "tokens": "Tokens",
+      "less": "Less",
+      "more": "More",
+      "calendarLabel": "Activity over the last year: {{active}} active days, current streak {{current}} days, best {{best}}",
+      "currentStreak": "Current streak",
+      "bestStreak": "Best streak",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "peakPresence": "You work most {{when}}",
+      "peakTokens": "Agents are busiest {{when}}",
+      "noPeak": "Not enough activity in this period to see a pattern",
+      "workSessions": "Work sessions",
+      "averageSession": "Average session",
+      "longestSession": "Longest session"
+    },
+    "tokens": {
+      "title": "Tokens & cost",
+      "chart": "Tokens used by agents",
+      "empty": "No tokens in this period",
+      "series": "Tokens",
+      "costNote": "{{cost}} at API prices",
+      "total": "Total tokens",
+      "output": "Output",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write",
+      "fresh": "Fresh input",
+      "cost": "Cost at API prices",
+      "conversations": "Conversations",
+      "prompts": "Your messages",
+      "answers": "Model replies",
+      "cache": "Model input",
+      "cacheLabel": "Cache read {{read}}, cache write {{write}}, fresh input {{fresh}}",
+      "models": "By model",
+      "projects": "By project",
+      "otherFolders": "Other folders",
+      "rowValue": "{{tokens}} · {{cost}}"
+    },
+    "scenarios": {
+      "title": "Scenarios",
+      "empty": "No scenario runs in this period",
+      "outside": "Scenarios run only in the IDE",
+      "runs": "Runs",
+      "done": "Finished successfully",
+      "averageTime": "Average active time",
+      "averageCost": "Average cost",
+      "top": "Most run",
+      "runCount_one": "{{count}} run",
+      "runCount_other": "{{count}} runs"
+    },
+    "tools": {
+      "title": "Tools",
+      "top": "Most used tools",
+      "servers": "Connectors (MCP)",
+      "permissions": "Permission questions",
+      "asked": "Asked",
+      "allowed": "Allowed",
+      "denied": "Denied",
+      "permissionsLabel": "Allowed {{allowed}}, denied {{denied}}",
+      "calls_one": "{{count}} call",
+      "calls_other": "{{count}} calls"
+    },
+    "help": {
+      "label": "About these numbers",
+      "page": {
+        "title": "Statistics",
+        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole Mac: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nToday is the current day; 7 days and 30 days end today. Each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. There is no comparison when the previous period starts before the data does.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
+      },
+      "overview": {
+        "title": "Overview",
+        "text": "Code: lines added and removed, by you in the IDE editor and by agents through successful file edits. The bar shows whose lines they are.\n\nAgent time: how long agent turns ran, added up, so two agents working for an hour make two hours. Wall-clock is the time when at least one agent was working. Part of the time outside the IDE is an estimate from transcripts, and the bar shows how much.\n\nYour presence: minutes when the IDE window was focused and you typed, clicked or scrolled within the last 3 minutes.\n\nTokens and cost: everything the models read and wrote. Cost is at public API prices, not what a subscription charges you."
+      },
+      "code": {
+        "title": "Code",
+        "text": "Code by hand is what you typed in the IDE editor. Each save is compared with the previous save, and only your own changes count: files reloaded from disk, undo and redo do not. Typed and pasted characters are counted separately.\n\nCode by agents comes from successful file edits in Claude Code transcripts, including edits made with shell commands. Failed edits do not count. Each file is counted once. Languages are grouped by file extension."
+      },
+      "time": {
+        "title": "Time",
+        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from transcripts: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
+      },
+      "habits": {
+        "title": "When you work",
+        "text": "The calendar always covers the last year, whatever the period above. Each square is a day: the brighter it is, the busier the day compared with your other active days. A day is active when you were present in the IDE or sent a message to an agent. The current streak does not break until today is over.\n\nThe busiest days and hours are three days in a row and three hours in a row with the most presence, or with the most tokens while there is no presence yet. A work session is a stretch of presence; a break longer than 30 minutes starts a new one."
+      },
+      "tokens": {
+        "title": "Tokens & cost",
+        "text": "Tokens from every answer of every model, subagents included, each counted once. Cost is calculated at public API prices for each model, with cache reads and writes at their own rates. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
+      },
+      "scenarios": {
+        "title": "Scenarios",
+        "text": "Scenario runs that started in the period. Finished successfully is the share of done runs among runs that ended: done, failed or stopped by you. Active time is the time the agent actually worked, without waiting for you. Scenarios run only in the IDE, so Outside IDE never has any."
+      },
+      "tools": {
+        "title": "Tools",
+        "text": "Tool calls by agents, from transcripts. Connector tools (MCP) are grouped by their server. Permission questions are the ones you answered in the IDE panel: how many were asked, allowed and denied."
+      }
+    }
   },
   "claudeCode": {
     "title": "Claude Code",

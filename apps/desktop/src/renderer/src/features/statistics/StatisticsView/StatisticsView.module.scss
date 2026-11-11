@@ -1,0 +1,223 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид середины окна: шапка и фильтры прибиты сверху, прокручивается только страница.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// Фильтры одной строкой над всем, что они меняют: период слева, чьи и какие - справа. В
+// узкой середине строка переносится, а не режет вкладки.
+.filters {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--size-panel-gutter) 0;
+}
+
+.filterGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// Страница на всю ширину середины, разделы - с воздухом между ними. Ширину страницы читают
+// раскладки разделов (container query): узкая середина - колонки одна под другой.
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--size-panel-gutter);
+  transition: opacity var(--duration-normal) var(--easing-standard);
+  container-type: inline-size;
+}
+
+// Пока считается новый срез, на месте прежний - приглушённый, без пустого мигания.
+.refreshing {
+  opacity: var(--opacity-muted);
+}
+
+.scan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.note {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+// Фраза о пике - вывод раздела: читается как обычный текст, а не подпись.
+.sentence {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// Части раздела одна под другой.
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+// График со сведениями слева, список справа; узкая середина - список под графиком.
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+
+  @container (width < 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// Списки рядом: сколько влезает по ширине плитки, остальное - ниже.
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--size-tile-min), 100%), 1fr));
+  align-items: start;
+  gap: var(--space-6);
+}
+
+// Плитки сводки: в широкой середине четыре в ряд, в обычной - по две.
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--size-tile-min), 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.figureRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+}
+
+// Главное число плитки - крупно и пропорциональными цифрами: моноширинные у большого числа
+// разъезжаются.
+.figure {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.unit {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Изменение - у правого края строки числа.
+.deltaSlot {
+  margin-left: auto;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+
+  svg {
+    display: block;
+    flex: none;
+  }
+}
+
+// Сведения: подпись тише сверху, число под ней; колонок - сколько влезает.
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--size-fact-min), 1fr));
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.factLabel {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.factValue {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+// Список-рейтинг: имя и число в строку, полоса под ними.
+.ranked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankedRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.rankedHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.rankedName {
+  @include truncate;
+
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Открытый сейчас проект - ярче соседей.
+.current {
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.rankedValue {
+  flex: none;
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}

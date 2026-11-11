@@ -19,7 +19,8 @@
     "surfaces": "Surfaces",
     "overlays": "Overlays",
     "choices": "Choices and disclosure",
-    "settings": "Settings and gauges"
+    "settings": "Settings and gauges",
+    "charts": "Charts"
   },
   "groups": {
     "surfaces": "Surfaces",
@@ -35,7 +36,8 @@
     "syntax": "Code highlighting",
     "fileIcons": "File type icons",
     "ansi": "Terminal colors",
-    "vcs": "Git status"
+    "vcs": "Git status",
+    "charts": "Chart series"
   },
   "specimens": {
     "buttons": "Buttons",
@@ -82,7 +84,16 @@
     "codeSnippet": "Code snippet with copy",
     "toggleChip": "Toggle chips",
     "page": "Page header and sections, help behind ?",
-    "modal": "Modal"
+    "modal": "Modal",
+    "barChart": "Bar chart: one series, the tallest bar labeled",
+    "barChartGrouped": "Bar chart: two series side by side",
+    "barChartStacked": "Bar chart: two series stacked",
+    "barChartEmpty": "Bar chart: nothing in the period",
+    "calendarHeatmap": "Calendar heatmap",
+    "calendarHeatmapSparse": "Calendar heatmap: second tone, few active days",
+    "shareBar": "Share bar with legend",
+    "shareBarRanked": "Share bar as a ranking row, and empty",
+    "chartTip": "Chart tip"
   },
   "samples": {
     "primary": "Primary",
@@ -237,6 +248,25 @@
     "help": "Help",
     "pageHelp": "Apps the AI can use. They belong to the IDE, not to an AI account.\n\nThe explanation lives here, behind the question mark, instead of a paragraph under the title.",
     "sectionHelp": "Open a connector to change its sign-in, projects and tools.",
-    "setUpWithAi": "Set up with AI"
+    "setUpWithAi": "Set up with AI",
+    "chartTokens": "Tokens",
+    "chartYou": "You",
+    "chartAgents": "Agents",
+    "chartTokensLabel": "Tokens by hour",
+    "chartLinesLabel": "Lines changed by day",
+    "chartEmpty": "Nothing in this period",
+    "chartCostNote": "$1.24 at API prices",
+    "calendarLabel": "Activity over the last year",
+    "calendarPresence": "Presence",
+    "calendarLess": "Less",
+    "calendarMore": "More",
+    "shareCodeLabel": "You 4%, agents 96%",
+    "shareCacheLabel": "Cache read 88%, cache write 9%, fresh input 3%",
+    "cacheRead": "Cache read",
+    "cacheWrite": "Cache write",
+    "freshInput": "Fresh input",
+    "shareEmptyLabel": "Nothing yet",
+    "chartTipHover": "Point here",
+    "chartTipTitle": "Tue, Nov 10, 14:00"
   }
 }

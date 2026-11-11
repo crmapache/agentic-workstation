@@ -1,4 +1,5 @@
 import type { SearchFindRequest } from '@shared/claude-search'
+import type { StatsSource } from '@shared/statistics'
 
 /**
  * Ключи кэша React Query для данных главного процесса. Одна сущность - один ключ:
@@ -64,6 +65,17 @@ export const QUERY_KEYS = {
   scenarioWorktreeFacts: (queueId: string) => ['scenarios', 'worktree-facts', queueId],
   /** Провайдеры ИИ и на месте ли они. */
   providers: ['providers'],
+  /** Все отчёты статистики разом: сбросить, когда главный процесс сказал stats:changed. */
+  statsReports: ['stats', 'report'],
+  /** Отчёт статистики: период в мс, чьи агенты и проект - всё, что меняет ответ. */
+  statsReport: (from: number, to: number, source: StatsSource, projectId: string | null) => [
+    'stats',
+    'report',
+    from,
+    to,
+    source,
+    projectId,
+  ],
   /** MCP-серверы из конфига Claude Code для переноса: свежие на каждое открытие. */
   connectorImportCandidates: ['connectors-import', 'candidates'],
   /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */

@@ -15,6 +15,17 @@
   text-overflow: ellipsis;
 }
 
+// Не видно глазу, но читает скринридер: таблица чисел под графиком, где сам график -
+// картинка. display: none и visibility спрятали бы и от него.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 // Прозрачный интерактивный элемент: hover и active на одном свойстве фона.
 // hover обёрнут в @media (hover: hover), active идёт после него - иначе при
 // зажатой кнопке hover перекроет active.
@@ -118,6 +129,31 @@
   margin-left: calc(var(--space-1-5) + var(--size-icon-sm) / 2 - var(--border-width));
   padding-left: var(--space-2);
   border-left: var(--border-width) solid $line;
+}
+
+// Классы тона ряда графика (ChartTone): .chart1….chart4 и .other ставят --tone, метки
+// графика красятся им. Подключается в корне модуля: классы CSS Modules локальные, у
+// каждого графика свои, а тоны - одни на все.
+@mixin chart-tones {
+  .chart1 {
+    --tone: var(--color-chart-1);
+  }
+
+  .chart2 {
+    --tone: var(--color-chart-2);
+  }
+
+  .chart3 {
+    --tone: var(--color-chart-3);
+  }
+
+  .chart4 {
+    --tone: var(--color-chart-4);
+  }
+
+  .other {
+    --tone: var(--color-chart-other);
+  }
 }
 
 // Подпись раздела или статуса капсом с разрядкой: «SELECTED», «RECENT».

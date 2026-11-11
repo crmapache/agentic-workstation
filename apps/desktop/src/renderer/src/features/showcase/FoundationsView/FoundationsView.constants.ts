@@ -59,6 +59,16 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
     ],
   },
   {
+    titleKey: 'groups.charts',
+    tokens: [
+      '--color-chart-1',
+      '--color-chart-2',
+      '--color-chart-3',
+      '--color-chart-4',
+      '--color-chart-other',
+    ],
+  },
+  {
     titleKey: 'groups.interaction',
     tokens: [
       '--color-bg-hover',

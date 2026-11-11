@@ -1,5 +1,6 @@
 import styles from './ComponentsView.module.scss'
 import { ActionsSection } from './parts/ActionsSection'
+import { ChartsSection } from './parts/ChartsSection'
 import { ChoicesSection } from './parts/ChoicesSection'
 import { FieldsSection } from './parts/FieldsSection'
 import { IndicatorsSection } from './parts/IndicatorsSection'
@@ -18,6 +19,7 @@ export const ComponentsView = () => (
     <FieldsSection />
     <SurfacesSection />
     <ChoicesSection />
+    <ChartsSection />
     <SettingsSection />
     <OverlaysSection />
   </div>
