@@ -113,7 +113,7 @@
 
 - [x] 0. Ветка, план, первый коммит (PLAN.md + docs/workplan)
 - [ ] 1. Сценарии ([10-scenarios.md](10-scenarios.md))
-- [ ] 2. Статистика ([20-statistics.md](20-statistics.md))
+- [x] 2. Статистика ([20-statistics.md](20-statistics.md))
 - [ ] 3. Браузер ([30-browser.md](30-browser.md))
 - [ ] 4. Remote Control ([40-remote.md](40-remote.md))
 - [ ] 5. Итог: `docs/architecture.md`, ADR, README пакетов, отчёт владельцу в журнале
@@ -221,3 +221,11 @@
   `apps/relay/scripts/relay-deploy.sh` по образцу `amazing-codex/scripts/relay-deploy.sh` (проверка,
   что uuid ведёт на приложение с нашим доменом и образом `aw-relay`; каталог `/root/apps/aw-relay`),
   клиент телефона собирается локально в `apps/relay/public`, потом запись в скилл `infra`.
+- ~23:25. Статистика готова. Вид (агент, 7749499): разделы Overview, Code, Time, When you work,
+  Tokens & cost, Scenarios, Tools; фильтры периода, источника и проекта; примитивы `BarChart`,
+  `CalendarHeatmap`, `ShareBar`, `ChartTip` в `packages/ui` с ролями `--color-chart-*`, витриной и
+  README. Живая проверка в копии окна на настоящих данных (за 7 дней: 125 тыс. строк агентов, 119 ч
+  их работы, 89 ч «настенных», 10 млрд токенов, кеш 98%, серия 36 дней, пик пн-ср 21:00-00:00).
+  Найдено и исправлено: календарь начинал с «присутствия», когда его был один день (теперь - после
+  двух недель данных, до того токены), проект без токенов в рейтинге токенов (82bc2f0), счётчик
+  «tok» не видел субагентов (bab14cf, тест). ADR 0042, раздел в `docs/architecture.md`.
