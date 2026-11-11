@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { SoundEvent, SoundPrefs } from '@shared/sounds'
 import { SOUND_EVENTS } from '@shared/sounds'
 
+import { Card } from '@agentic-workstation/ui/Card'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Section } from '@agentic-workstation/ui/Section'
 
@@ -15,11 +16,11 @@ import { volumeOf, isSoundOn, toggleSound, setSoundVolume } from '../../../../st
 import { SoundRow } from './SoundRow'
 
 /**
- * Звуки IDE (ADR 0046): семь поводов, когда разговор зовёт человека, у каждого
- * переключатель, громкость и проба. Ноль и «выключено» - одно и то же, громкость
+ * Раздел «Sounds» (ADR 0046): семь поводов, когда разговор зовёт человека, строкой каждый -
+ * громкость, проба и переключатель. Ноль и «выключено» - одно и то же, громкость
  * выключенного запоминается. Ползунок пишется с паузой, на экране - сразу.
  */
-export const SoundsSection = () => {
+export const SoundsPane = () => {
   const { t } = useTranslation()
   const saved = useSoundPrefs()
   const save = useSetSoundPrefs()
@@ -34,29 +35,31 @@ export const SoundsSection = () => {
 
   return (
     <Section
-      size="sm"
-      title={t('settings.sounds.title')}
+      title={t('settings.sections.sounds')}
+      description={t('settings.sounds.description')}
       help={
         <HelpButton
           label={t('settings.sounds.help.label')}
-          title={t('settings.sounds.title')}
+          title={t('settings.sections.sounds')}
           text={t('settings.sounds.help.text')}
           closeLabel={t('common.close')}
         />
       }>
-      <div className={styles.sounds}>
-        {SOUND_EVENTS.map((event) => (
-          <SoundRow
-            key={event}
-            event={event}
-            isOn={isSoundOn(sounds, event)}
-            volume={volumeOf(sounds, event)}
-            onToggle={handleToggle}
-            onVolume={handleVolume}
-            onPreview={handlePreview}
-          />
-        ))}
-      </div>
+      <Card>
+        <div className={styles.rows}>
+          {SOUND_EVENTS.map((event) => (
+            <SoundRow
+              key={event}
+              event={event}
+              isOn={isSoundOn(sounds, event)}
+              volume={volumeOf(sounds, event)}
+              onToggle={handleToggle}
+              onVolume={handleVolume}
+              onPreview={handlePreview}
+            />
+          ))}
+        </div>
+      </Card>
     </Section>
   )
 }

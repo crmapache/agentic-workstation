@@ -229,3 +229,8 @@
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }
+
+// Вертикальные вкладки - в колонке ширины меню разделов окна настроек.
+.tabColumn {
+  width: var(--size-modal-aside);
+}

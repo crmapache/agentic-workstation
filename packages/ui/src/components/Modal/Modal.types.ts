@@ -22,6 +22,16 @@ export type ModalProps = {
   iconTone?: BadgeTone | undefined
   size?: ModalSize | undefined
   backdrop?: ModalBackdrop | undefined
+  /**
+   * Во всю доступную высоту, а не по содержимому: окно с разделами (настройки) не прыгает,
+   * когда раздел короче или длиннее.
+   */
+  tall?: boolean | undefined
+  /**
+   * Колонка слева от тела во всю его высоту: меню разделов (вертикальные Tabs). Тело
+   * прокручивается рядом, колонка стоит.
+   */
+  aside?: ReactNode | undefined
   /** В шапке перед крестиком: состояние, переключатель «включено». */
   headerActions?: ReactNode | undefined
   /**

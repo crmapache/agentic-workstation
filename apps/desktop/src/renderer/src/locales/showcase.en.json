@@ -88,6 +88,7 @@
     "tile": "Tile",
     "iconPlaque": "Icon plaque: tones, md and lg, muted",
     "tabsFill": "Tabs, full width",
+    "tabsVertical": "Tabs as a column: section menu at the side of a window",
     "codeSnippet": "Code snippet with copy",
     "toggleChip": "Toggle chips",
     "page": "Page header and sections, help behind ?",
@@ -297,6 +298,7 @@
     "fitBody": "rm -rf build && pnpm install && pnpm build && pnpm test -- --coverage && pnpm lint && pnpm typecheck && echo \"all good\" && git status && git diff --stat && git log --oneline -5 && du -sh node_modules && ls -la dist && cat dist/manifest.json",
     "allowOnce": "Allow once",
     "openReducedImage": "Open a reduced image (phone)",
-    "imageReduced": "Reduced to fit the phone. The original is in the IDE."
+    "imageReduced": "Reduced to fit the phone. The original is in the IDE.",
+    "openSectionsModal": "Open with sections"
   }
 }

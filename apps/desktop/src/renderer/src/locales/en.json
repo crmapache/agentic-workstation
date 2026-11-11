@@ -6,17 +6,23 @@
   },
   "settings": {
     "title": "Settings",
-    "done": "Done",
-    "appearance": "Appearance",
+    "open": "Settings (⌘,)",
+    "sectionsLabel": "Settings sections",
+    "sections": {
+      "appearance": "Appearance",
+      "sounds": "Sounds"
+    },
+    "appearanceDescription": "How the IDE looks",
     "textSize": {
       "label": "Text size",
       "value": "{{percent}}%",
       "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. ⌘+, ⌘− and ⌘0 work from anywhere.",
-      "reset": "Reset to 100%",
-      "helpLabel": "About text size"
+      "reset": "Reset",
+      "helpLabel": "About text size",
+      "description": "Every font in the IDE at once: panels, editor and chats"
     },
     "sounds": {
-      "title": "Sounds",
+      "description": "How an agent calls you when it finishes or needs you",
       "help": {
         "label": "About sounds",
         "text": "An agent in any project calls you with a sound: when it finishes, asks for something, hits a limit or breaks. Its chat tab glows in the colour of the reason, and the project tab gets a dot of the same colour, until you open that chat.\n\nA muted sound doesn't call at all: no glow and no dot. While you look right at a chat, it stays quiet. Of sounds that come at once, only the more important one plays."

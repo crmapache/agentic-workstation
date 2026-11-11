@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import clsx from 'clsx'
-import { SquareTerminal } from 'lucide-react'
+import { Settings, SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -30,6 +30,7 @@ import { ConversationLogContext } from '../../state/conversation-log.context'
 import { PANEL_MIN_WIDTH } from '../../state/layout.constants'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
+import { useSettingsStore } from '../../features/settings/settings.store'
 import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
@@ -65,6 +66,8 @@ export const Workbench = () => {
   const terminal = useTerminalToggle()
   const mainBadges = useMainViewBadges()
   const projectCallsOf = useProjectCalls()
+  const isSettingsOpen = useSettingsStore((state) => state.isOpen)
+  const openSettings = useSettingsStore((state) => state.open)
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -89,6 +92,15 @@ export const Workbench = () => {
               views={SIDE_VIEWS}
               activeViewId={side.activeViewId}
               isPanelOpen={side.isOpen}
+              footer={
+                <IconButton
+                  icon={Settings}
+                  label={t('settings.open')}
+                  active={isSettingsOpen}
+                  tooltipPlacement="end"
+                  onClick={openSettings}
+                />
+              }
               onSelect={selectSideView}
             />
             <SidePanel

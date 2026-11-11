@@ -8,8 +8,8 @@ import type { TabsProps } from './Tabs.types'
 import { nextTabIndex } from './Tabs.utils'
 
 /**
- * Ряд вкладок-разделов: переключает содержимое одной зоны (разделы витрины,
- * позже - настройки). Стрелки ходят по кругу и сразу выбирают, в ряд по Tab
+ * Ряд вкладок-разделов: переключает содержимое одной зоны (разделы витрины); столбцом
+ * (vertical) - меню разделов сбоку окна настроек. Стрелки ходят по кругу и сразу выбирают, в ряд по Tab
  * попадает только выбранная. Вкладки проектов в шапке - своя фича, не эта.
  * Со счётчиком - разделы найденного (окно поиска по разговорам). Вкладки делят ряд
  * поровну, растянут ли он раскладкой или fill (режим на всю ширину над тем, что он меняет).
@@ -20,10 +20,11 @@ export const Tabs = <TabId extends string>({
   value,
   onChange,
   fill = false,
+  orientation = 'horizontal',
 }: TabsProps<TabId>) => {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const current = items.findIndex((item) => item.id === value)
-    const target = nextTabIndex(event.key, current, items.length)
+    const target = nextTabIndex(event.key, current, items.length, orientation)
     const item = target === null ? undefined : items[target]
 
     if (target === null || !item) return
@@ -37,7 +38,8 @@ export const Tabs = <TabId extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={clsx(styles.tabs, fill && styles.fill)}
+      aria-orientation={orientation}
+      className={clsx(styles.tabs, fill && styles.fill, styles[orientation])}
       onKeyDown={handleKeyDown}>
       {items.map(({ id, label: itemLabel, icon: Icon, count, flash, hint }) => {
         const isActive = id === value
