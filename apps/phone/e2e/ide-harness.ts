@@ -61,13 +61,35 @@ export { PERMISSION }
 
 export type Harness = Awaited<ReturnType<typeof startHarness>>
 
-export const startHarness = async (options: { staticDir?: string } = {}) => {
-  const relay = createRelay(
-    { ...readConfig({}), staticDir: options.staticDir ?? '', logLevel: 'silent' },
-    () => undefined,
-  )
+/**
+ * Боевой релей вместо своего (проверка после выкладки): `https://…` в переменной. Страницу
+ * телефона тогда раздаёт он же - та сборка, что выложена, а не локальная dist.
+ */
+const LIVE_RELAY = process.env['AGENTIC_WORKSTATION_PHONE_LIVE_RELAY'] ?? ''
+
+/** Свой релей на свободном порту или боевой; close - погасить свой (боевой не трогаем). */
+const relayFor = async (staticDir: string) => {
+  if (LIVE_RELAY) {
+    return {
+      relayUrl: LIVE_RELAY.replace(/^http/, 'ws'),
+      pageUrl: LIVE_RELAY,
+      close: () => Promise.resolve(),
+    }
+  }
+
+  const relay = createRelay({ ...readConfig({}), staticDir, logLevel: 'silent' }, () => undefined)
   const port = await relay.listen(0)
-  const relayUrl = `ws://127.0.0.1:${port}`
+
+  return {
+    relayUrl: `ws://127.0.0.1:${port}`,
+    pageUrl: `http://127.0.0.1:${port}`,
+    close: () => relay.close(),
+  }
+}
+
+export const startHarness = async (options: { staticDir?: string } = {}) => {
+  const relay = await relayFor(options.staticDir ?? '')
+  const { relayUrl } = relay
   const ide = fakeIde()
   const { state, feed, queues } = ide
   let service: RemoteService | null = null
@@ -159,9 +181,8 @@ export const startHarness = async (options: { staticDir?: string } = {}) => {
   const live = service
 
   return {
-    relay,
     relayUrl,
-    pageUrl: `http://127.0.0.1:${port}`,
+    pageUrl: relay.pageUrl,
     service: live,
     ide,
     /** Новый код пары - адрес, который IDE рисует QR. */
