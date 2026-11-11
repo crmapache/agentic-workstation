@@ -13,6 +13,7 @@ import type {
 } from '@shared/connectors'
 import type { ProjectRef, WorkspaceState } from '@shared/workspace'
 
+import { baseName } from '../../../lib/path.utils'
 import { ACCESS_ORDER, TOOL_DESCRIPTION_MAX } from './ConnectorsView.constants'
 import type { FormKind, AddFormFields, GenerationBadge } from './ConnectorsView.types'
 
@@ -70,9 +71,6 @@ export const addRequest = (kind: FormKind, fields: AddFormFields): AddConnectorR
   return { kind, label: fields.label }
 }
 
-/** Последняя часть пути: имя папки проекта, которого нет среди известных. */
-export const folderName = (path: string): string => path.split('/').filter(Boolean).at(-1) ?? path
-
 /**
  * Где коннектор виден - ключ подписи, число и имя. Один проект - по имени («Only in
  * web-tanks»): так плитка говорит больше, чем «в одном проекте».
@@ -88,7 +86,7 @@ export const availabilitySummary = (
   if (availability.projects.length === 1 && single !== undefined) {
     const known = projects.find((project) => project.rootPath === single)
 
-    return { key: 'onlyOne', count: 1, name: known?.name ?? folderName(single) }
+    return { key: 'onlyOne', count: 1, name: known?.name ?? baseName(single) }
   }
 
   return availability.projects.length
@@ -108,7 +106,7 @@ export const importScope = (
   candidate: ImportCandidate,
 ): { key: ImportCandidate['scope']; project: string } => ({
   key: candidate.scope,
-  project: candidate.projectPath ? folderName(candidate.projectPath) : '',
+  project: candidate.projectPath ? baseName(candidate.projectPath) : '',
 })
 
 /** Имя сервера в IDE другое: правила и хуки на mcp__<имя>__* с ним не совпадут. */
