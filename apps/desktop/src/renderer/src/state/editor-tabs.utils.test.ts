@@ -6,6 +6,8 @@ import {
   openTab,
   activeTab,
   closeTabs,
+  movedTabs,
+  tabsUnder,
   tabTarget,
   diffTabKey,
   openDiffTab,
@@ -117,5 +119,20 @@ describe('restoreTabs', () => {
     expect(restoreTabs({ keys: ['a.ts', 'b.ts', 'b.ts', 3], recent: ['b.ts', 'gone.ts'] })).toEqual(
       { keys: ['a.ts', 'b.ts'], recent: ['a.ts', 'b.ts'] },
     )
+  })
+})
+
+describe('перенос в дереве', () => {
+  it('вкладки файла, разницы и всего внутри папки едут на новое место, выбор прежний', () => {
+    const tabs = {
+      keys: ['src/a.ts', diffTabKey('src/b.ts'), 'srcx/c.ts', 'README.md'],
+      recent: ['README.md', 'src/a.ts'],
+    }
+
+    expect(movedTabs(tabs, 'src', 'lib')).toEqual({
+      keys: ['lib/a.ts', diffTabKey('lib/b.ts'), 'srcx/c.ts', 'README.md'],
+      recent: ['README.md', 'lib/a.ts'],
+    })
+    expect(tabsUnder(tabs, 'src')).toEqual(['src/a.ts', diffTabKey('src/b.ts')])
   })
 })

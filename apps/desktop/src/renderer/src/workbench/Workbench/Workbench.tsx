@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
+import { ActionNotice } from '../ActionNotice/ActionNotice'
 import { useClaudePanelKey, useClaudePanelToggle } from '../actions/claude-panel'
 import { useFileViewOnSelect } from '../actions/file-view'
 import { useOpenFile } from '../actions/open-file'
@@ -29,7 +30,6 @@ import { PANEL_MIN_WIDTH } from '../../state/layout.constants'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
 import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
-import { GitNotice } from '../../features/git/GitNotice/GitNotice'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
 import { RemoteModal } from '../../features/remote/RemoteModal/RemoteModal'
@@ -171,7 +171,7 @@ export const Workbench = () => {
 
         <NotificationArea>
           <UpdateNotice />
-          <GitNotice />
+          <ActionNotice />
           <ScenarioNotice />
         </NotificationArea>
       </div>

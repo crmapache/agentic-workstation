@@ -4,17 +4,18 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
-import { useGitNoticeStore } from '../git-notice.store'
-import { SUCCESS_NOTICE_MS } from './GitNotice.constants'
+import { useActionNoticeStore } from '../../state/action-notice.store'
+import { SUCCESS_NOTICE_MS } from './ActionNotice.constants'
 
 /**
- * Итог действия git в углу окна - с тем, что ответил сам git. Успех уходит сам,
- * неудача остаётся, пока её не закроют.
+ * Итог действия человека в углу окна: git с тем, что ответил сам git, дерево файлов -
+ * переименовано, скопировано, в корзине, или почему не вышло. Успех уходит сам, неудача
+ * остаётся, пока её не закроют.
  */
-export const GitNotice = () => {
+export const ActionNotice = () => {
   const { t } = useTranslation()
-  const notice = useGitNoticeStore((state) => state.notice)
-  const dismiss = useGitNoticeStore((state) => state.dismiss)
+  const notice = useActionNoticeStore((state) => state.notice)
+  const dismiss = useActionNoticeStore((state) => state.dismiss)
 
   useEffect(() => {
     if (notice?.tone !== 'success') return

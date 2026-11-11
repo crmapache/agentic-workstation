@@ -25,3 +25,11 @@ export const displayPath = (path: string, homeDir: string | undefined): string =
   homeDir && (path === homeDir || path.startsWith(`${homeDir}/`))
     ? `~${path.slice(homeDir.length)}`
     : path
+
+/** Путь - один из списка или лежит внутри одного из них: «a/b» внутри «a», «ab» - нет. */
+export const isInsideAny = (path: string, roots: readonly string[]): boolean =>
+  roots.some((root) => path === root || path.startsWith(`${root}/`))
+
+/** Где окажется путь после переноса from → to: сам он или то, что внутри, - на новом месте. */
+export const movedPathOf = (path: string, from: string, to: string): string =>
+  isInsideAny(path, [from]) ? to + path.slice(from.length) : path

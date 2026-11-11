@@ -8,6 +8,7 @@ import {
   openTab,
   activeTab,
   closeTabs,
+  movedTabs,
   tabTarget,
   openDiffTab,
   restoreTabs,
@@ -58,6 +59,8 @@ type SelectionStore = {
   openDiff: (projectId: string, relativePath: string) => void
   /** Закрыть вкладки по ключам: путь файла или ключ разницы (diffTabKey). */
   closeTabs: (projectId: string, keys: readonly string[]) => void
+  /** Файл или папку перенесли в дереве: их вкладки смотрят на новое место. */
+  moveTabs: (projectId: string, from: string, to: string) => void
   setHeld: (projectId: string, relativePaths: readonly string[]) => void
   /** Проекты закрыли - их вкладки больше не нужны: id у открытого заново будет новым. */
   keepProjects: (projectIds: readonly string[]) => void
@@ -112,6 +115,13 @@ export const useSelectionStore = create<SelectionStore>()(
             [projectId]: closeTabs(state.tabsByProject[projectId] ?? NO_TABS, keys),
           },
           selectedPlaceByProject: { ...state.selectedPlaceByProject, [projectId]: undefined },
+        })),
+      moveTabs: (projectId, from, to) =>
+        set((state) => ({
+          tabsByProject: {
+            ...state.tabsByProject,
+            [projectId]: movedTabs(state.tabsByProject[projectId] ?? NO_TABS, from, to),
+          },
         })),
       setHeld: (projectId, relativePaths) =>
         set((state) => ({ heldByProject: { ...state.heldByProject, [projectId]: relativePaths } })),

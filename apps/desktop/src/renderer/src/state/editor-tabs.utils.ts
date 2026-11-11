@@ -1,3 +1,4 @@
+import { isInsideAny, movedPathOf } from '../lib/path.utils'
 import type { TabTarget, EditorTabs } from './editor-tabs.types'
 
 export const NO_TABS: EditorTabs = { keys: [], recent: [] }
@@ -76,6 +77,25 @@ export const closeTabs = (tabs: EditorTabs, closing: readonly string[]): EditorT
 
   return { keys: without(tabs.keys, drop), recent: without(tabs.recent, drop) }
 }
+
+/**
+ * Вкладки после переноса или переименования в дереве: вкладки самого файла и всего внутри
+ * папки смотрят на новое место, порядок и выбор - прежние. Разница едет вместе с файлом.
+ */
+export const movedTabs = (tabs: EditorTabs, from: string, to: string): EditorTabs => {
+  const move = (key: string) => {
+    const { kind, path } = tabTarget(key)
+    const moved = movedPathOf(path, from, to)
+
+    return kind === 'diff' ? diffTabKey(moved) : moved
+  }
+
+  return { keys: tabs.keys.map(move), recent: tabs.recent.map(move) }
+}
+
+/** Ключи вкладок файла или всего внутри папки - закрыть их, когда её убрали в корзину. */
+export const tabsUnder = (tabs: EditorTabs, root: string): string[] =>
+  tabs.keys.filter((key) => isInsideAny(tabTarget(key).path, [root]))
 
 /**
  * Файлы, которые уходят из середины совсем, если закрыть эти вкладки: ни вкладки файла,

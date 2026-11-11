@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import { ancestorPaths } from './file-tree.utils'
+import { isInsideAny, movedPathOf } from '../../lib/path.utils'
+import { ancestorPaths, movedExpanded, withoutExpanded } from './file-tree.utils'
 
 const FILE_TREE_STORAGE_KEY = 'agentic-workstation.file-tree.v1'
 
@@ -23,9 +24,23 @@ type FileTreeStore = {
    * должно быть. expand - раскрыть и саму папку: показать папку - показать, что в ней.
    */
   revealPath: (projectId: string, relativePath: string, options?: RevealOptions) => void
+  /** Свернуть все папки проекта (Collapse All). */
+  collapseAll: (projectId: string) => void
+  clipboard: TreeClipboard | null
+  setClipboard: (clipboard: TreeClipboard | null) => void
+  /** Перенесли или переименовали: раскрытое и буфер смотрят на новое место. */
+  moved: (projectId: string, from: string, to: string) => void
+  /** Убрали в корзину: забыть раскрытое внутри и буфер с ним. */
+  removed: (projectId: string, path: string) => void
 }
 
 type RevealOptions = { expand?: boolean }
+
+/**
+ * Скопированный или вырезанный в дереве файл или папка: вставка копирует или переносит его в
+ * выбранную папку того же проекта. Вырезанный после вставки забывается, скопированный - нет.
+ */
+export type TreeClipboard = { projectId: string; path: string; mode: 'copy' | 'cut' }
 
 /** Какие папки раскрыты в дереве. Нужно только дереву, поэтому живёт в его фиче. */
 export const useFileTreeStore = create<FileTreeStore>()(
@@ -60,8 +75,34 @@ export const useFileTreeStore = create<FileTreeStore>()(
             revealed: { projectId, relativePath, serial: (state.revealed?.serial ?? 0) + 1 },
           }
         }),
+      collapseAll: (projectId) =>
+        set((state) => ({ expandedByProject: { ...state.expandedByProject, [projectId]: [] } })),
+      clipboard: null,
+      setClipboard: (clipboard) => set({ clipboard }),
+      moved: (projectId, from, to) =>
+        set((state) => ({
+          expandedByProject: {
+            ...state.expandedByProject,
+            [projectId]: movedExpanded(state.expandedByProject[projectId] ?? [], from, to),
+          },
+          clipboard:
+            state.clipboard?.projectId === projectId
+              ? { ...state.clipboard, path: movedPathOf(state.clipboard.path, from, to) }
+              : state.clipboard,
+        })),
+      removed: (projectId, path) =>
+        set((state) => ({
+          expandedByProject: {
+            ...state.expandedByProject,
+            [projectId]: withoutExpanded(state.expandedByProject[projectId] ?? [], path),
+          },
+          clipboard:
+            state.clipboard?.projectId === projectId && isInsideAny(state.clipboard.path, [path])
+              ? null
+              : state.clipboard,
+        })),
     }),
-    // Просьба показать файл - событие этого запуска, переживать перезапуск ей незачем.
+    // Просьба показать файл и буфер - события этого запуска, переживать перезапуск им незачем.
     {
       name: FILE_TREE_STORAGE_KEY,
       partialize: ({ expandedByProject }) => ({ expandedByProject }),
@@ -78,4 +119,13 @@ export const useRevealSerial = (projectId: string, relativePath: string) =>
     state.revealed?.projectId === projectId && state.revealed.relativePath === relativePath
       ? state.revealed.serial
       : 0,
+  )
+
+/** Вырезан ли путь в буфер: строка тогда бледнее, как в Finder и WebStorm. */
+export const useIsCut = (projectId: string, relativePath: string) =>
+  useFileTreeStore(
+    (state) =>
+      state.clipboard?.mode === 'cut' &&
+      state.clipboard.projectId === projectId &&
+      state.clipboard.path === relativePath,
   )

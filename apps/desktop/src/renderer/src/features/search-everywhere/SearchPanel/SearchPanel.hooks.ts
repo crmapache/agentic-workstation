@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useDeferredValue } from 'react'
+import { useMemo, useDeferredValue } from 'react'
 
 import { FILES_LIMIT, TEXT_DEBOUNCE_MS, ALL_TAB_GROUP_LIMIT } from '../search-everywhere.constants'
 import { useTextSearch, useProjectFiles } from '../search-everywhere.queries'
@@ -12,20 +12,8 @@ import {
   toTextResults,
   flattenSections,
 } from '../search-results.utils'
+import { useDebouncedValue } from '../../../lib/debounce.hooks'
 import type { SearchResultsInput } from './SearchPanel.types'
-
-/** Значение, которое догоняет исходное через паузу после последнего изменения. */
-const useDebouncedValue = <Value>(value: Value, delay: number) => {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay)
-
-    return () => clearTimeout(timer)
-  }, [value, delay])
-
-  return debounced
-}
 
 /**
  * Результаты поиска для вкладки: группы для списка, плоский список для клавиш, ключ

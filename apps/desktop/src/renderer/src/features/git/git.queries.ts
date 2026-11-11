@@ -5,8 +5,8 @@ import { useQuery, useMutation, useIsMutating, useQueryClient } from '@tanstack/
 
 import { invoke } from '../../lib/ipc'
 import { useIpcEvent } from '../../lib/ipc.hooks'
+import { useActionNoticeStore } from '../../state/action-notice.store'
 import { QUERY_KEYS } from '../../state/query-keys'
-import { useGitNoticeStore } from './git-notice.store'
 import { PULL_REQUEST_STALE_MS } from './git.constants'
 
 /**
@@ -82,7 +82,7 @@ const useGitAction = <Input>(
 export const useGitActions = (projectId: string) => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const show = useGitNoticeStore((state) => state.show)
+  const show = useActionNoticeStore((state) => state.show)
 
   const refresh = () =>
     Promise.all([

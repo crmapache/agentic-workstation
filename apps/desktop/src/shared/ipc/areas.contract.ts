@@ -15,6 +15,8 @@ import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connec
 import { CONNECTORS_EVENTS, CONNECTORS_CHANNELS } from './connectors.contract'
 import type { EditorEventContract, EditorInvokeContract } from './editor.contract'
 import { EDITOR_EVENTS, EDITOR_CHANNELS } from './editor.contract'
+import type { FileOpsInvokeContract } from './file-ops.contract'
+import { FILE_OPS_CHANNELS } from './file-ops.contract'
 import type { FsPathsInvokeContract } from './fs-paths.contract'
 import { FS_PATHS_CHANNELS } from './fs-paths.contract'
 import type { GitChangesEventContract, GitChangesInvokeContract } from './git-changes.contract'
@@ -43,6 +45,7 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   ClaudePanelInvokeContract &
   ClaudeSearchInvokeContract &
   FsPathsInvokeContract &
+  FileOpsInvokeContract &
   ProjectSyncInvokeContract &
   GitChangesInvokeContract &
   EditorInvokeContract &
@@ -74,6 +77,7 @@ export const AREA_CHANNELS = {
   ...CLAUDE_PANEL_CHANNELS,
   ...CLAUDE_SEARCH_CHANNELS,
   ...FS_PATHS_CHANNELS,
+  ...FILE_OPS_CHANNELS,
   ...PROJECT_SYNC_CHANNELS,
   ...GIT_CHANGES_CHANNELS,
   ...EDITOR_CHANNELS,

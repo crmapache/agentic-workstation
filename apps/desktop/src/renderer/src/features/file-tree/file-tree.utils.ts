@@ -1,15 +1,13 @@
 import type { DirectoryEntry } from '@shared/fs'
 
+import { isInsideAny, movedPathOf } from '../../lib/path.utils'
+
 /** Папки, которые надо раскрыть, чтобы увидеть путь: «a/b/c.ts» - «a» и «a/b». */
 export const ancestorPaths = (relativePath: string): string[] => {
   const parts = relativePath.split('/').slice(0, -1)
 
   return parts.map((_, index) => parts.slice(0, index + 1).join('/'))
 }
-
-/** Путь - один из списка или лежит внутри одного из них: «a/b» внутри «a», «ab» - нет. */
-export const isInsideAny = (path: string, roots: readonly string[]): boolean =>
-  roots.some((root) => path === root || path.startsWith(`${root}/`))
 
 /**
  * Папки-ссылки среди прочитанных списков. Дерево показывает внутри них цель ссылки, а
@@ -22,3 +20,17 @@ export const symlinkedFolders = (listings: readonly (DirectoryEntry[] | undefine
         ?.filter(({ kind, isSymlink }) => isSymlink && kind === 'directory')
         .map(({ relativePath }) => relativePath) ?? [],
   )
+
+/**
+ * Раскрытые папки после переноса: сама перенесённая и всё внутри неё - под новым путём, папка,
+ * куда перенесли, раскрыта: видно, куда легло.
+ */
+export const movedExpanded = (expanded: readonly string[], from: string, to: string): string[] => {
+  const moved = expanded.map((path) => movedPathOf(path, from, to))
+
+  return [...new Set([...moved, ...ancestorPaths(to)])]
+}
+
+/** Раскрытые папки без убранной в корзину и всего внутри неё. */
+export const withoutExpanded = (expanded: readonly string[], gone: string): string[] =>
+  expanded.filter((path) => !isInsideAny(path, [gone]))

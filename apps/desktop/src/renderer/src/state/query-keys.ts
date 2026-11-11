@@ -26,6 +26,14 @@ export const QUERY_KEYS = {
     relativePath,
   ],
   projectImages: (projectId: string) => ['fs', 'image', projectId],
+  /** Ссылки на то, что переименовывают или переносят в дереве: где и сколько. */
+  fileReferences: (projectId: string, from: string, to: string) => [
+    'fs',
+    'references',
+    projectId,
+    from,
+    to,
+  ],
   /** Картинка с сайта в просмотре Markdown - одна на окно, по адресу. */
   webImage: (url: string) => ['web', 'image', url],
   /** Файлы проекта и найденный текст - для поиска везде. */

@@ -2,6 +2,7 @@ import { shell } from 'electron'
 
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
+import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
 import type { RemoteService } from '../remote/remote-service'
@@ -21,6 +22,7 @@ import { createClaudeToolsHandlers } from './claude-tools-handlers'
 import { createComposerHandlers } from './composer-handlers'
 import { createConnectorsHandlers } from './connectors-handlers'
 import { createEditorHandlers } from './editor-handlers'
+import { createFileOpsHandlers } from './file-ops-handlers'
 import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
@@ -69,6 +71,13 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createGitHandlers(workspace),
     ...createSearchHandlers(workspace, search),
     ...createFsHandlers(workspace, search),
+    ...createFileOpsHandlers(
+      workspace,
+      new FileOpsService({
+        listFiles: (root) => search.listFiles(root),
+        trash: (absolute) => shell.trashItem(absolute),
+      }),
+    ),
     ...createEditorHandlers(workspace),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),

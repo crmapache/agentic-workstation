@@ -28,6 +28,11 @@
   color: var(--color-fg-strong);
 }
 
+// Вырезанное до вставки - бледнее, как в Finder и WebStorm.
+.cut {
+  opacity: var(--opacity-muted);
+}
+
 .chevron {
   flex-shrink: 0;
   color: var(--color-fg-subtle);
