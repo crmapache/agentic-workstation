@@ -24,7 +24,7 @@
 | [0010](0010-claude-code-acc-parity.md)            | Панель Claude Code повторяет раскладку ACC, нарисованную примитивами IDE                   | Частично заменено [0022](0022-panel-chrome.md)               |
 | [0011](0011-remote-access-acc-protocol.md)        | Удалённый доступ с телефона - протоколом ACC байт в байт                                   | Заменено [0013](0013-remote-access-ide-level.md)             |
 | [0012](0012-conversation-search-index.md)         | Поиск по разговорам: индекс в главном процессе, дописывается, резка слов общая             | Принято                                                      |
-| [0013](0013-remote-access-ide-level.md)           | Удалённый доступ - возможность всей IDE, а не панели; пока убран                           | Принято                                                      |
+| [0013](0013-remote-access-ide-level.md)           | Удалённый доступ - возможность всей IDE, а не панели; пока убран                           | Заменено [0041](0041-remote-control-ide-level.md)            |
 | [0014](0014-scenarios-ide-level.md)               | Сценарии - возможность всей IDE, а не панели; пока убраны                                  | Заменено [0039](0039-scenario-queues-ide-level.md)           |
 | [0015](0015-main-area-views.md)                   | Середина окна - виды со своей полосой иконок: файл, сценарии, статистика                   | Принято                                                      |
 | [0016](0016-file-type-icons.md)                   | Иконки типов файлов - набор Catppuccin в тонах нашей палитры                               | Принято                                                      |
@@ -51,3 +51,6 @@
 | [0037](0037-terminal.md)                          | Терминал под панелью Claude Code: node-pty в главном процессе, xterm.js в окне             | Принято                                                      |
 | [0038](0038-rename-agentic-workstation.md)        | Новое имя - Agentic Workstation, чисто, до первого релиза                                  | Принято                                                      |
 | [0039](0039-scenario-queues-ide-level.md)         | Сценарии на уровне IDE: очереди, worktree на очередь, провайдер - исполнитель              | Принято                                                      |
+| [0042](0042-statistics-ide-level.md)              | Статистика IDE: транскрипты в SQLite в своём потоке, графики - свои примитивы              | Принято                                                      |
+| [0040](0040-browser-extension.md)                 | Браузер для ИИ: расширение Chrome по native messaging, встроенный коннектор Browser        | Предложено                                                   |
+| [0041](0041-remote-control-ide-level.md)          | Remote Control на уровне IDE: свой релей, свой протокол v1, провод из архива               | Принято                                                      |

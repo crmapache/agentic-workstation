@@ -70,6 +70,27 @@ describe('токены за сегодня из транскриптов', () =>
     expect(await tokens.count()).toBe(160 + 111)
   })
 
+  it('субагенты разговора считаются: их транскрипты лежат глубже, в subagents/', async () => {
+    const { projects, tokens } = await setup()
+    const nested = join(projects, '-p-a', 'session-1', 'subagents', 'workflows', 'w1')
+
+    await writeFile(
+      join(projects, '-p-a', 'session-1.jsonl'),
+      `${answer('m1', 'r1', '2026-10-19T10:00:00', 5)}\n`,
+    )
+    await mkdir(nested, { recursive: true })
+    await writeFile(
+      join(projects, '-p-a', 'session-1', 'subagents', 'agent-a.jsonl'),
+      `${answer('s1', 'rs1', '2026-10-19T10:01:00', 20)}\n`,
+    )
+    await writeFile(
+      join(nested, 'agent-b.jsonl'),
+      `${answer('s2', 'rs2', '2026-10-19T10:02:00', 40)}\n`,
+    )
+
+    expect(await tokens.count()).toBe(115 + 130 + 150)
+  })
+
   it('файл, не тронутый сегодня, не читается; в полночь счёт начинается заново', async () => {
     const { clock, projects, tokens } = await setup()
     const old = join(projects, '-p-a', 'old.jsonl')
