@@ -57,6 +57,21 @@ describe('ящик для мигнувшей стороны', () => {
     expect(isControl(taken[0])).toBe(true)
   })
 
+  it('пропало у двоих - «переспроси» от каждого, а не от первого', () => {
+    const held = boxes({ maxFrames: 2 })
+    const other = address(3)
+
+    held.hold(key, sender, Buffer.from('a'), 0)
+    held.hold(key, other, Buffer.from('b'), 0)
+    held.hold(key, sender, Buffer.from('c'), 0)
+    held.markLost(key, address(4), 0)
+
+    const taken = held.take(key, 1)
+
+    expect(taken.every(isControl)).toBe(true)
+    expect(taken.map((frame) => frame.subarray(18, 34)[0])).toEqual([2, 3, 4])
+  })
+
   it('все ящики вместе не съедают больше общего потолка', () => {
     const held = boxes({ totalBytes: 10 })
 

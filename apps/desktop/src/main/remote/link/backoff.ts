@@ -1,8 +1,10 @@
 /**
  * Сбой связи с релеем - три поведения, а не один цикл повторов (как Backoff в ACC):
  * сеть мигнула - короткая пауза; релей нездоров - пауза до потолка; отказ по существу -
- * стоп и слово человеку. И отдельно - «адрес занял другой» (код 4009): ограниченное
- * число возвратов, иначе две IDE на одном адресе вытесняют друг друга вечно.
+ * стоп и слово человеку. И отдельно - «адрес занял другой» (код 4009): несколько быстрых
+ * возвратов, потом долгая пауза, но не стоп. Две IDE на одном адресе (копия профиля на
+ * втором Mac) иначе вытесняли бы друг друга каждые пять секунд, а сдавшаяся IDE не вернулась
+ * бы и тогда, когда вторая давно выключена.
  */
 export type Failure = 'network' | 'relay' | 'fatal' | 'displaced'
 
@@ -27,9 +29,13 @@ export const CLOSE_DISPLACED = 4009
 /** Адрес не адрес, версию не знаем - повтор ничего не изменит. */
 export const FATAL_CODES: readonly number[] = [4001, 4002]
 
+/** Сколько быстрых возвратов после вытеснения - дальше долгая пауза. */
 export const DISPLACED_LIMIT = 5
 
 export const DISPLACED_PAUSE_MS = 5_000
+
+/** Пауза после серии вытеснений: вторая IDE на адресе держит его, мы спрашиваем изредка. */
+export const DISPLACED_LONG_PAUSE_MS = 5 * 60_000
 
 /** Что значит код закрытия; без ответа HTTP за ним это почти всегда сеть. */
 export const classifyClose = (code: number): Failure => {
@@ -57,7 +63,9 @@ export class Backoff {
     if (failure === 'displaced') {
       this.displacements += 1
 
-      return this.displacements > DISPLACED_LIMIT ? null : this.jittered(DISPLACED_PAUSE_MS)
+      return this.jittered(
+        this.displacements > DISPLACED_LIMIT ? DISPLACED_LONG_PAUSE_MS : DISPLACED_PAUSE_MS,
+      )
     }
 
     this.attempts += 1

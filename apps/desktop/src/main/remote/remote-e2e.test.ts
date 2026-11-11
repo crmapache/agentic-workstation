@@ -106,7 +106,7 @@ describe('Remote Control: IDE, релей и телефон', () => {
     const pending = await until(() => service.view().pending, 'pending phone')
 
     expect(pending).toMatchObject({ deviceId: phone.deviceId, label: 'Pixel' })
-    service.approve()
+    service.approve(pending)
     await phone.pairAck(offer)
 
     // Инвентарь: проекты ключами, разговор, провайдер.

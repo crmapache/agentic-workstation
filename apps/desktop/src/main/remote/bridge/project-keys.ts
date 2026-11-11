@@ -47,6 +47,18 @@ export class ProjectKeys {
     return this.paths.get(key) ?? null
   }
 
+  /**
+   * Путь по ключу с любой приставкой: подписка на очереди переживает открытие и закрытие
+   * проекта - телефон с ключом из прошлого списка подписывается заново на те же очереди.
+   */
+  pathOfEither(key: string): string | null {
+    const other = key.startsWith(OPEN_PROJECT_PREFIX)
+      ? `${RECENT_PROJECT_PREFIX}${key.slice(OPEN_PROJECT_PREFIX.length)}`
+      : `${OPEN_PROJECT_PREFIX}${key.slice(RECENT_PROJECT_PREFIX.length)}`
+
+    return this.pathOf(key) ?? this.pathOf(other)
+  }
+
   /** Путь открытого проекта: разговоры и запуск сценариев - только в открытых. */
   openPathOf(key: string): string | null {
     const path = this.pathOf(key)

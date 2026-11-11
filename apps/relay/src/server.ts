@@ -9,6 +9,7 @@ import { clientIp, ANONYMOUS, originAllowed } from './callers.ts'
 import type { Config } from './config.ts'
 import { RELAY_VERSION } from './config.ts'
 import { FRAME_PUSH, addressHint, readEnvelope, WIRE_VERSION, decodeAddress } from './frame.ts'
+import { pageHeaders } from './headers.ts'
 import type { Kind } from './hub.ts'
 import { Hub, CLOSE_POLICY, CLOSE_BAD_ADDRESS, CLOSE_BAD_VERSION } from './hub.ts'
 import { Mailboxes } from './mailbox.ts'
@@ -72,9 +73,9 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     if (path === '/privacy' || path === '/privacy/') {
       response
         .writeHead(200, {
+          ...pageHeaders(request.headers.host),
           'content-type': 'text/html; charset=utf-8',
           'cache-control': 'no-cache',
-          ...HEADERS,
         })
         .end(PRIVACY_PAGE)
 
@@ -89,13 +90,15 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
       return
     }
 
-    serveStatic(config.staticDir, path, response)
+    serveStatic(config.staticDir, path, response, pageHeaders(request.headers.host))
   })
 
   // Потолок - у самого транспорта: по умолчанию ws собирает сто мегабайт прежде, чем код
   // увидит сообщение. Переросший кадр закрывает сокет кодом 1009.
   const sockets = new WebSocketServer({ noServer: true, maxPayload: config.maxFrameBytes })
   const perCaller = new Map<string, number>()
+  /** Ответил ли сокет на прошлый пинг - и чей это адрес, чтобы сказать хабу о потере. */
+  const answered = new Map<WebSocket, { address: Buffer; alive: boolean }>()
   let live = 0
 
   http.on('upgrade', (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -153,6 +156,12 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     }
 
     hub.open(address, kind, connection, Date.now())
+    answered.set(connection, { address, alive: true })
+    connection.on('pong', () => {
+      const entry = answered.get(connection)
+
+      if (entry) entry.alive = true
+    })
     log(`${kind} ${addressHint(address)} connected (${hub.count()} live)`)
 
     let frames = 0
@@ -194,6 +203,7 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
 
     connection.on('close', () => {
       clearInterval(window)
+      answered.delete(connection)
       hub.close(address, connection)
       log(`${kind} ${addressHint(address)} left (${hub.count()} live)`)
     })
@@ -205,6 +215,26 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
   const sweeping = setInterval(() => mailboxes.sweep(Date.now()), 30_000)
 
   sweeping.unref()
+
+  // Сокет, умерший молча (крышка ноутбука, тоннель), иначе считался бы живым до таймаута TCP -
+  // минуты, за которые кадры уходили бы в никуда. Не ответил на пинг до следующего - закрыт, а
+  // недавние отправители записаны в ящик: вернувшийся первым услышит «переспроси».
+  const pinging = setInterval(() => {
+    for (const [socket, entry] of answered) {
+      if (!entry.alive) {
+        log(`${addressHint(entry.address)} did not answer a ping - closing`)
+        hub.lost(entry.address, socket, Date.now())
+        answered.delete(socket)
+        socket.terminate()
+        continue
+      }
+
+      entry.alive = false
+      socket.ping()
+    }
+  }, config.pingIntervalMs)
+
+  pinging.unref()
 
   return {
     listen: (port) =>
@@ -218,6 +248,7 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     close: () =>
       new Promise((resolve) => {
         clearInterval(sweeping)
+        clearInterval(pinging)
 
         for (const client of sockets.clients) client.terminate()
 

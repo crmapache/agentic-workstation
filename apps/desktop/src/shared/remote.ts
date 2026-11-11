@@ -6,11 +6,12 @@
 
 /**
  * Как идёт связь с релеем. Разные слова - разные лекарства: reconnecting лечится само
- * (тоннель, крышка ноутбука), relayDown - сервер нездоров, refused не пройдёт и через час
- * (адрес занят другой IDE, релей не понимает нас).
+ * (тоннель, крышка ноутбука), relayDown - сервер нездоров, displaced - адрес этой IDE занял
+ * другой компьютер (копия профиля на втором Mac): IDE пробует изредка, решает человек;
+ * refused не пройдёт и через час (релей не понимает нас).
  */
 export type RemoteLinkState =
-  'off' | 'connecting' | 'connected' | 'reconnecting' | 'relayDown' | 'refused'
+  'off' | 'connecting' | 'connected' | 'reconnecting' | 'relayDown' | 'displaced' | 'refused'
 
 /** Спаренный телефон. Имя назвал сам телефон - ему не доверяют, отпечаток сверяют глазами. */
 export type RemoteDevice = {

@@ -35,6 +35,10 @@ FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4460
+# Образ живёт за Traefik Coolify: тот приходит в контейнер из докер-сети (частный адрес) и
+# дописывает X-Forwarded-For. Релей верит заголовку только такому ближнему собеседнику
+# (src/callers.ts), поэтому порт, открытый наружу мимо прокси, назваться кем угодно не даст.
+ENV RELAY_TRUST_PROXY=1
 # Метка сборки от скрипта выкладки (apps/relay/scripts/relay-deploy.sh): её отдаёт /v1/info.
 ARG BUILD_ID=dev
 ENV RELAY_BUILD=$BUILD_ID

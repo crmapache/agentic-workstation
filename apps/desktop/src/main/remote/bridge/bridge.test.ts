@@ -1,74 +1,22 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
-import type { PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { ConversationOptions } from '@shared/claude'
 
+import { settle, bridgeSetup, OTHER_PHONE, stopBridges } from '../__fixtures__/fake-bridge'
 import {
   RUN,
   itemOf,
-  fakeIde,
   PROJECT_PATH,
   conversationOf,
   CONVERSATION_ID,
 } from '../__fixtures__/fake-ide'
-import { until } from '../__fixtures__/webcrypto-phone'
-import { Bridge } from './bridge'
-import { emptyFold, foldPatch, FeedJournal } from './feed-journal'
-import { fitValue, PHONE_NOTE, packsThatFit, tailThatFits } from './fit'
 import { openProjectKey } from './project-keys'
 
-const PHONE = 'P'.repeat(22)
-
-const bridges: Bridge[] = []
-
-const setup = () => {
-  const ide = fakeIde()
-  const sent: AgentMessage[] = []
-  const bridge = new Bridge({
-    ports: ide.ports,
-    send: (_deviceId, message) => sent.push(message),
-    onTheLine: () => new Set([PHONE]),
-    allow: () => true,
-    machine: () => ({ label: 'Agentic Workstation on test', ideVersion: '0.1.0' }),
-    epoch: 'epoch-1',
-  })
-  const say = (message: Omit<PhoneMessage, 'p'> & Record<string, unknown>) =>
-    bridge.handle(PHONE, { p: 1, ...message } as PhoneMessage)
-  const next = <K extends AgentMessage['k']>(kind: K, from = 0) =>
-    until(
-      () =>
-        sent
-          .slice(from)
-          .find((message): message is Extract<AgentMessage, { k: K }> => message.k === kind),
-      kind,
-    )
-  const command = async (name: string, args: unknown) => {
-    const id = `c${sent.length}`
-
-    say({ k: 'cmd', id, name, args })
-
-    return until(
-      () =>
-        sent.find(
-          (message): message is Extract<AgentMessage, { k: 'result' }> =>
-            message.k === 'result' && message.id === id,
-        ),
-      `result of ${name}`,
-    )
-  }
-
-  bridges.push(bridge)
-
-  return { ide, sent, bridge, say, next, command }
-}
-
-afterEach(() => {
-  for (const bridge of bridges.splice(0)) bridge.stop()
-})
+afterEach(stopBridges)
 
 describe('инвентарь', () => {
   it('проекты ключами, разговоры с провайдером, очереди коротко - и ни одного пути', async () => {
-    const { say, next } = setup()
+    const { say, next } = bridgeSetup()
 
     say({ k: 'hello' })
 
@@ -102,16 +50,16 @@ describe('инвентарь', () => {
   })
 
   it('перемена состояния разговора - новый список каждому на связи, без перемен - тишина', async () => {
-    const { ide, sent, bridge, say, next } = setup()
+    const { ide, sentTo, bridge, say, next } = bridgeSetup()
 
     say({ k: 'inventory' })
     await next('inventory')
 
-    const before = sent.length
+    const before = sentTo().length
 
     bridge.claudeChanged(ide.state)
-    await new Promise((resolve) => setTimeout(resolve, 400))
-    expect(sent.length).toBe(before)
+    await settle(400)
+    expect(sentTo().length).toBe(before)
 
     ide.state.conversations = [conversationOf({ status: 'running', workStartedAt: 5000 })]
     bridge.claudeChanged(ide.state)
@@ -120,11 +68,33 @@ describe('инвентарь', () => {
 
     expect(changed.projects[0]?.conversations[0]).toMatchObject({ status: 'running', since: 5000 })
   })
+
+  it('отпечаток списка - у каждого телефона свой, провайдеры известны до первого hello', async () => {
+    const { ide, sentTo, bridge, say, next } = bridgeSetup()
+
+    // Первый телефон получил список; второй его не видел - перемена уйдёт обоим, второму тоже.
+    say({ k: 'hello' })
+    await next('inventory')
+    ide.state.conversations = [conversationOf({ status: 'running', workStartedAt: 5000 })]
+    bridge.claudeChanged(ide.state)
+
+    const other = await next('inventory', 0, OTHER_PHONE)
+
+    expect(other.providers.map((provider) => provider.id)).toEqual(['claude'])
+    await next('inventory', 1)
+
+    // Без перемен - больше никому ничего.
+    const counts = [sentTo().length, sentTo(OTHER_PHONE).length]
+
+    bridge.claudeChanged(ide.state)
+    await settle(400)
+    expect([sentTo().length, sentTo(OTHER_PHONE).length]).toEqual(counts)
+  })
 })
 
 describe('лента разговора', () => {
   it('снимок, сложенные заплатки с номерами и догонка по номеру', async () => {
-    const { ide, sent, bridge, say, next } = setup()
+    const { ide, sentTo, bridge, say, next } = bridgeSetup()
 
     say({ k: 'subscribe', conversationId: CONVERSATION_ID })
 
@@ -150,11 +120,15 @@ describe('лента разговора', () => {
     expect(patch.upserts).toEqual([itemOf('a2', 'Hello!')])
 
     // Вернулся с номером 0 той же жизни - только заплатки, без снимка.
-    const mark = sent.length
+    const mark = sentTo().length
 
     say({ k: 'subscribe', conversationId: CONVERSATION_ID, since: 0, epoch: 'epoch-1' })
     expect((await next('patch', mark)).seq).toBe(1)
-    expect(sent.slice(mark).some((message) => message.k === 'feed')).toBe(false)
+    expect(
+      sentTo()
+        .slice(mark)
+        .some((message) => message.k === 'feed'),
+    ).toBe(false)
 
     // Номер из прошлой жизни IDE - снимок.
     say({ k: 'subscribe', conversationId: CONVERSATION_ID, since: 1, epoch: 'old' })
@@ -167,17 +141,17 @@ describe('лента разговора', () => {
   })
 
   it('ленту, которую никто не смотрел, телефоны не получают', async () => {
-    const { sent, bridge } = setup()
+    const { log, bridge } = bridgeSetup()
 
     bridge.feedPatched({ conversationId: CONVERSATION_ID, upserts: [itemOf('x', 'y')] })
-    await new Promise((resolve) => setTimeout(resolve, 200))
-    expect(sent).toEqual([])
+    await settle(200)
+    expect(log).toEqual([])
   })
 })
 
 describe('команды телефона', () => {
   it('разговор: сообщение, ответ без «всегда», остановка, имя, модель', async () => {
-    const { ide, command } = setup()
+    const { ide, command } = bridgeSetup()
 
     expect(
       await command('conversation.send', { conversationId: CONVERSATION_ID, text: 'go' }),
@@ -226,15 +200,20 @@ describe('команды телефона', () => {
       'setOptions',
     ])
     expect(await command('conversation.send', { conversationId: 'nope', text: 'x' })).toMatchObject(
-      {
-        ok: false,
-        code: 'notFound',
-      },
+      { ok: false, code: 'notFound' },
     )
   })
 
-  it('новый разговор - в открытом проекте по ключу, с моделью и режимом', async () => {
-    const { ide, command } = setup()
+  it('итог команды уходит срочной очередью', async () => {
+    const { log, command } = bridgeSetup()
+
+    await command('conversation.interrupt', { conversationId: CONVERSATION_ID })
+
+    expect(log.find((entry) => entry.message.k === 'result')?.lane).toBe('urgent')
+  })
+
+  it('новый разговор - в открытом проекте по ключу, с моделью и режимом, id от IDE', async () => {
+    const { ide, command } = bridgeSetup()
     const result = await command('conversation.new', {
       projectKey: openProjectKey(PROJECT_PATH),
       provider: 'claude',
@@ -243,18 +222,52 @@ describe('команды телефона', () => {
     })
 
     expect(result).toMatchObject({ ok: true, data: { conversationId: 'new-1' } })
-    expect(ide.calls.map((call) => call.name)).toEqual(['newConversation', 'setOptions'])
-    expect(ide.calls[1]?.args).toEqual(['new-1', { model: 'haiku', permissionMode: 'plan' }])
+    expect(ide.calls).toEqual([
+      { name: 'newConversation', args: [PROJECT_PATH, { model: 'haiku', permissionMode: 'plan' }] },
+    ])
     expect(
       await command('conversation.new', { projectKey: `p-${'Z'.repeat(22)}`, provider: 'claude' }),
-    ).toMatchObject({
-      ok: false,
-      code: 'notFound',
+    ).toMatchObject({ ok: false, code: 'notFound' })
+  })
+
+  it('новый разговор без режима - default, а не режим из настроек или соседней вкладки', async () => {
+    const { ide, command } = bridgeSetup()
+
+    await command('conversation.new', {
+      projectKey: openProjectKey(PROJECT_PATH),
+      provider: 'claude',
     })
+
+    expect(ide.calls[0]?.args[1]).toEqual({ permissionMode: 'default' })
+    expect(ide.state.conversations.at(-1)?.permissionMode).toBe('default')
+  })
+
+  it('разговор вышел не в телефонном режиме - отказ, и он закрыт', async () => {
+    const { ide, command } = bridgeSetup()
+
+    // IDE, которая не послушала выбор: вкладка унаследовала bypass.
+    ide.ports.conversations.newConversation = (projectPath, options: ConversationOptions) => {
+      ide.calls.push({ name: 'newConversation', args: [projectPath, options] })
+      ide.state.conversations = [
+        ...ide.state.conversations,
+        conversationOf({ id: 'new-1', permissionMode: 'bypassPermissions' }),
+      ]
+
+      return Promise.resolve('new-1')
+    }
+
+    expect(
+      await command('conversation.new', {
+        projectKey: openProjectKey(PROJECT_PATH),
+        provider: 'claude',
+      }),
+    ).toMatchObject({ ok: false, code: 'refused', detail: 'permissionMode' })
+    expect(ide.calls.at(-1)).toEqual({ name: 'close', args: ['new-1'] })
+    expect(ide.state.conversations.some((one) => one.id === 'new-1')).toBe(false)
   })
 
   it('сценарии: полки, запуск, очередь, прогон; закрыть очередь нельзя, незнакомое - отказ', async () => {
-    const { ide, command } = setup()
+    const { ide, command } = bridgeSetup()
     const key = openProjectKey(PROJECT_PATH)
     const shelves = await command('scenarios.shelves', { projectKey: key })
 
@@ -290,10 +303,7 @@ describe('команды телефона', () => {
 
     expect(
       await command('scenarios.queue', { queueId: 'q1', action: { kind: 'close' } }),
-    ).toMatchObject({
-      ok: false,
-      code: 'badArgs',
-    })
+    ).toMatchObject({ ok: false, code: 'badArgs' })
     expect(await command('terminal.run', { command: 'ls' })).toMatchObject({
       ok: false,
       code: 'unknownCommand',
@@ -303,7 +313,7 @@ describe('команды телефона', () => {
 
 describe('сценарии на телефоне', () => {
   it('очереди проекта и прогон - без папок worktree и проекта', async () => {
-    const { bridge, sent, say, next } = setup()
+    const { bridge, sentTo, say, next } = bridgeSetup()
 
     say({ k: 'subscribe', projectKey: '*' })
 
@@ -330,56 +340,9 @@ describe('сценарии на телефоне', () => {
     say({ k: 'subscribe', runId: 'gone' })
     expect(await next('notice')).toMatchObject({ code: 'notFound', about: 'gone' })
 
-    const mark = sent.length
+    const mark = sentTo().length
 
     bridge.runChanged({ ...RUN, state: 'paused' })
     expect((await next('run', mark)).run.state).toBe('paused')
-  })
-})
-
-describe('журнал, складывание и кадр', () => {
-  it('журнал отдаёт хвост после номера, а слишком старый номер - снимок', () => {
-    const journal = new FeedJournal(2)
-
-    for (let index = 0; index < 3; index += 1) {
-      journal.append(
-        (seq) => ({ p: 1, k: 'patch', conversationId: 'c', epoch: 'e', seq, upserts: [] }),
-        10,
-      )
-    }
-
-    expect(journal.lastSeq).toBe(3)
-    expect(journal.after(1)?.map((message) => message.seq)).toEqual([2, 3])
-    expect(journal.after(0)).toBeNull()
-    expect(journal.after(3)).toEqual([])
-    expect(journal.after(9)).toBeNull()
-  })
-
-  it('сложенные заплатки дают то же, что по очереди: снятое теряет вставку, вставленное после снятия - в конец', () => {
-    const fold = emptyFold()
-
-    foldPatch(fold, { conversationId: 'c', upserts: [itemOf('a', '1'), itemOf('b', '1')] })
-    foldPatch(fold, { conversationId: 'c', upserts: [], removes: ['a'] })
-    foldPatch(fold, { conversationId: 'c', upserts: [itemOf('b', '2')], tasks: [] })
-
-    expect([...fold.upserts.keys()]).toEqual(['b'])
-    expect([...fold.removes]).toEqual(['a'])
-    expect(fold.tasks).toEqual([])
-  })
-
-  it('длинное режется с пометкой, хвост и пачки влезают в кадр', () => {
-    const huge = itemOf('h', 'я'.repeat(300_000))
-    const fitted = fitValue(huge)
-
-    expect((fitted as unknown as { text: string }).text.endsWith(PHONE_NOTE)).toBe(true)
-
-    const items = Array.from({ length: 50 }, (_, index) => itemOf(`i${index}`, 'x'.repeat(20_000)))
-    const tail = tailThatFits(items, 200_000, 120)
-
-    expect(tail.cut).toBe(true)
-    expect(tail.items.at(-1)?.id).toBe('i49')
-    expect(
-      packsThatFit(items, 100_000).every((pack) => JSON.stringify(pack).length <= 100_000),
-    ).toBe(true)
   })
 })

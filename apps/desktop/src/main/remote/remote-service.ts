@@ -99,8 +99,12 @@ export class RemoteService {
     return this.view()
   }
 
-  approve(): RemoteView {
-    this.line?.agent.approvePairing()
+  /**
+   * Человек нажал Approve у телефона, которого видел в окне. Адрес и отпечаток сверяются с
+   * ждущим: за это время мог прийти другой телефон (новый код), и «да» ушло бы не ему.
+   */
+  approve(expected: { deviceId: string; fingerprint: string }): RemoteView {
+    this.line?.agent.approvePairing(expected)
 
     return this.view()
   }
@@ -144,7 +148,7 @@ export class RemoteService {
     this.line?.workspaceChanged()
   }
 
-  /** Выход из IDE: линия гасится, состояние дописывается. */
+  /** Выход из IDE: готовое уходит телефонам, линия гасится, состояние дописывается. */
   async shutdown(): Promise<void> {
     this.stop()
 

@@ -9,6 +9,7 @@ export const LINK_TONES: Readonly<Record<RemoteLinkState, BadgeTone>> = {
   connected: 'success',
   reconnecting: 'warning',
   relayDown: 'warning',
+  displaced: 'danger',
   refused: 'danger',
 }
 

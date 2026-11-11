@@ -68,7 +68,13 @@ const pick = (target: string, base: string): string | null =>
   readable(join(target, 'index.html'), base) ??
   readable(join(base, 'index.html'), base)
 
-export const serveStatic = (root: string, path: string, response: ServerResponse): void => {
+/** Файл клиента; headers - заголовки страницы (политика, HTTPS, камера) на каждый ответ. */
+export const serveStatic = (
+  root: string,
+  path: string,
+  response: ServerResponse,
+  headers: Record<string, string> = {},
+): void => {
   if (!root) {
     response.writeHead(404, { 'content-type': 'text/plain' }).end('not found')
 
@@ -101,6 +107,7 @@ export const serveStatic = (root: string, path: string, response: ServerResponse
   }
 
   response.writeHead(200, {
+    ...headers,
     'content-type': TYPES[extname(file)] ?? 'application/octet-stream',
     'cache-control': cacheControl(file),
     'x-content-type-options': 'nosniff',

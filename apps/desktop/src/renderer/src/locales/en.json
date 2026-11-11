@@ -2956,8 +2956,10 @@
       "connected": "Connected",
       "reconnecting": "Reconnecting",
       "relayDown": "Relay unavailable",
+      "displaced": "Address in use",
       "refused": "Refused"
     },
+    "displacedHint": "Another computer is using this IDE's Remote Control address. Turn Remote Control off there; this IDE tries again every few minutes.",
     "button": {
       "off": "Remote Control is off",
       "on_one": "Remote Control: {{count}} phone on the line",
@@ -2992,7 +2994,7 @@
     "help": {
       "label": "What the phone can do",
       "title": "What the phone can do",
-      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now) and the scenario queues. Project folders never leave this Mac: the phone knows a project by a key.\n\nIn a conversation the phone can read the feed, write a message with photos, answer a permission request, a question or a plan, stop the turn, start a new conversation, rename it and change its model or effort.\n\nIn scenarios the phone can start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, continue after a limit, and remove, move, rename or stop a queue after an item.\n\nThe phone cannot use the terminal or ! commands, edit files, change IDE or provider settings, accounts or connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees and scenarios.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. Revoke a phone here and its key stops working at once."
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now) and the scenario queues. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~.\n\nIn a conversation the phone can read the feed, write a message with photos, answer a permission request, a question or a plan, stop the turn, start a new conversation, rename it and change its model or effort.\n\nIn scenarios the phone can start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, continue after a limit, and remove, move, rename or stop a queue after an item.\n\nThe phone cannot use the terminal or ! commands, edit files, change IDE or provider settings, accounts or connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees and scenarios.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
     }
   }
 }

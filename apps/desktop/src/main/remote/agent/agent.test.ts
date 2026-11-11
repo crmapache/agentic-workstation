@@ -1,11 +1,13 @@
 import { it, expect, describe } from 'vitest'
 
+import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
+import { splitIntoParts, MAX_ASSEMBLED_CHARS } from '@agentic-workstation/remote-protocol/parts'
 
 import { deviceProof, exportPublic, generateKeyPair } from '../wire/crypto'
-import { RemoteLimits, MAX_MESSAGE_BYTES } from './limits'
-import { PairingDesk, MAX_ATTEMPTS, OFFER_LIFETIME_MS } from './pairing'
+import { WINDOW_MS, limitKindOf, RemoteLimits, MAX_MESSAGE_BYTES } from './limits'
+import { PairingDesk, MAX_ATTEMPTS, ANSWER_KEPT_MS, OFFER_LIFETIME_MS } from './pairing'
 import { RemoteParts, mayArriveInParts } from './parts'
 
 const AGENT = 'G'.repeat(22)
@@ -33,6 +35,72 @@ describe('частота и вес', () => {
 
     expect(allowed.length).toBeLessThan(30)
     expect(new RemoteLimits().allowBytes('d', MAX_MESSAGE_BYTES + 1)).toBe(false)
+  })
+
+  it('ведро наполняется ровно: через шесть секунд - одна новая команда из десяти', () => {
+    const limits = new RemoteLimits()
+
+    for (let index = 0; index < 10; index += 1) limits.allow('d', 'conversation.send', 0)
+
+    expect(limits.allow('d', 'conversation.send', 1000)).toBe(false)
+    expect(limits.allow('d', 'conversation.send', 6000)).toBe(true)
+    expect(limits.allow('d', 'conversation.send', 6001)).toBe(false)
+  })
+
+  it('работа на кадр постоянная: сто тысяч кадров за минуту считаются мгновенно', () => {
+    const limits = new RemoteLimits()
+    const started = performance.now()
+
+    // Список времён за минуту делал бы на каждый кадр проход по всем прежним - миллиарды шагов.
+    for (let index = 0; index < 100_000; index += 1) limits.allowBytes('d', 1, index / 2)
+
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+
+  it('за минуту проходят три самых тяжёлых сообщения с фото, четвёртое - нет', () => {
+    const limits = new RemoteLimits()
+    const image = { mediaType: 'image/jpeg', data: 'A'.repeat(MAX_ASSEMBLED_CHARS - 400) }
+    const message = JSON.stringify({
+      p: 1,
+      k: 'cmd',
+      id: 'photo',
+      name: 'conversation.send',
+      args: { conversationId: 'c', text: 'look', images: [image] },
+    })
+    const frames = splitIntoParts('photo', message).map((part) => encodeBody(part).length)
+    const send = (now: number) => frames.every((bytes) => limits.allowBytes('d', bytes, now))
+
+    expect(frames.every((bytes) => bytes <= MAX_MESSAGE_BYTES)).toBe(true)
+    expect([send(0), send(1), send(2)]).toEqual([true, true, true])
+    expect(send(3)).toBe(false)
+    expect(send(WINDOW_MS)).toBe(true)
+  })
+
+  it('уборка снимает полные вёдра, а отзыв квоту не обнуляет - её съедает только время', () => {
+    const limits = new RemoteLimits()
+
+    limits.allow('d', 'conversation.send', 0)
+    limits.allowBytes('d', 200_000, 0)
+    limits.sweep(100)
+    expect(limits.size()).toBe(2)
+    limits.sweep(WINDOW_MS)
+    expect(limits.size()).toBe(0)
+  })
+
+  it('команда считается своим именем, отказы - одной кучей', () => {
+    const cmd = (name: string, args: unknown) => ({
+      p: 1 as const,
+      k: 'cmd' as const,
+      id: 'x',
+      name,
+      args,
+    })
+
+    expect(limitKindOf(cmd('conversation.interrupt', { conversationId: 'c' }))).toBe(
+      'conversation.interrupt',
+    )
+    expect(limitKindOf(cmd('terminal.run', {}))).toBe('cmd.refused')
+    expect(limitKindOf(cmd('conversation.interrupt', { nope: 1 }))).toBe('cmd.refused')
   })
 })
 
@@ -109,6 +177,67 @@ describe('пара', () => {
     expect(desk.pending()?.label).toBe('iPhone')
     expect(desk.current()).toBeNull()
     expect(desk.take(init(proof), address, AGENT, identity)).toBe(false)
+  })
+
+  const proofFor = (desk: PairingDesk) => {
+    const { url } = desk.start('wss://relay.example', AGENT, identity)
+    const code = parsePairingFragment(new URL(url).hash)!
+
+    return deviceProof(
+      code.secret,
+      AGENT,
+      init('').staticPub,
+      init('').ephemeralPub,
+      DEVICE,
+    ).toString('base64')
+  }
+
+  it('ждущий телефон истекает вместе с кодом: Approve после - никого не пускает', () => {
+    let now = 0
+    const desk = new PairingDesk(() => now)
+
+    expect(desk.take(init(proofFor(desk)), address, AGENT, identity)).toBe(true)
+    now = OFFER_LIFETIME_MS + 1
+
+    const print = desk.pending()?.fingerprint ?? ''
+
+    expect(desk.pending()).toBeNull()
+    expect(desk.approve({ deviceId: DEVICE, fingerprint: print })).toBeNull()
+  })
+
+  it('Approve пускает только телефон с экрана: другой адрес или отпечаток - никого', () => {
+    const desk = new PairingDesk()
+
+    desk.take(init(proofFor(desk)), address, AGENT, identity)
+
+    const shown = desk.pending()!
+
+    expect(desk.approve({ deviceId: DEVICE, fingerprint: 'AAAA BBBB' })).toBeNull()
+    expect(desk.approve({ deviceId: 'X'.repeat(22), fingerprint: shown.fingerprint })).toBeNull()
+    expect(desk.approve(shown)?.deviceId).toBe(DEVICE)
+    expect(desk.pending()).toBeNull()
+  })
+
+  it('повтор отвеченной просьбы получает тот же ответ; чужая просьба и старый ответ - нет', () => {
+    let now = 0
+    const desk = new PairingDesk(() => now)
+    const request = init(proofFor(desk))
+    const reply = {
+      p: 1 as const,
+      k: 'pairAck' as const,
+      agentId: AGENT,
+      label: 'IDE',
+      staticPub: 'S',
+      ephemeralPub: 'E',
+      proof: 'P',
+    }
+
+    desk.answer(request, reply)
+
+    expect(desk.repeatOf(request)).toBe(reply)
+    expect(desk.repeatOf({ ...request, proof: Buffer.alloc(32).toString('base64') })).toBeNull()
+    now = ANSWER_KEPT_MS + 1
+    expect(desk.repeatOf(request)).toBeNull()
   })
 
   it('серия неверных ответов сжигает код, и через три минуты код ничего не стоит', () => {

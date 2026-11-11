@@ -16,13 +16,21 @@ type Entry = { message: FeedPatchMessage; bytes: number }
  */
 export class FeedJournal {
   private entries: Entry[] = []
-  private next = 1
+  private next: number
   private bytes = 0
 
+  /**
+   * startAfter - последний номер прежнего журнала этого разговора (его убрали, пока никто не
+   * смотрел). Номера идут дальше с пропуском: телефон с номером прежнего журнала получит
+   * снимок - заплатки, пришедшие без журнала, не записаны нигде, и догонять их нечем.
+   */
   constructor(
     private readonly maxEntries = MAX_ENTRIES,
     private readonly maxBytes = MAX_BYTES,
-  ) {}
+    startAfter = 0,
+  ) {
+    this.next = startAfter === 0 ? 1 : startAfter + 2
+  }
 
   get lastSeq(): number {
     return this.next - 1

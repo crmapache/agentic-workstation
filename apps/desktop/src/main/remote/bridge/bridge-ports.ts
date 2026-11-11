@@ -33,8 +33,14 @@ export type ConversationsPort = {
   ) => Promise<unknown>
   respond: (conversationId: string, requestId: string, response: RequestResponse) => unknown
   interrupt: (conversationId: string) => unknown
-  /** Новый разговор в проекте; ответ - состояние, где он уже есть. */
-  newConversation: (projectPath: string) => Promise<ClaudeState>
+  /**
+   * Новый разговор в проекте с выбором сразу - до того, как поднимется процесс. Ответ - id
+   * созданного: не догадка по разнице списков, которую сбил бы разговор, открытый в окне в
+   * ту же секунду.
+   */
+  newConversation: (projectPath: string, options: ConversationOptions) => Promise<string>
+  /** Закрыть разговор, который не вышел таким, как просили (откат неудачного создания). */
+  close: (conversationId: string) => Promise<unknown>
   setOptions: (conversationId: string, options: ConversationOptions) => unknown
   rename: (conversationId: string, title: string) => Promise<unknown>
   providers: () => Promise<ProviderInfo[]>

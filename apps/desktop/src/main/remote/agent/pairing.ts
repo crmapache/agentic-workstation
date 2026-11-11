@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 
 import type { RemotePairing, RemotePending } from '@shared/remote'
 
+import type { PairAck } from '@agentic-workstation/remote-protocol/agent-messages'
 import { QR_SECRET_BYTES } from '@agentic-workstation/remote-protocol/crypto-spec'
 import { pairingUrl } from '@agentic-workstation/remote-protocol/pairing-url'
 import type { PairInit } from '@agentic-workstation/remote-protocol/phone-messages'
@@ -22,6 +23,13 @@ import {
 /** Сколько код чего-то стоит: найти телефон хватает, забыть - тоже. */
 export const OFFER_LIFETIME_MS = 3 * 60 * 1000
 
+/**
+ * Сколько помнить ответ уже спаренному телефону. Ответ мог потеряться (телефон ушёл из сети,
+ * ящик релея протух), и телефон повторит ту же просьбу: он получит тот же ответ, а не «начни
+ * заново» с ключами, которых у него нет.
+ */
+export const ANSWER_KEPT_MS = 10 * 60 * 1000
+
 /** Неверный ответ код не сжигает (шум публичного релея), а серия - сжигает. */
 export const MAX_ATTEMPTS = 5
 
@@ -33,7 +41,19 @@ export type PendingPairing = RemotePending & {
   agentEphemeralPub: string
   proof: Buffer
   address: Buffer
+  /** Просьба телефона как есть: её повтор после ответа узнаётся по ней. */
+  init: PairInit
+  /** Ждущий живёт, пока жив код, по которому он пришёл. */
+  expiresAt: number
 }
+
+type Answered = { init: PairInit; reply: PairAck; until: number }
+
+const sameInit = (first: PairInit, second: PairInit): boolean =>
+  first.deviceId === second.deviceId &&
+  first.staticPub === second.staticPub &&
+  first.ephemeralPub === second.ephemeralPub &&
+  sameSecret(Buffer.from(first.proof, 'base64'), Buffer.from(second.proof, 'base64'))
 
 /**
  * Пара с телефоном. Код живёт только в памяти; первое верное доказательство тратит его, что бы
@@ -44,6 +64,7 @@ export type PendingPairing = RemotePending & {
 export class PairingDesk {
   private offer: Offer | null = null
   private waiting: PendingPairing | null = null
+  private answered: Answered | null = null
 
   constructor(private readonly clock: () => number = Date.now) {}
 
@@ -69,8 +90,9 @@ export class PairingDesk {
     return { url: offer.url, expiresAt: offer.expiresAt }
   }
 
+  /** Ждущий телефон - пока жив его код: истёк код - Approve уже ничего не пускает. */
   pending(): RemotePending | null {
-    const waiting = this.waiting
+    const waiting = this.live()
 
     return (
       waiting && {
@@ -137,14 +159,27 @@ export class PairingDesk {
         agentEphemeralPub,
       ),
       address,
+      init,
+      expiresAt: offer.expiresAt,
     }
 
     return true
   }
 
-  /** Человек сказал «да»: ждущий телефон уходит отсюда к ответу. */
-  approve(): PendingPairing | null {
-    const waiting = this.waiting
+  /**
+   * Человек сказал «да» тому телефону, что видел в окне: адрес и отпечаток должны совпасть с
+   * ждущим. Ждущий сменился (новый код, другой телефон) или код истёк - ничего не пускается.
+   */
+  approve(expected: { deviceId: string; fingerprint: string }): PendingPairing | null {
+    const waiting = this.live()
+
+    if (
+      !waiting ||
+      waiting.deviceId !== expected.deviceId ||
+      waiting.fingerprint !== expected.fingerprint
+    ) {
+      return null
+    }
 
     this.waiting = null
     this.offer = null
@@ -152,9 +187,34 @@ export class PairingDesk {
     return waiting
   }
 
+  /** Ответ ушёл телефону: его же получит повтор той же просьбы. */
+  answer(init: PairInit, reply: PairAck): void {
+    this.answered = { init, reply, until: this.clock() + ANSWER_KEPT_MS }
+  }
+
+  /** Повтор уже отвеченной просьбы (ответ потерялся по дороге) - тот же ответ; иначе null. */
+  repeatOf(init: PairInit): PairAck | null {
+    const answered = this.answered
+
+    if (!answered || this.clock() > answered.until) return null
+
+    return sameInit(answered.init, init) ? answered.reply : null
+  }
+
+  /** Телефон отпустили: его повтор пары больше не получает ответ. */
+  forget(deviceId: string): void {
+    if (this.answered?.init.deviceId === deviceId) this.answered = null
+  }
+
   /** «Нет» или «перестать предлагать»: код и ждущий - всё забыто. */
   cancel(): void {
     this.waiting = null
     this.offer = null
+  }
+
+  private live(): PendingPairing | null {
+    if (this.waiting && this.clock() > this.waiting.expiresAt) this.waiting = null
+
+    return this.waiting
   }
 }

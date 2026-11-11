@@ -26,8 +26,14 @@ export type Config = {
   maxConnections: number
   /** Какие страницы-источники могут открыть сокет; пусто - только страница самого релея. */
   allowedOrigins: string[]
-  /** Верить X-Forwarded-For: за прокси (Coolify, Traefik) адрес соединения - адрес прокси. */
+  /**
+   * Верить X-Forwarded-For от ближнего собеседника из своей сети: за прокси (Coolify, Traefik)
+   * адрес соединения - адрес прокси. Выключено, пока не сказано RELAY_TRUST_PROXY=1: релей без
+   * прокси, поверивший заголовку, дал бы любому назваться кем угодно.
+   */
   trustProxy: boolean
+  /** Как часто спрашивать сокет «жив?»: не ответил до следующего раза - закрыт. */
+  pingIntervalMs: number
   /** Где лежит телефонный клиент; пусто - не раздавать. */
   staticDir: string
   logLevel: 'silent' | 'info'
@@ -60,7 +66,8 @@ export const readConfig = (env: Env = process.env): Config => ({
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
-  trustProxy: env['RELAY_TRUST_PROXY'] !== '0',
+  trustProxy: env['RELAY_TRUST_PROXY'] === '1',
+  pingIntervalMs: positive(env, 'RELAY_PING_SECONDS', 20) * 1000,
   staticDir: env['RELAY_STATIC_DIR'] ?? DEFAULT_STATIC,
   logLevel: env['RELAY_LOG_LEVEL'] === 'silent' ? 'silent' : 'info',
   build: env['RELAY_BUILD'] ?? 'dev',

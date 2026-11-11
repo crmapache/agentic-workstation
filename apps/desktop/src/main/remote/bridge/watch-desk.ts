@@ -8,28 +8,43 @@ import { ALL_PROJECTS } from '@agentic-workstation/remote-protocol/project-key'
 
 import type { StatusClock } from './conversation-wire'
 import { conversationWire } from './conversation-wire'
+import type { Redact } from './fit'
 import { fitValue } from './fit'
 import type { ProjectKeys } from './project-keys'
 import { runWire, queueWire, runProjectPath, runSummaryWire } from './scenario-wire'
 
 export type WatchDeskHost = {
-  send: (deviceId: string, message: AgentMessage) => void
+  send: (deviceId: string, message: AgentMessage) => boolean
+  /** Телефон на связи: спящему состояние не шлётся, проснувшись, он получит последнее. */
+  awake: (deviceId: string) => boolean
   conversations: () => Conversation[]
   keys: () => ProjectKeys
+  redact: () => Redact
   clock: StatusClock
   queuesView: () => ScenarioQueuesView
   run: (projectPath: string, runId: string) => Promise<ScenarioRun | null>
 }
 
+/** Прогон, который смотрит телефон: последнее его состояние и что ушло телефону. */
+type RunWatch = { runId: string; print: string; latest: ScenarioRun }
+
+/**
+ * Очереди, которые смотрит телефон: ключ, с которым он подписался, и папка проекта за ним
+ * (null - доска всех). Подписка держится за папку, а не за ключ: ключ меняет приставку, когда
+ * проект открывают или закрывают, а очереди - те же.
+ */
+type QueuesWatch = { scope: string; path: string | null; print: string }
+
 /**
  * Что телефон смотрит, кроме ленты: состояние своего разговора, прогон сценария и очереди
  * проекта (или доску всех). Шлётся только перемена: отпечаток последнего посланного помнится
- * на телефон, а состояние IDE меняется по многу раз в секунду.
+ * на телефон, а состояние IDE меняется по многу раз в секунду. Спящему - ничего: отпечаток
+ * не трогается, и проснувшийся получит то, что поменялось без него.
  */
 export class WatchDesk {
   private readonly conversationPrints = new Map<string, string>()
-  private readonly runs = new Map<string, { runId: string; print: string }>()
-  private readonly queues = new Map<string, { scope: string; print: string }>()
+  private readonly runs = new Map<string, RunWatch>()
+  private readonly queues = new Map<string, QueuesWatch>()
 
   constructor(private readonly host: WatchDeskHost) {}
 
@@ -48,20 +63,32 @@ export class WatchDesk {
       return false
     }
 
+    if (!this.host.awake(deviceId)) return true
+
     const wire = conversationWire(
       conversation,
       keys.keyOf(conversation.projectPath),
       this.host.clock.since(conversation, Date.now()),
     )
-    const fitted = fitValue(wire)
+    const fitted = fitValue(wire, undefined, this.host.redact())
     const print = JSON.stringify(fitted)
 
     if (fitted && this.conversationPrints.get(deviceId) !== print) {
-      this.conversationPrints.set(deviceId, print)
-      this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'conversation', conversation: fitted })
+      const sent = this.host.send(deviceId, {
+        p: PROTOCOL_VERSION,
+        k: 'conversation',
+        conversation: fitted,
+      })
+
+      if (sent) this.conversationPrints.set(deviceId, print)
     }
 
     return true
+  }
+
+  /** Подписка на разговор заново: его состояние уходит, даже если отпечаток тот же. */
+  freshConversation(deviceId: string): void {
+    this.conversationPrints.delete(deviceId)
   }
 
   /** Телефон смотрит прогон: запись целиком сейчас, дальше - каждую перемену. */
@@ -71,73 +98,55 @@ export class WatchDesk {
 
     if (!run) return false
 
-    this.runs.set(deviceId, { runId, print: '' })
-    this.runChanged(run)
+    this.runs.set(deviceId, { runId, print: '', latest: run })
+    this.sendRun(deviceId)
 
     return true
   }
 
   runChanged(run: ScenarioRun): void {
-    const watchers = [...this.runs].filter(([, watch]) => watch.runId === run.id)
+    for (const [deviceId, watch] of this.runs) {
+      if (watch.runId !== run.id) continue
 
-    if (watchers.length === 0) return
-
-    const fitted = fitValue(runWire(run, (path) => this.host.keys().keyOf(path)))
-    const print = JSON.stringify(fitted)
-
-    for (const [deviceId, watch] of watchers) {
-      if (!fitted || watch.print === print) continue
-
-      watch.print = print
-      this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'run', run: fitted })
+      watch.latest = run
+      this.sendRun(deviceId)
     }
   }
 
-  /** Очереди проекта по ключу или все (`*`): сейчас и дальше при каждой перемене. */
-  watchQueues(deviceId: string, scope: string): void {
-    this.queues.set(deviceId, { scope, print: '' })
-    this.queuesChanged()
+  /**
+   * Очереди проекта по ключу или все (`*`): сейчас и дальше при каждой перемене. false - ключ
+   * не из тех, что IDE называла: подписываться не на что.
+   */
+  watchQueues(deviceId: string, scope: string): boolean {
+    const path = scope === ALL_PROJECTS ? null : this.host.keys().pathOfEither(scope)
+
+    if (scope !== ALL_PROJECTS && path === null) return false
+
+    this.queues.set(deviceId, { scope, path, print: '' })
+    this.sendQueues(deviceId, this.host.queuesView())
+
+    return true
   }
 
   queuesChanged(): void {
     if (this.queues.size === 0) return
 
     const view = this.host.queuesView()
-    const keys = this.host.keys()
-    const keyOf = (path: string) => keys.keyOf(path)
 
-    for (const [deviceId, watch] of this.queues) {
-      const inScope = (path: string) => watch.scope === ALL_PROJECTS || keyOf(path) === watch.scope
-      const message: AgentMessage = {
-        p: PROTOCOL_VERSION,
-        k: 'queues',
-        scope: watch.scope,
-        queues: view.queues
-          .filter((queue) => inScope(queue.projectPath))
-          .map((queue) => queueWire(queue, keyOf)),
-        live: view.live
-          .filter((run) => inScope(run.projectPath))
-          .map((run) => runSummaryWire(run, keyOf)),
-      }
-      const fitted = fitValue(message)
-      const print = JSON.stringify(fitted)
-
-      if (!fitted || watch.print === print) continue
-
-      watch.print = print
-      this.host.send(deviceId, fitted)
-    }
+    for (const deviceId of this.queues.keys()) this.sendQueues(deviceId, view)
   }
 
-  unwatchRun(deviceId: string): void {
-    this.runs.delete(deviceId)
+  /** Снять подписку на прогон - только если телефон смотрит именно его. */
+  unwatchRun(deviceId: string, runId: string): void {
+    if (this.runs.get(deviceId)?.runId === runId) this.runs.delete(deviceId)
   }
 
-  unwatchQueues(deviceId: string): void {
-    this.queues.delete(deviceId)
+  /** Снять подписку на очереди - только если телефон смотрит именно эти. */
+  unwatchQueues(deviceId: string, scope: string): void {
+    if (this.queues.get(deviceId)?.scope === scope) this.queues.delete(deviceId)
   }
 
-  /** Новые ключи у телефона: всё, что ему слали, - как не слали. */
+  /** Всё, что ему слали, - как не слали: следующее состояние уйдёт целиком. */
   forgetPrints(deviceId: string): void {
     this.conversationPrints.delete(deviceId)
 
@@ -148,9 +157,76 @@ export class WatchDesk {
     if (queues) queues.print = ''
   }
 
+  /** Телефон проснулся: прогон и очереди - какие они сейчас, если поменялись без него. */
+  catchUp(deviceId: string): void {
+    this.sendRun(deviceId)
+
+    if (this.queues.has(deviceId)) this.sendQueues(deviceId, this.host.queuesView())
+  }
+
+  /** Отпечатки всех телефонов - новая линия: что ушло в старую, могло не дойти. */
+  forgetAllPrints(): void {
+    for (const deviceId of new Set([
+      ...this.conversationPrints.keys(),
+      ...this.runs.keys(),
+      ...this.queues.keys(),
+    ])) {
+      this.forgetPrints(deviceId)
+    }
+  }
+
   forget(deviceId: string): void {
     this.conversationPrints.delete(deviceId)
     this.runs.delete(deviceId)
     this.queues.delete(deviceId)
+  }
+
+  private sendRun(deviceId: string) {
+    const watch = this.runs.get(deviceId)
+
+    if (!watch || !this.host.awake(deviceId)) return
+
+    const keys = this.host.keys()
+    const fitted = fitValue(
+      runWire(watch.latest, (path) => keys.keyOf(path)),
+      undefined,
+      this.host.redact(),
+    )
+    const print = JSON.stringify(fitted)
+
+    if (!fitted || watch.print === print) return
+    if (this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'run', run: fitted }))
+      watch.print = print
+  }
+
+  /** Очереди проекта по папке, ключи в них - сегодняшние (`p-` открытого, `r-` закрытого). */
+  private sendQueues(deviceId: string, view: ScenarioQueuesView) {
+    const watch = this.queues.get(deviceId)
+
+    if (!watch || !this.host.awake(deviceId)) return
+
+    const keys = this.host.keys()
+    const keyOf = (path: string) => keys.keyOf(path)
+    const inScope = (path: string) => watch.path === null || path === watch.path
+    const fitted = fitValue<AgentMessage>(
+      {
+        p: PROTOCOL_VERSION,
+        k: 'queues',
+        // Ключ подписки - как телефон его прислал: по нему он узнаёт, на что это ответ.
+        scope: watch.scope,
+        queues: view.queues
+          .filter((queue) => inScope(queue.projectPath))
+          .map((queue) => queueWire(queue, keyOf)),
+        live: view.live
+          .filter((run) => inScope(run.projectPath))
+          .map((run) => runSummaryWire(run, keyOf)),
+      },
+      undefined,
+      this.host.redact(),
+    )
+    const print = JSON.stringify(fitted)
+
+    if (!fitted || watch.print === print) return
+    if (this.host.send(deviceId, fitted)) watch.print = print
   }
 }

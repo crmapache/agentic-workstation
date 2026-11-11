@@ -18,6 +18,37 @@ export type Vault = {
 /** Пауза записи: «последний раз слышали» меняется на каждом переподключении. */
 const SAVE_MS = 1000
 
+const newAgentId = (): string => randomBytes(ADDRESS_BYTES).toString('base64url')
+
+/**
+ * Телефоны, чьи секреты не открываются (хранилища нет, Mac сменился, ключ в Связке другой), -
+ * в отпущенные: пара без секрета не работает, и окно не должно рисовать её живой, а телефон
+ * при возвращении услышит «тебя отпустили», а не тишину.
+ */
+const withoutUnreadable = (stored: StoredRemote, vault: Vault): StoredRemote => {
+  const readable = (id: string): boolean => {
+    const sealed = stored.secrets[id]
+
+    return vault.available() && !!sealed && vault.open(sealed) !== null
+  }
+
+  return stored.devices
+    .filter((device) => !readable(device.id))
+    .reduce((state, device) => withRevoked(state, device.id), stored)
+}
+
+/**
+ * Что уходит в файл. Без хранилища - ни ключа, ни адреса IDE, ни телефонов: их пара живёт
+ * только до перезапуска, и запись на диске обещала бы то, чего нет.
+ */
+const persisted = (state: StoredRemote, kept: boolean): StoredRemote =>
+  kept
+    ? {
+        ...state,
+        devices: state.devices.filter((device) => !!state.secrets[device.id]),
+      }
+    : { ...state, agentId: '', identity: '', devices: [], secrets: {} }
+
 /**
  * Кто эта IDE на релее и кого пустили. Ключи - через хранилище; без него они живут только в
  * памяти, и окно честно говорит, что пара не переживёт перезапуск, а не даёт узнать это
@@ -36,7 +67,16 @@ export class RemoteStore {
   ) {}
 
   static async load(file: JsonFile<StoredRemote>, vault: Vault): Promise<RemoteStore> {
-    return new RemoteStore(parseStoredRemote(await file.read()), file, vault)
+    const parsed = parseStoredRemote(await file.read())
+    const checked = withoutUnreadable(parsed, vault)
+    const store = new RemoteStore(checked, file, vault)
+
+    if (checked.devices.length !== parsed.devices.length) {
+      console.warn('[remote] секреты части телефонов не открылись - они отпущены')
+      store.saveSoon(0)
+    }
+
+    return store
   }
 
   get enabled(): boolean {
@@ -57,33 +97,44 @@ export class RemoteStore {
     return this.identityPair !== null || this.state.identity !== ''
   }
 
-  /** Адрес IDE, созданный при первой нужде и дальше постоянный. */
+  /** Адрес IDE на релее - из одной пары с ключом: новый ключ - новый адрес. */
   agentId(): string {
-    if (!this.state.agentId)
-      this.update({ agentId: randomBytes(ADDRESS_BYTES).toString('base64url') })
+    this.identity()
 
     return this.state.agentId
   }
 
   /**
    * Долгая пара ключей IDE: создаётся раз и живёт, пока человек не сменит. Не открылась
-   * (хранилище сменилось) - новая, и все телефоны спариваются заново.
+   * (хранилище сменилось, профиль перенесли на другой Mac) - новая, и с ней новый адрес на
+   * релее: иначе копия профиля на втором Mac звонила бы с тем же адресом, и две IDE
+   * вытесняли бы друг друга. Все телефоны спариваются заново.
    */
   identity(): KeyPair {
     if (this.identityPair) return this.identityPair
 
-    const opened = this.state.identity ? this.vault.open(this.state.identity) : null
+    const opened =
+      this.state.identity && this.vault.available() ? this.vault.open(this.state.identity) : null
     const restored = opened ? tryRestore(opened) : null
 
-    if (restored) return (this.identityPair = restored)
-    if (this.state.identity) console.warn('[remote] ключ IDE не открылся - создаю новый')
+    if (restored) {
+      this.identityPair = restored
+
+      if (!this.state.agentId) this.update({ agentId: newAgentId() })
+
+      return restored
+    }
+
+    if (this.state.identity) console.warn('[remote] ключ IDE не открылся - новый ключ и адрес')
 
     const fresh = generateKeyPair()
+    const kept = this.vault.available()
 
     this.identityPair = fresh
-
-    if (this.vault.available())
-      this.update({ identity: this.vault.seal(exportPrivate(fresh.privateKey)) })
+    this.update({
+      agentId: newAgentId(),
+      identity: kept ? this.vault.seal(exportPrivate(fresh.privateKey)) : '',
+    })
 
     return fresh
   }
@@ -137,7 +188,7 @@ export class RemoteStore {
     if (this.saveTimer) clearTimeout(this.saveTimer)
 
     this.saveTimer = null
-    await this.file.write(this.state).catch((error: unknown) => {
+    await this.file.write(persisted(this.state, this.vault.available())).catch((error: unknown) => {
       console.warn('[remote] состояние не сохранилось:', error)
     })
   }

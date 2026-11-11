@@ -1,4 +1,4 @@
-import type { RemoteView } from '../remote'
+import type { RemoteView, RemotePending } from '../remote'
 
 /**
  * Часть контракта (contract.ts) про Remote Control (ADR 0041). Каждое действие отвечает
@@ -11,8 +11,14 @@ export type RemoteInvokeContract = {
   'remote:setEnabled': { request: { enabled: boolean }; response: RemoteView }
   /** Новый одноразовый код пары на три минуты. Только при включённой связи. */
   'remote:startPairing': { request: void; response: RemoteView }
-  /** Человек сверил отпечаток и пускает ждущий телефон. */
-  'remote:approve': { request: void; response: RemoteView }
+  /**
+   * Человек сверил отпечаток и пускает ждущий телефон - тот, что видел в окне: адрес и
+   * отпечаток должны совпасть с ждущим сейчас, иначе никто не пускается.
+   */
+  'remote:approve': {
+    request: Pick<RemotePending, 'deviceId' | 'fingerprint'>
+    response: RemoteView
+  }
   /** Отказать ждущему или перестать предлагать код - одно: код и ждущий забыты. */
   'remote:refuse': { request: void; response: RemoteView }
   /** Отпустить телефон: его ключ удаляется, кадры перестают открываться и при выключенной связи. */

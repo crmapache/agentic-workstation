@@ -66,23 +66,32 @@ describe('что Remote Control хранит на диске', () => {
 })
 
 describe('ключи - только через хранилище', () => {
-  const written: StoredRemote[] = []
-  const file = {
-    read: () => Promise.resolve(null),
-    write: (value: StoredRemote) => {
-      written.push(value)
+  const fileWith = (stored: StoredRemote | null = null) => {
+    const written: StoredRemote[] = []
+    const file = {
+      read: () => Promise.resolve(stored),
+      write: (value: StoredRemote) => {
+        written.push(value)
 
-      return Promise.resolve()
-    },
-  } as unknown as JsonFile<StoredRemote>
+        return Promise.resolve()
+      },
+    } as unknown as JsonFile<StoredRemote>
 
-  it('ключ IDE и секрет пары лежат запечатанными, а без хранилища - только в памяти', async () => {
-    const vault = {
-      available: () => true,
-      seal: (plain: Buffer) => `sealed:${plain.toString('hex')}`,
-      open: () => null,
-    }
-    const store = await RemoteStore.load(file, vault)
+    return { file, written }
+  }
+
+  const sealing = {
+    available: () => true,
+    seal: (plain: Buffer) => `sealed:${plain.toString('hex')}`,
+    open: (sealed: string) =>
+      sealed.startsWith('sealed:') ? Buffer.from(sealed.slice(7), 'hex') : null,
+  }
+
+  const bare = { available: () => false, seal: () => '', open: () => null }
+
+  it('ключ IDE и секрет пары лежат запечатанными', async () => {
+    const { file, written } = fileWith()
+    const store = await RemoteStore.load(file, sealing)
 
     expect(store.hasIdentity).toBe(false)
     store.identity()
@@ -94,19 +103,58 @@ describe('ключи - только через хранилище', () => {
     expect(saved.format).toBe(REMOTE_FORMAT)
     expect(saved.identity.startsWith('sealed:')).toBe(true)
     expect(saved.secrets[ID]).toBe(`sealed:${Buffer.from('secret').toString('hex')}`)
+    expect(saved.devices).toEqual([device])
+  })
 
-    const bare = await RemoteStore.load(file, {
-      available: () => false,
-      seal: () => '',
+  it('без хранилища пара живёт в памяти, а на диск не пишется ни телефон, ни ключ, ни адрес', async () => {
+    const { file, written } = fileWith()
+    const store = await RemoteStore.load(file, bare)
+
+    store.identity()
+    store.remember(device, Buffer.from('secret'))
+    await store.flush()
+
+    expect(written.at(-1)).toMatchObject({ devices: [], secrets: {}, identity: '', agentId: '' })
+    expect(store.devices).toEqual([device])
+    expect(store.deviceSecret(ID)?.toString()).toBe('secret')
+    expect(store.keysKept).toBe(false)
+  })
+
+  it('телефоны, чьи секреты не открываются, при загрузке - в отпущенных', async () => {
+    const other = { ...device, id: 'C'.repeat(22) }
+    const stored = {
+      ...withDevice(withDevice(emptyRemote(), device, 'sealed:aa'), other, 'broken'),
+      enabled: true,
+    }
+    const kept = await RemoteStore.load(fileWith(stored).file, sealing)
+
+    expect(kept.devices.map((one) => one.id)).toEqual([ID])
+    expect(kept.wasRevoked(other.id)).toBe(true)
+
+    // Хранилища нет вовсе (другой Mac, нет Связки ключей): отпущены все.
+    const lost = await RemoteStore.load(fileWith(stored).file, bare)
+
+    expect(lost.devices).toEqual([])
+    expect(lost.wasRevoked(ID)).toBe(true)
+  })
+
+  it('ключ IDE не открылся - новый ключ и новый адрес: две копии профиля не делят один адрес', async () => {
+    const { file, written } = fileWith()
+    const first = await RemoteStore.load(file, sealing)
+
+    first.identity()
+    await first.flush()
+
+    const saved = written.at(-1)!
+    const same = await RemoteStore.load(fileWith(saved).file, sealing)
+
+    expect(same.agentId()).toBe(saved.agentId)
+
+    const moved = await RemoteStore.load(fileWith(saved).file, {
+      ...sealing,
       open: () => null,
     })
 
-    bare.remember(device, Buffer.from('secret'))
-    await bare.flush()
-
-    expect(written.at(-1)!.secrets[ID]).toBe('')
-    expect(written.at(-1)!.identity).toBe('')
-    expect(bare.deviceSecret(ID)?.toString()).toBe('secret')
-    expect(bare.keysKept).toBe(false)
+    expect(moved.agentId()).not.toBe(saved.agentId)
   })
 })

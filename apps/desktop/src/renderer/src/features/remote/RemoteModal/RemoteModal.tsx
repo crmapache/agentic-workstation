@@ -16,8 +16,9 @@ import { PhoneList } from './parts/PhoneList'
 
 /**
  * Окно Remote Control (ADR 0041): в шапке - состояние связи, переключатель и «?» с тем, что
- * может телефон; ниже - отпечаток этой IDE, пара по QR (код, ждущий телефон с Approve и Refuse)
- * и спаренные телефоны с отзывом. Открывают кнопка в строке состояния и поиск везде.
+ * может телефон; ниже - почему связи нет, если это решает человек (адрес занят другим Mac),
+ * отпечаток этой IDE, пара по QR (код, ждущий телефон с Approve и Refuse) и спаренные телефоны
+ * с отзывом. Открывают кнопка в строке состояния и поиск везде.
  */
 export const RemoteModal = () => {
   const { t } = useTranslation()
@@ -55,6 +56,9 @@ export const RemoteModal = () => {
       closeLabel={t('remote.close')}
       onClose={close}>
       <div className={styles.layout}>
+        {view.state === 'displaced' && (
+          <p className={styles.warning}>{t('remote.displacedHint')}</p>
+        )}
         {!view.keysKept && <p className={styles.warning}>{t('remote.keysNotKept')}</p>}
         {view.fingerprint && (
           <Section size="sm" title={t('remote.thisIde')} description={t('remote.fingerprintNote')}>

@@ -1,79 +1,123 @@
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
-import type { ProviderInfo } from '@shared/providers'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { parseCommand } from '@agentic-workstation/remote-protocol/commands'
-import type { CmdMessage, PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
+import type {
+  CmdMessage,
+  PhoneMessage,
+  SubscribeMessage,
+  UnsubscribeMessage,
+} from '@agentic-workstation/remote-protocol/phone-messages'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 
+import type { Lane } from '../link/outbox'
 import type { BridgePorts } from './bridge-ports'
-import type { Outcome } from './command-desk'
 import { CommandDesk } from './command-desk'
+import type { Outcome } from './command-ledger'
+import { CommandLedger } from './command-ledger'
 import { StatusClock } from './conversation-wire'
 import { FeedDesk } from './feed-desk'
-import { fitValue } from './fit'
-import { inventoryOf, inventoryPrint } from './inventory'
+import type { Redact } from './fit'
+import { InventoryDesk } from './inventory-desk'
+import { PhoneChains } from './phone-chain'
 import { ProjectKeys } from './project-keys'
+import { machineRoots, pathRedactor } from './redact'
 import { WatchDesk } from './watch-desk'
-
-/** Начало хода, вопрос и ответ приходят за миллисекунды - список шлётся один раз. */
-const INVENTORY_DEBOUNCE_MS = 300
-
-/** Вид для предела частоты у команд не из белого списка или с кривыми аргументами. */
-const REFUSED_KIND = 'cmd.refused'
 
 export type BridgeHost = {
   ports: BridgePorts
-  send: (deviceId: string, message: AgentMessage) => void
+  /** false - не ушло в очередь (ключей нет, тело не влезло). */
+  send: (deviceId: string, message: AgentMessage, lane?: Lane) => boolean
   /** Телефоны на связи: им - новый список, когда он поменялся. */
   onTheLine: () => Set<string>
-  /** Предел частоты по виду просьбы (у команд - их имя). */
-  allow: (deviceId: string, kind: string) => boolean
+  /** Телефон на связи: спящему лента и состояние не шлются, он догонит, проснувшись. */
+  awake: (deviceId: string) => boolean
+  /** Телефон спарен и с ключами: отпущенному ничего не выполняется. */
+  known: (deviceId: string) => boolean
   machine: () => { label: string; ideVersion: string }
+  /** Домашняя папка: в тексте для телефона она - «~». */
+  home: string
   /** Жизнь этой линии: номера журналов лент - внутри неё. */
   epoch: string
 }
 
+/** Ключи проектов и подмена папок - по одному состоянию IDE, пересчитываются вместе. */
+type Lens = { keys: ProjectKeys; redact: Redact }
+
 /**
  * Мост Remote Control к IDE: инвентарь машины, подписки (лента и состояние разговора, прогон,
- * очереди), команды телефона. Просьбы одного телефона выполняются строго по очереди: «новый
- * разговор» и следом «смотри его» наперегонки нашли бы разговор, которого ещё нет.
+ * очереди), команды телефона. Подписки одного телефона - строго по очереди; команда в очереди
+ * только начинается, а её итог уходит, когда готов: долгий запуск сценария не держит «стоп».
  */
 export class Bridge {
   readonly feeds: FeedDesk
   private readonly watches: WatchDesk
   private readonly commands: CommandDesk
+  private readonly inventory: InventoryDesk
+  private readonly ledger = new CommandLedger()
+  private readonly chains: PhoneChains
   private readonly clock = new StatusClock()
-  private readonly chains = new Map<string, Promise<void>>()
-  private keysCache: ProjectKeys | null = null
-  private providers: ProviderInfo[] = []
-  private inventoryTimer: NodeJS.Timeout | null = null
-  private sentInventory = ''
+  private lensCache: Lens | null = null
 
   constructor(private readonly host: BridgeHost) {
     const { ports } = host
+    const redact = () => this.lens().redact
+    const keys = () => this.lens().keys
 
+    this.chains = new PhoneChains(host.known)
     this.feeds = new FeedDesk({
-      getFeed: ports.conversations.getFeed,
-      send: host.send,
+      getFeed: (conversationId) => ports.conversations.getFeed(conversationId),
+      send: (deviceId, message) => host.send(deviceId, message),
+      awake: host.awake,
+      redact,
       epoch: host.epoch,
     })
     this.watches = new WatchDesk({
-      send: host.send,
+      send: (deviceId, message) => host.send(deviceId, message),
+      awake: host.awake,
       conversations: () => ports.conversations.getState().conversations,
-      keys: () => this.keys(),
+      keys,
+      redact,
       clock: this.clock,
-      queuesView: ports.scenarios.queuesView,
-      run: ports.scenarios.run,
+      queuesView: () => ports.scenarios.queuesView(),
+      run: (projectPath, runId) => ports.scenarios.run(projectPath, runId),
     })
-    this.commands = new CommandDesk(ports, () => this.keys())
+    this.inventory = new InventoryDesk({
+      ports,
+      send: (deviceId, message) => host.send(deviceId, message),
+      onTheLine: host.onTheLine,
+      keys,
+      redact,
+      clock: this.clock,
+      machine: host.machine,
+      epoch: host.epoch,
+    })
+    this.commands = new CommandDesk(ports, keys)
   }
 
-  /** Открытое и проверенное слово спаренного телефона. */
+  /** Открытое и проверенное слово спаренного телефона (предел частоты уже позади). */
   handle(deviceId: string, message: PhoneMessage): void {
-    this.inOrder(deviceId, () => this.act(deviceId, message))
+    switch (message.k) {
+      case 'hello':
+      case 'inventory':
+        return void this.inventory.answer(deviceId, this.chains.ticket(deviceId))
+      case 'cmd':
+        return this.command(deviceId, message)
+      case 'subscribe':
+        return this.chains.run(deviceId, () => this.subscribe(deviceId, message))
+      case 'unsubscribe':
+        return this.chains.run(deviceId, () => this.unsubscribe(deviceId, message))
+      case 'ping':
+      case 'part':
+        return
+    }
+  }
+
+  /** Команда с этим id уже принята: её повтор - доставка, а не новая просьба. */
+  knows(deviceId: string, commandId: string): boolean {
+    return this.ledger.seen(deviceId, commandId) !== null
   }
 
   claudeChanged(state: ClaudeState): void {
@@ -86,7 +130,7 @@ export class Bridge {
       if (!this.watches.conversation(deviceId, conversationId)) this.feeds.unwatch(deviceId)
     }
 
-    this.scheduleInventory()
+    this.inventory.schedule()
   }
 
   feedPatched(patch: FeedPatch): void {
@@ -94,9 +138,9 @@ export class Bridge {
   }
 
   queuesChanged(): void {
-    this.keysCache = null
+    this.lensCache = null
     this.watches.queuesChanged()
-    this.scheduleInventory()
+    this.inventory.schedule()
   }
 
   runChanged(run: ScenarioRun): void {
@@ -105,87 +149,150 @@ export class Bridge {
 
   /** Открыли или закрыли проект: ключи другие, разговоры закрытого телефону больше не видны. */
   workspaceChanged(): void {
-    this.keysCache = null
+    this.lensCache = null
 
     for (const [deviceId, conversationId] of this.feeds.watchers()) {
       if (!this.watches.conversation(deviceId, conversationId)) this.feeds.unwatch(deviceId)
     }
 
     this.watches.queuesChanged()
-    this.scheduleInventory()
+    this.inventory.schedule()
   }
 
-  /** Новые ключи у телефона или обвал очереди: всё посланное ему - как не посланное. */
-  startedAgain(deviceId: string): void {
+  /**
+   * Новые ключи телефона - новая страница или вторая вкладка: подписки прежней ей не нужны и
+   * шли бы ей зря. Снимаются в очереди - после всего, что прежняя страница успела попросить.
+   */
+  newKeys(deviceId: string): void {
+    this.chains.run(deviceId, () => {
+      this.feeds.unwatch(deviceId)
+      this.watches.forget(deviceId)
+      this.inventory.forget(deviceId)
+    })
+  }
+
+  /** Очередь до телефона обвалилась: всё посланное ему - как не посланное, список - заново. */
+  resend(deviceId: string): void {
     this.watches.forgetPrints(deviceId)
+    this.inventory.forget(deviceId)
+    this.inventory.schedule()
   }
 
+  /** Телефон проснулся: что поменялось, пока он спал, - лента из журнала, состояние, список. */
+  woke(deviceId: string): void {
+    this.chains.run(deviceId, async () => {
+      const conversationId = this.feeds.watching(deviceId)
+
+      if (conversationId && !this.watches.conversation(deviceId, conversationId)) {
+        this.feeds.unwatch(deviceId)
+      }
+
+      this.watches.catchUp(deviceId)
+      this.inventory.catchUp(deviceId)
+      await this.feeds.catchUp(deviceId)
+    })
+  }
+
+  /**
+   * Линия до релея поднялась снова (ноутбук проснулся): посланное в умерший сокет могло не
+   * дойти. Отпечатки всех телефонов - заново, тем, кто на связи, - «переспроси со своего
+   * номера» и список машины; спящие догонят, когда проснутся.
+   */
+  linkUp(): void {
+    this.watches.forgetAllPrints()
+    this.inventory.forgetAll()
+
+    for (const deviceId of this.host.onTheLine()) {
+      this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'resync' })
+    }
+
+    this.inventory.schedule()
+  }
+
+  /** Телефон отпущен: ждущее в его очереди не выполнится, его подписки и журнал команд - вон. */
   forget(deviceId: string): void {
+    this.chains.cancel(deviceId)
+    this.ledger.forget(deviceId)
     this.feeds.unwatch(deviceId)
     this.watches.forget(deviceId)
-    this.chains.delete(deviceId)
+    this.inventory.forget(deviceId)
+  }
+
+  /** Сердцебиение линии: журналы лент, которые давно никто не смотрит, и старые команды. */
+  sweep(): void {
+    this.feeds.sweep()
+    this.ledger.sweep()
   }
 
   stop(): void {
+    this.chains.stop()
     this.feeds.stop()
-
-    if (this.inventoryTimer) clearTimeout(this.inventoryTimer)
-
-    this.inventoryTimer = null
+    this.inventory.stop()
   }
 
-  private async act(deviceId: string, message: PhoneMessage): Promise<void> {
-    switch (message.k) {
-      case 'hello':
-      case 'inventory':
-        this.providers = await this.host.ports.conversations.providers()
+  private async subscribe(deviceId: string, message: SubscribeMessage): Promise<void> {
+    if (message.conversationId) {
+      // Подписка заново - состояние разговора уходит, даже если оно то же: у телефона его нет.
+      this.watches.freshConversation(deviceId)
 
-        return this.sendInventory([deviceId])
-      case 'subscribe':
-        if (message.conversationId) {
-          // Разговора нет (вкладку закрыли, проект закрыт) - телефону уже сказано conversationGone.
-          if (!this.watches.conversation(deviceId, message.conversationId)) return
+      // Разговора нет (вкладку закрыли, проект закрыт) - телефону уже сказано conversationGone.
+      if (!this.watches.conversation(deviceId, message.conversationId)) return
 
-          return this.feeds.watch(deviceId, message.conversationId, message.since, message.epoch)
-        }
+      return this.feeds.watch(deviceId, message.conversationId, message.since, message.epoch)
+    }
 
-        if (message.runId && !(await this.watches.watchRun(deviceId, message.runId))) {
-          return this.notFound(deviceId, message.runId)
-        }
+    if (message.runId && !(await this.watches.watchRun(deviceId, message.runId))) {
+      return this.notFound(deviceId, message.runId)
+    }
 
-        if (message.projectKey) this.watches.watchQueues(deviceId, message.projectKey)
-
-        return
-      case 'unsubscribe':
-        if (message.conversationId) this.feeds.unwatch(deviceId)
-        if (message.runId) this.watches.unwatchRun(deviceId)
-        if (message.projectKey) this.watches.unwatchQueues(deviceId)
-
-        return
-      case 'cmd':
-        return this.command(deviceId, message)
-      case 'ping':
-      case 'part':
-        return
+    if (message.projectKey && !this.watches.watchQueues(deviceId, message.projectKey)) {
+      return this.notFound(deviceId, message.projectKey)
     }
   }
 
-  private async command(deviceId: string, message: CmdMessage) {
-    const reply = (outcome: Outcome) =>
-      this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'result', id: message.id, ...outcome })
+  private unsubscribe(deviceId: string, message: UnsubscribeMessage) {
+    if (message.conversationId) this.feeds.unwatch(deviceId, message.conversationId)
+    if (message.runId) this.watches.unwatchRun(deviceId, message.runId)
+    if (message.projectKey) this.watches.unwatchQueues(deviceId, message.projectKey)
+  }
+
+  /**
+   * Команда: повтор принятой - сохранённый итог (или ничего, пока первая выполняется); новая -
+   * в журнал сразу, а в работу - своей очередью, после того, что пришло раньше неё.
+   */
+  private command(deviceId: string, message: CmdMessage) {
+    const seen = this.ledger.seen(deviceId, message.id)
+
+    if (seen) {
+      if (seen.outcome) this.reply(deviceId, message.id, seen.outcome)
+
+      return
+    }
+
+    this.ledger.begin(deviceId, message.id)
+    this.chains.run(deviceId, () => this.start(deviceId, message))
+  }
+
+  /** Начать команду и не ждать её: итог уйдёт сам, очередь телефона идёт дальше. */
+  private start(deviceId: string, message: CmdMessage) {
+    const still = this.chains.ticket(deviceId)
+    const settle = (outcome: Outcome) => {
+      this.ledger.settle(deviceId, message.id, outcome)
+
+      if (still()) this.reply(deviceId, message.id, outcome)
+    }
     const parsed = parseCommand(message.name, message.args)
-    // Отказы считаются одной кучей и строго: поток незнакомых команд - не человек печатает.
-    const kind = parsed.ok ? parsed.command.name : REFUSED_KIND
 
-    if (!this.host.allow(deviceId, kind)) return reply({ ok: false, code: 'rateLimited' })
-    if (!parsed.ok) return reply({ ok: false, code: parsed.code })
+    if (!parsed.ok) return settle({ ok: false, code: parsed.code })
 
-    try {
-      reply(await this.commands.run(parsed.command))
-    } catch (error) {
+    void this.commands.run(parsed.command).then(settle, (error: unknown) => {
       console.warn(`[remote] команда телефона ${parsed.command.name} не выполнилась:`, error)
-      reply({ ok: false, code: 'failed' })
-    }
+      settle({ ok: false, code: 'failed' })
+    })
+  }
+
+  private reply(deviceId: string, id: string, outcome: Outcome) {
+    this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'result', id, ...outcome }, 'urgent')
   }
 
   private notFound(deviceId: string, about: string) {
@@ -198,54 +305,22 @@ export class Bridge {
     })
   }
 
-  private inOrder(deviceId: string, work: () => Promise<void> | void) {
-    const next = (this.chains.get(deviceId) ?? Promise.resolve())
-      .then(work)
-      .catch((error: unknown) => console.warn('[remote] просьба телефона не выполнилась:', error))
+  /** Ключи и подмена папок по текущему состоянию IDE - до первой перемены проектов или очередей. */
+  private lens(): Lens {
+    if (this.lensCache) return this.lensCache
 
-    this.chains.set(deviceId, next)
-  }
-
-  private keys(): ProjectKeys {
-    this.keysCache ??= new ProjectKeys(
-      this.host.ports.workspace.getState(),
-      this.host.ports.scenarios.queuesView().queues.map((queue) => queue.projectPath),
-    )
-
-    return this.keysCache
-  }
-
-  /** Список - каждому на связи, если он поменялся: телефон, не смотрящий разговор, узнает, что тот заработал. */
-  private scheduleInventory() {
-    if (this.inventoryTimer) return
-
-    this.inventoryTimer = setTimeout(() => {
-      this.inventoryTimer = null
-      this.sendInventory([...this.host.onTheLine()], true)
-    }, INVENTORY_DEBOUNCE_MS)
-    this.inventoryTimer.unref()
-  }
-
-  private sendInventory(deviceIds: string[], onlyChanged = false) {
     const { ports } = this.host
-    const inventory = inventoryOf({
-      workspace: ports.workspace.getState(),
-      claude: ports.conversations.getState(),
-      queues: ports.scenarios.queuesView(),
-      providers: this.providers,
-      keys: this.keys(),
-      clock: this.clock,
-      machine: this.host.machine(),
-      epoch: this.host.epoch,
-      now: Date.now(),
-    })
-    const print = inventoryPrint(inventory)
-    const fitted = fitValue(inventory)
+    const workspace = ports.workspace.getState()
+    const queues = ports.scenarios.queuesView()
 
-    if (!fitted || (onlyChanged && print === this.sentInventory)) return
+    this.lensCache = {
+      keys: new ProjectKeys(
+        workspace,
+        queues.queues.map((queue) => queue.projectPath),
+      ),
+      redact: pathRedactor(machineRoots(workspace, queues, this.host.home)),
+    }
 
-    this.sentInventory = print
-
-    for (const deviceId of deviceIds) this.host.send(deviceId, fitted)
+    return this.lensCache
   }
 }

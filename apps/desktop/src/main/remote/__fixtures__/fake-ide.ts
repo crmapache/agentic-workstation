@@ -207,11 +207,21 @@ export const fakeIde = () => {
       send: (id, message) => Promise.resolve(record('send', id, message)),
       respond: (id, requestId, response) => record('respond', id, requestId, response),
       interrupt: (id) => record('interrupt', id),
-      newConversation: (projectPath) => {
-        record('newConversation', projectPath)
-        state.conversations = [...state.conversations, conversationOf({ id: 'new-1', title: '' })]
+      // Как ClaudeService.openConversation: выбор ложится на вкладку сразу, ответ - её id.
+      newConversation: (projectPath, options) => {
+        record('newConversation', projectPath, options)
+        state.conversations = [
+          ...state.conversations,
+          conversationOf({ id: 'new-1', title: '', projectPath, ...options }),
+        ]
 
-        return Promise.resolve(state)
+        return Promise.resolve('new-1')
+      },
+      close: (id) => {
+        record('close', id)
+        state.conversations = state.conversations.filter((one) => one.id !== id)
+
+        return Promise.resolve(null)
       },
       setOptions: (id, options) => record('setOptions', id, options),
       rename: (id, title) => Promise.resolve(record('rename', id, title)),

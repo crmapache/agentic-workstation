@@ -1,4 +1,4 @@
-import type { RemoteView } from '@shared/remote'
+import type { RemoteView, RemotePending } from '@shared/remote'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
@@ -32,7 +32,14 @@ export const useRemoteActions = () => {
   return {
     setEnabled: (enabled: boolean) => run(() => invoke('remote:setEnabled', { enabled })),
     startPairing: () => run(() => invoke('remote:startPairing')),
-    approve: () => run(() => invoke('remote:approve')),
+    /** Пускается тот телефон, что на экране: главный процесс сверит адрес и отпечаток. */
+    approve: (pending: RemotePending) =>
+      run(() =>
+        invoke('remote:approve', {
+          deviceId: pending.deviceId,
+          fingerprint: pending.fingerprint,
+        }),
+      ),
     refuse: () => run(() => invoke('remote:refuse')),
     revoke: (deviceId: string) => run(() => invoke('remote:revoke', { deviceId })),
   }

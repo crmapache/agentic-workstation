@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import type { ForkOrigin, ClaudeState, Conversation, HistoryEntry } from '@shared/claude'
+import type {
+  ForkOrigin,
+  ClaudeState,
+  Conversation,
+  HistoryEntry,
+  ConversationOptions,
+} from '@shared/claude'
 import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
 import type { ConversationCall } from '@shared/claude-prefs'
 
@@ -199,6 +205,19 @@ export class ClaudeService {
     return this.getState()
   }
 
+  /**
+   * Новая вкладка с выбором сразу (Remote Control): модель, усилие и режим ставятся до того,
+   * как поднимется процесс. Ответ - id созданной вкладки, а не состояние, в котором её надо
+   * искать.
+   */
+  async openConversation(projectPath: string, options: ConversationOptions): Promise<string> {
+    const id = await this.addRuntime(projectPath, randomUUID(), null)
+
+    this.actions.setOptions(id, options)
+
+    return id
+  }
+
   activateConversation(conversationId: string): ClaudeState {
     this.setActive(this.runtime(conversationId).meta.projectPath, conversationId)
 
@@ -354,6 +373,8 @@ export class ClaudeService {
     const conversation = await newTabConversation(tab)
 
     this.tabs.add(conversation)
+
+    return conversation.id
   }
 
   /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры, доверие. */

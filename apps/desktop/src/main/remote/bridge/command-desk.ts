@@ -4,14 +4,14 @@ import type { ScenarioCode } from '@shared/scenarios'
 
 import type { RemoteErrorCode } from '@agentic-workstation/remote-protocol/agent-messages'
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
+import { PHONE_PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
 
 import type { BridgePorts } from './bridge-ports'
+import type { Outcome } from './command-ledger'
 import type { ProjectKeys } from './project-keys'
 import { runProjectPath, shelfScenarioWire } from './scenario-wire'
 
-/** Исход команды: данные для телефона или отказ кодом (detail - слово самой IDE). */
-export type Outcome =
-  { ok: true; data?: unknown } | { ok: false; code: RemoteErrorCode; detail?: string }
+const PHONE_MODES: readonly string[] = PHONE_PERMISSION_MODES
 
 const done = (data?: unknown): Outcome => (data === undefined ? { ok: true } : { ok: true, data })
 
@@ -115,6 +115,12 @@ export class CommandDesk {
     }
   }
 
+  /**
+   * Новый разговор с телефона. Режим задаётся всегда (default, если телефон не выбрал): иначе
+   * вкладка взяла бы закреплённый в настройках или режим выбранной вкладки - auto или bypass,
+   * которые с телефона не выбираются. Вышел режим не из телефонных - разговор закрывается, а
+   * телефону отказ.
+   */
   private async newConversation(args: CommandArgs<'conversation.new'>): Promise<Outcome> {
     const path = this.keys().openPathOf(args.projectKey)
 
@@ -122,23 +128,23 @@ export class CommandDesk {
     if (!isProviderId(args.provider)) return fail('refused', 'providerMissing')
 
     const { conversations } = this.ports
-    const before = new Set(conversations.getState().conversations.map((one) => one.id))
-    const state = await conversations.newConversation(path)
-    const created = state.conversations.find(
-      (one) => !before.has(one.id) && one.projectPath === path,
-    )
+    const id = await conversations.newConversation(path, {
+      ...(args.model !== undefined && { model: args.model }),
+      ...(args.effort !== undefined && { effort: args.effort }),
+      permissionMode: args.permissionMode ?? 'default',
+    })
+    const created = conversations.getState().conversations.find((one) => one.id === id)
 
     if (!created) return fail('failed')
 
-    const options = {
-      ...(args.model !== undefined && { model: args.model }),
-      ...(args.effort !== undefined && { effort: args.effort }),
-      ...(args.permissionMode !== undefined && { permissionMode: args.permissionMode }),
+    if (!PHONE_MODES.includes(created.permissionMode)) {
+      console.warn(`[remote] новый разговор вышел в режиме ${created.permissionMode} - закрыт`)
+      await conversations.close(id)
+
+      return fail('refused', 'permissionMode')
     }
 
-    if (Object.keys(options).length > 0) conversations.setOptions(created.id, options)
-
-    return done({ conversationId: created.id })
+    return done({ conversationId: id })
   }
 
   private async scenario(command: Command): Promise<Outcome> {

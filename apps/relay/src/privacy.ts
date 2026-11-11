@@ -17,13 +17,15 @@ h2 { font-size: 1.1rem; margin-top: 1.6rem; }
 </head>
 <body>
 <h1>Agentic Workstation relay: privacy</h1>
-<p>This relay connects Agentic Workstation on your computer with your phone. It is content-blind: everything that passes through it is end-to-end encrypted between the two devices, and the relay has no keys to read it.</p>
+<p>This relay connects Agentic Workstation on your computer with your phone. It is content-blind: everything that passes through it is end-to-end encrypted between the two devices, and the relay has no keys to read it. One caveat about the phone app is below.</p>
 <h2>What the relay sees</h2>
 <p>Each frame carries a 42-byte header with two random 16-byte addresses (who it is for and who sent it), a counter and the frame type. The relay routes frames by address only. It also sees the size of each frame, when it passed, and the IP address of each connection, which it uses to limit how many connections one caller may open.</p>
 <h2>What the relay cannot see</h2>
 <p>Your code, files, projects, conversations, commands, prompts, answers and the names of your projects. Frame bodies are never parsed, decoded or logged. The addresses are random and contain nothing about you, your phone or your computer.</p>
 <h2>What is stored</h2>
 <p>Nothing is stored on disk. When a device is briefly offline, frames for it are held in memory for up to two minutes and then dropped. A restart of the relay forgets everything.</p>
+<h2>The phone app comes from this relay</h2>
+<p>The relay also serves the phone app you open in the browser. Your phone runs whatever code this server sends it, and that code holds the keys of your pairing. So the encryption protects your data from the relay as long as the relay serves the genuine app. If this server were taken over, it could send a modified app that reads what your phone shows and sends. The pages are served with a strict content security policy, but that does not help against the server itself. Running your own relay, checking the app's files against the published source, or installing the app from a separate trusted place are the ways to reduce this trust; none of them is built in yet.</p>
 <h2>Logs</h2>
 <p>Service logs record connections and errors with the first four bytes of an address, never a frame body. They are kept for 7 days and then deleted.</p>
 </body>

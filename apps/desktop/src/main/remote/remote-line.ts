@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { homedir } from 'node:os'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
@@ -22,6 +23,8 @@ export type LineDeps = {
   relayUrl: string
   machine: () => { label: string; ideVersion: string }
   onView: () => void
+  /** Домашняя папка - для подмены в тексте; тест подставляет свою. */
+  home?: string
 }
 
 /**
@@ -45,24 +48,34 @@ export class RemoteLine {
       },
       {
         handle: (deviceId, message) => this.bridge.handle(deviceId, message),
-        startedAgain: (deviceId) => this.bridge.startedAgain(deviceId),
+        newKeys: (deviceId) => this.bridge.newKeys(deviceId),
+        resend: (deviceId) => this.bridge.resend(deviceId),
+        woke: (deviceId) => this.bridge.woke(deviceId),
+        linkUp: () => this.bridge.linkUp(),
+        knownCommand: (deviceId, commandId) => this.bridge.knows(deviceId, commandId),
         forgotten: (deviceId) => this.bridge.forget(deviceId),
       },
     )
     this.bridge = new Bridge({
       ports: deps.ports,
-      send: (deviceId, message) => {
-        this.agent.queue(deviceId, encodeBody(message))
-        this.flushSoon()
+      send: (deviceId, message, lane) => {
+        const queued = this.agent.queue(deviceId, encodeBody(message), lane)
+
+        if (queued) this.flushSoon()
+
+        return queued
       },
       onTheLine: () => this.agent.onTheLine(),
-      allow: (deviceId, kind) => this.agent.limits.allow(deviceId, kind),
+      awake: (deviceId) => this.agent.isAwake(deviceId),
+      known: (deviceId) => this.agent.sessions.isOpen(deviceId),
       machine: deps.machine,
+      home: deps.home ?? homedir(),
       // Жизнь линии: телефон с номером ленты из прошлой жизни получит снимок, а не дыру.
       epoch: randomBytes(6).toString('base64url'),
     })
     this.beat = setInterval(() => {
       this.agent.beat()
+      this.bridge.sweep()
       // «На связи» гаснет само, когда телефон замолчал, - окну нужно это увидеть.
       deps.onView()
     }, BEAT_MS)
@@ -70,11 +83,16 @@ export class RemoteLine {
     this.agent.start()
   }
 
+  /**
+   * Погасить: сначала мост (ни одна ждущая просьба больше не начнётся), потом агент - он
+   * отправит то, что уже готово (итоги команд), и только тогда закроет сокет.
+   */
   stop(): void {
     clearInterval(this.beat)
 
     if (this.flushTimer) clearImmediate(this.flushTimer)
 
+    this.flushTimer = null
     this.bridge.stop()
     this.agent.stop()
   }

@@ -6,7 +6,7 @@ import type { Envelope } from '../wire/frame'
 import { parseFrame, encodeAddress, heartbeatFrame } from '../wire/frame'
 import type { Failure } from './backoff'
 import { Backoff, classifyClose } from './backoff'
-import type { RemoteOutbox } from './outbox'
+import type { Seal, RemoteOutbox } from './outbox'
 
 /** Что нужно от сокета: ровно то, что умеет WebSocket из Node (и подделка в тесте). */
 export type SocketLike = {
@@ -76,13 +76,16 @@ export class RelayLink {
     this.move('off')
   }
 
-  /** Отправить ждущее. Не ушедшее возвращается в очередь, а не пропадает. */
-  flush(resyncFrame: (deviceId: string) => Buffer | null): void {
+  /**
+   * Отправить ждущее, запечатывая в порядке ухода. Не ушедшее возвращается в очередь, а не
+   * пропадает. Только открытому сокету: закрывающийся проглотил бы кадры молча.
+   */
+  flush(seal: Seal, resyncFrame: (deviceId: string) => Buffer | null): void {
     const socket = this.socket
 
     if (!socket || socket.readyState !== OPEN) return
 
-    const waiting = this.options.outbox.drain(resyncFrame)
+    const waiting = this.options.outbox.drain(seal, resyncFrame)
 
     for (const [index, item] of waiting.entries()) {
       // Переросший кадр релей не пропустит, а закроет сокет: выбросить один кадр дешевле.
@@ -129,7 +132,8 @@ export class RelayLink {
   private connect() {
     if (!this.running) return
 
-    this.move(this.backoff.attemptCount === 0 ? 'connecting' : this.current)
+    // Первый звонок - «connecting»; повтор оставляет причину на экране (сеть, релей, вытеснение).
+    this.move(this.current === 'off' ? 'connecting' : this.current)
 
     const base = this.options.relayUrl.replace(/\/+$/, '')
     const url = `${base}/v1/agent?id=${encodeAddress(this.options.address)}`
@@ -206,7 +210,9 @@ export class RelayLink {
       return this.move('refused')
     }
 
-    this.move(failure === 'relay' ? 'relayDown' : 'reconnecting')
+    this.move(
+      failure === 'relay' ? 'relayDown' : failure === 'displaced' ? 'displaced' : 'reconnecting',
+    )
 
     if (this.retryTimer) clearTimeout(this.retryTimer)
 

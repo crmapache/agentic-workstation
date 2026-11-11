@@ -1,14 +1,17 @@
 import { hostname } from 'node:os'
 import { join } from 'node:path'
 
+import { app } from 'electron'
+
 import type { ClaudeService } from '../claude/claude-service'
 import { broadcast } from '../ipc/broadcast'
 import { listProviders } from '../providers/provider-registry'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import { JsonFile } from '../storage/json-file'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import { relayUrlFor } from './relay-url'
 import { RemoteService } from './remote-service'
-import { RELAY_URL, REMOTE_FILE, RELAY_URL_ENV } from './remote.constants'
+import { REMOTE_FILE } from './remote.constants'
 import type { ScenariosPort, ConversationsPort } from './bridge/bridge-ports'
 import type { StoredRemote } from './store/remote-state'
 import { safeVault } from './store/safe-vault'
@@ -20,7 +23,8 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
   send: (id, message) => claude.actions.send(id, message),
   respond: (id, requestId, response) => claude.actions.respond(id, requestId, response),
   interrupt: (id) => claude.actions.interrupt(id),
-  newConversation: (projectPath) => claude.newConversation(projectPath),
+  newConversation: (projectPath, options) => claude.openConversation(projectPath, options),
+  close: (id) => claude.tabs.close(id, false),
   setOptions: (id, options) => claude.actions.setOptions(id, options),
   rename: (id, title) => claude.tabs.rename(id, title),
   providers: () => listProviders(claude),
@@ -49,7 +53,7 @@ export type RemoteSetup = {
 
 /**
  * Remote Control IDE (ADR 0041): сервис, его порты к разговорам и сценариям и связь с окном.
- * Адрес релея - свой домен владельца; переменная окружения - только для тестов и разработки.
+ * Адрес релея - свой домен владельца; переменная окружения - только у несобранной IDE.
  */
 export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
   const machine = {
@@ -65,7 +69,7 @@ export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
       scenarios: scenariosPort(setup.scenarios),
       workspace: setup.workspace,
     },
-    relayUrl: process.env[RELAY_URL_ENV] || RELAY_URL,
+    relayUrl: relayUrlFor(process.env, app.isPackaged),
     machine: () => machine,
     onView: (view) => broadcast('remote:state', view),
   })

@@ -31,10 +31,22 @@ const inbox = new WeakMap<WebSocket, Buffer[]>()
 
 const id = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url')
 
-/** Кадры копятся с открытия: релей отдаёт ящик в ту же секунду, слушатель после - опоздал. */
-const open = (port: number, path: string, who: Uint8Array, headers: Record<string, string> = {}) =>
+/**
+ * Кадры копятся с открытия: релей отдаёт ящик в ту же секунду, слушатель после - опоздал.
+ * autoPong false - сокет, который не отвечает на пинг: так выглядит уснувший ноутбук.
+ */
+const open = (
+  port: number,
+  path: string,
+  who: Uint8Array,
+  headers: Record<string, string> = {},
+  autoPong = true,
+) =>
   new Promise<WebSocket>((resolve, reject) => {
-    const socket = new WebSocket(`ws://127.0.0.1:${port}${path}?id=${id(who)}`, { headers })
+    const socket = new WebSocket(`ws://127.0.0.1:${port}${path}?id=${id(who)}`, {
+      headers,
+      autoPong,
+    })
     const frames: Buffer[] = []
 
     inbox.set(socket, frames)
@@ -92,8 +104,13 @@ describe('релей', () => {
     await relay.close()
   })
 
-  const connect = async (path: string, who: Uint8Array, headers?: Record<string, string>) => {
-    const socket = await open(port, path, who, headers)
+  const connect = async (
+    path: string,
+    who: Uint8Array,
+    headers?: Record<string, string>,
+    autoPong?: boolean,
+  ) => {
+    const socket = await open(port, path, who, headers, autoPong)
 
     opened.push(socket)
 
@@ -164,6 +181,54 @@ describe('релей', () => {
     await connect('/v1/agent', agent)
 
     expect(await closing).toBe(4009)
+  })
+
+  it('вытеснение: новое соединение первым слышит «переспроси» от того, кто писал прежнему', async () => {
+    const first = await connect('/v1/agent', agent)
+    const d = await connect('/v1/device', device)
+
+    d.send(sealed(agent, device, 'subscribe'))
+    await nextFrame(first)
+
+    const second = await connect('/v1/agent', agent)
+    const word = readEnvelope(await nextFrame(second), 1024)
+
+    expect(word.type).toBe(FRAME_CONTROL)
+    expect([...word.from]).toEqual([...device])
+  })
+
+  it('сокет без ответа на пинг закрывается, кадры к нему - в ящик, вернувшийся слышит «переспроси»', async () => {
+    await relay.close()
+    await start({ pingIntervalMs: 150 })
+
+    const asleep = await connect('/v1/agent', agent, {}, false)
+    const closing = closedWith(asleep)
+    const d = await connect('/v1/device', device)
+
+    d.send(sealed(agent, device, 'before'))
+    await nextFrame(asleep)
+    expect(await closing).toBe(1006)
+
+    d.send(sealed(agent, device, 'after'))
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    const back = await connect('/v1/agent', agent)
+    const word = readEnvelope(await nextFrame(back), 1024)
+
+    expect(word.type).toBe(FRAME_CONTROL)
+    expect([...word.from]).toEqual([...device])
+    expect((await nextFrame(back)).subarray(42).toString()).toBe('after')
+  })
+
+  it('отвечающий на пинг сокет живёт', async () => {
+    await relay.close()
+    await start({ pingIntervalMs: 30 })
+
+    const awake = await connect('/v1/agent', agent)
+
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(awake.readyState).toBe(WebSocket.OPEN)
+    expect(relay.connections()).toBe(1)
   })
 
   it('кривой адрес - 4001, текстовый кадр - 4002, переросший - 1009', async () => {
@@ -243,6 +308,23 @@ describe('релей', () => {
     })
     expect(privacy).toContain('content-blind')
     expect(privacy).toContain('7 days')
+  })
+
+  it('страницы - со строгой политикой, без реферера, только HTTPS и камерой для себя', async () => {
+    for (const path of ['/pair', '/privacy']) {
+      const page = await fetch(`http://127.0.0.1:${port}${path}`)
+      const policy = page.headers.get('content-security-policy') ?? ''
+
+      expect(policy).toContain("default-src 'self'")
+      expect(policy).toContain(`connect-src 'self' ws://127.0.0.1:${port}`)
+      expect(policy).toContain("img-src 'self' data: blob:")
+      expect(policy).toContain("frame-ancestors 'none'")
+      expect(policy).toContain("object-src 'none'")
+      expect(policy).toContain("base-uri 'none'")
+      expect(page.headers.get('referrer-policy')).toBe('no-referrer')
+      expect(page.headers.get('strict-transport-security')).toContain('max-age=')
+      expect(page.headers.get('permissions-policy')).toContain('camera=(self)')
+    }
   })
 
   it('раздаёт клиент: адрес пары получает оболочку, наружу из папки не выйти', async () => {

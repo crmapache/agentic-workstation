@@ -4,6 +4,7 @@ import { isAddress } from '@agentic-workstation/remote-protocol/frame'
 
 import type { RemoteService } from '../remote/remote-service'
 import type { InvokeHandlers } from './handle'
+import { assertString } from './validate'
 
 type RemoteChannels = keyof RemoteInvokeContract
 
@@ -14,7 +15,13 @@ export const createRemoteHandlers = (
   'remote:get': () => remote.view(),
   'remote:setEnabled': ({ enabled }) => remote.setEnabled(enabled === true),
   'remote:startPairing': () => remote.startPairing(),
-  'remote:approve': () => remote.approve(),
+  'remote:approve': ({ deviceId, fingerprint }) => {
+    if (!isAddress(deviceId)) throw new Error('Такого телефона нет')
+
+    assertString(fingerprint, 'fingerprint')
+
+    return remote.approve({ deviceId, fingerprint })
+  },
   'remote:refuse': () => remote.refuse(),
   'remote:revoke': ({ deviceId }) => {
     // Отпускают только спаренный телефон: чужой адрес из окна - не повод писать надгробие.

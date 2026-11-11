@@ -1,3 +1,5 @@
+import type { FrameType } from '@agentic-workstation/remote-protocol/frame'
+
 /** Сколько кадров и байт держит очередь одного устройства, пока до него нет линии. */
 export const MAX_FRAMES = 2000
 
@@ -6,21 +8,50 @@ export const MAX_BYTES = 8 * 1024 * 1024
 /** Ответы, которых ждёт устройство: держатся отдельно и коротко. */
 export const MAX_URGENT = 64
 
+/**
+ * Что ждёт отправки: готовый кадр (открытое рукопожатие) или тело, которое запечатается в
+ * момент отправки. Печать при отправке, а не при постановке в очередь: номер кадра (счётчик
+ * GCM) идёт в порядке ухода в сокет. Иначе срочный ответ, обогнавший сотню ждущих кадров,
+ * унёс бы номер выше их всех, и окно повторов телефона (64 номера) выбросило бы их как старые.
+ * И кадр, ждавший линии, запечатается ключами, которые у телефона есть сейчас.
+ */
+export type Outgoing = { frame: Buffer } | { body: Uint8Array; type: FrameType }
+
+/** Обычная очередь кадров или срочная - для ответов, которых ждут (итог команды, рукопожатие). */
+export type Lane = 'normal' | 'urgent'
+
 /** Кадр и кому он: не ушедшее возвращается в свою очередь. */
 export type Sent = { deviceId: string; frame: Buffer }
 
+/** Запечатать ждущее устройству; ключей нет (отпущен, ключи сменились) - null, кадр выброшен. */
+export type Seal = (deviceId: string, outgoing: Outgoing) => Buffer | null
+
 type Queue = {
-  frames: Buffer[]
+  /** Уже запечатанные и не ушедшие: их номера раньше всего, что запечатается потом. */
+  sealed: Buffer[]
+  urgent: Outgoing[]
+  items: Outgoing[]
   bytes: number
   /** Очередь обвалилась: первым уйдёт «переспроси со своего номера». */
   resyncNeeded: boolean
-  urgent: Buffer[]
 }
 
-const emptyQueue = (): Queue => ({ frames: [], bytes: 0, resyncNeeded: false, urgent: [] })
+const emptyQueue = (): Queue => ({
+  sealed: [],
+  urgent: [],
+  items: [],
+  bytes: 0,
+  resyncNeeded: false,
+})
 
 const isEmpty = (queue: Queue) =>
-  queue.frames.length === 0 && queue.urgent.length === 0 && !queue.resyncNeeded
+  queue.sealed.length === 0 &&
+  queue.items.length === 0 &&
+  queue.urgent.length === 0 &&
+  !queue.resyncNeeded
+
+const sizeOf = (outgoing: Outgoing): number =>
+  'frame' in outgoing ? outgoing.frame.length : outgoing.body.length
 
 /**
  * Что ждёт отправки, пока линии нет, - своя очередь у каждого устройства (как
@@ -37,48 +68,54 @@ export class RemoteOutbox {
     private readonly maxBytes = MAX_BYTES,
   ) {}
 
-  offer(deviceId: string, frame: Buffer): void {
+  offer(deviceId: string, outgoing: Outgoing): void {
     const queue = this.queueOf(deviceId)
 
     // Обвалившуюся незачем наполнять снова: устройство всё равно переспросит.
     if (queue.resyncNeeded) return
 
-    queue.frames.push(frame)
-    queue.bytes += frame.length
+    queue.items.push(outgoing)
+    queue.bytes += sizeOf(outgoing)
 
-    if (queue.frames.length > this.maxFrames || queue.bytes > this.maxBytes) collapse(queue)
+    if (queue.items.length > this.maxFrames || queue.bytes > this.maxBytes) collapse(queue)
   }
 
-  /** Ответ, которого ждут (подтверждение, пуш): не сметается вместе с лентой. */
-  offerUrgent(deviceId: string, frame: Buffer): void {
+  /**
+   * Ответ, которого ждут (итог команды, рукопожатие): не сметается вместе с лентой и уходит
+   * раньше неё - журнал ленту повторит, а ответ на нажатую кнопку взять больше негде.
+   */
+  offerUrgent(deviceId: string, outgoing: Outgoing): void {
     const queue = this.queueOf(deviceId)
 
     if (queue.urgent.length >= MAX_URGENT) queue.urgent.shift()
 
-    queue.urgent.push(frame)
+    queue.urgent.push(outgoing)
   }
 
   /**
-   * Всё ждущее, старое первым, и очереди пустеют. resyncFrame спрашивается только у
+   * Всё ждущее, и очереди пустеют. Порядок: уже запечатанные (их номера старше), метка
+   * «переспроси» обвалившейся, срочное, остальное. resyncFrame спрашивается только у
    * обвалившейся и по устройству: метку надо запечатать именно ему.
    */
-  drain(resyncFrame: (deviceId: string) => Buffer | null): Sent[] {
+  drain(seal: Seal, resyncFrame: (deviceId: string) => Buffer | null): Sent[] {
     const out: Sent[] = []
+    const push = (deviceId: string, frame: Buffer | null) => {
+      if (frame) out.push({ deviceId, frame })
+    }
 
     for (const [deviceId, queue] of this.devices) {
-      if (queue.resyncNeeded) {
-        const frame = resyncFrame(deviceId)
+      for (const frame of queue.sealed) push(deviceId, frame)
 
-        if (frame) out.push({ deviceId, frame })
+      if (queue.resyncNeeded) push(deviceId, resyncFrame(deviceId))
 
-        queue.resyncNeeded = false
-      }
+      for (const outgoing of [...queue.urgent, ...queue.items])
+        push(deviceId, seal(deviceId, outgoing))
 
-      for (const frame of [...queue.urgent, ...queue.frames]) out.push({ deviceId, frame })
-
+      queue.sealed = []
       queue.urgent = []
-      queue.frames = []
+      queue.items = []
       queue.bytes = 0
+      queue.resyncNeeded = false
     }
 
     for (const [deviceId, queue] of this.devices) if (isEmpty(queue)) this.devices.delete(deviceId)
@@ -86,20 +123,9 @@ export class RemoteOutbox {
     return out
   }
 
-  /** Не ушедшее - обратно в начало своей очереди, а не в никуда. */
+  /** Не ушедшее - обратно в начало своей очереди, уже запечатанным: номера у него есть. */
   putBack(rest: readonly Sent[]): void {
-    for (const item of [...rest].reverse()) {
-      const queue = this.queueOf(item.deviceId)
-
-      if (queue.resyncNeeded) continue
-
-      queue.frames.unshift(item.frame)
-      queue.bytes += item.frame.length
-    }
-
-    for (const queue of this.devices.values()) {
-      if (queue.frames.length > this.maxFrames || queue.bytes > this.maxBytes) collapse(queue)
-    }
+    for (const item of [...rest].reverse()) this.queueOf(item.deviceId).sealed.unshift(item.frame)
   }
 
   forget(deviceId: string): void {
@@ -108,7 +134,7 @@ export class RemoteOutbox {
 
   size(): number {
     return [...this.devices.values()].reduce(
-      (sum, queue) => sum + queue.frames.length + queue.urgent.length,
+      (sum, queue) => sum + queue.sealed.length + queue.items.length + queue.urgent.length,
       0,
     )
   }
@@ -133,8 +159,10 @@ export class RemoteOutbox {
   }
 }
 
+/** Схлопнуть: лента уходит, запечатанное тоже (его номера проглотит метка), срочное остаётся. */
 const collapse = (queue: Queue) => {
-  queue.frames = []
+  queue.sealed = []
+  queue.items = []
   queue.bytes = 0
   queue.resyncNeeded = true
 }
