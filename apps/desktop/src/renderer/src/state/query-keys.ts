@@ -44,6 +44,12 @@ export const QUERY_KEYS = {
   gitStatus: (projectId: string) => ['git', 'status', projectId],
   /** Список изменений относительно HEAD (вид Changes); свежий присылает главный процесс. */
   gitChanges: (projectId: string) => ['git', 'changes', projectId],
+  /** Локальная история файла или папки ('' - проект): события, новые сверху (ADR 0045). */
+  localHistory: (projectId: string, path: string) => ['history', 'list', projectId, path],
+  /** Все истории проекта разом: сбросить, когда главный процесс сказал history:changed. */
+  localHistories: (projectId: string) => ['history', 'list', projectId],
+  /** Содержимое версии по ключу: ключ - отпечаток, версия под ним не меняется никогда. */
+  historyContent: (projectId: string, key: string) => ['history', 'content', projectId, key],
   /** Файл, каким он лежит в последнем коммите, - левая сторона разницы. */
   gitHeadFile: (projectId: string, path: string) => ['git', 'head-file', projectId, path],
   /** Все файлы проекта из HEAD разом: сбросить после коммита или смены ветки. */

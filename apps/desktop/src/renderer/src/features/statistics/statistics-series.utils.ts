@@ -4,13 +4,8 @@ import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
 import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
 import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
 
-import {
-  dayLabel,
-  clockLabel,
-  monthLabel,
-  weekdayNames,
-  weekdayDayLabel,
-} from './statistics-dates.utils'
+import { clockLabel, weekdayDayLabel } from '../../lib/dates.utils'
+import { dayLabel, monthLabel, weekdayNames } from './statistics-dates.utils'
 import {
   AXIS_LABELS,
   MAX_DAY_BARS,

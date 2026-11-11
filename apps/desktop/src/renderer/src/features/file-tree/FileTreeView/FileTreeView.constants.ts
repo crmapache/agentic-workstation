@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Copy,
   Trash2,
+  History,
   FilePlus,
   Scissors,
   FolderPlus,
@@ -22,17 +23,20 @@ export const COMMAND_LOOK: Record<TreeCommand, { icon: LucideIcon; keys?: string
   copyPath: { icon: ClipboardCopy, keys: '⌥⌘C' },
   rename: { icon: PencilLine, keys: '⇧F6' },
   trash: { icon: Trash2, keys: '⌘⌫' },
+  history: { icon: History },
 }
 
 /**
  * Группы меню через линию. «Создать» - только у папки и корня: файл внутри файла не создать.
- * У корня проекта нет вырезать, копировать, переименовать и корзины - это сам проект.
+ * У корня проекта нет вырезать, копировать, переименовать и корзины - это сам проект. Локальная
+ * история - последней, как в WebStorm: у файла - его версии, у папки и корня - всё внутри.
  */
 export const MENU_GROUPS: readonly (readonly TreeCommand[])[] = [
   ['newFile', 'newFolder'],
   ['cut', 'copy', 'paste'],
   ['copyPath'],
   ['rename', 'trash'],
+  ['history'],
 ]
 
 /** Только у папки (и корня). */

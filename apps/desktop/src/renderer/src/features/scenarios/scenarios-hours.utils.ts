@@ -1,6 +1,8 @@
 import type { Scenario, ScenarioRepeat, ScenarioSchedule } from '@shared/scenarios'
 import { DAY_MS } from '@shared/time-units'
 
+import { daysBetween } from '../../lib/dates.utils'
+
 /**
  * Часы на экране (schedule.ts, timetable.ts, due.ts в ACC): ближайший срок формы, расписание
  * по дням - таймплан, а не список: дни заголовками, час в жёлобе, одна строка на договорённость.
@@ -124,17 +126,6 @@ export const dayKey = (at: number): string => {
   const date = new Date(at)
 
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
-}
-
-/** Сколько календарных дней от from до to (сегодня - 0, завтра - 1). */
-export const daysBetween = (from: number, to: number): number => {
-  const start = new Date(from)
-  const end = new Date(to)
-
-  start.setHours(0, 0, 0, 0)
-  end.setHours(0, 0, 0, 0)
-
-  return Math.round((end.getTime() - start.getTime()) / DAY_MS)
 }
 
 export type TimetableRow = {

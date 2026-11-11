@@ -9,14 +9,28 @@ export const NO_TABS: EditorTabs = { keys: [], recent: [] }
  */
 const DIFF_PREFIX = '\u0000diff\u0000'
 
+/** Начало ключа вкладки локальной истории - тем же нулём, что у разницы. */
+const HISTORY_PREFIX = '\u0000history\u0000'
+
 /** Ключ вкладки разницы файла. */
 export const diffTabKey = (path: string): string => `${DIFF_PREFIX}${path}`
 
-/** Что за вкладкой с этим ключом: файл или разница файла. */
-export const tabTarget = (key: string): TabTarget =>
-  key.startsWith(DIFF_PREFIX)
-    ? { kind: 'diff', path: key.slice(DIFF_PREFIX.length) }
-    : { kind: 'file', path: key }
+/** Ключ вкладки локальной истории файла или папки ('' - весь проект). */
+export const historyTabKey = (path: string): string => `${HISTORY_PREFIX}${path}`
+
+/** Что за вкладкой с этим ключом: файл, разница файла или история. */
+export const tabTarget = (key: string): TabTarget => {
+  if (key.startsWith(DIFF_PREFIX)) return { kind: 'diff', path: key.slice(DIFF_PREFIX.length) }
+  if (key.startsWith(HISTORY_PREFIX)) {
+    return { kind: 'history', path: key.slice(HISTORY_PREFIX.length) }
+  }
+
+  return { kind: 'file', path: key }
+}
+
+/** Ключ вкладки по тому, что она показывает. */
+const keyOf = ({ kind, path }: TabTarget): string =>
+  kind === 'diff' ? diffTabKey(path) : kind === 'history' ? historyTabKey(path) : path
 
 /** Активная вкладка - последняя выбранная. undefined - вкладок нет. */
 export const activeTab = (tabs: EditorTabs | undefined): string | undefined => tabs?.recent.at(-1)
@@ -52,17 +66,17 @@ export const openTab = (
 }
 
 /**
- * Открыть разницу файла. Вкладка разницы в проекте одна, как «Commit: файл» в WebStorm:
- * разница другого файла встаёт на её место в полосе, а не новой вкладкой - листая
- * изменения, полосу не засыпаешь. Нет такой вкладки - открывается как обычная.
+ * Открыть разницу файла или историю. Такая вкладка в проекте одна, как «Commit: файл» в
+ * WebStorm: разница (история) другого файла встаёт на её место в полосе, а не новой вкладкой
+ * - листая изменения, полосу не засыпаешь. Нет такой вкладки - открывается как обычная.
  */
-export const openDiffTab = (
+export const openSingleTab = (
   tabs: EditorTabs,
-  path: string,
+  target: TabTarget,
   options: { limit: number; held: ReadonlySet<string> },
 ): EditorTabs => {
-  const key = diffTabKey(path)
-  const previous = tabs.keys.find((open) => open !== key && tabTarget(open).kind === 'diff')
+  const key = keyOf(target)
+  const previous = tabs.keys.find((open) => open !== key && tabTarget(open).kind === target.kind)
 
   if (previous === undefined) return openTab(tabs, key, options)
 
@@ -85,17 +99,23 @@ export const closeTabs = (tabs: EditorTabs, closing: readonly string[]): EditorT
 export const movedTabs = (tabs: EditorTabs, from: string, to: string): EditorTabs => {
   const move = (key: string) => {
     const { kind, path } = tabTarget(key)
-    const moved = movedPathOf(path, from, to)
 
-    return kind === 'diff' ? diffTabKey(moved) : moved
+    return keyOf({ kind, path: movedPathOf(path, from, to) })
   }
 
   return { keys: tabs.keys.map(move), recent: tabs.recent.map(move) }
 }
 
-/** Ключи вкладок файла или всего внутри папки - закрыть их, когда её убрали в корзину. */
+/**
+ * Ключи вкладок файла или всего внутри папки - закрыть их, когда её убрали в корзину. История
+ * остаётся: из неё удалённое и возвращают.
+ */
 export const tabsUnder = (tabs: EditorTabs, root: string): string[] =>
-  tabs.keys.filter((key) => isInsideAny(tabTarget(key).path, [root]))
+  tabs.keys.filter((key) => {
+    const target = tabTarget(key)
+
+    return target.kind !== 'history' && isInsideAny(target.path, [root])
+  })
 
 /**
  * Файлы, которые уходят из середины совсем, если закрыть эти вкладки: ни вкладки файла,

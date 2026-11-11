@@ -39,3 +39,6 @@ export type HistoryCommand = 'undo' | 'redo'
 
 /** Как показана разница - выбор человека, один на все файлы. */
 export type DiffViewOptions = { layout: DiffLayout; collapsed: boolean }
+
+/** Что сравнивает локальная история: версию с файлом сейчас (как в WebStorm) или само событие. */
+export type HistoryCompare = 'current' | 'change'

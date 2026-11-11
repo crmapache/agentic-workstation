@@ -2,23 +2,13 @@ import type { StatsRange } from '@shared/statistics'
 import { DAY_MS } from '@shared/time-units'
 
 /**
- * Даты и часы статистики. Интерфейс английский - и даты по-английски, а не по языку
- * системы: «Nov 10» рядом с «Today», а не «10 нояб.». Часы - 24-часовые, как в панели.
+ * Даты статистики. Интерфейс английский - и даты по-английски, а не по языку системы: «Nov
+ * 10» рядом с «Today», а не «10 нояб.». Часы и день с днём недели - общие (lib/dates.utils).
  */
 
 const LOCALE = 'en-US'
 
-const CLOCK = new Intl.DateTimeFormat(LOCALE, {
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-})
 const DAY = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' })
-const WEEKDAY_DAY = new Intl.DateTimeFormat(LOCALE, {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-})
 const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric', year: 'numeric' })
 const MONTH = new Intl.DateTimeFormat(LOCALE, { month: 'short' })
 const WEEKDAY = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' })
@@ -26,14 +16,8 @@ const WEEKDAY = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' })
 /** Понедельник, от которого считаются имена дней недели (9 ноября 2026 - понедельник). */
 const A_MONDAY = new Date(2026, 10, 9).getTime()
 
-/** «14:00». */
-export const clockLabel = (ms: number): string => CLOCK.format(ms)
-
 /** «Nov 10». */
 export const dayLabel = (ms: number): string => DAY.format(ms)
-
-/** «Tue, Nov 10». */
-export const weekdayDayLabel = (ms: number): string => WEEKDAY_DAY.format(ms)
 
 /** «Nov 10, 2026» - начало данных: год нужен, история бывает долгой. */
 export const dateLabel = (ms: number): string => DATE.format(ms)

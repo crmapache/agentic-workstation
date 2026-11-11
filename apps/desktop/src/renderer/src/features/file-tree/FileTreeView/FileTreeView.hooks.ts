@@ -5,6 +5,7 @@ import type { Project } from '@shared/workspace'
 import { useFileActions } from '../file-tree.queries'
 import { useFileTreeStore } from '../file-tree.store'
 import { splitPath, isInsideAny } from '../../../lib/path.utils'
+import { useSelectionStore } from '../../../state/selection.store'
 import type { TreeItem, TreeDialog, TreeCommand, TreeMenuTarget } from './FileTreeView.types'
 import { allows, directoryOf } from './FileTreeView.utils'
 
@@ -20,6 +21,7 @@ export const useTreeCommands = (project: Project) => {
   const setClipboard = useFileTreeStore((state) => state.setClipboard)
   const canPaste = clipboard?.projectId === project.id
   const actions = useFileActions(project)
+  const openHistory = useSelectionStore((state) => state.openHistory)
 
   const paste = (item: TreeItem) => {
     if (!clipboard || clipboard.projectId !== project.id) return
@@ -51,6 +53,7 @@ export const useTreeCommands = (project: Project) => {
     copyPath: (item) => void actions.copyPath(item.path),
     rename: (item) => setDialog({ kind: 'rename', item }),
     trash: (item) => setDialog({ kind: 'trash', item }),
+    history: (item) => openHistory(project.id, item.path),
   }
 
   const run = (command: TreeCommand, item: TreeItem) => {

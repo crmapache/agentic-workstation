@@ -1,4 +1,4 @@
-import { X, Copy, ListX, SquareX, ArrowRightToLine } from 'lucide-react'
+import { X, Copy, ListX, History, SquareX, ArrowRightToLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu } from '@agentic-workstation/ui/Menu'
@@ -9,17 +9,24 @@ import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { TabMenuProps } from '../EditorTabs.types'
 import { requestCloseTabs } from '../../editor-close'
+import { isOutsidePath } from '../../../../lib/path.utils'
 import { tabTarget } from '../../../../state/editor-tabs.utils'
+import { useSelectionStore } from '../../../../state/selection.store'
 
 /**
- * Меню правой кнопки на вкладке файла или разницы, как в WebStorm: закрыть эту, остальные,
- * все справа или все сразу; скопировать путь файла от корня проекта. Встаёт под вкладкой.
+ * Меню правой кнопки на вкладке, как в WebStorm: закрыть эту, остальные, все справа или все
+ * сразу; скопировать путь от корня проекта; у файла проекта - его локальная история. Встаёт
+ * под вкладкой.
  */
 export const TabMenu = ({ projectId, keys, target, onClose }: TabMenuProps) => {
   const { t } = useTranslation()
   const { id, ref, onToggle } = useAnchoredPopover(target?.anchor ?? null, onClose)
+  const openHistory = useSelectionStore((state) => state.openHistory)
   const key = target?.key ?? ''
   const index = keys.indexOf(key)
+  const { kind, path } = tabTarget(key)
+  // История - у файлов проекта; у самой вкладки истории она уже открыта.
+  const hasHistory = kind !== 'history' && !isOutsidePath(path)
 
   const close = (closing: readonly string[]) => {
     ref.current?.hidePopover()
@@ -36,7 +43,12 @@ export const TabMenu = ({ projectId, keys, target, onClose }: TabMenuProps) => {
 
   const handleCopy = () => {
     ref.current?.hidePopover()
-    void navigator.clipboard.writeText(tabTarget(key).path)
+    void navigator.clipboard.writeText(path)
+  }
+
+  const handleHistory = () => {
+    ref.current?.hidePopover()
+    openHistory(projectId, path)
   }
 
   return (
@@ -57,6 +69,13 @@ export const TabMenu = ({ projectId, keys, target, onClose }: TabMenuProps) => {
           <MenuItem icon={ListX} label={t('editor.tabs.menu.closeAll')} onSelect={handleCloseAll} />
           <MenuSeparator />
           <MenuItem icon={Copy} label={t('editor.tabs.menu.copyPath')} onSelect={handleCopy} />
+          {hasHistory && (
+            <MenuItem
+              icon={History}
+              label={t('editor.tabs.menu.history')}
+              onSelect={handleHistory}
+            />
+          )}
         </Menu>
       )}
     </Popover>

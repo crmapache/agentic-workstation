@@ -28,6 +28,8 @@ const isOpenTab = (tabs: Readonly<Record<string, EditorTabs>>, document: EditorD
  */
 class Documents {
   private readonly open = new Map<string, EditorDocument>()
+  /** Сколько раз держат документ без вкладки (история папки показывает файл справа). */
+  private readonly holds = new Map<string, number>()
 
   private readonly host: DocumentHost = {
     onStatus: (document) => {
@@ -57,6 +59,25 @@ class Documents {
     return document
   }
 
+  /**
+   * Держать документ файла, пока он нужен не вкладке, а виду: история папки показывает справа
+   * файл выбранной версии. Ответ - отпустить; отпущенный и без вкладки дописывается и уходит.
+   */
+  hold(projectId: string, path: string): () => void {
+    const { key } = this.get(projectId, path)
+
+    this.holds.set(key, (this.holds.get(key) ?? 0) + 1)
+
+    return () => {
+      const left = (this.holds.get(key) ?? 1) - 1
+
+      if (left > 0) this.holds.set(key, left)
+      else this.holds.delete(key)
+
+      this.syncTabs(useSelectionStore.getState().tabsByProject)
+    }
+  }
+
   /** Документ файла, если он уже есть; не создаёт новый. */
   find(projectId: string, path: string): EditorDocument | undefined {
     return this.open.get(documentKey(projectId, path))
@@ -67,11 +88,15 @@ class Documents {
     return model ? [...this.open.values()].find((document) => document.model === model) : undefined
   }
 
-  /** Вкладки поменялись: документы закрытых дописываются и уходят, открытых снова - остаются. */
+  /**
+   * Вкладки поменялись: документы закрытых дописываются и уходят, открытых снова (или тех, что
+   * держит вид) - остаются.
+   */
   syncTabs(tabsByProject: Readonly<Record<string, EditorTabs>>): void {
     for (const document of this.open.values()) {
-      if (isOpenTab(tabsByProject, document)) document.closing = false
-      else if (!document.closing) void this.close(document)
+      if (isOpenTab(tabsByProject, document) || this.holds.has(document.key)) {
+        document.closing = false
+      } else if (!document.closing) void this.close(document)
     }
   }
 

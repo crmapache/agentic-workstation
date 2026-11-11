@@ -17,7 +17,7 @@ export type TreeDialog =
 
 /** Действие над строкой - из меню или клавишей. */
 export type TreeCommand =
-  'newFile' | 'newFolder' | 'cut' | 'copy' | 'paste' | 'copyPath' | 'rename' | 'trash'
+  'newFile' | 'newFolder' | 'cut' | 'copy' | 'paste' | 'copyPath' | 'rename' | 'trash' | 'history'
 
 export type ProjectTreeProps = { project: Project }
 

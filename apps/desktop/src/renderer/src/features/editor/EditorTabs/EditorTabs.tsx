@@ -9,11 +9,11 @@ import { EditorTab } from './parts/EditorTab'
 import { TabMenu } from './parts/TabMenu'
 
 /**
- * Полоса вкладок над редактором: файлы и разница файла с последним коммитом, в порядке
- * открытия, ряд за рядом - не влезло в ширину, переносится вниз, как многорядные вкладки
- * WebStorm. Больше тридцати не бывает: новая закрывает самую первую из открытых.
+ * Полоса вкладок над редактором: файлы, разница файла с последним коммитом и локальная
+ * история, в порядке открытия, ряд за рядом - не влезло в ширину, переносится вниз, как
+ * многорядные вкладки WebStorm. Больше тридцати не бывает: новая закрывает самую первую из открытых.
  */
-export const EditorTabs = ({ projectId, keys, active }: EditorTabsProps) => {
+export const EditorTabs = ({ projectId, projectName, keys, active }: EditorTabsProps) => {
   const { t } = useTranslation()
   const [menu, setMenu] = useState<{ key: string; anchor: HTMLElement } | null>(null)
   const targets = useMemo(() => keys.map((key) => ({ key, target: tabTarget(key) })), [keys])
@@ -32,7 +32,8 @@ export const EditorTabs = ({ projectId, keys, active }: EditorTabsProps) => {
             projectId={projectId}
             tabKey={key}
             target={target}
-            label={labels.get(target.path) ?? target.path}
+            // История всего проекта - вкладка без пути: подпись у неё - имя проекта.
+            label={(target.path === '' ? projectName : labels.get(target.path)) ?? target.path}
             isActive={key === active}
             onMenu={handleMenu}
           />

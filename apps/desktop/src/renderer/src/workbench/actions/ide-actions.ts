@@ -20,6 +20,7 @@ import { useProjectActionRunner } from '../../features/projects/project-actions.
 import { useRemoteStore } from '../../features/remote/remote.store'
 import type { SearchAction } from '../../features/search-everywhere/search-everywhere.types'
 import { useClaudePanelToggle } from './claude-panel'
+import { useHistoryActions } from './history-actions'
 import { useSettingsActions } from './settings-actions'
 import { useTerminalToggle } from './terminal-dock'
 import { TERMINAL_KEY } from './terminal-dock.constants'
@@ -45,6 +46,7 @@ export const useIdeActions = (): SearchAction[] => {
   const terminal = useTerminalToggle()
   const settingsActions = useSettingsActions()
   const openRemote = useRemoteStore((state) => state.open)
+  const historyActions = useHistoryActions()
 
   const projectActions: SearchAction[] = PROJECT_ACTIONS.map((entry) => ({
     id: `project.${entry.id}`,
@@ -153,6 +155,7 @@ export const useIdeActions = (): SearchAction[] => {
     ...workspaceActions,
     ...gitActions,
     ...viewActions,
+    ...historyActions,
     ...settingsActions,
     ...recentActions,
   ]

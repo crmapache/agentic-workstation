@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { MessageSquareShare } from 'lucide-react'
+import { History, MessageSquareShare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu } from '@agentic-workstation/ui/Menu'
@@ -9,6 +9,8 @@ import { Popover } from '@agentic-workstation/ui/Popover'
 import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import { sendSelectionToChat } from '../editor-chat'
+import { isOutsidePath } from '../../../lib/path.utils'
+import { useSelectionStore } from '../../../state/selection.store'
 import { EDITOR_MENU, MENU_SOURCE } from './EditorContextMenu.constants'
 import styles from './EditorContextMenu.module.scss'
 import type { EditorContextMenuProps } from './EditorContextMenu.types'
@@ -17,7 +19,8 @@ import type { EditorContextMenuProps } from './EditorContextMenu.types'
  * Меню правой кнопки в коде - нашим меню, как у вкладок, а не меню Monaco: то рисуется в
  * теневом DOM внутри панели редактора, куда не доходят цвета темы, и край панели его
  * обрезает. Встаёт у курсора мыши, пункт выполняет ту же команду Monaco, что и сочетание. У
- * файла проекта первым - «Send to Chat»: выделенный кусок в поле открытого чата ИИ.
+ * файла проекта первым - «Send to Chat»: выделенный кусок в поле открытого чата ИИ, последним
+ * - его локальная история.
  */
 export const EditorContextMenu = ({
   editorRef,
@@ -32,6 +35,8 @@ export const EditorContextMenu = ({
   // на рендер позже меню, и меню не поставило бы фокус на первый пункт.
   const [anchor, setAnchor] = useState<HTMLSpanElement | null>(null)
   const { id, ref, onToggle } = useAnchoredPopover(at ? anchor : null, onClose)
+  const openHistory = useSelectionStore((state) => state.openHistory)
+  const historyOf = chatOwner && !isOutsidePath(chatOwner.path) ? chatOwner : null
 
   // Пункт сначала закрывает меню, и фокус возвращается в код: буфер обмена и правка всех
   // вхождений работают только у редактора с фокусом.
@@ -39,6 +44,10 @@ export const EditorContextMenu = ({
 
   const handleSendToChat = () => {
     if (editorRef.current && chatOwner) sendSelectionToChat(editorRef.current, chatOwner)
+  }
+
+  const handleHistory = () => {
+    if (historyOf) openHistory(historyOf.projectId, historyOf.path)
   }
 
   return (
@@ -78,6 +87,16 @@ export const EditorContextMenu = ({
                 ))}
               </Fragment>
             ))}
+            {historyOf && (
+              <>
+                <MenuSeparator />
+                <MenuItem
+                  icon={History}
+                  label={t('editor.contextMenu.history')}
+                  onSelect={handleHistory}
+                />
+              </>
+            )}
           </Menu>
         )}
       </Popover>

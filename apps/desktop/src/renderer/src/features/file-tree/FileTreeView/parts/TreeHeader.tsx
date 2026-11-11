@@ -6,7 +6,7 @@ import { PageHeader } from '@agentic-workstation/ui/PageHeader'
 
 import type { TreeHeaderProps } from '../FileTreeView.types'
 import { useFileTreeStore } from '../../file-tree.store'
-import { useSelectedFile } from '../../../../state/selection.store'
+import { useSelectedPath } from '../../../../state/selection.store'
 
 /**
  * Шапка дерева, как ряд окна Project в WebStorm: «Select Opened File» - раскрыть папки до
@@ -15,7 +15,7 @@ import { useSelectedFile } from '../../../../state/selection.store'
  */
 export const TreeHeader = ({ projectId }: TreeHeaderProps) => {
   const { t } = useTranslation()
-  const opened = useSelectedFile(projectId)
+  const opened = useSelectedPath(projectId)
   const hasExpanded = useFileTreeStore(
     (state) => (state.expandedByProject[projectId]?.length ?? 0) > 0,
   )

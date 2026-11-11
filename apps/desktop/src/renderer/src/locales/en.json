@@ -507,7 +507,8 @@
       "paste": "Paste",
       "copyPath": "Copy Path",
       "rename": "Rename…",
-      "delete": "Move to Trash…"
+      "delete": "Move to Trash…",
+      "history": "Local History"
     },
     "create": {
       "fileTitle": "New File",
@@ -593,6 +594,59 @@
       "copyPath": "Copy Path"
     }
   },
+  "localHistory": {
+    "toolbar": "Local history",
+    "list": "Versions",
+    "truncated": "Showing the latest {{count}} changes",
+    "emptyTitle": "No local history yet",
+    "emptyFileText": "Every change to this file is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames and deletions.",
+    "emptyFolderText": "Every change to files here is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames and deletions.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "rowLabel": "{{cause}}, {{when}}",
+    "causes": {
+      "edit": "Edited in the IDE",
+      "outside": "Changed outside the IDE",
+      "agent": "Changed by Claude Code",
+      "agentCreated": "Created by Claude Code",
+      "refactor": "References updated on rename",
+      "created": "Created",
+      "deleted": "Deleted",
+      "moved": "Moved from {{path}}",
+      "renamed": "Renamed from {{name}}",
+      "restored": "Restored from local history",
+      "earliest": "Earliest saved version"
+    },
+    "compare": {
+      "label": "What to compare",
+      "current": "With Current",
+      "change": "This Change"
+    },
+    "placeholders": {
+      "binary": "Not a text file: there is nothing to compare. You can still restore this version.",
+      "lost": "This version is no longer stored.",
+      "lostTitle": "Version not available"
+    },
+    "restore": {
+      "action": "Restore",
+      "hint": "Put this version back into the file. What is there now stays in local history.",
+      "done": "Restored {{name}}",
+      "doneDetails": "Version from {{when}}. What was there before is kept in local history.",
+      "failed": "Couldn't restore {{name}}",
+      "codes": {
+        "lost": "This version is no longer stored.",
+        "occupied": "There is a folder where the file was.",
+        "denied": "No permission to write the file.",
+        "failed": "Something went wrong. Details are in the IDE log.",
+        "tooLarge": "The file is too large to keep in local history before overwriting it."
+      }
+    },
+    "help": {
+      "label": "About local history",
+      "title": "Local history",
+      "text": "Every change to the project's files is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames, moves and deletions. Files that git ignores are kept too once you open them in the editor or an agent edits them.\n\nWith Current puts the selected version on the left and the file as it is now on the right. The right side is the file itself: edit it, or bring back a single change with the arrow between the sides. This Change shows what the selected event did to the file.\n\nRestore puts the whole version back into the file, and brings a deleted file back. Nothing is lost: what was in the file before stays in local history as its own version."
+    }
+  },
   "editor": {
     "noProjectTitle": "Open a project to start",
     "noProjectText": "Pick a folder - it opens as a tab at the top.",
@@ -637,14 +691,18 @@
         "closeOthers": "Close Other Tabs",
         "closeRight": "Close Tabs to the Right",
         "closeAll": "Close All Tabs",
-        "copyPath": "Copy Path"
+        "copyPath": "Copy Path",
+        "history": "Show Local History"
       },
       "diffHint": "Changes in {{path}} since the last commit",
-      "outsideHint": "{{path}} · outside the project"
+      "outsideHint": "{{path}} · outside the project",
+      "historyHint": "Local history: {{path}}",
+      "projectHistoryHint": "Local history of the whole project"
     },
     "contextMenu": {
       "label": "Code actions",
       "sendToChat": "Send to Chat",
+      "history": "Show Local History",
       "show": "Show Editor Context Menu",
       "changeAll": "Change All Occurrences",
       "cut": "Cut",
@@ -3013,7 +3071,9 @@
       "textSizeUp": "Increase Text Size",
       "textSizeDown": "Decrease Text Size",
       "textSizeReset": "Reset Text Size",
-      "remoteControl": "Remote Control…"
+      "remoteControl": "Remote Control…",
+      "fileHistory": "Show Local History: {{name}}",
+      "projectHistory": "Local History: Recent Changes in {{name}}"
     },
     "longQuery": "The text is too long: search takes up to {{count}} characters."
   },

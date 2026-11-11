@@ -10,8 +10,8 @@ import {
   closeTabs,
   movedTabs,
   tabTarget,
-  openDiffTab,
   restoreTabs,
+  openSingleTab,
 } from './editor-tabs.utils'
 
 const SELECTION_STORAGE_KEY = 'agentic-workstation.selection.v1'
@@ -57,17 +57,45 @@ type SelectionStore = {
   selectFile: (projectId: string, path: string, place?: FilePlace) => void
   /** Разница файла с последним коммитом - во вкладке разницы проекта (она одна). */
   openDiff: (projectId: string, relativePath: string) => void
+  /** Локальная история файла или папки ('' - проект) - во вкладке истории (она одна). */
+  openHistory: (projectId: string, relativePath: string) => void
   /** Закрыть вкладки по ключам: путь файла или ключ разницы (diffTabKey). */
   closeTabs: (projectId: string, keys: readonly string[]) => void
   /** Файл или папку перенесли в дереве: их вкладки смотрят на новое место. */
   moveTabs: (projectId: string, from: string, to: string) => void
   setHeld: (projectId: string, relativePaths: readonly string[]) => void
+  /**
+   * Файл, который вкладка истории показывает справа: у истории папки это файл выбранной
+   * версии. Он - открытый файл для Claude Code, пока активна история. Пишет вид истории.
+   */
+  historyFileByProject: Record<string, string | undefined>
+  showHistoryFile: (projectId: string, path: string | undefined) => void
   /** Проекты закрыли - их вкладки больше не нужны: id у открытого заново будет новым. */
   keepProjects: (projectIds: readonly string[]) => void
 }
 
 const pick = <T>(record: Record<string, T>, keys: ReadonlySet<string>): Record<string, T> =>
   Object.fromEntries(Object.entries(record).filter(([key]) => keys.has(key)))
+
+/** Открыть разницу или историю - единственную такую вкладку проекта; место выбора сброшено. */
+const openSingle = (
+  state: Pick<
+    SelectionStore,
+    'tabsByProject' | 'heldByProject' | 'selectedPlaceByProject' | 'selectSerial'
+  >,
+  projectId: string,
+  target: TabTarget,
+) => ({
+  tabsByProject: {
+    ...state.tabsByProject,
+    [projectId]: openSingleTab(state.tabsByProject[projectId] ?? NO_TABS, target, {
+      limit: EDITOR_TABS_LIMIT,
+      held: new Set(state.heldByProject[projectId]),
+    }),
+  },
+  selectedPlaceByProject: { ...state.selectedPlaceByProject, [projectId]: undefined },
+  selectSerial: state.selectSerial + 1,
+})
 
 /**
  * Какие файлы открыты вкладками и какой из них в редакторе. Общее для дерева файлов
@@ -96,17 +124,9 @@ export const useSelectionStore = create<SelectionStore>()(
           selectSerial: state.selectSerial + 1,
         })),
       openDiff: (projectId, relativePath) =>
-        set((state) => ({
-          tabsByProject: {
-            ...state.tabsByProject,
-            [projectId]: openDiffTab(state.tabsByProject[projectId] ?? NO_TABS, relativePath, {
-              limit: EDITOR_TABS_LIMIT,
-              held: new Set(state.heldByProject[projectId]),
-            }),
-          },
-          selectedPlaceByProject: { ...state.selectedPlaceByProject, [projectId]: undefined },
-          selectSerial: state.selectSerial + 1,
-        })),
+        set((state) => openSingle(state, projectId, { kind: 'diff', path: relativePath })),
+      openHistory: (projectId, relativePath) =>
+        set((state) => openSingle(state, projectId, { kind: 'history', path: relativePath })),
       // Место прошлого выбора к открывшейся вместо закрытой вкладке не относится.
       closeTabs: (projectId, keys) =>
         set((state) => ({
@@ -125,6 +145,11 @@ export const useSelectionStore = create<SelectionStore>()(
         })),
       setHeld: (projectId, relativePaths) =>
         set((state) => ({ heldByProject: { ...state.heldByProject, [projectId]: relativePaths } })),
+      historyFileByProject: {},
+      showHistoryFile: (projectId, path) =>
+        set((state) => ({
+          historyFileByProject: { ...state.historyFileByProject, [projectId]: path },
+        })),
       keepProjects: (projectIds) =>
         set((state) => {
           const open = new Set(projectIds)
@@ -133,6 +158,7 @@ export const useSelectionStore = create<SelectionStore>()(
             tabsByProject: pick(state.tabsByProject, open),
             selectedPlaceByProject: pick(state.selectedPlaceByProject, open),
             heldByProject: pick(state.heldByProject, open),
+            historyFileByProject: pick(state.historyFileByProject, open),
           }
         }),
     }),
@@ -188,14 +214,32 @@ export const useActiveTab = (projectId: string | undefined) =>
   useSelectionStore((state) => (projectId ? activeTab(state.tabsByProject[projectId]) : undefined))
 
 /**
- * Файл активной вкладки проекта - его ли это код или разница с ним. Его видят дерево
- * (подсветка), строка состояния (путь) и Claude Code (открытый файл). undefined - вкладок нет.
+ * Путь активной вкладки проекта: файл, разница с ним или чья история (у папки - сама папка).
+ * Его видят дерево (подсветка и «найти открытый») и строка состояния. undefined - вкладок нет
+ * или активна история всего проекта: пути у неё нет.
  */
-export const useSelectedFile = (projectId: string | undefined) => {
+export const useSelectedPath = (projectId: string | undefined) => {
   const key = useActiveTab(projectId)
+  const path = key === undefined ? '' : tabTarget(key).path
 
-  return key === undefined ? undefined : tabTarget(key).path
+  return path === '' ? undefined : path
 }
+
+/**
+ * Файл, открытый в середине: код, разница с ним или файл, который показывает история (у
+ * истории папки - файл выбранной версии). Его с сообщением видит Claude Code. undefined -
+ * вкладок нет или файла не показано.
+ */
+export const useSelectedFile = (projectId: string | undefined) =>
+  useSelectionStore((state) => {
+    const key = projectId ? activeTab(state.tabsByProject[projectId]) : undefined
+
+    if (!projectId || key === undefined) return undefined
+
+    const { kind, path } = tabTarget(key)
+
+    return kind === 'history' ? state.historyFileByProject[projectId] : path
+  })
 
 /**
  * Файл последней выбранной вкладки этого вида: какой файл стоит в редакторе кода и какой - в

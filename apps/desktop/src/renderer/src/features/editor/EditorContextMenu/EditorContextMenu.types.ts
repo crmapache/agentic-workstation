@@ -24,7 +24,10 @@ export type EditorContextMenuProps = {
   /** Точка, где открыли меню; null - меню закрыто. */
   at: MenuPoint | null
   readOnly: boolean
-  /** Файл проекта в редакторе: с ним в меню «Send to Chat». Нет - пункта нет (разница). */
+  /**
+   * Файл в редакторе: с ним в меню «Send to Chat», а у файла проекта - ещё и его локальная
+   * история. Нет - пунктов нет (разница).
+   */
   chatOwner?: ChatOwner | undefined
   /** Было ли выделение, когда меню открыли: без него отправлять нечего. */
   hasSelection?: boolean | undefined
