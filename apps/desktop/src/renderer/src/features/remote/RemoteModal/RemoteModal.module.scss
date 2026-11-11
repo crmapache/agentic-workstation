@@ -1,0 +1,119 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Разделы окна - столбиком, на одном ритме.
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// Пара не переживёт перезапуск: предупреждение тоном, а не абзацем пояснения.
+.warning {
+  @include tinted-plaque(var(--color-warning));
+
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// Отпечаток сверяют глазами с экраном телефона: моноширинный, крупнее подписи.
+.fingerprint {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-md);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Ждущий телефон: что сверить, отпечаток и ответ - столбиком, кнопки отступают от отпечатка.
+.pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+// Код пары: QR слева, отсчёт и действия справа.
+.offer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+// QR - белая картинка с тихой зоной внутри; размер - свой у картинки (клетка в 4 точки), с
+// текстом не растёт.
+.qr {
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
+.offerSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.countdown {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+// Спаренные телефоны - строки: имя и отпечаток слева, состояние и отзыв справа.
+.phones {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.phoneText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.phoneName {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.phoneMeta {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { app, shell, BrowserWindow } from 'electron'
 
 import type { ClaudeState } from '@shared/claude'
+import type { FeedPatch } from '@shared/claude-feed'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
@@ -64,8 +65,10 @@ const bootstrap = async () => {
   // Поиску по разговорам - что проекты открыли и закрыли: он поднимается позже, после
   // разговоров.
   let onWorkspace = (): void => undefined
-  // Статистике - состояние панели Claude: она поднимается позже панели.
+  // Статистике и Remote Control - состояние панели Claude и заплатки лент: они поднимаются
+  // позже панели.
   let observeClaude = (_state: ClaudeState): void => undefined
+  let observeFeed = (_patch: FeedPatch): void => undefined
   const workspace = await WorkspaceService.load(
     new JsonFile<WorkspaceState>(join(app.getPath('userData'), 'workspace.json')),
     (state) => {
@@ -92,7 +95,10 @@ const bootstrap = async () => {
         broadcast('claude:state', state)
         observeClaude(state)
       },
-      onFeed: (patch) => broadcast('claude:feed', patch),
+      onFeed: (patch) => {
+        broadcast('claude:feed', patch)
+        observeFeed(patch)
+      },
       onCall: (call) => broadcast('claude:call', call),
       openPath: (path) => shell.openPath(path),
     },
@@ -173,15 +179,18 @@ const bootstrap = async () => {
     },
   )
 
-  // Сценарии (ADR 0039) и статистика - возможности всей IDE поверх провайдеров.
+  // Сценарии (ADR 0039), статистика и Remote Control (ADR 0041) - возможности всей IDE поверх
+  // провайдеров.
   const features = await startIdeFeatures({
     claude,
     workspace,
     dataDir: app.getPath('userData'),
+    version: app.getVersion(),
     getWindow: () => mainWindow,
   })
 
-  observeClaude = features.statistics.observeClaude
+  observeClaude = features.observeClaude
+  observeFeed = features.observeFeed
   searchProjects()
   watchProjects()
   onWorkspace = () => {
@@ -203,6 +212,7 @@ const bootstrap = async () => {
     terminals,
     scenarios: features.scenarios,
     stats: features.statistics.stats,
+    remote: features.remote,
     getWindow: () => mainWindow,
   }
 

@@ -4,6 +4,7 @@ import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
+import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
 import type { StatsService } from '../statistics/stats-service'
@@ -25,6 +26,7 @@ import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
 import { createProjectSyncHandlers } from './project-sync-handlers'
+import { createRemoteHandlers } from './remote-handlers'
 import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
 import { createStatisticsHandlers } from './statistics-handlers'
@@ -51,6 +53,8 @@ type Services = HandlerContext & {
   scenarios: ScenarioService
   /** Статистика IDE и провайдеров: база, транскрипты, живые события. */
   stats: StatsService
+  /** Remote Control: связь с телефонами через свой релей (ADR 0041). */
+  remote: RemoteService
 }
 
 /**
@@ -80,6 +84,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createTerminalHandlers(workspace, services.terminals),
     ...createScenariosHandlers(workspace, claude, services.scenarios),
     ...createStatisticsHandlers(workspace, services.stats),
+    ...createRemoteHandlers(services.remote),
 
     'updates:getStatus': () => updates.getStatus(),
     'updates:install': () => updates.install(),

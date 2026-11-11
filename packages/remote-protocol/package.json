@@ -1,0 +1,22 @@
+{
+  "name": "@agentic-workstation/remote-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Протокол Remote Control между IDE и телефоном: конверт релея, метки шифрования, адрес пары, сообщения и белый список команд.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

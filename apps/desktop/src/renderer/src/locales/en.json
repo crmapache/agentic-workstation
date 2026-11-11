@@ -2936,11 +2936,63 @@
       "openSettings": "Settings…",
       "textSizeUp": "Increase Text Size",
       "textSizeDown": "Decrease Text Size",
-      "textSizeReset": "Reset Text Size"
+      "textSizeReset": "Reset Text Size",
+      "remoteControl": "Remote Control…"
     },
     "longQuery": "The text is too long: search takes up to {{count}} characters."
   },
   "activityBar": {
     "waiting": "{{label}} - {{count}} waiting for you"
+  },
+  "remote": {
+    "title": "Remote Control",
+    "close": "Close",
+    "enabled": "Remote Control on",
+    "relay": "Through {{host}}",
+    "offHint": "Off: the IDE is not on the relay",
+    "state": {
+      "off": "Off",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "reconnecting": "Reconnecting",
+      "relayDown": "Relay unavailable",
+      "refused": "Refused"
+    },
+    "button": {
+      "off": "Remote Control is off",
+      "on_one": "Remote Control: {{count}} phone on the line",
+      "on_other": "Remote Control: {{count}} phones on the line",
+      "pending": "Remote Control: {{label}} waits for your approval"
+    },
+    "keysNotKept": "This Mac has no keychain encryption for the IDE: paired phones work until the IDE restarts, then pair them again.",
+    "thisIde": "This IDE",
+    "fingerprintNote": "The phone shows this code when it pairs",
+    "pair": {
+      "title": "Pair a phone",
+      "start": "Show pairing code",
+      "turnOn": "Turn on Remote Control to pair a phone.",
+      "scan": "Scan with the phone camera. The code works once.",
+      "qrLabel": "Pairing QR code",
+      "stop": "Stop offering"
+    },
+    "pending": {
+      "title": "{{label}} wants to connect",
+      "check": "Approve only if the phone shows this code:",
+      "approve": "Approve",
+      "refuse": "Refuse"
+    },
+    "phones": {
+      "title": "Paired phones",
+      "empty": "No phones yet",
+      "online": "On the line",
+      "seen": "{{fingerprint}} · seen {{when}}",
+      "revoke": "Revoke",
+      "revokeLabel": "Revoke {{label}}"
+    },
+    "help": {
+      "label": "What the phone can do",
+      "title": "What the phone can do",
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now) and the scenario queues. Project folders never leave this Mac: the phone knows a project by a key.\n\nIn a conversation the phone can read the feed, write a message with photos, answer a permission request, a question or a plan, stop the turn, start a new conversation, rename it and change its model or effort.\n\nIn scenarios the phone can start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, continue after a limit, and remove, move, rename or stop a queue after an item.\n\nThe phone cannot use the terminal or ! commands, edit files, change IDE or provider settings, accounts or connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees and scenarios.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. Revoke a phone here and its key stops working at once."
+    }
   }
 }

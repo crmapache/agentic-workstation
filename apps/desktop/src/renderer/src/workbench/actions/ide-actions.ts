@@ -1,4 +1,12 @@
-import { X, History, Palette, Sparkles, ArrowRightLeft, SquareTerminal } from 'lucide-react'
+import {
+  X,
+  History,
+  Palette,
+  Sparkles,
+  Smartphone,
+  ArrowRightLeft,
+  SquareTerminal,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { MAIN_VIEWS } from '../views/main-views'
@@ -16,6 +24,7 @@ import { availableActions } from '../../features/git/git-actions.utils'
 import { useGitHead } from '../../features/git/git.queries'
 import { PROJECT_ACTIONS } from '../../features/projects/project-actions.constants'
 import { useProjectActionRunner } from '../../features/projects/project-actions.hooks'
+import { useRemoteStore } from '../../features/remote/remote.store'
 import type { SearchAction } from '../../features/search-everywhere/search-everywhere.types'
 import { useClaudePanelToggle } from './claude-panel'
 import { useSettingsActions } from './settings-actions'
@@ -42,6 +51,7 @@ export const useIdeActions = (): SearchAction[] => {
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
   const settingsActions = useSettingsActions()
+  const openRemote = useRemoteStore((state) => state.open)
 
   const projectActions: SearchAction[] = PROJECT_ACTIONS.map((entry) => ({
     id: `project.${entry.id}`,
@@ -108,6 +118,13 @@ export const useIdeActions = (): SearchAction[] => {
       // Та же дверь, что у клавиши: показать с клавиатурой в поле или спрятать из панели.
       shortcut: OPEN_PANEL_KEY.join(''),
       run: toggleClaudePanel,
+    },
+    {
+      id: 'ide.remoteControl',
+      label: t('searchEverywhere.actions.remoteControl'),
+      icon: Smartphone,
+      keywords: ['phone', 'mobile', 'relay', 'pair', 'qr'],
+      run: openRemote,
     },
     {
       id: 'view.terminal',

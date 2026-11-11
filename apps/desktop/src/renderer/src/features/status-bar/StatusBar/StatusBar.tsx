@@ -6,12 +6,13 @@ import { useAppInfo } from '../../../state/app-info.queries'
 import { useSelectedFile } from '../../../state/selection.store'
 import { useActiveProject } from '../../../state/workspace.queries'
 import styles from './StatusBar.module.scss'
+import type { StatusBarProps } from './StatusBar.types'
 
 /**
  * Зона 4: строка состояния. Слева - путь открытого файла (от проекта, а файл вне проекта -
- * своим путём через ~), справа - процессор и память IDE и её версия.
+ * своим путём через ~), справа - кнопки других фич (items), процессор и память IDE и её версия.
  */
-export const StatusBar = () => {
+export const StatusBar = ({ items }: StatusBarProps) => {
   const { t } = useTranslation()
   const project = useActiveProject()
   const selectedFile = useSelectedFile(project?.id)
@@ -26,6 +27,7 @@ export const StatusBar = () => {
   return (
     <footer className={styles.statusBar}>
       <span className={styles.path}>{path}</span>
+      {items}
       <ResourceUsage />
       {appInfo && (
         <span className={styles.version}>

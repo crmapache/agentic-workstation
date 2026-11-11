@@ -31,6 +31,8 @@ import { OpenFileContext } from '../../state/open-file.context'
 import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
 import { GitNotice } from '../../features/git/GitNotice/GitNotice'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
+import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
+import { RemoteModal } from '../../features/remote/RemoteModal/RemoteModal'
 import { ScenarioNotice } from '../../features/scenarios/ScenarioNotice/ScenarioNotice'
 import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsDialog'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
@@ -42,7 +44,7 @@ import styles from './Workbench.module.scss'
  * Раскладка окна IDE (docs/architecture.md): 1 шапка (проект, ветка) и под ней вкладки
  * проектов, 2, 3 и 8 полосы переключения видов, 4 строка состояния, 5 левая панель,
  * 6 середина (файл, сценарии, статистика), 7 GUI провайдера LLM и терминал под ним;
- * поверх - поиск везде, настройки и витрина. Workbench только расставляет зоны, мерит под
+ * поверх - поиск везде, настройки, Remote Control и витрина. Workbench только расставляет зоны, мерит под
  * них место и связывает их с раскладкой; что внутри каждой - решают фичи.
  */
 export const Workbench = () => {
@@ -159,12 +161,13 @@ export const Workbench = () => {
             )}
           </div>
 
-          <StatusBar />
+          <StatusBar items={<RemoteButton />} />
         </div>
 
         <SearchLayer />
         <DiscardDialog />
         <SettingsDialog />
+        <RemoteModal />
 
         <NotificationArea>
           <UpdateNotice />

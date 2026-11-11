@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import type { BrowserWindow } from 'electron'
 import { Notification } from 'electron'
 
+import type { ScenarioRun } from '@shared/scenario-runs'
+
 import type { ClaudeService } from '../claude/claude-service'
 import { broadcast } from '../ipc/broadcast'
 import type { WorkspaceService } from '../workspace/workspace-service'
@@ -14,11 +16,21 @@ import { ScenarioService } from './scenario-service'
 /** Worktree очередей - вне проектов и без пробелов в пути (решение владельца, ADR 0039). */
 export const WORKTREES_ROOT = join(homedir(), '.agentic-workstation', 'worktrees')
 
+/**
+ * Кто ещё слушает очереди и прогоны, кроме окна (Remote Control): ставится позже, когда
+ * слушатель поднят, - поля меняются на месте.
+ */
+export type ScenarioTaps = {
+  onQueues: () => void
+  onRun: (run: ScenarioRun) => void
+}
+
 export type ScenariosSetup = {
   claude: ClaudeService
   workspace: WorkspaceService
   dataDir: string
   getWindow: () => BrowserWindow | null
+  taps?: ScenarioTaps | undefined
 }
 
 /**
@@ -48,9 +60,15 @@ export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioSer
     worktreesRoot: WORKTREES_ROOT,
     providers: [claudeScenarioProvider(claude, setup.dataDir)],
     events: {
-      onQueues: (view) => broadcast('scenarios:queues', view),
+      onQueues: (view) => {
+        broadcast('scenarios:queues', view)
+        setup.taps?.onQueues()
+      },
       onShelves: (projectPath, view) => broadcast('scenarios:shelves', { projectPath, view }),
-      onRun: (projectPath, run) => broadcast('scenarios:run', { projectPath, run }),
+      onRun: (projectPath, run) => {
+        broadcast('scenarios:run', { projectPath, run })
+        setup.taps?.onRun(run)
+      },
       notify,
       openProject: (path) => void workspace.openProject(path),
     },

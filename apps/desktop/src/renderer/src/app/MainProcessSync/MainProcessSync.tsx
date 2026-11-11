@@ -11,6 +11,7 @@ import { useEditorSync } from '../../features/editor/editor-sync.hooks'
 import { useDirectorySync } from '../../features/file-tree/file-tree.queries'
 import { useGitStatusSync } from '../../features/file-tree/git-status.queries'
 import { useGitHeadSync } from '../../features/git/git.queries'
+import { useRemoteSync } from '../../features/remote/remote.queries'
 import { useTerminalSync } from '../../features/terminal/terminal.queries'
 
 /**
@@ -32,6 +33,7 @@ export const MainProcessSync = () => {
   useConnectorsSync()
   useTerminalSync()
   useScenariosSync()
+  useRemoteSync()
   useStatisticsSync()
 
   return null

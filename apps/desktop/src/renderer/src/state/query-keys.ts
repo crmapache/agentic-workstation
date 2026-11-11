@@ -65,6 +65,8 @@ export const QUERY_KEYS = {
   scenarioWorktreeFacts: (queueId: string) => ['scenarios', 'worktree-facts', queueId],
   /** Провайдеры ИИ и на месте ли они. */
   providers: ['providers'],
+  /** Remote Control (ADR 0041): связь, пара и телефоны; свежий вид присылает главный процесс. */
+  remote: ['remote'],
   /** Как идёт чтение транскриптов статистики - одно на окно; свежее приносит stats:changed. */
   statsScan: ['stats', 'scan'],
   /** Все отчёты статистики разом: сбросить, когда главный процесс сказал stats:changed. */

@@ -1,0 +1,179 @@
+import type {
+  Machine,
+  RunWire,
+  QueueWire,
+  FeedItemWire,
+  FeedTaskWire,
+  ProviderCaps,
+  RunSummaryWire,
+  ConversationWire,
+  InventoryProject,
+} from './wire-types'
+
+/**
+ * Что IDE говорит телефону. Как и в обратную сторону - JSON-объект с `p` (версия протокола) и
+ * `k` (вид). Открытым телом - только ответы рукопожатия, остальное запечатано.
+ */
+
+type Versioned = { p: 1 }
+
+/** Ответ на пару, когда человек нажал Approve: ключи IDE и её доказательство. */
+export type PairAck = Versioned & {
+  k: 'pairAck'
+  agentId: string
+  label: string
+  staticPub: string
+  ephemeralPub: string
+  proof: string
+}
+
+/** Ответ на переподключение: эфемерный ключ IDE; for - на какой ключ телефона это ответ. */
+export type SessionAck = Versioned & { k: 'sessionAck'; ephemeralPub: string; for: string }
+
+/** «Твои ключи не наши - предложи новые» (IDE перезапускалась или кадр не открылся). */
+export type SessionStale = Versioned & { k: 'sessionStale' }
+
+/** Телефон отпустили в IDE: ключей больше нет, нужна новая пара. Бывает и запечатанным. */
+export type Revoked = Versioned & { k: 'revoked' }
+
+export type HandshakeReply = PairAck | SessionAck | SessionStale | Revoked
+
+/**
+ * Что есть на машине: проекты с разговорами и очередями, провайдеры. Шлётся на hello и
+ * inventory и сам - каждому на линии, когда что-то в нём поменялось. at - часы IDE: по ним
+ * телефон считает «идёт 2m 40s». epoch - жизнь этой IDE: другой - номера журналов лент
+ * начались заново, телефону - снимок, а не заплатки.
+ */
+export type InventoryMessage = Versioned & {
+  k: 'inventory'
+  at: number
+  epoch: string
+  machine: Machine
+  /** Что умеет эта IDE: parts - сообщение частями. */
+  caps: string[]
+  providers: ProviderCaps[]
+  projects: InventoryProject[]
+}
+
+/**
+ * Снимок ленты: последние элементы, сколько влезло. seq - номер журнала, на котором снят
+ * снимок; следующая заплатка - seq + 1. hasEarlier - выше есть ещё (на телефон не уходит).
+ */
+export type FeedSnapshotMessage = Versioned & {
+  k: 'feed'
+  conversationId: string
+  epoch: string
+  seq: number
+  items: FeedItemWire[]
+  tasks: FeedTaskWire[]
+  hasEarlier: boolean
+}
+
+/** Заплатка ленты по id элементов. Пропущен номер - телефон подписывается заново с since. */
+export type FeedPatchMessage = Versioned & {
+  k: 'patch'
+  conversationId: string
+  epoch: string
+  seq: number
+  upserts: FeedItemWire[]
+  removes?: string[] | undefined
+  tasks?: FeedTaskWire[] | undefined
+  hasEarlier?: boolean | undefined
+}
+
+export type ConversationMessage = Versioned & { k: 'conversation'; conversation: ConversationWire }
+
+/** Разговора больше нет (закрыли вкладку, закрыли проект): подписка на него снята. */
+export type ConversationGoneMessage = Versioned & { k: 'conversationGone'; conversationId: string }
+
+/** Очереди сценариев: одного проекта (scope - его ключ) или всех (`*`). */
+export type QueuesMessage = Versioned & {
+  k: 'queues'
+  scope: string
+  queues: QueueWire[]
+  live: RunSummaryWire[]
+}
+
+export type RunMessage = Versioned & { k: 'run'; run: RunWire }
+
+export type RemoteErrorCode =
+  'unknownCommand' | 'badArgs' | 'rateLimited' | 'notFound' | 'notOpen' | 'refused' | 'failed'
+
+/**
+ * Ответ на команду по её id. Отказ - кодом; refused с detail - отказ самой IDE её словом
+ * (у сценариев: queueBusy, untrusted, runOver…).
+ */
+export type ResultMessage = Versioned & { k: 'result'; id: string } & (
+    { ok: true; data?: unknown } | { ok: false; code: RemoteErrorCode; detail?: string | undefined }
+  )
+
+/**
+ * Слово IDE не в ответ на команду: сообщение частями не собралось, подписка - на то, чего нет
+ * (about - id прогона или разговора).
+ */
+export type NoticeMessage = Versioned & {
+  k: 'notice'
+  level: 'info' | 'warning'
+  code: 'partsRefused' | 'notFound'
+  about?: string | undefined
+}
+
+/** Очередь до телефона обвалилась: что смотришь - подпишись заново со своего номера. */
+export type ResyncMessage = Versioned & { k: 'resync' }
+
+export type AgentMessage =
+  | InventoryMessage
+  | FeedSnapshotMessage
+  | FeedPatchMessage
+  | ConversationMessage
+  | ConversationGoneMessage
+  | QueuesMessage
+  | RunMessage
+  | ResultMessage
+  | NoticeMessage
+  | ResyncMessage
+  | Revoked
+
+export type AgentMessageKind = AgentMessage['k']
+
+const AGENT_KINDS: ReadonlySet<string> = new Set<AgentMessageKind>([
+  'inventory',
+  'feed',
+  'patch',
+  'conversation',
+  'conversationGone',
+  'queues',
+  'run',
+  'result',
+  'notice',
+  'resync',
+  'revoked',
+])
+
+const HANDSHAKE_KINDS: ReadonlySet<string> = new Set<HandshakeReply['k']>([
+  'pairAck',
+  'sessionAck',
+  'sessionStale',
+  'revoked',
+])
+
+const isVersioned = (value: unknown): value is { p: unknown; k: unknown } =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) && 'k' in value
+
+/**
+ * Запечатанное слово IDE для телефона. Проверка лёгкая - вид и версия: IDE доказала, что это
+ * она, тегом печати, а формы данных телефон читает по типам выше.
+ */
+export const parseAgentMessage = (value: unknown): AgentMessage | null =>
+  isVersioned(value) && value.p === 1 && typeof value.k === 'string' && AGENT_KINDS.has(value.k)
+    ? (value as AgentMessage)
+    : null
+
+/** Открытое слово IDE - только ответы рукопожатия. */
+export const parseHandshakeReply = (value: unknown): HandshakeReply | null =>
+  isVersioned(value) && value.p === 1 && typeof value.k === 'string' && HANDSHAKE_KINDS.has(value.k)
+    ? (value as HandshakeReply)
+    : null
+
+/** Что умеет эта сторона протокола v1. */
+export const CAP_PARTS = 'parts'

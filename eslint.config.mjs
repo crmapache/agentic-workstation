@@ -46,7 +46,17 @@ const ELEMENTS = [
     partialMatch: false,
   },
   { type: 'native-host', pattern: 'apps/desktop/src/native-host/**', partialMatch: false },
+  // Remote Control (ADR 0041): протокол - общий пакет IDE и телефона, релей - свой сервер.
+  {
+    type: 'remote-protocol',
+    pattern: 'packages/remote-protocol/src/**',
+    partialMatch: false,
+  },
+  { type: 'relay', pattern: 'apps/relay/src/**', partialMatch: false },
 ]
+
+/** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
+const FILE_CATEGORIES = [{ category: 'test', pattern: '**/*.test.ts' }]
 
 const allowTo = (...types) => ({ to: { element: { types: { anyOf: types } } } })
 
@@ -121,15 +131,20 @@ export default defineConfig(
       'packages/ui/src/**/*.{ts,tsx}',
       'packages/browser-protocol/src/**/*.ts',
       'apps/browser-extension/src/**/*.ts',
+      'packages/remote-protocol/src/**/*.ts',
+      'apps/relay/src/**/*.ts',
     ],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': ELEMENTS,
+      'boundaries/files': FILE_CATEGORIES,
       'boundaries/include': [
         'apps/desktop/src/**/*',
         'packages/ui/src/**/*',
         'packages/browser-protocol/src/**/*',
         'apps/browser-extension/src/**/*',
+        'packages/remote-protocol/src/**/*',
+        'apps/relay/src/**/*',
       ],
       'import/resolver': {
         typescript: {
@@ -140,6 +155,8 @@ export default defineConfig(
             'packages/ui/tsconfig.json',
             'packages/browser-protocol/tsconfig.json',
             'apps/browser-extension/tsconfig.app.json',
+            'packages/remote-protocol/tsconfig.json',
+            'apps/relay/tsconfig.json',
           ],
         },
       },
@@ -163,7 +180,19 @@ export default defineConfig(
             { from: { element: { type: 'shared' } }, allow: allowTo('shared') },
             {
               from: { element: { type: 'main' } },
-              allow: allowTo('main', 'shared', 'browser-protocol'),
+              allow: allowTo('main', 'shared', 'browser-protocol', 'remote-protocol'),
+            },
+            { from: { element: { type: 'remote-protocol' } }, allow: allowTo('remote-protocol') },
+            { from: { element: { type: 'relay' } }, allow: allowTo('relay') },
+            // Релей своё содержимое не читает и протокола не знает; тесты сверяют его конверт с
+            // протоколом, а сквозная проверка IDE поднимает его настоящим.
+            {
+              from: { element: { type: 'relay' }, file: { categories: 'test' } },
+              allow: allowTo('remote-protocol'),
+            },
+            {
+              from: { element: { type: 'main' }, file: { categories: 'test' } },
+              allow: allowTo('relay'),
             },
             { from: { element: { type: 'browser-protocol' } }, allow: allowTo('browser-protocol') },
             {
@@ -298,6 +327,50 @@ export default defineConfig(
       ],
     },
   },
+  // Протокол Remote Control едет и в главный процесс, и в телефон: общий только язык (ES,
+  // TextEncoder, DataView). Ни Node, ни DOM, ни Electron.
+  {
+    files: ['packages/remote-protocol/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*', 'react', 'react/*'],
+              message: 'Протокол Remote Control - чистый TypeScript для IDE и телефона.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...['Buffer', 'process', 'window', 'document', 'atob', 'btoa'].map((name) => ({
+          name,
+          message: 'Протокол Remote Control - чистый TypeScript: без Node и DOM.',
+        })),
+      ],
+    },
+  },
+  // Релей - Node и ws, к IDE отношения не имеет.
+  {
+    files: ['apps/relay/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'react', 'react/*', '@agentic-workstation/ui/*'],
+              message: 'Релей - отдельный сервер на Node: без Electron и интерфейса.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Окно не трогает Node и Electron напрямую: всё через мост preload (lib/ipc.ts).
   {
     files: RENDERER_FILES,

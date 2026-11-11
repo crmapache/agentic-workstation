@@ -1,0 +1,27 @@
+# Контекст сборки образа релея - корень репозитория. Внутрь - только то, что нужно pnpm
+# (манифесты workspace и lock-файл), сам релей и пакеты телефонного клиента.
+
+**/node_modules
+**/out
+**/dist
+**/coverage
+**/*.tsbuildinfo
+.git
+.idea
+.claude
+.screenshots
+bench
+docs
+
+# Ключи подписи и расширения: в образ не попадают никогда.
+**/*.p12
+**/*.pem
+**/.env
+**/.env.*
+
+# Исходники IDE и расширения образу не нужны, но их манифесты pnpm читает (lock-файл
+# описывает все проекты workspace).
+apps/desktop/*
+!apps/desktop/package.json
+apps/browser-extension/*
+!apps/browser-extension/package.json
