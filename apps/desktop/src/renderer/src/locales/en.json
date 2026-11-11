@@ -1214,7 +1214,8 @@
         "outdated": "This Claude Code is too old to write a scenario. Update it and try again.",
         "timeout": "No answer in ten minutes. Try a shorter description, or build it yourself.",
         "empty": "Say what the work is first.",
-        "unreadable": "Claude answered, but not with a scenario. Try again, or build it yourself."
+        "unreadable": "Claude answered, but not with a scenario. Try again, or build it yourself.",
+        "failed": "The draft could not be written. Try again, or build it yourself."
       }
     },
     "schedule": {

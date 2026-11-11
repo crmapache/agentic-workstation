@@ -36,7 +36,7 @@ export const waitClock = (ms: number): string => {
 
 /** Отказ писателя сценариев словом, на которое у окна есть текст; всё прочее - слова самого CLI. */
 export type DraftErrorCode =
-  'noClaude' | 'untrusted' | 'outdated' | 'timeout' | 'empty' | 'unreadable'
+  'noClaude' | 'untrusted' | 'outdated' | 'timeout' | 'empty' | 'unreadable' | 'failed'
 
 const DRAFT_ERROR_CODES: Record<DraftErrorCode, true> = {
   noClaude: true,
@@ -45,6 +45,7 @@ const DRAFT_ERROR_CODES: Record<DraftErrorCode, true> = {
   timeout: true,
   empty: true,
   unreadable: true,
+  failed: true,
 }
 
 export const draftErrorCode = (error: string): DraftErrorCode | null =>

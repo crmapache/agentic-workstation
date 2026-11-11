@@ -8,18 +8,19 @@ import { useScenariosStore } from '../scenarios.store'
 import { invoke } from '../../../lib/ipc'
 import { useAuthorStore } from './AuthorModal.store'
 
-/** Отказ IPC - тоже ответ, а не вечная полоса «пишет»: его слова встают на место ошибки. */
+/**
+ * Отказ IPC - тоже ответ, а не вечная полоса «пишет». Но словами окна, кодом: текст исключения
+ * главного процесса (он по-русски) в английский интерфейс не попадает, а уходит в журнал.
+ */
 const askDraft = async (
   request: () => Promise<ScenarioDraftOutcome>,
 ): Promise<ScenarioDraftOutcome> => {
   try {
     return await request()
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-      cancelled: false,
-    }
+    console.warn('[scenarios] черновик сценария не написан:', error)
+
+    return { ok: false, error: 'failed', cancelled: false }
   }
 }
 
