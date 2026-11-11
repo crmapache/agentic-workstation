@@ -67,6 +67,7 @@ export const runSummaryWire = (run: RunSummary, keyOf: KeyOf): RunSummaryWire =>
   asking: run.asking,
   roadmap: run.roadmap,
   limit: run.limit,
+  starred: run.starred,
 })
 
 /** Прогон целиком: дорожка, шаги, заметки, вопрос головы. Промпты шагов остаются в IDE. */

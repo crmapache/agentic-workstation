@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
+import type { OpenedConversationWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
@@ -21,16 +22,19 @@ import { PathText } from '../../../../shell/PathText/PathText'
 
 /**
  * Прошлые разговоры одного провайдера: свежие сверху, когда менялись, открыт ли уже вкладкой.
- * Нажатие открывает разговор в IDE (или берёт открытую вкладку) и ведёт в него.
+ * Нажатие открывает разговор в IDE (или берёт открытую вкладку) и ведёт в него; у закрытого
+ * проекта строки только читаются - открыть разговор можно, только открыв проект.
  */
 export const HistorySection = ({
   route,
   provider,
   inventory,
+  canOpen,
 }: {
   route: RouteOf<'history'>
   provider: ProviderCaps
   inventory: MirroredInventory
+  canOpen: boolean
 }) => {
   const { t } = useTranslation()
   const { agentId, projectKey } = route
@@ -46,7 +50,7 @@ export const HistorySection = ({
 
     const data = (await open
       .mutateAsync({ projectKey, provider: provider.id, sessionId })
-      .catch(() => null)) as { conversationId?: string } | null
+      .catch(() => null)) as OpenedConversationWire | null
 
     if (data?.conversationId) {
       navigate({ name: 'conversation', agentId, projectKey, conversationId: data.conversationId })
@@ -76,7 +80,7 @@ export const HistorySection = ({
               title={entry.title ? <PathText text={entry.title} /> : t('history.untitled')}
               description={sinceText(t, entry.updatedAt, now, offset)}
               trailing={entry.isOpen && <Badge tone="success">{t('history.open')}</Badge>}
-              onClick={() => void handleOpen(entry.sessionId)}
+              onClick={canOpen ? () => void handleOpen(entry.sessionId) : undefined}
             />
           ))}
         </ListGroup>

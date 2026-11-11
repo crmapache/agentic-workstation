@@ -1,4 +1,7 @@
+import { TASK_ID, MESSAGE_ID } from '@agentic-workstation/remote-protocol/command-fields'
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
+
+import type { RunningTask } from './Feed.types'
 
 /**
  * Элемент ленты на проводе - вид (kind) и поля по виду, как их собирает IDE для своей панели
@@ -137,3 +140,28 @@ export const inputText = (name: string, input: Fields, limit = 2000): string => 
 
   return raw.length > limit ? `${raw.slice(0, limit)}\n…` : raw
 }
+
+/**
+ * Идущая задача за вызовом (субагент, флот, фоновая команда): у её задачи CLI итога ещё нет
+ * (outcome null). Кончившаяся, без задачи или с id, которого CLI не примет, - null: кнопки
+ * «остановить» у такой строки нет.
+ */
+export const runningTask = (item: Fields): RunningTask | null => {
+  const task = fields(item, 'task')
+
+  if (!task || !('outcome' in task) || task['outcome'] !== null) return null
+
+  const taskId = text(task, 'taskId')
+
+  return TASK_ID.safeParse(taskId).success ? { taskId, kind: text(task, 'kind') || 'agent' } : null
+}
+
+/**
+ * К сообщению человека можно откатиться: оно из транскрипта (id - UUID строки) и начинало ход.
+ * Написанное посреди хода и слова панели (auto) хода не начинали - чистого «до» у них нет.
+ */
+export const canRewind = (item: FeedItemWire): boolean =>
+  item.kind === 'user' &&
+  MESSAGE_ID.safeParse(item.id).success &&
+  !flag(item, 'steering') &&
+  !text(item, 'auto')

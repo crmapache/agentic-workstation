@@ -15,3 +15,6 @@ export const stagesOf = (run: RunWire): { id: string; title: string; steps: RunS
 /** Что сказать о шаге при раскрытии: провал, ошибка, вердикт головы, итог или последние слова. */
 export const stepWords = (step: RunStepWire): string =>
   [step.failure, step.error, step.verdict, step.summary || step.said].filter(Boolean).join('\n\n')
+
+/** Шаг начинался - у него есть журнал (разговор карточки); ждущий ещё не говорил ни слова. */
+export const begun = (step: RunStepWire): boolean => step.startedAt > 0 || step.state !== 'waiting'

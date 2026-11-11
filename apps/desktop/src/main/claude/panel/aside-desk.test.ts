@@ -123,4 +123,37 @@ describe('вопрос сбоку', () => {
     expect(lastAsk(desk)?.state).toBe('cancelled')
     expect(views.filter((view) => view.conversationId === 'c1')).toHaveLength(seen + 1)
   })
+
+  it('вопрос с телефона: свой id, итог - тому, кто ждёт, карточка на столе не открывается', async () => {
+    const { process, replies, requests } = fakeProcess()
+    const { desk } = setup(Promise.resolve(process))
+    const answer = desk.askFor('c1', ' what now? ', 'phone-1')
+
+    await flush()
+
+    expect(desk.thread('c1').open).toBe(false)
+    expect(lastAsk(desk)).toMatchObject({ id: 'phone-1', question: 'what now?', state: 'asking' })
+    expect(requests).toHaveLength(1)
+    // Тот же id второй раз - не второй вопрос.
+    expect(await desk.askFor('c1', 'again', 'phone-1')).toBeNull()
+
+    replies.get('phone-1')?.resolve({ response: 'Writing the tests.' })
+
+    expect(await answer).toMatchObject({
+      id: 'phone-1',
+      state: 'answered',
+      text: 'Writing the tests.',
+    })
+  })
+
+  it('отмена вопроса с телефона кончает его ожидание отменой', async () => {
+    const { process } = fakeProcess()
+    const { desk } = setup(Promise.resolve(process))
+    const answer = desk.askFor('c1', 'q', 'phone-2')
+
+    await flush()
+    desk.cancel('c1', 'phone-2')
+
+    expect(await answer).toMatchObject({ id: 'phone-2', state: 'cancelled' })
+  })
 })

@@ -1,38 +1,36 @@
-import { Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire-types'
-import { Button } from '@agentic-workstation/ui/Button'
 
+import type { useConversationScreen, useConversationCommands } from '../ConversationScreen.hooks'
 import styles from '../ConversationScreen.module.scss'
 import { PendingCard } from '../../PendingCard/PendingCard'
-import type { Decision } from '../../PendingCard/PendingCard.types'
-import type { PreparedImage } from '../../../../lib/images'
 import { Composer } from '../../../../shell/Composer/Composer'
+import { CarryOnRow } from './CarryOnRow'
+import { QueuedMessages } from './QueuedMessages'
+import { StopButton } from './StopButton'
 
 /**
- * Низ разговора: решение хода (разрешение, вопрос, план), очередь сообщений в IDE, поле и - пока
- * ход идёт - Stop в ряду поля, как в IDE: под большим пальцем, а не в углу шапки.
+ * Низ разговора: решение хода (разрешение, вопрос, план), очередь сообщений в IDE, «продолжит
+ * после лимита», поле и - пока ход идёт - Stop в ряду поля, как в IDE: под большим пальцем, а не
+ * в углу шапки. Пока ход идёт, отправленное встаёт в очередь.
  */
 export const ConversationFooter = ({
   conversation,
   draftKey,
-  deciding,
-  stopping,
-  onDecide,
-  onSend,
-  onStop,
+  offset,
+  screen,
+  commands,
 }: {
   conversation: ConversationWire | undefined
   draftKey: string
-  deciding: boolean
-  stopping: boolean
-  onDecide: (requestId: string, decision: Decision) => void
-  onSend: (text: string, images: PreparedImage[]) => Promise<boolean>
-  onStop: () => void
+  /** Насколько часы IDE впереди часов телефона. */
+  offset: number
+  screen: ReturnType<typeof useConversationScreen>
+  commands: ReturnType<typeof useConversationCommands>
 }) => {
   const { t } = useTranslation()
-  const running = conversation?.status === 'running'
+  const busy = conversation?.status === 'running'
 
   return (
     <div className={styles.footer}>
@@ -40,40 +38,37 @@ export const ConversationFooter = ({
         <PendingCard
           pending={conversation.pending}
           pendingCount={conversation.pendingCount}
-          busy={deciding}
-          onDecide={onDecide}
+          busy={screen.isDeciding || commands.isDismissing}
+          onDecide={screen.handleDecide}
+          onDismiss={commands.handleDismiss}
         />
       )}
-      {conversation && conversation.queue.length > 0 && (
-        <ul className={styles.queue} aria-label={t('conversation.queued')}>
-          {conversation.queue.map((queued) => (
-            <li key={queued.id} className={styles.queued}>
-              <span className={styles.queuedMark}>{t('conversation.queuedMark')}</span>
-              <span className={styles.queuedText}>
-                {queued.text || t('conversation.queuedPhotos', { count: queued.imageCount })}
-              </span>
-            </li>
-          ))}
-        </ul>
+      {conversation && <QueuedMessages conversation={conversation} commands={commands} />}
+      {conversation?.carryOn && (
+        <CarryOnRow
+          carryOn={conversation.carryOn}
+          offset={offset}
+          busy={commands.isCancellingCarryOn}
+          onCancel={commands.handleCancelCarryOn}
+        />
       )}
       <Composer
         draftKey={draftKey}
-        placeholder={running ? t('conversation.placeholderQueued') : t('conversation.placeholder')}
+        placeholder={busy ? t('conversation.placeholderQueued') : t('conversation.placeholder')}
         sendLabel={t('conversation.send')}
         disabled={!conversation}
         actions={
-          running && (
-            <Button
-              size="touch"
-              variant="secondary"
-              icon={Square}
-              disabled={stopping}
-              onClick={onStop}>
-              {t('conversation.stop')}
-            </Button>
+          conversation?.status === 'running' && (
+            <StopButton
+              forceable={!!conversation.stopRequestedAt}
+              stopping={screen.isStopping}
+              forceStopping={commands.isForceStopping}
+              onStop={screen.handleStop}
+              onForceStop={commands.handleForceStop}
+            />
           )
         }
-        onSend={onSend}
+        onSend={screen.handleSend}
       />
     </div>
   )

@@ -58,5 +58,14 @@ export const dateText = (at: number): string =>
 export const clockText = (at: number): string =>
   new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
+/**
+ * Момент дня по часам телефона: сегодня - только время, другой день - с датой. at - уже по
+ * часам телефона (поправку на часы IDE вычитает вызывающий).
+ */
+export const momentText = (at: number, now: number): string =>
+  new Date(at).toDateString() === new Date(now).toDateString()
+    ? clockText(at)
+    : `${dateText(at)}, ${clockText(at)}`
+
 /** Деньги прогона: «$0.42». */
 export const costText = (usd: number): string => `$${usd.toFixed(2)}`

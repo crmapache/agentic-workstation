@@ -17,8 +17,16 @@ export type WaitingKind = 'permission' | 'question' | 'plan'
  */
 export type ConversationOutcome = 'none' | 'done' | 'interrupted' | 'failed' | 'crashed'
 
-/** Модель провайдера: значение для запуска и подписи из каталога. */
-export type ProviderModel = { value: string; label: string; description: string }
+/**
+ * Модель провайдера: значение для запуска и подписи из каталога. fast - у модели есть быстрый
+ * режим (переключатель разговора на телефоне виден только у неё); нет поля - не сказано.
+ */
+export type ProviderModel = {
+  value: string
+  label: string
+  description: string
+  fast?: boolean | undefined
+}
 
 /** Провайдер и что у него можно выбрать с телефона - у каждого свои модели, усилия и режимы. */
 export type ProviderCaps = {
@@ -91,7 +99,22 @@ export type PendingWire =
     }
   | { kind: 'plan'; requestId: string; plan: string; truncated: boolean }
 
-/** Разговор целиком - тому, кто его смотрит. */
+/**
+ * Панель сама продолжит разговор после лимита: когда (мс, часы IDE) и угадан ли срок (лимит
+ * не сказал, когда сбросится). «Don't continue» снимает слова панели.
+ */
+export type CarryOnWire = { until: number; guess: boolean }
+
+/**
+ * Быстрый режим разговора: попросили ли его (fastMode) и что CLI сказал о нём в последний раз
+ * (on, off, cooldown - пауза после лимита); null - ещё не говорил.
+ */
+export type FastWire = { asked: boolean; state: 'on' | 'off' | 'cooldown' | null }
+
+/**
+ * Разговор целиком - тому, кто его смотрит. Поля после context - с версии, где телефон умеет
+ * очередь, быстрый режим и «Don't continue»: старая IDE их не шлёт, поэтому они необязательны.
+ */
 export type ConversationWire = ConversationSummary & {
   projectKey: string
   model: string | null
@@ -108,6 +131,12 @@ export type ConversationWire = ConversationSummary & {
   /** Почему разговор не идёт - код провайдера (cli-not-found, untrusted…); null - идёт. */
   error: string | null
   context: { tokens: number; window: number }
+  /** Человек нажал Stop (мс), а ход ещё идёт: телефон предлагает погасить процесс. */
+  stopRequestedAt?: number | null | undefined
+  /** Почему очередь стоит, хотя разговор свободен: paused, reopened, blocked; null - не держат. */
+  queueHold?: string | null | undefined
+  carryOn?: CarryOnWire | null | undefined
+  fast?: FastWire | undefined
 }
 
 /**
@@ -188,6 +217,8 @@ export type RunSummaryWire = {
   asking: string
   roadmap: RoadmapStopWire[]
   limit: RunLimitWire | null
+  /** Отмечен звёздочкой в истории прогонов; нет поля - IDE старше этой отметки. */
+  starred?: boolean | undefined
 }
 
 export type RunStepWire = {
@@ -252,6 +283,12 @@ export type HistoryEntryWire = {
   updatedAt: number
   isOpen: boolean
 }
+
+/**
+ * Разговор, который открыли с телефона (conversation.new, conversation.openHistory): id его
+ * вкладки в IDE - на него телефон и переходит.
+ */
+export type OpenedConversationWire = { conversationId: string }
 
 /** История проекта на телефон: свежие сверху, сколько влезло в кадр; more - есть ещё старее. */
 export type HistoryWire = { entries: HistoryEntryWire[]; more: boolean }

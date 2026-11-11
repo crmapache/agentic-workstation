@@ -1,9 +1,10 @@
-import { useRef, useEffect, useLayoutEffect } from 'react'
+import { useRef, useMemo, useState, useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire-types'
 
 import { STICK_THRESHOLD_PX } from '../Feed/Feed.constants'
+import type { FeedActions, RunningTask } from '../Feed/Feed.types'
 import type { Decision } from '../PendingCard/PendingCard.types'
 import type { PreparedImage } from '../../../lib/images'
 import { useNow } from '../../../lib/now.hooks'
@@ -18,7 +19,8 @@ import type { MirroredInventory } from '../../../state/remote.types'
  * Разговор: подписка у IDE (состояние и лента), команды хода, ранние сообщения по просьбе и
  * прилипание ленты к низу - пока человек сам не пролистал вверх. Страница выше встаёт над лентой,
  * а то, что человек читал, остаётся на месте: в iOS Safari якоря прокрутки нет, место держит
- * расстояние до низа.
+ * расстояние до низа. Пока ход идёт (или ждёт ответа), сообщение встаёт в очередь IDE, как Enter
+ * в панели: уйдёт по концу хода, а «Send now» отдаст его модели сразу.
  */
 export const useConversationScreen = (route: RouteOf<'conversation'>) => {
   const { agentId, conversationId } = route
@@ -27,6 +29,7 @@ export const useConversationScreen = (route: RouteOf<'conversation'>) => {
   const inventory = useInventory(agentId).data
   const earlier = useLoadEarlier(agentId, conversationId)
   const send = useCommand(agentId, 'conversation.send')
+  const enqueue = useCommand(agentId, 'conversation.enqueue')
   const respond = useCommand(agentId, 'conversation.respond')
   const interrupt = useCommand(agentId, 'conversation.interrupt')
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -69,14 +72,18 @@ export const useConversationScreen = (route: RouteOf<'conversation'>) => {
   }, [feed, conversation?.status, conversation?.pending])
 
   const handleSend = async (text: string, images: PreparedImage[]): Promise<boolean> => {
+    const args = {
+      conversationId,
+      text,
+      ...(images.length > 0 && {
+        images: images.map(({ mediaType, data }) => ({ mediaType, data })),
+      }),
+    }
+
+    // Пока идёт ход - в очередь IDE, она уйдёт после него. Пока висит вопрос - сразу, как Send
+    // окна: IDE кладёт слова человека перед отказом, и модель их прочтёт, а не будет ждать.
     try {
-      await send.mutateAsync({
-        conversationId,
-        text,
-        ...(images.length > 0 && {
-          images: images.map(({ mediaType, data }) => ({ mediaType, data })),
-        }),
-      })
+      await (conversation?.status === 'running' ? enqueue : send).mutateAsync(args)
       isStuck.current = true
 
       return true
@@ -140,4 +147,61 @@ export const useWorkingText = (
   const elapsed = now + offset - started - (conversation?.workPausedMs ?? 0)
 
   return t('conversation.working', { time: durationText(t, elapsed) })
+}
+
+/**
+ * Команды разговора, у которых нет своего экрана: очередь (сейчас, переставить, убрать), «Don't
+ * continue», погасить процесс, закрыть вопрос, остановить задачу. Новое состояние приходит
+ * зеркалом.
+ */
+export const useConversationCommands = (agentId: string, conversationId: string) => {
+  const sendQueued = useCommand(agentId, 'conversation.sendQueued')
+  const moveQueued = useCommand(agentId, 'conversation.moveQueued')
+  const unqueue = useCommand(agentId, 'conversation.unqueue')
+  const cancelCarryOn = useCommand(agentId, 'conversation.cancelCarryOn')
+  const forceStop = useCommand(agentId, 'conversation.forceStop')
+  const dismiss = useCommand(agentId, 'conversation.dismiss')
+  const stopTask = useCommand(agentId, 'conversation.stopTask')
+
+  return {
+    isQueueBusy: sendQueued.isPending || moveQueued.isPending || unqueue.isPending,
+    isCancellingCarryOn: cancelCarryOn.isPending,
+    isForceStopping: forceStop.isPending,
+    isDismissing: dismiss.isPending,
+    handleSendQueued: (queuedId: string) => sendQueued.mutate({ conversationId, queuedId }),
+    handleMoveQueued: (queuedId: string, toIndex: number) =>
+      moveQueued.mutate({ conversationId, queuedId, toIndex }),
+    handleUnqueue: (queuedId: string) => unqueue.mutate({ conversationId, queuedId }),
+    handleCancelCarryOn: () => cancelCarryOn.mutate({ conversationId }),
+    handleForceStop: () => forceStop.mutate({ conversationId }),
+    handleDismiss: (requestId: string) => dismiss.mutate({ conversationId, requestId }),
+    handleStopTask: (taskId: string) => stopTask.mutate({ conversationId, taskId }),
+  }
+}
+
+/**
+ * Что открыто поверх разговора: настройки, вопросы сбоку, откат к сообщению, «остановить
+ * задачу?». Действия ленты - стабильной ссылкой: строки ленты - memo.
+ */
+export const useConversationSheets = () => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isAsideOpen, setIsAsideOpen] = useState(false)
+  const [rewindTo, setRewindTo] = useState<string | null>(null)
+  const [stoppingTask, setStoppingTask] = useState<RunningTask | null>(null)
+  const feedActions = useMemo<FeedActions>(
+    () => ({ onStopTask: setStoppingTask, onRewind: setRewindTo }),
+    [],
+  )
+
+  return {
+    isSettingsOpen,
+    setIsSettingsOpen,
+    isAsideOpen,
+    setIsAsideOpen,
+    rewindTo,
+    setRewindTo,
+    stoppingTask,
+    setStoppingTask,
+    feedActions,
+  }
 }

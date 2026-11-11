@@ -1,25 +1,19 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
-import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import { FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
 
 import { loadEarlierPage } from '../src/remote/earlier-pages'
-import type { KeyStore } from '../src/remote/keystore'
-import { memoryKeyStore } from '../src/remote/keystore'
-import type { SocketLike } from '../src/remote/relay-socket'
-import { RemoteClient } from '../src/remote/remote-client'
 import {
   itemOf,
   PROJECT_PATH,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
 import { imageOf, PAST_SESSION } from '../../desktop/src/main/remote/__fixtures__/fake-reads'
-import type { Harness } from './ide-harness'
-import { until, startHarness } from './ide-harness'
+import { until } from './ide-harness'
+import { phone, lastOf, harness, pairPhone, runCleanups } from './interop-phone'
 
 /**
  * Ядро телефона (apps/phone/src/remote) против настоящей IDE: настоящий релей, настоящий
@@ -27,57 +21,7 @@ import { until, startHarness } from './ide-harness'
  * WebSocket, как в браузере. Сходится байт в байт - или пара не проходит вовсе.
  */
 
-const cleanups: (() => Promise<void> | void)[] = []
-
-afterEach(async () => {
-  for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
-})
-
-const harness = async (): Promise<Harness> => {
-  const started = await startHarness()
-
-  cleanups.push(() => started.close())
-
-  return started
-}
-
-type Inbox = { messages: AgentMessage[]; feeds: FeedView[] }
-
-const phone = async (relayUrl: string, store: KeyStore = memoryKeyStore()) => {
-  const client = await RemoteClient.create({
-    store,
-    relayUrl,
-    createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
-    client: { name: 'interop-test', version: '1' },
-  })
-  const inbox: Inbox = { messages: [], feeds: [] }
-
-  client.events.on('message', (_agentId, message) => inbox.messages.push(message))
-  client.events.on('feed', (_agentId, view) => inbox.feeds.push(view))
-  client.start()
-  cleanups.push(() => client.stop())
-
-  return { client, inbox, store }
-}
-
-const pairPhone = async (ide: Harness, label = 'Interop phone') => {
-  const url = new URL(ide.pairingUrl())
-  const code = parsePairingFragment(url.hash)
-
-  if (!code) throw new Error('the IDE gave a pairing code the phone does not read')
-
-  const side = await phone(ide.relayUrl)
-  const offer = await side.client.preparePairing(code)
-  const outcome = side.client.pair(offer, label)
-  const pending = await ide.approve()
-
-  return { ...side, code, offer, pending, outcome: await outcome }
-}
-
-const lastOf = <K extends AgentMessage['k']>(inbox: Inbox, kind: K) =>
-  inbox.messages.findLast(
-    (message): message is Extract<AgentMessage, { k: K }> => message.k === kind,
-  )
+afterEach(runCleanups)
 
 describe('ядро телефона против настоящей IDE', () => {
   it('пара: отпечатки сходятся, IDE видит телефон, телефон получает список без путей', async () => {

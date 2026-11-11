@@ -15,12 +15,15 @@ import { modelOptions, effortOptions } from '../../../lib/options.utils'
 import { useCommand } from '../../../state/commands.hooks'
 import { OptionList } from '../../../shell/OptionList/OptionList'
 import styles from './ConversationSettings.module.scss'
+import { fastOffered } from './ConversationSettings.utils'
+import { FastMode } from './parts/FastMode'
 
 type Effort = CommandArgs<'conversation.setEffort'>['effort']
 
 /**
- * Настройки живого разговора: имя, модель и усилие провайдера. Режим разрешений с телефона не
- * меняется - bypass и auto выбирает только человек за столом.
+ * Настройки живого разговора: имя, модель, усилие провайдера и быстрый режим (у модели, которая
+ * его умеет). Режим разрешений с телефона не меняется - bypass и auto выбирает только человек
+ * за столом.
  */
 export const ConversationSettings = ({
   open,
@@ -88,6 +91,9 @@ export const ConversationSettings = ({
             }
           />
         </Section>
+        {fastOffered(conversation, provider) && (
+          <FastMode agentId={agentId} conversation={conversation} />
+        )}
       </div>
     </Modal>
   )

@@ -9,6 +9,8 @@ export type PendingCardProps = {
   pendingCount: number
   busy: boolean
   onDecide: (requestId: string, decision: Decision) => void
+  /** Закрыть вопрос с вариантами, не ответив (как «Dismiss» у карточки панели IDE). */
+  onDismiss: (requestId: string) => void
 }
 
 export type PendingOf<K extends PendingWire['kind']> = Extract<PendingWire, { kind: K }>

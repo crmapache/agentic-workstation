@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
-import { sinceText, durationText } from './time.utils'
+import { clockText, sinceText, momentText, durationText } from './time.utils'
 
 /** Подстановка вместо i18next: ключ и значения - видно, какая ветка сработала. */
 const t = ((key: string, values: Record<string, unknown> = {}) =>
@@ -28,5 +28,15 @@ describe('время коротко', () => {
 
   it('дольше недели - дата, а не сотни дней', () => {
     expect(sinceText(t, 0, 30 * 24 * 3_600_000, 0)).not.toContain('time.')
+  })
+
+  it('момент дня: сегодня - только время, другой день - с датой', () => {
+    const now = new Date(2026, 10, 11, 18, 0).getTime()
+    const today = new Date(2026, 10, 11, 9, 5).getTime()
+    const tomorrow = new Date(2026, 10, 12, 9, 5).getTime()
+
+    expect(momentText(today, now)).toBe(clockText(today))
+    expect(momentText(tomorrow, now)).toContain(clockText(tomorrow))
+    expect(momentText(tomorrow, now)).not.toBe(clockText(tomorrow))
   })
 })

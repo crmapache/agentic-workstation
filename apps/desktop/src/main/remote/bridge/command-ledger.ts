@@ -10,8 +10,15 @@ export const KEPT_MS = 10 * 60_000
 /** И сколько команд на телефон: пределы частоты дают за десять минут больше, но старое не нужно. */
 export const MAX_KEPT = 256
 
-/** Команда принята: итог есть или ещё выполняется (null). */
+/**
+ * Команда принята: итог есть или ещё выполняется (null). at - когда принята, а с итогом - когда
+ * он готов: срок памяти считается от итога, и долгая команда (вопрос сбоку до 11 минут) не
+ * забывается, пока идёт, и ещё KEPT_MS после.
+ */
 export type Entry = { at: number; outcome: Outcome | null }
+
+/** Протухла ли запись: выполняющаяся - никогда, с итогом - через KEPT_MS после него. */
+const stale = (entry: Entry, now: number) => entry.outcome !== null && now - entry.at > KEPT_MS
 
 /**
  * Журнал команд телефона по их id. Телефон повторяет команду, если не услышал ответ (обрыв,
@@ -30,7 +37,7 @@ export class CommandLedger {
     const entry = entries?.get(commandId)
 
     if (!entries || !entry) return null
-    if (this.clock() - entry.at <= KEPT_MS) return entry
+    if (!stale(entry, this.clock())) return entry
 
     entries.delete(commandId)
 
@@ -57,7 +64,10 @@ export class CommandLedger {
   settle(deviceId: string, commandId: string, outcome: Outcome): void {
     const entry = this.phones.get(deviceId)?.get(commandId)
 
-    if (entry) entry.outcome = outcome
+    if (!entry) return
+
+    entry.outcome = outcome
+    entry.at = this.clock()
   }
 
   /** Протухшее - вон: зовётся сердцебиением линии. */
@@ -66,7 +76,7 @@ export class CommandLedger {
 
     for (const [deviceId, entries] of this.phones) {
       for (const [commandId, entry] of entries) {
-        if (now - entry.at > KEPT_MS) entries.delete(commandId)
+        if (stale(entry, now)) entries.delete(commandId)
       }
 
       if (entries.size === 0) this.phones.delete(deviceId)

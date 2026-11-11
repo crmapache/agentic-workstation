@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import { ListX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { QueueWire, QueueItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { Badge } from '@agentic-workstation/ui/Badge'
+import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
 
 import type { useQueueScreen } from '../QueueScreen.hooks'
@@ -10,13 +13,15 @@ import { itemFacts } from '../QueueScreen.utils'
 import type { RouteOf } from '../../../../lib/route.types'
 import { useRouter } from '../../../../lib/router.store'
 import { QUEUE_ITEM_TONES } from '../../../../lib/status.constants'
+import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
 import { WaitingItemCard } from './WaitingItemCard'
 
 /**
  * Элементы очереди по порядку. Прошедшие и идущий - строками: нажатие открывает их прогон.
- * Ждущие - карточками со своими кнопками: переставить, убрать, остановиться после них.
+ * Ждущие - карточками со своими кнопками: переставить, убрать, остановиться после них; убрать
+ * все ждущие разом - у заголовка, с «точно?» (идущий прогон и прошедшие остаются).
  */
 export const QueueItems = ({
   route,
@@ -29,6 +34,7 @@ export const QueueItems = ({
 }) => {
   const { t } = useTranslation()
   const navigate = useRouter((state) => state.navigate)
+  const [isClearing, setIsClearing] = useState(false)
   const passed = queue.items.filter((item) => item.state !== 'waiting')
   const waiting = queue.items.filter((item) => item.state === 'waiting')
 
@@ -41,7 +47,22 @@ export const QueueItems = ({
     })
 
   return (
-    <Section size="sm" title={t('queue.items')} count={queue.items.length}>
+    <Section
+      size="sm"
+      title={t('queue.items')}
+      count={queue.items.length}
+      actions={
+        waiting.length > 0 && (
+          <Button
+            size="touch"
+            variant="ghost"
+            icon={ListX}
+            disabled={screen.busy}
+            onClick={() => setIsClearing(true)}>
+            {t('queue.clear')}
+          </Button>
+        )
+      }>
       <div className={styles.items}>
         {passed.length > 0 && (
           <ListGroup label={t('queue.items')}>
@@ -76,6 +97,14 @@ export const QueueItems = ({
           />
         ))}
       </div>
+      <ConfirmDialog
+        open={isClearing}
+        title={t('queue.clearConfirm', { count: waiting.length })}
+        text={t('queue.clearText')}
+        confirmLabel={t('queue.clear')}
+        onConfirm={() => screen.queueAction({ kind: 'clear' })}
+        onClose={() => setIsClearing(false)}
+      />
     </Section>
   )
 }

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { AsideView, AsideThread } from '@shared/claude-panel'
+import type { AsideView, AsideThread, AsideExchange } from '@shared/claude-panel'
 
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
@@ -39,6 +39,8 @@ export class AsideDesk {
   onChange: (view: AsideView) => void = () => undefined
   private readonly threads = new Map<string, AsideThread>()
   private readonly asks = new Map<string, Ask>()
+  /** Кто ждёт итога вопроса (телефон через Remote Control): по id вопроса. */
+  private readonly waiters = new Map<string, (exchange: AsideExchange | null) => void>()
 
   constructor(private readonly runtimeOf: (conversationId: string) => ConversationRuntime) {}
 
@@ -85,6 +87,44 @@ export class AsideDesk {
     void this.run(runtime, id, sideRequest(text, history))
 
     return this.thread(conversationId)
+  }
+
+  /**
+   * Вопрос сбоку с телефона (Remote Control, ADR 0041): id называет он сам - по нему отмена, - и
+   * ждёт он итога вопроса, а не события окна. Карточку на столе не открывает: за Mac могут
+   * работать с этой вкладкой, а спросил не человек за столом. Цепочка та же, что у окна: ответы
+   * едут контекстом в следующие вопросы. null - вопрос с таким id уже есть: второго не будет.
+   */
+  askFor(conversationId: string, question: string, id: string): Promise<AsideExchange | null> {
+    const text = question.trim()
+    const thread = this.thread(conversationId)
+
+    if (!text || this.asks.has(id) || this.exchangeOf(conversationId, id)) {
+      return Promise.resolve(null)
+    }
+
+    const runtime = this.runtimeOf(conversationId)
+    const asked = {
+      id,
+      question: text,
+      askedAt: Date.now(),
+      state: 'asking' as const,
+      text: '',
+      notice: '',
+      failure: null,
+      message: '',
+      retry: null,
+    }
+    // Цепочку сняли раньше ответа (/clear) - вопроса больше нет: для спросившего это отмена.
+    const answer = new Promise<AsideExchange>((resolve) =>
+      this.waiters.set(id, (exchange) => resolve(exchange ?? { ...asked, state: 'cancelled' })),
+    )
+
+    this.put(conversationId, { ...withAsked(thread, asked, null), open: thread.open })
+    this.asks.set(id, { conversationId, process: null, timer: null })
+    void this.run(runtime, id, sideRequest(text, sideHistory(thread, null)))
+
+    return answer
   }
 
   /** Отменить вопрос в пути: CLI ответит ошибкой «отменено», она и закончит его. */
@@ -178,6 +218,15 @@ export class AsideDesk {
 
     this.asks.delete(id)
     this.end(ask.conversationId, id, ending)
+
+    const waiter = this.waiters.get(id)
+
+    this.waiters.delete(id)
+    waiter?.(this.exchangeOf(ask.conversationId, id))
+  }
+
+  private exchangeOf(conversationId: string, id: string): AsideExchange | null {
+    return this.thread(conversationId).exchanges.find((exchange) => exchange.id === id) ?? null
   }
 
   /** Вопрос поднял спящий процесс: без хода сам он не уснул бы никогда. */

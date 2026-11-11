@@ -116,6 +116,8 @@ export type QueueAction =
   | { kind: 'stopAfter'; itemId: string | null }
   | { kind: 'resume' }
   | { kind: 'rename'; name: string }
+  /** Убрать все ждущие элементы разом: идущий и прошедшие остаются, очередь не закрывается. */
+  | { kind: 'clear' }
   | { kind: 'close' }
 
 /** Что сейчас в worktree очереди - для вопроса перед удалением. */

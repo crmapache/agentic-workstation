@@ -1,20 +1,27 @@
 import type { ClaudeState, Conversation, PendingRequest } from '@shared/claude'
 import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
-import type { ScenarioQueue, ScenarioQueuesView } from '@shared/scenario-queues'
-import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
-import type { Scenario } from '@shared/scenarios'
+import type { ScenarioQueuesView } from '@shared/scenario-queues'
+import type { ScenarioSchedule } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { BridgePorts } from '../bridge/bridge-ports'
+import { accountsOf, historyRunOf, historySummaryOf } from './fake-extras'
+import {
+  searchOf,
+  controlsOf,
+  accountsPortOf,
+  workspacePortOf,
+  connectorsPortOf,
+} from './fake-ports'
 import { readsOf, picturesOf } from './fake-reads'
+import { RUN, LIVE, QUEUE, SCENARIO, PROJECT_PATH } from './fake-scenarios'
+import { shelfPortOf } from './fake-shelf'
 
 /**
  * IDE для тестов Remote Control: проект с разговором Claude Code, очередь сценариев с идущим
  * прогоном и подделки сервисов, которые записывают каждый вызов. Пути - настоящие на вид:
  * тесты проверяют, что ни один не уходит телефону.
  */
-
-export const PROJECT_PATH = '/Users/someone/Projects/secret-client'
 
 export const RECENT_PATH = '/Users/someone/Projects/old-thing'
 
@@ -65,130 +72,7 @@ export const PERMISSION: Extract<PendingRequest, { kind: 'permission' }> = {
 export const itemOf = (id: string, text: string): FeedItem =>
   ({ id, kind: 'assistant', text, streaming: false }) as unknown as FeedItem
 
-const SCENARIO: Scenario = {
-  version: 1,
-  id: 'tidy',
-  name: 'Tidy up',
-  createdAt: 0,
-  updatedAt: 0,
-  inputs: [{ id: 'what', name: 'what', label: 'What', placeholder: '', required: true }],
-  head: {
-    briefing: '',
-    model: '',
-    effort: '',
-    permissionMode: 'default',
-    onQuestion: 'stop',
-    retries: 1,
-    onGiveUp: 'stop',
-  },
-  stages: [{ id: 's1', title: 'Look around', repeat: 1, untilDone: false, cards: [] }],
-  scope: 'project',
-}
-
-export const QUEUE: ScenarioQueue = {
-  id: 'q1',
-  projectPath: PROJECT_PATH,
-  name: 'Cleanup',
-  nameSource: 'ai',
-  createdAt: 10,
-  closedAt: 0,
-  workdir: {
-    kind: 'worktree',
-    path: '/Users/someone/.agentic-workstation/worktrees/secret-client-1/cleanup',
-    projectDir: '/Users/someone/.agentic-workstation/worktrees/secret-client-1/cleanup',
-    gitBranch: 'scenarios/cleanup',
-    baseCommit: 'abc123',
-    removed: false,
-  },
-  items: [
-    {
-      id: 'i1',
-      scenarioId: 'tidy',
-      scope: 'project',
-      scenarioName: 'Tidy up',
-      inputs: { what: 'src' },
-      provider: 'claude',
-      afterSuccess: false,
-      addedAt: 11,
-      runId: 'r1',
-      state: 'running',
-      refusal: null,
-    },
-  ],
-  stopAfterItemId: '',
-  hold: null,
-  acknowledgedItemId: '',
-}
-
-export const RUN: ScenarioRun = {
-  id: 'r1',
-  projectPath: PROJECT_PATH,
-  cwd: QUEUE.workdir.kind === 'worktree' ? QUEUE.workdir.path : PROJECT_PATH,
-  provider: 'claude',
-  queueId: 'q1',
-  itemId: 'i1',
-  scenarioId: 'tidy',
-  scenarioName: 'Tidy up',
-  scope: 'project',
-  snapshot: SCENARIO,
-  startedAt: 20,
-  finishedAt: 0,
-  state: 'running',
-  runFrom: '',
-  inputs: { what: 'src' },
-  total: 1,
-  headConversationId: 'head',
-  steps: [],
-  notes: [],
-  question: {
-    stepKey: 's1:c1:1',
-    title: 'Delete old files?',
-    tool: 'Bash',
-    detail: 'rm',
-    options: [],
-    askedAt: 30,
-  },
-  failure: '',
-  error: '',
-  cost: 0.1,
-  tokens: 100,
-  idle: 0,
-  rested: 0,
-  restingSince: 0,
-  writtenAt: 30,
-  starred: false,
-  answering: false,
-  limit: null,
-}
-
-const LIVE: RunSummary = {
-  id: 'r1',
-  projectPath: PROJECT_PATH,
-  provider: 'claude',
-  queueId: 'q1',
-  itemId: 'i1',
-  scenarioId: 'tidy',
-  scenarioName: 'Tidy up',
-  scope: 'project',
-  startedAt: 20,
-  finishedAt: 0,
-  state: 'running',
-  total: 1,
-  done: 0,
-  failure: '',
-  cost: 0.1,
-  inputs: { what: 'src' },
-  tokens: 100,
-  idle: 0,
-  rested: 0,
-  restingSince: 0,
-  stageTitle: 'Look around',
-  at: 'Look around',
-  asking: 'Delete old files?',
-  roadmap: [],
-  starred: false,
-  limit: null,
-}
+export { RUN, QUEUE, SCENARIO, PROJECT_PATH }
 
 export type Call = { name: string; args: unknown[] }
 
@@ -205,7 +89,11 @@ export const fakeIde = () => {
     activeProjectId: 'p1',
     recentProjects: [{ name: 'old-thing', rootPath: RECENT_PATH }],
   }
-  const state = { conversations: [conversationOf()], models: [] } as unknown as ClaudeState
+  const state = {
+    conversations: [conversationOf()],
+    models: [],
+    accounts: accountsOf(),
+  } as unknown as ClaudeState
   const feed: ConversationFeed = {
     conversationId: CONVERSATION_ID,
     items: [itemOf('u1', 'hello'), itemOf('a1', 'Hi! How can I help?')],
@@ -215,8 +103,21 @@ export const fakeIde = () => {
   const queues: ScenarioQueuesView = { queues: [QUEUE], live: [LIVE] }
   const earlier: FeedItem[] = []
   const images = new Map<string, string>()
+  const schedules: ScenarioSchedule[] = []
+  const extras = {
+    record,
+    state,
+    workspace,
+    projectPath: PROJECT_PATH,
+    scenario: SCENARIO,
+    conversationOf,
+  }
+  const historyRun = historyRunOf(PROJECT_PATH, RUN)
   const ports: BridgePorts = {
-    workspace: { getState: () => workspace },
+    workspace: workspacePortOf(record, workspace),
+    search: searchOf(record, PROJECT_PATH),
+    accounts: accountsPortOf(record, state),
+    connectors: connectorsPortOf(record),
     conversations: {
       getState: () => state,
       getFeed: () => Promise.resolve(feed),
@@ -255,6 +156,7 @@ export const fakeIde = () => {
         conversationId: CONVERSATION_ID,
         conversationOf,
       }),
+      ...controlsOf(extras),
     },
     pictures: picturesOf(record),
     scenarios: {
@@ -266,7 +168,11 @@ export const fakeIde = () => {
       },
       act: (queueId, action) => Promise.resolve(record('scenarios.act', queueId, action)),
       run: (projectPath, runId) =>
-        Promise.resolve(runId === RUN.id && projectPath === PROJECT_PATH ? RUN : null),
+        Promise.resolve(
+          projectPath !== PROJECT_PATH
+            ? null
+            : ([RUN, historyRun].find((one) => one.id === runId) ?? null),
+        ),
       // Как ScenarioService: кнопка, нарисованная для другого состояния, и ответ не на тот
       // вопрос не доходят до прогона.
       control: (projectPath, runId, action, seen) => {
@@ -289,13 +195,14 @@ export const fakeIde = () => {
       shelves: () =>
         Promise.resolve({
           scenarios: [SCENARIO],
-          runs: [],
-          schedules: [],
+          runs: [historySummaryOf(PROJECT_PATH)],
+          schedules,
           schedulesUnread: false,
           canShare: true,
         }),
+      ...shelfPortOf(extras, schedules),
     },
   }
 
-  return { ports, calls, state, feed, workspace, queues, earlier, images }
+  return { ports, calls, state, feed, workspace, queues, earlier, images, schedules }
 }

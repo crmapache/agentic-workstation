@@ -8,9 +8,11 @@ import { it, expect, afterAll, describe, beforeAll } from 'vitest'
 import type { FeedItem } from '@shared/claude-feed'
 import type { ScenarioQueue } from '@shared/scenario-queues'
 
+import { MESSAGE_UUID } from '../../desktop/src/main/remote/__fixtures__/fake-extras'
 import {
   QUEUE,
   itemOf,
+  RECENT_PATH,
   PROJECT_PATH,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
@@ -491,10 +493,13 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('textbox', { name: 'Message' }).fill('Here is the photo')
     await page.getByRole('button', { name: 'Send' }).click()
 
+    // Ход идёт (ответ на вопрос его продолжил) - сообщение с фото встаёт в очередь IDE.
     const sent = await until(
       () =>
         ide.ide.calls.find(
-          (call) => call.name === 'send' && JSON.stringify(call.args).includes('Here is the photo'),
+          (call) =>
+            (call.name === 'send' || call.name === 'enqueue') &&
+            JSON.stringify(call.args).includes('Here is the photo'),
         ),
       'the photo at the IDE',
     )
@@ -601,6 +606,302 @@ describe('телефон в мобильном Chromium против насто�
     ide.service.revoke(ide.service.view().devices[0]?.id ?? '')
     await page.getByText('The IDE released this phone. Pair again to control it.').waitFor()
     await shot('22-revoked')
+
+    expect(errors).toEqual([])
+  }, 240_000)
+
+  it('уровень ACC: аккаунты, коннекторы, поиск, очередь, стоп, вопрос сбоку, откат, сценарии, недавний проект', async () => {
+    // Прошлый тест оставил IDE отпустившей телефон: забыть её здесь и спарить заново адресом.
+    await page.goto(ide.pageUrl)
+    await page.getByRole('heading', { name: 'My IDEs' }).waitFor()
+
+    const forget = page.getByRole('button', { name: 'Forget' })
+
+    if ((await forget.count()) > 0) {
+      await forget.first().click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Forget' }).click()
+    }
+
+    await page.getByRole('button', { name: 'Pair an IDE' }).click()
+    await page.getByLabel('Pairing link').fill(ide.pairingUrl())
+    await page.getByRole('button', { name: 'Pair with this link' }).click()
+    await expect
+      .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
+      .toBe(true)
+    await page.getByRole('button', { name: 'Pair' }).click()
+    await ide.approve()
+    await page.getByRole('button', { name: /secret-client/ }).waitFor()
+
+    const called = (name: string, what = name) =>
+      until(() => ide.ide.calls.find((call) => call.name === name), what)
+
+    // Аккаунты: почта замаскирована, лимиты числами; выбрать другой - с «точно?».
+    await page.getByRole('button', { name: /Accounts/ }).click()
+    await page.getByText('mz…e@gmail.com', { exact: true }).waitFor()
+    expect(await page.getByText(/mzpizote/).count()).toBe(0)
+    await shot('30-accounts')
+    await page.getByRole('button', { name: 'Use this account' }).first().click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Use this account' }).click()
+    expect((await called('accounts.use')).args).toEqual(['0123456789abcdef'])
+    await back()
+
+    // Коннекторы: состояние, без команд и ключей; переподключить.
+    await page.getByRole('button', { name: /Connectors/ }).click()
+    await page.getByText('Gmail', { exact: false }).first().waitFor()
+    expect(await page.getByText(/sk-secret|\/Users\//).count()).toBe(0)
+    await shot('31-connectors')
+    await page.getByRole('button', { name: 'Reconnect' }).first().click()
+    await called('connectors.reconnect')
+    await back()
+
+    // Поиск по разговорам проекта: найденное слово подсвечено, находка открывает разговор.
+    await page.getByRole('button', { name: /secret-client/ }).click()
+    await page.getByRole('button', { name: /Search conversations/ }).waitFor()
+
+    const projectUrl = page.url()
+
+    await page.getByRole('button', { name: /Search conversations/ }).click()
+    await page.getByRole('textbox', { name: 'Search' }).fill('login')
+    await page.getByRole('button', { name: 'Find', exact: true }).click()
+    await page.locator('mark', { hasText: 'login' }).first().waitFor()
+    expect(await page.getByText(PROJECT_PATH).count()).toBe(0)
+    await shot('32-search')
+    await page
+      .getByRole('button', { name: /Fix the login bug/ })
+      .first()
+      .click()
+    await page.getByText('Hi! How can I help?').waitFor()
+
+    // Ход идёт: сообщение встаёт в очередь IDE; переставить, убрать, отдать сейчас.
+    ide.update({ status: 'running', turnStartedAt: Date.now(), workStartedAt: Date.now() })
+    await page.getByRole('textbox', { name: 'Queue a message' }).waitFor()
+
+    for (const text of ['After this turn', 'And then this']) {
+      await page.getByRole('textbox', { name: 'Queue a message' }).fill(text)
+      await page.getByRole('button', { name: 'Send', exact: true }).click()
+      await until(
+        () =>
+          ide.ide.calls.find(
+            (call) => call.name === 'enqueue' && JSON.stringify(call.args).includes(text),
+          ),
+        `queued "${text}"`,
+      )
+    }
+
+    await page.getByRole('button', { name: 'Move up' }).last().waitFor()
+    await expectOneRow(
+      'li button[aria-label="Move up"]',
+      'li button[aria-label="Send now"]',
+      'li button[aria-label="Remove from queue"]',
+    )
+    await shot('33-queue')
+    await page.getByRole('button', { name: 'Move up' }).last().click()
+    await called('moveQueued')
+    await page.getByRole('button', { name: 'Remove from queue' }).first().click()
+    await called('unqueue')
+    await page.getByRole('button', { name: 'Send now' }).first().click()
+    await called('sendQueued')
+
+    // Лимит: панель продолжит сама - «не продолжать» с телефона.
+    ide.update({ carryOn: { until: Date.now() + 3_600_000, guess: false } })
+    await page.getByRole('button', { name: "Don't continue" }).click()
+    await called('cancelCarryOn')
+    ide.update({ carryOn: undefined })
+
+    // Stop не помог: погасить процесс - только с «точно?».
+    ide.update({ stopRequestedAt: Date.now() })
+    await page.getByRole('button', { name: 'Force stop' }).click()
+    await shot('34-force-stop')
+    await page.getByRole('dialog').getByRole('button', { name: 'Force stop' }).click()
+    await called('forceStop')
+
+    // Фоновый агент - остановить его одного, ход не трогая.
+    ide.push({
+      id: 'tool-agent',
+      kind: 'tool',
+      name: 'Task',
+      input: { description: 'Review the login code', subagent_type: 'reviewer' },
+      status: 'running',
+      result: null,
+      startedAt: Date.now(),
+      endedAt: 0,
+      closedReason: null,
+      parentToolUseId: null,
+      task: {
+        taskId: 'task_review',
+        kind: 'agent',
+        background: true,
+        startedAt: Date.now(),
+        endedAt: 0,
+        activity: 'Reading login.ts',
+        steps: [],
+        trimmed: 0,
+        fleet: null,
+        outcome: null,
+        summary: '',
+      },
+    })
+    await page.getByRole('button', { name: 'Stop task' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Stop', exact: true }).click()
+    expect((await called('stopTask')).args).toEqual([CONVERSATION_ID, 'task_review'])
+    ide.update({ status: 'idle', stopRequestedAt: null, turnStartedAt: null, workStartedAt: null })
+
+    // Вопрос с вариантами - закрыть, не ответив.
+    ide.ask({
+      kind: 'question',
+      requestId: 'ask-1',
+      toolUseId: 'tool-q',
+      questions: [
+        {
+          question: 'Which endpoint?',
+          header: 'Endpoint',
+          options: [{ label: 'v2', description: '' }],
+          multiSelect: false,
+        },
+      ],
+    })
+    await page.getByText('Which endpoint?').waitFor()
+    await page.locator('footer section').getByRole('button', { name: 'Dismiss' }).click()
+    await until(
+      () => ide.ide.calls.find((call) => call.name === 'respond' && call.args[1] === 'ask-1'),
+      'the question dismissed',
+    )
+    ide.update({ status: 'idle', pending: null, pendingCount: 0 })
+
+    // Откат к своему сообщению: файлы, что вернутся, и текст сообщения - обратно в поле.
+    ide.push({
+      id: MESSAGE_UUID,
+      kind: 'user',
+      text: 'Fix the login form',
+      time: Date.now(),
+      images: [],
+      steering: false,
+      parentToolUseId: null,
+    })
+    await page.getByRole('button', { name: 'Rewind' }).last().click()
+    await page.getByRole('heading', { name: 'Rewind to this message' }).waitFor()
+    await page.getByRole('dialog').getByText('/src/login.ts', { exact: false }).waitFor()
+    await shot('35-rewind')
+    await page.getByRole('dialog').getByRole('button', { name: 'Rewind' }).click()
+    expect((await called('rewind')).args).toEqual([CONVERSATION_ID, MESSAGE_UUID, 'both'])
+    await expect
+      .poll(() => page.getByRole('textbox', { name: 'Message' }).inputValue())
+      .toContain('/src/login.ts')
+    await page.getByRole('textbox', { name: 'Message' }).fill('')
+
+    // Вопрос сбоку: ответ - только этому телефону, без папок.
+    await page.getByRole('button', { name: 'Ask aside' }).click()
+    await page.getByRole('textbox', { name: 'Side question' }).fill('What are you on?')
+    await page.getByRole('button', { name: 'Ask', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByText(/on it\./)
+      .waitFor()
+    await shot('36-aside')
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+
+    // Быстрый режим - у модели, которая его умеет.
+    await page.getByRole('button', { name: 'Conversation settings' }).click()
+    await page.getByRole('switch', { name: 'Fast mode' }).click()
+    await until(
+      () =>
+        ide.ide.calls.find(
+          (call) => call.name === 'setOptions' && JSON.stringify(call.args).includes('fastMode'),
+        ),
+      'fast mode at the IDE',
+    )
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+    await back()
+
+    // Полки сценариев: сценарий целиком, час, черновик ИИ, история прогонов и журнал головы.
+    await page.getByRole('button', { name: /^Scenarios/ }).click()
+    await page
+      .getByRole('button', { name: /Tidy up/ })
+      .first()
+      .waitFor()
+    await shot('37-scenarios')
+    await page
+      .getByRole('button', { name: /Tidy up/ })
+      .first()
+      .click()
+    await page.getByText('tidy', { exact: false }).first().waitFor()
+    expect(await page.getByText(PROJECT_PATH).count()).toBe(0)
+    await shot('38-scenario')
+    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
+    await page.getByLabel('At', { exact: true }).fill('09:30')
+    await page.getByRole('radio', { name: 'Weekly' }).click()
+    await page.getByRole('radio', { name: 'Monday' }).click()
+    await page.getByRole('textbox', { name: /What/ }).fill('src')
+    await shot('39-schedule')
+    await page.getByRole('button', { name: 'Set the time' }).click()
+    expect((await called('scenarios.schedule')).args[1]).toMatchObject({
+      scenarioId: 'tidy',
+      at: 570,
+      repeat: 'weekly',
+      weekday: 1,
+      inputs: { what: 'src' },
+    })
+    await page.getByText('Mondays at 09:30', { exact: false }).waitFor()
+
+    await page.getByRole('button', { name: 'Write with AI' }).click()
+    await page.getByRole('textbox', { name: 'What should the scenario do?' }).fill('Tidy the repo')
+    await page.getByRole('button', { name: 'Write', exact: true }).click()
+    await page.getByRole('button', { name: 'Save to shelf' }).waitFor()
+    await shot('40-draft')
+    await page.getByRole('button', { name: 'Save to shelf' }).click()
+    await called('scenarios.save')
+    await back()
+
+    await page
+      .getByRole('button', { name: /Tidy up/ })
+      .last()
+      .click()
+    await page.getByRole('button', { name: /Head log/ }).click()
+    await page.getByText('Step 4 in', { exact: false }).waitFor()
+    await page.getByRole('button', { name: 'Load earlier messages' }).click()
+    await page.getByText('Step 0 in', { exact: false }).waitFor()
+    await shot('41-step-log')
+
+    // Очередь: убрать все ждущие разом - с «точно?», очередь остаётся открытой.
+    ide.ide.queues.queues = ide.ide.queues.queues.map((queue) =>
+      queue.id === 'q1'
+        ? {
+            ...queue,
+            items: [
+              ...queue.items.filter((item) => item.state !== 'waiting'),
+              {
+                ...(QUEUE.items[0] as ScenarioQueue['items'][number]),
+                id: 'i20',
+                scenarioName: 'Update the docs',
+                runId: '',
+                state: 'waiting' as const,
+              },
+            ],
+          }
+        : queue,
+    )
+    ide.service.queuesChanged()
+    // Адресом, а не «назад»: час и черновик сами уводили экран, история шагов - не про проект.
+    await page.goto(projectUrl)
+    await page.getByRole('button', { name: /Cleanup/ }).click()
+    await page.getByRole('button', { name: 'Clear waiting' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Clear waiting' }).click()
+    await until(
+      () =>
+        ide.ide.calls.find(
+          (call) => call.name === 'scenarios.act' && JSON.stringify(call.args).includes('clear'),
+        ),
+      'the queue cleared',
+    )
+    await page.goto(ide.pageUrl)
+
+    // Недавний проект: прошлые разговоры читаются, проект открывается вкладкой в окне IDE.
+    await page.getByRole('button', { name: /old-thing/ }).click()
+    await page.getByRole('button', { name: /Past conversations/ }).waitFor()
+    await shot('42-recent-project')
+    await page.getByRole('button', { name: 'Open in the IDE' }).click()
+    expect((await called('workspace.openRecent')).args).toEqual([RECENT_PATH])
+    await page.getByRole('button', { name: 'New conversation' }).waitFor()
 
     expect(errors).toEqual([])
   }, 240_000)

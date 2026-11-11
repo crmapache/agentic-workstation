@@ -270,6 +270,8 @@ export class QueueRunner {
         return rules.resumeQueue(queue)
       case 'rename':
         return rules.renameQueue(queue, action.name, 'user')
+      case 'clear':
+        return rules.clearWaiting(queue)
       case 'close':
         return rules.closeQueue(queue, Date.now())
     }

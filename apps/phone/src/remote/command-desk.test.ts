@@ -1,6 +1,7 @@
 import { it, vi, expect, describe, afterEach } from 'vitest'
 
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
+import { COMMAND_PATIENCE_MS } from '@agentic-workstation/remote-protocol/commands'
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
 import { MAX_IMAGES_CHARS } from '@agentic-workstation/remote-protocol/message-size'
 
@@ -115,6 +116,66 @@ describe('команды телефона', () => {
     await vi.advanceTimersByTimeAsync(1)
     commands.failAll('agent', 'gone')
     expect(await waiting).toEqual({ ok: false, code: 'gone' })
+  })
+
+  it('долгая команда ждёт свой срок, а не 45 с - и после resync тоже', async () => {
+    vi.useFakeTimers()
+
+    const { commands, sent } = desk()
+    const aside = commands.run('agent', 'conversation.aside', {
+      conversationId: 'c-1',
+      askId: 'ask_1',
+      question: 'What did we decide about the cache?',
+    })
+    const ordinary = commands.run('agent', 'scenarios.carryOn', { runId: 'r1' })
+    let asideOutcome: unknown = null
+
+    void aside.then((outcome) => (asideOutcome = outcome))
+    await vi.advanceTimersByTimeAsync(RESULT_PATIENCE_MS + 1)
+
+    expect(await ordinary).toEqual({ ok: false, code: 'timeout' })
+    expect(asideOutcome).toBeNull()
+
+    // Повтор после resync ждёт срок самой команды, а не обычный.
+    commands.resend('agent')
+    await vi.advanceTimersByTimeAsync(RESULT_PATIENCE_MS + 1)
+    expect(asideOutcome).toBeNull()
+
+    commands.result({ p: 1, k: 'result', id: String(sent[0]?.['id']), ok: true, data: 'answer' })
+    expect(await aside).toEqual({ ok: true, data: 'answer' })
+
+    const late = commands.run('agent', 'conversation.aside', {
+      conversationId: 'c-1',
+      askId: 'ask_2',
+      question: 'And the queue?',
+    })
+
+    await vi.advanceTimersByTimeAsync((COMMAND_PATIENCE_MS['conversation.aside'] ?? 0) + 1)
+    expect(await late).toEqual({ ok: false, code: 'timeout' })
+  })
+
+  it('долгая команда повторяется после resync и позже окна обычной - пока телефон её ждёт', async () => {
+    let now = 0
+    const { commands, sent } = desk({ now: () => now })
+
+    void commands.run('agent', 'conversation.aside', {
+      conversationId: 'c-1',
+      askId: 'ask_3',
+      question: 'Still on it?',
+    })
+    await flush()
+
+    now = RESEND_WINDOW_MS + 60_000
+    commands.resend('agent')
+    await flush()
+    expect(sent).toHaveLength(2)
+    expect(sent[1]?.['id']).toBe(sent[0]?.['id'])
+
+    now = COMMAND_PATIENCE_MS['conversation.aside'] ?? 0
+    commands.resend('agent')
+    await flush()
+    expect(sent).toHaveLength(2)
+    commands.failAll('agent', 'gone')
   })
 
   it('сообщение тяжелее общего потолка - tooBig здесь, не уходя', async () => {

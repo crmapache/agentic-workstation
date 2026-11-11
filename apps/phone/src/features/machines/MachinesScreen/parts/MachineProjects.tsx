@@ -15,11 +15,11 @@ import type { MirroredInventory } from '../../../../state/remote.types'
 import { LinkWait } from '../../../../shell/LinkWait/LinkWait'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
-import { BoardRow } from './BoardRow'
+import { MachineLinks } from './MachineLinks'
 
 /**
- * Открытые проекты IDE, под ними - недавние (у них видны только очереди сценариев) и доска всех
- * очередей машины.
+ * Открытые проекты IDE, под ними - недавние (у них видны история и очереди сценариев) и экраны
+ * машины: доска всех очередей, аккаунты, коннекторы.
  */
 export const MachineProjects = ({
   agentId,
@@ -79,7 +79,7 @@ export const MachineProjects = ({
           <ListGroup label={t('machines.recent')}>{rowsOf(recent)}</ListGroup>
         </>
       )}
-      <BoardRow agentId={agentId} inventory={inventory} />
+      <MachineLinks agentId={agentId} inventory={inventory} />
     </>
   )
 }

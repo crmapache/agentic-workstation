@@ -6,6 +6,7 @@ import type { ConversationCall } from '@shared/claude-prefs'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
+import type { ConnectorsService } from './connectors/connectors-service'
 import { broadcast } from './ipc/broadcast'
 import { ProviderWatch } from './providers/provider-registry'
 import type { RemoteService } from './remote/remote-service'
@@ -16,6 +17,7 @@ import { startScenarios } from './scenarios/scenarios-setup'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
 import type { WorkspaceService } from './workspace/workspace-service'
+import type { SearchDesk } from './claude/search/search-desk'
 
 /** Сколько выход из IDE ждёт возможности IDE поверх провайдеров. */
 const FEATURES_SHUTDOWN_MAX_MS = 10 * SECOND_MS
@@ -49,6 +51,9 @@ export type IdeFeatures = {
 export const startIdeFeatures = async (setup: {
   claude: ClaudeService
   workspace: WorkspaceService
+  /** Поиск по разговорам и коннекторы - телефону Remote Control (чтение и переподключение). */
+  search: SearchDesk
+  connectors: ConnectorsService
   dataDir: string
   version: string
   getWindow: () => BrowserWindow | null

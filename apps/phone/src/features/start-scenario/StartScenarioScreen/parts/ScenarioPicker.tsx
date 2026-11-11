@@ -5,7 +5,7 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import type { useStartScenario } from '../StartScenarioScreen.hooks'
 import styles from '../StartScenarioScreen.module.scss'
-import { scenarioKey } from '../StartScenarioScreen.utils'
+import { scenarioKey } from '../../../../lib/scenarios.utils'
 import { OptionList } from '../../../../shell/OptionList/OptionList'
 
 const SCOPES = ['project', 'user'] as const

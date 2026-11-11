@@ -3,16 +3,24 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Dialog } from '@agentic-workstation/ui/Dialog'
 
-/** «Точно?» перед тем, что не отменить: остановить прогон, убрать элемент очереди. */
+import styles from './ConfirmDialog.module.scss'
+
+/**
+ * «Точно?» перед тем, что не отменить: остановить прогон, убрать элемент очереди, забыть
+ * аккаунт. text - чем это кончится, если по заголовку не ясно (вход уходит с Mac, процесс
+ * гаснет): человек решает, видя последствие, а не догадываясь о нём.
+ */
 export const ConfirmDialog = ({
   open,
   title,
+  text,
   confirmLabel,
   onConfirm,
   onClose,
 }: {
   open: boolean
   title: string
+  text?: string | undefined
   confirmLabel: string
   onConfirm: () => void
   onClose: () => void
@@ -40,7 +48,7 @@ export const ConfirmDialog = ({
           </Button>
         </>
       }>
-      {null}
+      {text ? <p className={styles.text}>{text}</p> : null}
     </Dialog>
   )
 }

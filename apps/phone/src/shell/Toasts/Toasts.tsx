@@ -7,7 +7,7 @@ import { useToastStore } from '../../state/toast.store'
 import styles from './Toasts.module.scss'
 
 /**
- * Уведомления об отказах команд - сразу над низом экрана (их ставит Screen), сами уходят через
+ * Уведомления - сразу над низом экрана (их ставит Screen), сами уходят через
  * несколько секунд.
  */
 export const Toasts = () => {
@@ -22,7 +22,7 @@ export const Toasts = () => {
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
-          tone="danger"
+          tone={toast.tone}
           title={toast.title}
           description={toast.description}
           actions={

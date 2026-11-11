@@ -14,13 +14,15 @@ import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
 /**
  * Вопрос модели с вариантами: один или несколько, или свой ответ словами. Урезанный по дороге -
- * без ответа с телефона: варианты могли потерять то, что в них важно.
+ * без ответа с телефона: варианты могли потерять то, что в них важно, - но закрыть его, не
+ * отвечая, можно и тогда.
  */
 export const QuestionCard = ({
   pending,
   pendingCount,
   busy,
   onDecide,
+  onDismiss,
 }: PendingCardProps & { pending: PendingOf<'question'> }) => {
   const { t } = useTranslation()
   const [picked, setPicked] = useState<Record<number, string[]>>({})
@@ -38,13 +40,22 @@ export const QuestionCard = ({
       title={t('pending.question.title')}
       description={pendingCount > 1 ? t('pending.more', { count: pendingCount - 1 }) : undefined}
       actions={
-        <Button
-          size="touch"
-          variant="primary"
-          disabled={busy || pending.truncated || !allAnswered(answers)}
-          onClick={handleAnswer}>
-          {t('pending.question.send')}
-        </Button>
+        <>
+          <Button
+            size="touch"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => onDismiss(pending.requestId)}>
+            {t('pending.question.dismiss')}
+          </Button>
+          <Button
+            size="touch"
+            variant="primary"
+            disabled={busy || pending.truncated || !allAnswered(answers)}
+            onClick={handleAnswer}>
+            {t('pending.question.send')}
+          </Button>
+        </>
       }>
       {pending.truncated && <TooLongNote />}
       {pending.questions.map((question, index) => (

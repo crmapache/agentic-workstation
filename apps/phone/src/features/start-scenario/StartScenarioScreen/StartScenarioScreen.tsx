@@ -5,10 +5,10 @@ import { Button } from '@agentic-workstation/ui/Button'
 import type { RouteOf } from '../../../lib/route.types'
 import { failureText } from '../../../state/commands.utils'
 import { LinkWait } from '../../../shell/LinkWait/LinkWait'
+import { ScenarioInputs } from '../../../shell/ScenarioInputs/ScenarioInputs'
 import { Screen } from '../../../shell/Screen/Screen'
 import { useStartScenario } from './StartScenarioScreen.hooks'
 import styles from './StartScenarioScreen.module.scss'
-import { ScenarioInputs } from './parts/ScenarioInputs'
 import { ScenarioPicker } from './parts/ScenarioPicker'
 import { TargetPicker } from './parts/TargetPicker'
 
@@ -37,8 +37,14 @@ export const StartScenarioScreen = ({ route }: { route: RouteOf<'startScenario'>
       }>
       {shelves.isPending && <LinkWait agentId={route.agentId} label={t('start.loading')} />}
       {shelves.isError && <p className={styles.error}>{failureText(t, shelves.error)}</p>}
-      {shelves.data && <ScenarioPicker scenarios={shelves.data} start={start} />}
-      {scenario && <ScenarioInputs scenario={scenario} start={start} />}
+      {shelves.data && <ScenarioPicker scenarios={shelves.data.scenarios} start={start} />}
+      {scenario && (
+        <ScenarioInputs
+          scenario={scenario}
+          values={start.form.inputs}
+          onChange={(inputs) => start.update({ inputs })}
+        />
+      )}
       {scenario && <TargetPicker start={start} />}
     </Screen>
   )

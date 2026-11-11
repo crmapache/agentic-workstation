@@ -1,32 +1,39 @@
-import { useState } from 'react'
-import { MessageSquareOff, SlidersHorizontal } from 'lucide-react'
+import { MessagesSquare, MessageSquareOff, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { ConversationSettings } from '../ConversationSettings/ConversationSettings'
 import { Feed } from '../Feed/Feed'
 import type { RouteOf } from '../../../lib/route.types'
 import { Banner } from '../../../shell/Banner/Banner'
 import { Screen } from '../../../shell/Screen/Screen'
-import { useWorkingText, useConversationScreen } from './ConversationScreen.hooks'
+import {
+  useWorkingText,
+  useConversationScreen,
+  useConversationSheets,
+  useConversationCommands,
+} from './ConversationScreen.hooks'
 import { modelLabelOf } from './ConversationScreen.utils'
 import { ConversationFooter } from './parts/ConversationFooter'
+import { ConversationSheets } from './parts/ConversationSheets'
 import { ConversationSubtitle } from './parts/ConversationSubtitle'
 
 /**
  * Разговор с провайдером (сейчас Claude Code): лента с ранними сообщениями по просьбе, решение
- * хода над полем, поле с фото и Stop идущего хода - всё в низу, под пальцем. Пока ход идёт, новое
- * сообщение встаёт в очередь IDE. Модель, усилие и имя - в настройках разговора.
+ * хода над полем, очередь, поле с фото и Stop идущего хода - всё в низу, под пальцем. Пока ход
+ * идёт, новое сообщение встаёт в очередь IDE. Вопрос сбоку и настройки разговора (модель,
+ * усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте.
  */
 export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }) => {
   const { t } = useTranslation()
   const screen = useConversationScreen(route)
+  const commands = useConversationCommands(route.agentId, route.conversationId)
+  const sheets = useConversationSheets()
   const { conversation, feed, inventory } = screen
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const working = useWorkingText(conversation, inventory)
   const provider = inventory?.providers.find((one) => one.id === conversation?.provider)
+  const offset = inventory ? inventory.at - inventory.receivedAt : 0
   const help = { title: t('conversation.help.title'), text: t('conversation.help.text') }
 
   if (conversation === null) {
@@ -55,12 +62,20 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
       agentId={route.agentId}
       actions={
         conversation && (
-          <IconButton
-            icon={SlidersHorizontal}
-            size="touch"
-            label={t('conversation.settings.title')}
-            onClick={() => setIsSettingsOpen(true)}
-          />
+          <>
+            <IconButton
+              icon={MessagesSquare}
+              size="touch"
+              label={t('aside.open')}
+              onClick={() => sheets.setIsAsideOpen(true)}
+            />
+            <IconButton
+              icon={SlidersHorizontal}
+              size="touch"
+              label={t('conversation.settings.title')}
+              onClick={() => sheets.setIsSettingsOpen(true)}
+            />
+          </>
         )
       }
       help={help}
@@ -79,11 +94,9 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
         <ConversationFooter
           conversation={conversation}
           draftKey={`${route.agentId}|${route.conversationId}`}
-          deciding={screen.isDeciding}
-          stopping={screen.isStopping}
-          onDecide={screen.handleDecide}
-          onSend={screen.handleSend}
-          onStop={screen.handleStop}
+          offset={offset}
+          screen={screen}
+          commands={commands}
         />
       }>
       <Feed
@@ -91,15 +104,16 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
         view={feed}
         working={working}
         loadingEarlier={screen.isLoadingEarlier}
+        actions={sheets.feedActions}
         onLoadEarlier={screen.handleLoadEarlier}
       />
-      {conversation && provider && (
-        <ConversationSettings
-          open={isSettingsOpen}
-          agentId={route.agentId}
+      {conversation && (
+        <ConversationSheets
+          route={route}
           conversation={conversation}
           provider={provider}
-          onClose={() => setIsSettingsOpen(false)}
+          sheets={sheets}
+          commands={commands}
         />
       )}
     </Screen>

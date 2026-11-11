@@ -2,12 +2,16 @@ import { useState } from 'react'
 
 import type { RouteOf } from '../../../lib/route.types'
 import { useRouter } from '../../../lib/router.store'
+import { inputsReady, scenarioKey } from '../../../lib/scenarios.utils'
 import { useCommand } from '../../../state/commands.hooks'
 import { useWatch, useQueues, useShelves, useInventory } from '../../../state/remote.queries'
 import type { StartForm } from './StartScenarioScreen.types'
-import { startArgs, inputsReady, scenarioKey } from './StartScenarioScreen.utils'
+import { startArgs } from './StartScenarioScreen.utils'
 
-/** Запуск сценария: полки проекта, открытые очереди, провайдеры и сама команда. */
+/**
+ * Запуск сценария: полки проекта, открытые очереди, провайдеры и сама команда. Пришли со
+ * страницы сценария - он уже выбран.
+ */
 export const useStartScenario = (route: RouteOf<'startScenario'>) => {
   const { agentId, projectKey } = route
   const navigate = useRouter((state) => state.navigate)
@@ -17,14 +21,14 @@ export const useStartScenario = (route: RouteOf<'startScenario'>) => {
   const start = useCommand(agentId, 'scenarios.start')
   const providers = inventory?.providers.filter((one) => one.available) ?? []
   const [form, setForm] = useState<StartForm>({
-    scenario: '',
+    scenario: route.scenario ?? '',
     inputs: {},
     target: { kind: 'new' },
     worktree: true,
     afterSuccess: false,
     provider: '',
   })
-  const scenario = shelves.data?.find((one) => scenarioKey(one) === form.scenario)
+  const scenario = shelves.data?.scenarios.find((one) => scenarioKey(one) === form.scenario)
   const provider = form.provider || providers[0]?.id || ''
   const openQueues = queues?.queues.filter((queue) => queue.closedAt === 0) ?? []
 

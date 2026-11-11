@@ -11,11 +11,30 @@
   text-align: left;
 }
 
+// Нажимаемая строка со своими кнопками справа: строка тянется, кнопки - сколько им нужно.
+.item {
+  display: flex;
+  align-items: center;
+}
+
 .pressable {
   @include button-reset;
   @include interactive-surface;
 
+  flex: 1;
+  min-width: 0;
   padding: var(--space-2) var(--space-3);
+}
+
+.aside {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: var(--space-1);
+}
+
+.row .aside {
+  margin-right: calc(var(--space-3) * -1);
 }
 
 .leading,
@@ -50,6 +69,14 @@
   color: var(--color-fg-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
+}
+
+.detail {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .chevron {

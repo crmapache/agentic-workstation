@@ -62,7 +62,7 @@ export const until = async <T>(
 }
 
 export const MODELS = [
-  { value: 'opus', displayName: 'Opus 5.5', description: 'Most capable' },
+  { value: 'opus', displayName: 'Opus 5.5', description: 'Most capable', fast: true },
   { value: 'sonnet', displayName: 'Sonnet 5', description: 'Fast and smart' },
 ]
 
@@ -137,6 +137,9 @@ export const startHarness = async (options: { staticDir?: string; push?: RelayPu
       if (queue.id !== queueId) return queue
       if (action.kind === 'stopAfter') return { ...queue, stopAfterItemId: action.itemId ?? '' }
       if (action.kind === 'rename') return { ...queue, name: action.name, nameSource: 'user' }
+      if (action.kind === 'clear') {
+        return { ...queue, items: queue.items.filter((item) => item.state !== 'waiting') }
+      }
 
       return queue
     })
@@ -144,8 +147,33 @@ export const startHarness = async (options: { staticDir?: string; push?: RelayPu
   }
 
   state.models = MODELS
+
+  const base = ide.ports.conversations
+  /** Перемена очереди разговора - IDE рассылает состояние, как ClaudeService после действия. */
+  const thenChanged =
+    <A extends unknown[], R>(act: (...args: A) => R) =>
+    (...args: A): R => {
+      const result = act(...args)
+
+      void Promise.resolve(result).then(changed)
+
+      return result
+    }
+  const openRecent = ide.ports.workspace.openRecent
+
+  ide.ports.workspace = {
+    ...ide.ports.workspace,
+    openRecent: async (rootPath) => {
+      await openRecent(rootPath)
+      service?.workspaceChanged()
+    },
+  }
   ide.ports.conversations = {
-    ...ide.ports.conversations,
+    ...base,
+    enqueue: thenChanged(base.enqueue),
+    unqueue: thenChanged(base.unqueue),
+    moveQueued: thenChanged(base.moveQueued),
+    sendQueued: thenChanged(base.sendQueued),
     send: (id, message) => {
       ide.calls.push({ name: 'send', args: [id, message] })
       push({

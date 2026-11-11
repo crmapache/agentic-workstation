@@ -4,17 +4,18 @@ import { useQuery, skipToken } from '@tanstack/react-query'
 
 import type { QueuesMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
+import type { ShelvesWire } from '@agentic-workstation/remote-protocol/scenario-wire-types'
 import type {
   RunWire,
   HistoryWire,
   ConversationWire,
   MessageImageWire,
-  ShelfScenarioWire,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
 import { useClient } from '../lib/client'
 import type { LinkStatus } from '../remote/machine-session'
 import type { WatchTarget } from '../remote/watch-desk'
+import { commandData } from './command-data'
 import { CommandError } from './command-error'
 import { useLinkStore } from './link.store'
 import { queryKeys } from './query-keys'
@@ -90,19 +91,18 @@ export const useWatch = (agentId: string, target: WatchTarget) => {
   )
 }
 
-/** Сценарии на полках проекта - командой, по требованию экрана запуска. */
+/**
+ * Полки проекта - командой, по требованию экрана: сценарии, прогоны с диска и расписание. После
+ * команд сценариев (копия, удаление, расписание, звезда) экран перечитывает их сам: зеркалом
+ * IDE полки не шлёт.
+ */
 export const useShelves = (agentId: string, projectKey: string) => {
   const client = useClient()
 
   return useQuery({
     queryKey: queryKeys.shelves(agentId, projectKey),
-    queryFn: async (): Promise<ShelfScenarioWire[]> => {
-      const outcome = await client.command(agentId, 'scenarios.shelves', { projectKey })
-
-      if (!outcome.ok) throw new CommandError(outcome)
-
-      return (outcome.data as { scenarios: ShelfScenarioWire[] }).scenarios
-    },
+    queryFn: async (): Promise<ShelvesWire> =>
+      (await commandData(client, agentId, 'scenarios.shelves', { projectKey })) as ShelvesWire,
     staleTime: 30_000,
   })
 }

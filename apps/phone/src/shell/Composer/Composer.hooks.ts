@@ -63,6 +63,7 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
 
     setIsBusy(true)
 
+    const sending = text
     const sent = await onSend(text.trim(), images)
 
     setIsBusy(false)
@@ -71,8 +72,9 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
 
     for (const image of images) URL.revokeObjectURL(image.preview)
 
-    setDraft(draftKey, '')
-    setImages([])
+    // Пока сообщение уходило, человек мог начать следующее: стирается только отправленное.
+    if (useDraftsStore.getState().drafts[draftKey] === sending) setDraft(draftKey, '')
+    setImages((current) => current.filter((image) => !images.includes(image)))
   }
 
   return { text, setText, images, removeImage, handleFiles, send, isBusy, fieldRef, fileRef }

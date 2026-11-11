@@ -62,6 +62,17 @@
   min-width: 0;
 }
 
+// Строка шага и его журнал рядом: строка тянется, кнопка - своя ширина.
+.stepRow {
+  display: flex;
+  align-items: center;
+}
+
+.stepMain {
+  flex: 1;
+  min-width: 0;
+}
+
 .stepTitle {
   @include truncate;
 
@@ -109,5 +120,13 @@
 .noteHead {
   @include caps-label;
 
+  color: var(--color-fg-subtle);
+}
+
+// Значок строки - как глиф кнопки, тише текста.
+.rowIcon {
+  display: block;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
   color: var(--color-fg-subtle);
 }

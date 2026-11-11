@@ -37,6 +37,7 @@ const capsOf = (provider: ProviderInfo, claude: ClaudeState): ProviderCaps => ({
           value: model.value,
           label: model.displayName,
           description: model.description,
+          ...(model.fast !== undefined && { fast: model.fast }),
         }))
       : [],
   efforts: [...EFFORTS],

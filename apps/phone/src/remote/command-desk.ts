@@ -7,7 +7,11 @@ import { CAP_PARTS, COMMAND_MEMORY_MS } from '@agentic-workstation/remote-protoc
 import { toBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { utf8Length } from '@agentic-workstation/remote-protocol/body'
 import type { CommandArgs, CommandName } from '@agentic-workstation/remote-protocol/commands'
-import { COMMAND_ARGS, MAY_ARRIVE_IN_PARTS } from '@agentic-workstation/remote-protocol/commands'
+import {
+  COMMAND_ARGS,
+  COMMAND_PATIENCE_MS,
+  MAY_ARRIVE_IN_PARTS,
+} from '@agentic-workstation/remote-protocol/commands'
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
 import { MAX_MESSAGE_BYTES } from '@agentic-workstation/remote-protocol/message-size'
 import { splitIntoParts } from '@agentic-workstation/remote-protocol/parts'
@@ -35,20 +39,33 @@ export type CommandDeskHost = {
 /** Сколько ждать ключей, если команда пришла посреди переподключения. */
 export const OPEN_PATIENCE_MS = 10_000
 
-/** Сколько ждать ответа IDE: сообщение с фото частями идёт дольше всего. */
+/**
+ * Сколько ждать ответа IDE обычной команды: сообщение с фото частями идёт дольше всего. Долгие
+ * (вопрос сбоку, поиск модели, черновик сценария) ждут своё - COMMAND_PATIENCE_MS протокола.
+ */
 export const RESULT_PATIENCE_MS = 45_000
 
+/** Срок ответа этой команды: долгая ждёт столько, сколько её итог идёт у IDE. */
+export const patienceOf = (name: CommandName): number =>
+  COMMAND_PATIENCE_MS[name] ?? RESULT_PATIENCE_MS
+
 /**
- * Сколько команду можно повторять тем же id после resync: половина того, что IDE помнит её итог.
- * Позже повтор мог бы выполниться второй раз - IDE уже забыла бы, что выполняла.
+ * Сколько обычную команду можно повторять тем же id после resync: половина того, что IDE помнит
+ * её итог. Позже повтор мог бы выполниться второй раз - IDE уже забыла бы, что выполняла. Долгую
+ * (вопрос сбоку, черновик) - пока телефон её ждёт: IDE помнит команду, пока она идёт, и
+ * COMMAND_MEMORY_MS после итога, а ответ, потерянный обрывом линии, иначе пропал бы.
  */
 export const RESEND_WINDOW_MS = COMMAND_MEMORY_MS / 2
+
+const resendWindowOf = (patienceMs: number): number => Math.max(RESEND_WINDOW_MS, patienceMs)
 
 type Waiting = {
   agentId: string
   /** Что уходило: одно слово cmd или его части - повтор шлёт их же, с тем же id. */
   frames: object[]
   startedAt: number
+  /** Срок ответа этой команды: повтор после resync ждёт столько же, а не обычные 45 с. */
+  patienceMs: number
   resolve: (outcome: CommandOutcome) => void
   timer: ReturnType<typeof setTimeout>
 }
@@ -80,13 +97,15 @@ export class CommandDesk {
 
     if (!frames) return { ok: false, code: 'tooBig' }
 
+    const patienceMs = patienceOf(name)
     const answer = new Promise<CommandOutcome>((resolve) => {
       this.waiting.set(id, {
         agentId,
         frames,
         startedAt: this.now(),
+        patienceMs,
         resolve,
-        timer: this.patience(id),
+        timer: this.patience(id, patienceMs),
       })
     })
 
@@ -115,16 +134,17 @@ export class CommandDesk {
   /**
    * Посланное этой IDE могло пропасть: команды без итога - снова, теми же id и частями. IDE,
    * получившая первую, отдаст тот же итог; не получившая - выполнит один раз. Старше окна повтора
-   * - не повторяются: их итог IDE могла уже забыть.
+   * - не повторяются: их итог IDE могла уже забыть (окно долгой команды - срок её ожидания).
    */
   resend(agentId: string): void {
     const now = this.now()
 
     for (const [id, waiting] of this.waiting) {
-      if (waiting.agentId !== agentId || now - waiting.startedAt >= RESEND_WINDOW_MS) continue
+      if (waiting.agentId !== agentId) continue
+      if (now - waiting.startedAt >= resendWindowOf(waiting.patienceMs)) continue
 
       clearTimeout(waiting.timer)
-      waiting.timer = this.patience(id)
+      waiting.timer = this.patience(id, waiting.patienceMs)
       void this.deliver(agentId, waiting.frames)
     }
   }
@@ -170,8 +190,8 @@ export class CommandDesk {
     return true
   }
 
-  private patience(id: string): ReturnType<typeof setTimeout> {
-    return setTimeout(() => this.settle(id, { ok: false, code: 'timeout' }), RESULT_PATIENCE_MS)
+  private patience(id: string, ms: number): ReturnType<typeof setTimeout> {
+    return setTimeout(() => this.settle(id, { ok: false, code: 'timeout' }), ms)
   }
 
   private settle(id: string, outcome: CommandOutcome) {

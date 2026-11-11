@@ -23,6 +23,16 @@ const ROUTES: Route[] = [
   { name: 'run', agentId: AGENT, projectKey: PROJECT, runId: 'r-1' },
   { name: 'board', agentId: AGENT },
   { name: 'history', agentId: AGENT, projectKey: PROJECT },
+  { name: 'accounts', agentId: AGENT },
+  { name: 'connectors', agentId: AGENT },
+  { name: 'search', agentId: AGENT, projectKey: PROJECT },
+  { name: 'scenarios', agentId: AGENT, projectKey: PROJECT },
+  { name: 'draft', agentId: AGENT, projectKey: PROJECT },
+  { name: 'scenario', agentId: AGENT, projectKey: PROJECT, scope: 'user', scenarioId: 'tidy_up' },
+  { name: 'schedule', agentId: AGENT, projectKey: PROJECT, scope: 'project', scenarioId: 'tidy' },
+  { name: 'startScenario', agentId: AGENT, projectKey: PROJECT, scenario: 'user:tidy-up' },
+  { name: 'stepLog', agentId: AGENT, projectKey: PROJECT, runId: 'r-1', stepKey: 'build:card-2:3' },
+  { name: 'stepLog', agentId: AGENT, projectKey: PROJECT, runId: 'r-1', stepKey: 'head' },
 ]
 
 describe('адреса экранов', () => {
@@ -34,6 +44,24 @@ describe('адреса экранов', () => {
     expect(parseRoute('/m/../etc')).toEqual({ name: 'notFound' })
     expect(parseRoute('/m/a b/p/c')).toEqual({ name: 'notFound' })
     expect(parseRoute('/pair/')).toEqual({ name: 'pair' })
+    // Полка - только проектная или личная; ключ шага с кривым кодом или длиннее протокола - нет.
+    expect(parseRoute(`/m/${AGENT}/p/${PROJECT}/s/team/tidy`)).toEqual({ name: 'notFound' })
+    expect(parseRoute(`/m/${AGENT}/p/${PROJECT}/r/r-1/log/%E0%A4`)).toEqual({ name: 'notFound' })
+    expect(parseRoute(`/m/${AGENT}/p/${PROJECT}/r/r-1/log/${'a'.repeat(201)}`)).toEqual({
+      name: 'notFound',
+    })
+  })
+
+  it('ключ шага в адресе закодирован: двоеточия не ломают адрес', () => {
+    const path = routePath({
+      name: 'stepLog',
+      agentId: AGENT,
+      projectKey: PROJECT,
+      runId: 'r-1',
+      stepKey: 'build:card:1',
+    })
+
+    expect(path).toBe(`/m/${AGENT}/p/${PROJECT}/r/r-1/log/build%3Acard%3A1`)
   })
 
   it('назад с открытого по ссылке экрана - к проекту, с проекта - к машинам', () => {
@@ -50,5 +78,40 @@ describe('адреса экранов', () => {
       agentId: AGENT,
       projectKey: PROJECT,
     })
+    // Экраны машины - к машинам; сценарий - к полкам, расписание - к сценарию, журнал - к прогону.
+    expect(parentOf({ name: 'accounts', agentId: AGENT })).toEqual({ name: 'machines' })
+    expect(
+      parentOf({
+        name: 'scenario',
+        agentId: AGENT,
+        projectKey: PROJECT,
+        scope: 'user',
+        scenarioId: 'a',
+      }),
+    ).toEqual({ name: 'scenarios', agentId: AGENT, projectKey: PROJECT })
+    expect(
+      parentOf({
+        name: 'schedule',
+        agentId: AGENT,
+        projectKey: PROJECT,
+        scope: 'user',
+        scenarioId: 'a',
+      }),
+    ).toEqual({
+      name: 'scenario',
+      agentId: AGENT,
+      projectKey: PROJECT,
+      scope: 'user',
+      scenarioId: 'a',
+    })
+    expect(
+      parentOf({
+        name: 'stepLog',
+        agentId: AGENT,
+        projectKey: PROJECT,
+        runId: 'r',
+        stepKey: 'head',
+      }),
+    ).toEqual({ name: 'run', agentId: AGENT, projectKey: PROJECT, runId: 'r' })
   })
 })

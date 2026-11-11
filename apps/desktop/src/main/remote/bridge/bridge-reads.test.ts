@@ -37,13 +37,21 @@ describe('история проекта с телефона', () => {
     expect(JSON.stringify(outcome)).not.toContain('/Users/')
   })
 
-  it('закрытый проект, чужой ключ и незнакомый провайдер - отказ', async () => {
-    const { command } = bridgeSetup()
+  it('недавний проект - список читается, продолжить нельзя; чужой ключ и провайдер - отказ', async () => {
+    const { ide, command } = bridgeSetup()
 
     expect(
       await command('conversation.history', {
         projectKey: projectKey(RECENT_PATH),
         provider: 'claude',
+      }),
+    ).toMatchObject({ ok: true, data: { entries: [], more: false } })
+    expect(ide.calls.find((call) => call.name === 'history')?.args).toEqual([RECENT_PATH])
+    expect(
+      await command('conversation.openHistory', {
+        projectKey: projectKey(RECENT_PATH),
+        provider: 'claude',
+        sessionId: PAST_SESSION,
       }),
     ).toMatchObject({ ok: false, code: 'notOpen' })
     expect(

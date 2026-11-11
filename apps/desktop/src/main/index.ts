@@ -187,6 +187,8 @@ const bootstrap = async () => {
   const features = await startIdeFeatures({
     claude,
     workspace,
+    search: conversationSearch,
+    connectors,
     dataDir: app.getPath('userData'),
     version: app.getVersion(),
     getWindow: () => mainWindow,

@@ -1,25 +1,28 @@
 import { isProviderId } from '@shared/providers'
 
-import type { RemoteErrorCode } from '@agentic-workstation/remote-protocol/agent-messages'
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
+import { searchWire, aiSearchWire } from './conversation-extras-wire'
 import type { Redact } from './fit'
+import { done, fail } from './outcomes'
 import type { ProjectKeys } from './project-keys'
 import { pageBefore, historyThatFits, pictureThatFits } from './reads-fit'
 
-const done = (data: unknown): Outcome => ({ ok: true, data })
-
-const fail = (code: RemoteErrorCode, detail?: string): Outcome =>
-  detail === undefined ? { ok: false, code } : { ok: false, code, detail }
+/**
+ * Прогоны поиска модели с телефона - под своей приставкой: номер называет телефон, и с номером
+ * прогона окна он не совпадёт и чужой прогон не отменит.
+ */
+const remoteRun = (runId: string) => `remote:${runId}`
 
 /**
  * Чтение разговоров по просьбе телефона: история проекта и продолжение прошлого разговора,
  * страница ленты выше того, что у телефона, картинка сообщения для просмотра. Те же методы
  * ClaudeService, что зовёт окно (claude:listHistory, openHistory, loadEarlier, getImage); ответ
  * каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в открытом проекте:
- * проверку его id и проекта делает CommandDesk до того, как позвать сюда.
+ * проверку его id и проекта делает ConversationCommands до того, как позвать сюда. Поиск по
+ * разговорам - тоже чтение: набранный - индексом IDE, описанный - моделью (SearchDesk).
  */
 export class ConversationReads {
   constructor(
@@ -28,12 +31,46 @@ export class ConversationReads {
     private readonly redact: () => Redact,
   ) {}
 
+  /**
+   * История проекта - и недавнего, закрытого: список прошлых разговоров - заголовки и даты того,
+   * что телефон и так может прочесть целиком. Продолжить разговор - только в открытом.
+   */
   async history(args: CommandArgs<'conversation.history'>): Promise<Outcome> {
-    const path = this.projectPath(args.projectKey, args.provider)
+    const path = this.keys().pathOf(args.projectKey)
+
+    if (!path) return fail('notFound')
+    if (!isProviderId(args.provider)) return fail('refused', 'providerMissing')
+
+    return done(historyThatFits(await this.ports.conversations.history(path), this.redact()))
+  }
+
+  /** Набранный поиск по разговорам открытого проекта - индексом IDE, находки в один кадр. */
+  async search(args: CommandArgs<'conversation.search'>): Promise<Outcome> {
+    const path = this.openPath(args.projectKey)
 
     if (typeof path !== 'string') return path
 
-    return done(historyThatFits(await this.ports.conversations.history(path), this.redact()))
+    return done(searchWire(await this.ports.search.find(path, args.query), this.redact()))
+  }
+
+  /**
+   * Описанный поиск - модели, только чтение в папке разговоров текстом. Итог - когда она кончила;
+   * отмена (searchCancel) кончает его отменой.
+   */
+  async searchAi(args: CommandArgs<'conversation.searchAi'>): Promise<Outcome> {
+    const path = this.openPath(args.projectKey)
+
+    if (typeof path !== 'string') return path
+
+    const outcome = await this.ports.search.ask(path, remoteRun(args.runId), args.query)
+
+    return done(aiSearchWire(outcome, this.redact()))
+  }
+
+  searchCancel(args: CommandArgs<'conversation.searchCancel'>): Outcome {
+    this.ports.search.cancel(remoteRun(args.runId))
+
+    return done()
   }
 
   /**
@@ -90,12 +127,19 @@ export class ConversationReads {
 
   /** Папка открытого проекта по ключу и провайдер с историей; иначе - отказ. */
   private projectPath(projectKey: string, provider: string): string | Outcome {
-    const keys = this.keys()
-    const path = keys.openPathOf(projectKey)
+    const path = this.openPath(projectKey)
 
-    if (!path) return fail(keys.pathOf(projectKey) ? 'notOpen' : 'notFound')
+    if (typeof path !== 'string') return path
     if (!isProviderId(provider)) return fail('refused', 'providerMissing')
 
     return path
+  }
+
+  /** Папка открытого проекта по ключу; закрытый - notOpen, незнакомый - notFound. */
+  private openPath(projectKey: string): string | Outcome {
+    const keys = this.keys()
+    const path = keys.openPathOf(projectKey)
+
+    return path ?? fail(keys.pathOf(projectKey) ? 'notOpen' : 'notFound')
   }
 }

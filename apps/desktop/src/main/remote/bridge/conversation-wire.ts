@@ -119,4 +119,8 @@ export const conversationWire = (
   workPausedMs: conversation.workPausedMs,
   error: conversation.error,
   context: { tokens: conversation.usage.contextTokens, window: conversation.usage.contextWindow },
+  stopRequestedAt: conversation.stopRequestedAt,
+  queueHold: conversation.queueHold ?? null,
+  carryOn: conversation.carryOn ?? null,
+  fast: { asked: conversation.fastMode === true, state: conversation.fastReport?.state ?? null },
 })

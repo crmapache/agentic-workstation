@@ -10,7 +10,9 @@
 
 .userRow {
   display: flex;
+  align-items: flex-end;
   justify-content: flex-end;
+  gap: var(--space-1);
 }
 
 .userBubble {
@@ -82,6 +84,17 @@
 // Подряд идущие строки журнала (вызовы, мысли) - один список, а не блоки: стоят теснее.
 .toolItem + .toolItem {
   margin-top: calc(var(--size-feed-gap) * -1);
+}
+
+// Строка вызова и «остановить» его задачу рядом: строка тянется, кнопка - своя ширина.
+.toolRow {
+  display: flex;
+  align-items: center;
+}
+
+.toolRowMain {
+  flex: 1;
+  min-width: 0;
 }
 
 .toolName {

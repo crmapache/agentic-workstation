@@ -67,7 +67,7 @@ export const parseQueueAction = (value: unknown): QueueAction => {
   const record = asRecord(value, 'action')
   const kind = assertOneOf(
     record.kind,
-    ['remove', 'move', 'mode', 'stopAfter', 'resume', 'rename', 'close'] as const,
+    ['remove', 'move', 'mode', 'stopAfter', 'resume', 'rename', 'clear', 'close'] as const,
     'kind',
   )
 
@@ -93,6 +93,7 @@ export const parseQueueAction = (value: unknown): QueueAction => {
 
       return { kind, name: record.name.slice(0, 200) }
     case 'resume':
+    case 'clear':
     case 'close':
       return { kind }
   }

@@ -17,9 +17,18 @@ import { TaskList } from './parts/TaskList'
 /**
  * Лента разговора на телефоне: снимок последних элементов и живые заплатки, свой лёгкий рендер.
  * Выше снимка - страницами по кнопке. То, что случилось внутри субагентов, - числом шагов на
- * строке его вызова; фото сообщения открывается крупно.
+ * строке его вызова; фото сообщения открывается крупно. Журнал шага прогона - та же лента без
+ * действий и без крупных фото.
  */
-export const Feed = ({ agentId, view, working, loadingEarlier, onLoadEarlier }: FeedProps) => {
+export const Feed = ({
+  agentId,
+  view,
+  working,
+  loadingEarlier,
+  onLoadEarlier,
+  actions,
+  photos = true,
+}: FeedProps) => {
   const { t } = useTranslation()
   const [photo, setPhoto] = useState<OpenPhoto | null>(null)
   const items = useMemo(() => (view ? topLevel(view.items) : []), [view])
@@ -52,7 +61,8 @@ export const Feed = ({ agentId, view, working, loadingEarlier, onLoadEarlier }: 
           key={item.id}
           item={item}
           steps={steps.get(item.id) ?? 0}
-          onOpenPhoto={handleOpenPhoto}
+          actions={actions}
+          onOpenPhoto={photos ? handleOpenPhoto : undefined}
         />
       ))}
       {view.tasks.some((task) => task.state !== 'completed') && <TaskList tasks={view.tasks} />}
@@ -62,12 +72,14 @@ export const Feed = ({ agentId, view, working, loadingEarlier, onLoadEarlier }: 
           <span className={styles.workingText}>{working}</span>
         </p>
       )}
-      <PhotoViewer
-        agentId={agentId}
-        conversationId={view.conversationId}
-        photo={photo}
-        onClose={() => setPhoto(null)}
-      />
+      {photos && (
+        <PhotoViewer
+          agentId={agentId}
+          conversationId={view.conversationId}
+          photo={photo}
+          onClose={() => setPhoto(null)}
+        />
+      )}
     </div>
   )
 }

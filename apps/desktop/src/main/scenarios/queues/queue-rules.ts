@@ -159,6 +159,27 @@ export const removeItem = (queue: ScenarioQueue, itemId: string): ScenarioQueue 
   }
 }
 
+/**
+ * Убрать все ждущие («drop what is left»): очередь, вставшая на неудачном прогоне, ночью - и
+ * человеку с телефона нужен ответ «дальше не надо» одним нажатием, а не по элементу. Идущий и
+ * прошедшие на месте; остановка «после ждущего» и отказ старта ждущего уходят вместе с ним.
+ * Ждущих нет - очередь та же (ничего не поменялось).
+ */
+export const clearWaiting = (queue: ScenarioQueue): ScenarioQueue => {
+  const waiting = new Set(
+    queue.items.filter((item) => item.state === 'waiting').map((item) => item.id),
+  )
+
+  if (waiting.size === 0) return queue
+
+  return {
+    ...queue,
+    items: queue.items.filter((item) => !waiting.has(item.id)),
+    stopAfterItemId: waiting.has(queue.stopAfterItemId) ? '' : queue.stopAfterItemId,
+    hold: queue.hold?.reason === 'refused' && waiting.has(queue.hold.itemId) ? null : queue.hold,
+  }
+}
+
 /** Сдвинуть ждущий элемент среди ждущих: прошедшие и идущий на месте. */
 export const moveItem = (queue: ScenarioQueue, itemId: string, by: number): ScenarioQueue => {
   const waiting = queue.items.filter((item) => item.state === 'waiting')

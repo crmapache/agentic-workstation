@@ -4,19 +4,22 @@ import type { ShelfScenarioWire } from '@agentic-workstation/remote-protocol/wir
 import { Section } from '@agentic-workstation/ui/Section'
 import { TextArea } from '@agentic-workstation/ui/TextArea'
 
-import type { useStartScenario } from '../StartScenarioScreen.hooks'
-import styles from '../StartScenarioScreen.module.scss'
+import styles from './ScenarioInputs.module.scss'
 
-/** Вопросы сценария перед стартом - ответы уходят в прогон как есть. */
+/**
+ * Вопросы сценария перед стартом - сейчас или в назначенный час: ответы уходят в прогон как
+ * есть. Без вопросов - ничего: раздела «Questions» без полей нет.
+ */
 export const ScenarioInputs = ({
   scenario,
-  start,
+  values,
+  onChange,
 }: {
   scenario: ShelfScenarioWire
-  start: ReturnType<typeof useStartScenario>
+  values: Record<string, string>
+  onChange: (values: Record<string, string>) => void
 }) => {
   const { t } = useTranslation()
-  const { form, update } = start
 
   if (scenario.inputs.length === 0) return null
 
@@ -32,8 +35,8 @@ export const ScenarioInputs = ({
                 : input.label || input.name
             }
             placeholder={input.placeholder}
-            value={form.inputs[input.id] ?? ''}
-            onChange={(value) => update({ inputs: { ...form.inputs, [input.id]: value } })}
+            value={values[input.id] ?? ''}
+            onChange={(value) => onChange({ ...values, [input.id]: value })}
           />
         ))}
       </div>

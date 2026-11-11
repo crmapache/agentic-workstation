@@ -91,8 +91,7 @@ export class WatchDesk {
 
   /** Телефон смотрит прогон: запись целиком сейчас, дальше - каждую перемену. */
   async watchRun(deviceId: string, runId: string): Promise<boolean> {
-    const projectPath = runProjectPath(this.host.queuesView(), runId)
-    const run = projectPath ? await this.host.run(projectPath, runId) : null
+    const run = await this.findRun(runId)
 
     if (!run) return false
 
@@ -100,6 +99,24 @@ export class WatchDesk {
     this.sendRun(deviceId)
 
     return true
+  }
+
+  /**
+   * Прогон по id: идущий и прогон очереди - по своей очереди, прогон из истории (очередь закрыта
+   * или он запущен не очередью) - на диске открытых проектов: телефон открывает его из истории.
+   */
+  private async findRun(runId: string): Promise<ScenarioRun | null> {
+    const projectPath = runProjectPath(this.host.queuesView(), runId)
+
+    if (projectPath) return this.host.run(projectPath, runId)
+
+    for (const path of this.host.keys().openPaths()) {
+      const run = await this.host.run(path, runId)
+
+      if (run) return run
+    }
+
+    return null
   }
 
   runChanged(run: ScenarioRun): void {

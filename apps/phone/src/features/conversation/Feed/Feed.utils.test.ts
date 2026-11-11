@@ -1,6 +1,15 @@
 import { it, expect, describe } from 'vitest'
 
-import { topLevel, shortPath, toolLabel, editCounts, innerSteps, toolSummary } from './Feed.utils'
+import {
+  topLevel,
+  canRewind,
+  shortPath,
+  toolLabel,
+  editCounts,
+  innerSteps,
+  runningTask,
+  toolSummary,
+} from './Feed.utils'
 
 describe('лента телефона: чтение элементов', () => {
   it('шаги субагента прячутся в число на строке его вызова', () => {
@@ -42,5 +51,25 @@ describe('лента телефона: чтение элементов', () => {
       removed: 0,
     })
     expect(editCounts('Bash', {}, null)).toBeNull()
+  })
+
+  it('остановить можно только идущую задачу с id, который CLI примет', () => {
+    const task = { taskId: 'task_1', kind: 'command', outcome: null }
+
+    expect(runningTask({ task })).toEqual({ taskId: 'task_1', kind: 'command' })
+    expect(runningTask({ task: { ...task, outcome: 'completed' } })).toBeNull()
+    expect(runningTask({ task: { taskId: 'task_1' } })).toBeNull()
+    expect(runningTask({ task: { ...task, taskId: '../x' } })).toBeNull()
+    expect(runningTask({})).toBeNull()
+  })
+
+  it('откат - к сообщению из транскрипта, начинавшему ход', () => {
+    const id = '6f1c2b8e-1d2a-4c3b-9e8f-0a1b2c3d4e5f'
+
+    expect(canRewind({ id, kind: 'user', steering: false })).toBe(true)
+    expect(canRewind({ id, kind: 'user', steering: true })).toBe(false)
+    expect(canRewind({ id, kind: 'user', auto: 'limit' })).toBe(false)
+    expect(canRewind({ id: 'local-1', kind: 'user' })).toBe(false)
+    expect(canRewind({ id, kind: 'assistant' })).toBe(false)
   })
 })

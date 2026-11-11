@@ -14,6 +14,7 @@ import {
   nextToStart,
   renameQueue,
   resumeQueue,
+  clearWaiting,
   fallbackName,
   recoverQueue,
   setStopAfter,
@@ -129,6 +130,21 @@ describe('queue rules', () => {
 
     expect(resumed.items[0]?.refusal).toBeNull()
     expect(nextToStart(resumed)?.id).toBe('a')
+  })
+
+  it('clears every waiting item at once, keeping the running one and the queue open', () => {
+    const running = markStarted(queueOf(item('a'), item('b'), item('c')), 'a', 'r')
+    const cleared = clearWaiting(setStopAfter(running, 'c'))
+
+    expect(ids(cleared)).toEqual(['a'])
+    expect(cleared.stopAfterItemId).toBe('')
+    expect(cleared.closedAt).toBe(0)
+    expect(clearWaiting(cleared)).toBe(cleared)
+
+    const refused = clearWaiting(markRefused(queueOf(item('a'), item('b')), 'a', 'scenarioGone', 1))
+
+    expect(refused.items).toEqual([])
+    expect(refused.hold).toBeNull()
   })
 
   it('removes only waiting items, taking their stop mark and refusal hold along', () => {

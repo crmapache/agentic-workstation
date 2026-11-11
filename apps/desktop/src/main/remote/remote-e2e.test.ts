@@ -19,6 +19,7 @@ import {
   CONVERSATION_ID,
 } from './__fixtures__/fake-ide'
 import { until, WebCryptoPhone } from './__fixtures__/webcrypto-phone'
+import { projectKey as projectKeyOf } from './bridge/project-keys'
 import type { StoredRemote } from './store/remote-state'
 
 /**
@@ -459,4 +460,92 @@ describe('Remote Control: IDE, релей и телефон', () => {
       expect(orders).toHaveLength(1)
     },
   )
+
+  it('команды уровня ACC через настоящий релей: очередь, вопрос сбоку, аккаунты, журнал шага, запрет', async () => {
+    const { url } = await startRelay()
+    const ide = fakeIde()
+    const service = await RemoteService.load({
+      file: memoryFile(),
+      vault: memoryVault,
+      ports: ide.ports,
+      relayUrl: url,
+      machine: () => ({ label: 'test', ideVersion: '0' }),
+      onView: () => undefined,
+    })
+
+    cleanups.push(() => service.shutdown())
+    service.setEnabled(true)
+    await until(() => (service.view().state === 'connected' ? true : null), 'IDE on the relay')
+
+    const phone = await connectPhone(url)
+    const offer = await phone.pairInit(service.startPairing().pairing?.url ?? '', 'Pixel')
+
+    service.approve(await until(() => service.view().pending, 'pending phone'))
+    await phone.pairAck(offer)
+
+    let counter = 0
+    const command = async (name: string, args: object) => {
+      counter += 1
+
+      const id = `x${counter}`
+
+      await phone.send({ p: 1, k: 'cmd', id, name, args })
+
+      return phone.next('result', (message) => message['id'] === id)
+    }
+    const conversationId = CONVERSATION_ID
+
+    // Очередь: отложить, убрать - тем же id, что дала IDE.
+    expect(
+      await command('conversation.enqueue', { conversationId, text: 'after this' }),
+    ).toMatchObject({ ok: true })
+
+    const queuedId = ide.state.conversations[0]?.queue[0]?.id ?? ''
+
+    expect(await command('conversation.unqueue', { conversationId, queuedId })).toMatchObject({
+      ok: true,
+    })
+    expect(ide.state.conversations[0]?.queue).toEqual([])
+
+    // Вопрос сбоку: ответ - итогом команды, без папок машины.
+    const aside = await command('conversation.aside', {
+      conversationId,
+      askId: 'a1',
+      question: 'status?',
+    })
+
+    expect(aside).toMatchObject({
+      ok: true,
+      data: { state: 'answered', text: 'Working in {project}/src on it.' },
+    })
+
+    // Аккаунты: почта замаскирована, по проводу целиком не уходит.
+    const accounts = await command('accounts.list', {})
+
+    expect(JSON.stringify(accounts)).not.toContain('mzpizote@')
+    expect(accounts).toMatchObject({
+      ok: true,
+      data: { accounts: [{ id: '', current: true }, {}, {}] },
+    })
+
+    // Журнал головы прогона - конец, сколько влезло, и «есть выше».
+    const log = await command('scenarios.log', {
+      projectKey: projectKeyOf(PROJECT_PATH),
+      runId: 'r1',
+      key: 'head',
+    })
+
+    expect(log).toMatchObject({ ok: true, data: { found: true, hasEarlier: true } })
+    expect(JSON.stringify(log)).not.toContain(PROJECT_PATH)
+
+    // Запрещённое так и остаётся запрещённым: терминал, «разрешать всегда», вход в браузере Mac.
+    for (const name of [
+      'conversation.shell',
+      'conversation.allowAlways',
+      'accounts.add',
+      'voice.token',
+    ]) {
+      expect(await command(name, {})).toMatchObject({ ok: false, code: 'unknownCommand' })
+    }
+  })
 })

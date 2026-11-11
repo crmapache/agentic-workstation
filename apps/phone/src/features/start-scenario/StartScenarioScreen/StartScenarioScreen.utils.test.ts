@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 import type { ShelfScenarioWire } from '@agentic-workstation/remote-protocol/wire-types'
 
 import type { StartForm } from './StartScenarioScreen.types'
-import { startArgs, inputsReady, scenarioKey } from './StartScenarioScreen.utils'
+import { startArgs } from './StartScenarioScreen.utils'
 
 const scenario: ShelfScenarioWire = {
   id: 'tidy',
@@ -25,12 +25,6 @@ const form: StartForm = {
 }
 
 describe('запуск сценария с телефона', () => {
-  it('обязательные вопросы - отвечены, пробелы не ответ', () => {
-    expect(scenarioKey(scenario)).toBe('project:tidy')
-    expect(inputsReady(scenario, { what: 'src' })).toBe(true)
-    expect(inputsReady(scenario, { what: '   ' })).toBe(false)
-  })
-
   it('новая очередь: worktree по галочке, «только после успеха» не к месту', () => {
     expect(startArgs('p-x', scenario, form)).toEqual({
       projectKey: 'p-x',
