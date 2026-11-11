@@ -9,6 +9,7 @@ import type { LocalHistory } from '../history/local-history'
 import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
+import type { SoundsService } from '../sounds/sounds-service'
 import type { StatsService } from '../statistics/stats-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
@@ -33,6 +34,7 @@ import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createRemoteHandlers } from './remote-handlers'
 import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
+import { createSoundsHandlers } from './sounds-handlers'
 import { createStatisticsHandlers } from './statistics-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createWindowHandlers } from './window-handlers'
@@ -61,6 +63,8 @@ type Services = HandlerContext & {
   remote: RemoteService
   /** Локальная история файлов (ADR 0045): версии за месяц, возврат любой. */
   history: LocalHistory
+  /** Звуки IDE (ADR 0046): чем и как громко зовут разговоры. */
+  sounds: SoundsService
 }
 
 /**
@@ -84,6 +88,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
       }),
     ),
     ...createLocalHistoryHandlers(workspace, history),
+    ...createSoundsHandlers(services.sounds),
     ...createEditorHandlers(workspace, history),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),

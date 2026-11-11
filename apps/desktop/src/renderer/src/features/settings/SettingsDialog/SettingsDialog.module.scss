@@ -1,23 +1,37 @@
-@use '@agentic-workstation/ui/mixins' as *;
+// Разделы настроек один под другим, с воздухом между ними.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
-// Раздел настроек: подпись капсом, под ней настройка и пояснение.
-.section {
+// Подвал: одна кнопка - справа (часть подвала встаёт справа своим margin-left).
+.done {
+  display: flex;
+  margin-left: auto;
+}
+
+.sounds {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.sectionTitle {
-  @include caps-label;
-
-  margin: 0;
-  color: var(--color-fg-subtle);
+.sound {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
-// На стекле диалога subtle не дотягивает до 4.5:1 - пояснение muted.
-.hint {
-  margin: 0;
-  color: var(--color-fg-muted);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-snug);
+// Громкость и проба - под переключателем, вровень с его подписью.
+.volume {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
 }

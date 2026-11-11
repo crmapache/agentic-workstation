@@ -32,6 +32,8 @@ import type { RemoteEventContract, RemoteInvokeContract } from './remote.contrac
 import { REMOTE_EVENTS, REMOTE_CHANNELS } from './remote.contract'
 import type { ScenariosEventContract, ScenariosInvokeContract } from './scenarios.contract'
 import { SCENARIOS_EVENTS, SCENARIOS_CHANNELS } from './scenarios.contract'
+import type { SoundsEventContract, SoundsInvokeContract } from './sounds.contract'
+import { SOUNDS_EVENTS, SOUNDS_CHANNELS } from './sounds.contract'
 import type { StatisticsEventContract, StatisticsInvokeContract } from './statistics.contract'
 import { STATISTICS_EVENTS, STATISTICS_CHANNELS } from './statistics.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
@@ -60,7 +62,8 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   TerminalInvokeContract &
   ScenariosInvokeContract &
   StatisticsInvokeContract &
-  RemoteInvokeContract
+  RemoteInvokeContract &
+  SoundsInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
@@ -74,7 +77,8 @@ export type AreaEventContract = ClaudeTabsEventContract &
   TerminalEventContract &
   ScenariosEventContract &
   StatisticsEventContract &
-  RemoteEventContract
+  RemoteEventContract &
+  SoundsEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -95,6 +99,7 @@ export const AREA_CHANNELS = {
   ...SCENARIOS_CHANNELS,
   ...STATISTICS_CHANNELS,
   ...REMOTE_CHANNELS,
+  ...SOUNDS_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -112,4 +117,5 @@ export const AREA_EVENTS = {
   ...SCENARIOS_EVENTS,
   ...STATISTICS_EVENTS,
   ...REMOTE_EVENTS,
+  ...SOUNDS_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

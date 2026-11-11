@@ -1,50 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
-import { DEFAULT_SOUND_VOLUME } from '@shared/claude-prefs'
-
 import { SOUND_GAP_MS } from './sounds.constants'
-import type { SoundPrefs } from './sounds.utils'
-import {
-  volumeOf,
-  isWatched,
-  passesGap,
-  soundRank,
-  toggleSound,
-  setSoundVolume,
-} from './sounds.utils'
-
-const none: SoundPrefs = { mutedSounds: [], soundVolumes: {} }
-
-describe('галочка и громкость звука', () => {
-  it('выключенный помнит громкость и включается на ней', () => {
-    const quiet = setSoundVolume(none, 'plan', 30)
-    const off = toggleSound(quiet, 'plan')
-    const back = toggleSound(off, 'plan')
-
-    expect(off.mutedSounds).toEqual(['plan'])
-    expect(volumeOf(back, 'plan')).toBe(30)
-    expect(back.mutedSounds).toEqual([])
-  })
-
-  it('ползунок в ноль выключает, а включённый обратно галочкой - не тишина', () => {
-    const silent = setSoundVolume(none, 'error', 0)
-    const back = toggleSound(silent, 'error')
-
-    expect(silent.mutedSounds).toEqual(['error'])
-    expect(volumeOf(back, 'error')).toBe(DEFAULT_SOUND_VOLUME)
-  })
-
-  it('поднятый ползунок включает выключенный звук', () => {
-    const off = toggleSound(none, 'question')
-
-    expect(setSoundVolume(off, 'question', 40).mutedSounds).toEqual([])
-  })
-
-  it('громкость по умолчанию не хранится, края прижимаются', () => {
-    expect(setSoundVolume(none, 'plan', DEFAULT_SOUND_VOLUME).soundVolumes).toEqual({})
-    expect(volumeOf(setSoundVolume(none, 'plan', 140), 'plan')).toBe(100)
-  })
-})
+import { isWatched, passesGap, soundRank } from './sounds.utils'
 
 describe('звуки подряд', () => {
   const after = (event: Parameters<typeof soundRank>[0]) => ({ at: 1000, rank: soundRank(event) })

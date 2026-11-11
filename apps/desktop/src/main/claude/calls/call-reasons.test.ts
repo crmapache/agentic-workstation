@@ -87,16 +87,11 @@ describe('поводы по вкладкам', () => {
     vi.useRealTimers()
   })
 
-  const collect = (muted: string[] = []) => {
+  const collect = () => {
     const calls: ConversationCall[] = []
-    const observed: ConversationCall[] = []
-    const tracker = new ConversationCalls(
-      () => muted as ConversationCall['reason'][],
-      (call) => calls.push(call),
-      (call) => observed.push(call),
-    )
+    const tracker = new ConversationCalls((call) => calls.push(call))
 
-    return { calls, observed, tracker }
+    return { calls, tracker }
   }
 
   it('за такт вкладка зовёт одним, самым важным поводом', () => {
@@ -113,18 +108,6 @@ describe('поводы по вкладкам', () => {
       { conversationId: 'a', reason: 'error' },
       { conversationId: 'b', reason: 'question' },
     ])
-  })
-
-  it('выключенный повод не зовёт - ни звуком, ни свечением, а телефону слышен', () => {
-    vi.useFakeTimers()
-
-    const { calls, observed, tracker } = collect(['error'])
-
-    tracker.add('a', 'error')
-    vi.advanceTimersByTime(CALL_SETTLE_MS)
-
-    expect(calls).toEqual([])
-    expect(observed).toEqual([{ conversationId: 'a', reason: 'error' }])
   })
 
   it('повторный лимит того же окна зовёт один раз', () => {

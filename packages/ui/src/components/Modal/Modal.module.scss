@@ -26,6 +26,12 @@
   }
 }
 
+// Настройка, которую смотрят на самой IDE (размер текста): окно под ним не темнеет.
+.clear::backdrop {
+  background-color: transparent;
+  backdrop-filter: none;
+}
+
 .md {
   width: min(var(--size-modal-md), 100vw - 2 * var(--space-6));
 }

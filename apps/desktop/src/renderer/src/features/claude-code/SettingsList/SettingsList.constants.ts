@@ -1,13 +1,5 @@
 import type { ComponentType } from 'react'
-import {
-  Cpu,
-  Palette,
-  Volume2,
-  FileText,
-  SquarePlus,
-  ClipboardList,
-  SquareTerminal,
-} from 'lucide-react'
+import { Cpu, Palette, FileText, SquarePlus, ClipboardList, SquareTerminal } from 'lucide-react'
 
 import type { SettingsScreen, MenuScreenProps } from '../claude.types'
 import { CalmColorsScreen } from '../CalmColorsScreen/CalmColorsScreen'
@@ -17,15 +9,14 @@ import { NewChatChoiceScreen } from '../NewChatChoiceScreen/NewChatChoiceScreen'
 import { NewChatScreen } from '../NewChatScreen/NewChatScreen'
 import { PasteCollapseScreen } from '../PasteCollapseScreen/PasteCollapseScreen'
 import { ShareEditorScreen } from '../ShareEditorScreen/ShareEditorScreen'
-import { SoundsScreen } from '../SoundsScreen/SoundsScreen'
 import type { SettingsRow } from './SettingsList.types'
 
 /**
- * Порядок как в ACC: сначала то, за чем открывают список (звуки, цвета), потом новые
- * вкладки, потом поле ввода, потом настройки самого Claude Code и свои модели.
+ * Порядок как в ACC: сначала то, за чем открывают список (цвета), потом новые вкладки, потом
+ * поле ввода, потом настройки самого Claude Code и свои модели. Звуки - настройка IDE
+ * (Settings → Sounds, ADR 0046), а не панели.
  */
 export const SETTINGS_ROWS: readonly SettingsRow[] = [
-  { screen: 'sounds', icon: Volume2 },
   { screen: 'calmColors', icon: Palette },
   { screen: 'newChat', icon: SquarePlus },
   { screen: 'shareEditor', icon: FileText },
@@ -39,7 +30,6 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
  * экран не обещает настройку, которой нет.
  */
 export const SETTINGS_VIEWS: Partial<Record<SettingsScreen, ComponentType<MenuScreenProps>>> = {
-  sounds: SoundsScreen,
   calmColors: CalmColorsScreen,
   newChat: NewChatScreen,
   newChatModel: NewChatChoiceScreen,

@@ -1,7 +1,6 @@
 import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/claude'
-import type { PanelPrefs, SoundEvent, PanelPrefsPatch } from '@shared/claude-prefs'
+import type { PanelPrefs, PanelPrefsPatch } from '@shared/claude-prefs'
 import {
-  SOUND_EVENTS,
   GAUGE_VIVID_CALM,
   GAUGE_VIVID_FULL,
   MODEL_NAME_PATTERN,
@@ -34,24 +33,6 @@ export const usableModel = (value: unknown): string | undefined => {
   const name = typeof value === 'string' ? value.trim() : ''
 
   return MODEL_NAME_PATTERN.test(name) && !name.startsWith('-') ? name : undefined
-}
-
-const subset = <T extends string>(value: unknown, options: readonly T[]): T[] | undefined =>
-  Array.isArray(value)
-    ? [...new Set(value.filter((item): item is T => options.includes(item as T)))]
-    : undefined
-
-const volumes = (value: unknown): Partial<Record<SoundEvent, number>> | undefined => {
-  if (typeof value !== 'object' || value === null) return undefined
-
-  const entries = Object.entries(record(value)).flatMap(([event, volume]) => {
-    const known = oneOf(event, SOUND_EVENTS)
-    const level = clamp(volume, 0, 100)
-
-    return known && level !== undefined ? [[known, level] as const] : []
-  })
-
-  return Object.fromEntries(entries)
 }
 
 /**
@@ -90,8 +71,6 @@ const parseFields = (value: unknown): PanelPrefsPatch => {
           ...new Set(input['customModels'].map(usableModel).filter((name) => name !== undefined)),
         ].slice(0, MAX_CUSTOM_MODELS)
       : undefined,
-    mutedSounds: subset(input['mutedSounds'], SOUND_EVENTS),
-    soundVolumes: volumes(input['soundVolumes']),
     cliPath: cliPath(input['cliPath']),
   }
 

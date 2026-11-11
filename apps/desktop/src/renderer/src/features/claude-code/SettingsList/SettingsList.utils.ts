@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import type { PanelPrefs } from '@shared/claude-prefs'
-import { SOUND_EVENTS, GAUGE_VIVID_CALM, GAUGE_VIVID_FULL } from '@shared/claude-prefs'
+import { GAUGE_VIVID_CALM, GAUGE_VIVID_FULL } from '@shared/claude-prefs'
 
 import type { SettingsScreen } from '../claude.types'
 
@@ -11,10 +11,6 @@ import type { SettingsScreen } from '../claude.types'
  */
 export const settingValue = (screen: SettingsScreen, prefs: PanelPrefs, t: TFunction): string => {
   switch (screen) {
-    case 'sounds':
-      return t('claudeCode.settings.values.countOn', {
-        count: SOUND_EVENTS.length - prefs.mutedSounds.length,
-      })
     case 'calmColors':
       if (prefs.gaugeVivid === GAUGE_VIVID_FULL) return t('claudeCode.settings.values.fullColor')
       if (prefs.gaugeVivid === GAUGE_VIVID_CALM) return t('claudeCode.settings.values.calm')

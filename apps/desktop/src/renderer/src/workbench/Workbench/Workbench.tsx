@@ -21,6 +21,7 @@ import { TitleBar } from '../TitleBar/TitleBar'
 import { CONVERSATION_LOG } from '../views/conversation-log'
 import { useMainViewBadges } from '../views/main-view-badges'
 import { MAIN_VIEWS } from '../views/main-views'
+import { useProjectCalls } from '../views/project-calls'
 import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
@@ -63,6 +64,7 @@ export const Workbench = () => {
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
   const mainBadges = useMainViewBadges()
+  const projectCallsOf = useProjectCalls()
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -78,7 +80,7 @@ export const Workbench = () => {
       <div className={styles.workbench}>
         <TitleBar />
         <div className={styles.sheets}>
-          <ProjectTabs />
+          <ProjectTabs callsOf={projectCallsOf} />
 
           <div ref={rowRef} className={styles.body}>
             <ActivityBar

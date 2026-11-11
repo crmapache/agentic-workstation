@@ -50,10 +50,11 @@ export type ClaudeEvents = {
   onFeed: (patch: FeedPatch) => void
   /** Открыть файл программой по умолчанию (скрипт входа в аккаунт - в Терминале). */
   openPath: (path: string) => Promise<string>
-  /** Разговор позвал человека: окно играет звук и подсвечивает вкладку. */
+  /**
+   * Разговор позвал человека - любым поводом, и выключенным в звуках: что из этого дойдёт до
+   * окна (звук, свет вкладки), решают звуки IDE, телефону - все.
+   */
   onCall: (call: ConversationCall) => void
-  /** Тот же повод, и выключенный в звуках: для тех, кто зовёт человека не звуком (телефон). */
-  observeCall?: (call: ConversationCall) => void
 }
 
 /** Где на диске аккаунты Claude: реестр и папка их хранилищ входа. */
@@ -95,12 +96,8 @@ export class ClaudeService {
   readonly settings = new PanelSettings(this.toolsHost(), () => this.persist.changed())
   /** Счётчик «tok» у поля: токены за сегодня по всем проектам машины. */
   readonly todayTokens = new TodayTokens(async () => join(await claudeHome(), 'projects'))
-  /** Поводы позвать человека: звук и свечение вкладки (calls/). */
-  private readonly calls = new ConversationCalls(
-    () => this.settings.prefs.mutedSounds,
-    (call) => this.events.onCall(call),
-    (call) => this.events.observeCall?.(call),
-  )
+  /** Поводы позвать человека: звук, свечение вкладки, телефон (calls/). */
+  private readonly calls = new ConversationCalls((call) => this.events.onCall(call))
   private readonly trust: WorkspaceTrust
   private activeByProject: Record<string, string>
   private readonly persist: ClaudePersistence

@@ -1,40 +1,28 @@
 import { useRef } from 'react'
 
 import type { ClaudeState } from '@shared/claude'
-import type { SoundEvent } from '@shared/claude-prefs'
 import type { WorkspaceState } from '@shared/workspace'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { useIpcEvent } from '../../lib/ipc.hooks'
+import { playSound } from '../../lib/sound-player'
 import { useLayoutStore } from '../../state/layout.store'
 import { QUERY_KEYS } from '../../state/query-keys'
-import { SOUND_FILES } from './sounds.constants'
+import { useSoundPrefs } from '../../state/sounds.queries'
+import { volumeOf } from '../../state/sounds.utils'
 import type { LastSound } from './sounds.utils'
-import { volumeOf, isWatched, passesGap, soundRank } from './sounds.utils'
-
-/**
- * Сыграть звук повода. Громкость в процентах - доля амплитуды, как в ACC (там - усиление
- * в децибелах, 20·log10 доли): половина процентов - «чуть тише», а не «вдвое тише».
- * Автозапуск звука Electron разрешает без жеста. Не сыграл (нет устройства) - звук не
- * стоит того, чтобы ронять панель.
- */
-export const playSound = (event: SoundEvent, volume: number): void => {
-  if (volume <= 0) return
-
-  const audio = new Audio(SOUND_FILES[event])
-
-  audio.volume = Math.min(1, volume / 100)
-  audio.play().catch((error: unknown) => console.warn('[claude-code] звук не сыграл:', error))
-}
+import { isWatched, passesGap, soundRank } from './sounds.utils'
 
 /**
  * Звук, когда разговор позвал человека (событие claude:call). Решает главный процесс -
- * какой повод и звать ли вовсе (выключенные галочкой не приходят); окно - «оболочка»:
- * играет с громкостью из настроек, молчит, если человек и так смотрит на эту вкладку,
- * и из звуков подряд пропускает только более важный. Подписка одна на окно.
+ * какой повод и звать ли вовсе (выключенные в Settings → Sounds не приходят); окно -
+ * «оболочка»: играет с громкостью из звуков IDE, молчит, если человек и так смотрит на эту
+ * вкладку, и из звуков подряд пропускает только более важный. Подписка одна на окно.
  */
 export const useCallSounds = () => {
   const queryClient = useQueryClient()
+  // Подписка держит настройку звуков загруженной с первого зова, а не с открытия настроек.
+  const sounds = useSoundPrefs()
   const last = useRef<LastSound | null>(null)
 
   useIpcEvent('claude:call', (call) => {
@@ -52,6 +40,6 @@ export const useCallSounds = () => {
     if (!state || isWatched(call, view) || !passesGap(last.current, call.reason, now)) return
 
     last.current = { at: now, rank: soundRank(call.reason) }
-    playSound(call.reason, volumeOf(state.prefs, call.reason))
+    playSound(call.reason, volumeOf(sounds, call.reason))
   })
 }

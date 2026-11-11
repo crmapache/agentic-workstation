@@ -1,4 +1,4 @@
-import type { SoundEvent } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 

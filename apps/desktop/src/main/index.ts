@@ -5,6 +5,7 @@ import { app, shell, BrowserWindow } from 'electron'
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
 import type { ConversationCall } from '@shared/claude-prefs'
+import type { SoundPrefs } from '@shared/sounds'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
@@ -23,6 +24,7 @@ import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
 import { SearchService } from './search/search-service'
+import { SoundsService } from './sounds/sounds-service'
 import { JsonFile } from './storage/json-file'
 import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
 import { terminalEnv } from './terminal/terminal-env'
@@ -92,6 +94,13 @@ const bootstrap = async () => {
     quit: () => app.quit(),
   })
   const search = new SearchService()
+  // Звуки IDE (ADR 0046): до сервиса разговоров - он зовёт ими с первой вкладки. Своего
+  // файла ещё нет - звуки переезжают из настроек панели Claude Code (claude.json).
+  const sounds = await SoundsService.load(
+    new JsonFile<SoundPrefs>(join(app.getPath('userData'), 'sounds.json')),
+    new JsonFile<unknown>(join(app.getPath('userData'), 'claude.json')),
+    (prefs) => broadcast('sounds:changed', prefs),
+  )
   const claude = await ClaudeService.load(
     new JsonFile<StoredClaude>(join(app.getPath('userData'), 'claude.json')),
     {
@@ -103,8 +112,11 @@ const bootstrap = async () => {
         broadcast('claude:feed', patch)
         observeFeed(patch)
       },
-      onCall: (call) => broadcast('claude:call', call),
-      observeCall: (call) => observeCall(call),
+      // Телефону - каждый повод, окну - только не выключенный в Settings → Sounds.
+      onCall: (call) => {
+        observeCall(call)
+        if (!sounds.isMuted(call.reason)) broadcast('claude:call', call)
+      },
       openPath: (path) => shell.openPath(path),
     },
     {
@@ -247,6 +259,7 @@ const bootstrap = async () => {
     stats: features.statistics.stats,
     remote: features.remote,
     history,
+    sounds,
     getWindow: () => mainWindow,
   }
 

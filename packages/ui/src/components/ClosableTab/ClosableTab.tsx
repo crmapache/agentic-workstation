@@ -15,7 +15,7 @@ import { CallLight } from './parts/CallLight'
  * графитом (tinted - тоном вкладок, плоско, и знаки на ней тем же тоном), крестик виден
  * на ней и при наведении, средняя кнопка мыши закрывает. В полосе разговоров (width grow)
  * растёт в свободное место и режет подпись посередине; несёт отступ форка и свет
- * позвавшей (CallLight). Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
+ * позвавшей (CallLight), справа у крестика - свои знаки (trailing). Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
  */
 export const ClosableTab = ({
   label,
@@ -23,6 +23,7 @@ export const ClosableTab = ({
   active,
   closeLabel,
   leading,
+  trailing,
   width = 'fill',
   tinted = false,
   indent = 0,
@@ -97,6 +98,7 @@ export const ClosableTab = ({
             ) : (
               <span className={styles.text}>{label}</span>
             )}
+            {trailing && <span className={styles.trailing}>{trailing}</span>}
           </button>
         </Tooltip>
       )}

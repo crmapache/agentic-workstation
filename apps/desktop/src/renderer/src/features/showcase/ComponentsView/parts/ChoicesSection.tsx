@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import clsx from 'clsx'
 import { Bot, Search, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -98,6 +99,12 @@ export const ChoicesSection = () => {
             label={t('samples.otherItem')}
             hint={t('samples.otherPath')}
             active={false}
+            trailing={
+              <span className={styles.tabDots} aria-hidden>
+                <span className={clsx(styles.tabDot, styles.tabDotDone)} />
+                <span className={clsx(styles.tabDot, styles.tabDotAsks)} />
+              </span>
+            }
             closeLabel={t('samples.close')}
             onActivate={() => undefined}
             onClose={() => undefined}

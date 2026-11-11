@@ -7,6 +7,12 @@ import type { IconButtonSize } from '../IconButton/IconButton.types'
 /** md - форма в одну колонку, lg - подробности в две колонки. */
 export type ModalSize = 'md' | 'lg'
 
+/**
+ * dim - окно под ним темнеет и размывается; clear - видно как есть: настройка, результат
+ * которой смотрят на самой IDE (размер текста).
+ */
+export type ModalBackdrop = 'dim' | 'clear'
+
 export type ModalProps = {
   open: boolean
   title: string
@@ -15,6 +21,7 @@ export type ModalProps = {
   icon?: LucideIcon | undefined
   iconTone?: BadgeTone | undefined
   size?: ModalSize | undefined
+  backdrop?: ModalBackdrop | undefined
   /** В шапке перед крестиком: состояние, переключатель «включено». */
   headerActions?: ReactNode | undefined
   /**

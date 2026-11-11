@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import type { Conversation, ClosedConversation } from '@shared/claude'
-import type { SoundEvent } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 

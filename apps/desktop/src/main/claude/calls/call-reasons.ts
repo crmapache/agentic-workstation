@@ -1,5 +1,5 @@
-import type { SoundEvent } from '@shared/claude-prefs'
-import { SOUND_PRIORITY } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
+import { SOUND_PRIORITY } from '@shared/sounds'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, recordField, stringField } from '../cli/cli-messages'

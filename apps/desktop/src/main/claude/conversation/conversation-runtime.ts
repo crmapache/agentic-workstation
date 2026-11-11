@@ -8,7 +8,7 @@ import type {
   ConversationOptions,
 } from '@shared/claude'
 import type { FeedPatch, StopReason, ConversationFeed } from '@shared/claude-feed'
-import type { SoundEvent } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 import { TurnRevert } from '../changes/turn-revert'
 import type { ClaudeCli } from '../cli/cli-locator'

@@ -100,6 +100,8 @@ export const QUERY_KEYS = {
   connectorAgentApps: ['connectors-agent-apps'],
   /** Разговоры с Claude Code и лента каждого (ADR 0009). */
   claudeState: ['claude', 'state'],
+  /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
+  soundPrefs: ['sounds', 'prefs'],
   claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],
   claudeHistory: (projectId: string) => ['claude', 'history', projectId],
   claudeTodayTokens: ['claude', 'todayTokens'],

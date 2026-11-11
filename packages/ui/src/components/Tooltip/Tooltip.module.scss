@@ -26,6 +26,7 @@
   // Подсказка лежит в DOM внутри элемента и наследует его текст: у чипа и вкладки это запрет
   // переноса (длинная подпись вылезала за плашку) и моноширинный шрифт, у подписи капсом -
   // регистр и разрядка. Своё - целиком, а длинный путь без пробелов рвётся где угодно.
+  // Перевод строки в подписи - новая строка (путь проекта и под ним позвавшие разговоры).
   font-family: var(--font-ui);
   font-size: var(--font-size-xs);
   font-style: normal;
@@ -34,7 +35,7 @@
   letter-spacing: normal;
   text-align: start;
   text-transform: none;
-  white-space: normal;
+  white-space: pre-line;
   overflow-wrap: anywhere;
   pointer-events: none;
   position-try-fallbacks: flip-block, flip-inline;

@@ -19,6 +19,7 @@
   // Подложка крестика - плотнее обычной кнопки sm, а глиф тот же: на вкладке подложка
   // в полную кнопку закрывала почти всю её высоту и спорила с подписью.
   --tab-close-size: var(--size-control-xs);
+  --close-inset: calc((var(--size-control-md) - var(--tab-close-size)) / 2);
 
   position: relative;
   display: flex;
@@ -288,6 +289,12 @@
     padding: 0 var(--space-8);
   }
 
+  // Со знаками справа (trailing) поле шире с обеих сторон: подпись остаётся по центру и не
+  // заходит под знаки - их до трёх точек и счётчик.
+  .fill &:has(.trailing) {
+    padding: 0 calc(var(--space-8) + var(--space-10));
+  }
+
   // Справа - место под крестик и зазор до него: подложка крестика под курсором не
   // касается последней буквы.
   .fit & {
@@ -304,6 +311,16 @@
 
 .text {
   @include truncate;
+}
+
+// Знаки справа - перед местом крестика, с тем же зазором, что крестик до края: место под
+// крестик держится и тогда, когда он скрыт, чтобы знаки не прыгали под курсором.
+.trailing {
+  position: absolute;
+  right: calc(var(--close-inset) + var(--tab-close-size) + var(--space-1-5));
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 // Подпись, обрезанная посередине: целое имя в потоке, невидимое, даёт ширину и высоту,
@@ -331,8 +348,6 @@
 // вкладки с одинаковым зазором до края со всех сторон: сверху и снизу его задаёт разница
 // высот вкладки и кнопки, справа - тот же (right - от края под рамкой).
 .close {
-  --close-inset: calc((var(--size-control-md) - var(--tab-close-size)) / 2);
-
   position: absolute;
   right: calc(var(--close-inset) - var(--border-width));
   display: flex;

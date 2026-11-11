@@ -11,7 +11,8 @@ import type { ModalProps } from './Modal.types'
 /**
  * Окно с содержимым по центру поверх IDE: подробности предмета или форма нового. Шапка -
  * иконка, заголовок, строка под ним, свои элементы и крестик; тело прокручивается, подвал
- * прибит к низу. Нативный <dialog>: Esc и щелчок мимо закрывают. Один вопрос с ответом
+ * прибит к низу. Нативный <dialog>: Esc и щелчок мимо закрывают; IDE под ним темнеет, а у
+ * настройки, которую смотрят на самой IDE, - нет (backdrop clear). Один вопрос с ответом
  * (имя ветки, «удалить?») - Dialog; лист у края панели - Sheet.
  */
 export const Modal = ({
@@ -21,6 +22,7 @@ export const Modal = ({
   icon,
   iconTone,
   size = 'md',
+  backdrop: backdropLook = 'dim',
   headerActions,
   footer,
   closeLabel,
@@ -38,7 +40,7 @@ export const Modal = ({
       ref={ref}
       aria-label={title}
       tabIndex={-1}
-      className={clsx(styles.modal, styles[size])}
+      className={clsx(styles.modal, styles[size], backdropLook === 'clear' && styles.clear)}
       onClose={ownClose(onClose)}
       {...backdrop}>
       <header className={styles.head}>

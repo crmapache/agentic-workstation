@@ -1,4 +1,4 @@
-import type { SoundEvent } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 export type SoundRowProps = {
   event: SoundEvent
