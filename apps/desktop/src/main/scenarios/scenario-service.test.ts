@@ -221,6 +221,21 @@ describe('scenario service', () => {
     expect(queue(queueId).hold).toBeNull()
   })
 
+  it('a button or an answer for a run that is not going any more is refused, not done', async () => {
+    const scenarios = service as ScenarioService
+    const started = await start('a', { kind: 'new', worktree: false })
+
+    if (!started.ok) throw new Error('did not start')
+
+    await until(() => queue(started.queueId).items[0]?.state === 'done')
+
+    const runId = queue(started.queueId).items[0]?.runId ?? ''
+
+    expect(scenarios.control(project, runId, 'pause', 'running')).toBe('runOver')
+    expect(scenarios.control(project, 'nope', 'stop', 'running')).toBe('runOver')
+    expect(scenarios.answer(project, runId, true, '', { stepKey: 'x', askedAt: 1 })).toBe(false)
+  })
+
   it('refuses a scenario that is not on the shelf and a queue that is closed', async () => {
     expect(await start('nope', { kind: 'new', worktree: false })).toEqual({
       ok: false,

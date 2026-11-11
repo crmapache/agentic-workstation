@@ -1,6 +1,13 @@
 import { it, vi, expect, describe } from 'vitest'
 
 import {
+  decodeFrame,
+  encodeFrame,
+  FRAME_PROOF,
+  FRAME_CHALLENGE,
+} from '@agentic-workstation/remote-protocol/frame'
+
+import {
   Backoff,
   classifyClose,
   DISPLACED_LIMIT,
@@ -11,7 +18,23 @@ import {
 import type { Outgoing } from './outbox'
 import { RemoteOutbox } from './outbox'
 import type { SocketLike } from './relay-link'
-import { RelayLink } from './relay-link'
+import { RelayLink, CHALLENGE_WAIT_MS } from './relay-link'
+
+/** Ответ на вызов в тесте - кадр FRAME_PROOF с вызовом в теле: видно, на что отвечали. */
+const prove = (challenge: Uint8Array) =>
+  Buffer.from(encodeFrame(FRAME_PROOF, new Uint8Array(16), new Uint8Array(16), 0n, challenge))
+
+/** Вызов релея сокету, как его шлёт apps/relay сразу после открытия. */
+const challengeOf = (socket: SocketLike, address: Buffer, fill = 5) =>
+  socket.onmessage?.({
+    data: encodeFrame(
+      FRAME_CHALLENGE,
+      address,
+      new Uint8Array(16),
+      0n,
+      new Uint8Array(32).fill(fill),
+    ).buffer,
+  })
 
 const frame = (fill: number, size = 4): Outgoing => ({ frame: Buffer.alloc(size, fill) })
 
@@ -58,6 +81,9 @@ describe('пауза перед новым звонком', () => {
     expect(classifyClose(4009)).toBe('displaced')
     expect(classifyClose(4001)).toBe('fatal')
     expect(classifyClose(4002)).toBe('fatal')
+    expect(classifyClose(4003)).toBe('fatal')
+    expect(classifyClose(4004)).toBe('network')
+    expect(classifyClose(4005)).toBe('fatal')
     expect(classifyClose(1013)).toBe('relay')
     expect(classifyClose(1006)).toBe('network')
   })
@@ -161,14 +187,16 @@ const fakeSocket = () => {
 }
 
 describe('линия до релея', () => {
-  it('звонит агентом по своему адресу и говорит «connected» только после открытия', () => {
-    const { socket } = fakeSocket()
+  it('звонит агентом по своему адресу и говорит «connected» только после ответа на вызов', () => {
+    const { socket, sent } = fakeSocket()
     const states: string[] = []
     const urls: string[] = []
+    const outbox = new RemoteOutbox()
     const link = new RelayLink({
       address: Buffer.alloc(16, 7),
       relayUrl: 'wss://relay.example/',
-      outbox: new RemoteOutbox(),
+      prove,
+      outbox,
       onFrame: () => undefined,
       onState: (state) => states.push(state),
       createSocket: (url) => {
@@ -186,7 +214,20 @@ describe('линия до релея', () => {
 
     socket.readyState = 1
     socket.onopen?.({})
+    // Сокет открыт, но адрес не доказан: релей ещё ничего не пустит дальше - и очередь ждёт.
+    outbox.offerUrgent('phone', frame(9))
+    link.flush(counting(), () => null)
+    expect(states.at(-1)).toBe('connecting')
+    expect(sent).toEqual([])
+
+    challengeOf(socket, Buffer.alloc(16, 7))
     expect(states.at(-1)).toBe('connected')
+    expect(decodeFrame(sent[0] ?? new Uint8Array()).type).toBe(FRAME_PROOF)
+    expect([...decodeFrame(sent[0] ?? new Uint8Array()).body]).toEqual([
+      ...new Uint8Array(32).fill(5),
+    ])
+    link.flush(counting(), () => null)
+    expect(sent[1]?.[0]).toBe(9)
 
     socket.onclose?.({ code: 4001 })
     expect(states.at(-1)).toBe('refused')
@@ -201,6 +242,7 @@ describe('линия до релея', () => {
     const link = new RelayLink({
       address: Buffer.alloc(16, 7),
       relayUrl: 'wss://relay.example',
+      prove,
       outbox: new RemoteOutbox(),
       onFrame: () => undefined,
       onState: (state) => states.push(state),
@@ -220,6 +262,7 @@ describe('линия до релея', () => {
 
       socket.readyState = 1
       socket.onopen?.({})
+      challengeOf(socket, Buffer.alloc(16, 7))
       socket.onclose?.({ code: 4009 })
       expect(link.state).toBe('displaced')
       vi.advanceTimersByTime(DISPLACED_LONG_PAUSE_MS * 1.3)
@@ -240,6 +283,7 @@ describe('линия до релея', () => {
     const link = new RelayLink({
       address,
       relayUrl: 'ws://localhost:1',
+      prove,
       outbox: new RemoteOutbox(),
       onFrame: (envelope) => frames.push(envelope),
       onState: () => undefined,
@@ -249,6 +293,8 @@ describe('линия до релея', () => {
     link.start()
     socket.readyState = 1
     socket.onopen?.({})
+    challengeOf(socket, address)
+    sent.length = 0
     link.checkAlive()
 
     const [echo] = sent
@@ -256,6 +302,41 @@ describe('линия до релея', () => {
     expect(echo?.length).toBe(42)
     socket.onmessage?.({ data: echo ? new Uint8Array(echo).buffer : null })
     expect(frames).toHaveLength(0)
+    link.stop()
+    vi.useRealTimers()
+  })
+
+  it('релей не спросил доказательство адреса - не наш релей: линия звонит заново', () => {
+    vi.useFakeTimers()
+
+    const sockets: ReturnType<typeof fakeSocket>[] = []
+    const link = new RelayLink({
+      address: Buffer.alloc(16, 2),
+      relayUrl: 'ws://localhost:1',
+      prove,
+      outbox: new RemoteOutbox(),
+      onFrame: () => undefined,
+      onState: () => undefined,
+      createSocket: () => {
+        const made = fakeSocket()
+
+        sockets.push(made)
+
+        return made.socket
+      },
+    })
+
+    link.start()
+
+    const first = sockets[0]?.socket as SocketLike & { readyState: number }
+
+    first.readyState = 1
+    first.onopen?.({})
+    vi.advanceTimersByTime(CHALLENGE_WAIT_MS + 1)
+    link.checkAlive()
+    expect(link.state).toBe('reconnecting')
+    vi.advanceTimersByTime(5_000)
+    expect(sockets).toHaveLength(2)
     link.stop()
     vi.useRealTimers()
   })

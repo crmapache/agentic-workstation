@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto'
+
 import { it, expect, describe } from 'vitest'
 
+import { revokedTag } from '../wire/crypto'
 import type { JsonFile } from '../../storage/json-file'
 import type { StoredRemote } from './remote-state'
 import {
@@ -23,14 +26,18 @@ describe('что Remote Control хранит на диске', () => {
     expect(
       parseStoredRemote({ enabled: true, agentId: ID, devices: [device], relay: 'wss://x' }),
     ).toEqual(emptyRemote())
+    // Прежний формат со случайным адресом: такой адрес релей без подписи больше не отдаёт.
+    expect(
+      parseStoredRemote({ format: 'aw-remote/1', enabled: true, agentId: ID, devices: [device] }),
+    ).toEqual(emptyRemote())
     expect(
       parseStoredRemote({
         format: REMOTE_FORMAT,
         enabled: 'yes',
         devices: [{ id: '../x' }],
-        agentId: 'short',
+        revoked: ['old-string-form', { id: ID, tag: 'dGFn' }],
       }),
-    ).toMatchObject({ enabled: false, devices: [], agentId: '' })
+    ).toMatchObject({ enabled: false, devices: [], revoked: [{ id: ID, tag: 'dGFn' }] })
     expect(
       parseStoredRemote({ format: REMOTE_FORMAT, enabled: true, devices: [device] }),
     ).toMatchObject({
@@ -40,16 +47,16 @@ describe('что Remote Control хранит на диске', () => {
   })
 
   it('отзыв убирает телефон и секрет и ставит надгробие; надгробий - не больше потолка', () => {
-    const revoked = withRevoked(withDevice(emptyRemote(), device, 'sealed'), ID)
+    const revoked = withRevoked(withDevice(emptyRemote(), device, 'sealed'), ID, 'tag')
 
     expect(revoked.devices).toEqual([])
     expect(revoked.secrets).toEqual({})
-    expect(revoked.revoked).toEqual([ID])
+    expect(revoked.revoked).toEqual([{ id: ID, tag: 'tag' }])
 
     let many = revoked
 
     for (let index = 0; index < REVOKED_REMEMBERED + 5; index += 1) {
-      many = withRevoked(many, `${String(index).padStart(2, '0')}${'B'.repeat(20)}`)
+      many = withRevoked(many, `${String(index).padStart(2, '0')}${'B'.repeat(20)}`, '')
     }
 
     expect(many.revoked).toHaveLength(REVOKED_REMEMBERED)
@@ -89,19 +96,35 @@ describe('ключи - только через хранилище', () => {
 
   const bare = { available: () => false, seal: () => '', open: () => null }
 
-  it('ключ IDE и секрет пары лежат запечатанными', async () => {
+  it('ключи IDE и секрет пары лежат запечатанными, адрес - начало SHA-256 ключа подписи', async () => {
     const { file, written } = fileWith()
     const store = await RemoteStore.load(file, sealing)
 
     expect(store.hasIdentity).toBe(false)
     store.identity()
     store.remember(device, Buffer.from('secret'))
+    store.remember({ ...device, id: 'D'.repeat(22) }, Buffer.from('other secret'))
+
+    const tag = store.revoke('D'.repeat(22))
+
     await store.flush()
 
     const saved = written.at(-1)!
+    const spki = store.signing().publicKey.export({ type: 'spki', format: 'der' })
 
+    expect(store.agentId()).toBe(
+      createHash('sha256').update(spki).digest().subarray(0, 16).toString('base64url'),
+    )
     expect(saved.format).toBe(REMOTE_FORMAT)
     expect(saved.identity.startsWith('sealed:')).toBe(true)
+    expect(saved.signing.startsWith('sealed:')).toBe(true)
+    expect(saved).not.toHaveProperty('agentId')
+    // Тег - HMAC долгим ключом пары, посчитанный до того, как ключ ушёл.
+    expect(tag).toBe(
+      revokedTag(Buffer.from('other secret'), store.agentId(), 'D'.repeat(22)).toString('base64'),
+    )
+    expect(saved.revoked).toEqual([{ id: 'D'.repeat(22), tag }])
+    expect(store.revokedTag('D'.repeat(22))).toBe(tag)
     expect(saved.secrets[ID]).toBe(`sealed:${Buffer.from('secret').toString('hex')}`)
     expect(saved.devices).toEqual([device])
   })
@@ -114,7 +137,7 @@ describe('ключи - только через хранилище', () => {
     store.remember(device, Buffer.from('secret'))
     await store.flush()
 
-    expect(written.at(-1)).toMatchObject({ devices: [], secrets: {}, identity: '', agentId: '' })
+    expect(written.at(-1)).toMatchObject({ devices: [], secrets: {}, identity: '', signing: '' })
     expect(store.devices).toEqual([device])
     expect(store.deviceSecret(ID)?.toString()).toBe('secret')
     expect(store.keysKept).toBe(false)
@@ -129,13 +152,14 @@ describe('ключи - только через хранилище', () => {
     const kept = await RemoteStore.load(fileWith(stored).file, sealing)
 
     expect(kept.devices.map((one) => one.id)).toEqual([ID])
-    expect(kept.wasRevoked(other.id)).toBe(true)
+    // Отпущен, но без тега: ключа пары нет, и сказать ему «тебя отпустили» нечем.
+    expect(kept.revokedTag(other.id)).toBeNull()
 
     // Хранилища нет вовсе (другой Mac, нет Связки ключей): отпущены все.
     const lost = await RemoteStore.load(fileWith(stored).file, bare)
 
     expect(lost.devices).toEqual([])
-    expect(lost.wasRevoked(ID)).toBe(true)
+    expect(lost.revokedTag(ID)).toBeNull()
   })
 
   it('ключ IDE не открылся - новый ключ и новый адрес: две копии профиля не делят один адрес', async () => {
@@ -148,13 +172,14 @@ describe('ключи - только через хранилище', () => {
     const saved = written.at(-1)!
     const same = await RemoteStore.load(fileWith(saved).file, sealing)
 
-    expect(same.agentId()).toBe(saved.agentId)
+    expect(same.agentId()).toBe(first.agentId())
 
-    const moved = await RemoteStore.load(fileWith(saved).file, {
-      ...sealing,
-      open: () => null,
-    })
+    // Ключ подписи не открылся (а секрет пары - да): новые ключи, новый адрес, пары - в отпущенных.
+    const withPhone = { ...withDevice(saved, device, 'sealed:aa'), signing: 'broken' }
+    const moved = await RemoteStore.load(fileWith(withPhone).file, sealing)
 
-    expect(moved.agentId()).not.toBe(saved.agentId)
+    expect(moved.devices).toHaveLength(1)
+    expect(moved.agentId()).not.toBe(first.agentId())
+    expect(moved.devices).toEqual([])
   })
 })

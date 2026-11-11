@@ -2,11 +2,12 @@ import { it, expect, describe } from 'vitest'
 
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
+import { MAX_IMAGES_CHARS } from '@agentic-workstation/remote-protocol/message-size'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
-import { splitIntoParts, MAX_ASSEMBLED_CHARS } from '@agentic-workstation/remote-protocol/parts'
+import { splitIntoParts, MAX_ASSEMBLED_BYTES } from '@agentic-workstation/remote-protocol/parts'
 
 import { deviceProof, exportPublic, generateKeyPair } from '../wire/crypto'
-import { WINDOW_MS, limitKindOf, RemoteLimits, MAX_MESSAGE_BYTES } from './limits'
+import { WINDOW_MS, limitKindOf, RemoteLimits, MAX_OPENED_BYTES } from './limits'
 import { PairingDesk, MAX_ATTEMPTS, ANSWER_KEPT_MS, OFFER_LIFETIME_MS } from './pairing'
 import { RemoteParts, mayArriveInParts } from './parts'
 
@@ -34,7 +35,7 @@ describe('частота и вес', () => {
     )
 
     expect(allowed.length).toBeLessThan(30)
-    expect(new RemoteLimits().allowBytes('d', MAX_MESSAGE_BYTES + 1)).toBe(false)
+    expect(new RemoteLimits().allowBytes('d', MAX_OPENED_BYTES + 1)).toBe(false)
   })
 
   it('ведро наполняется ровно: через шесть секунд - одна новая команда из десяти', () => {
@@ -59,18 +60,20 @@ describe('частота и вес', () => {
 
   it('за минуту проходят три самых тяжёлых сообщения с фото, четвёртое - нет', () => {
     const limits = new RemoteLimits()
-    const image = { mediaType: 'image/jpeg', data: 'A'.repeat(MAX_ASSEMBLED_CHARS - 400) }
+    // Фото на весь потолок и текст из одних кавычек: экранирование удваивает его на проводе.
+    const image = { mediaType: 'image/jpeg', data: 'A'.repeat(MAX_IMAGES_CHARS) }
     const message = JSON.stringify({
       p: 1,
       k: 'cmd',
       id: 'photo',
       name: 'conversation.send',
-      args: { conversationId: 'c', text: 'look', images: [image] },
+      args: { conversationId: 'c', text: '"'.repeat(100_000), images: [image] },
     })
     const frames = splitIntoParts('photo', message).map((part) => encodeBody(part).length)
     const send = (now: number) => frames.every((bytes) => limits.allowBytes('d', bytes, now))
 
-    expect(frames.every((bytes) => bytes <= MAX_MESSAGE_BYTES)).toBe(true)
+    expect(new TextEncoder().encode(message).length).toBeLessThanOrEqual(MAX_ASSEMBLED_BYTES)
+    expect(frames.every((bytes) => bytes <= MAX_OPENED_BYTES)).toBe(true)
     expect([send(0), send(1), send(2)]).toEqual([true, true, true])
     expect(send(3)).toBe(false)
     expect(send(WINDOW_MS)).toBe(true)
@@ -117,8 +120,8 @@ describe('сообщение частями', () => {
   it('склеивается из кусков в любом порядке', () => {
     const parts = new RemoteParts(() => 0)
 
-    expect(parts.take('d', part('m1', 1, 2, 'world')).kind).toBe('waiting')
-    expect(parts.take('d', part('m1', 0, 2, 'hello '))).toEqual({
+    expect(parts.take('d', part('m1', 1, 2, 'world')).outcome.kind).toBe('waiting')
+    expect(parts.take('d', part('m1', 0, 2, 'hello ')).outcome).toEqual({
       kind: 'whole',
       text: 'hello world',
     })
@@ -127,10 +130,32 @@ describe('сообщение частями', () => {
   it('кусок вне ряда и чужое число частей - отказ', () => {
     const parts = new RemoteParts(() => 0)
 
-    expect(parts.take('d', part('m', 2, 2, '')).kind).toBe('refused')
-    expect(parts.take('d', part('m', 0, 99, '')).kind).toBe('refused')
-    expect(parts.take('d', part('x', 0, 2, 'a')).kind).toBe('waiting')
-    expect(parts.take('d', part('x', 1, 3, 'b')).kind).toBe('refused')
+    expect(parts.take('d', part('m', 2, 2, '')).outcome.kind).toBe('refused')
+    expect(parts.take('d', part('m', 0, 99, '')).outcome.kind).toBe('refused')
+    expect(parts.take('d', part('x', 0, 2, 'a')).outcome.kind).toBe('waiting')
+    expect(parts.take('d', part('x', 1, 3, 'b')).outcome.kind).toBe('refused')
+  })
+
+  it('вес собранного - в байтах UTF-8: кириллица на потолке знаков - уже перерос', () => {
+    const parts = new RemoteParts(() => 0)
+    const half = 'я'.repeat(Math.ceil(MAX_ASSEMBLED_BYTES / 4) + 1)
+
+    expect(parts.take('d', part('big', 0, 2, half)).outcome.kind).toBe('waiting')
+    expect(parts.take('d', part('big', 1, 2, half)).outcome).toEqual({
+      kind: 'refused',
+      why: 'a message over the size limit',
+    })
+  })
+
+  it('пропавшие сборки называются по id: вытесненная третьей и не дождавшаяся частей', () => {
+    let now = 0
+    const parts = new RemoteParts(() => now)
+
+    parts.take('d', part('first', 0, 2, 'a'))
+    parts.take('d', part('second', 0, 2, 'b'))
+    expect(parts.take('d', part('third', 0, 2, 'c')).dropped).toEqual(['first'])
+    now = 4 * 60_000
+    expect(parts.take('d', part('fourth', 0, 2, 'd')).dropped).toEqual(['second', 'third'])
   })
 
   it('частями может прийти только сообщение с фото', () => {
@@ -173,10 +198,15 @@ describe('пара', () => {
       DEVICE,
     ).toString('base64')
 
-    expect(desk.take(init(proof), address, AGENT, identity)).toBe(true)
+    expect(desk.take(init(proof), address, AGENT, identity)?.kind).toBe('waiting')
     expect(desk.pending()?.label).toBe('iPhone')
     expect(desk.current()).toBeNull()
-    expect(desk.take(init(proof), address, AGENT, identity)).toBe(false)
+    // Код потрачен: повтор с верным доказательством - «истёк» под секретом кода, а не тишина.
+    expect(desk.take(init(proof), address, AGENT, identity)).toEqual({
+      kind: 'expired',
+      secret: Buffer.from(code.secret),
+    })
+    expect(desk.take(init('AAAA'), address, AGENT, identity)).toBeNull()
   })
 
   const proofFor = (desk: PairingDesk) => {
@@ -196,13 +226,25 @@ describe('пара', () => {
     let now = 0
     const desk = new PairingDesk(() => now)
 
-    expect(desk.take(init(proofFor(desk)), address, AGENT, identity)).toBe(true)
-    now = OFFER_LIFETIME_MS + 1
+    expect(desk.take(init(proofFor(desk)), address, AGENT, identity)?.kind).toBe('waiting')
 
     const print = desk.pending()?.fingerprint ?? ''
 
+    now = OFFER_LIFETIME_MS + 1
+
     expect(desk.pending()).toBeNull()
     expect(desk.approve({ deviceId: DEVICE, fingerprint: print })).toBeNull()
+    // Истёкший ждущий отдаётся один раз - агенту, сказать ему «истёк».
+    expect(desk.takeExpired()?.deviceId).toBe(DEVICE)
+    expect(desk.takeExpired()).toBeNull()
+  })
+
+  it('«нет» и новый код отдают живого ждущего - ему скажут, что его не пустили', () => {
+    const desk = new PairingDesk()
+
+    desk.take(init(proofFor(desk)), address, AGENT, identity)
+    expect(desk.cancel()?.deviceId).toBe(DEVICE)
+    expect(desk.cancel()).toBeNull()
   })
 
   it('Approve пускает только телефон с экрана: другой адрес или отпечаток - никого', () => {
@@ -232,11 +274,27 @@ describe('пара', () => {
       proof: 'P',
     }
 
-    desk.answer(request, reply)
+    const keys = {
+      toDevice: Buffer.alloc(32),
+      toAgent: Buffer.alloc(32),
+      noncePrefixToDevice: Buffer.alloc(4),
+      noncePrefixToAgent: Buffer.alloc(4),
+      auth: Buffer.alloc(32),
+    }
+
+    desk.answer(request, reply, keys)
 
     expect(desk.repeatOf(request)).toBe(reply)
     expect(desk.repeatOf({ ...request, proof: Buffer.alloc(32).toString('base64') })).toBeNull()
     now = ANSWER_KEPT_MS + 1
+    expect(desk.repeatOf(request)).toBeNull()
+
+    // На ключах пары открылся кадр: одноразовый ключ просьбы отслужил, повтор без ответа.
+    now = 0
+    desk.answer(request, reply, keys)
+    desk.proven(DEVICE, { ...keys })
+    expect(desk.repeatOf(request)).toBe(reply)
+    desk.proven(DEVICE, keys)
     expect(desk.repeatOf(request)).toBeNull()
   })
 

@@ -24,16 +24,13 @@ export const RESYNC_GAP_MS = 2_000
 /** Сколько лент держать после ухода с разговора: вернулся - догнал заплатками, а не снимком. */
 export const KEPT_FEEDS = 20
 
-const targetKey = (agentId: string, target: WatchTarget): string => {
-  switch (target.kind) {
-    case 'conversation':
-      return `${agentId}|c|${target.conversationId}`
-    case 'run':
-      return `${agentId}|r|${target.runId}`
-    case 'queues':
-      return `${agentId}|q|${target.scope}`
-  }
-}
+/** Место подписки: у IDE на телефон - одна подписка каждого вида (phone-messages.ts). */
+const slotOf = (agentId: string, target: WatchTarget): string => `${agentId}|${target.kind}`
+
+const sameTarget = (first: WatchTarget, second: WatchTarget): boolean =>
+  JSON.stringify(first) === JSON.stringify(second)
+
+type Watch = { agentId: string; target: WatchTarget; refs: number }
 
 const fieldsOf = (target: WatchTarget) => {
   switch (target.kind) {
@@ -47,48 +44,49 @@ const fieldsOf = (target: WatchTarget) => {
 }
 
 /**
- * Что телефон смотрит на каждой IDE и ленты разговоров. Подписка считается по числу экранов,
- * которые её держат; лента - снимок и заплатки по номеру. Пропуск номера, обрыв очереди у IDE
- * или новая линия - подписка заново со своего номера (since и epoch): IDE пришлёт только
- * недостающее, а если журнал уже ушёл дальше - снимок.
+ * Что телефон смотрит на каждой IDE и ленты разговоров. Правило то же, что у IDE: подписка
+ * каждого вида (разговор, прогон, очереди) одна - новая заменяет прежнюю, и IDE делает то же у
+ * себя без отписки. Отпустить заменённую - ничего не снять. Подписка считается по числу
+ * экранов, которые её держат; лента - снимок и заплатки по номеру. Пропуск номера, обрыв
+ * очереди у IDE или новая линия - подписка заново со своего номера (since и epoch): IDE пришлёт
+ * только недостающее, а если журнал уже ушёл дальше - снимок.
+ *
+ * Снимок приходит и без подписки (телефон проснулся, а журнал IDE ушёл дальше): он заменяет
+ * ленту целиком, и заплатки дальше считаются от него.
  */
 export class WatchDesk {
-  private readonly watches = new Map<
-    string,
-    { agentId: string; target: WatchTarget; refs: number }
-  >()
+  private readonly watches = new Map<string, Watch>()
   private readonly feeds = new Map<string, FeedView>()
   private readonly resyncedAt = new Map<string, number>()
 
   constructor(private readonly host: WatchDeskHost) {}
 
   watch(agentId: string, target: WatchTarget): () => void {
-    const key = targetKey(agentId, target)
-    const known = this.watches.get(key)
+    const slot = slotOf(agentId, target)
+    const known = this.watches.get(slot)
+    let watch: Watch
 
-    if (known) {
-      known.refs += 1
+    if (known && sameTarget(known.target, target)) {
+      watch = known
+      watch.refs += 1
     } else {
-      this.watches.set(key, { agentId, target, refs: 1 })
+      watch = { agentId, target, refs: 1 }
+      this.watches.set(slot, watch)
       this.subscribe(agentId, target)
     }
 
     let released = false
 
     return () => {
-      if (released) return
+      // Заменённую подписку IDE уже сняла сама: отписка от неё сняла бы новую того же вида.
+      if (released || this.watches.get(slot) !== watch) return
 
       released = true
-
-      const watch = this.watches.get(key)
-
-      if (!watch) return
-
       watch.refs -= 1
 
       if (watch.refs > 0) return
 
-      this.watches.delete(key)
+      this.watches.delete(slot)
       this.host.send(agentId, { p: PROTOCOL_VERSION, k: 'unsubscribe', ...fieldsOf(target) })
     }
   }

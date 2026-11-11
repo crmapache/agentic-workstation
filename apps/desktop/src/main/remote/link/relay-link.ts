@@ -1,6 +1,6 @@
 import type { RemoteLinkState } from '@shared/remote'
 
-import { MAX_FRAME_BYTES } from '@agentic-workstation/remote-protocol/frame'
+import { FRAME_CHALLENGE, MAX_FRAME_BYTES } from '@agentic-workstation/remote-protocol/frame'
 
 import type { Envelope } from '../wire/frame'
 import { parseFrame, encodeAddress, heartbeatFrame } from '../wire/frame'
@@ -28,9 +28,17 @@ export const SILENCE_MS = 45_000
 /** Сколько линия должна простоять, чтобы вытеснение считалось новым событием. */
 export const STEADY_MS = 60_000
 
+/**
+ * Сокет открылся, а вызова релея «докажи адрес» нет так долго - это не наш релей (или старый,
+ * без доказательства): кадры через него не пойдут.
+ */
+export const CHALLENGE_WAIT_MS = 15_000
+
 export type RelayLinkOptions = {
   address: Buffer
   relayUrl: string
+  /** Ответ на вызов релея: кадр с ключом подписи и подписью (relay-claim.ts). */
+  prove: (challenge: Uint8Array) => Buffer
   outbox: RemoteOutbox
   onFrame: (envelope: Envelope) => void
   onState: (state: RemoteLinkState) => void
@@ -40,13 +48,17 @@ export type RelayLinkOptions = {
 
 /**
  * Одна линия до релея на всю IDE. Звоним сами: снаружи до машины за домашним роутером не
- * достучаться. Пинга у WebSocket из Node нет, поэтому сердцебиение - пустой кадр самому себе:
- * релей вернёт его этой же линией, и это доказывает, что линия жива, а не только что сокет
- * пишет OPEN.
+ * достучаться. Линия считается поднятой, когда IDE ответила на вызов релея подписью: до этого
+ * релей её кадры никуда не пустит. Пинга у WebSocket из Node нет, поэтому сердцебиение -
+ * пустой кадр самому себе: релей вернёт его этой же линией, и это доказывает, что линия жива,
+ * а не только что сокет пишет OPEN.
  */
 export class RelayLink {
   private readonly backoff = new Backoff()
   private socket: SocketLike | null = null
+  /** Адрес доказан на этом сокете: только теперь кадры пойдут дальше релея. */
+  private proven = false
+  private openedAt = 0
   private running = false
   private retryTimer: NodeJS.Timeout | null = null
   private lastHeard = 0
@@ -83,7 +95,7 @@ export class RelayLink {
   flush(seal: Seal, resyncFrame: (deviceId: string) => Buffer | null): void {
     const socket = this.socket
 
-    if (!socket || socket.readyState !== OPEN) return
+    if (!socket || socket.readyState !== OPEN || !this.proven) return
 
     const waiting = this.options.outbox.drain(seal, resyncFrame)
 
@@ -114,6 +126,16 @@ export class RelayLink {
     const now = this.now()
 
     if (!socket || socket.readyState !== OPEN) return
+
+    if (!this.proven) {
+      if (now - this.openedAt < CHALLENGE_WAIT_MS) return
+
+      console.warn('[remote] релей не спросил доказательство адреса - переподключаюсь')
+      this.drop(socket)
+
+      return this.retry('network')
+    }
+
     if (this.connectedAt > 0 && now - this.connectedAt > STEADY_MS) this.backoff.heldOn()
 
     try {
@@ -149,13 +171,12 @@ export class RelayLink {
 
     socket.binaryType = 'arraybuffer'
     this.socket = socket
+    this.proven = false
     socket.onopen = () => {
       if (this.socket !== socket) return
 
-      this.lastHeard = this.now()
-      this.connectedAt = this.lastHeard
-      this.backoff.succeeded()
-      this.move('connected')
+      this.openedAt = this.now()
+      this.lastHeard = this.openedAt
     }
     socket.onmessage = (event) => {
       if (this.socket === socket) this.receive(event.data)
@@ -164,6 +185,7 @@ export class RelayLink {
       if (this.socket !== socket) return
 
       this.socket = null
+      this.proven = false
       this.retry(classifyClose(event.code))
     }
     socket.onerror = (event) => {
@@ -189,6 +211,9 @@ export class RelayLink {
     try {
       const envelope = parseFrame(bytes, MAX_FRAME_BYTES)
 
+      if (envelope.type === FRAME_CHALLENGE) return this.answer(envelope.body)
+      if (!this.proven) return
+
       // Своё сердцебиение вернулось - это и был ответ.
       if (envelope.from.equals(this.options.address)) return
 
@@ -197,6 +222,30 @@ export class RelayLink {
       // Причина, никогда не байты: чужой кадр не наш, чтобы его записывать.
       console.warn('[remote] кадр релея не разобрался:', (error as Error).message)
     }
+  }
+
+  /**
+   * Вызов релея: подписать и ответить. Релей разбирает кадры по порядку, поэтому всё, что
+   * уйдёт после ответа, он увидит уже от доказанного адреса - ждать его «да» незачем.
+   */
+  private answer(challenge: Uint8Array) {
+    const socket = this.socket
+
+    if (!socket || this.proven) return
+
+    try {
+      socket.send(this.options.prove(challenge))
+    } catch (error) {
+      console.warn('[remote] ответ на вызов релея не ушёл:', error)
+
+      return
+    }
+
+    this.proven = true
+    this.lastHeard = this.now()
+    this.connectedAt = this.lastHeard
+    this.backoff.succeeded()
+    this.move('connected')
   }
 
   private retry(failure: Failure) {
@@ -227,7 +276,10 @@ export class RelayLink {
   private drop(socket: SocketLike | null) {
     if (!socket) return
 
-    if (this.socket === socket) this.socket = null
+    if (this.socket === socket) {
+      this.socket = null
+      this.proven = false
+    }
 
     socket.onopen = null
     socket.onmessage = null

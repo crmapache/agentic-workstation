@@ -1,7 +1,10 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
+import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
+import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
+import { FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
 
 import type { KeyStore } from '../src/remote/keystore'
@@ -216,6 +219,93 @@ describe('ядро телефона против настоящей IDE', () => 
     ide.service.revoke(ide.service.view().devices[0]?.id ?? '')
     await until(() => again.client.status(first.code.agentId) === 'revoked', 'revoked')
     expect(again.client.machines()[0]?.revoked).toBe(true)
+  })
+
+  it('Refuse в IDE: телефон слышит «не пустили» под секретом кода и не ждёт молча', async () => {
+    const ide = await harness()
+    const code = parsePairingFragment(new URL(ide.pairingUrl()).hash)
+
+    if (!code) throw new Error('no code')
+
+    const side = await phone(ide.relayUrl)
+    const outcome = side.client.pair(await side.client.preparePairing(code), 'Refused phone')
+
+    await until(() => ide.service.view().pending, 'a phone asking to pair')
+    ide.service.refuse()
+
+    expect(await outcome).toEqual({ ok: false, reason: 'refused' })
+  })
+
+  it('ответ на снятый вопрос, кнопка прогона и ответ голове с устаревшего экрана - отказ', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+    const agentId = code.agentId
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+
+    expect(
+      await client.command(agentId, 'conversation.respond', {
+        conversationId: CONVERSATION_ID,
+        requestId: 'answered-at-the-desk',
+        decision: { kind: 'permission', allow: true },
+      }),
+    ).toEqual({ ok: false, code: 'questionGone', detail: undefined })
+    expect(
+      await client.command(agentId, 'scenarios.answer', {
+        runId: 'r1',
+        question: { stepKey: 's1:c1:1', askedAt: 1 },
+        allow: true,
+        text: '',
+      }),
+    ).toMatchObject({ ok: false, code: 'questionGone' })
+    expect(
+      await client.command(agentId, 'scenarios.control', {
+        runId: 'r1',
+        action: 'resume',
+        seen: 'paused',
+      }),
+    ).toMatchObject({ ok: false, code: 'runMoved' })
+    expect(
+      await client.command(agentId, 'scenarios.answer', {
+        runId: 'r1',
+        question: { stepKey: 's1:c1:1', askedAt: 30 },
+        allow: true,
+        text: 'yes',
+      }),
+    ).toEqual({ ok: true })
+  })
+
+  it('стук получает pong; «тебя отпустили» без верного тега ничего не стирает', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    client.wake()
+    await until(() => lastOf(inbox, 'pong'), 'pong')
+
+    // Слово «отпустили» от адреса IDE, но тег - не её: так мог бы сказать сам релей.
+    client.receive({
+      version: 1,
+      type: FRAME_SEALED,
+      to: new Uint8Array(16),
+      from: fromBase64Url(code.agentId) ?? new Uint8Array(16),
+      counter: 0n,
+      body: encodeBody({ p: 1, k: 'revoked', tag: 'AAAA' }),
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(client.status(code.agentId)).toBe('online')
+    expect(client.machines()[0]?.revoked).toBe(false)
+  })
+
+  it('«забыть IDE» на телефоне - IDE отзывает его у себя тоже', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    expect(ide.service.view().devices).toHaveLength(1)
+    await client.forget(code.agentId)
+    await until(() => ide.service.view().devices.length === 0, 'the IDE forgetting the phone')
+    expect(client.machines()).toEqual([])
   })
 
   it('чужой код: доказательство не под тем секретом - IDE молчит, пара не проходит', async () => {

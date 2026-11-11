@@ -8,10 +8,14 @@ import { Card } from '@agentic-workstation/ui/Card'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
 import styles from '../RunScreen.module.scss'
+import { PathText } from '../../../../shell/PathText/PathText'
+import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
 /**
  * Вопрос головы сценария: варианты - кнопками, что предложили, то и нажимают; без вариантов это
- * разрешение - разрешить или отказать, со словами или без. Как в окне прогона IDE.
+ * разрешение - разрешить или отказать, со словами или без. Как в окне прогона IDE. Урезанный
+ * (движком или дорогой до телефона) вслепую не одобряется: разрешение - только отказать,
+ * вопрос с вариантами - решить за Mac.
  */
 export const RunQuestion = ({
   question,
@@ -25,6 +29,7 @@ export const RunQuestion = ({
   const { t } = useTranslation()
   const [text, setText] = useState('')
   const isPermission = question.options.length === 0
+  const blind = question.truncated
 
   const answer = (allow: boolean, words: string) => {
     onAnswer(allow, words)
@@ -38,9 +43,16 @@ export const RunQuestion = ({
       title={t('run.question.title')}
       description={question.tool || undefined}>
       <div className={styles.question}>
-        <p className={styles.questionTitle}>{question.title || question.tool}</p>
-        {isPermission && question.detail && <pre className={styles.detail}>{question.detail}</pre>}
-        {!isPermission && (
+        <p className={styles.questionTitle}>
+          <PathText text={question.title || question.tool} />
+        </p>
+        {isPermission && question.detail && (
+          <pre className={styles.detail}>
+            <PathText text={question.detail} />
+          </pre>
+        )}
+        {blind && <TooLongNote />}
+        {!isPermission && !blind && (
           <div className={styles.options}>
             {question.options.map((option) => (
               <Button
@@ -69,19 +81,21 @@ export const RunQuestion = ({
                 onClick={() => answer(false, text.trim())}>
                 {t('run.question.refuse')}
               </Button>
-              <Button
-                size="touch"
-                variant="primary"
-                disabled={busy}
-                onClick={() => answer(true, text.trim())}>
-                {t('run.question.allow')}
-              </Button>
+              {!blind && (
+                <Button
+                  size="touch"
+                  variant="primary"
+                  disabled={busy}
+                  onClick={() => answer(true, text.trim())}>
+                  {t('run.question.allow')}
+                </Button>
+              )}
             </>
           ) : (
             <Button
               size="touch"
               variant="primary"
-              disabled={busy || !text.trim()}
+              disabled={busy || blind || !text.trim()}
               onClick={() => answer(true, text.trim())}>
               {t('run.question.send')}
             </Button>

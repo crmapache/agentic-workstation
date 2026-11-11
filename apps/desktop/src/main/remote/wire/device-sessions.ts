@@ -21,7 +21,9 @@ type Live = {
  * first - первый кадр на этих ключах: новая страница телефона или дозвон после сна.
  */
 export type Opened =
-  { kind: 'body'; bytes: Buffer; first: boolean } | { kind: 'replayed' } | { kind: 'unreadable' }
+  | { kind: 'body'; bytes: Buffer; first: boolean; keys: SessionKeys }
+  | { kind: 'replayed' }
+  | { kind: 'unreadable' }
 
 /**
  * Живое шифрованное состояние каждого телефона: ключи соединения, следующий счётчик,
@@ -105,7 +107,7 @@ export class DeviceSessions {
 
       live.heard = true
 
-      return { kind: 'body', bytes: body, first }
+      return { kind: 'body', bytes: body, first, keys: live.keys }
     }
 
     // Ключи, предложенные, пока старые работали, - и это кадр, который их доказывает.
@@ -119,7 +121,7 @@ export class DeviceSessions {
     this.offered.delete(deviceId)
     waiting.heard = true
 
-    return { kind: 'body', bytes: proved, first: true }
+    return { kind: 'body', bytes: proved, first: true, keys: waiting.keys }
   }
 }
 

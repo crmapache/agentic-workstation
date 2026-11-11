@@ -104,17 +104,20 @@ export const createScenariosHandlers = (
       outcome(await scenarios.worktree(assertId(queueId, 'queueId'), parseWorktreeAction(action))),
     'scenarios:run': ({ place, runId }) =>
       scenarios.run(placeRoot(place), assertId(runId, 'runId')),
-    'scenarios:control': ({ place, runId, action }) =>
-      scenarios.control(placeRoot(place), assertId(runId, 'runId'), parseControl(action)),
+    // Окно рисует кнопки по живому состоянию: отказ с устаревшего экрана - забота телефона.
+    'scenarios:control': ({ place, runId, action }) => {
+      scenarios.control(placeRoot(place), assertId(runId, 'runId'), parseControl(action))
+    },
     'scenarios:carryOn': async ({ runId }) =>
       outcome(await scenarios.carryOn(assertId(runId, 'runId'))),
-    'scenarios:answer': ({ place, runId, allow, text: words }) =>
+    'scenarios:answer': ({ place, runId, allow, text: words }) => {
       scenarios.answer(
         placeRoot(place),
         assertId(runId, 'runId'),
         allow === true,
         text(words, 'text'),
-      ),
+      )
+    },
     'scenarios:tell': ({ place, runId, text: words, images }) => {
       const message = parseOutgoing({ text: words, images })
       const told = scenarios.tell(

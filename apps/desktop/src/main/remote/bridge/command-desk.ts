@@ -86,9 +86,11 @@ export class CommandDesk {
         const { requestId, decision } = command.args
         const pending = conversation.pending
 
-        // Ответ не того вида на тот же вопрос - не ответ (кнопка устаревшего экрана).
-        if (pending?.requestId === requestId && pending.kind !== decision.kind)
-          return fail('badArgs')
+        // Ответ на вопрос, которого уже нет (ответили за столом, вопрос снят, стоит следующий), -
+        // отказ, а не «ок»: иначе телефон считал бы, что ответил он, а ответ никуда не лёг.
+        if (pending?.requestId !== requestId) return fail('questionGone')
+        // Ответ не того вида на тот же вопрос - не ответ.
+        if (pending.kind !== decision.kind) return fail('badArgs')
 
         conversations.respond(id, requestId, responseOf(decision))
 
@@ -195,14 +197,16 @@ export class CommandDesk {
     if (!path) return fail('notFound')
 
     switch (command.name) {
-      case 'scenarios.control':
-        scenarios.control(path, runId, command.args.action)
+      case 'scenarios.control': {
+        const refusal = scenarios.control(path, runId, command.args.action, command.args.seen)
 
-        return done()
-      case 'scenarios.answer':
-        scenarios.answer(path, runId, command.args.allow, command.args.text)
+        return refusal ? fail(refusal === 'runMoved' ? 'runMoved' : 'refused', refusal) : done()
+      }
+      case 'scenarios.answer': {
+        const { allow, text, question } = command.args
 
-        return done()
+        return scenarios.answer(path, runId, allow, text, question) ? done() : fail('questionGone')
+      }
       case 'scenarios.tell':
         return scenarios.tell(path, runId, command.args.text, command.args.images ?? [])
           ? done()

@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { Badge } from '@agentic-workstation/ui/Badge'
 
-import { CONVERSATION_TONES } from '../../../../lib/status.constants'
+import { conversationBadge } from '../../../../lib/status.constants'
 
-/** Под заголовком разговора: состояние и модель с усилием. */
+/** Под заголовком разговора: состояние (или чем кончился ход) и модель с усилием. */
 export const ConversationSubtitle = ({
   conversation,
   model,
@@ -14,12 +14,11 @@ export const ConversationSubtitle = ({
   model: string
 }) => {
   const { t } = useTranslation()
+  const badge = conversationBadge(conversation)
 
   return (
     <>
-      <Badge tone={CONVERSATION_TONES[conversation.status]}>
-        {t(`status.${conversation.status}`)}
-      </Badge>
+      <Badge tone={badge.tone}>{t(badge.key)}</Badge>
       {[
         model,
         conversation.effort &&

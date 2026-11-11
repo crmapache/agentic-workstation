@@ -1,4 +1,4 @@
-import type { ClaudeState, Conversation } from '@shared/claude'
+import type { ClaudeState, Conversation, PendingRequest } from '@shared/claude'
 import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
 import type { ScenarioQueue, ScenarioQueuesView } from '@shared/scenario-queues'
 import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
@@ -47,6 +47,19 @@ export const conversationOf = (over: Partial<Conversation> = {}): Conversation =
   updatedAt: 1000,
   ...over,
 })
+
+/** Вопрос разрешения на запуск команды - как его держит разговор IDE. */
+export const PERMISSION: Extract<PendingRequest, { kind: 'permission' }> = {
+  kind: 'permission',
+  requestId: 'perm-1',
+  toolUseId: 'tool-9',
+  toolName: 'Bash',
+  input: { command: 'pnpm test', description: 'Run the test suite' },
+  description: 'pnpm test',
+  reason: '',
+  alwaysKind: 'rule',
+  mode: 'default',
+}
 
 export const itemOf = (id: string, text: string): FeedItem =>
   ({ id, kind: 'assistant', text, streaming: false }) as unknown as FeedItem
@@ -240,10 +253,22 @@ export const fakeIde = () => {
       act: (queueId, action) => Promise.resolve(record('scenarios.act', queueId, action)),
       run: (projectPath, runId) =>
         Promise.resolve(runId === RUN.id && projectPath === PROJECT_PATH ? RUN : null),
-      control: (projectPath, runId, action) =>
-        record('scenarios.control', projectPath, runId, action),
-      answer: (projectPath, runId, allow, text) =>
-        record('scenarios.answer', projectPath, runId, allow, text),
+      // Как ScenarioService: кнопка, нарисованная для другого состояния, и ответ не на тот
+      // вопрос не доходят до прогона.
+      control: (projectPath, runId, action, seen) => {
+        if ((seen === 'paused') !== (RUN.state === 'paused')) return 'runMoved'
+
+        return record('scenarios.control', projectPath, runId, action)
+      },
+      answer: (projectPath, runId, allow, text, asked) => {
+        const shown = RUN.question
+
+        if (shown?.stepKey !== asked.stepKey || shown.askedAt !== asked.askedAt) return false
+
+        record('scenarios.answer', projectPath, runId, allow, text)
+
+        return true
+      },
       tell: (projectPath, runId, text) =>
         record('scenarios.tell', projectPath, runId, text) === null,
       carryOn: (runId) => Promise.resolve(record('scenarios.carryOn', runId)),

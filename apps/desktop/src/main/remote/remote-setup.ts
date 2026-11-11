@@ -36,8 +36,10 @@ export const scenariosPort = (scenarios: ScenarioService): ScenariosPort => ({
   start: (request) => scenarios.start(request),
   act: (queueId, action) => scenarios.act(queueId, action),
   run: (projectPath, runId) => scenarios.run(projectPath, runId),
-  control: (projectPath, runId, action) => scenarios.control(projectPath, runId, action),
-  answer: (projectPath, runId, allow, text) => scenarios.answer(projectPath, runId, allow, text),
+  control: (projectPath, runId, action, seen) =>
+    scenarios.control(projectPath, runId, action, seen),
+  answer: (projectPath, runId, allow, text, asked) =>
+    scenarios.answer(projectPath, runId, allow, text, asked),
   tell: (projectPath, runId, text, images) => scenarios.tell(projectPath, runId, text, images),
   carryOn: (runId) => scenarios.carryOn(runId),
   shelves: (projectPath) => scenarios.shelves.view(projectPath),

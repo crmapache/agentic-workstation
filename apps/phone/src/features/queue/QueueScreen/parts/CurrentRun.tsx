@@ -56,7 +56,7 @@ export const CurrentRun = ({
             size="touch"
             icon={paused ? Play : Pause}
             disabled={screen.busy}
-            onClick={() => screen.runAction(run.id, paused ? 'resume' : 'pause')}>
+            onClick={() => screen.runAction(run, paused ? 'resume' : 'pause')}>
             {t(paused ? 'run.resume' : 'run.pause')}
           </Button>
           <Button size="touch" variant="danger" icon={Square} onClick={() => setIsStopping(true)}>
@@ -74,7 +74,7 @@ export const CurrentRun = ({
         open={isStopping}
         title={t('run.stopConfirm', { name: run.scenarioName })}
         confirmLabel={t('run.stop')}
-        onConfirm={() => screen.runAction(run.id, 'stop')}
+        onConfirm={() => screen.runAction(run, 'stop')}
         onClose={() => setIsStopping(false)}
       />
     </Card>

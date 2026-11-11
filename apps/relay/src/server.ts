@@ -6,9 +6,26 @@ import type { WebSocket } from 'ws'
 import { WebSocketServer } from 'ws'
 
 import { clientIp, ANONYMOUS, originAllowed } from './callers.ts'
+import {
+  proofHolds,
+  newChallenge,
+  challengeFrame,
+  CLOSE_UNPROVEN,
+  CLOSE_PROOF_LATE,
+  CLOSE_WRONG_KIND,
+} from './claim.ts'
 import type { Config } from './config.ts'
 import { RELAY_VERSION } from './config.ts'
-import { FRAME_PUSH, addressHint, readEnvelope, WIRE_VERSION, decodeAddress } from './frame.ts'
+import type { Envelope } from './frame.ts'
+import {
+  FRAME_PUSH,
+  addressHint,
+  FRAME_PROOF,
+  HEADER_BYTES,
+  readEnvelope,
+  WIRE_VERSION,
+  decodeAddress,
+} from './frame.ts'
 import { pageHeaders } from './headers.ts'
 import type { Kind } from './hub.ts'
 import { Hub, CLOSE_POLICY, CLOSE_BAD_ADDRESS, CLOSE_BAD_VERSION } from './hub.ts'
@@ -146,6 +163,11 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     )
   })
 
+  /**
+   * Новое соединение: сначала вызов «докажи, что адрес твой», и только верный ответ занимает
+   * адрес (вытеснение, ящик, маршрут). До ответа соединение ничего не получает и ничего не
+   * шлёт дальше: иначе знающий адрес IDE из QR занял бы его без ключа.
+   */
   const accept = (connection: WebSocket, kind: Kind, id: string): void => {
     let address: Buffer
 
@@ -155,14 +177,45 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
       return connection.close(CLOSE_BAD_ADDRESS, 'the address in the url is not an address')
     }
 
-    hub.open(address, kind, connection, Date.now())
-    answered.set(connection, { address, alive: true })
+    const challenge = newChallenge()
+    let proven = false
+    const late = setTimeout(() => {
+      log(`${kind} ${addressHint(address)} did not prove its address in time - closing`)
+      connection.close(CLOSE_PROOF_LATE, 'no proof of the address')
+    }, config.claimPatienceMs)
+
+    connection.send(challengeFrame(address, challenge))
+
+    /** Ответ на вызов: верный - адрес занят; неверный или чужого вида - закрыть. */
+    const claim = (envelope: Envelope, data: Buffer) => {
+      clearTimeout(late)
+
+      if (
+        envelope.type !== FRAME_PROOF ||
+        !envelope.from.equals(address) ||
+        !proofHolds(kind, address, challenge, data.subarray(HEADER_BYTES))
+      ) {
+        log(`${kind} ${addressHint(address)} failed to prove its address - closing`)
+
+        return connection.close(CLOSE_UNPROVEN, 'the proof of the address does not hold')
+      }
+
+      if (!hub.open(address, kind, connection, Date.now())) {
+        log(`${addressHint(address)} is held by a connection of the other kind - closing`)
+
+        return connection.close(CLOSE_WRONG_KIND, 'the address is held by the other kind')
+      }
+
+      proven = true
+      answered.set(connection, { address, alive: true })
+      log(`${kind} ${addressHint(address)} connected (${hub.count()} live)`)
+    }
+
     connection.on('pong', () => {
       const entry = answered.get(connection)
 
       if (entry) entry.alive = true
     })
-    log(`${kind} ${addressHint(address)} connected (${hub.count()} live)`)
 
     let frames = 0
     const window = setInterval(() => {
@@ -183,6 +236,11 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
       try {
         const envelope = readEnvelope(data, config.maxFrameBytes)
 
+        if (!proven) return claim(envelope, data)
+
+        // Ответ на вызов - разговор с релеем, а не кадр кому-то: второй раз ему незачем.
+        if (envelope.type === FRAME_PROOF) return
+
         // Отправитель - тот адрес, которым соединение назвалось. Иначе устройство писало бы
         // IDE, с которой никогда не спаривалось, от чужого имени.
         if (!envelope.from.equals(address)) {
@@ -198,12 +256,18 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
         log(
           `${addressHint(address)} sent a frame we could not read: ${error instanceof Error ? error.message : 'unknown'}`,
         )
+
+        if (!proven) connection.close(CLOSE_UNPROVEN, 'the proof of the address does not hold')
       }
     })
 
     connection.on('close', () => {
+      clearTimeout(late)
       clearInterval(window)
       answered.delete(connection)
+
+      if (!proven) return
+
       hub.close(address, connection)
       log(`${kind} ${addressHint(address)} left (${hub.count()} live)`)
     })

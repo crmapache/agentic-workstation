@@ -37,6 +37,8 @@ type Offer = { secret: Buffer; expiresAt: number; attempts: number; used: boolea
 
 /** Телефон доказал, что видел код, и ждёт человека. Всё для ответа - уже здесь. */
 export type PendingPairing = RemotePending & {
+  /** Секрет кода, по которому он пришёл: им подписывается и «пару не пустили». */
+  secret: Buffer
   keys: SessionKeys
   agentEphemeralPub: string
   proof: Buffer
@@ -47,7 +49,15 @@ export type PendingPairing = RemotePending & {
   expiresAt: number
 }
 
-type Answered = { init: PairInit; reply: PairAck; until: number }
+/** Ответ на пару: повтор той же просьбы получает его же, пока на его ключах ничего не открылось. */
+type Answered = { init: PairInit; reply: PairAck; keys: SessionKeys; until: number }
+
+/**
+ * Чем кончилась просьба о паре: телефон ждёт человека; код уже не годится (истёк или потрачен),
+ * а доказательство верное - телефону можно честно сказать «истёк» секретом кода; или ничего.
+ */
+export type TakeOutcome =
+  { kind: 'waiting'; expiresAt: number } | { kind: 'expired'; secret: Buffer } | null
 
 const sameInit = (first: PairInit, second: PairInit): boolean =>
   first.deviceId === second.deviceId &&
@@ -76,6 +86,7 @@ export class PairingDesk {
     const url = pairingUrl(relayUrl, { agentId, secret, fingerprint: print })
 
     this.offer = { secret, expiresAt, attempts: 0, used: false, url }
+    // Ждущий прежнего кода ждёт уже не того: сказать ему - дело агента (cancel до start).
     this.waiting = null
 
     return { url, expiresAt }
@@ -105,12 +116,13 @@ export class PairingDesk {
 
   /**
    * Телефон говорит, что видел код. Доказательство проверяется первым и за постоянное время.
-   * true - телефон ждёт Approve человека.
+   * Код истёк или его уже потратил другой телефон, а доказательство верное - «истёк»: такой
+   * телефон видел экран IDE и иначе ждал бы Approve молча, пока не кончится терпение.
    */
-  take(init: PairInit, address: Buffer, agentId: string, identity: KeyPair): boolean {
+  take(init: PairInit, address: Buffer, agentId: string, identity: KeyPair): TakeOutcome {
     const offer = this.offer
 
-    if (!offer || offer.used || this.clock() > offer.expiresAt) return false
+    if (!offer) return null
 
     const expected = deviceProof(
       offer.secret,
@@ -125,19 +137,23 @@ export class PairingDesk {
 
       if (offer.attempts >= MAX_ATTEMPTS) this.offer = null
 
-      return false
+      return null
     }
+
+    if (offer.used || this.clock() > offer.expiresAt)
+      return { kind: 'expired', secret: offer.secret }
 
     const deviceStatic = importPublic(init.staticPub)
     const deviceEphemeral = importPublic(init.ephemeralPub)
 
-    if (!deviceStatic || !deviceEphemeral) return false
+    if (!deviceStatic || !deviceEphemeral) return null
 
     const ephemeral = generateKeyPair()
     const agentEphemeralPub = exportPublic(ephemeral.publicKey)
 
     offer.used = true
     this.waiting = {
+      secret: offer.secret,
       deviceId: init.deviceId,
       label: init.label.trim().slice(0, 80) || 'A phone',
       fingerprint: fingerprint(init.staticPub),
@@ -163,7 +179,7 @@ export class PairingDesk {
       expiresAt: offer.expiresAt,
     }
 
-    return true
+    return { kind: 'waiting', expiresAt: offer.expiresAt }
   }
 
   /**
@@ -188,8 +204,18 @@ export class PairingDesk {
   }
 
   /** Ответ ушёл телефону: его же получит повтор той же просьбы. */
-  answer(init: PairInit, reply: PairAck): void {
-    this.answered = { init, reply, until: this.clock() + ANSWER_KEPT_MS }
+  answer(init: PairInit, reply: PairAck, keys: SessionKeys): void {
+    this.answered = { init, reply, keys, until: this.clock() + ANSWER_KEPT_MS }
+  }
+
+  /**
+   * На ключах пары открылся кадр телефона: ответ дошёл, и одноразовый ключ его просьбы больше не
+   * отвечается (crypto-spec.ts) - её копия из ящика релея останется без ответа.
+   */
+  proven(deviceId: string, keys: SessionKeys): void {
+    if (this.answered?.init.deviceId === deviceId && this.answered.keys === keys) {
+      this.answered = null
+    }
   }
 
   /** Повтор уже отвеченной просьбы (ответ потерялся по дороге) - тот же ответ; иначе null. */
@@ -206,15 +232,32 @@ export class PairingDesk {
     if (this.answered?.init.deviceId === deviceId) this.answered = null
   }
 
-  /** «Нет» или «перестать предлагать»: код и ждущий - всё забыто. */
-  cancel(): void {
+  /**
+   * «Нет», «перестать предлагать» или новый код: код и ждущий забыты. Ответ - ждущий, если он
+   * был жив: ему надо сказать, что его не пустили, а не оставить ждать.
+   */
+  cancel(): PendingPairing | null {
+    const waiting = this.live()
+
     this.waiting = null
     this.offer = null
+
+    return waiting
   }
 
-  private live(): PendingPairing | null {
-    if (this.waiting && this.clock() > this.waiting.expiresAt) this.waiting = null
+  /** Ждущий, чей код истёк, - забыт и отдан: ему - «истёк». Живой остаётся ждать. */
+  takeExpired(): PendingPairing | null {
+    const waiting = this.waiting
 
-    return this.waiting
+    if (!waiting || this.clock() <= waiting.expiresAt) return null
+
+    this.waiting = null
+
+    return waiting
+  }
+
+  /** Ждущий, пока жив его код; истёкший не стирается здесь - его забирает takeExpired. */
+  private live(): PendingPairing | null {
+    return this.waiting && this.clock() <= this.waiting.expiresAt ? this.waiting : null
   }
 }

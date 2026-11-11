@@ -10,6 +10,7 @@ import type { StatusClock } from './conversation-wire'
 import { conversationWire } from './conversation-wire'
 import type { Redact } from './fit'
 import { fitValue } from './fit'
+import { fitRun, fitConversation } from './fit-pending'
 import type { ProjectKeys } from './project-keys'
 import { runWire, queueWire, runProjectPath, runSummaryWire } from './scenario-wire'
 
@@ -28,18 +29,15 @@ export type WatchDeskHost = {
 /** Прогон, который смотрит телефон: последнее его состояние и что ушло телефону. */
 type RunWatch = { runId: string; print: string; latest: ScenarioRun }
 
-/**
- * Очереди, которые смотрит телефон: ключ, с которым он подписался, и папка проекта за ним
- * (null - доска всех). Подписка держится за папку, а не за ключ: ключ меняет приставку, когда
- * проект открывают или закрывают, а очереди - те же.
- */
+/** Очереди, которые смотрит телефон: ключ его подписки и папка проекта за ним (null - все). */
 type QueuesWatch = { scope: string; path: string | null; print: string }
 
 /**
  * Что телефон смотрит, кроме ленты: состояние своего разговора, прогон сценария и очереди
- * проекта (или доску всех). Шлётся только перемена: отпечаток последнего посланного помнится
- * на телефон, а состояние IDE меняется по многу раз в секунду. Спящему - ничего: отпечаток
- * не трогается, и проснувшийся получит то, что поменялось без него.
+ * проекта (или доску всех). Каждого вида - одно на телефон (phone-messages.ts): новая подписка
+ * заменяет прежнюю. Шлётся только перемена: отпечаток последнего посланного помнится на
+ * телефон, а состояние IDE меняется по многу раз в секунду. Спящему - ничего: отпечаток не
+ * трогается, и проснувшийся получит то, что поменялось без него.
  */
 export class WatchDesk {
   private readonly conversationPrints = new Map<string, string>()
@@ -70,7 +68,7 @@ export class WatchDesk {
       keys.keyOf(conversation.projectPath),
       this.host.clock.since(conversation, Date.now()),
     )
-    const fitted = fitValue(wire, undefined, this.host.redact())
+    const fitted = fitConversation(wire, this.host.redact())
     const print = JSON.stringify(fitted)
 
     if (fitted && this.conversationPrints.get(deviceId) !== print) {
@@ -118,7 +116,7 @@ export class WatchDesk {
    * не из тех, что IDE называла: подписываться не на что.
    */
   watchQueues(deviceId: string, scope: string): boolean {
-    const path = scope === ALL_PROJECTS ? null : this.host.keys().pathOfEither(scope)
+    const path = scope === ALL_PROJECTS ? null : this.host.keys().pathOf(scope)
 
     if (scope !== ALL_PROJECTS && path === null) return false
 
@@ -187,9 +185,8 @@ export class WatchDesk {
     if (!watch || !this.host.awake(deviceId)) return
 
     const keys = this.host.keys()
-    const fitted = fitValue(
+    const fitted = fitRun(
       runWire(watch.latest, (path) => keys.keyOf(path)),
-      undefined,
       this.host.redact(),
     )
     const print = JSON.stringify(fitted)
@@ -199,7 +196,7 @@ export class WatchDesk {
       watch.print = print
   }
 
-  /** Очереди проекта по папке, ключи в них - сегодняшние (`p-` открытого, `r-` закрытого). */
+  /** Очереди проекта по папке; ключ проекта тот же, открыт он или нет. */
   private sendQueues(deviceId: string, view: ScenarioQueuesView) {
     const watch = this.queues.get(deviceId)
 

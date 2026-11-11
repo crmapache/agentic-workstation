@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { isAddress } from './frame'
+import { ALL_PROJECTS, PROJECT_KEY_PATTERN } from './project-key'
 
 /**
  * Что телефон говорит IDE. Каждое сообщение - JSON-объект с версией протокола `p` и видом
@@ -61,22 +62,35 @@ const inventorySchema = z.object({ p: P, k: z.literal('inventory') })
 
 /**
  * Стук телефона, пока экран открыт (раз в 25 с): IDE считает телефон на связи, пока слышит его
- * не реже раза в 45 с. Ответа нет - стук ничего не стоит.
+ * не реже раза в 45 с, и отвечает лёгким pong с тем же n. По pong телефон и знает, что IDE
+ * жива: молчание после стука - IDE не отвечает, без переспроса всего списка машины.
  */
-const pingSchema = z.object({ p: P, k: z.literal('ping') })
+const pingSchema = z.object({ p: P, k: z.literal('ping'), n: z.int().min(0).optional() })
+
+/**
+ * Телефон забывает эту IDE («Forget this IDE»): пусть и IDE его отпустит обычным отзывом. Без
+ * этого слова пара осталась бы в списке IDE, пока человек не отзовёт её руками.
+ */
+const unpairSchema = z.object({ p: P, k: z.literal('unpair') })
 
 /**
  * Что смотреть: разговор (лента и состояние), прогон сценария или очереди проекта (`*` -
  * доска всех очередей). Ровно что-то одно. since и epoch - что у телефона уже есть: тот же
  * epoch и номер в журнале - придут только заплатки после него, иначе снимок.
+ *
+ * Подписка каждого вида у телефона одна: один разговор, один прогон, одни очереди - экран у
+ * телефона тоже один. Новая подписка того же вида заменяет прежнюю без отписки; телефон
+ * держит у себя то же правило (watch-desk), а отписка от того, что уже заменено, ничего не
+ * снимает.
  */
+const PROJECT_SCOPE = z
+  .string()
+  .refine((scope) => scope === ALL_PROJECTS || PROJECT_KEY_PATTERN.test(scope), 'not a project')
+
 const watchFields = {
   conversationId: CONVERSATION_ID.optional(),
   runId: ID.optional(),
-  projectKey: z
-    .string()
-    .regex(/^([pr]-[A-Za-z0-9_-]{22}|\*)$/)
-    .optional(),
+  projectKey: PROJECT_SCOPE.optional(),
 }
 
 const oneTarget = (value: { conversationId?: unknown; runId?: unknown; projectKey?: unknown }) =>
@@ -120,6 +134,7 @@ export const phoneMessageSchema = z.union([
   helloSchema,
   inventorySchema,
   pingSchema,
+  unpairSchema,
   subscribeSchema,
   unsubscribeSchema,
   cmdSchema,
@@ -150,6 +165,7 @@ export const MESSAGE_LIMITS: Readonly<Record<Exclude<PhoneMessageKind, 'cmd'>, n
   hello: 30,
   inventory: 60,
   ping: 20,
+  unpair: 6,
   subscribe: 120,
   unsubscribe: 120,
   part: 400,

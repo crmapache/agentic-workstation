@@ -1,6 +1,6 @@
 import type { ImageAttachment } from '@shared/claude'
 import { planOf } from '@shared/scenario-rules'
-import type { RunStep, ScenarioRun } from '@shared/scenario-runs'
+import type { RunStep, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
 
 import { follow, trySwap, untried, noticeLimit, stopResting, ranIntoLimit } from './engine-accounts'
 import { askHead, closeHeadTurn } from './engine-asking'
@@ -196,8 +196,9 @@ export class ScenarioEngine {
     if (this.e.phase !== 'over') this.e.takeEverythingDown()
   }
 
-  answer(allow: boolean, text: string): void {
-    answerByPerson(this.e, allow, text)
+  /** false - вопроса, который видел человек (asked), уже нет: ответ никуда не лёг. */
+  answer(allow: boolean, text: string, asked?: RunQuestionRef): boolean {
+    return answerByPerson(this.e, allow, text, asked)
   }
 
   tell(text: string, images: readonly ImageAttachment[], tokens: unknown): boolean {

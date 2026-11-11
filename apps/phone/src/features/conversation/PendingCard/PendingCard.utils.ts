@@ -1,14 +1,31 @@
 import type { PendingOf } from './PendingCard.types'
 
-/** Что разрешают - читаемо: команда как есть, остальное - JSON, длинное обрезано. */
-export const permissionDetail = (pending: PendingOf<'permission'>, limit = 1200): string => {
-  const input = pending.input
-  const command =
-    typeof input === 'object' && input !== null && 'command' in input ? input.command : null
-  const raw = typeof command === 'string' ? command : JSON.stringify(input, null, 2)
+const field = (input: unknown, key: string): string | null => {
+  if (typeof input !== 'object' || input === null || !(key in input)) return null
 
-  return raw.length > limit ? `${raw.slice(0, limit)}\n…` : raw
+  const value = (input as Record<string, unknown>)[key]
+
+  return typeof value === 'string' ? value : null
 }
+
+/**
+ * Что разрешают - целиком, без обрезки: команда как есть, остальное - JSON. «Разрешить»
+ * одобряет весь вызов, и хвост вроде «; curl … | sh» за безобидным началом должен быть виден.
+ * Длинное прокручивается в своём блоке.
+ */
+export const permissionDetail = (pending: PendingOf<'permission'>): string =>
+  field(pending.input, 'command') ?? JSON.stringify(pending.input, null, 2)
+
+/**
+ * Слова самой модели о вызове (поле description у Bash): показываются отдельно и подписаны как
+ * её слова - это объяснение, а не то, что выполнится.
+ */
+export const modelWords = (pending: PendingOf<'permission'>): string =>
+  field(pending.input, 'description')?.trim() ?? ''
+
+/** Одобрить нельзя: IDE урезала вопрос или прислала его карточкой без входа. */
+export const cannotReview = (pending: PendingOf<'permission'>): boolean =>
+  pending.truncated || pending.input === null
 
 /**
  * Ответы на вопросы с вариантами - как их ждёт CLI: по тексту вопроса выбранные подписи через

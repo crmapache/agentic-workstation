@@ -1,5 +1,3 @@
-import { webcrypto } from 'node:crypto'
-
 import type { HandshakeReply } from '@agentic-workstation/remote-protocol/agent-messages'
 import {
   parseAgentMessage,
@@ -14,9 +12,9 @@ import {
 import { decodeBody, encodeBody } from '@agentic-workstation/remote-protocol/body'
 import {
   nonceOf,
-  macInput,
   HKDF_INFO,
   fingerprintOf,
+  REVOKED_LABEL,
   PAIR_ACK_LABEL,
   sessionSaltText,
   PAIR_PROOF_LABEL,
@@ -24,10 +22,33 @@ import {
 import {
   decodeFrame,
   encodeFrame,
+  FRAME_PROOF,
   encodeHeader,
   FRAME_SEALED,
+  FRAME_CHALLENGE,
 } from '@agentic-workstation/remote-protocol/frame'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
+import { proofBody, claimInput } from '@agentic-workstation/remote-protocol/relay-claim'
+
+import type { Pair, Message, Signing, PhoneKeys } from './webcrypto-kit'
+import {
+  aes,
+  mac,
+  hkdf,
+  spki,
+  agree,
+  until,
+  concat,
+  sha256,
+  subtle,
+  keyPair,
+  signingKey,
+  directionKeys,
+} from './webcrypto-kit'
+
+export type { Message } from './webcrypto-kit'
+
+export { mac, until } from './webcrypto-kit'
 
 /**
  * Телефон Remote Control, написанный на WebCrypto - тем же API, каким считает браузер
@@ -36,125 +57,14 @@ import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairi
  * обратно - напрямую через подделку сокета или через настоящий релей. Образец для apps/phone.
  */
 
-type Key = webcrypto.CryptoKey
-
-type Pair = { publicKey: Key; privateKey: Key }
-
-const { subtle } = webcrypto
-
-const ECDH = { name: 'ECDH', namedCurve: 'P-256' } as const
-
-export type Message = Record<string, unknown> & { k: string }
-
-type PhoneKeys = {
-  toAgent: Uint8Array
-  fromAgent: Uint8Array
-  prefixToAgent: Uint8Array
-  prefixFromAgent: Uint8Array
-}
-
-const keyPair = (): Promise<Pair> => subtle.generateKey(ECDH, true, ['deriveBits'])
-
-const spki = async (key: Key) => toBase64(new Uint8Array(await subtle.exportKey('spki', key)))
-
-const agree = async (privateKey: Key, pub: string) =>
-  new Uint8Array(
-    await subtle.deriveBits(
-      {
-        name: 'ECDH',
-        public: await subtle.importKey(
-          'spki',
-          fromBase64(pub) ?? new Uint8Array(0),
-          ECDH,
-          true,
-          [],
-        ),
-      },
-      privateKey,
-      256,
-    ),
-  )
-
-export const hkdf = async (salt: Uint8Array, ikm: Uint8Array, info: string, bytes: number) =>
-  new Uint8Array(
-    await subtle.deriveBits(
-      { name: 'HKDF', hash: 'SHA-256', salt, info: new TextEncoder().encode(info) },
-      await subtle.importKey('raw', ikm, 'HKDF', false, ['deriveBits']),
-      bytes * 8,
-    ),
-  )
-
-export const mac = async (secret: Uint8Array, parts: string[]) =>
-  new Uint8Array(
-    await subtle.sign(
-      'HMAC',
-      await subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']),
-      macInput(parts),
-    ),
-  )
-
-const sha256 = async (data: Uint8Array) => new Uint8Array(await subtle.digest('SHA-256', data))
-
-const concat = (...parts: Uint8Array[]) => {
-  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0))
-  let at = 0
-
-  for (const part of parts) {
-    out.set(part, at)
-    at += part.length
-  }
-
-  return out
-}
-
-/** Ключи направлений, как у IDE: соль - SHA-256 текста соли, метки - aw/v1. */
-const directionKeys = async (salt: Uint8Array, ikm: Uint8Array): Promise<PhoneKeys> => ({
-  fromAgent: await hkdf(salt, ikm, HKDF_INFO.agentToDevice, 32),
-  toAgent: await hkdf(salt, ikm, HKDF_INFO.deviceToAgent, 32),
-  prefixFromAgent: await hkdf(salt, ikm, HKDF_INFO.nonceAgentToDevice, 4),
-  prefixToAgent: await hkdf(salt, ikm, HKDF_INFO.nonceDeviceToAgent, 4),
-})
-
-const aes = async (
-  raw: Uint8Array,
-  usage: 'encrypt' | 'decrypt',
-  iv: Uint8Array,
-  header: Uint8Array,
-  data: Uint8Array,
-) => {
-  const key = await subtle.importKey('raw', raw, 'AES-GCM', false, [usage])
-  const params = { name: 'AES-GCM', iv, additionalData: header, tagLength: 128 }
-
-  return new Uint8Array(
-    usage === 'encrypt'
-      ? await subtle.encrypt(params, key, data)
-      : await subtle.decrypt(params, key, data),
-  )
-}
-
-/** Ждать, пока условие станет правдой; не дождались - ошибка с подписью. */
-export const until = async <T>(
-  probe: () => T | null | undefined,
-  what: string,
-  timeout = 3000,
-): Promise<T> => {
-  for (let waited = 0; waited < timeout; waited += 10) {
-    const value = probe()
-
-    if (value !== null && value !== undefined) return value
-
-    await new Promise((resolve) => setTimeout(resolve, 10))
-  }
-
-  throw new Error(`timed out waiting for ${what}`)
-}
-
 export class WebCryptoPhone {
   readonly deviceId: string
   /** Запечатанные слова IDE по порядку прихода. */
   readonly inbox: Message[] = []
   /** Открытые ответы рукопожатия. */
   readonly replies: HandshakeReply[] = []
+  /** Ответил ли телефон на вызов релея - адрес его на этой линии. */
+  proven = false
   private readonly address: Uint8Array
   private agent: Uint8Array = new Uint8Array(16)
   private agentId = ''
@@ -164,14 +74,34 @@ export class WebCryptoPhone {
   private counter = 0n
   private chain: Promise<void> = Promise.resolve()
 
-  constructor(private readonly transport: (frame: Uint8Array) => void) {
-    this.address = webcrypto.getRandomValues(new Uint8Array(16))
+  private constructor(
+    private transport: (frame: Uint8Array) => void,
+    private readonly signing: Signing,
+  ) {
+    this.address = signing.address
     this.deviceId = toBase64Url(this.address)
+  }
+
+  /** Телефон со своим ключом подписи: адрес - из него, как требует релей. */
+  static async create(transport: (frame: Uint8Array) => void): Promise<WebCryptoPhone> {
+    return new WebCryptoPhone(transport, await signingKey())
   }
 
   /** Кадр от релея; открытие асинхронное, порядок держит цепочка. */
   receive(raw: Uint8Array): void {
     this.chain = this.chain.then(() => this.open(raw)).catch(() => undefined)
+  }
+
+  /** Куда слать кадры дальше: тест подменяет дорогу (чужой сокет, переписанный заголовок). */
+  onSend(transport: (frame: Uint8Array) => void): void {
+    this.transport = transport
+  }
+
+  /** Тег «тебя отпустили» сходится с долгим ключом этой пары. */
+  async revokedTagValid(tag: string): Promise<boolean> {
+    if (!this.auth) return false
+
+    return toBase64(await mac(this.auth, [REVOKED_LABEL, this.agentId, this.deviceId])) === tag
   }
 
   /** Первый шаг пары: открыт адрес из QR, телефон доказывает, что видел код. */
@@ -320,9 +250,32 @@ export class WebCryptoPhone {
     this.transport(encodeFrame(FRAME_SEALED, this.agent, this.address, 0n, encodeBody(body)))
   }
 
+  /** Вызов релея: подпись ключом телефона над текстом входа устройства. */
+  private async answerChallenge(challenge: Uint8Array) {
+    const signature = new Uint8Array(
+      await subtle.sign(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        this.signing.pair.privateKey,
+        claimInput('device', this.deviceId, challenge),
+      ),
+    )
+
+    this.transport(
+      encodeFrame(
+        FRAME_PROOF,
+        new Uint8Array(16),
+        this.address,
+        0n,
+        proofBody(this.signing.spki, signature),
+      ),
+    )
+    this.proven = true
+  }
+
   private async open(raw: Uint8Array) {
     const frame = decodeFrame(raw)
 
+    if (frame.type === FRAME_CHALLENGE) return this.answerChallenge(frame.body)
     if (frame.type !== FRAME_SEALED) return
 
     if (frame.counter === 0n) {

@@ -1,6 +1,6 @@
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { parseAgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
-import { toBase64Url, fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
+import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { decodeBody } from '@agentic-workstation/remote-protocol/body'
 import type { CommandArgs, CommandName } from '@agentic-workstation/remote-protocol/commands'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
@@ -23,6 +23,7 @@ import type { LinkStatus } from './machine-session'
 import { MachineSession } from './machine-session'
 import type { PairOutcome, PairingOffer } from './pairing'
 import { prepareOffer } from './pairing'
+import { claimFrame, newSigningIdentity } from './proofs'
 import type { SocketLike, SocketState } from './relay-socket'
 import { RelaySocket } from './relay-socket'
 import type { WatchTarget } from './watch-desk'
@@ -39,6 +40,9 @@ export type ClientEvents = {
   /** Линия до релея этой страницы. */
   relay: (state: SocketState) => void
 }
+
+/** Сколько «забыть IDE» ждёт линию, чтобы сказать IDE «забудь меня». */
+export const UNPAIR_PATIENCE_MS = 3_000
 
 export type ClientOptions = {
   store: KeyStore
@@ -86,6 +90,7 @@ export class RemoteClient {
       store: options.store,
       socketFor: (relayUrl) => this.socketFor(relayUrl),
       deviceOf: (label) => this.ensureDevice(label),
+      deviceId: () => this.device?.deviceId ?? '',
       opened: (session) => this.opened(session),
       setStatus: (session, status) => this.setStatus(session, status),
       machinesChanged: () => this.events.emit('machines'),
@@ -103,8 +108,16 @@ export class RemoteClient {
     })
   }
 
+  /**
+   * Ядро из хранилища. Своего адреса без ключа подписи нет (запись старого формата): такой адрес
+   * релей не отдаст, и пары на нём не вернутся - пусто, как на новом телефоне.
+   */
   static async create(options: ClientOptions): Promise<RemoteClient> {
-    const client = new RemoteClient(options, await options.store.loadDevice())
+    const stored = await options.store.loadDevice()
+    const device = stored?.signingKey ? stored : null
+    const client = new RemoteClient(options, device)
+
+    if (!device) return client
 
     for (const record of await options.store.loadMachines()) client.addSession(record)
 
@@ -192,9 +205,16 @@ export class RemoteClient {
     void this.handshakes.begin(session, true)
   }
 
-  /** Забыть IDE на этом телефоне: ключи пары стираются, IDE отзывает телефон у себя сама. */
+  /**
+   * Забыть IDE на этом телефоне: сначала - запечатанное «забудь меня», чтобы IDE отозвала его
+   * обычным отзывом (если она на связи сейчас), потом ключи пары стираются здесь.
+   */
   async forget(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId)
+
+    if (session && !session.record.revoked && (await this.whenOpen(agentId, UNPAIR_PATIENCE_MS))) {
+      await this.send(agentId, { p: PROTOCOL_VERSION, k: 'unpair' })
+    }
 
     session?.close()
     this.sessions.delete(agentId)
@@ -240,7 +260,9 @@ export class RemoteClient {
 
     if (!message) return
 
+    // Любое открывшееся слово - ответ на стук: IDE жива (liveness.ts).
     session.lastHeard = this.now()
+    session.awaitingPong = 0
     this.setStatus(session, 'online')
     this.dispatch(session, message)
   }
@@ -264,21 +286,27 @@ export class RemoteClient {
       case 'result':
         this.commands.result(message)
         break
+      case 'notice':
+        this.commands.noticed(message)
+        break
       case 'resync':
-        this.watches.resubscribeAll(agentId)
+        this.catchUp(session)
         break
       case 'revoked':
-        void this.handshakes.revoked(session)
+        void this.handshakes.revoked(session, message.tag)
         break
     }
 
     this.events.emit('message', agentId, message)
   }
 
-  /** Ключи с IDE готовы: представиться, получить список и вернуть подписки. */
+  /**
+   * Ключи с IDE готовы: представиться, получить список, вернуть подписки и повторить команды
+   * без итога - посланное на прежних ключах могло не дойти.
+   */
   private opened(session: MachineSession) {
     session.lastHeard = this.now()
-    session.probeAt = 0
+    session.awaitingPong = 0
     this.setStatus(session, 'online')
     void this.send(session.agentId, {
       p: PROTOCOL_VERSION,
@@ -286,11 +314,17 @@ export class RemoteClient {
       client: this.options.client,
     })
     this.watches.resubscribeAll(session.agentId)
+    this.commands.resend(session.agentId)
   }
 
+  /**
+   * Посланное IDE или от неё могло пропасть (resync, слово релея): список заново, подписки со
+   * своего номера, команды без итога - снова тем же id (IDE не выполнит их дважды).
+   */
   private catchUp(session: MachineSession) {
     void this.send(session.agentId, { p: PROTOCOL_VERSION, k: 'inventory' })
     this.watches.resubscribeAll(session.agentId)
+    this.commands.resend(session.agentId)
   }
 
   private addSession(record: MachineRecord): MachineSession {
@@ -330,6 +364,7 @@ export class RemoteClient {
       relayUrl,
       deviceId: device.deviceId,
       address: deviceAddress(device),
+      prove: (challenge) => claimFrame(device, deviceAddress(device), challenge),
       onFrame: (frame) => this.receive(frame),
       onOpen: () => this.handshakes.lineOpened(relayUrl),
       onState: (state) => {
@@ -345,12 +380,12 @@ export class RemoteClient {
     return socket
   }
 
-  /** Свой адрес на релее: создаётся с первой парой и дальше один на все IDE. */
+  /**
+   * Свой адрес на релее: создаётся с первой парой вместе с ключом подписи (адрес - его хеш) и
+   * дальше один на все IDE.
+   */
   private async ensureDevice(label: string): Promise<DeviceIdentity> {
-    const device = this.device ?? {
-      deviceId: toBase64Url(globalThis.crypto.getRandomValues(new Uint8Array(16))),
-      label,
-    }
+    const device = this.device ?? { ...(await newSigningIdentity()), label }
 
     this.device = { ...device, label: label.trim() || device.label }
     await this.options.store.saveDevice(this.device)

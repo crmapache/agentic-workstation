@@ -20,6 +20,12 @@ export const FRAME_CONTROL = 0x02
 /** «Разбуди устройство» - для службы пушей; пока её нет, такой кадр отбрасывается. */
 export const FRAME_PUSH = 0x03
 
+/** Вызов релея «докажи, что адрес твой» (claim.ts) - только от релея стороне. */
+export const FRAME_CHALLENGE = 0x04
+
+/** Ответ стороны на вызов: ключ подписи и подпись. Никуда не пересылается. */
+export const FRAME_PROOF = 0x05
+
 export type Envelope = { type: number; to: Buffer; from: Buffer }
 
 export class FrameError extends Error {}
@@ -35,7 +41,8 @@ export const readEnvelope = (raw: Buffer, maxBytes: number): Envelope => {
 
   const type = raw.readUInt8(1)
 
-  if (type !== FRAME_SEALED && type !== FRAME_CONTROL && type !== FRAME_PUSH) {
+  // Вызов шлёт только релей: от стороны такой кадр - не на языке релея.
+  if (![FRAME_SEALED, FRAME_CONTROL, FRAME_PUSH, FRAME_PROOF].includes(type)) {
     throw new FrameError(`unknown frame type ${type}`)
   }
 
@@ -54,7 +61,10 @@ export const controlFrame = (to: Buffer, from: Buffer): Buffer => {
   return frame
 }
 
-/** Адрес в URL: 16 случайных байт как 22 знака base64url. Ни о человеке, ни о машине. */
+/**
+ * Адрес в URL: 16 байт как 22 знака base64url - начало SHA-256 ключа подписи стороны (claim.ts).
+ * Ни о человеке, ни о машине.
+ */
 export const decodeAddress = (text: string): Buffer => {
   const bytes = /^[A-Za-z0-9_-]{22}$/.test(text) ? Buffer.from(text, 'base64url') : null
 

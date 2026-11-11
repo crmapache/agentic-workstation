@@ -64,9 +64,10 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
       }>
       {run.question && (
         <RunQuestion
+          key={`${run.question.stepKey}|${run.question.askedAt}`}
           question={run.question}
           busy={screen.busy || run.answering}
-          onAnswer={screen.answer}
+          onAnswer={(allow, text) => run.question && screen.answer(run.question, allow, text)}
         />
       )}
       <CarryOnCard run={run} busy={screen.busy} onCarryOn={screen.carryOn} />

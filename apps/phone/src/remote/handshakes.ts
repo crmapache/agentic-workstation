@@ -1,5 +1,5 @@
 import { parseHandshakeReply } from '@agentic-workstation/remote-protocol/agent-messages'
-import type { PairAck } from '@agentic-workstation/remote-protocol/agent-messages'
+import type { PairAck, PairRefused } from '@agentic-workstation/remote-protocol/agent-messages'
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { decodeBody, encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { encodeFrame, FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
@@ -8,6 +8,7 @@ import type { KeyStore, MachineRecord, DeviceIdentity } from './keystore'
 import type { LinkStatus, MachineSession } from './machine-session'
 import type { PairOutcome, PairingOffer } from './pairing'
 import { pairInitOf, acceptPairAck, PAIRING_PATIENCE_MS } from './pairing'
+import { revokedTagValid, pairRefusedValid } from './proofs'
 import type { RelaySocket, SocketState } from './relay-socket'
 
 export type HandshakesHost = {
@@ -16,6 +17,8 @@ export type HandshakesHost = {
   socketFor: (relayUrl: string) => RelaySocket
   /** Свой адрес на релее; создаётся с первой парой. */
   deviceOf: (label: string) => Promise<DeviceIdentity>
+  /** Свой адрес сейчас (пусто - пар ещё не было). */
+  deviceId: () => string
   /** Ключи с IDE готовы. */
   opened: (session: MachineSession) => void
   setStatus: (session: MachineSession, status: LinkStatus) => void
@@ -46,8 +49,9 @@ const waitUntil = async (probe: () => boolean, timeoutMs: number): Promise<boole
 
 /**
  * Рукопожатия телефона: пара по QR и ключи каждой новой линии (sessionInit), открытые ответы
- * IDE - pairAck, sessionAck, «твои ключи не наши», «тебя отпустили». Открытым телом IDE говорит
- * только это: ключей ещё нет, эти кадры их и дают.
+ * IDE - pairAck, sessionAck, «твои ключи не наши», «тебя отпустили», «пару не пустили».
+ * Открытым телом IDE говорит только это: ключей ещё нет, эти кадры их и дают. Слова, которые
+ * что-то стирают или обрывают, проверяются подписью: открытый кадр мог прислать кто угодно.
  */
 export class Handshakes {
   private pairing: Pairing | null = null
@@ -105,12 +109,22 @@ export class Handshakes {
 
         return this.begin(session, true)
       case 'revoked':
-        if (session) await this.revoked(session)
+        if (session) await this.revoked(session, reply.tag)
+
+        return
+      case 'pairRefused':
+        return this.pairRefused(agentId, reply)
     }
   }
 
-  /** IDE отпустила телефон: ключи пары больше ничего не открывают, нужна новая пара. */
-  async revoked(session: MachineSession): Promise<void> {
+  /**
+   * IDE отпустила телефон: ключи пары больше ничего не открывают, нужна новая пара. Только с
+   * тегом под долгим ключом пары - без него это слово релея или чужого, и телефон ничего не
+   * стирает: экран скажет «IDE не отвечает», если она и правда молчит.
+   */
+  async revoked(session: MachineSession, tag: string): Promise<void> {
+    if (session.record.revoked) return
+    if (!(await revokedTagValid(session.record, this.deviceId(), tag))) return
     if (session.record.revoked) return
 
     session.record = { ...session.record, revoked: true }
@@ -154,6 +168,26 @@ export class Handshakes {
 
   cancelPairing(): void {
     this.settle({ ok: false, reason: 'cancelled' })
+  }
+
+  /** «Пару не пустили» (Refuse или код истёк) - только под секретом открытого кода. */
+  private async pairRefused(agentId: string, refused: PairRefused) {
+    const pairing = this.pairing
+
+    if (!pairing || pairing.offer.code.agentId !== agentId) return
+
+    const valid = await pairRefusedValid(pairing.offer.code.secret, {
+      agentId,
+      deviceId: pairing.deviceId,
+      reason: refused.reason,
+      proof: refused.proof,
+    })
+
+    if (valid && this.pairing === pairing) this.settle({ ok: false, reason: refused.reason })
+  }
+
+  private deviceId(): string {
+    return this.host.deviceId()
   }
 
   /** Ответ на пару - только от той IDE, чей код открыт, и только пока пара ждёт. */

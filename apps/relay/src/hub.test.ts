@@ -66,4 +66,14 @@ describe('хаб', () => {
     expect(readEnvelope(second.sent[0] as Buffer, 1024)).toMatchObject({ type: FRAME_CONTROL })
     expect(second.sent[0]?.subarray(18, 34)[0]).toBe(7)
   })
+
+  it('адрес одного вида соединение другого вида не берёт', () => {
+    const { hub } = setup()
+    const shared = address(5)
+    const ide = socketIn(1)
+
+    expect(hub.open(shared, 'agent', ide.socket, 0)).toBe(true)
+    expect(hub.open(shared, 'device', socketIn(1).socket, 1)).toBe(false)
+    expect(hub.open(shared, 'agent', socketIn(1).socket, 2)).toBe(true)
+  })
 })

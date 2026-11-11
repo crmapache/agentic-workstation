@@ -4,35 +4,29 @@ import type {
   AgentMessage,
   HandshakeReply,
 } from '@agentic-workstation/remote-protocol/agent-messages'
-import { decodeBody, encodeBody } from '@agentic-workstation/remote-protocol/body'
+import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import {
   FRAME_SEALED,
   FRAME_CONTROL,
   MAX_BODY_BYTES,
 } from '@agentic-workstation/remote-protocol/frame'
-import type {
-  CmdMessage,
-  PartMessage,
-  PhoneMessage,
-} from '@agentic-workstation/remote-protocol/phone-messages'
-import {
-  PROTOCOL_VERSION,
-  parsePhoneMessage,
-} from '@agentic-workstation/remote-protocol/phone-messages'
+import type { PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
+import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 
 import type { Lane, Seal, Outgoing } from '../link/outbox'
 import { RemoteOutbox } from '../link/outbox'
 import type { SocketLike } from '../link/relay-link'
 import { RelayLink } from '../link/relay-link'
 import type { RemoteStore } from '../store/remote-store'
-import { exportPublic } from '../wire/crypto'
+import { claimProof, exportPublic } from '../wire/crypto'
 import { DeviceSessions } from '../wire/device-sessions'
 import type { Envelope } from '../wire/frame'
 import { buildFrame, decodeAddress, encodeAddress } from '../wire/frame'
 import { Handshakes } from './handshakes'
-import { limitKindOf, RemoteLimits } from './limits'
+import { Inbound } from './inbound'
+import { RemoteLimits } from './limits'
+import type { PendingPairing } from './pairing'
 import { PairingDesk } from './pairing'
-import { RemoteParts, mayArriveInParts } from './parts'
 
 /** Телефон «на связи», если говорил недавно: дольше его стука (25 с). */
 export const AWAKE_MS = 45_000
@@ -50,6 +44,7 @@ export type AgentCore = {
 
 /** Что агент отдаёт слою выше: слова телефона и перемены в его ключах и линии. */
 export type AgentHandlers = {
+  /** Слово телефона для моста: всё, кроме стука, «забудь меня» и кусков - их решает агент. */
   handle: (deviceId: string, message: PhoneMessage) => void
   /** Первый кадр на новых ключах телефона: новая страница (или вкладка) - подписки прежней ей чужие. */
   newKeys: (deviceId: string) => void
@@ -74,10 +69,11 @@ export class RemoteAgent {
   readonly sessions = new DeviceSessions()
   readonly pairing = new PairingDesk()
   readonly limits = new RemoteLimits()
-  private readonly parts = new RemoteParts()
   private readonly handshakes: Handshakes
+  private readonly inbound: Inbound
   private readonly lastHeard = new Map<string, number>()
   private link: RelayLink | null = null
+  private expiryTimer: NodeJS.Timeout | null = null
 
   constructor(
     private readonly core: AgentCore,
@@ -90,6 +86,17 @@ export class RemoteAgent {
       limits: this.limits,
       sendPlain: (address, reply) => this.sendPlain(address, reply),
       onView: core.onView,
+      pendingStarted: (expiresAt) => this.watchExpiry(expiresAt),
+    })
+    this.inbound = new Inbound({
+      limits: this.limits,
+      handlers,
+      reply: (deviceId, message, lane) => this.reply(deviceId, message, lane),
+      unpair: (deviceId) => {
+        console.warn('[remote] телефон попросил его забыть - отзыв')
+        this.revoke(deviceId)
+        this.core.onView()
+      },
     })
   }
 
@@ -104,9 +111,12 @@ export class RemoteAgent {
   start(): void {
     if (this.link) return
 
+    const address = this.address
+
     this.link = new RelayLink({
-      address: this.address,
+      address,
       relayUrl: this.core.relayUrl,
+      prove: (challenge) => claimProof(this.core.store.signing(), 'agent', address, challenge),
       outbox: this.outbox,
       onFrame: (envelope) => this.receive(envelope),
       onState: (state) => this.linkMoved(state),
@@ -115,13 +125,20 @@ export class RemoteAgent {
     this.link.start()
   }
 
-  /** Погасить линию: ждущее уходит в сокет, пока он ещё открыт, а не пропадает с ним. */
+  /**
+   * Погасить линию: ждущему пары - «не пустили», и всё ждущее уходит в сокет, пока он ещё
+   * открыт, а не пропадает с ним.
+   */
   stop(): void {
+    this.refusePairing()
     this.flush()
     this.link?.stop()
     this.link = null
     this.outbox.clear()
-    this.pairing.cancel()
+
+    if (this.expiryTimer) clearTimeout(this.expiryTimer)
+
+    this.expiryTimer = null
   }
 
   /** Сердцебиение и слив очереди - из одного места. */
@@ -167,8 +184,11 @@ export class RemoteAgent {
     if (this.queue(deviceId, encodeBody(message), lane)) this.flush()
   }
 
+  /** Новый код. Телефон, ждавший прежнего, ждёт уже не того - ему «истёк». */
   startPairing(): RemotePairing {
     const { store } = this.core
+
+    this.refuse(this.pairing.cancel(), 'expired')
 
     return this.pairing.start(this.core.relayUrl, store.agentId(), store.identity())
   }
@@ -201,14 +221,15 @@ export class RemoteAgent {
 
     this.sessions.open(pending.deviceId, pending.keys)
     store.remember({ ...device, pairedAt: now, lastSeenAt: now }, pending.keys.auth)
-    this.pairing.answer(pending.init, ack)
+    this.pairing.answer(pending.init, ack, pending.keys)
     this.sendPlain(pending.address, ack)
 
     return true
   }
 
+  /** «Нет» ждущему (или перестать предлагать код): телефону - «не пустили», а не тишина. */
   refusePairing(): void {
-    this.pairing.cancel()
+    this.refuse(this.pairing.cancel(), 'refused')
   }
 
   /**
@@ -218,21 +239,22 @@ export class RemoteAgent {
    * принятое до отзыва уже посчитано.
    */
   revoke(deviceId: string): void {
+    // Тег считает хранилище, пока долгий ключ ещё есть: потом «тебя отпустили» не подписать.
+    const tag = this.core.store.revoke(deviceId)
     const revoked = this.sessions.seal(
       deviceId,
       decodeAddress(deviceId),
       this.address,
-      encodeBody({ p: PROTOCOL_VERSION, k: 'revoked' } satisfies AgentMessage),
+      encodeBody({ p: PROTOCOL_VERSION, k: 'revoked', tag } satisfies AgentMessage),
     )
 
     this.outbox.forget(deviceId)
     if (revoked) this.outbox.offerUrgent(deviceId, { frame: revoked })
     this.flush()
     this.sessions.close(deviceId)
-    this.core.store.revoke(deviceId)
     this.lastHeard.delete(deviceId)
     this.handshakes.forget(deviceId)
-    this.parts.forget(deviceId)
+    this.inbound.forget(deviceId)
     this.pairing.forget(deviceId)
     this.handlers.forgotten(deviceId)
   }
@@ -274,16 +296,16 @@ export class RemoteAgent {
 
     this.lastHeard.set(deviceId, Date.now())
 
-    if (opened.first) this.handlers.newKeys(deviceId)
-    else if (!wasAwake) this.handlers.woke(deviceId)
+    if (opened.first) {
+      // Ключи доказаны: одноразовый ключ, который их дал, больше не отвечается (crypto-spec.ts).
+      this.handshakes.proven(deviceId, opened.keys)
+      this.pairing.proven(deviceId, opened.keys)
+      this.handlers.newKeys(deviceId)
+    } else if (!wasAwake) this.handlers.woke(deviceId)
 
     if (opened.first || !wasAwake) this.core.onView()
 
-    if (!this.limits.allowBytes(deviceId, opened.bytes.length)) {
-      return console.warn('[remote] телефон шлёт больше своей доли - кадр отброшен')
-    }
-
-    this.deliver(deviceId, parsePhoneMessage(decodeBody(opened.bytes)))
+    this.inbound.take(deviceId, opened.bytes)
   }
 
   /**
@@ -300,60 +322,27 @@ export class RemoteAgent {
     this.reply(deviceId, { p: PROTOCOL_VERSION, k: 'resync' })
   }
 
-  /** Слово спаренного телефона: кусок - в сборку, остальное - через предел частоты наверх. */
-  private deliver(deviceId: string, message: PhoneMessage | null) {
-    if (!message) return
-    if (message.k === 'part') return this.assemble(deviceId, message)
-    if (this.admit(deviceId, message)) this.handlers.handle(deviceId, message)
+  /** Телефону, которого не пустили, - слово под секретом его кода. */
+  private refuse(pending: PendingPairing | null, reason: 'refused' | 'expired') {
+    if (pending) this.handshakes.refusePairing(pending.address, pending.secret, reason)
   }
 
   /**
-   * Предел частоты - при получении, как у каждого слова: работа, принятая до отзыва или
-   * выключения, уже посчитана. Команда считается по имени (отказы - одной кучей); повтор
-   * команды, которую мост уже принял, не считается - это доставка, а не новая просьба.
+   * Часы ждущего: код истёк, а человек так и не решил - телефону «истёк», окну - что ждущего
+   * больше нет. Без них телефон ждал бы Approve молча, пока не кончится его терпение.
    */
-  private admit(deviceId: string, message: Exclude<PhoneMessage, PartMessage>): boolean {
-    if (message.k !== 'cmd') return this.limits.allow(deviceId, message.k)
-    if (this.handlers.knownCommand(deviceId, message.id)) return true
-    if (this.limits.allow(deviceId, limitKindOf(message))) return true
+  private watchExpiry(expiresAt: number) {
+    if (this.expiryTimer) clearTimeout(this.expiryTimer)
 
-    this.rateLimited(deviceId, message)
-
-    return false
-  }
-
-  private rateLimited(deviceId: string, message: CmdMessage) {
-    this.reply(
-      deviceId,
-      { p: PROTOCOL_VERSION, k: 'result', id: message.id, ok: false, code: 'rateLimited' },
-      'urgent',
+    this.expiryTimer = setTimeout(
+      () => {
+        this.expiryTimer = null
+        this.refuse(this.pairing.takeExpired(), 'expired')
+        this.core.onView()
+      },
+      Math.max(0, expiresAt - Date.now()) + 50,
     )
-  }
-
-  private assemble(deviceId: string, part: PartMessage) {
-    if (!this.limits.allow(deviceId, part.k)) return
-
-    const outcome = this.parts.take(deviceId, part)
-
-    if (outcome.kind === 'refused') {
-      console.warn('[remote] часть сообщения отклонена:', outcome.why)
-
-      return this.reply(deviceId, {
-        p: PROTOCOL_VERSION,
-        k: 'notice',
-        level: 'warning',
-        code: 'partsRefused',
-      })
-    }
-
-    if (outcome.kind === 'waiting') return
-
-    const whole = decodeBody(Buffer.from(outcome.text, 'utf8'))
-    const assembled = whole && mayArriveInParts(whole) ? parsePhoneMessage(whole) : null
-
-    if (!assembled || assembled.k === 'part')
-      return console.warn('[remote] частями пришло не сообщение')
-    if (this.admit(deviceId, assembled)) this.handlers.handle(deviceId, assembled)
+    this.expiryTimer.unref()
   }
 
   /** Открытый кадр: только рукопожатие - ключа ещё нет, этот кадр его и даёт. Срочно: его ждут. */

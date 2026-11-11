@@ -109,7 +109,9 @@ export class Bridge {
         return this.chains.run(deviceId, () => this.subscribe(deviceId, message))
       case 'unsubscribe':
         return this.chains.run(deviceId, () => this.unsubscribe(deviceId, message))
+      // Стук, «забудь меня» и куски решает агент (agent/inbound.ts): сюда они не доходят.
       case 'ping':
+      case 'unpair':
       case 'part':
         return
     }

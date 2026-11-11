@@ -10,9 +10,10 @@ import type {
   ScenarioStartOutcome,
   ScenarioStartRequest,
 } from '@shared/scenario-queues'
-import type { ScenarioRun } from '@shared/scenario-runs'
+import type { RunState, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
 import type {
   StepLogPage,
+  RunControlRefusal,
   ScenarioRunControl,
   ScenarioHourRequest,
   ScenarioShelvesView,
@@ -205,16 +206,29 @@ export class ScenarioService {
     return this.desk(projectPath).run(runId)
   }
 
-  control(projectPath: string, runId: string, action: ScenarioRunControl): void {
-    this.desks.get(projectPath)?.control(runId, action)
+  /** seen - для какого состояния нарисована кнопка (телефон); окно IDE его не передаёт. */
+  control(
+    projectPath: string,
+    runId: string,
+    action: ScenarioRunControl,
+    seen?: RunState,
+  ): RunControlRefusal | null {
+    return this.desks.get(projectPath)?.control(runId, action, seen) ?? 'runOver'
   }
 
   carryOn(runId: string): Promise<ScenarioCode | null> {
     return this.runner.carryOn(runId)
   }
 
-  answer(projectPath: string, runId: string, allow: boolean, text: string): void {
-    this.desks.get(projectPath)?.answer(runId, allow, text)
+  /** asked - какой вопрос видел отвечающий (телефон); false - его уже нет, ответ не лёг. */
+  answer(
+    projectPath: string,
+    runId: string,
+    allow: boolean,
+    text: string,
+    asked?: RunQuestionRef,
+  ): boolean {
+    return this.desks.get(projectPath)?.answer(runId, allow, text, asked) ?? false
   }
 
   tell(projectPath: string, runId: string, text: string, images: ImageAttachment[]) {

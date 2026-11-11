@@ -11,6 +11,7 @@ import {
   QUEUE,
   itemOf,
   fakeIde,
+  PERMISSION,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
 import type { StoredRemote } from '../../desktop/src/main/remote/store/remote-state'
@@ -55,17 +56,8 @@ export const MODELS = [
   { value: 'sonnet', displayName: 'Sonnet 5', description: 'Fast and smart' },
 ]
 
-export const PERMISSION: PendingRequest = {
-  kind: 'permission',
-  requestId: 'perm-1',
-  toolUseId: 'tool-9',
-  toolName: 'Bash',
-  input: { command: 'pnpm test', description: 'Run the test suite' },
-  description: 'pnpm test',
-  reason: '',
-  alwaysKind: 'rule',
-  mode: 'default',
-}
+/** Вопрос разрешения - тот же, что у подделок IDE (fake-ide.ts). */
+export { PERMISSION }
 
 export type Harness = Awaited<ReturnType<typeof startHarness>>
 

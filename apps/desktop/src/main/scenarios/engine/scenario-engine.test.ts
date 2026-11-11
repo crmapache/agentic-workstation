@@ -211,9 +211,40 @@ describe('ScenarioEngine', () => {
 
     expect(current.engine.run.state).toBe('blocked')
     expect(current.engine.run.question?.title).toBe('rm -rf build')
+    expect(current.engine.run.question?.truncated).toBe(false)
     expect(current.asked).toHaveLength(1)
 
     current.engine.answer(true, '')
+    await settle(60)
+
+    expect(current.ended[0]?.state).toBe('done')
+  })
+
+  it('an answer from a stale screen does not land on the question standing now', async () => {
+    const scenario = scenarioOf([stage('s1', [card('a', 'Run it')])], { onQuestion: 'stop' })
+    const asking: FakeScript = () => ({
+      kind: 'ask',
+      tool: 'Bash',
+      input: { command: `echo ${'x'.repeat(3000)}` },
+      then: 'Done.',
+    })
+
+    current = harness(scenario, agreeableHead, asking)
+    current.engine.begin()
+    await settle(60)
+
+    const question = current.engine.run.question
+
+    // The detail is cut to DETAIL_CHARS: the flag says so, not a marker in the text.
+    expect(question?.truncated).toBe(true)
+    expect(current.engine.answer(true, '', { stepKey: 'other', askedAt: 1 })).toBe(false)
+    expect(current.engine.run.state).toBe('blocked')
+
+    const asked = { stepKey: question?.stepKey ?? '', askedAt: question?.askedAt ?? 0 }
+
+    expect(current.engine.answer(true, '', asked)).toBe(true)
+    // The same screen answering twice: the question is gone.
+    expect(current.engine.answer(true, '', asked)).toBe(false)
     await settle(60)
 
     expect(current.ended[0]?.state).toBe('done')

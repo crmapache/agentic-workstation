@@ -1,5 +1,10 @@
 import { parseCommand, COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
-import { MAX_PARTS, PART_CHARS } from '@agentic-workstation/remote-protocol/parts'
+import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
+import {
+  MAX_TEXT_CHARS,
+  MAX_MESSAGE_BYTES,
+} from '@agentic-workstation/remote-protocol/message-size'
+import { MAX_PARTS } from '@agentic-workstation/remote-protocol/parts'
 import type { CmdMessage } from '@agentic-workstation/remote-protocol/phone-messages'
 import {
   MESSAGE_LIMITS,
@@ -9,17 +14,15 @@ import {
 /** Окно счёта - минута: за неё ведро наполняется целиком. */
 export const WINDOW_MS = 60_000
 
-/** Ничто честное с телефона не весит больше кадра: фото идёт частями, каждая - отдельно. */
-export const MAX_MESSAGE_BYTES = 256 * 1024
+/** Ничто честное с телефона не весит больше тела кадра: фото идёт частями, каждая - отдельно. */
+export const MAX_OPENED_BYTES = MAX_BODY_BYTES
 
 /**
- * Кусок сообщения на проводе: текст куска и обёртка слова part (вид, id, номера) с запасом на
- * экранирование кавычек текста внутри JSON.
+ * Самое тяжёлое честное сообщение на проводе: собранное в MAX_MESSAGE_BYTES, плюс экранирование
+ * текста внутри кусков (кавычка - два байта, управляющий знак - шесть: не больше пяти лишних на
+ * знак текста) и конверт каждого куска.
  */
-const PART_FRAME_BYTES = PART_CHARS + 2048
-
-/** Самое тяжёлое честное сообщение - фото во всех кусках, сколько их допускает протокол. */
-export const MAX_PHOTO_MESSAGE_BYTES = MAX_PARTS * PART_FRAME_BYTES
+export const MAX_PHOTO_MESSAGE_BYTES = MAX_MESSAGE_BYTES + MAX_TEXT_CHARS * 5 + MAX_PARTS * 256
 
 /**
  * Сколько байт в минуту: три самых тяжёлых сообщения с фото (два фото подряд и повтор
@@ -91,7 +94,7 @@ export class RemoteLimits {
   }
 
   allowBytes(deviceId: string, bytes: number, now = Date.now()): boolean {
-    if (bytes > MAX_MESSAGE_BYTES) return false
+    if (bytes > MAX_OPENED_BYTES) return false
 
     return take(this.volume, deviceId, MAX_BYTES_PER_MINUTE, bytes, now)
   }

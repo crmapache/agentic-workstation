@@ -85,7 +85,7 @@ const closeTurn = (runtime: ConversationRuntime, end: TurnEnd) => {
     turnStartedAt: null,
     stopRequestedAt: null,
     usage: end.usage,
-    outcome: end.isError ? 'error' : 'done',
+    outcome: end.isError ? 'error' : end.interrupted ? 'interrupted' : 'done',
   })
   // Вопросы фоновых субагентов переживают конец хода: CLI ждёт на них ответа.
   runtime.syncStatus()

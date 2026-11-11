@@ -42,9 +42,12 @@ export type PairOutcome =
 
 /**
  * proof - ответ IDE не под секретом из QR; fingerprint - ключ IDE не тот, что в QR (кто-то
- * между ними); keys - ключ IDE не P-256; timeout - Approve не пришёл; cancelled - человек передумал.
+ * между ними); keys - ключ IDE не P-256; timeout - Approve не пришёл; cancelled - человек
+ * передумал; refused - в IDE нажали Refuse; expired - код истёк или его потратил другой
+ * телефон (оба - словом IDE под секретом кода, а не догадкой по молчанию).
  */
-export type PairFailure = 'proof' | 'fingerprint' | 'keys' | 'timeout' | 'cancelled' | 'offline'
+export type PairFailure =
+  'proof' | 'fingerprint' | 'keys' | 'timeout' | 'cancelled' | 'offline' | 'refused' | 'expired'
 
 export const prepareOffer = async (code: PairingCode, relayUrl: string): Promise<PairingOffer> => {
   const staticPair = await generateKeyPair()

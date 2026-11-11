@@ -9,14 +9,14 @@ export const TICK_MS = 5_000
 /** Сердцебиение до релея (кадр себе). */
 export const BEAT_MS = 20_000
 
-/** Стук IDE, пока экран открыт: IDE считает телефон на связи, пока слышит его чаще 45 с. */
+/**
+ * Стук IDE, пока экран открыт: IDE считает телефон на связи, пока слышит его чаще 45 с, и
+ * отвечает лёгким pong. Им же телефон проверяет, что IDE жива, - без переспроса всего списка.
+ */
 export const PING_MS = 25_000
 
-/** Столько тишины от IDE - переспросить список: ответ докажет, что она жива. */
-export const QUIET_MS = 55_000
-
-/** Сколько ждать ответа на такую проверку, прежде чем сказать «IDE не отвечает». */
-export const PROBE_PATIENCE_MS = 15_000
+/** Сколько ждать pong (или любого слова IDE) на стук, прежде чем сказать «IDE не отвечает». */
+export const PONG_PATIENCE_MS = 15_000
 
 /** Сколько ждать ответа на свежий ключ, прежде чем сказать «IDE не отвечает». */
 export const HANDSHAKE_PATIENCE_MS = 8_000
@@ -84,29 +84,29 @@ export class Liveness {
     }
   }
 
+  /**
+   * Стук и проверка ответа. Ответ - любое открывшееся слово IDE после стука (pong или лента,
+   * что пришла раньше него; ждать снимает клиент): молчание дольше PONG_PATIENCE_MS - IDE не
+   * отвечает, ключи этой линии - вон и новое рукопожатие.
+   */
   private checkOpen(session: MachineSession, now: number) {
-    const { agentId } = session
-
-    if (now - session.lastPing >= PING_MS) {
-      session.lastPing = now
-      void this.host.send(agentId, { p: PROTOCOL_VERSION, k: 'ping' })
-    }
-
-    if (session.probeAt > 0 && session.lastHeard >= session.probeAt) session.probeAt = 0
-
-    if (session.probeAt === 0 && now - session.lastHeard >= QUIET_MS) {
-      session.probeAt = now
-      void this.host.send(agentId, { p: PROTOCOL_VERSION, k: 'inventory' })
+    if (session.awaitingPong > 0 && now - session.awaitingPong >= PONG_PATIENCE_MS) {
+      session.awaitingPong = 0
+      session.close()
+      this.host.setStatus(session, 'offline')
+      void this.host.handshake(session, true)
 
       return
     }
 
-    if (session.probeAt > 0 && now - session.probeAt >= PROBE_PATIENCE_MS) {
-      session.probeAt = 0
-      session.close()
-      this.host.setStatus(session, 'offline')
-      void this.host.handshake(session, true)
-    }
+    if (now - session.lastPing < PING_MS) return
+
+    session.lastPing = now
+    session.pingN += 1
+
+    if (session.awaitingPong === 0) session.awaitingPong = now
+
+    void this.host.send(session.agentId, { p: PROTOCOL_VERSION, k: 'ping', n: session.pingN })
   }
 
   private checkHandshake(session: MachineSession, now: number) {

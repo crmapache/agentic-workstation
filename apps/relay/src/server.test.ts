@@ -1,10 +1,20 @@
+import { sign, createHash, generateKeyPairSync } from 'node:crypto'
 import { get } from 'node:http'
 import { join } from 'node:path'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 import { WebSocket } from 'ws'
 
-import { FRAME_PUSH, encodeFrame, FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
+import {
+  FRAME_PUSH,
+  decodeFrame,
+  encodeFrame,
+  FRAME_PROOF,
+  FRAME_SEALED,
+  FRAME_CHALLENGE,
+} from '@agentic-workstation/remote-protocol/frame'
+import type { ClaimKind } from '@agentic-workstation/remote-protocol/relay-claim'
+import { proofBody, claimInput } from '@agentic-workstation/remote-protocol/relay-claim'
 
 import type { Config } from './config.ts'
 import { readConfig } from './config.ts'
@@ -18,40 +28,81 @@ import { createRelay } from './server.ts'
  * (packages/remote-protocol): заодно сверка, что конверт у них один.
  */
 
-const address = (fill: number) => new Uint8Array(16).fill(fill)
+/** Сторона со своим ключом подписи: адрес - начало SHA-256 её открытого ключа. */
+type Identity = { address: Uint8Array; prove: (kind: ClaimKind, challenge: Uint8Array) => Buffer }
 
-const agent = address(0xa1)
+const identity = (): Identity => {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+  const spki = publicKey.export({ type: 'spki', format: 'der' })
+  const address = new Uint8Array(createHash('sha256').update(spki).digest().subarray(0, 16))
+  const prove = (kind: ClaimKind, challenge: Uint8Array) => {
+    const signature = sign('sha256', claimInput(kind, id(address), challenge), {
+      key: privateKey,
+      dsaEncoding: 'ieee-p1363',
+    })
 
-const device = address(0xd1)
+    return Buffer.from(
+      encodeFrame(FRAME_PROOF, new Uint8Array(16), address, 0n, proofBody(spki, signature)),
+    )
+  }
 
-const sealed = (to: Uint8Array, from: Uint8Array, body: string, type: 1 | 3 = FRAME_SEALED) =>
-  Buffer.from(encodeFrame(type, to, from, 1n, new TextEncoder().encode(body)))
+  return { address, prove }
+}
+
+const agent = identity()
+
+const device = identity()
+
+const sealed = (to: Identity, from: Identity, body: string, type: 1 | 3 = FRAME_SEALED) =>
+  Buffer.from(encodeFrame(type, to.address, from.address, 1n, new TextEncoder().encode(body)))
 
 const inbox = new WeakMap<WebSocket, Buffer[]>()
 
 const id = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url')
 
+const kindOf = (path: string): ClaimKind => (path === '/v1/agent' ? 'agent' : 'device')
+
 /**
- * Кадры копятся с открытия: релей отдаёт ящик в ту же секунду, слушатель после - опоздал.
- * autoPong false - сокет, который не отвечает на пинг: так выглядит уснувший ноутбук.
+ * Сокет, доказавший адрес: первым приходит вызов релея, ответ - подпись ключом стороны (или
+ * чем скажет answer). Кадры копятся с ответа: релей отдаёт ящик сразу за ним, слушатель после
+ * - опоздал. autoPong false - сокет, который не отвечает на пинг: так выглядит уснувший ноутбук.
  */
 const open = (
   port: number,
   path: string,
-  who: Uint8Array,
-  headers: Record<string, string> = {},
-  autoPong = true,
+  who: Identity,
+  options: {
+    headers?: Record<string, string>
+    autoPong?: boolean
+    answer?: (challenge: Uint8Array) => Buffer | null
+  } = {},
 ) =>
   new Promise<WebSocket>((resolve, reject) => {
-    const socket = new WebSocket(`ws://127.0.0.1:${port}${path}?id=${id(who)}`, {
-      headers,
-      autoPong,
+    const socket = new WebSocket(`ws://127.0.0.1:${port}${path}?id=${id(who.address)}`, {
+      headers: options.headers ?? {},
+      autoPong: options.autoPong ?? true,
     })
     const frames: Buffer[] = []
+    let challenged = false
 
     inbox.set(socket, frames)
-    socket.on('message', (data: Buffer) => frames.push(data))
-    socket.once('open', () => resolve(socket))
+    socket.on('message', (data: Buffer) => {
+      if (challenged) return void frames.push(data)
+
+      const frame = decodeFrame(new Uint8Array(data))
+
+      if (frame.type !== FRAME_CHALLENGE) return reject(new Error('no challenge first'))
+
+      challenged = true
+
+      const proof = options.answer
+        ? options.answer(frame.body)
+        : who.prove(kindOf(path), frame.body)
+
+      if (proof) socket.send(proof)
+
+      resolve(socket)
+    })
     socket.once('error', reject)
   })
 
@@ -104,13 +155,8 @@ describe('релей', () => {
     await relay.close()
   })
 
-  const connect = async (
-    path: string,
-    who: Uint8Array,
-    headers?: Record<string, string>,
-    autoPong?: boolean,
-  ) => {
-    const socket = await open(port, path, who, headers, autoPong)
+  const connect = async (path: string, who: Identity, options?: Parameters<typeof open>[3]) => {
+    const socket = await open(port, path, who, options)
 
     opened.push(socket)
 
@@ -170,7 +216,7 @@ describe('релей', () => {
     const first = readEnvelope(await nextFrame(d), 1024)
 
     expect(first.type).toBe(FRAME_CONTROL)
-    expect([...first.from]).toEqual([...agent])
+    expect([...first.from]).toEqual([...agent.address])
     await expect(nextFrame(d, 300)).rejects.toThrow('no frame arrived')
   })
 
@@ -194,14 +240,14 @@ describe('релей', () => {
     const word = readEnvelope(await nextFrame(second), 1024)
 
     expect(word.type).toBe(FRAME_CONTROL)
-    expect([...word.from]).toEqual([...device])
+    expect([...word.from]).toEqual([...device.address])
   })
 
   it('сокет без ответа на пинг закрывается, кадры к нему - в ящик, вернувшийся слышит «переспроси»', async () => {
     await relay.close()
     await start({ pingIntervalMs: 150 })
 
-    const asleep = await connect('/v1/agent', agent, {}, false)
+    const asleep = await connect('/v1/agent', agent, { autoPong: false })
     const closing = closedWith(asleep)
     const d = await connect('/v1/device', device)
 
@@ -216,7 +262,7 @@ describe('релей', () => {
     const word = readEnvelope(await nextFrame(back), 1024)
 
     expect(word.type).toBe(FRAME_CONTROL)
-    expect([...word.from]).toEqual([...device])
+    expect([...word.from]).toEqual([...device.address])
     expect((await nextFrame(back)).subarray(42).toString()).toBe('after')
   })
 
@@ -243,7 +289,7 @@ describe('релей', () => {
     text.send('hello?')
     expect(await textClosed).toBe(4002)
 
-    const big = await connect('/v1/device', address(0xd2))
+    const big = await connect('/v1/device', identity())
     const bigClosed = closedWith(big)
 
     big.send(Buffer.alloc(300 * 1024))
@@ -268,25 +314,93 @@ describe('релей', () => {
 
     const from = { 'x-forwarded-for': '203.0.113.7' }
 
-    await connect('/v1/device', address(1), from)
-    await connect('/v1/device', address(2), from)
+    await connect('/v1/device', identity(), { headers: from })
+    await connect('/v1/device', identity(), { headers: from })
 
-    const third = new WebSocket(`ws://127.0.0.1:${port}/v1/device?id=${id(address(3))}`, {
+    const third = new WebSocket(`ws://127.0.0.1:${port}/v1/device?id=${id(identity().address)}`, {
       headers: from,
     })
 
     opened.push(third)
     await refused(third)
-    await connect('/v1/device', address(4), { 'x-forwarded-for': '203.0.113.8' })
+    await connect('/v1/device', identity(), { headers: { 'x-forwarded-for': '203.0.113.8' } })
   })
 
   it('страница с чужого источника сокет не откроет', async () => {
-    const socket = new WebSocket(`ws://127.0.0.1:${port}/v1/device?id=${id(device)}`, {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/v1/device?id=${id(device.address)}`, {
       origin: 'https://somebody-elses-page.example',
     })
 
     opened.push(socket)
     await refused(socket)
+  })
+
+  it('адрес без ключа не занять: чужая подпись - 4003, IDE на месте, её кадры не уходят чужому', async () => {
+    const a = await connect('/v1/agent', agent)
+    const squatter = identity()
+    // Знает адрес IDE из QR, но подписывает своим ключом.
+    const thief = await connect('/v1/agent', agent, {
+      answer: (challenge) => {
+        const forged = squatter.prove('agent', challenge)
+
+        // Тот же ключ и подпись, но назвался адресом IDE.
+        forged.set(agent.address, 18)
+
+        return forged
+      },
+    })
+
+    expect(await closedWith(thief)).toBe(4003)
+    expect(a.readyState).toBe(WebSocket.OPEN)
+
+    const d = await connect('/v1/device', device)
+
+    d.send(sealed(agent, device, 'still yours'))
+    expect((await nextFrame(a)).subarray(42).toString()).toBe('still yours')
+  })
+
+  it('до доказательства ничего не уходит дальше: кадр вместо ответа - 4003', async () => {
+    const a = await connect('/v1/agent', agent)
+    const early = await connect('/v1/device', device, {
+      answer: () => sealed(agent, device, 'before proof'),
+    })
+
+    expect(await closedWith(early)).toBe(4003)
+    await expect(nextFrame(a, 300)).rejects.toThrow('no frame arrived')
+  })
+
+  it('нет ответа на вызов вовремя - 4004', async () => {
+    await relay.close()
+    await start({ claimPatienceMs: 100 })
+
+    const silent = await connect('/v1/device', device, { answer: () => null })
+
+    expect(await closedWith(silent)).toBe(4004)
+    expect(relay.connections()).toBe(0)
+  })
+
+  it('подпись для входа IDE на входе телефона не годится, а адрес IDE не берётся телефоном', async () => {
+    const a = await connect('/v1/agent', agent)
+    const replayed = await connect('/v1/device', agent, {
+      answer: (challenge) => agent.prove('agent', challenge),
+    })
+
+    expect(await closedWith(replayed)).toBe(4003)
+
+    // Даже с верной подписью для своего входа: адрес держит IDE - телефон его не вытесняет.
+    const other = await connect('/v1/device', agent)
+
+    expect(await closedWith(other)).toBe(4005)
+    expect(a.readyState).toBe(WebSocket.OPEN)
+  })
+
+  it('ответ на вызов дальше не пересылается, повторный ответ - тоже', async () => {
+    const a = await connect('/v1/agent', agent)
+    const d = await connect('/v1/device', device)
+
+    d.send(device.prove('device', new Uint8Array(32)))
+    d.send(sealed(agent, device, 'after'))
+    expect((await nextFrame(a)).subarray(42).toString()).toBe('after')
   })
 
   it('отвечает на /healthz, /v1/info и /privacy', async () => {

@@ -1,3 +1,5 @@
+import { CLOSE_UNPROVEN, CLOSE_WRONG_KIND } from '@agentic-workstation/remote-protocol/relay-claim'
+
 /**
  * Сбой связи с релеем - три поведения, а не один цикл повторов (как Backoff в ACC):
  * сеть мигнула - короткая пауза; релей нездоров - пауза до потолка; отказ по существу -
@@ -26,8 +28,11 @@ export const TRY_AGAIN_LATER = 1013
 /** Адрес занял другой сокет - собственный код релея (apps/relay/src/hub.ts). */
 export const CLOSE_DISPLACED = 4009
 
-/** Адрес не адрес, версию не знаем - повтор ничего не изменит. */
-export const FATAL_CODES: readonly number[] = [4001, 4002]
+/**
+ * Повтор ничего не изменит: адрес не адрес, версию не знаем, подпись адреса не сошлась, адрес
+ * держит соединение другого вида (relay-claim.ts). «Не успели доказать» (4004) - это сеть.
+ */
+export const FATAL_CODES: readonly number[] = [4001, 4002, CLOSE_UNPROVEN, CLOSE_WRONG_KIND]
 
 /** Сколько быстрых возвратов после вытеснения - дальше долгая пауза. */
 export const DISPLACED_LIMIT = 5

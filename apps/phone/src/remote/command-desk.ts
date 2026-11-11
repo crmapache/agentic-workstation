@@ -1,21 +1,25 @@
 import type {
+  NoticeMessage,
   ResultMessage,
   RemoteErrorCode,
 } from '@agentic-workstation/remote-protocol/agent-messages'
-import { CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
+import { CAP_PARTS, COMMAND_MEMORY_MS } from '@agentic-workstation/remote-protocol/agent-messages'
 import { toBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { utf8Length } from '@agentic-workstation/remote-protocol/body'
 import type { CommandArgs, CommandName } from '@agentic-workstation/remote-protocol/commands'
 import { COMMAND_ARGS, MAY_ARRIVE_IN_PARTS } from '@agentic-workstation/remote-protocol/commands'
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
+import { MAX_MESSAGE_BYTES } from '@agentic-workstation/remote-protocol/message-size'
 import { splitIntoParts } from '@agentic-workstation/remote-protocol/parts'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 
 /**
  * Отказ команды: код IDE (RemoteErrorCode) или свой - offline (линии с IDE нет), timeout (ответ не
- * пришёл), tooBig (сообщение не влезает даже частями), gone (IDE забыта, пока команда шла).
+ * пришёл), tooBig (сообщение не влезает даже частями), gone (IDE забыта, пока команда шла),
+ * partsRefused (IDE не собрала сообщение частями и сказала об этом).
  */
-export type CommandFailure = RemoteErrorCode | 'offline' | 'timeout' | 'tooBig' | 'gone'
+export type CommandFailure =
+  RemoteErrorCode | 'offline' | 'timeout' | 'tooBig' | 'gone' | 'partsRefused'
 
 export type CommandOutcome =
   { ok: true; data?: unknown } | { ok: false; code: CommandFailure; detail?: string | undefined }
@@ -25,6 +29,7 @@ export type CommandDeskHost = {
   /** Дождаться ключей с IDE (линия переподключается) - или false. */
   whenOpen: (agentId: string, timeoutMs: number) => Promise<boolean>
   caps: (agentId: string) => readonly string[]
+  now?: () => number
 }
 
 /** Сколько ждать ключей, если команда пришла посреди переподключения. */
@@ -33,11 +38,17 @@ export const OPEN_PATIENCE_MS = 10_000
 /** Сколько ждать ответа IDE: сообщение с фото частями идёт дольше всего. */
 export const RESULT_PATIENCE_MS = 45_000
 
-/** Место в кадре под конверт печати и запас на экранирование JSON. */
-const FRAME_MARGIN = 1024
+/**
+ * Сколько команду можно повторять тем же id после resync: половина того, что IDE помнит её итог.
+ * Позже повтор мог бы выполниться второй раз - IDE уже забыла бы, что выполняла.
+ */
+export const RESEND_WINDOW_MS = COMMAND_MEMORY_MS / 2
 
 type Waiting = {
   agentId: string
+  /** Что уходило: одно слово cmd или его части - повтор шлёт их же, с тем же id. */
+  frames: object[]
+  startedAt: number
   resolve: (outcome: CommandOutcome) => void
   timer: ReturnType<typeof setTimeout>
 }
@@ -47,7 +58,8 @@ const commandId = (): string => toBase64Url(globalThis.crypto.getRandomValues(ne
 /**
  * Команды телефона IDE: белый список и проверка аргументов - те же схемы, что у IDE, поэтому
  * кривая команда отказывается здесь, не уходя. Ответ находит свою кнопку по id. Тяжёлое (фото)
- * едет частями, если IDE их умеет.
+ * едет частями, если IDE их умеет. Посланное могло пропасть (resync, новая линия): команда без
+ * итога уходит снова тем же id, и IDE не выполнит её второй раз.
  */
 export class CommandDesk {
   private readonly waiting = new Map<string, Waiting>()
@@ -64,36 +76,21 @@ export class CommandDesk {
       return { ok: false, code: 'offline' }
 
     const id = commandId()
-    const message = { p: PROTOCOL_VERSION, k: 'cmd', id, name, args }
-    const text = JSON.stringify(message)
-    const fits = utf8Length(text) <= MAX_BODY_BYTES - FRAME_MARGIN
-    const canSplit = MAY_ARRIVE_IN_PARTS.has(name) && this.host.caps(agentId).includes(CAP_PARTS)
+    const frames = this.framesOf(agentId, id, { p: PROTOCOL_VERSION, k: 'cmd', id, name, args })
 
-    if (!fits && !canSplit) return { ok: false, code: 'tooBig' }
-
-    let parts: object[]
-
-    try {
-      parts = fits ? [message] : splitIntoParts(id, text)
-    } catch {
-      return { ok: false, code: 'tooBig' }
-    }
+    if (!frames) return { ok: false, code: 'tooBig' }
 
     const answer = new Promise<CommandOutcome>((resolve) => {
-      const timer = setTimeout(() => {
-        this.waiting.delete(id)
-        resolve({ ok: false, code: 'timeout' })
-      }, RESULT_PATIENCE_MS)
-
-      this.waiting.set(id, { agentId, resolve, timer })
+      this.waiting.set(id, {
+        agentId,
+        frames,
+        startedAt: this.now(),
+        resolve,
+        timer: this.patience(id),
+      })
     })
 
-    for (const part of parts) {
-      if (!(await this.host.send(agentId, part))) {
-        this.settle(id, { ok: false, code: 'offline' })
-        break
-      }
-    }
+    if (!(await this.deliver(agentId, frames))) this.settle(id, { ok: false, code: 'offline' })
 
     return answer
   }
@@ -108,11 +105,73 @@ export class CommandDesk {
     )
   }
 
+  /** IDE не собрала сообщение частями или отбросила его пределом: команда кончается сразу. */
+  noticed(notice: NoticeMessage): void {
+    if (!notice.about || notice.code === 'notFound') return
+
+    this.settle(notice.about, { ok: false, code: notice.code })
+  }
+
+  /**
+   * Посланное этой IDE могло пропасть: команды без итога - снова, теми же id и частями. IDE,
+   * получившая первую, отдаст тот же итог; не получившая - выполнит один раз. Старше окна повтора
+   * - не повторяются: их итог IDE могла уже забыть.
+   */
+  resend(agentId: string): void {
+    const now = this.now()
+
+    for (const [id, waiting] of this.waiting) {
+      if (waiting.agentId !== agentId || now - waiting.startedAt >= RESEND_WINDOW_MS) continue
+
+      clearTimeout(waiting.timer)
+      waiting.timer = this.patience(id)
+      void this.deliver(agentId, waiting.frames)
+    }
+  }
+
   /** IDE забыта или отпустила телефон: ждущие команды кончаются сразу, а не через минуту. */
   failAll(agentId: string, code: CommandFailure): void {
     for (const [id, waiting] of this.waiting) {
       if (waiting.agentId === agentId) this.settle(id, { ok: false, code })
     }
+  }
+
+  /**
+   * Команда на провод: целиком, если влезает в кадр, иначе частями (если IDE их умеет и это
+   * сообщение с фото). Вес - в байтах, как его посчитает IDE; тяжелее MAX_MESSAGE_BYTES - null.
+   */
+  private framesOf(
+    agentId: string,
+    id: string,
+    message: { p: number; k: 'cmd'; id: string; name: CommandName; args: unknown },
+  ): object[] | null {
+    const text = JSON.stringify(message)
+    const bytes = utf8Length(text)
+
+    if (bytes <= MAX_BODY_BYTES) return [message]
+
+    const canSplit =
+      MAY_ARRIVE_IN_PARTS.has(message.name) && this.host.caps(agentId).includes(CAP_PARTS)
+
+    if (!canSplit || bytes > MAX_MESSAGE_BYTES) return null
+
+    try {
+      return splitIntoParts(id, text)
+    } catch {
+      return null
+    }
+  }
+
+  private async deliver(agentId: string, frames: readonly object[]): Promise<boolean> {
+    for (const frame of frames) {
+      if (!(await this.host.send(agentId, frame))) return false
+    }
+
+    return true
+  }
+
+  private patience(id: string): ReturnType<typeof setTimeout> {
+    return setTimeout(() => this.settle(id, { ok: false, code: 'timeout' }), RESULT_PATIENCE_MS)
   }
 
   private settle(id: string, outcome: CommandOutcome) {
@@ -123,5 +182,9 @@ export class CommandDesk {
     clearTimeout(waiting.timer)
     this.waiting.delete(id)
     waiting.resolve(outcome)
+  }
+
+  private now(): number {
+    return this.host.now?.() ?? Date.now()
   }
 }

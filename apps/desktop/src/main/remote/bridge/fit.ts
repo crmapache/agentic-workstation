@@ -14,7 +14,7 @@ import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-typ
 export const BODY_BUDGET = MAX_BODY_BYTES - 2048
 
 /** Как коротко резать длинный текст - по очереди, пока элемент не влезет. */
-const STRING_LIMITS = [8 * 1024, 1024, 200]
+export const STRING_LIMITS = [8 * 1024, 1024, 200] as const
 
 /** Подпись обрезки - своя: режет дорога до телефона, а в IDE всё целиком. */
 export const PHONE_NOTE = '\n… [not shown on the phone: too big, the full text is in the IDE]'

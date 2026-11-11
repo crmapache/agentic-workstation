@@ -1,6 +1,8 @@
 import { toBase64 } from '@agentic-workstation/remote-protocol/base64'
-import { IMAGE_TYPES } from '@agentic-workstation/remote-protocol/commands'
-import { MAX_ASSEMBLED_CHARS } from '@agentic-workstation/remote-protocol/parts'
+import type { IMAGE_TYPES } from '@agentic-workstation/remote-protocol/commands'
+import { MAX_IMAGES, MAX_IMAGES_CHARS } from '@agentic-workstation/remote-protocol/message-size'
+
+export { MAX_IMAGES }
 
 export type ImageType = (typeof IMAGE_TYPES)[number]
 
@@ -12,41 +14,53 @@ export const MAX_IMAGE_EDGE = 1568
 
 export const JPEG_QUALITY = 0.85
 
-/** Небольшую картинку (скриншот) - как есть: PNG без потерь читается лучше. */
-const KEEP_AS_IS_BYTES = 1_200_000
+/** GIF такого веса и размера уходит как есть: в нём бывает анимация, а EXIF у GIF нет. */
+const KEEP_GIF_BYTES = 1_200_000
 
-/** Сколько фото в одном сообщении (схема команды). */
-export const MAX_IMAGES = 6
+/**
+ * Во что перерисовать картинку. Перерисовывается всегда, и небольшая тоже: файл с камеры несёт
+ * EXIF - место съёмки (GPS), модель телефона, время, - и как есть он ушёл бы в IDE и дальше
+ * модели. Холст пишет только пиксели. PNG - в PNG без потерь (скриншоты читаются лучше), прочее
+ * - в JPEG; GIF - как есть, если он невелик (keep).
+ */
+export const encodingOf = (type: string): 'image/png' | 'image/jpeg' | 'keep' => {
+  if (type === 'image/gif') return 'keep'
+  if (type === 'image/png') return 'image/png'
 
-/** Место под фото в сообщении частями: остальное - текст и конверт команды. */
-export const IMAGE_BUDGET_CHARS = MAX_ASSEMBLED_CHARS - 64 * 1024
-
-const imageType = (type: string): ImageType | null =>
-  IMAGE_TYPES.find((known) => known === type) ?? null
+  return 'image/jpeg'
+}
 
 const encode = async (blob: Blob): Promise<string> =>
   toBase64(new Uint8Array(await blob.arrayBuffer()))
 
+const prepared = async (blob: Blob, mediaType: ImageType): Promise<PreparedImage> => ({
+  id: crypto.randomUUID(),
+  mediaType,
+  data: await encode(blob),
+  preview: URL.createObjectURL(blob),
+})
+
 /**
  * Фото с камеры или из галереи - в сообщение: поворот по EXIF (createImageBitmap), длинная
- * сторона до MAX_IMAGE_EDGE, JPEG. Не картинка или не читается - null.
+ * сторона до MAX_IMAGE_EDGE, перерисовка на холсте без метаданных. Не картинка или не
+ * читается - null.
  */
 export const prepareImage = async (file: File): Promise<PreparedImage | null> => {
   const bitmap = await createImageBitmap(file).catch(() => null)
 
   if (!bitmap) return null
 
-  const id = crypto.randomUUID()
   const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height))
-  const type = imageType(file.type)
+  const encoding = encodingOf(file.type)
 
-  if (type && scale === 1 && file.size <= KEEP_AS_IS_BYTES) {
+  if (encoding === 'keep' && scale === 1 && file.size <= KEEP_GIF_BYTES) {
     bitmap.close()
 
-    return { id, mediaType: type, data: await encode(file), preview: URL.createObjectURL(file) }
+    return prepared(file, 'image/gif')
   }
 
   const canvas = document.createElement('canvas')
+  const output = encoding === 'image/png' ? 'image/png' : 'image/jpeg'
 
   canvas.width = Math.round(bitmap.width * scale)
   canvas.height = Math.round(bitmap.height * scale)
@@ -54,20 +68,13 @@ export const prepareImage = async (file: File): Promise<PreparedImage | null> =>
   bitmap.close()
 
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
+    canvas.toBlob(resolve, output, output === 'image/jpeg' ? JPEG_QUALITY : undefined),
   )
 
-  if (!blob) return null
-
-  return {
-    id,
-    mediaType: 'image/jpeg',
-    data: await encode(blob),
-    preview: URL.createObjectURL(blob),
-  }
+  return blob ? prepared(blob, output) : null
 }
 
-/** Влезают ли фото в одно сообщение - и числом, и весом. */
+/** Влезают ли фото в одно сообщение - и числом, и весом: те же числа, что у схемы команды. */
 export const imagesFit = (images: readonly PreparedImage[]): boolean =>
   images.length <= MAX_IMAGES &&
-  images.reduce((sum, image) => sum + image.data.length, 0) <= IMAGE_BUDGET_CHARS
+  images.reduce((sum, image) => sum + image.data.length, 0) <= MAX_IMAGES_CHARS

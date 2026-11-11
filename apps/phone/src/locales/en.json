@@ -26,6 +26,11 @@
     "waiting-for-you": "Needs you",
     "idle": "Idle"
   },
+  "outcome": {
+    "interrupted": "Stopped",
+    "failed": "Ended with an error",
+    "crashed": "Crashed"
+  },
   "effort": {
     "low": "Low effort",
     "medium": "Medium effort",
@@ -90,8 +95,12 @@
       "runBusy": "The run is busy. Try again in a moment.",
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued.",
-      "runOver": "This run is over."
-    }
+      "runOver": "This run is over.",
+      "permissionMode": "The new conversation did not start in a mode the phone may choose. Start it at the computer."
+    },
+    "questionGone": "This question was already answered.",
+    "runMoved": "The run changed since this screen was drawn. Check it and try again.",
+    "partsRefused": "The IDE could not put the message together. Send it again."
   },
   "pairing": {
     "title": "Pair with your IDE",
@@ -128,14 +137,16 @@
       "keys": "The IDE answered with a key the phone cannot use.",
       "timeout": "No approval came from the IDE. Show a new code and scan it again.",
       "cancelled": "Pairing was cancelled. Show a new code in the IDE to try again.",
-      "offline": "The relay could not be reached. Check the connection and try again."
+      "offline": "The relay could not be reached. Check the connection and try again.",
+      "refused": "The pairing was refused in the IDE.",
+      "expired": "The code expired or was used by another phone. Show a new code in the IDE and scan it again."
     }
   },
   "machines": {
     "title": "My IDEs",
     "help": {
       "title": "Remote Control",
-      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera.\n\nForget removes the pairing keys from this phone. To stop the phone from the IDE side, revoke it in the IDE's Remote Control window."
+      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
     },
     "empty": {
       "title": "No IDE paired yet",
@@ -148,7 +159,7 @@
     "forget": "Forget",
     "forgetDialog": {
       "title": "Forget {{label}}?",
-      "text": "The pairing keys are removed from this phone. To pair again, scan a new code in the IDE."
+      "text": "The pairing keys are removed from this phone, and the IDE is told to release it if the IDE is reachable now. To pair again, scan a new code in the IDE."
     },
     "revoked": "The IDE released this phone. Scan a new code to pair again.",
     "openProjects": "Open projects",
@@ -295,6 +306,16 @@
       "model-stuck": "The chosen model did not apply",
       "connectors-missing": "Connectors are not available",
       "model-swap": "Model changed"
+    },
+    "tooBig": "Too large to show on the phone. It is in full in the IDE.",
+    "kinds": {
+      "assistant": "Answer",
+      "user": "Message",
+      "thinking": "Thinking",
+      "tool": "Tool",
+      "shell": "Command",
+      "turn": "Turn",
+      "notice": "Notice"
     }
   },
   "pending": {
@@ -305,7 +326,8 @@
       "instead": "What to do instead",
       "insteadPlaceholder": "Optional, sent if you deny",
       "allowOnce": "Allow once",
-      "deny": "Deny"
+      "deny": "Deny",
+      "modelSays": "The model says"
     },
     "question": {
       "title": "Claude asks",
@@ -320,7 +342,8 @@
       "feedback": "What to change",
       "feedbackPlaceholder": "Tell Claude what to change in the plan",
       "sendFeedback": "Send"
-    }
+    },
+    "tooLong": "Too long to review on the phone - decide at the Mac. You can still deny it here."
   },
   "newConversation": {
     "title": "New conversation",

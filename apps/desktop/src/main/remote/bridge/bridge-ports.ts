@@ -12,8 +12,12 @@ import type {
   ScenarioStartOutcome,
   ScenarioStartRequest,
 } from '@shared/scenario-queues'
-import type { ScenarioRun } from '@shared/scenario-runs'
-import type { ScenarioRunControl, ScenarioShelvesView } from '@shared/scenario-view'
+import type { RunState, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
+import type {
+  RunControlRefusal,
+  ScenarioRunControl,
+  ScenarioShelvesView,
+} from '@shared/scenario-view'
 import type { ScenarioCode } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
 
@@ -52,8 +56,21 @@ export type ScenariosPort = {
   start: (request: ScenarioStartRequest) => Promise<ScenarioStartOutcome>
   act: (queueId: string, action: QueueAction) => Promise<ScenarioCode | null>
   run: (projectPath: string, runId: string) => Promise<ScenarioRun | null>
-  control: (projectPath: string, runId: string, action: ScenarioRunControl) => void
-  answer: (projectPath: string, runId: string, allow: boolean, text: string) => void
+  /** seen - для какого состояния нарисована кнопка на телефоне. */
+  control: (
+    projectPath: string,
+    runId: string,
+    action: ScenarioRunControl,
+    seen: RunState,
+  ) => RunControlRefusal | null
+  /** false - вопроса, который видел телефон (asked), уже нет. */
+  answer: (
+    projectPath: string,
+    runId: string,
+    allow: boolean,
+    text: string,
+    asked: RunQuestionRef,
+  ) => boolean
   tell: (projectPath: string, runId: string, text: string, images: ImageAttachment[]) => boolean
   carryOn: (runId: string) => Promise<ScenarioCode | null>
   shelves: (projectPath: string) => Promise<ScenarioShelvesView>

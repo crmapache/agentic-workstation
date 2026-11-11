@@ -10,8 +10,12 @@ import styles from '../PendingCard.module.scss'
 import type { PendingOf, PendingCardProps } from '../PendingCard.types'
 import { allAnswered, questionAnswers } from '../PendingCard.utils'
 import { OptionList } from '../../../../shell/OptionList/OptionList'
+import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
-/** Вопрос модели с вариантами: один или несколько, или свой ответ словами. */
+/**
+ * Вопрос модели с вариантами: один или несколько, или свой ответ словами. Урезанный по дороге -
+ * без ответа с телефона: варианты могли потерять то, что в них важно.
+ */
 export const QuestionCard = ({
   pending,
   pendingCount,
@@ -64,11 +68,12 @@ export const QuestionCard = ({
             />
           </div>
         ))}
+        {pending.truncated && <TooLongNote />}
         <div className={styles.actions}>
           <Button
             size="touch"
             variant="primary"
-            disabled={busy || !allAnswered(answers)}
+            disabled={busy || pending.truncated || !allAnswered(answers)}
             onClick={() => onDecide(pending.requestId, { kind: 'question', answers })}>
             {t('pending.question.send')}
           </Button>

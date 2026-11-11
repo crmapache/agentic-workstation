@@ -4,6 +4,7 @@ import {
   decodeFrame,
   encodeFrame,
   FRAME_SEALED,
+  FRAME_CHALLENGE,
   MAX_FRAME_BYTES,
 } from '@agentic-workstation/remote-protocol/frame'
 
@@ -33,11 +34,16 @@ const OPEN = 1
 /** Тишина дольше этого - линия мертва, хотя сокет и говорит OPEN (телефон проснулся). */
 export const SILENCE_MS = 45_000
 
+/** Сокет открыт, а вызова релея «докажи адрес» так и нет - это не наш релей. */
+export const CHALLENGE_WAIT_MS = 15_000
+
 export type RelaySocketOptions = {
   /** wss://хост релея (ws:// - только локально). */
   relayUrl: string
   deviceId: string
   address: Uint8Array
+  /** Ответ на вызов релея: кадр с ключом подписи телефона и подписью (proofs.ts). */
+  prove: (challenge: Uint8Array) => Promise<Uint8Array>
   onFrame: (frame: Frame) => void
   onOpen: () => void
   onState: (state: SocketState) => void
@@ -46,13 +52,18 @@ export type RelaySocketOptions = {
 }
 
 /**
- * Одна линия телефона до релея на все IDE этого релея. Пинга у WebSocket браузера нет, поэтому
- * сердцебиение - пустой кадр самому себе: релей вернёт его этой же линией, и это доказывает, что
- * линия жива, а не только что сокет пишет OPEN. Обрыв - повтор с отступом.
+ * Одна линия телефона до релея на все IDE этого релея. Линия открыта, когда телефон ответил на
+ * вызов релея подписью своего ключа: до этого релей его кадры никуда не пустит. Пинга у
+ * WebSocket браузера нет, поэтому сердцебиение - пустой кадр самому себе: релей вернёт его этой
+ * же линией, и это доказывает, что линия жива, а не только что сокет пишет OPEN. Обрыв - повтор
+ * с отступом.
  */
 export class RelaySocket {
   private readonly backoff = new Backoff()
   private socket: SocketLike | null = null
+  /** Адрес доказан на этом сокете. */
+  private proven = false
+  private openedAt = 0
   private running = false
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private lastHeard = 0
@@ -65,7 +76,7 @@ export class RelaySocket {
   }
 
   get isOpen(): boolean {
-    return this.socket?.readyState === OPEN
+    return this.proven && this.socket?.readyState === OPEN
   }
 
   start(): void {
@@ -89,7 +100,7 @@ export class RelaySocket {
   wake(): void {
     this.backoff.reset()
 
-    if (this.isOpen || this.current === 'connecting') return
+    if (this.socket?.readyState === OPEN || this.current === 'connecting') return
 
     this.running = true
     this.clearRetry()
@@ -100,7 +111,8 @@ export class RelaySocket {
   send(frame: Uint8Array): boolean {
     const socket = this.socket
 
-    if (!socket || socket.readyState !== OPEN || frame.length > MAX_FRAME_BYTES) return false
+    // До ответа на вызов любой другой кадр релей принял бы за неверное доказательство (4003).
+    if (!socket || !this.isOpen || frame.length > MAX_FRAME_BYTES) return false
 
     try {
       socket.send(frame)
@@ -113,6 +125,14 @@ export class RelaySocket {
 
   /** Сердцебиение и проверка тишины - раз в такт часов клиента. */
   beat(): void {
+    if (this.socket?.readyState === OPEN && !this.proven) {
+      if (this.now() - this.openedAt < CHALLENGE_WAIT_MS) return
+
+      this.drop(this.socket)
+
+      return this.retry('network')
+    }
+
     if (!this.isOpen) return
 
     const { address } = this.options
@@ -141,21 +161,21 @@ export class RelaySocket {
 
     socket.binaryType = 'arraybuffer'
     this.socket = socket
+    this.proven = false
     socket.onopen = () => {
       if (this.socket !== socket) return
 
-      this.lastHeard = this.now()
-      this.backoff.succeeded()
-      this.move('open')
-      this.options.onOpen()
+      this.openedAt = this.now()
+      this.lastHeard = this.openedAt
     }
     socket.onmessage = (event) => {
-      if (this.socket === socket) this.receive(event.data)
+      if (this.socket === socket) this.receive(socket, event.data)
     }
     socket.onclose = (event) => {
       if (this.socket !== socket) return
 
       this.socket = null
+      this.proven = false
       this.retry(classifyClose(event.code))
     }
     socket.onerror = () => {
@@ -166,13 +186,16 @@ export class RelaySocket {
     }
   }
 
-  private receive(data: unknown) {
+  private receive(socket: SocketLike, data: unknown) {
     this.lastHeard = this.now()
 
     if (!(data instanceof ArrayBuffer)) return
 
     try {
       const frame = decodeFrame(new Uint8Array(data))
+
+      if (frame.type === FRAME_CHALLENGE) return void this.answer(socket, frame.body)
+      if (!this.proven) return
 
       // Своё сердцебиение вернулось - это и был ответ.
       if (sameBytes(frame.from, this.options.address)) return
@@ -181,6 +204,38 @@ export class RelaySocket {
     } catch {
       // Кадр не на языке протокола - не наш, разбирать его дальше нечего.
     }
+  }
+
+  /**
+   * Вызов релея: подписать ключом телефона и ответить. Релей разбирает кадры по порядку, и всё,
+   * что уйдёт после ответа, он увидит уже от доказанного адреса - его «да» ждать незачем.
+   */
+  private async answer(socket: SocketLike, challenge: Uint8Array) {
+    if (this.proven) return
+
+    let proof: Uint8Array
+
+    try {
+      proof = await this.options.prove(challenge)
+    } catch {
+      // Ключа подписи нет или WebCrypto отказал: повтор не поможет - ждать человека.
+      this.drop(socket)
+
+      return this.retry('fatal')
+    }
+
+    if (this.socket !== socket || socket.readyState !== OPEN) return
+
+    try {
+      socket.send(proof)
+    } catch {
+      return
+    }
+
+    this.proven = true
+    this.backoff.succeeded()
+    this.move('open')
+    this.options.onOpen()
   }
 
   private retry(failure: Failure) {
@@ -212,7 +267,10 @@ export class RelaySocket {
   private drop(socket: SocketLike | null) {
     if (!socket) return
 
-    if (this.socket === socket) this.socket = null
+    if (this.socket === socket) {
+      this.socket = null
+      this.proven = false
+    }
 
     socket.onopen = null
     socket.onmessage = null

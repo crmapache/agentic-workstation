@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 import { BASE64_PATTERN } from './base64'
+import { MAX_IMAGES, MAX_TEXT_CHARS, MAX_IMAGES_CHARS } from './message-size'
+import { PROJECT_KEY_PATTERN } from './project-key'
 
 /**
  * Что можно попросить с телефона - белый список. Канал пишет агенту, у которого шелл на
@@ -15,19 +17,27 @@ const ID = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/)
 /** id разговора - UUID вкладки IDE. */
 const CONVERSATION_ID = z.string().regex(/^[A-Za-z0-9-]{1,80}$/)
 
-const PROJECT_KEY = z.string().regex(/^[pr]-[A-Za-z0-9_-]{22}$/)
+const PROJECT_KEY = z.string().regex(PROJECT_KEY_PATTERN)
 
-const TEXT = z.string().max(100_000)
+const TEXT = z.string().max(MAX_TEXT_CHARS)
 
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const
 
 /** Картинка base64 без `data:`; сообщение с фото тяжелее кадра приходит частями. */
 const IMAGE = z.object({
   mediaType: z.enum(IMAGE_TYPES),
-  data: z.string().max(3_000_000).regex(BASE64_PATTERN),
+  data: z.string().max(MAX_IMAGES_CHARS).regex(BASE64_PATTERN),
 })
 
-const IMAGES = z.array(IMAGE).max(6).optional()
+/** Фото сообщения - числом и весом вместе: то же число, что у телефона (message-size.ts). */
+const IMAGES = z
+  .array(IMAGE)
+  .max(MAX_IMAGES)
+  .refine(
+    (images) => images.reduce((sum, image) => sum + image.data.length, 0) <= MAX_IMAGES_CHARS,
+    'images over the message size',
+  )
+  .optional()
 
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
@@ -56,12 +66,26 @@ const QUEUE_ACTION = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rename'), name: z.string().trim().min(1).max(80) }),
 ])
 
+/** Вопрос прогона, который видел телефон: ответ ложится только на него (RunQuestionWire). */
+const ASKED = z.object({ stepKey: z.string().min(1).max(200), askedAt: z.int().min(0) })
+
+/**
+ * Состояние прогона, для которого нарисована кнопка. Пауза и продолжение меняются местами:
+ * «продолжить», нажатое на устаревшем экране уже идущего прогона, - не просьба человека.
+ */
+export const SEEN_RUN_STATES = ['starting', 'running', 'paused', 'blocked'] as const
+
 const TARGET = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('new'), worktree: z.boolean() }),
   z.object({ kind: z.literal('queue'), queueId: ID }),
 ])
 
-/** Аргументы каждой команды. Лишние поля отбрасываются, кривые - отказ всей команды. */
+/**
+ * Аргументы каждой команды. Лишние поля отбрасываются, кривые - отказ всей команды. Ответ на
+ * вопрос несёт его опознание: разговору - requestId вопроса CLI, прогону - stepKey и askedAt.
+ * Ответ на снятый или сменившийся вопрос IDE отказывает (questionGone), а не кладёт на
+ * следующий.
+ */
 export const COMMAND_ARGS = {
   'conversation.send': z.object({ conversationId: CONVERSATION_ID, text: TEXT, images: IMAGES }),
   'conversation.respond': z.object({
@@ -97,8 +121,12 @@ export const COMMAND_ARGS = {
     afterSuccess: z.boolean(),
   }),
   'scenarios.queue': z.object({ queueId: ID, action: QUEUE_ACTION }),
-  'scenarios.control': z.object({ runId: ID, action: z.enum(['pause', 'resume', 'stop']) }),
-  'scenarios.answer': z.object({ runId: ID, allow: z.boolean(), text: TEXT }),
+  'scenarios.control': z.object({
+    runId: ID,
+    action: z.enum(['pause', 'resume', 'stop']),
+    seen: z.enum(SEEN_RUN_STATES),
+  }),
+  'scenarios.answer': z.object({ runId: ID, question: ASKED, allow: z.boolean(), text: TEXT }),
   'scenarios.tell': z.object({ runId: ID, text: TEXT, images: IMAGES }),
   'scenarios.carryOn': z.object({ runId: ID }),
 } as const

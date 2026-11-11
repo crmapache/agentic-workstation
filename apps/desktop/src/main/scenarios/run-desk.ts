@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
 import type { ImageAttachment } from '@shared/claude'
-import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
-import type { ScenarioRunControl } from '@shared/scenario-view'
+import type { RunState, RunSummary, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
+import type { RunControlRefusal, ScenarioRunControl } from '@shared/scenario-view'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import { transcriptIn } from './scenario-launch'
@@ -178,16 +178,29 @@ export class RunDesk {
     this.host.onFinished(run)
   }
 
-  control(runId: string, action: ScenarioRunControl): void {
+  /**
+   * Пауза, продолжение или стоп идущему прогону. seen - состояние, для которого нарисована
+   * кнопка (её видел телефон): пауза и продолжение меняются местами, и нажатое на экране, где
+   * прогон был на паузе, а теперь идёт (или наоборот), - не просьба человека.
+   */
+  control(runId: string, action: ScenarioRunControl, seen?: RunState): RunControlRefusal | null {
     const engine = this.live.get(runId)?.engine
 
-    if (action === 'pause') engine?.pause()
-    else if (action === 'resume') engine?.resume()
-    else engine?.stop()
+    if (!engine) return 'runOver'
+    if (seen !== undefined && (seen === 'paused') !== (engine.run.state === 'paused')) {
+      return 'runMoved'
+    }
+
+    if (action === 'pause') engine.pause()
+    else if (action === 'resume') engine.resume()
+    else engine.stop()
+
+    return null
   }
 
-  answer(runId: string, allow: boolean, text: string): void {
-    this.live.get(runId)?.engine.answer(allow, text)
+  /** false - прогон не идёт или стоит уже не тот вопрос, что видел отвечающий (asked). */
+  answer(runId: string, allow: boolean, text: string, asked?: RunQuestionRef): boolean {
+    return this.live.get(runId)?.engine.answer(allow, text, asked) ?? false
   }
 
   tell(runId: string, text: string, images: readonly ImageAttachment[], tokens: unknown): boolean {

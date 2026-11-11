@@ -20,7 +20,7 @@ import {
   CONVERSATION_ID,
 } from '../__fixtures__/fake-ide'
 import { until } from '../__fixtures__/webcrypto-phone'
-import { openProjectKey, recentProjectKey } from './project-keys'
+import { projectKey } from './project-keys'
 
 /**
  * Порядок и жизнь просьб телефона: отмена ждущего при отзыве и выключении, долгая команда, не
@@ -31,7 +31,7 @@ import { openProjectKey, recentProjectKey } from './project-keys'
 afterEach(stopBridges)
 
 const START_ARGS = {
-  projectKey: openProjectKey(PROJECT_PATH),
+  projectKey: projectKey(PROJECT_PATH),
   scenarioId: 'tidy',
   scope: 'project',
   inputs: { what: 'docs' },
@@ -190,32 +190,44 @@ describe('подписки', () => {
     expect((await next('conversation', mark)).conversation.id).toBe(CONVERSATION_ID)
   })
 
-  it('очереди проекта держатся за папку: проект закрыли - список тот же, ключи новые', async () => {
+  it('ключ проекта не меняется, когда проект закрыли: та же подписка, тот же ключ, open - false', async () => {
     const { ide, bridge, say, next, sentTo } = bridgeSetup()
-    const key = openProjectKey(PROJECT_PATH)
+    const key = projectKey(PROJECT_PATH)
 
     say({ k: 'subscribe', projectKey: key })
     expect((await next('queues')).queues.map((queue) => queue.id)).toEqual(['q1'])
 
     const mark = sentTo().length
 
-    // Проект закрыли: его ключ теперь r-, а очереди - те же.
+    // Проект закрыли: ключ тот же, очереди - те же, и телефону слать нечего.
     ide.workspace.projects = []
     ide.workspace.recentProjects = [
       ...ide.workspace.recentProjects,
       { name: 'secret-client', rootPath: PROJECT_PATH },
     ]
     bridge.workspaceChanged()
+    await settle()
+    expect(
+      sentTo()
+        .slice(mark)
+        .some((message) => message.k === 'queues'),
+    ).toBe(false)
 
-    const after = await next('queues', mark)
-
-    expect(after.scope).toBe(key)
-    expect(after.queues.map((queue) => queue.id)).toEqual(['q1'])
-    expect(after.queues[0]?.projectKey).toBe(recentProjectKey(PROJECT_PATH))
-
-    // Телефон со старым ключом подписывается заново - те же очереди, а не пустота.
+    // Адрес экрана с тем же ключом после перезагрузки страницы - те же очереди, а не пустота.
     say({ k: 'subscribe', projectKey: key })
-    expect((await next('queues', sentTo().length - 1)).queues).toHaveLength(1)
+
+    const again = await next('queues', mark)
+
+    expect(again.scope).toBe(key)
+    expect(again.queues.map((queue) => [queue.id, queue.projectKey])).toEqual([['q1', key]])
+
+    say({ k: 'inventory' })
+
+    const inventory = await next('inventory', mark)
+
+    expect(inventory.projects.find((project) => project.key === key)).toMatchObject({
+      open: false,
+    })
   })
 
   it('незнакомый ключ проекта - «не найдено», а не пустой список', async () => {
@@ -256,7 +268,7 @@ describe('подписки', () => {
     await next('queues')
     say({ k: 'unsubscribe', conversationId: 'another-one' })
     say({ k: 'unsubscribe', runId: 'r9' })
-    say({ k: 'unsubscribe', projectKey: openProjectKey(PROJECT_PATH) })
+    say({ k: 'unsubscribe', projectKey: projectKey(PROJECT_PATH) })
     await settle()
 
     const mark = sentTo().length

@@ -3,6 +3,8 @@ import { it, expect, describe, afterEach } from 'vitest'
 import { readConfig } from '@agentic-workstation/relay/config'
 import type { Relay } from '@agentic-workstation/relay/server'
 import { createRelay } from '@agentic-workstation/relay/server'
+import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
+import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
 
 import type { JsonFile } from '../storage/json-file'
 import { RemoteService } from './remote-service'
@@ -55,12 +57,16 @@ const startRelay = async (): Promise<{ relay: Relay | null; url: string }> => {
   return { relay, url: `ws://127.0.0.1:${port}` }
 }
 
-/** Телефон со своим сокетом к релею - как страница клиента в браузере. */
+/**
+ * Телефон со своим сокетом к релею - как страница клиента в браузере: сначала вызов релея и
+ * подпись своим ключом, только потом адрес его.
+ */
 const connectPhone = async (relayUrl: string) => {
   let socket: WebSocket | null = null
-  const phone = new WebCryptoPhone((frame) => socket?.send(frame))
+  const phone = await WebCryptoPhone.create((frame) => socket?.send(frame))
   const opened = new WebSocket(`${relayUrl}/v1/device?id=${phone.deviceId}`)
 
+  socket = opened
   opened.binaryType = 'arraybuffer'
   opened.onmessage = (event: { data: unknown }) =>
     phone.receive(new Uint8Array(event.data as ArrayBuffer))
@@ -68,8 +74,8 @@ const connectPhone = async (relayUrl: string) => {
     opened.onopen = resolve
     opened.onerror = reject
   })
-  socket = opened
   cleanups.push(() => opened.close())
+  await until(() => (phone.proven ? true : null), 'the phone proving its address')
 
   return phone
 }
@@ -168,13 +174,34 @@ describe('Remote Control: IDE, релей и телефон', () => {
 
     expect(patch).toMatchObject({ seq: 1, upserts: [{ id: 'a2', text: 'Running them now' }] })
 
-    // Команда сценарию: проект прогона находит IDE.
+    // Стук - лёгкий pong тем же номером: по нему телефон знает, что IDE жива.
+    await phone.send({ p: 1, k: 'ping', n: 3 })
+    expect(await phone.next('pong')).toMatchObject({ n: 3 })
+
+    // Ответ на вопрос, которого уже нет, - отказ questionGone, а не «ок».
+    await phone.send({
+      p: 1,
+      k: 'cmd',
+      id: 'q1',
+      name: 'conversation.respond',
+      args: {
+        conversationId: CONVERSATION_ID,
+        requestId: 'gone',
+        decision: { kind: 'permission', allow: true },
+      },
+    })
+    expect(await phone.next('result', (message) => message['id'] === 'q1')).toMatchObject({
+      ok: false,
+      code: 'questionGone',
+    })
+
+    // Команда сценарию: проект прогона находит IDE; кнопка - для того состояния, что на экране.
     await phone.send({
       p: 1,
       k: 'cmd',
       id: 's1',
       name: 'scenarios.control',
-      args: { runId: 'r1', action: 'pause' },
+      args: { runId: 'r1', action: 'pause', seen: 'running' },
     })
     expect(await phone.next('result', (message) => message['id'] === 's1')).toMatchObject({
       ok: true,
@@ -191,9 +218,12 @@ describe('Remote Control: IDE, релей и телефон', () => {
       code: 'unknownCommand',
     })
 
-    // Отзыв: телефон узнаёт сразу, а его ключ больше ничего не открывает.
+    // Отзыв: телефон узнаёт сразу и верит этому по тегу, а его ключ больше ничего не открывает.
     service.revoke(phone.deviceId)
-    await phone.next('revoked')
+
+    const revoked = await phone.next('revoked')
+
+    expect(await phone.revokedTagValid(String(revoked['tag']))).toBe(true)
     expect(service.view().devices).toEqual([])
 
     const sentBefore = ide.calls.length
@@ -208,6 +238,63 @@ describe('Remote Control: IDE, релей и телефон', () => {
     await new Promise((resolve) => setTimeout(resolve, 200))
     expect(ide.calls.length).toBe(sentBefore)
   })
+
+  it.skipIf(LIVE_RELAY)(
+    'адрес IDE из QR не занять без её ключа, а «забудь меня» с телефона отзывает его в IDE',
+    async () => {
+      const { relay, url } = await startRelay()
+      const views: number[] = []
+      const service = await RemoteService.load({
+        file: memoryFile(),
+        vault: memoryVault,
+        ports: fakeIde().ports,
+        relayUrl: url,
+        machine: () => ({ label: 'test', ideVersion: '0' }),
+        onView: (view) => views.push(view.devices.length),
+      })
+
+      cleanups.push(() => service.shutdown())
+      service.setEnabled(true)
+      await until(() => (service.view().state === 'connected' ? true : null), 'IDE on the relay')
+
+      // Кто-то знает адрес IDE (он в QR) и звонит с ним, подписывая своим ключом.
+      const agentId = parsePairingFragment(
+        new URL(service.startPairing().pairing?.url ?? '').hash,
+      )?.agentId
+      const thief = await WebCryptoPhone.create(() => undefined)
+      const squat = new WebSocket(`${url}/v1/agent?id=${agentId ?? ''}`)
+      const closed = new Promise<number>((resolve) => {
+        squat.onclose = (event: { code: number }) => resolve(event.code)
+      })
+
+      squat.binaryType = 'arraybuffer'
+      squat.onmessage = (event: { data: unknown }) => {
+        // Ответ телефона-вора с его адресом в заголовке переписан на адрес IDE.
+        thief.receive(new Uint8Array(event.data as ArrayBuffer))
+      }
+      thief.onSend((frame) => {
+        frame.set(fromBase64Url(agentId ?? '') ?? new Uint8Array(16), 18)
+        squat.send(frame)
+      })
+
+      expect(await closed).toBe(4003)
+      expect(service.view().state).toBe('connected')
+      expect(relay?.connections()).toBe(1)
+
+      // Пара и «забудь меня» с телефона: IDE отзывает его обычным путём, окно видит.
+      const phone = await connectPhone(url)
+      const offer = await phone.pairInit(service.startPairing().pairing?.url ?? '')
+      const pending = await until(() => service.view().pending, 'pending phone')
+
+      service.approve(pending)
+      await phone.pairAck(offer)
+      await until(() => (service.view().devices.length === 1 ? true : null), 'paired')
+      await phone.send({ p: 1, k: 'unpair' })
+      await phone.next('revoked')
+      await until(() => (service.view().devices.length === 0 ? true : null), 'forgotten in IDE')
+      await until(() => (views.at(-1) === 0 ? true : null), 'window told')
+    },
+  )
 
   it.skipIf(LIVE_RELAY)(
     'выключенная связь не держит линию, включённая переживает перезапуск релея',

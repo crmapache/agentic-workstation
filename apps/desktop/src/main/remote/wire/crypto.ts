@@ -1,5 +1,6 @@
 import type { KeyObject } from 'node:crypto'
 import {
+  sign,
   hkdfSync,
   createHash,
   createHmac,
@@ -12,17 +13,29 @@ import {
   generateKeyPairSync,
 } from 'node:crypto'
 
+import type { PairRefusal } from '@agentic-workstation/remote-protocol/agent-messages'
 import {
   nonceOf,
   macInput,
   HKDF_INFO,
   KEY_BYTES,
   fingerprintOf,
+  REVOKED_LABEL,
   PAIR_ACK_LABEL,
   sessionSaltText,
   PAIR_PROOF_LABEL,
   NONCE_PREFIX_BYTES,
+  PAIR_REFUSED_LABEL,
 } from '@agentic-workstation/remote-protocol/crypto-spec'
+import { FRAME_PROOF } from '@agentic-workstation/remote-protocol/frame'
+import type { ClaimKind } from '@agentic-workstation/remote-protocol/relay-claim'
+import {
+  proofBody,
+  claimInput,
+  addressOfKeyHash,
+} from '@agentic-workstation/remote-protocol/relay-claim'
+
+import { buildFrame } from './frame'
 
 /**
  * Половина IDE в запечатанном канале: P-256, HKDF-SHA256, AES-256-GCM на `node:crypto`. Метки,
@@ -166,6 +179,44 @@ export const agentProof = (
   agentStaticPub: string,
   agentEphemeralPub: string,
 ): Buffer => mac(secret, [PAIR_ACK_LABEL, agentId, deviceId, agentStaticPub, agentEphemeralPub])
+
+/**
+ * «Тебя отпустили» под долгим ключом пары: его знают только IDE и этот телефон, поэтому слово
+ * с таким тегом не подделает ни релей, ни тот, кто занял бы адрес IDE.
+ */
+export const revokedTag = (auth: Uint8Array, agentId: string, deviceId: string): Buffer =>
+  mac(auth, [REVOKED_LABEL, agentId, deviceId])
+
+/** «Пару не пустили» под секретом QR: сказать это может только тот, кто видел код. */
+export const pairRefusedProof = (
+  secret: Uint8Array,
+  agentId: string,
+  deviceId: string,
+  reason: PairRefusal,
+): Buffer => mac(secret, [PAIR_REFUSED_LABEL, agentId, deviceId, reason])
+
+/**
+ * Адрес на релее - начало SHA-256 открытого ключа подписи (relay-claim.ts). Ключ подписи свой,
+ * не тот, что в ECDH пары: один ключ на два разных алгоритма - то, чего в криптографии избегают.
+ */
+export const addressOf = (signingPublic: KeyObject): Buffer =>
+  Buffer.from(addressOfKeyHash(sha256(signingPublic.export({ type: 'spki', format: 'der' }))))
+
+/** Ответ на вызов релея: ключ подписи и подпись r‖s - кадр FRAME_PROOF от своего адреса. */
+export const claimProof = (
+  signing: KeyPair,
+  kind: ClaimKind,
+  address: Buffer,
+  challenge: Uint8Array,
+): Buffer => {
+  const signature = sign('sha256', claimInput(kind, address.toString('base64url'), challenge), {
+    key: signing.privateKey,
+    dsaEncoding: 'ieee-p1363',
+  })
+  const spki = signing.publicKey.export({ type: 'spki', format: 'der' })
+
+  return buildFrame(FRAME_PROOF, Buffer.alloc(16), address, 0n, proofBody(spki, signature))
+}
 
 /** AES-256-GCM; заголовок кадра - дополнительные данные. Выход - шифртекст и тег, как у WebCrypto. */
 export const seal = (

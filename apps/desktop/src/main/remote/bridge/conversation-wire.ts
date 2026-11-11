@@ -5,6 +5,7 @@ import type {
   PendingWire,
   ConversationWire,
   ConversationStatus,
+  ConversationOutcome,
   ConversationSummary,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
@@ -50,16 +51,24 @@ export class StatusClock {
   }
 }
 
+/** Исход хода словом протокола: ошибка API или лимит у провайдера - failed. */
+const outcomeOf = (conversation: Conversation): ConversationOutcome =>
+  conversation.outcome === 'error' ? 'failed' : conversation.outcome
+
 export const summaryOf = (conversation: Conversation, since: number): ConversationSummary => ({
   id: conversation.id,
   provider: CLAUDE_PROVIDER,
   title: conversation.title || conversation.fork?.sourceTitle || 'New chat',
   status: statusOf(conversation),
+  outcome: outcomeOf(conversation),
   since,
   waiting: conversation.pending?.kind ?? null,
 })
 
-/** Вопрос хода - без «разрешать всегда»: такой ответ с телефона не даётся. */
+/**
+ * Вопрос хода - без «разрешать всегда»: такой ответ с телефона не даётся. Целиком: урезала ли
+ * его дорога до телефона, скажет fitConversation (fit-pending.ts).
+ */
 const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
   if (!pending) return null
 
@@ -72,11 +81,17 @@ const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
         description: pending.description,
         reason: pending.reason,
         input: pending.input,
+        truncated: false,
       }
     case 'question':
-      return { kind: 'question', requestId: pending.requestId, questions: pending.questions }
+      return {
+        kind: 'question',
+        requestId: pending.requestId,
+        questions: pending.questions,
+        truncated: false,
+      }
     case 'plan':
-      return { kind: 'plan', requestId: pending.requestId, plan: pending.plan }
+      return { kind: 'plan', requestId: pending.requestId, plan: pending.plan, truncated: false }
   }
 }
 

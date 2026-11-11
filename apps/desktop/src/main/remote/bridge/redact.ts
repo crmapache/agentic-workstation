@@ -1,6 +1,12 @@
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { WorkspaceState } from '@shared/workspace'
 
+import {
+  HOME_PLACEHOLDER,
+  PROJECT_PLACEHOLDER,
+  WORKTREE_PLACEHOLDER,
+} from '@agentic-workstation/remote-protocol/placeholders'
+
 import type { Redact } from './fit'
 import { asIs } from './fit'
 
@@ -12,11 +18,12 @@ import { asIs } from './fit'
  * телефон рисует текст разметкой, и «<project>» стал бы для неё тегом HTML.
  */
 
-export const PROJECT_LABEL = '{project}'
+/** Метки - из протокола: телефон узнаёт их по тем же строкам (placeholders.ts). */
+export const PROJECT_LABEL = PROJECT_PLACEHOLDER
 
-export const WORKTREE_LABEL = '{worktree}'
+export const WORKTREE_LABEL = WORKTREE_PLACEHOLDER
 
-export const HOME_LABEL = '~'
+export const HOME_LABEL = HOME_PLACEHOLDER
 
 export type Root = { path: string; label: string }
 

@@ -15,6 +15,18 @@
  *   staticPub телефона, ephemeralPub телефона, deviceId])); ответ IDE - HMAC(секрет QR,
  *   macInput([PAIR_ACK_LABEL, agentId, deviceId, staticPub IDE, ephemeralPub IDE])).
  *
+ * - «Тебя отпустили» - тег HMAC-SHA256(долгий ключ пары, macInput([REVOKED_LABEL, agentId,
+ *   deviceId])). Долгий ключ знают только IDE и телефон (ECDH их статических ключей): ни релей,
+ *   ни тот, кто занял бы адрес, этот тег не сделает, а телефон сверяет его, прежде чем стереть
+ *   пару. Новая пара - новый статический ключ телефона, и старый тег к ней не подходит.
+ * - «Пару не пустили» - HMAC-SHA256(секрет QR, macInput([PAIR_REFUSED_LABEL, agentId, deviceId,
+ *   причина])): сказать это может только тот, кто знает код с экрана IDE.
+ *
+ * Одноразовый (эфемерный) ключ рукопожатия не повторяется никогда. Телефон берёт свежий на
+ * каждую новую линию; повтор того же ключа - только пока ответа на него нет. IDE отвечает на
+ * повтор сохранённой копией ответа, пока на выведенных из него ключах не открылся ни один кадр;
+ * после этого тот же ключ - чужая запись из ящика релея, и ответа нет.
+ *
  * Метки - «aw/v1/…», а не «acc/v1/…» amazing-claude-code: телефон ACC не сможет говорить с
  * этой IDE по ошибке, и наоборот, даже через один и тот же релей.
  */
@@ -30,6 +42,10 @@ export const HKDF_INFO = {
 export const PAIR_PROOF_LABEL = 'aw-pair-v1'
 
 export const PAIR_ACK_LABEL = 'aw-pair-ack-v1'
+
+export const PAIR_REFUSED_LABEL = 'aw-pair-refused-v1'
+
+export const REVOKED_LABEL = 'aw/v1/revoked'
 
 /** Кривая ECDH: P-256 есть у WebCrypto любого телефона, X25519 - не у всех. */
 export const CURVE = 'P-256'

@@ -29,9 +29,11 @@ export class MachineSession {
   statusAt = 0
   /** Когда IDE последний раз сказала что-то, что открылось (часы телефона). */
   lastHeard = 0
-  /** Когда телефон стучал последний раз (ping) и когда переспросил список, проверяя IDE. */
+  /** Когда телефон стучал последний раз (ping) и номер стука - pong IDE несёт его же. */
   lastPing = 0
-  probeAt = 0
+  pingN = 0
+  /** С какого стука телефон ждёт ответа IDE; 0 - не ждёт (ответ пришёл). */
+  awaitingPong = 0
   /** Что умеет IDE (caps инвентаря): parts - сообщение частями. */
   caps: readonly string[] = []
   readonly agentAddress: Uint8Array
@@ -66,7 +68,8 @@ export class MachineSession {
   /**
    * Открытый кадр «вот мой свежий ключ» (sessionInit). fresh - новый ключ (новая линия или
    * «твои ключи не наши»); иначе - тот же, что ждёт ответа: копия из ящика релея получит тот же
-   * ответ, и ключи сторон не разойдутся.
+   * ответ, и ключи сторон не разойдутся. Ключ, на который уже пришёл ответ, не повторяется
+   * никогда (crypto-spec.ts): open и close забывают его, и следующий - всегда новый.
    */
   async sessionInit(fresh: boolean, now: number): Promise<Uint8Array> {
     if (fresh || !this.handshake) {

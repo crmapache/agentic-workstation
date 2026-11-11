@@ -3,7 +3,11 @@ import { memoryKeyStore } from './keystore'
 
 const DB_NAME = 'agentic-workstation-remote'
 
-const DB_VERSION = 1
+/**
+ * 2 - адрес телефона стал хешем ключа подписи. Прежний адрес (случайные байты) релей больше не
+ * отдаёт без подписи, и пары на нём не вернутся: при переходе хранилище очищается.
+ */
+const DB_VERSION = 2
 
 const DEVICE_STORE = 'device'
 
@@ -21,8 +25,14 @@ const openDatabase = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const opening = indexedDB.open(DB_NAME, DB_VERSION)
 
-    opening.onupgradeneeded = () => {
+    opening.onupgradeneeded = (event) => {
       const db = opening.result
+
+      if (event.oldVersion > 0 && event.oldVersion < 2) {
+        for (const name of [DEVICE_STORE, MACHINE_STORE]) {
+          if (db.objectStoreNames.contains(name)) db.deleteObjectStore(name)
+        }
+      }
 
       if (!db.objectStoreNames.contains(DEVICE_STORE)) db.createObjectStore(DEVICE_STORE)
       if (!db.objectStoreNames.contains(MACHINE_STORE)) {

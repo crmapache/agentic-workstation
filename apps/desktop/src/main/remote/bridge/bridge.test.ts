@@ -1,16 +1,17 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { ConversationOptions } from '@shared/claude'
+import type { PendingRequest, ConversationOptions } from '@shared/claude'
 
 import { settle, bridgeSetup, OTHER_PHONE, stopBridges } from '../__fixtures__/fake-bridge'
 import {
   RUN,
   itemOf,
+  PERMISSION,
   PROJECT_PATH,
   conversationOf,
   CONVERSATION_ID,
 } from '../__fixtures__/fake-ide'
-import { openProjectKey } from './project-keys'
+import { projectKey } from './project-keys'
 
 afterEach(stopBridges)
 
@@ -25,7 +26,7 @@ describe('инвентарь', () => {
 
     expect(JSON.stringify(inventory)).not.toContain('/Users/')
     expect(open).toMatchObject({
-      key: openProjectKey(PROJECT_PATH),
+      key: projectKey(PROJECT_PATH),
       name: 'secret-client',
       open: true,
     })
@@ -35,13 +36,15 @@ describe('инвентарь', () => {
         provider: 'claude',
         title: 'Fix the login bug',
         status: 'idle',
+        outcome: 'done',
         since: 1000,
         waiting: null,
       },
     ])
     expect(open?.queues).toEqual({ open: 1, running: 1, asking: 1 })
     expect(recent).toMatchObject({ open: false, conversations: [] })
-    expect(recent?.key.startsWith('r-')).toBe(true)
+    // Ключ один и для открытого, и для закрытого: открыт ли - говорит open.
+    expect(recent?.key).toMatch(/^p-[A-Za-z0-9_-]{22}$/)
     expect(inventory.providers[0]).toMatchObject({
       id: 'claude',
       permissionModes: ['default', 'acceptEdits', 'plan'],
@@ -103,7 +106,7 @@ describe('лента разговора', () => {
 
     expect(state.conversation).toMatchObject({
       id: CONVERSATION_ID,
-      projectKey: openProjectKey(PROJECT_PATH),
+      projectKey: projectKey(PROJECT_PATH),
     })
     expect(JSON.stringify(state)).not.toContain('/Users/')
     expect(snapshot).toMatchObject({ seq: 0, epoch: 'epoch-1', hasEarlier: false })
@@ -161,6 +164,11 @@ describe('команды телефона', () => {
       args: [CONVERSATION_ID, { text: 'go', images: [] }],
     })
 
+    const ask = (pending: PendingRequest) => {
+      ide.state.conversations = [conversationOf({ pending, status: 'waiting', pendingCount: 1 })]
+    }
+
+    ask({ ...PERMISSION, requestId: 'r1' })
     await command('conversation.respond', {
       conversationId: CONVERSATION_ID,
       requestId: 'r1',
@@ -171,6 +179,7 @@ describe('команды телефона', () => {
       decision: { behavior: 'allow' },
     })
 
+    ask({ kind: 'plan', requestId: 'r2', toolUseId: 't2', plan: 'Do it' })
     await command('conversation.respond', {
       conversationId: CONVERSATION_ID,
       requestId: 'r2',
@@ -190,6 +199,27 @@ describe('команды телефона', () => {
         decision: { kind: 'permission', behavior: 'allowAlways' },
       }),
     ).toMatchObject({ ok: false, code: 'badArgs' })
+
+    // Ответ на вопрос, которого уже нет (ответили за столом, стоит следующий), - отказ, а не «ок».
+    const answered = ide.calls.length
+
+    ask({ ...PERMISSION, requestId: 'r4' })
+    expect(
+      await command('conversation.respond', {
+        conversationId: CONVERSATION_ID,
+        requestId: 'r1',
+        decision: { kind: 'permission', allow: true },
+      }),
+    ).toMatchObject({ ok: false, code: 'questionGone' })
+    // Тот же вопрос, ответ не того вида - не ответ.
+    expect(
+      await command('conversation.respond', {
+        conversationId: CONVERSATION_ID,
+        requestId: 'r4',
+        decision: { kind: 'plan', approve: true },
+      }),
+    ).toMatchObject({ ok: false, code: 'badArgs' })
+    expect(ide.calls).toHaveLength(answered)
 
     await command('conversation.interrupt', { conversationId: CONVERSATION_ID })
     await command('conversation.rename', { conversationId: CONVERSATION_ID, title: 'New name' })
@@ -215,7 +245,7 @@ describe('команды телефона', () => {
   it('новый разговор - в открытом проекте по ключу, с моделью и режимом, id от IDE', async () => {
     const { ide, command } = bridgeSetup()
     const result = await command('conversation.new', {
-      projectKey: openProjectKey(PROJECT_PATH),
+      projectKey: projectKey(PROJECT_PATH),
       provider: 'claude',
       model: 'haiku',
       permissionMode: 'plan',
@@ -234,7 +264,7 @@ describe('команды телефона', () => {
     const { ide, command } = bridgeSetup()
 
     await command('conversation.new', {
-      projectKey: openProjectKey(PROJECT_PATH),
+      projectKey: projectKey(PROJECT_PATH),
       provider: 'claude',
     })
 
@@ -258,7 +288,7 @@ describe('команды телефона', () => {
 
     expect(
       await command('conversation.new', {
-        projectKey: openProjectKey(PROJECT_PATH),
+        projectKey: projectKey(PROJECT_PATH),
         provider: 'claude',
       }),
     ).toMatchObject({ ok: false, code: 'refused', detail: 'permissionMode' })
@@ -268,7 +298,7 @@ describe('команды телефона', () => {
 
   it('сценарии: полки, запуск, очередь, прогон; закрыть очередь нельзя, незнакомое - отказ', async () => {
     const { ide, command } = bridgeSetup()
-    const key = openProjectKey(PROJECT_PATH)
+    const key = projectKey(PROJECT_PATH)
     const shelves = await command('scenarios.shelves', { projectKey: key })
 
     expect(shelves).toMatchObject({
@@ -292,14 +322,32 @@ describe('команды телефона', () => {
       target: { kind: 'new', worktree: true },
     })
 
+    const asked = { stepKey: 's1:c1:1', askedAt: 30 }
+
     await command('scenarios.queue', { queueId: 'q1', action: { kind: 'stopAfter', itemId: 'i1' } })
-    await command('scenarios.control', { runId: 'r1', action: 'pause' })
-    await command('scenarios.answer', { runId: 'r1', allow: true, text: 'yes' })
+    await command('scenarios.control', { runId: 'r1', action: 'pause', seen: 'running' })
+    await command('scenarios.answer', { runId: 'r1', question: asked, allow: true, text: 'yes' })
     expect(ide.calls.slice(-3)).toEqual([
       { name: 'scenarios.act', args: ['q1', { kind: 'stopAfter', itemId: 'i1' }] },
       { name: 'scenarios.control', args: [PROJECT_PATH, 'r1', 'pause'] },
       { name: 'scenarios.answer', args: [PROJECT_PATH, 'r1', true, 'yes'] },
     ])
+
+    // Устаревший экран: вопрос уже другой, кнопка нарисована для паузы, а прогон идёт.
+    const before = ide.calls.length
+
+    expect(
+      await command('scenarios.answer', {
+        runId: 'r1',
+        question: { ...asked, askedAt: 29 },
+        allow: true,
+        text: 'yes',
+      }),
+    ).toMatchObject({ ok: false, code: 'questionGone' })
+    expect(
+      await command('scenarios.control', { runId: 'r1', action: 'resume', seen: 'paused' }),
+    ).toMatchObject({ ok: false, code: 'runMoved' })
+    expect(ide.calls).toHaveLength(before)
 
     expect(
       await command('scenarios.queue', { queueId: 'q1', action: { kind: 'close' } }),

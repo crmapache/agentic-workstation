@@ -12,6 +12,7 @@ const conversation = (id: string, provider: string): ConversationSummary => ({
   provider,
   title: id,
   status: 'idle',
+  outcome: 'none',
   since: 0,
   waiting: null,
 })

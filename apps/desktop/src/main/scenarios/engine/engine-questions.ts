@@ -1,4 +1,4 @@
-import type { RunStep } from '@shared/scenario-runs'
+import type { RunStep, RunQuestionRef } from '@shared/scenario-runs'
 
 import { askHead } from './engine-asking'
 import { turnOver } from './engine-card'
@@ -34,6 +34,8 @@ const standOn = (e: EngineCore, step: RunStep, ask: CardAsk) => {
       detail: detailOf(ask),
       options: askOptions(ask),
       askedAt: Date.now(),
+      // Явно, а не по «...» в конце: разрешать урезанное вслепую телефон не даёт.
+      truncated: JSON.stringify(ask.input).length > DETAIL_CHARS,
     },
   }
   e.host.notify(`${step.title}: ${title || ask.toolName}`)
@@ -133,12 +135,22 @@ export const answerCardQuestion = (e: EngineCore, body: ReplyBody): void => {
   writeAnswer(e, ask, replyFlag(body, 'allow') ?? false, replyText(body, 'answer'))
 }
 
-/** Человек ответил. И на паузе тоже: пауза над вопросом ничего не прерывала. */
-export const answerByPerson = (e: EngineCore, allow: boolean, text: string): void => {
+/**
+ * Человек ответил. И на паузе тоже: пауза над вопросом ничего не прерывала. asked - какой
+ * вопрос он видел (телефон): стоит уже другой или никакого - ответ не ложится, false.
+ */
+export const answerByPerson = (
+  e: EngineCore,
+  allow: boolean,
+  text: string,
+  asked?: RunQuestionRef,
+): boolean => {
   const ask = e.questions[0]
   const paused = e.phase === 'paused' && e.resumeTo === 'blocked'
+  const shown = e.run.question
 
-  if (!ask || (e.phase !== 'blocked' && !paused)) return
+  if (!ask || (e.phase !== 'blocked' && !paused)) return false
+  if (asked && (shown?.stepKey !== asked.stepKey || shown.askedAt !== asked.askedAt)) return false
 
   e.questions = e.questions.slice(1)
   e.run = { ...e.run, question: null }
@@ -148,7 +160,7 @@ export const answerByPerson = (e: EngineCore, allow: boolean, text: string): voi
     afterQuestion(e)
     e.changed()
 
-    return
+    return true
   }
 
   const next = e.questions[0]
@@ -161,6 +173,8 @@ export const answerByPerson = (e: EngineCore, allow: boolean, text: string): voi
   }
 
   e.changed()
+
+  return true
 }
 
 /** CLI снял вопрос (хук решил, ход кончился): перестать ждать, ничего не отвечая. */

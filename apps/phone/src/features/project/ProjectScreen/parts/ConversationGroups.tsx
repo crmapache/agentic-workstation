@@ -9,7 +9,7 @@ import styles from '../ProjectScreen.module.scss'
 import { groupByProvider } from '../ProjectScreen.utils'
 import { useNow } from '../../../../lib/now.hooks'
 import { useRouter } from '../../../../lib/router.store'
-import { CONVERSATION_TONES } from '../../../../lib/status.constants'
+import { conversationBadge } from '../../../../lib/status.constants'
 import { sinceText } from '../../../../lib/time.utils'
 import type { MirroredInventory } from '../../../../state/remote.types'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
@@ -63,8 +63,8 @@ export const ConversationGroups = ({
                   .filter(Boolean)
                   .join(' · ')}
                 trailing={
-                  <Badge tone={CONVERSATION_TONES[conversation.status]}>
-                    {t(`status.${conversation.status}`)}
+                  <Badge tone={conversationBadge(conversation).tone}>
+                    {t(conversationBadge(conversation).key)}
                   </Badge>
                 }
                 onClick={() =>

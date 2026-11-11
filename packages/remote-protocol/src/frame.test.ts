@@ -1,3 +1,5 @@
+import { verify, webcrypto, createPublicKey } from 'node:crypto'
+
 import { it, expect, describe } from 'vitest'
 
 import { toBase64, fromBase64, toBase64Url, fromBase64Url } from './base64'
@@ -7,12 +9,21 @@ import {
   FrameError,
   decodeFrame,
   encodeFrame,
+  FRAME_PROOF,
   encodeHeader,
   FRAME_SEALED,
   HEADER_BYTES,
   decodeAddress,
   encodeAddress,
+  FRAME_CHALLENGE,
 } from './frame'
+import {
+  proofBody,
+  claimInput,
+  readProofBody,
+  addressOfKeyHash,
+  SIGNING_SPKI_BYTES,
+} from './relay-claim'
 
 const address = (fill: number) => new Uint8Array(16).fill(fill)
 
@@ -99,6 +110,50 @@ describe('метки и входы шифрования', () => {
   it('отпечаток - четыре группы по четыре знака заглавными', () => {
     expect(fingerprintOf(Uint8Array.from({ length: 32 }, (_, index) => index * 17))).toBe(
       '0011 2233 4455 6677',
+    )
+  })
+})
+
+describe('право на адрес у релея', () => {
+  it('вызов и ответ - свои виды кадра, адрес - начало SHA-256 ключа подписи', async () => {
+    const keys = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, [
+      'sign',
+      'verify',
+    ])
+    const spki = new Uint8Array(await webcrypto.subtle.exportKey('spki', keys.publicKey))
+    const address = addressOfKeyHash(new Uint8Array(await webcrypto.subtle.digest('SHA-256', spki)))
+    const challenge = Uint8Array.from({ length: 32 }, (_, index) => index)
+    const signed = (kind: 'agent' | 'device') => claimInput(kind, encodeAddress(address), challenge)
+    const signature = new Uint8Array(
+      await webcrypto.subtle.sign(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        keys.privateKey,
+        signed('device'),
+      ),
+    )
+    const body = proofBody(spki, signature)
+    const read = readProofBody(body)
+    const key = createPublicKey({ key: Buffer.from(read?.spki ?? []), format: 'der', type: 'spki' })
+    const check = (kind: 'agent' | 'device') =>
+      verify(
+        'sha256',
+        signed(kind),
+        { key, dsaEncoding: 'ieee-p1363' },
+        read?.signature ?? new Uint8Array(),
+      )
+
+    expect(spki.length).toBe(SIGNING_SPKI_BYTES)
+    expect(address).toHaveLength(16)
+    // Подпись WebCrypto (r‖s) читает node:crypto - так её и сверяет релей.
+    expect(check('device')).toBe(true)
+    // Подписанное для входа телефона на входе IDE не годится.
+    expect(check('agent')).toBe(false)
+    expect(readProofBody(body.subarray(1))).toBeNull()
+    expect(
+      decodeFrame(encodeFrame(FRAME_CHALLENGE, address, new Uint8Array(16), 0n, challenge)).type,
+    ).toBe(FRAME_CHALLENGE)
+    expect(decodeFrame(encodeFrame(FRAME_PROOF, new Uint8Array(16), address, 0n, body)).type).toBe(
+      FRAME_PROOF,
     )
   })
 })

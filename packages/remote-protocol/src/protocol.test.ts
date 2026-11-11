@@ -4,9 +4,13 @@ import { parseAgentMessage, parseHandshakeReply } from './agent-messages'
 import { decodeBody, encodeBody, utf8Length } from './body'
 import { parseCommand, COMMAND_NAMES, COMMAND_LIMITS, REFUSED_COMMANDS } from './commands'
 import { applyFeedPatch, feedFromSnapshot } from './feed'
+import { MAX_BODY_BYTES } from './frame'
+import { MAX_IMAGES_CHARS } from './message-size'
 import { pairingUrl, parsePairingFragment } from './pairing-url'
-import { MAX_PARTS, PART_CHARS, splitIntoParts } from './parts'
+import { MAX_PARTS, splitIntoParts } from './parts'
 import { parseHandshake, parsePhoneMessage } from './phone-messages'
+import { splitPlaceholders } from './placeholders'
+import { isFeedStub } from './wire-types'
 
 const AGENT = 'A'.repeat(22)
 
@@ -91,6 +95,39 @@ describe('белый список команд', () => {
   it('у каждой команды свой предел частоты', () => {
     for (const name of COMMAND_NAMES) expect(COMMAND_LIMITS[name]).toBeGreaterThan(0)
   })
+
+  it('ответ прогону - с опознанием вопроса, кнопка прогона - с состоянием, для которого нарисована', () => {
+    const question = { stepKey: 's1', askedAt: 5 }
+
+    expect(parseCommand('scenarios.answer', { runId: 'r', allow: true, text: '' }).ok).toBe(false)
+    expect(
+      parseCommand('scenarios.answer', { runId: 'r', question, allow: true, text: '' }).ok,
+    ).toBe(true)
+    expect(parseCommand('scenarios.control', { runId: 'r', action: 'pause' }).ok).toBe(false)
+    expect(
+      parseCommand('scenarios.control', { runId: 'r', action: 'pause', seen: 'running' }).ok,
+    ).toBe(true)
+    expect(parseCommand('scenarios.control', { runId: 'r', action: 'stop', seen: 'done' }).ok).toBe(
+      false,
+    )
+  })
+
+  it('ключ проекта один на открытый и закрытый, приставки недавнего больше нет', () => {
+    const shelves = (projectKey: string) => parseCommand('scenarios.shelves', { projectKey }).ok
+
+    expect(shelves(`p-${AGENT}`)).toBe(true)
+    expect(shelves(`r-${AGENT}`)).toBe(false)
+    expect(parsePhoneMessage({ p: 1, k: 'subscribe', projectKey: `r-${AGENT}` })).toBeNull()
+  })
+
+  it('фото - одним потолком веса на всё сообщение', () => {
+    const image = (chars: number) => ({ mediaType: 'image/png', data: 'A'.repeat(chars) })
+    const send = (images: object[]) =>
+      parseCommand('conversation.send', { conversationId: CONVERSATION, text: '', images }).ok
+
+    expect(send([image(MAX_IMAGES_CHARS)])).toBe(true)
+    expect(send([image(MAX_IMAGES_CHARS / 2), image(MAX_IMAGES_CHARS / 2 + 4)])).toBe(false)
+  })
 })
 
 describe('слова телефона', () => {
@@ -109,6 +146,11 @@ describe('слова телефона', () => {
     expect(parsePhoneMessage({ p: 1, k: 'subscribe', runId: 'r', projectKey: '*' })).toBeNull()
   })
 
+  it('стук с номером и «забудь меня» - слова телефона', () => {
+    expect(parsePhoneMessage({ p: 1, k: 'ping', n: 3 })).toEqual({ p: 1, k: 'ping', n: 3 })
+    expect(parsePhoneMessage({ p: 1, k: 'unpair' })).toEqual({ p: 1, k: 'unpair' })
+  })
+
   it('чужая версия и незнакомый вид - не сообщение', () => {
     expect(parsePhoneMessage({ p: 2, k: 'hello' })).toBeNull()
     expect(parsePhoneMessage({ p: 1, k: 'bash' })).toBeNull()
@@ -124,8 +166,10 @@ describe('слова телефона', () => {
 
   it('слова IDE узнаются по виду', () => {
     expect(parseAgentMessage({ p: 1, k: 'inventory' })).not.toBeNull()
+    expect(parseAgentMessage({ p: 1, k: 'pong', n: 1 })).not.toBeNull()
     expect(parseAgentMessage({ p: 1, k: 'pairAck' })).toBeNull()
     expect(parseHandshakeReply({ p: 1, k: 'pairAck' })).not.toBeNull()
+    expect(parseHandshakeReply({ p: 1, k: 'pairRefused' })).not.toBeNull()
   })
 })
 
@@ -137,14 +181,62 @@ describe('тело и части', () => {
     expect(utf8Length('aя😀')).toBe(new TextEncoder().encode('aя😀').length)
   })
 
-  it('режет на куски, которые склеиваются обратно', () => {
-    const text = 'x'.repeat(PART_CHARS * 2 + 5)
+  it('режет по байтам на проводе: каждый кусок с конвертом влезает в кадр, склеивается обратно', () => {
+    // Кавычки удваиваются в JSON, кириллица - два байта, эмодзи - четыре: по знакам не влезло бы.
+    const text = JSON.stringify({
+      text: '"\\\n'.repeat(40_000) + 'я'.repeat(90_000) + '😀'.repeat(30_000),
+    })
     const parts = splitIntoParts('m1', text)
 
-    expect(parts).toHaveLength(3)
+    expect(parts.length).toBeGreaterThan(2)
     expect(parts.map((part) => part.d).join('')).toBe(text)
     expect(parts.every((part) => parsePhoneMessage(part) !== null)).toBe(true)
-    expect(() => splitIntoParts('m2', 'x'.repeat(PART_CHARS * (MAX_PARTS + 1)))).toThrow()
+
+    for (const part of parts) expect(encodeBody(part).length).toBeLessThanOrEqual(MAX_BODY_BYTES)
+
+    expect(() => splitIntoParts('m2', 'x'.repeat(MAX_BODY_BYTES * (MAX_PARTS + 1)))).toThrow()
+  })
+
+  it('сообщение тяжелее кадра - всегда не меньше двух кусков; пара суррогатов не рвётся', () => {
+    const justOver = 'я'.repeat(Math.ceil(MAX_BODY_BYTES / 2) + 1)
+
+    expect(utf8Length(justOver)).toBeGreaterThan(MAX_BODY_BYTES)
+    expect(splitIntoParts('m3', justOver).length).toBeGreaterThanOrEqual(2)
+
+    // Даже то, что влезло бы одним куском, режется надвое: слово part - это n ≥ 2.
+    const small = splitIntoParts('m4', '😀😀😀')
+
+    expect(small.map((part) => part.n)).toEqual([2, 2])
+    expect(small.map((part) => part.d).join('')).toBe('😀😀😀')
+
+    const emoji = splitIntoParts('m5', '😀'.repeat(200), 400)
+
+    for (const part of emoji) expect(part.d).toMatch(/^(?:\uD83D\uDE00)+$/)
+  })
+})
+
+describe('метки папок и карточки', () => {
+  it('метки - отдельными кусками; «~» - только как начало пути', () => {
+    expect(splitPlaceholders('edit {project}/src/a.ts and ~/notes')).toEqual([
+      { text: 'edit ', placeholder: false },
+      { text: '{project}', placeholder: true },
+      { text: '/src/a.ts and ', placeholder: false },
+      { text: '~', placeholder: true },
+      { text: '/notes', placeholder: false },
+    ])
+    expect(splitPlaceholders('about ~5 minutes, a~/b')).toEqual([
+      { text: 'about ~5 minutes, a~/b', placeholder: false },
+    ])
+    expect(splitPlaceholders('cd ~')).toEqual([
+      { text: 'cd ', placeholder: false },
+      { text: '~', placeholder: true },
+    ])
+    expect(splitPlaceholders('')).toEqual([{ text: '', placeholder: false }])
+  })
+
+  it('карточка вместо элемента узнаётся по stub: true', () => {
+    expect(isFeedStub({ id: 'a', kind: 'tool', stub: true })).toBe(true)
+    expect(isFeedStub({ id: 'a', kind: 'tool', stub: 'yes' })).toBe(false)
   })
 })
 

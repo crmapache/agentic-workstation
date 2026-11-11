@@ -105,7 +105,7 @@ export const runWire = (run: ScenarioRun, keyOf: KeyOf): RunWire => ({
     text: note.text,
     who: note.who,
   })),
-  question: run.question,
+  question: run.question && { ...run.question, truncated: run.question.truncated === true },
   error: run.error,
   answering: run.answering,
   inputs: run.inputs,

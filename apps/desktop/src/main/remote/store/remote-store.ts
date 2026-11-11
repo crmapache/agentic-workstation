@@ -1,9 +1,11 @@
-import { randomBytes } from 'node:crypto'
-
-import { ADDRESS_BYTES } from '@agentic-workstation/remote-protocol/frame'
-
 import type { KeyPair } from '../wire/crypto'
-import { exportPrivate, restoreKeyPair, generateKeyPair } from '../wire/crypto'
+import {
+  addressOf,
+  revokedTag,
+  exportPrivate,
+  restoreKeyPair,
+  generateKeyPair,
+} from '../wire/crypto'
 import type { JsonFile } from '../../storage/json-file'
 import type { StoredDevice, StoredRemote } from './remote-state'
 import { withDevice, withRevoked, parseStoredRemote } from './remote-state'
@@ -18,7 +20,14 @@ export type Vault = {
 /** Пауза записи: «последний раз слышали» меняется на каждом переподключении. */
 const SAVE_MS = 1000
 
-const newAgentId = (): string => randomBytes(ADDRESS_BYTES).toString('base64url')
+/** Ключи IDE: ECDH для пар и подпись для релея; адрес - из ключа подписи. */
+type Keys = { identity: KeyPair; signing: KeyPair; agentId: string }
+
+const keysOf = (identity: KeyPair, signing: KeyPair): Keys => ({
+  identity,
+  signing,
+  agentId: addressOf(signing.publicKey).toString('base64url'),
+})
 
 /**
  * Телефоны, чьи секреты не открываются (хранилища нет, Mac сменился, ключ в Связке другой), -
@@ -34,7 +43,7 @@ const withoutUnreadable = (stored: StoredRemote, vault: Vault): StoredRemote => 
 
   return stored.devices
     .filter((device) => !readable(device.id))
-    .reduce((state, device) => withRevoked(state, device.id), stored)
+    .reduce((state, device) => withRevoked(state, device.id, ''), stored)
 }
 
 /**
@@ -47,7 +56,7 @@ const persisted = (state: StoredRemote, kept: boolean): StoredRemote =>
         ...state,
         devices: state.devices.filter((device) => !!state.secrets[device.id]),
       }
-    : { ...state, agentId: '', identity: '', devices: [], secrets: {} }
+    : { ...state, identity: '', signing: '', devices: [], secrets: {} }
 
 /**
  * Кто эта IDE на релее и кого пустили. Ключи - через хранилище; без него они живут только в
@@ -55,7 +64,7 @@ const persisted = (state: StoredRemote, kept: boolean): StoredRemote =>
  * повторением.
  */
 export class RemoteStore {
-  private identityPair: KeyPair | null = null
+  private keys: Keys | null = null
   /** Секреты пар, когда хранилища нет: до перезапуска IDE. */
   private readonly memorySecrets = new Map<string, Buffer>()
   private saveTimer: NodeJS.Timeout | null = null
@@ -94,49 +103,22 @@ export class RemoteStore {
 
   /** Ключ IDE уже есть - отпечаток можно показать, не создавая его взглядом на экран. */
   get hasIdentity(): boolean {
-    return this.identityPair !== null || this.state.identity !== ''
+    return this.keys !== null || this.state.identity !== ''
   }
 
-  /** Адрес IDE на релее - из одной пары с ключом: новый ключ - новый адрес. */
+  /** Адрес IDE на релее - начало SHA-256 её ключа подписи: новый ключ - новый адрес. */
   agentId(): string {
-    this.identity()
-
-    return this.state.agentId
+    return this.loadKeys().agentId
   }
 
-  /**
-   * Долгая пара ключей IDE: создаётся раз и живёт, пока человек не сменит. Не открылась
-   * (хранилище сменилось, профиль перенесли на другой Mac) - новая, и с ней новый адрес на
-   * релее: иначе копия профиля на втором Mac звонила бы с тем же адресом, и две IDE
-   * вытесняли бы друг друга. Все телефоны спариваются заново.
-   */
+  /** Долгая пара ключей ECDH IDE: ею IDE спаривается с телефонами. */
   identity(): KeyPair {
-    if (this.identityPair) return this.identityPair
+    return this.loadKeys().identity
+  }
 
-    const opened =
-      this.state.identity && this.vault.available() ? this.vault.open(this.state.identity) : null
-    const restored = opened ? tryRestore(opened) : null
-
-    if (restored) {
-      this.identityPair = restored
-
-      if (!this.state.agentId) this.update({ agentId: newAgentId() })
-
-      return restored
-    }
-
-    if (this.state.identity) console.warn('[remote] ключ IDE не открылся - новый ключ и адрес')
-
-    const fresh = generateKeyPair()
-    const kept = this.vault.available()
-
-    this.identityPair = fresh
-    this.update({
-      agentId: newAgentId(),
-      identity: kept ? this.vault.seal(exportPrivate(fresh.privateKey)) : '',
-    })
-
-    return fresh
+  /** Ключ подписи: им IDE доказывает релею, что адрес её (relay-claim.ts). */
+  signing(): KeyPair {
+    return this.loadKeys().signing
   }
 
   /** Долгий ключ пары с телефоном; нет - телефон не спарен (или отпущен). */
@@ -157,15 +139,25 @@ export class RemoteStore {
     this.saveSoon(0)
   }
 
-  /** Отзыв - и есть удаление секрета: кадры телефона больше не открываются. */
-  revoke(deviceId: string): void {
+  /**
+   * Отзыв - и есть удаление секрета: кадры телефона больше не открываются. Ответ - «тебя
+   * отпустили» под долгим ключом пары (base64), посчитанный, пока ключ ещё здесь; он же ложится
+   * в надгробие. Ключа нет - пусто: такому телефону сказать нечем.
+   */
+  revoke(deviceId: string): string {
+    const auth = this.deviceSecret(deviceId)
+    const tag = auth ? revokedTag(auth, this.agentId(), deviceId).toString('base64') : ''
+
     this.memorySecrets.delete(deviceId)
-    this.state = withRevoked(this.state, deviceId)
+    this.state = withRevoked(this.state, deviceId, tag)
     this.saveSoon(0)
+
+    return tag
   }
 
-  wasRevoked(deviceId: string): boolean {
-    return this.state.revoked.includes(deviceId)
+  /** Тег отпущенного телефона; null - не отпускали или тега нет (ключ не открылся). */
+  revokedTag(deviceId: string): string | null {
+    return this.state.revoked.find((entry) => entry.id === deviceId)?.tag || null
   }
 
   /** Телефон доказал, что это он: отметка для списка в окне. */
@@ -193,6 +185,46 @@ export class RemoteStore {
     })
   }
 
+  /**
+   * Ключи IDE создаются раз и живут, пока человек не сменит. Не открылся хоть один (хранилище
+   * сменилось, профиль перенесли на другой Mac) - новые оба, и с ними новый адрес на релее:
+   * иначе копия профиля на втором Mac звонила бы с тем же адресом, и две IDE вытесняли бы друг
+   * друга. Все телефоны спариваются заново.
+   */
+  private loadKeys(): Keys {
+    if (this.keys) return this.keys
+
+    const identity = opened(this.state.identity, this.vault)
+    const signing = opened(this.state.signing, this.vault)
+
+    if (identity && signing) {
+      this.keys = keysOf(identity, signing)
+
+      return this.keys
+    }
+
+    if (this.state.identity || this.state.signing) {
+      console.warn('[remote] ключи IDE не открылись - новые ключи и адрес')
+    }
+
+    const fresh = keysOf(generateKeyPair(), generateKeyPair())
+    const kept = this.vault.available()
+
+    this.keys = fresh
+    // Телефоны прежних ключей с новыми не поговорят: их пары - в отпущенные, без тега.
+    this.state = this.state.devices.reduce(
+      (state, device) => withRevoked(state, device.id, ''),
+      this.state,
+    )
+    this.memorySecrets.clear()
+    this.update({
+      identity: kept ? this.vault.seal(exportPrivate(fresh.identity.privateKey)) : '',
+      signing: kept ? this.vault.seal(exportPrivate(fresh.signing.privateKey)) : '',
+    })
+
+    return fresh
+  }
+
   private update(change: Partial<StoredRemote>) {
     this.state = { ...this.state, ...change }
     this.saveSoon(0)
@@ -205,6 +237,12 @@ export class RemoteStore {
     this.saveTimer = setTimeout(() => void this.flush(), delay)
     this.saveTimer.unref()
   }
+}
+
+const opened = (sealed: string, vault: Vault): KeyPair | null => {
+  const der = sealed && vault.available() ? vault.open(sealed) : null
+
+  return der ? tryRestore(der) : null
 }
 
 const tryRestore = (der: Buffer): KeyPair | null => {

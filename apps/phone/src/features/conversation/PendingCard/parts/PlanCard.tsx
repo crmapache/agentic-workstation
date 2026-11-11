@@ -9,10 +9,11 @@ import { TextArea } from '@agentic-workstation/ui/TextArea'
 import styles from '../PendingCard.module.scss'
 import type { PendingOf, PendingCardProps } from '../PendingCard.types'
 import { Markdown } from '../../../../shell/Markdown/Markdown'
+import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
 /**
  * План на одобрение: одобрить (режим разговора не меняется - «и принимать правки» решают за
- * столом) или доработать словами.
+ * столом) или доработать словами. Урезанный по дороге план не одобряется - только доработать.
  */
 export const PlanCard = ({
   pending,
@@ -32,9 +33,12 @@ export const PlanCard = ({
   return (
     <Card tone="accent" icon={ListChecks} title={t('pending.plan.title')}>
       <div className={styles.body}>
-        <div className={styles.plan}>
-          <Markdown text={pending.plan} />
-        </div>
+        {pending.plan && (
+          <div className={styles.plan}>
+            <Markdown text={pending.plan} />
+          </div>
+        )}
+        {pending.truncated && <TooLongNote />}
         {isRefining && (
           <TextArea
             label={t('pending.plan.feedback')}
@@ -51,13 +55,15 @@ export const PlanCard = ({
             onClick={handleRefine}>
             {t(isRefining ? 'pending.plan.sendFeedback' : 'pending.plan.refine')}
           </Button>
-          <Button
-            size="touch"
-            variant="primary"
-            disabled={busy}
-            onClick={() => onDecide(pending.requestId, { kind: 'plan', approve: true })}>
-            {t('pending.plan.approve')}
-          </Button>
+          {!pending.truncated && (
+            <Button
+              size="touch"
+              variant="primary"
+              disabled={busy}
+              onClick={() => onDecide(pending.requestId, { kind: 'plan', approve: true })}>
+              {t('pending.plan.approve')}
+            </Button>
+          )}
         </div>
       </div>
     </Card>

@@ -1,6 +1,7 @@
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
 import type { RouteOf } from '../../../lib/route.types'
+import { seenRunState } from '../../../lib/status.constants'
 import { useCommand } from '../../../state/commands.hooks'
 import { useWatch, useQueues } from '../../../state/remote.queries'
 
@@ -25,6 +26,7 @@ export const useQueueScreen = (route: RouteOf<'queue'>) => {
     run,
     busy: act.isPending || control.isPending,
     queueAction: (action: QueueAction) => act.mutate({ queueId, action }),
-    runAction: (runId: string, action: RunAction) => control.mutate({ runId, action }),
+    runAction: (shown: { id: string; state: string }, action: RunAction) =>
+      control.mutate({ runId: shown.id, action, seen: seenRunState(shown.state) }),
   }
 }

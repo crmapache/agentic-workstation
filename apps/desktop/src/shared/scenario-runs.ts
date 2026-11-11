@@ -104,7 +104,11 @@ export type RunNote = {
   move?: RunMove | null | undefined
 }
 
-/** Вопрос, на котором прогон стоит и ждёт человека. */
+/**
+ * Вопрос, на котором прогон стоит и ждёт человека. stepKey и askedAt - его опознание: ответ с
+ * устаревшего экрана (телефон) не ложится на следующий вопрос. truncated - подробности
+ * урезаны до DETAIL_CHARS: целиком их нет нигде, кроме запроса карточки.
+ */
 export type RunQuestion = {
   stepKey: string
   title: string
@@ -112,7 +116,11 @@ export type RunQuestion = {
   detail: string
   options: string[]
   askedAt: number
+  truncated?: boolean | undefined
 }
+
+/** Какой вопрос видел тот, кто отвечает. */
+export type RunQuestionRef = Pick<RunQuestion, 'stepKey' | 'askedAt'>
 
 /** Лимит, который прогон пережидает: чей, какое окно, до когда, почему. */
 export type RunLimit = { account: string; window: string; until: number; reason: string }

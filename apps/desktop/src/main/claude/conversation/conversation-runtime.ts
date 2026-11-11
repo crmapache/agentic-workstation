@@ -287,19 +287,20 @@ export class ConversationRuntime {
 
   /**
    * Статус из двух вещей: ждут ли ответа вопросы и идёт ли основной ход. Новый ход
-   * снимает прошлую ошибку и поломку: точка вкладки говорит о том, что идёт сейчас.
+   * снимает прошлую остановку, ошибку и поломку: точка вкладки говорит о том, что идёт сейчас.
    */
   syncStatus(): void {
     const [first] = this.held
     const status = first ? 'waiting' : this.turnActive ? 'running' : 'idle'
-    const failed = this.meta.outcome === 'error' || this.meta.outcome === 'crashed'
+    const { outcome } = this.meta
+    const settled = outcome === 'error' || outcome === 'crashed' || outcome === 'interrupted'
     const { builder } = this.feed
 
     this.update({
       pending: first?.pending ?? null,
       pendingCount: this.held.length,
       status,
-      outcome: this.turnActive && failed ? 'done' : this.meta.outcome,
+      outcome: this.turnActive && settled ? 'done' : outcome,
       backgroundWork: builder.hasBackgroundWork,
       // Счётчик работы для строки статуса: паузы на вопросах, конец, когда всё встало.
       ...syncWork(builder.work, status, builder.hasBackgroundWork, Date.now()),
@@ -336,6 +337,7 @@ export class ConversationRuntime {
       turnStartedAt: null,
       stopRequestedAt: null,
       ...(crashed && { outcome: 'crashed' }),
+      ...(notice?.code === 'interrupted' && { outcome: 'interrupted' }),
     })
     this.syncStatus()
 

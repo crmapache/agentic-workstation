@@ -1,22 +1,27 @@
 import { webcrypto } from 'node:crypto'
 
-import { it, expect, describe, afterEach } from 'vitest'
+import { it, vi, expect, describe, afterEach } from 'vitest'
 
+import { toBase64 } from '@agentic-workstation/remote-protocol/base64'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
+import { PAIR_REFUSED_LABEL } from '@agentic-workstation/remote-protocol/crypto-spec'
 import {
   encodeFrame,
   FRAME_SEALED,
+  decodeAddress,
   FRAME_CONTROL,
+  FRAME_CHALLENGE,
 } from '@agentic-workstation/remote-protocol/frame'
 import { splitIntoParts } from '@agentic-workstation/remote-protocol/parts'
 import type { PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
 
-import { until, WebCryptoPhone } from '../__fixtures__/webcrypto-phone'
+import { mac, until, WebCryptoPhone } from '../__fixtures__/webcrypto-phone'
 import type { SocketLike } from '../link/relay-link'
 import type { StoredRemote } from '../store/remote-state'
 import { RemoteStore } from '../store/remote-store'
 import type { JsonFile } from '../../storage/json-file'
+import { OFFER_LIFETIME_MS } from './pairing'
 import { RemoteAgent } from './remote-agent'
 
 /**
@@ -92,13 +97,23 @@ const setup = async () => {
   )
   const current = () => sockets.at(-1) as FakeSocket
   const deliver = (frame: Uint8Array) => current().onmessage?.({ data: frame.slice().buffer })
-  const phone = new WebCryptoPhone((frame) => {
+  const phone = await WebCryptoPhone.create((frame) => {
     fromPhone.push(frame)
     deliver(frame)
   })
+  /** Сокет открылся, и релей сразу спросил «докажи, что адрес твой» - как apps/relay. */
   const open = () => {
     current().readyState = 1
     current().onopen?.({})
+    deliver(
+      encodeFrame(
+        FRAME_CHALLENGE,
+        decodeAddress(store.agentId()),
+        new Uint8Array(16),
+        0n,
+        new Uint8Array(32).fill(1),
+      ),
+    )
   }
   /** Пара целиком: код, просьба, Approve того, кто на экране, ответ. */
   const pair = async () => {
@@ -136,12 +151,47 @@ describe('телефон и IDE: пара, переподключение, пе�
     agent.reply(phone.deviceId, { p: 1, k: 'resync' })
     await phone.next('resync')
 
-    // Отзыв: запечатанное «отпустили» на связи и открытое - вернувшемуся.
+    // Отзыв: запечатанное «отпустили» на связи и открытое - вернувшемуся; тег - под долгим
+    // ключом пары, и телефон его проверяет.
     agent.revoke(phone.deviceId)
-    await phone.next('revoked')
+
+    const sealed = await phone.next('revoked')
+
+    expect(await phone.revokedTagValid(String(sealed['tag']))).toBe(true)
     phone.replies.length = 0
     await expect(phone.resume(300)).rejects.toThrow('sessionAck')
-    expect(phone.replies.some((reply) => reply.k === 'revoked')).toBe(true)
+
+    const plain = phone.replies.find((reply) => reply.k === 'revoked')
+
+    expect(plain?.k === 'revoked' && (await phone.revokedTagValid(plain.tag))).toBe(true)
+  })
+
+  it('повтор одноразового ключа отвечается копией, пока на ключах не открылся кадр, потом - нет', async () => {
+    const { phone, pair, fromPhone, deliver } = await setup()
+
+    await pair()
+
+    const mark = fromPhone.length
+
+    await phone.resume()
+
+    const init = fromPhone[mark] as Uint8Array
+
+    // Ответ «потерялся»: копия той же просьбы - тот же ответ, ключи не расходятся.
+    phone.replies.length = 0
+    deliver(init)
+
+    const copy = await until(() => phone.replies[0], 'the same ack again')
+
+    expect(copy.k).toBe('sessionAck')
+
+    // Телефон заговорил на новых ключах - ключ отслужил. Его копия из ящика релея - без ответа.
+    await phone.send({ p: 1, k: 'ping', n: 1 })
+    await phone.next('pong')
+    phone.replies.length = 0
+    deliver(init)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(phone.replies).toEqual([])
   })
 
   it('незнакомцу не отвечают, а сообщение не по белому списку не доходит наверх', async () => {
@@ -163,9 +213,34 @@ describe('телефон и IDE: пара, переподключение, пе�
 
     await pair()
     await phone.send({ p: 1, k: 'bash', command: 'rm -rf ~' })
-    await phone.send({ p: 1, k: 'ping' })
-    await until(() => handled[0], 'ping')
-    expect(handled.map((one) => one.message.k)).toEqual(['ping'])
+    await phone.send({ p: 1, k: 'hello' })
+    await until(() => handled[0], 'hello')
+    expect(handled.map((one) => one.message.k)).toEqual(['hello'])
+  })
+
+  it('стук получает pong с тем же номером, а мосту не нужен', async () => {
+    const { handled, phone, pair } = await setup()
+
+    await pair()
+    await phone.send({ p: 1, k: 'ping', n: 7 })
+
+    expect(await phone.next('pong')).toMatchObject({ n: 7 })
+    expect(handled).toEqual([])
+  })
+
+  it('«забудь меня» с телефона - обычный отзыв: секрет уходит, мосту forgotten', async () => {
+    const { agent, store, events, phone, pair } = await setup()
+
+    await pair()
+    await phone.send({ p: 1, k: 'unpair' })
+
+    const revoked = await phone.next('revoked')
+
+    expect(await phone.revokedTagValid(String(revoked['tag']))).toBe(true)
+    expect(store.devices).toEqual([])
+    expect(store.revokedTag(phone.deviceId)).toBe(revoked['tag'])
+    expect(events).toContain('forgotten')
+    expect(agent.sessions.isOpen(phone.deviceId)).toBe(false)
   })
 
   it('код с чужим доказательством телефон в ожидание не ставит', async () => {
@@ -200,6 +275,57 @@ describe('пара: потерянный ответ и Approve того, кто 
     expect(again).toEqual(first)
     await phone.pairAck(offer)
     await phone.send({ p: 1, k: 'ping' })
+  })
+
+  it('«нет», новый код и истёкший код - ждущему «пару не пустили» под секретом его кода', async () => {
+    const { agent, store, phone } = await setup()
+    const refusal = async (secret: Uint8Array, reason: string) =>
+      toBase64(await mac(secret, [PAIR_REFUSED_LABEL, store.agentId(), phone.deviceId, reason]))
+    const refused = (reason: string) =>
+      until(
+        () => phone.replies.find((reply) => reply.k === 'pairRefused' && reply.reason === reason),
+        reason,
+      )
+
+    const first = await phone.pairInit(agent.startPairing().url)
+
+    await until(() => agent.pendingPairing(), 'pending phone')
+    agent.refusePairing()
+
+    const no = await refused('refused')
+
+    expect(no.k === 'pairRefused' && no.proof).toBe(await refusal(first.secret, 'refused'))
+
+    // Новый код, пока телефон ждал прежнего: прежний код для него - «истёк».
+    const second = await phone.pairInit(agent.startPairing().url)
+
+    await until(() => agent.pendingPairing(), 'pending again')
+    agent.startPairing()
+
+    const replaced = await refused('expired')
+
+    expect(replaced.k === 'pairRefused' && replaced.proof).toBe(
+      await refusal(second.secret, 'expired'),
+    )
+    expect(agent.pendingPairing()).toBeNull()
+  })
+
+  it('ждущий, чей код истёк, сам слышит «истёк», а не ждёт молча', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'Date'] })
+
+    try {
+      const { agent, phone } = await setup()
+
+      await phone.pairInit(agent.startPairing().url)
+      await vi.waitFor(() => expect(agent.pendingPairing()).not.toBeNull())
+      vi.advanceTimersByTime(OFFER_LIFETIME_MS + 100)
+      await vi.waitFor(() =>
+        expect(phone.replies.some((reply) => reply.k === 'pairRefused')).toBe(true),
+      )
+      expect(agent.pendingPairing()).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('Approve с чужим отпечатком никого не пускает', async () => {
@@ -269,6 +395,30 @@ describe('пределы частоты при получении', () => {
       code: 'rateLimited',
     })
     expect(handled).toHaveLength(limit)
+  })
+
+  it('не собравшееся сообщение частями - слово с его id, одно на сообщение, а не тишина', async () => {
+    const { handled, phone, pair } = await setup()
+
+    await pair()
+
+    const part = (id: string, i: number, n: number) => ({ p: 1, k: 'part', id, i, n, d: 'x' })
+
+    // Части не сходятся числом - сборка отказана.
+    await phone.send(part('broken', 0, 3))
+    await phone.send(part('broken', 1, 2))
+
+    expect(await phone.next('notice')).toMatchObject({ code: 'partsRefused', about: 'broken' })
+
+    // Третья сборка разом вытесняет первую: и о ней телефону сказано.
+    await phone.send(part('a', 0, 2))
+    await phone.send(part('b', 0, 2))
+    await phone.send(part('c', 0, 2))
+
+    expect(await phone.next('notice', (message) => message['about'] === 'a')).toMatchObject({
+      code: 'partsRefused',
+    })
+    expect(handled).toEqual([])
   })
 
   it('отзыв не обнуляет счёт: отпущенный и спаренный заново не получает свежую квоту', async () => {

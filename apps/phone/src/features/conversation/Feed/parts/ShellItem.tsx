@@ -8,6 +8,7 @@ import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../Feed.constants'
 import styles from '../Feed.module.scss'
 import { text } from '../Feed.utils'
+import { PathText } from '../../../../shell/PathText/PathText'
 
 /** Команда «!», запущенная за столом: на телефоне её только видно, запустить свою нельзя. */
 export const ShellItem = ({ item }: { item: FeedItemWire }) => {
@@ -23,12 +24,18 @@ export const ShellItem = ({ item }: { item: FeedItemWire }) => {
         disabled={!output}
         onClick={() => setIsOpen((open) => !open)}>
         <SquareTerminal size={ROW_ICON_SIZE} strokeWidth={ROW_ICON_STROKE} aria-hidden />
-        <span className={styles.toolSummary}>{text(item, 'command')}</span>
+        <span className={styles.toolSummary}>
+          <PathText text={text(item, 'command')} />
+        </span>
         <span className={styles.steps}>
           {t(`feed.shellStatus.${text(item, 'status')}`, { defaultValue: '' })}
         </span>
       </Disclosure>
-      {isOpen && <pre className={styles.output}>{output}</pre>}
+      {isOpen && (
+        <pre className={styles.output}>
+          <PathText text={output} />
+        </pre>
+      )}
     </div>
   )
 }

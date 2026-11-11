@@ -7,7 +7,7 @@ import { toBase64Url, fromBase64Url } from './base64'
  * | байт  | что                                              |
  * | ----- | ------------------------------------------------ |
  * | 0     | версия провода (1)                               |
- * | 1     | вид кадра: 1 запечатанный, 2 слово релея, 3 пуш  |
+ * | 1     | вид кадра (FRAME_*)                              |
  * | 2-17  | кому (адрес 16 байт)                             |
  * | 18-33 | от кого (адрес 16 байт)                          |
  * | 34-41 | счётчик u64 big-endian (часть nonce AES-GCM)     |
@@ -39,9 +39,29 @@ export const FRAME_CONTROL = 0x02
 /** «Разбуди устройство»: релей отдаёт кадр целиком службе пушей. */
 export const FRAME_PUSH = 0x03
 
-export type FrameType = typeof FRAME_SEALED | typeof FRAME_CONTROL | typeof FRAME_PUSH
+/**
+ * Вызов релея сразу после открытия сокета: «докажи, что адрес твой» (relay-claim.ts). Кому -
+ * заявленный адрес, от кого - нули, тело - случайные байты вызова.
+ */
+export const FRAME_CHALLENGE = 0x04
 
-const TYPES: readonly number[] = [FRAME_SEALED, FRAME_CONTROL, FRAME_PUSH]
+/** Ответ на вызов: открытый ключ подписи и подпись вызова. Релей его не пересылает никому. */
+export const FRAME_PROOF = 0x05
+
+export type FrameType =
+  | typeof FRAME_SEALED
+  | typeof FRAME_CONTROL
+  | typeof FRAME_PUSH
+  | typeof FRAME_CHALLENGE
+  | typeof FRAME_PROOF
+
+const TYPES: readonly number[] = [
+  FRAME_SEALED,
+  FRAME_CONTROL,
+  FRAME_PUSH,
+  FRAME_CHALLENGE,
+  FRAME_PROOF,
+]
 
 export type Frame = {
   version: number

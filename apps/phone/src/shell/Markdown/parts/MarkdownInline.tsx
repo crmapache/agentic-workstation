@@ -2,6 +2,7 @@ import type { Token, Tokens } from 'marked'
 
 import styles from '../Markdown.module.scss'
 import { safeHref, inlineTokens } from '../Markdown.utils'
+import { PathText } from '../../PathText/PathText'
 
 const Inline = ({ token }: { token: Token }) => {
   switch (token.type) {
@@ -24,7 +25,11 @@ const Inline = ({ token }: { token: Token }) => {
         </del>
       )
     case 'codespan':
-      return <code className={styles.inlineCode}>{(token as Tokens.Codespan).text}</code>
+      return (
+        <code className={styles.inlineCode}>
+          <PathText text={(token as Tokens.Codespan).text} />
+        </code>
+      )
     case 'br':
       return <br />
     case 'link': {
@@ -55,7 +60,7 @@ const Inline = ({ token }: { token: Token }) => {
     case 'text': {
       const text = token as Tokens.Text
 
-      return text.tokens ? <MarkdownInline tokens={text.tokens} /> : text.text
+      return text.tokens ? <MarkdownInline tokens={text.tokens} /> : <PathText text={text.text} />
     }
     case 'escape':
       return (token as Tokens.Escape).text

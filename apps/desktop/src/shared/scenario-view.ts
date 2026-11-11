@@ -57,3 +57,10 @@ export type ScenarioHourRequest = {
 }
 
 export type ScenarioRunControl = 'pause' | 'resume' | 'stop'
+
+/**
+ * Почему кнопка прогона не сработала: runOver - прогон не идёт; runMoved - нарисована для
+ * другого состояния (нажали «продолжить», а прогон уже идёт). Окно IDE рисует кнопки по живому
+ * состоянию и этих отказов не видит - их видит телефон с устаревшим экраном.
+ */
+export type RunControlRefusal = 'runOver' | 'runMoved'

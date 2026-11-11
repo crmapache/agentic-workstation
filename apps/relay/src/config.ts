@@ -34,6 +34,8 @@ export type Config = {
   trustProxy: boolean
   /** Как часто спрашивать сокет «жив?»: не ответил до следующего раза - закрыт. */
   pingIntervalMs: number
+  /** Сколько ждать ответа на вызов «докажи, что адрес твой». */
+  claimPatienceMs: number
   /** Где лежит телефонный клиент; пусто - не раздавать. */
   staticDir: string
   logLevel: 'silent' | 'info'
@@ -68,6 +70,7 @@ export const readConfig = (env: Env = process.env): Config => ({
     .filter(Boolean),
   trustProxy: env['RELAY_TRUST_PROXY'] === '1',
   pingIntervalMs: positive(env, 'RELAY_PING_SECONDS', 20) * 1000,
+  claimPatienceMs: positive(env, 'RELAY_CLAIM_SECONDS', 10) * 1000,
   staticDir: env['RELAY_STATIC_DIR'] ?? DEFAULT_STATIC,
   logLevel: env['RELAY_LOG_LEVEL'] === 'silent' ? 'silent' : 'info',
   build: env['RELAY_BUILD'] ?? 'dev',

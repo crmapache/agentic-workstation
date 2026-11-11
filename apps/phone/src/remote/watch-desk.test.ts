@@ -120,4 +120,38 @@ describe('подписки и ленты телефона', () => {
     expect(views).toHaveLength(1)
     expect(sent).toHaveLength(1)
   })
+
+  it('подписка каждого вида - одна: новая заменяет прежнюю, отпустить заменённую - ничего не снять', () => {
+    const { watches, sent } = desk()
+    const first = watches.watch(AGENT, { kind: 'conversation', conversationId: 'c1' })
+    const run = watches.watch(AGENT, { kind: 'run', runId: 'r1' })
+
+    watches.watch(AGENT, { kind: 'conversation', conversationId: 'c2' })
+    sent.length = 0
+    // Экран прежнего разговора ушёл позже, чем открылся новый: отписка сняла бы c2 у IDE.
+    first()
+    expect(sent).toEqual([])
+
+    // Новая линия: по одной подписке каждого вида, а не все, что когда-то были.
+    watches.resubscribeAll(AGENT)
+    expect(sent).toEqual([
+      { p: 1, k: 'subscribe', conversationId: 'c2' },
+      { p: 1, k: 'subscribe', runId: 'r1' },
+    ])
+    run()
+    expect(sent.at(-1)).toEqual({ p: 1, k: 'unsubscribe', runId: 'r1' })
+  })
+
+  it('снимок без подписки (проснулся, журнал ушёл дальше) заменяет ленту, заплатки - от него', () => {
+    const { watches, views } = desk()
+
+    watches.snapshot(AGENT, snapshot())
+    watches.patch(AGENT, patch(4, { upserts: [item('a2')] }))
+    // IDE прислала снимок сама: номер дальше, лента целиком другая.
+    watches.snapshot(AGENT, { ...snapshot(40), items: [item('n1')] })
+    watches.patch(AGENT, patch(41, { upserts: [item('n2')] }))
+
+    expect(views.at(-1)?.items.map((one) => one.id)).toEqual(['n1', 'n2'])
+    expect(views.at(-1)?.seq).toBe(41)
+  })
 })
