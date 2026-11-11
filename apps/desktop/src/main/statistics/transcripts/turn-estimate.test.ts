@@ -1,17 +1,17 @@
 import { it, expect, describe } from 'vitest'
 
+import { MINUTE_MS } from '@shared/time-units'
+
 import { estimateTurns } from './turn-estimate'
 
-const MIN = 60_000
-
 const span = (start: number, end: number, place: number | null = 1) => ({
-  start: start * MIN,
-  end: end * MIN,
+  start: start * MINUTE_MS,
+  end: end * MINUTE_MS,
   place,
 })
 
 const minutes = (segments: { start: number; end: number }[]) =>
-  segments.map((segment) => [segment.start / MIN, segment.end / MIN])
+  segments.map((segment) => [segment.start / MINUTE_MS, segment.end / MINUTE_MS])
 
 describe('estimateTurns', () => {
   it('does not count a pause longer than the idle gap', () => {
@@ -35,7 +35,7 @@ describe('estimateTurns', () => {
   it('never bridges the wait before a turn start', () => {
     const starts = [
       { ts: 0, human: true },
-      { ts: 5 * MIN, human: false },
+      { ts: 5 * MINUTE_MS, human: false },
     ]
 
     expect(minutes(estimateTurns([span(0, 3), span(5, 6)], starts))).toEqual([
@@ -56,7 +56,7 @@ describe('estimateTurns', () => {
   it('cuts a subagent that kept working past the next human message', () => {
     const starts = [
       { ts: 0, human: true },
-      { ts: 6 * MIN, human: true },
+      { ts: 6 * MINUTE_MS, human: true },
     ]
     const segments = estimateTurns([span(0, 2), span(1, 9, 2), span(6, 7)], starts)
 
@@ -67,6 +67,6 @@ describe('estimateTurns', () => {
   })
 
   it('drops zero-length activity', () => {
-    expect(estimateTurns([span(4, 4)], [{ ts: 4 * MIN, human: true }])).toEqual([])
+    expect(estimateTurns([span(4, 4)], [{ ts: 4 * MINUTE_MS, human: true }])).toEqual([])
   })
 })

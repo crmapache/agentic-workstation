@@ -1,3 +1,4 @@
+import { modelLabelOf } from '@shared/claude-models'
 import type {
   StatsPeak,
   StatsReport,
@@ -9,10 +10,10 @@ import type {
 
 import { dateLabel, hourRangeLabel, weekdayRangeLabel } from '../statistics-dates.utils'
 import { formatCount } from '../statistics-format.utils'
-import { modelLabel, projectLabel } from '../statistics-series.utils'
 import { tokensOf } from '../statistics-totals.utils'
 import { YOU_TONE, AGENTS_TONE } from '../statistics.constants'
 import type { RankedRow, CalendarMetric } from '../statistics.types'
+import { baseName } from '../../../lib/path.utils'
 import { PRESENCE_DAYS_FOR_CALENDAR } from './StatisticsView.constants'
 
 /** Шкала списка-рейтинга: самая большая строка - вся полоса. */
@@ -84,11 +85,14 @@ export const calendarMetricOf = (
 /** Число строки рейтинга токенов: «3.1M · $12.40». */
 type RowValue = (tokens: number, cost: number) => string
 
-/** Модели по цене: полоса - цена (по ней и порядок), полное имя модели - в подсказке. */
+/**
+ * Модели по цене: имя - по семье, которую уже решил главный процесс («Opus 4.5»), полное имя
+ * модели - в подсказке; полоса - цена (по ней и порядок).
+ */
 export const modelRows = (models: readonly StatsModelRow[], rowValue: RowValue): RankedRow[] =>
   models.map((model) => ({
     key: model.model,
-    label: modelLabel(model.model),
+    label: modelLabelOf(model.model, model.family === 'other' ? undefined : model.family),
     value: rowValue(tokensOf(model.tokens), model.cost),
     hint: model.model,
     parts: [{ key: 'cost', value: model.cost, tone: AGENTS_TONE }],
@@ -109,7 +113,7 @@ export const projectRows = (
     .filter((project) => project.tokens > 0)
     .map((project) => ({
       key: project.project ?? '',
-      label: project.project === null ? otherFolders : projectLabel(project.project),
+      label: project.project === null ? otherFolders : baseName(project.project),
       value: rowValue(project.tokens, project.cost),
       hint: project.project ?? undefined,
       current: project.project !== null && project.project === activePath,

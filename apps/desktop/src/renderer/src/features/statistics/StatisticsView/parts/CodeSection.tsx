@@ -8,7 +8,7 @@ import styles from '../StatisticsView.module.scss'
 import type { SectionProps } from '../StatisticsView.types'
 import { languageRows } from '../StatisticsView.utils'
 import { shareOf, formatCount, formatPercent } from '../../statistics-format.utils'
-import { barPointsOf, bucketLabelsOf } from '../../statistics-series.utils'
+import { barPointsOf } from '../../statistics-series.utils'
 import { linesOf } from '../../statistics-totals.utils'
 import { YOU_TONE, AGENTS_TONE } from '../../statistics.constants'
 import { FactGrid } from './FactGrid'
@@ -20,13 +20,12 @@ import { StatisticsHelp } from './StatisticsHelp'
  * агентов) и языки по расширениям. Код руками считается с выпуска статистики - строка под
  * заголовком говорит, с какого дня, если период начинается раньше.
  */
-export const CodeSection = ({ data, chart }: SectionProps) => {
+export const CodeSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
+  const humanNote = useHumanNote(data.report)
   const { report } = data
   const totals = report.totals
   const lines = linesOf(totals)
-  const humanNote = useHumanNote(report)
-  const labels = bucketLabelsOf(chart.bucket, (date) => t('statistics.week', { date }))
 
   return (
     <Section

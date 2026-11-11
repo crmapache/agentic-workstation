@@ -21,9 +21,9 @@ import {
 
 import { EFFORT_LEVELS } from '@shared/claude'
 import type { ModelInfo, EffortLevel, PermissionMode } from '@shared/claude'
+import type { PanelModelFamily } from '@shared/claude-models'
+import { MINUTE_MS } from '@shared/time-units'
 
-import { MINUTE_MS } from '../claude.constants'
-import type { ModelFamily } from '../model-chip.types'
 import type { ModeTone, SetupSection } from './ComposerStatus.types'
 
 /** Иконка режима разрешений в кнопке и в меню. */
@@ -77,7 +77,7 @@ export const EFFORT_MENU_ORDER: readonly EffortLevel[] = EFFORT_LEVELS.toReverse
  * sonnet - перо, haiku - лист, opusplan - план. Дальше в меню старые версии той же семьи -
  * с той же иконкой.
  */
-export const MODEL_ICONS: Record<ModelFamily, LucideIcon> = {
+export const MODEL_ICONS: Record<PanelModelFamily, LucideIcon> = {
   fable: Gem,
   opus: BookOpen,
   opusplan: ClipboardList,
@@ -114,7 +114,13 @@ export const MAIN_MODELS = 5
  * Порядок основных моделей в меню - сильнейшая первой. Каталог CLI ставит Opus раньше
  * Fable, а Fable сильнее («for your toughest challenges»).
  */
-export const MODEL_RANK: readonly ModelFamily[] = ['fable', 'opus', 'opusplan', 'sonnet', 'haiku']
+export const MODEL_RANK: readonly PanelModelFamily[] = [
+  'fable',
+  'opus',
+  'opusplan',
+  'sonnet',
+  'haiku',
+]
 
 /**
  * Модели, пока CLI не прислал свой каталог (до первого хода в IDE). Имена - данные

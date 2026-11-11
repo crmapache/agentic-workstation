@@ -1,6 +1,8 @@
 import { Code2, Coins, Timer, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { MINUTE_MS } from '@shared/time-units'
+
 import { Section } from '@agentic-workstation/ui/Section'
 import { ShareBar } from '@agentic-workstation/ui/ShareBar'
 
@@ -14,7 +16,7 @@ import {
   formatDuration,
 } from '../../statistics-format.utils'
 import { linesOf, tokensOf } from '../../statistics-totals.utils'
-import { YOU_TONE, MINUTE_MS, AGENTS_TONE } from '../../statistics.constants'
+import { YOU_TONE, AGENTS_TONE } from '../../statistics.constants'
 import { OverviewTile } from './OverviewTile'
 import { StatisticsHelp } from './StatisticsHelp'
 

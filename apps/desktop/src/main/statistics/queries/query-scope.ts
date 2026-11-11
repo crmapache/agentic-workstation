@@ -1,6 +1,5 @@
 import type { StatsFilter } from '@shared/statistics'
-
-import { MINUTE_MS } from '../stats.constants'
+import { MINUTE_MS } from '@shared/time-units'
 
 /** Выборка: период [from, to) в мс и фильтр окна. */
 export type Scope = { from: number; to: number; filter: StatsFilter }

@@ -1,3 +1,4 @@
+import type { ClaudeModelFamily } from './claude-models'
 import type { ProviderId } from './providers'
 import type { RunState } from './scenario-runs'
 
@@ -79,8 +80,8 @@ export type StatsSeriesPoint = {
 
 export type StatsSeries = { bucket: StatsBucketSize; points: StatsSeriesPoint[] }
 
-/** Семейство модели для подписи и цены. */
-export type StatsModelFamily = 'opus' | 'sonnet' | 'haiku' | 'fable' | 'mythos' | 'other'
+/** Семья модели для подписи в рейтинге; other - не Claude («<synthetic>», модель шлюза). */
+export type StatsModelFamily = ClaudeModelFamily | 'other'
 
 export type StatsModelRow = {
   model: string
@@ -161,7 +162,7 @@ export type StatsScenarios = {
   top: StatsScenarioRow[]
 }
 
-/** Чтение транскриптов: идёт ли, сколько сделано - окно показывает «считаю». */
+/** Чтение транскриптов: идёт ли, сколько сделано - окно показывает «считаю» (stats:scan). */
 export type StatsScanProgress = {
   running: boolean
   /** Первый полный проход по транскриптам уже был: числа истории полные. */
@@ -200,7 +201,6 @@ export type StatsReport = {
   peak: StatsPeak
   workSessions: StatsWorkSessions
   scenarios: StatsScenarios
-  scan: StatsScanProgress
 }
 
 /** Ход агента, отмеренный живыми часами IDE (без ожидания ответа человека). */

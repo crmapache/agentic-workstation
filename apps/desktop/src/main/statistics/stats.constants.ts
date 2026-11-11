@@ -1,6 +1,4 @@
-export const MINUTE_MS = 60_000
-export const HOUR_MS = 60 * MINUTE_MS
-export const DAY_MS = 24 * HOUR_MS
+import { DAY_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 /** Файл базы в userData. */
 export const STATS_DB_FILE = 'statistics.sqlite'
@@ -15,10 +13,10 @@ export const IDLE_GAP_MS = 15 * MINUTE_MS
 export const WORK_SESSION_GAP_MINUTES = 30
 
 /** Как часто дочитывать транскрипты в фоне. */
-export const SCAN_INTERVAL_MS = 60_000
+export const SCAN_INTERVAL_MS = MINUTE_MS
 
 /** Окно узнаёт об изменениях не чаще этого: перерисовка графиков не бесплатна. */
-export const CHANGED_THROTTLE_MS = 30_000
+export const CHANGED_THROTTLE_MS = 30 * SECOND_MS
 
 /**
  * Шаг сложения в SQL - четверть часа. Пояса со сдвигом в полчаса и 45 минут кратны ему,

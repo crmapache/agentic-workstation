@@ -1,5 +1,5 @@
 import { NICE_STEPS } from './BarChart.constants'
-import type { TallestBar, BarChartPoint, BarChartLayout } from './BarChart.types'
+import type { TallestBar, BarChartPoint } from './BarChart.types'
 
 /**
  * Верх шкалы: круглое число не ниже самого высокого столбца. У целых величин (строки,
@@ -25,41 +25,26 @@ export const niceTop = (max: number, integer: boolean): number => {
 export const shareOf = (value: number, top: number): number =>
   top > 0 ? Math.min(1, Math.max(0, value / top)) : 0
 
-/** Высота стопки: сумма рядов шага, отрицательное не складывается. */
-export const totalOf = (values: readonly number[]): number =>
-  values.reduce((sum, value) => sum + Math.max(0, value), 0)
+/** Высота столбца в поле - процентом: доля шкалы, которую он занимает. */
+export const heightOf = (value: number, top: number): string => `${shareOf(value, top) * 100}%`
 
-/**
- * Рекорды графика: у grouped - свой у каждого ряда (его самый высокий столбец ярче
- * остальных), у stacked - одна самая высокая стопка. Ноль рекордом не бывает.
- */
-export const maximaOf = (
-  points: readonly BarChartPoint[],
-  seriesCount: number,
-  layout: BarChartLayout,
-): number[] =>
-  layout === 'stacked'
-    ? [Math.max(0, ...points.map((point) => totalOf(point.values)))]
-    : Array.from({ length: seriesCount }, (_, series) =>
-        Math.max(0, ...points.map((point) => point.values[series] ?? 0)),
-      )
+/** Рекорд каждого ряда: его самый высокий столбец ярче остальных. Ноль рекордом не бывает. */
+export const maximaOf = (points: readonly BarChartPoint[], seriesCount: number): number[] =>
+  Array.from({ length: seriesCount }, (_, series) =>
+    Math.max(0, ...points.map((point) => point.values[series] ?? 0)),
+  )
 
 /**
  * Где стоит число над вершиной: самый высокий столбец всего графика (первый из равных).
  * Одно на график, а не по рекорду ряда: два числа над соседними столбцами одного шага
  * налезли бы друг на друга. Пустой график - нигде.
  */
-export const tallestOf = (
-  points: readonly BarChartPoint[],
-  layout: BarChartLayout,
-): TallestBar | null => {
+export const tallestOf = (points: readonly BarChartPoint[]): TallestBar | null => {
   let best: TallestBar | null = null
   let height = 0
 
   for (const [index, point] of points.entries()) {
-    const values = layout === 'stacked' ? [totalOf(point.values)] : point.values
-
-    for (const [series, value] of values.entries()) {
+    for (const [series, value] of point.values.entries()) {
       if (value > height) {
         height = value
         best = { point: index, series }

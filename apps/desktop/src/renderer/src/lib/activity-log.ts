@@ -1,3 +1,4 @@
+import { MINUTE_MS, SECOND_MS } from '@shared/time-units'
 import type { ManualEntry, PresenceEntry } from '@shared/ipc/statistics.contract'
 
 import { invoke } from './ipc'
@@ -8,8 +9,7 @@ import { invoke } from './ipc'
  * окна - на каждую букву главный процесс не дёргается.
  */
 
-const FLUSH_MS = 30_000
-const MINUTE_MS = 60_000
+const FLUSH_MS = 30 * SECOND_MS
 
 const presence = new Map<string, PresenceEntry>()
 const manual = new Map<string, ManualEntry>()

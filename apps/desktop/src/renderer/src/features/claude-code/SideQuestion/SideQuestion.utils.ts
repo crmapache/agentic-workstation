@@ -1,8 +1,8 @@
 import type { TFunction } from 'i18next'
 
 import type { AsideExchange } from '@shared/claude-panel'
+import { SECOND_MS } from '@shared/time-units'
 
-import { SECOND_MS } from '../claude.constants'
 import { formatDuration } from '../claude.utils'
 
 /**

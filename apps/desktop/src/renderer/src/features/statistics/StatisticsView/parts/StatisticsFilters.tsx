@@ -8,9 +8,9 @@ import { useStatisticsStore } from '../../statistics.store'
 import { useActiveProject } from '../../../../state/workspace.queries'
 
 /**
- * Фильтры одной строкой над всеми разделами: период слева, чьи агенты и какие проекты -
- * справа. Каждый действует на весь вид сразу, у графиков своих фильтров нет. Без открытого
- * проекта выбирать «этот проект» не из чего - переключателя нет.
+ * Фильтры - нижний ряд шапки вида (PageHeader toolbar): период слева, чьи агенты и какие
+ * проекты - справа. Каждый действует на весь вид сразу, у графиков своих фильтров нет. Без
+ * открытого проекта выбирать «этот проект» не из чего - переключателя нет.
  */
 export const StatisticsFilters = () => {
   const { t } = useTranslation()
@@ -23,7 +23,7 @@ export const StatisticsFilters = () => {
   const project = useActiveProject()
 
   return (
-    <div className={styles.filters}>
+    <>
       <Tabs
         label={t('statistics.filters.period')}
         items={PERIODS.map((id) => ({ id, label: t(`statistics.periods.${id}`) }))}
@@ -50,6 +50,6 @@ export const StatisticsFilters = () => {
           />
         )}
       </div>
-    </div>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { niceTop, shareOf, maximaOf, tallestOf, axisAlignOf } from './BarChart.utils'
+import { niceTop, shareOf, heightOf, maximaOf, tallestOf, axisAlignOf } from './BarChart.utils'
 
 const point = (key: string, ...values: number[]) => ({ key, label: key, values })
 
@@ -27,32 +27,33 @@ describe('niceTop', () => {
   })
 })
 
-describe('shareOf', () => {
+describe('shareOf и heightOf', () => {
   it('доля шкалы с краями 0 и 1', () => {
     expect(shareOf(5, 10)).toBe(0.5)
     expect(shareOf(12, 10)).toBe(1)
     expect(shareOf(-1, 10)).toBe(0)
     expect(shareOf(3, 0)).toBe(0)
   })
+
+  it('высота столбца - процентом поля, выше шкалы не растёт', () => {
+    expect(heightOf(5, 10)).toBe('50%')
+    expect(heightOf(12, 10)).toBe('100%')
+    expect(heightOf(0, 10)).toBe('0%')
+  })
 })
 
 describe('maximaOf и tallestOf', () => {
   const points = [point('a', 2, 30), point('b', 9, 4), point('c', 9, 0)]
 
-  it('grouped - рекорд у каждого ряда, число - над самым высоким столбцом графика', () => {
-    expect(maximaOf(points, 2, 'grouped')).toEqual([9, 30])
-    expect(tallestOf(points, 'grouped')).toEqual({ point: 0, series: 1 })
-  })
-
-  it('stacked - одна самая высокая стопка', () => {
-    expect(maximaOf(points, 2, 'stacked')).toEqual([32])
-    expect(tallestOf(points, 'stacked')).toEqual({ point: 0, series: 0 })
+  it('рекорд у каждого ряда, число - над самым высоким столбцом графика', () => {
+    expect(maximaOf(points, 2)).toEqual([9, 30])
+    expect(tallestOf(points)).toEqual({ point: 0, series: 1 })
   })
 
   it('из равных - первый; нули рекордом не бывают', () => {
-    expect(tallestOf([point('a', 3), point('b', 3)], 'grouped')).toEqual({ point: 0, series: 0 })
-    expect(tallestOf([point('a', 0), point('b', 0)], 'grouped')).toBeNull()
-    expect(maximaOf([], 2, 'grouped')).toEqual([0, 0])
+    expect(tallestOf([point('a', 3), point('b', 3)])).toEqual({ point: 0, series: 0 })
+    expect(tallestOf([point('a', 0), point('b', 0)])).toBeNull()
+    expect(maximaOf([], 2)).toEqual([0, 0])
   })
 })
 

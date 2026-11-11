@@ -1,5 +1,6 @@
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
+import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
 import type { MarkSteps } from '@agentic-workstation/ui/ChartTip.types'
 
 import type {
@@ -165,12 +166,12 @@ export const BAR_EMPTY_SAMPLES: readonly BarChartPoint[] = BAR_DAY_SAMPLES.map((
 export const CALENDAR_WEEKDAYS: readonly string[] = ['Mon', '', 'Wed', '', 'Fri', '', '']
 
 /** Год работы: будни плотнее выходных, узор без случайности - образец один и тот же. */
-export const CALENDAR_SAMPLE_DAYS = calendarSample((index) =>
+export const CALENDAR_SAMPLE_DAYS: readonly CalendarHeatmapDay[] = calendarSample((index) =>
   index % 7 >= 5 ? (index % 3) * 20 : ((index * 37) % 11) * 30,
 )
 
 /** Редкие дни: тот же год, активен каждый семнадцатый. */
-export const CALENDAR_SPARSE_DAYS = calendarSample((index) =>
+export const CALENDAR_SPARSE_DAYS: readonly CalendarHeatmapDay[] = calendarSample((index) =>
   index % 17 === 0 ? (index % 5) * 60 + 30 : 0,
 )
 

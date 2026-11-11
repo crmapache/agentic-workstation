@@ -3,17 +3,17 @@ import clsx from 'clsx'
 
 import { ChartTip } from '../ChartTip/ChartTip'
 import { useChartTip, useMarkCursor } from '../ChartTip/ChartTip.hooks'
+import { ChartLegend } from '../ChartTip/parts/ChartLegend'
 import { BAR_STEPS } from './BarChart.constants'
 import styles from './BarChart.module.scss'
 import type { BarChartProps } from './BarChart.types'
 import { niceTop, maximaOf, tallestOf, axisAlignOf } from './BarChart.utils'
-import { BarLegend } from './parts/BarLegend'
 import { BarSlot } from './parts/BarSlot'
 import { BarTable } from './parts/BarTable'
 import { BarTicks } from './parts/BarTicks'
 
 /**
- * Столбцы по шагам (часы, дни): один ряд или два - рядом (grouped) или стопкой (stacked).
+ * Столбцы по шагам (часы, дни): один ряд или два - рядом, у двух над графиком легенда.
  * Ось из трёх линий - верх круглым числом, половина, ноль; столбец не толще меры, лишнее
  * место - воздух. Рекорд ряда ярче, над самым высоким - его число. Под рукой или стрелками -
  * подсказка с числами шага. Для скринридера - картинка с подписью и таблица чисел.
@@ -22,7 +22,6 @@ export const BarChart = ({
   label,
   series,
   points,
-  layout = 'grouped',
   formatValue,
   emptyLabel,
   integer = false,
@@ -31,15 +30,15 @@ export const BarChart = ({
   const { mark, handlers } = useMarkCursor(points.length, BAR_STEPS)
   const tipRef = useChartTip(plotRef, mark)
 
-  const maxima = maximaOf(points, series.length, layout)
+  const maxima = maximaOf(points, series.length)
   const top = niceTop(Math.max(0, ...maxima), integer)
   const empty = maxima.every((max) => max === 0)
-  const tallest = tallestOf(points, layout)
+  const tallest = tallestOf(points)
   const active = mark === null ? undefined : points[mark]
 
   return (
     <figure className={styles.barChart}>
-      {series.length > 1 && <BarLegend series={series} />}
+      {series.length > 1 && <ChartLegend items={series} />}
       <div className={styles.frame}>
         <BarTicks top={top} empty={empty} formatValue={formatValue} />
         <div
@@ -62,7 +61,6 @@ export const BarChart = ({
                   index={index}
                   point={point}
                   series={series}
-                  layout={layout}
                   top={top}
                   maxima={maxima}
                   tallest={tallest}

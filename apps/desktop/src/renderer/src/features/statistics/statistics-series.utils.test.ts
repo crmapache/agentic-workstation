@@ -3,9 +3,7 @@ import { it, expect, describe } from 'vitest'
 import type { StatsCalendarDay, StatsSeriesPoint } from '@shared/statistics'
 
 import {
-  modelLabel,
   barPointsOf,
-  projectLabel,
   bucketLabelsOf,
   calendarDaysOf,
   chartBucketsOf,
@@ -113,19 +111,5 @@ describe('calendarDaysOf', () => {
 
   it('подписаны понедельник, среда и пятница', () => {
     expect(calendarWeekdayLabels()).toEqual(['Mon', '', 'Wed', '', 'Fri', '', ''])
-  })
-})
-
-describe('modelLabel и projectLabel', () => {
-  it('модель - семейство и версия, незнакомая - без приставки и даты', () => {
-    expect(modelLabel('claude-opus-4-5-20251101')).toBe('Opus 4.5')
-    expect(modelLabel('claude-sonnet-4-20250514')).toBe('Sonnet 4')
-    expect(modelLabel('claude-3-5-haiku-20241022')).toBe('3-5-haiku')
-    expect(modelLabel('<synthetic>')).toBe('<synthetic>')
-  })
-
-  it('проект - последняя папка пути', () => {
-    expect(projectLabel('/Users/max/Documents/Projects/roas-radar')).toBe('roas-radar')
-    expect(projectLabel('/Users/max/web/')).toBe('web')
   })
 })

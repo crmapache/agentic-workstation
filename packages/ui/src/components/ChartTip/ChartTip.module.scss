@@ -61,5 +61,45 @@
   color: var(--color-fg-subtle);
 }
 
-// Тоны рядов - после ключа: класс тона на том же элементе перекрывает тон по умолчанию.
+// Легенда рядов - общая у графиков (parts/ChartLegend): у столбцов и у полосы долей одна и та же.
+// Подписи - тише данных и шрифтом интерфейса, даже внутри графика с моноширинными цифрами.
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--color-fg-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  list-style: none;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+// Квадратик ряда повторяет метку: тон ряда, скругление метки.
+.swatch {
+  --tone: var(--color-chart-other);
+
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-xs);
+  background-color: var(--tone);
+}
+
+// Число куска - моноширинным и ярче имени: его ищут глазами.
+.legendValue {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+}
+
+// Тоны рядов - после ключа и квадратика: класс тона на том же элементе перекрывает тон по
+// умолчанию.
 @include chart-tones;

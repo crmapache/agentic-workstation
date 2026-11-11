@@ -1,4 +1,4 @@
-import { MINUTE_MS, SECOND_MS } from './scenarios-run.constants'
+import { MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 /**
  * Цифры сценариев для людей - одни на весь вид: карточка очереди, окно прогона и история

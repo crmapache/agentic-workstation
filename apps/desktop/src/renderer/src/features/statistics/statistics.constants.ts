@@ -1,12 +1,9 @@
 import type { StatsSource } from '@shared/statistics'
+import { MINUTE_MS } from '@shared/time-units'
 
 import type { ChartTone } from '@agentic-workstation/ui/ChartTip.types'
 
 import type { ScopeKind, PeriodKind } from './statistics.types'
-
-export const MINUTE_MS = 60_000
-export const HOUR_MS = 60 * MINUTE_MS
-export const DAY_MS = 24 * HOUR_MS
 
 export const PERIODS: readonly PeriodKind[] = ['today', 'week', 'month', 'all']
 

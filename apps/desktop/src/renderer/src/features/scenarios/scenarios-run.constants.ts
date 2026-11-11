@@ -10,7 +10,3 @@ export const LIMIT_WINDOW_KEYS: Record<string, ParseKeys> = {
   seven_day_opus: 'scenarios.run.limit.windows.weeklyOpus',
   seven_day_sonnet: 'scenarios.run.limit.windows.weeklySonnet',
 }
-
-export const SECOND_MS = 1000
-
-export const MINUTE_MS = 60 * SECOND_MS

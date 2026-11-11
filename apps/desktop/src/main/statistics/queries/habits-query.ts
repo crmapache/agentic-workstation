@@ -6,14 +6,9 @@ import type {
   StatsCalendarDay,
   StatsWorkSessions,
 } from '@shared/statistics'
+import { MINUTE_MS } from '@shared/time-units'
 
-import {
-  SLOT_MS,
-  MINUTE_MS,
-  PEAK_SPAN,
-  CALENDAR_WEEKS,
-  WORK_SESSION_GAP_MINUTES,
-} from '../stats.constants'
+import { SLOT_MS, PEAK_SPAN, CALENDAR_WEEKS, WORK_SESSION_GAP_MINUTES } from '../stats.constants'
 import type { Scope } from './query-scope'
 import { agentWhere, humanWhere, HUMAN_PROMPTS } from './query-scope'
 import {

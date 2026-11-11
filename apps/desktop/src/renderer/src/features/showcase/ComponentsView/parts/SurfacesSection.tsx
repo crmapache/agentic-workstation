@@ -27,10 +27,11 @@ import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { PageSpecimen } from './PageSpecimen'
+import { PageToolbarSpecimen } from './PageToolbarSpecimen'
 
 /**
- * Раздел «Поверхности»: вид с шапкой и разделами, карточка, плитки сеткой, пустое состояние
- * и меню вне всплывающей панели.
+ * Раздел «Поверхности»: вид с шапкой и разделами, шапка с нижним рядом вкладок, карточка,
+ * плитки сеткой, пустое состояние и меню вне всплывающей панели.
  */
 export const SurfacesSection = () => {
   const { t } = useTranslation('showcase')
@@ -38,6 +39,7 @@ export const SurfacesSection = () => {
   return (
     <ShowcaseSection title={t('sections.surfaces')}>
       <PageSpecimen />
+      <PageToolbarSpecimen />
 
       <Specimen label={t('specimens.card')} layout="column">
         <Card

@@ -1,24 +1,14 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
-// Вид середины окна: шапка и фильтры прибиты сверху, прокручивается только страница.
+// Вид середины окна: шапка с фильтрами прибита сверху, прокручивается только страница.
 .view {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-// Фильтры одной строкой над всем, что они меняют: период слева, чьи и какие - справа. В
-// узкой середине строка переносится, а не режет вкладки.
-.filters {
-  display: flex;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--size-panel-gutter) 0;
-}
-
+// Чьи агенты и какие проекты - одной частью нижнего ряда шапки, справа от периода; в узкой
+// середине переносятся внутри неё.
 .filterGroup {
   display: flex;
   flex-wrap: wrap;

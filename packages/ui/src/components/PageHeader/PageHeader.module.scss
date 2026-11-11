@@ -1,12 +1,18 @@
 @use '../../styles/mixins' as *;
 
+// Шапка целиком прибита над прокруткой: полоса и, если есть, нижний ряд под её линией.
+.pageHeader {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+}
+
 // Полоса шапки: подложка панели светлее середины окна и линия снизу - шапку видно как
 // отдельную часть, а не первую строку страницы. Ростом с полосу вкладок файлов и разговоров
 // (поле, ряд контрола md, поле, линия): линия под шапкой - на той же высоте, что у панели
 // рядом и у вида «файл», и не прыгает при смене вида. Поля по бокам - общее поле зоны.
-.pageHeader {
+.strip {
   display: flex;
-  flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
   min-height: calc(var(--size-control-md) + 2 * var(--space-1-5) + var(--border-width));
@@ -32,4 +38,19 @@
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
+}
+
+// Нижний ряд - вкладки или фильтры вида (ADR 0030): под линией, на подложке страницы, а не в
+// полосе - полоса остаётся ростом с полосу вкладок, и линия не прыгает при смене вида. Части
+// ряда расходятся по краям (одна - слева); не влезли рядом - встают строкой ниже, а одна
+// слишком длинная (пять вкладок в узкой середине) прокручивается вбок, а не режет последнюю.
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--size-panel-gutter) 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }

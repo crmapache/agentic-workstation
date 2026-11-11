@@ -1,5 +1,6 @@
 import type { EditorRef } from '@shared/claude-draft'
 
+import { baseName } from '../../lib/path.utils'
 import type { EditorSelection } from '../../state/editor-selection.store'
 import type { EditorOnce, EditorChoice } from './editor-context.types'
 
@@ -17,7 +18,7 @@ export const editorRefOf = (
   selection?: Pick<EditorSelection, 'from' | 'to' | 'text'> | null,
 ): EditorRef => ({
   path: relativePath,
-  name: relativePath.split('/').filter(Boolean).at(-1) ?? relativePath,
+  name: baseName(relativePath),
   ...(selection && {
     from: selection.from,
     to: selection.to,

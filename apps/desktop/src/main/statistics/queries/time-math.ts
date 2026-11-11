@@ -1,6 +1,5 @@
 import type { StatsRange, StatsStreaks, StatsWorkSessions } from '@shared/statistics'
-
-import { DAY_MS, MINUTE_MS } from '../stats.constants'
+import { DAY_MS, MINUTE_MS } from '@shared/time-units'
 
 /** Отрезок времени [start, end) в мс. */
 export type Interval = { start: number; end: number }

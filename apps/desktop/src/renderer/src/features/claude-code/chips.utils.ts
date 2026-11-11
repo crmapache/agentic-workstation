@@ -1,5 +1,6 @@
 import type { ChipKind, DraftChip } from '@shared/claude-draft'
 
+import { baseName } from '../../lib/path.utils'
 import {
   TITLE_LINES,
   CHIP_PATH_KINDS,
@@ -50,7 +51,7 @@ export const chipLabel = (chip: DraftChip): string => {
   if (chip.kind === 'paste') return pastePreview(chip.text ?? '')
   if (chip.kind === 'cmd') return `/${chip.value}`
 
-  const name = truncateMiddle(chip.value.split('/').filter(Boolean).at(-1) ?? chip.value)
+  const name = truncateMiddle(baseName(chip.value))
 
   return chip.range ? `${name} ${chip.range}` : name
 }

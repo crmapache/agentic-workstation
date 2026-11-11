@@ -17,7 +17,7 @@ import { ScenariosTabBody } from './parts/ScenariosTabBody'
 
 /**
  * Сценарии на уровне IDE (ADR 0039) - вид середины окна: шапка с запуском и новым сценарием,
- * вкладки (очереди проекта, все очереди, полки, расписание, история), окна поверх.
+ * под её линией вкладки (очереди проекта, все очереди, полки, расписание, история), окна поверх.
  */
 export const ScenariosView = () => {
   const { t } = useTranslation()
@@ -65,10 +65,10 @@ export const ScenariosView = () => {
             </Button>
           </>
         }
+        toolbar={
+          <Tabs label={t('scenarios.tabs.label')} items={items} value={tab} onChange={setTab} />
+        }
       />
-      <div className={styles.tabs}>
-        <Tabs label={t('scenarios.tabs.label')} items={items} value={tab} onChange={setTab} />
-      </div>
       <div className={styles.scroller}>
         <div className={styles.page}>
           <ScenariosTabBody tab={tab} project={project} />

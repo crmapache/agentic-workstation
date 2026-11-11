@@ -1,5 +1,3 @@
-import type { StatsModelFamily } from '@shared/statistics'
-
 /**
  * Цены моделей Claude на API, долларов за миллион токенов. Стоимость в статистике -
  * «на ценах API»: сколько стоило бы то же самое по счёту API, а не сколько списала подписка.
@@ -91,13 +89,4 @@ export const costOf = (model: string, tokens: AnswerTokens): number => {
     hour * rate.cacheWrite1h
 
   return (dollars / 1_000_000) * (tokens.fast ? 2 : 1)
-}
-
-const FAMILIES: readonly StatsModelFamily[] = ['opus', 'sonnet', 'haiku', 'fable', 'mythos']
-
-/** Семейство модели: «claude-sonnet-5-5» - sonnet. */
-export const familyOf = (model: string): StatsModelFamily => {
-  const lower = model.toLowerCase()
-
-  return FAMILIES.find((family) => lower.includes(family)) ?? 'other'
 }

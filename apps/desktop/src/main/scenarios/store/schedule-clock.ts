@@ -1,4 +1,5 @@
 import type { Scenario, ScenarioSchedule } from '@shared/scenarios'
+import { DAY_MS, MINUTE_MS } from '@shared/time-units'
 
 /**
  * Часы отложенных запусков (ScheduleClock и Schedules в ACC): когда следующий срок, созрел ли
@@ -7,9 +8,7 @@ import type { Scenario, ScenarioSchedule } from '@shared/scenarios'
  */
 
 /** Несколько минут опоздания - это разбуженный ноутбук, а не пропущенная ночь. */
-export const GRACE_MS = 5 * 60 * 1000
-
-const DAY_MS = 24 * 60 * 60 * 1000
+export const GRACE_MS = 5 * MINUTE_MS
 
 /** Ближайший срок после from (мс) по местному времени машины. */
 export const nextDue = (

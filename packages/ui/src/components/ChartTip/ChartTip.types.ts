@@ -26,6 +26,19 @@ export type ChartTipProps = {
 }
 
 /**
+ * Пункт легенды графика: тон ряда, имя и, если нужно, число куска справа («98%», «12.4k · 2%»).
+ * Ряд столбцов и кусок полосы долей подходят как есть.
+ */
+export type ChartLegendItem = {
+  key: string
+  label: string
+  tone: ChartTone
+  valueLabel?: string | undefined
+}
+
+export type ChartLegendProps = { items: readonly ChartLegendItem[] }
+
+/**
  * Куда ходят стрелки: across - влево и вправо (столбец графика - на один, неделя
  * календаря - на семь дней), down - вверх и вниз (день недели в календаре); null - никуда.
  */

@@ -8,6 +8,9 @@ import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
 export type SampleTabId = 'overview' | 'changes' | 'history'
 
+/** Второй ряд вкладок в нижнем ряду шапки вида: какие проекты. */
+export type SampleScopeId = 'all' | 'only'
+
 export type AvatarSample = { tone: AvatarTone; initials: string }
 
 export type BadgeSample = { tone: BadgeTone; labelKey: ParseKeys<'showcase'> }

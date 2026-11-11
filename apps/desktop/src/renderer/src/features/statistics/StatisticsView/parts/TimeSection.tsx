@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import { MINUTE_MS } from '@shared/time-units'
+
 import { BarChart } from '@agentic-workstation/ui/BarChart'
 import { Section } from '@agentic-workstation/ui/Section'
 
@@ -7,8 +9,8 @@ import { useHumanNote } from '../StatisticsView.hooks'
 import styles from '../StatisticsView.module.scss'
 import type { SectionProps } from '../StatisticsView.types'
 import { formatDuration } from '../../statistics-format.utils'
-import { timeUnitOf, barPointsOf, bucketLabelsOf } from '../../statistics-series.utils'
-import { YOU_TONE, MINUTE_MS, AGENTS_TONE } from '../../statistics.constants'
+import { timeUnitOf, barPointsOf } from '../../statistics-series.utils'
+import { YOU_TONE, AGENTS_TONE } from '../../statistics.constants'
 import { FactGrid } from './FactGrid'
 import { StatisticsHelp } from './StatisticsHelp'
 
@@ -17,11 +19,10 @@ import { StatisticsHelp } from './StatisticsHelp'
  * работали, пока человека не было. Под графиком - сколько так набралось, сумма ходов
  * (параллельные складываются), настенное и доля оценки по транскриптам.
  */
-export const TimeSection = ({ data, chart }: SectionProps) => {
+export const TimeSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
-  const totals = data.report.totals
   const humanNote = useHumanNote(data.report)
-  const labels = bucketLabelsOf(chart.bucket, (date) => t('statistics.week', { date }))
+  const totals = data.report.totals
   // Часы дня - минутами, дни - часами: шкала круглая в своей единице.
   const unit = timeUnitOf(chart.bucket)
   const formatValue = (value: number) => formatDuration(value * unit)

@@ -324,8 +324,11 @@ Claude Code (`~/.claude/projects`, с субагентами) дочитываю
 старше трёх минут при фокусе окна) и правки в редакторе (`features/editor/manual-edits.ts`),
 пачками раз в 30 с (`lib/activity-log.ts`, `stats:noteActivity`). Проект транскрипта - по папке:
 worktree очереди - её исходный проект, иначе открытый или недавний проект выше по пути, иначе
-ближайший `.git`. Окно спрашивает отчёт целиком (`stats:report`: период, источник, проект),
-событие `stats:changed` - не чаще раза в 30 с. Стоимость - на ценах API (`pricing.ts`).
+ближайший `.git`. Окно спрашивает отчёт целиком (`stats:report`: период, источник, проект) и,
+отдельно, как идёт чтение транскриптов (`stats:scan`, одно на окно, а не в каждом отчёте);
+событие `stats:changed` - не чаще раза в 30 с, несёт то же чтение и сбрасывает отчёты. Стоимость -
+на ценах API (`pricing.ts`), имена и семьи моделей - `shared/claude-models.ts`, общий с панелью
+Claude Code.
 Графики - примитивы `packages/ui`: `BarChart`, `CalendarHeatmap`, `ShareBar`, `ChartTip`.
 
 **Remote Control** ([ADR 0041](adr/0041-remote-control-ide-level.md)) - телефон смотрит и ведёт

@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next'
 
 import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
-import { DAY_MS, HOUR_MS, MINUTE_MS } from './claude.constants'
 import type { UsageRing } from './claude.types'
 import {
   WEEK_MS,

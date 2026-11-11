@@ -65,6 +65,8 @@ export const QUERY_KEYS = {
   scenarioWorktreeFacts: (queueId: string) => ['scenarios', 'worktree-facts', queueId],
   /** Провайдеры ИИ и на месте ли они. */
   providers: ['providers'],
+  /** Как идёт чтение транскриптов статистики - одно на окно; свежее приносит stats:changed. */
+  statsScan: ['stats', 'scan'],
   /** Все отчёты статистики разом: сбросить, когда главный процесс сказал stats:changed. */
   statsReports: ['stats', 'report'],
   /** Отчёт статистики: период в мс, чьи агенты и проект - всё, что меняет ответ. */

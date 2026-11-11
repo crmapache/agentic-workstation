@@ -1,8 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite'
 
 import type { StatsSeries, StatsBucketSize, StatsSeriesPoint } from '@shared/statistics'
+import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
-import { HOUR_MS, SLOT_MS, MINUTE_MS, HOURLY_PERIOD_MAX_MS } from '../stats.constants'
+import { SLOT_MS, HOURLY_PERIOD_MAX_MS } from '../stats.constants'
 import type { Scope } from './query-scope'
 import { agentWhere, humanWhere } from './query-scope'
 import type { Interval } from './time-math'

@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite'
 
+import { modelFamilyOf, CLAUDE_MODEL_FAMILIES } from '@shared/claude-models'
 import type {
   StatsToolRow,
   StatsModelRow,
@@ -8,7 +9,6 @@ import type {
   StatsLanguageRow,
 } from '@shared/statistics'
 
-import { familyOf } from '../pricing'
 import { TOP_ROWS } from '../stats.constants'
 import type { TurnRow } from './agent-time'
 import { effectiveTurns } from './agent-time'
@@ -37,7 +37,7 @@ export const queryModels = (db: DatabaseSync, scope: Scope): StatsModelRow[] => 
 
   return rows.map((row) => ({
     model: row.model,
-    family: familyOf(row.model),
+    family: modelFamilyOf(row.model, CLAUDE_MODEL_FAMILIES) ?? 'other',
     tokens: {
       input: row.input,
       output: row.output,

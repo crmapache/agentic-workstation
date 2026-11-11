@@ -7,7 +7,7 @@ import styles from '../StatisticsView.module.scss'
 import type { SectionProps } from '../StatisticsView.types'
 import { modelRows, projectRows } from '../StatisticsView.utils'
 import { formatCost, formatCount } from '../../statistics-format.utils'
-import { barPointsOf, bucketLabelsOf } from '../../statistics-series.utils'
+import { barPointsOf } from '../../statistics-series.utils'
 import { tokensOf } from '../../statistics-totals.utils'
 import { AGENTS_TONE } from '../../statistics.constants'
 import { useActiveProject } from '../../../../state/workspace.queries'
@@ -20,12 +20,11 @@ import { StatisticsHelp } from './StatisticsHelp'
  * Токены и цена: токены по шагам (цена шага - в подсказке), сведения периода, из чего
  * сложен вход модели (доля кеша), модели и проекты по цене и токенам.
  */
-export const TokensSection = ({ data, chart }: SectionProps) => {
+export const TokensSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
-  const { report } = data
   const activeProject = useActiveProject()
+  const { report } = data
   const totals = report.totals
-  const labels = bucketLabelsOf(chart.bucket, (date) => t('statistics.week', { date }))
   const rowValue = (tokens: number, cost: number) =>
     t('statistics.tokens.rowValue', { tokens: formatCount(tokens), cost: formatCost(cost) })
 

@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 
+import { ChartLegend } from '../ChartTip/parts/ChartLegend'
 import styles from './ShareBar.module.scss'
 import type { ShareBarProps } from './ShareBar.types'
 
@@ -33,17 +34,7 @@ export const ShareBar = ({ label, segments, total, legend = false }: ShareBarPro
           />
         )}
       </div>
-      {legend && (
-        <ul className={styles.legend}>
-          {segments.map((segment) => (
-            <li key={segment.key} className={styles.legendItem}>
-              <span className={clsx(styles.swatch, styles[segment.tone])} />
-              {segment.label}
-              {segment.valueLabel && <span className={styles.value}>{segment.valueLabel}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {legend && <ChartLegend items={segments} />}
     </div>
   )
 }

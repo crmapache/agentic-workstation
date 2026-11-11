@@ -12,4 +12,9 @@ export type PageHeaderProps = {
   help?: ReactNode | undefined
   /** Справа: главное действие вида. */
   actions?: ReactNode | undefined
+  /**
+   * Нижний ряд под линией шапки: вкладки или фильтры, которые меняют весь вид. Части ряда
+   * расходятся по краям: одна - слева, две - слева и справа.
+   */
+  toolbar?: ReactNode | undefined
 }

@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import { MINUTE_MS } from '@shared/time-units'
+
 import { CalendarHeatmap } from '@agentic-workstation/ui/CalendarHeatmap'
 import { Section } from '@agentic-workstation/ui/Section'
 import { Tabs } from '@agentic-workstation/ui/Tabs'
@@ -9,7 +11,7 @@ import type { SectionProps } from '../StatisticsView.types'
 import { peakWhenOf, activeDaysOf, calendarMetricOf } from '../StatisticsView.utils'
 import { formatCount, formatDuration } from '../../statistics-format.utils'
 import { calendarDaysOf, calendarWeekdayLabels } from '../../statistics-series.utils'
-import { YOU_TONE, MINUTE_MS, AGENTS_TONE } from '../../statistics.constants'
+import { YOU_TONE, AGENTS_TONE } from '../../statistics.constants'
 import { useStatisticsStore } from '../../statistics.store'
 import { FactGrid } from './FactGrid'
 import { StatisticsHelp } from './StatisticsHelp'

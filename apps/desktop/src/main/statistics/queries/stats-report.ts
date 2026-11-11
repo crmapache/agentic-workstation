@@ -1,8 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite'
 
-import type { StatsFilter, StatsPeriod, StatsReport, StatsScanProgress } from '@shared/statistics'
+import type { StatsFilter, StatsPeriod, StatsReport } from '@shared/statistics'
+import { MINUTE_MS } from '@shared/time-units'
 
-import { MINUTE_MS } from '../stats.constants'
 import { turnRows, agentTime, presenceMinutesOf } from './agent-time'
 import { queryTools, queryModels, queryProjects, queryLanguages } from './breakdown-query'
 import { queryPeak, queryStreaks, queryCalendar, queryWorkSessions } from './habits-query'
@@ -45,7 +45,6 @@ export const buildReport = (
   period: StatsPeriod,
   filter: StatsFilter,
   now: number,
-  scan: StatsScanProgress,
 ): StatsReport => {
   const scope: Scope = { from: period.from, to: period.to, filter }
   const start = dataStartOf(db)
@@ -80,6 +79,5 @@ export const buildReport = (
     peak: queryPeak(db, scope),
     workSessions: queryWorkSessions(db, scope),
     scenarios: queryScenarios(db, scope),
-    scan,
   }
 }

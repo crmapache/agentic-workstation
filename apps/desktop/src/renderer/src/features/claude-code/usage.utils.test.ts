@@ -2,8 +2,8 @@ import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
 import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
+import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
-import { HOUR_MS, MINUTE_MS } from './claude.constants'
 import {
   usageTone,
   usageRings,

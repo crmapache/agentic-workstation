@@ -60,7 +60,7 @@
   white-space: nowrap;
 }
 
-// Кольца фокуса нет (ADR 0023): где фокус, говорит обведённый день с подсказкой.
+// Кольца фокуса нет (ADR 0023): где фокус, говорит выделенный день с подсказкой.
 .grid {
   grid-auto-columns: var(--size-chart-cell);
   grid-auto-flow: column;
@@ -71,6 +71,7 @@
   width: var(--size-chart-cell);
   height: var(--size-chart-cell);
   border-radius: var(--radius-xs);
+  transition: opacity var(--duration-fast) var(--easing-standard);
 }
 
 // Пустой день - подложкой, а не тоном: «ничего» не путается с «чуть-чуть».
@@ -94,9 +95,10 @@
   background-color: var(--tone);
 }
 
-// День под рукой - тонкой обводкой цветом текста: тон клетки остаётся её числом.
-.active {
-  outline: var(--border-width) solid var(--color-fg);
+// День под рукой - без обводки (ADR 0023): приглушаются остальные дни, а сам он остаётся
+// полным. Перекрасить его нельзя - тон клетки и есть его число.
+.grid:has(.active) .cell:not(.active) {
+  opacity: var(--opacity-muted);
 }
 
 .legend {

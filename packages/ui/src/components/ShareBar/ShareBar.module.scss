@@ -16,55 +16,19 @@
   border-radius: var(--radius-full);
 }
 
-.segment,
-.swatch {
-  --tone: var(--color-chart-other);
-
-  background-color: var(--tone);
-}
-
 // Крохотная доля (свой код рядом с кодом агентов) - не меньше черты: «ноль» и «чуть-чуть»
 // не одно и то же.
 .segment {
+  --tone: var(--color-chart-other);
+
   flex: 0 1 0;
   min-width: var(--space-0-5);
+  background-color: var(--tone);
 }
 
 .rest {
   flex: 0 1 0;
   background-color: var(--color-bg-active);
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: 0;
-  color: var(--color-fg-muted);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-tight);
-  list-style: none;
-}
-
-.legendItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  min-width: 0;
-}
-
-.swatch {
-  flex: none;
-  width: var(--space-2);
-  height: var(--space-2);
-  border-radius: var(--radius-xs);
-}
-
-// Число куска - моноширинным и ярче подписи: его ищут глазами.
-.value {
-  color: var(--color-fg);
-  font-family: var(--font-code);
 }
 
 // Тоны - в конце: класс тона на куске перекрывает тон по умолчанию.

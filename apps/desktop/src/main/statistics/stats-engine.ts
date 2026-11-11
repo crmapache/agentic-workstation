@@ -81,7 +81,7 @@ export class StatsEngine {
   async handle(request: EngineRequest): Promise<EngineOps[EngineOp]['response']> {
     if (request.op === 'scan') return this.scan(request.root)
     if (request.op === 'query') {
-      return buildReport(this.db, request.period, request.filter, request.now, { ...this.progress })
+      return buildReport(this.db, request.period, request.filter, request.now)
     }
 
     if (request.op === 'note') {

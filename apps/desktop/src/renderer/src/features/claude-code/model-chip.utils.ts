@@ -2,47 +2,28 @@ import type { TFunction } from 'i18next'
 
 import type { Conversation } from '@shared/claude'
 import { fastModeShown } from '@shared/claude-fast-mode'
+import type { PanelModelFamily } from '@shared/claude-models'
+import { modelLabelOf, modelFamilyOf, PANEL_MODEL_FAMILIES } from '@shared/claude-models'
 
 import { fastChipHint } from './fast-mode.utils'
-import { MODEL_FAMILIES } from './model-chip.constants'
-import type { ModelChip, ModelFamily } from './model-chip.types'
+import type { ModelChip } from './model-chip.types'
 import type { PickableModel } from './models.types'
 
-/** Идентификатор без регистра и метки окна: «claude-opus-5[1m]» - «claude-opus-5». */
-const bareModel = (model: string): string => model.toLowerCase().replace(/\[.*\]$/, '')
-
 /**
- * Семья модели по идентификатору («opus», «claude-opus-4-8», «sonnet[1m]»). Своя модель
- * через прокси и модель чужого провайдера семьи не имеют - undefined.
+ * Семья модели для панели («opus», «claude-opus-4-8», «sonnet[1m]») - из тех, что панель знает
+ * (иконка, порядок меню). Своя модель через прокси и модель чужого провайдера - undefined.
  */
-export const modelFamily = (model: string): ModelFamily | undefined => {
-  const bare = bareModel(model)
-
-  return MODEL_FAMILIES.find((name) => bare.includes(name))
-}
+export const modelFamily = (model: string): PanelModelFamily | undefined =>
+  modelFamilyOf(model, PANEL_MODEL_FAMILIES)
 
 /**
- * Имя модели для людей из полного идентификатора: «claude-opus-4-8» - «Opus 4.8»,
- * «[1m]» - «1M»; дата сборки в конце не нужна. Из каталога - его подпись.
+ * Имя модели для людей: из каталога - его подпись, иначе из идентификатора
+ * («claude-opus-4-8» - «Opus 4.8», «[1m]» - «1M», дата сборки не нужна).
  */
 export const modelCaption = (model: string, models: readonly PickableModel[]): string => {
   const known = models.find((option) => option.value === model || option.resolved === model)
 
-  if (known) return known.displayName
-
-  const bare = bareModel(model)
-  const family = modelFamily(model)
-
-  if (!family) return model
-
-  const version = bare
-    .split('-')
-    .filter((part) => /^\d+$/.test(part) && part.length < 5)
-    .join('.')
-  const name = family.charAt(0).toUpperCase() + family.slice(1)
-  const wide = /\[1m\]$/i.test(model) ? ' 1M' : ''
-
-  return `${name}${version ? ` ${version}` : ''}${wide}`
+  return known ? known.displayName : modelLabelOf(model, modelFamily(model))
 }
 
 /**

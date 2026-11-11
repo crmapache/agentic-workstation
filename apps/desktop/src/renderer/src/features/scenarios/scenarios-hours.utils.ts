@@ -1,11 +1,10 @@
 import type { Scenario, ScenarioRepeat, ScenarioSchedule } from '@shared/scenarios'
+import { DAY_MS } from '@shared/time-units'
 
 /**
  * Часы на экране (schedule.ts, timetable.ts, due.ts в ACC): ближайший срок формы, расписание
  * по дням - таймплан, а не список: дни заголовками, час в жёлобе, одна строка на договорённость.
  */
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Минуты в меню часа - по пять: это договор с утром, а не будильник. */
 export const MINUTE_STEP = 5

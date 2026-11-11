@@ -42,6 +42,7 @@ export const createStatisticsHandlers = (
         },
       )
     },
+    'stats:scan': () => stats.progress,
     'stats:noteActivity': ({ presence, manual }) => {
       const minutes: StatsPresenceNote[] = listOf(presence).flatMap((entry) =>
         isRecord(entry) ? [{ minute: count(entry.minute), project: pathOf(entry.projectId) }] : [],

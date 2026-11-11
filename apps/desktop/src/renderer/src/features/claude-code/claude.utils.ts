@@ -3,11 +3,10 @@ import type { TFunction } from 'i18next'
 import type { ClaudeState } from '@shared/claude'
 import type { FeedItem, FeedPatch, ToolInput, ConversationFeed } from '@shared/claude-feed'
 import type { ToolsFailure } from '@shared/claude-tools'
+import { MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 import { splitPath } from '../../lib/path.utils'
 import {
-  MINUTE_MS,
-  SECOND_MS,
   CONTEXT_CALM_SHARE,
   TOOLS_FAILURE_KEYS,
   CONTEXT_DANGER_SHARE,

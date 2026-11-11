@@ -16,16 +16,12 @@ export type BarChartPoint = {
   note?: string | undefined
 }
 
-/** grouped - столбцы рядов рядом (сравнить), stacked - друг на друге (сложить). */
-export type BarChartLayout = 'grouped' | 'stacked'
-
 export type BarChartProps = {
   /** Что на графике - имя для скринридера и подпись таблицы чисел. */
   label: string
-  /** Один или два ряда; у двух и больше появляется легенда. */
+  /** Один или два ряда - столбцы рядом; у двух и больше появляется легенда. */
   series: readonly BarChartSeries[]
   points: readonly BarChartPoint[]
-  layout?: BarChartLayout | undefined
   /** Число для людей: шкала, подсказка, таблица («12.4k», «1h 20m»). */
   formatValue: (value: number) => string
   /** Все числа - нули: слова посередине поля вместо пустых столбцов. */
@@ -41,9 +37,8 @@ export type BarSlotProps = {
   index: number
   point: BarChartPoint
   series: readonly BarChartSeries[]
-  layout: BarChartLayout
   top: number
-  /** Рекорд каждого ряда (grouped) или высота самой высокой стопки (stacked). */
+  /** Рекорд каждого ряда - его столбец полным тоном. */
   maxima: readonly number[]
   tallest: TallestBar | null
   active: boolean
@@ -51,7 +46,5 @@ export type BarSlotProps = {
 }
 
 export type BarTableProps = Pick<BarChartProps, 'label' | 'series' | 'points' | 'formatValue'>
-
-export type BarLegendProps = Pick<BarChartProps, 'series'>
 
 export type BarTicksProps = { top: number; empty: boolean; formatValue: (value: number) => string }

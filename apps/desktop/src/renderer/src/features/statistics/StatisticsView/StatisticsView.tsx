@@ -11,8 +11,8 @@ import { StatisticsHelp } from './parts/StatisticsHelp'
 import { StatisticsPage } from './parts/StatisticsPage'
 
 /**
- * Статистика IDE в середине окна (docs/workplan/20-statistics.md, ADR 0030): шапка вида,
- * фильтры одной строкой, под ними разделы - сводка, код, время, привычки, токены, сценарии,
+ * Статистика IDE в середине окна (docs/workplan/20-statistics.md, ADR 0030): шапка вида с
+ * фильтрами нижним рядом, под ней разделы - сводка, код, время, привычки, токены, сценарии,
  * инструменты. Агенты - вся машина (транскрипты Claude Code), человек - только окно IDE.
  * Числа считает главный процесс, здесь только вид.
  */
@@ -26,8 +26,8 @@ export const StatisticsView = () => {
         icon={ChartColumn}
         title={t('statistics.title')}
         help={<StatisticsHelp topic="page" />}
+        toolbar={<StatisticsFilters />}
       />
-      <StatisticsFilters />
       <div className={styles.scroller}>
         {data && <StatisticsPage data={data} />}
         {failed && (

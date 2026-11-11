@@ -16,6 +16,9 @@ export type ChartBucket = 'hour' | 'day' | 'week'
 
 export type ChartBuckets = { bucket: ChartBucket; points: StatsSeriesPoint[] }
 
+/** Подписи шага: полная - в подсказке и таблице, короткая - под осью. */
+export type BucketLabels = { full: (start: number) => string; axis: (start: number) => string }
+
 /**
  * Изменение числа против прошлого периода. percent null - прошлое было нулём, сейчас нет
  * («new»): процент от нуля ничего не значит.

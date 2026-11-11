@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { splitPath, displayPath, isOutsidePath } from './path.utils'
+import { baseName, splitPath, displayPath, isOutsidePath } from './path.utils'
 
 describe('splitPath', () => {
   it('папка без слеша на конце и имя файла', () => {
@@ -9,6 +9,18 @@ describe('splitPath', () => {
 
   it('файл в корне проекта - без папки', () => {
     expect(splitPath('package.json')).toEqual({ folder: '', name: 'package.json' })
+  })
+})
+
+describe('baseName', () => {
+  it('последняя часть пути, слеш на конце не мешает', () => {
+    expect(baseName('/Users/max/Documents/Projects/roas-radar')).toBe('roas-radar')
+    expect(baseName('/Users/max/web/')).toBe('web')
+    expect(baseName('src/app/main.tsx')).toBe('main.tsx')
+  })
+
+  it('путь без частей - как есть', () => {
+    expect(baseName('/')).toBe('/')
   })
 })
 

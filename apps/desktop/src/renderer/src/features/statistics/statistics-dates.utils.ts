@@ -1,6 +1,5 @@
 import type { StatsRange } from '@shared/statistics'
-
-import { DAY_MS } from './statistics.constants'
+import { DAY_MS } from '@shared/time-units'
 
 /**
  * Даты и часы статистики. Интерфейс английский - и даты по-английски, а не по языку

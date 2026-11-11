@@ -1,9 +1,5 @@
-import type {
-  StatsSeries,
-  StatsCalendarDay,
-  StatsModelFamily,
-  StatsSeriesPoint,
-} from '@shared/statistics'
+import type { StatsSeries, StatsCalendarDay, StatsSeriesPoint } from '@shared/statistics'
+import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
 import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
@@ -16,14 +12,12 @@ import {
   weekdayDayLabel,
 } from './statistics-dates.utils'
 import {
-  HOUR_MS,
-  MINUTE_MS,
   AXIS_LABELS,
   MAX_DAY_BARS,
   LABELED_WEEKDAYS,
   FIRST_MONTH_LABEL_MAX_DAY,
 } from './statistics.constants'
-import type { ChartBucket, ChartBuckets, CalendarMetric } from './statistics.types'
+import type { ChartBucket, BucketLabels, ChartBuckets, CalendarMetric } from './statistics.types'
 
 /** Числа точки графика, которые складываются, когда дни собираются в недели. */
 const SUMMED = [
@@ -68,9 +62,6 @@ export const chartBucketsOf = (series: StatsSeries): ChartBuckets => {
 
   return { bucket: 'week', points: [...weeks.values()] }
 }
-
-/** Подписи шага: полная - в подсказке и таблице, короткая - под осью. */
-export type BucketLabels = { full: (start: number) => string; axis: (start: number) => string }
 
 /** Подписи шагов графика; неделя - словами из i18n («Week of Nov 10»). */
 export const bucketLabelsOf = (
@@ -136,30 +127,3 @@ export const calendarDaysOf = (
 /** Подписи строк календаря: понедельник, среда, пятница - остальные пустые. */
 export const calendarWeekdayLabels = (): string[] =>
   weekdayNames().map((name, index) => (LABELED_WEEKDAYS.includes(index) ? name : ''))
-
-const FAMILY_NAMES: Record<Exclude<StatsModelFamily, 'other'>, string> = {
-  opus: 'Opus',
-  sonnet: 'Sonnet',
-  haiku: 'Haiku',
-  fable: 'Fable',
-  mythos: 'Mythos',
-}
-
-const MODEL_PATTERN = /^(opus|sonnet|haiku|fable|mythos)-(\d+)(?:-(\d+))?$/
-
-/**
- * Имя модели для людей: «claude-opus-4-5-20251101» - «Opus 4.5». Незнакомое - как есть, без
- * приставки и даты.
- */
-export const modelLabel = (model: string): string => {
-  const bare = model.replace(/^claude-/, '').replace(/-\d{8}$/, '')
-  const match = MODEL_PATTERN.exec(bare)
-  const family = match?.[1] as Exclude<StatsModelFamily, 'other'> | undefined
-
-  if (!match || !family) return bare
-
-  return `${FAMILY_NAMES[family]} ${match[3] ? `${match[2]}.${match[3]}` : match[2]}`
-}
-
-/** Имя проекта по пути - последняя папка. */
-export const projectLabel = (path: string): string => path.split('/').filter(Boolean).at(-1) ?? path

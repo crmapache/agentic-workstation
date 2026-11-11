@@ -11,8 +11,8 @@ import {
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
- * Образцы столбцового графика: один ряд с числом над самым высоким столбцом, два ряда рядом
- * и стопкой, пустой период. Наведи или пройди стрелками - подсказка с числами шага.
+ * Образцы столбцового графика: один ряд с числом над самым высоким столбцом, два ряда рядом с
+ * легендой, пустой период. Наведи или пройди стрелками - подсказка с числами шага.
  */
 export const BarChartSpecimens = () => {
   const { t } = useTranslation('showcase')
@@ -39,17 +39,6 @@ export const BarChartSpecimens = () => {
           label={t('samples.chartLinesLabel')}
           series={series}
           points={BAR_DAY_SAMPLES}
-          formatValue={formatValue}
-          emptyLabel={t('samples.chartEmpty')}
-          integer
-        />
-      </Specimen>
-      <Specimen label={t('specimens.barChartStacked')} layout="column">
-        <BarChart
-          label={t('samples.chartLinesLabel')}
-          series={series}
-          points={BAR_DAY_SAMPLES}
-          layout="stacked"
           formatValue={formatValue}
           emptyLabel={t('samples.chartEmpty')}
           integer

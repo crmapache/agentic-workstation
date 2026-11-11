@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { costOf, priceOf, familyOf } from './pricing'
+import { costOf, priceOf } from './pricing'
 
 const tokens = (patch: Partial<Parameters<typeof costOf>[1]> = {}) => ({
   input: 0,
@@ -41,13 +41,5 @@ describe('costOf', () => {
     expect(priceOf('claude-fable-5').cacheRead).toBe(1)
     expect(priceOf('claude-sonnet-4-6').input).toBe(3)
     expect(priceOf('claude-opus-4-1').input).toBe(15)
-  })
-})
-
-describe('familyOf', () => {
-  it('names the family of a model id', () => {
-    expect(familyOf('claude-sonnet-5-5')).toBe('sonnet')
-    expect(familyOf('claude-3-5-haiku-20241022')).toBe('haiku')
-    expect(familyOf('gpt-x')).toBe('other')
   })
 })

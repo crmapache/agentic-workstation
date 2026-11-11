@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 
 import type { StatsTokens, StatsScanProgress } from '@shared/statistics'
 
-import type { RankedRow, ChartBuckets, StatisticsData } from '../statistics.types'
+import type { RankedRow, BucketLabels, ChartBuckets, StatisticsData } from '../statistics.types'
 
 /** О чём «?»: вид целиком или его раздел. */
 export type HelpTopic =
@@ -11,8 +11,8 @@ export type HelpTopic =
 
 export type StatisticsHelpProps = { topic: HelpTopic }
 
-/** Раздел вида: числа периода и его шаги графиков (собраны один раз на весь вид). */
-export type SectionProps = { data: StatisticsData; chart: ChartBuckets }
+/** Раздел вида: числа периода, шаги графиков и их подписи (собраны один раз на весь вид). */
+export type SectionProps = { data: StatisticsData; chart: ChartBuckets; labels: BucketLabels }
 
 export type StatisticsPageProps = { data: StatisticsData }
 

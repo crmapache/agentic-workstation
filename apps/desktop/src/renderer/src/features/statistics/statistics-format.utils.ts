@@ -1,4 +1,5 @@
-import { MINUTE_MS } from './statistics.constants'
+import { MINUTE_MS } from '@shared/time-units'
+
 import type { Delta } from './statistics.types'
 
 /**
