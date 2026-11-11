@@ -121,6 +121,26 @@ export const roadLayout = (
   return windowed(count, at, 1)
 }
 
+/**
+ * Пройдена ли связка перед частью at: остановки по обе её стороны сделаны. У складки «+N»
+ * сторона - крайняя спрятанная остановка, так что связка не зеленеет поверх несделанного.
+ */
+export const isLinkPassed = (
+  stops: readonly RoadmapStop[],
+  items: readonly RoadItem[],
+  at: number,
+): boolean => {
+  const before = items[at - 1]
+  const after = items[at]
+
+  if (!before || !after) return false
+
+  const left = before.kind === 'stop' ? before.index : before.to
+  const right = after.kind === 'stop' ? after.index : after.from
+
+  return stops[left]?.state === 'done' && stops[right]?.state === 'done'
+}
+
 /** Как рисовать остановку: галочка, крестик, пунктир, номер. */
 export const stopLook = (state: StepState): 'done' | 'failed' | 'skipped' | 'ahead' | 'open' => {
   if (state === 'done') return 'done'

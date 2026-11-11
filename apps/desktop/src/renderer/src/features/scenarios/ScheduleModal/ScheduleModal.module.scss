@@ -1,7 +1,8 @@
+// Поля один под другим, каждое со своей подписью - как в окне запуска сценария.
 .body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .footer {
@@ -23,8 +24,9 @@
   font-size: var(--font-size-sm);
 }
 
-// Подпись вопроса сценария - его словами, обычным регистром: это вопрос, а не раздел.
-.inputCaption {
+// Подпись над полем - как у TextField и SelectField, обычным регистром: час, ритм, вопрос
+// сценария его словами (с пометкой «обязательно» рядом).
+.caption {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
@@ -45,7 +47,7 @@
   gap: var(--space-2);
 }
 
-// Кнопка выбора и вкладки - по своей ширине, а не на всю строку раздела (как в окне запуска).
+// Вкладки ритма и дня - по своей ширине, а не на всю строку формы.
 .picker {
   display: flex;
 }
@@ -58,11 +60,4 @@
 .due {
   color: var(--color-fg-subtle);
   font-size: var(--font-size-xs);
-}
-
-// Вопросы: каждый своим полем, просторнее, чем подпись и одно поле.
-.asks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
 }

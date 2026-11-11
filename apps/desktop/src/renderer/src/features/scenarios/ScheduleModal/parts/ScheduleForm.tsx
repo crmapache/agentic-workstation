@@ -7,7 +7,6 @@ import type { ScenarioRepeat } from '@shared/scenarios'
 import { Button } from '@agentic-workstation/ui/Button'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
-import { Section } from '@agentic-workstation/ui/Section'
 import { Switch } from '@agentic-workstation/ui/Switch'
 import { Tabs } from '@agentic-workstation/ui/Tabs'
 
@@ -86,7 +85,10 @@ export const ScheduleForm = (props: ScheduleFormProps) => {
           />
         )}
         <HourPicker hour={form.hour} onChange={when.setHour} />
-        <Section size="sm" title={t('scenarios.schedule.form.repeat')}>
+        <div className={styles.field}>
+          <span className={styles.caption} aria-hidden>
+            {t('scenarios.schedule.form.repeat')}
+          </span>
           <div className={styles.picker}>
             <Tabs
               label={t('scenarios.schedule.form.repeat')}
@@ -95,9 +97,12 @@ export const ScheduleForm = (props: ScheduleFormProps) => {
               onChange={handleRepeat}
             />
           </div>
-        </Section>
+        </div>
         {form.hour.repeat === 'weekly' && (
-          <Section size="sm" title={t('scenarios.schedule.form.onDay')}>
+          <div className={styles.field}>
+            <span className={styles.caption} aria-hidden>
+              {t('scenarios.schedule.form.onDay')}
+            </span>
             <div className={styles.picker}>
               <Tabs
                 label={t('scenarios.schedule.form.onDay')}
@@ -106,24 +111,18 @@ export const ScheduleForm = (props: ScheduleFormProps) => {
                 onChange={handleWeekday}
               />
             </div>
-          </Section>
+          </div>
         )}
         {scenario && asksSomething && (
-          <Section size="sm" title={t('scenarios.schedule.form.asksFor')}>
-            <div className={styles.asks}>
-              <InputFields scenario={scenario} values={form.values} onChange={when.setValues} />
-            </div>
-          </Section>
+          <InputFields scenario={scenario} values={form.values} onChange={when.setValues} />
         )}
         <ProviderPicker providers={providers} value={form.provider} onPick={when.setProvider} />
-        <Section size="sm" title={t('scenarios.schedule.form.where')}>
-          <Switch
-            label={t('scenarios.schedule.form.worktree')}
-            description={t('scenarios.schedule.form.worktreeHint')}
-            checked={form.worktree}
-            onChange={when.setWorktree}
-          />
-        </Section>
+        <Switch
+          label={t('scenarios.schedule.form.worktree')}
+          description={t('scenarios.schedule.form.worktreeHint')}
+          checked={form.worktree}
+          onChange={when.setWorktree}
+        />
       </div>
     </Modal>
   )

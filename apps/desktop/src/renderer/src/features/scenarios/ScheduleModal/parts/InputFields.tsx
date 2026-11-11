@@ -21,7 +21,7 @@ export const InputFields = ({ scenario, values, onChange }: InputFieldsProps) =>
     return (
       <div key={input.id} className={styles.field}>
         {/* Подпись с меткой «обязательно» видна глазу; имя поля для скринридера - у самого поля. */}
-        <span className={styles.inputCaption} aria-hidden>
+        <span className={styles.caption} aria-hidden>
           {label}
           {input.required && (
             <span className={styles.mustFill}>{t('scenarios.schedule.form.mustFill')}</span>

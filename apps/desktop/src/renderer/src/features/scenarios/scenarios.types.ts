@@ -2,7 +2,7 @@ import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
 import type { RunPlace } from '@shared/ipc/scenarios.contract'
 
 /** Вкладки вида сценариев. */
-export type ScenariosTab = 'queues' | 'board' | 'library' | 'schedule' | 'history'
+export type ScenariosTab = 'library' | 'queues' | 'board' | 'schedule' | 'history'
 
 /**
  * Окно поверх вида (ADR 0030: подробности предмета - окном по центру). Одно за раз: запуск,

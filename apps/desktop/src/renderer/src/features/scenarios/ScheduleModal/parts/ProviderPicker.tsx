@@ -1,13 +1,11 @@
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
-import { Section } from '@agentic-workstation/ui/Section'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
-import styles from '../ScheduleModal.module.scss'
 import type { ProviderPickerProps } from '../ScheduleModal.types'
 
 /**
@@ -21,15 +19,9 @@ export const ProviderPicker = ({ providers, value, onPick }: ProviderPickerProps
   const chosen = providers.find((one) => one.id === value)
 
   return (
-    <Section size="sm" title={label}>
-      <div className={styles.picker}>
-        <DropdownButton
-          {...popover.triggerProps}
-          label={chosen?.label ?? value}
-          menuLabel={label}
-        />
-      </div>
-      <Popover {...popover.popoverProps}>
+    <>
+      <SelectField {...popover.triggerProps} label={label} value={chosen?.label ?? value} />
+      <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={label} autoFocus>
             {providers.map((provider) => (
@@ -51,6 +43,6 @@ export const ProviderPicker = ({ providers, value, onPick }: ProviderPickerProps
           </Menu>
         )}
       </Popover>
-    </Section>
+    </>
   )
 }

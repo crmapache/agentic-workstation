@@ -1,11 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
-import { Section } from '@agentic-workstation/ui/Section'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
 import { DUE_TICK_MS, TIME_SEPARATOR } from '../ScheduleModal.constants'
 import styles from '../ScheduleModal.module.scss'
@@ -40,20 +39,28 @@ export const HourPicker = ({ hour, onChange }: HourPickerProps) => {
   }
 
   return (
-    <Section size="sm" title={t('scenarios.schedule.form.at')}>
+    <div className={styles.field}>
+      {/* Подпись одна на два поля; у каждого поля своё имя для скринридера - час и минуты. */}
+      <span className={styles.caption} aria-hidden>
+        {t('scenarios.schedule.form.at')}
+      </span>
       <div className={styles.timeRow}>
-        <DropdownButton
+        <SelectField
           {...hours.triggerProps}
-          label={pad2(hourOf(hour.at))}
-          menuLabel={hourLabel}
+          label={hourLabel}
+          hideLabel
+          value={pad2(hourOf(hour.at))}
+          fit
         />
         <span className={styles.timeColon} aria-hidden>
           {TIME_SEPARATOR}
         </span>
-        <DropdownButton
+        <SelectField
           {...minutes.triggerProps}
-          label={pad2(minuteOf(hour.at))}
-          menuLabel={minuteLabel}
+          label={minuteLabel}
+          hideLabel
+          value={pad2(minuteOf(hour.at))}
+          fit
         />
         <span className={styles.due}>
           {t('scenarios.schedule.form.due', { when: whenLabel(due), time: countdown(due - now) })}
@@ -89,6 +96,6 @@ export const HourPicker = ({ hour, onChange }: HourPickerProps) => {
           </Menu>
         )}
       </Popover>
-    </Section>
+    </div>
   )
 }

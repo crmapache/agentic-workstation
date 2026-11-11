@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
@@ -21,16 +21,15 @@ export const ScenarioPicker = ({ form }: LaunchPartProps) => {
   const { project, user } = shelvesOf(form.scenarios)
 
   return (
-    <>
-      <div className={styles.picker}>
-        <DropdownButton
-          {...popover.triggerProps}
-          label={form.scenario?.name ?? t('scenarios.launch.choose')}
-          menuLabel={t('scenarios.launch.scenario')}
-          data-autofocus={form.scenario ? undefined : true}
-        />
-      </div>
-      <Popover {...popover.popoverProps} width="lg">
+    <div className={styles.group}>
+      <SelectField
+        {...popover.triggerProps}
+        label={t('scenarios.launch.scenario')}
+        value={form.scenario?.name ?? null}
+        placeholder={t('scenarios.launch.choose')}
+        data-autofocus={form.scenario ? undefined : true}
+      />
+      <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={t('scenarios.launch.scenario')} autoFocus>
             <ScenarioOptions
@@ -43,6 +42,6 @@ export const ScenarioPicker = ({ form }: LaunchPartProps) => {
         )}
       </Popover>
       {form.isBroken && <ScenarioAlert>{t('scenarios.launch.broken')}</ScenarioAlert>}
-    </>
+    </div>
   )
 }

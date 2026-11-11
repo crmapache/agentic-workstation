@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { MenuSection } from '@agentic-workstation/ui/MenuSection'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
-import { Section } from '@agentic-workstation/ui/Section'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
 import styles from '../ScheduleModal.module.scss'
 import type { ScenarioPickerProps } from '../ScheduleModal.types'
@@ -26,20 +25,22 @@ export const ScenarioPicker = ({ scenarios, value, onPick }: ScenarioPickerProps
   ] as const
 
   return (
-    <Section size="sm" title={label}>
+    <div className={styles.field}>
       {scenarios.length === 0 ? (
-        <span className={styles.hint}>{t('scenarios.schedule.form.noScenarios')}</span>
+        <>
+          <span className={styles.caption}>{label}</span>
+          <span className={styles.hint}>{t('scenarios.schedule.form.noScenarios')}</span>
+        </>
       ) : (
-        <div className={styles.picker}>
-          <DropdownButton
-            {...popover.triggerProps}
-            label={value?.name ?? t('scenarios.schedule.form.choose')}
-            menuLabel={label}
-            data-autofocus
-          />
-        </div>
+        <SelectField
+          {...popover.triggerProps}
+          label={label}
+          value={value?.name ?? null}
+          placeholder={t('scenarios.schedule.form.choose')}
+          data-autofocus
+        />
       )}
-      <Popover {...popover.popoverProps} width="lg">
+      <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={label} autoFocus>
             {shelves.map(({ scope, title }) => {
@@ -67,6 +68,6 @@ export const ScenarioPicker = ({ scenarios, value, onPick }: ScenarioPickerProps
           </Menu>
         )}
       </Popover>
-    </Section>
+    </div>
   )
 }

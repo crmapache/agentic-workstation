@@ -2,11 +2,11 @@ import { useTranslation } from 'react-i18next'
 
 import type { ProviderInfo } from '@shared/providers'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
@@ -26,16 +26,14 @@ export const ProviderPicker = ({ form }: LaunchPartProps) => {
     one.available ? undefined : t(`scenarios.launch.unavailable.${one.unavailable ?? 'noCli'}`)
 
   return (
-    <>
-      <div className={styles.picker}>
-        <DropdownButton
-          {...popover.triggerProps}
-          label={provider?.label ?? t('scenarios.launch.provider')}
-          menuLabel={t('scenarios.launch.provider')}
-          disabled={form.providers.length === 0}
-        />
-      </div>
-      <Popover {...popover.popoverProps}>
+    <div className={styles.group}>
+      <SelectField
+        {...popover.triggerProps}
+        label={t('scenarios.launch.provider')}
+        value={provider?.label ?? null}
+        disabled={form.providers.length === 0}
+      />
+      <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={t('scenarios.launch.provider')} autoFocus>
             {form.providers.map((one) => (
@@ -56,6 +54,6 @@ export const ProviderPicker = ({ form }: LaunchPartProps) => {
       {provider && !provider.available && (
         <ScenarioAlert tone="danger">{reason(provider) ?? ''}</ScenarioAlert>
       )}
-    </>
+    </div>
   )
 }

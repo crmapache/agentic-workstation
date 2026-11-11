@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { endOf, bandOf, hereOf, roadLayout } from '../scenarios-road.utils'
+import { endOf, bandOf, hereOf, roadLayout, isLinkPassed } from '../scenarios-road.utils'
 import { NO_STOP } from './ScenarioRoadmap.constants'
 import { useRoadMeasure } from './ScenarioRoadmap.hooks'
 import styles from './ScenarioRoadmap.module.scss'
@@ -12,7 +12,7 @@ import { RoadStop } from './parts/RoadStop'
 
 /**
  * Дорога карточек прогона (Roadmap в ACC): кружки на одном расстоянии, этап, где стоит прогон,
- * подложен полосой. Не влезает - первая и последняя на месте, окно вокруг текущей и «+N».
+ * подложен полосой, связка между сделанными - тоже цвета успеха. Не влезает - первая и последняя на месте, окно вокруг текущей и «+N».
  * У законченного прогона настоящего нет: ничего не выделено, окно смотрит туда, где он кончился.
  */
 export const ScenarioRoadmap = ({ stops, mood, ownWidth = false }: ScenarioRoadmapProps) => {
@@ -39,7 +39,12 @@ export const ScenarioRoadmap = ({ stops, mood, ownWidth = false }: ScenarioRoadm
       <div className={styles.road}>
         {items.map((item, at) => (
           <Fragment key={item.kind === 'stop' ? `stop-${item.index}` : `fold-${item.from}`}>
-            {at > 0 && <span className={styles.link} aria-hidden />}
+            {at > 0 && (
+              <span
+                className={clsx(styles.link, isLinkPassed(stops, items, at) && styles.passed)}
+                aria-hidden
+              />
+            )}
             {item.kind === 'stop' ? (
               <span className={clsx(styles.place, inBand(item.index) && styles[`band${mood}`])}>
                 <RoadStop

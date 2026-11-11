@@ -1,12 +1,12 @@
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { MenuSection } from '@agentic-workstation/ui/MenuSection'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { SelectField } from '@agentic-workstation/ui/SelectField'
 
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
@@ -29,15 +29,13 @@ export const WherePicker = ({ form }: LaunchPartProps) => {
     target.kind === 'queue' ? form.queues.find((queue) => queue.id === target.queueId) : undefined
 
   return (
-    <div className={styles.where}>
-      <div className={styles.picker}>
-        <DropdownButton
-          {...popover.triggerProps}
-          label={chosen?.name ?? t('scenarios.launch.newQueue')}
-          menuLabel={t('scenarios.launch.where')}
-        />
-      </div>
-      <Popover {...popover.popoverProps} width="lg">
+    <div className={styles.group}>
+      <SelectField
+        {...popover.triggerProps}
+        label={t('scenarios.launch.where')}
+        value={chosen?.name ?? t('scenarios.launch.newQueue')}
+      />
+      <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={t('scenarios.launch.where')} autoFocus>
             <MenuItem

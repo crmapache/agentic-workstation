@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { Modal } from '@agentic-workstation/ui/Modal'
-import { Section } from '@agentic-workstation/ui/Section'
 import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { useScenariosStore } from '../scenarios.store'
@@ -80,20 +79,10 @@ export const LaunchModal = ({ project, request }: LaunchModalProps) => {
         />
       ) : (
         <form id={formId} className={styles.form} onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-          <Section size="sm" title={t('scenarios.launch.scenario')}>
-            <ScenarioPicker form={form} />
-          </Section>
-          {isAsking && (
-            <Section size="sm" title={t('scenarios.launch.answers')}>
-              <InputFields form={form} />
-            </Section>
-          )}
-          <Section size="sm" title={t('scenarios.launch.provider')}>
-            <ProviderPicker form={form} />
-          </Section>
-          <Section size="sm" title={t('scenarios.launch.where')}>
-            <WherePicker form={form} />
-          </Section>
+          <ScenarioPicker form={form} />
+          {isAsking && <InputFields form={form} />}
+          <ProviderPicker form={form} />
+          <WherePicker form={form} />
           {form.failure && <LaunchFailureLine failure={form.failure} />}
         </form>
       )}

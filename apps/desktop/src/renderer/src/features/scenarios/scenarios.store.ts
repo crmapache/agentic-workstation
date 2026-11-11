@@ -20,7 +20,7 @@ type ScenariosStore = {
  * (очереди, полки, прогоны) - в кэше React Query (state/scenarios.queries.ts), не здесь.
  */
 export const useScenariosStore = create<ScenariosStore>((set) => ({
-  tab: 'queues',
+  tab: 'library',
   modal: null,
   notice: null,
   setTab: (tab) => set({ tab }),

@@ -1005,7 +1005,6 @@
       "emptyTitle": "No scenarios yet",
       "emptyText": "Write one first, by hand or with AI.",
       "newScenario": "New scenario",
-      "answers": "Answers",
       "required": "{{label}} · required",
       "provider": "Provider",
       "unavailable": {
@@ -1425,7 +1424,7 @@
         "choose": "Choose a scenario",
         "scenario": "Scenario",
         "noScenarios": "There is no scenario that can run yet.",
-        "at": "At",
+        "at": "Time",
         "hour": "Hour",
         "minute": "Minute",
         "due": "next {{when}}, in {{time}}",
@@ -1436,13 +1435,11 @@
           "weekdays": "Weekdays",
           "weekly": "Weekly"
         },
-        "onDay": "On",
-        "asksFor": "It asks for",
+        "onDay": "Day of the week",
         "mustFill": "must be filled",
         "worktree": "Start in a separate worktree",
         "worktreeHint": "Each start makes a new queue in its own git worktree, so your files stay as they are",
         "provider": "Provider",
-        "where": "Where",
         "unavailable": "Not available",
         "submit": "Set the time",
         "help": {

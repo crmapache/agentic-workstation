@@ -10,6 +10,7 @@ import {
   windowed,
   roadWidth,
   roadLayout,
+  isLinkPassed,
 } from './scenarios-road.utils'
 
 /** Ширины частей при размере текста 100%: в окне их меряют по нарисованному. */
@@ -63,5 +64,27 @@ describe('road of cards', () => {
       to: 2,
     })
     expect(bandOf(stops(['done', 'running']), 1)).toBeNull()
+  })
+
+  it('colours a link only between two done stops, a fold by the stops it hides', () => {
+    const road = stops(['done', 'done', 'done', 'failed', 'done', 'running'])
+    const all = road.map((_, index) => ({ kind: 'stop' as const, index }))
+
+    expect(all.map((_, at) => isLinkPassed(road, all, at))).toEqual([
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+    ])
+
+    const folded = [
+      { kind: 'stop' as const, index: 0 },
+      { kind: 'fold' as const, from: 1, to: 3 },
+      { kind: 'stop' as const, index: 4 },
+    ]
+
+    expect(folded.map((_, at) => isLinkPassed(road, folded, at))).toEqual([false, true, false])
   })
 })
