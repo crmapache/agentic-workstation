@@ -94,6 +94,9 @@ export const chipTitle = (chip: DraftChip): string => {
 
   const title = chip.range ? `${chip.value} ${chip.range}` : chip.value
 
+  // Кусок файла с текстом: под курсором - что именно уехало, а не только откуда.
+  if (chip.kind === 'ref' && chip.text !== undefined) return `${title}\n${hintPreview(chip.text)}`
+
   return chipLabel(chip).includes('…') ? title : ''
 }
 

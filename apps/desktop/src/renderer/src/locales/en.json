@@ -493,7 +493,72 @@
     "readError": "Could not read this folder",
     "emptyProjectTitle": "Nothing here yet",
     "emptyProjectText": "This project folder is empty. Files you add to it show up here.",
-    "rootErrorTitle": "Can't read the project"
+    "rootErrorTitle": "Can't read the project",
+    "header": {
+      "selectOpened": "Select Opened File",
+      "collapseAll": "Collapse All"
+    },
+    "menu": {
+      "label": "File actions",
+      "newFile": "New File…",
+      "newFolder": "New Folder…",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyPath": "Copy Path",
+      "rename": "Rename…",
+      "delete": "Move to Trash…"
+    },
+    "create": {
+      "fileTitle": "New File",
+      "folderTitle": "New Folder",
+      "nameLabel": "Name",
+      "fileHint": "Use / to create it inside new folders: ui/Button.tsx",
+      "submit": "Create"
+    },
+    "rename": {
+      "title": "Rename",
+      "nameLabel": "New name",
+      "submit": "Rename"
+    },
+    "move": {
+      "title": "Move {{name}}",
+      "into": "Into {{folder}}",
+      "submit": "Move"
+    },
+    "references": {
+      "label": "Update references",
+      "searching": "Looking for imports and links…",
+      "none": "No imports or links point here",
+      "found_one": "{{count}} reference in {{files}} file",
+      "found_other": "{{count}} references in {{files}} files",
+      "truncated": "The project is larger than the search covers: some files were not checked."
+    },
+    "trash": {
+      "title": "Move to Trash?",
+      "fileNote": "You can put it back from the Trash in Finder.",
+      "folderNote": "Everything inside goes too. You can put it back from the Trash in Finder.",
+      "submit": "Move to Trash"
+    },
+    "notices": {
+      "renamed": "Renamed to {{name}}",
+      "moved": "Moved to {{folder}}",
+      "copied": "Copied as {{name}}",
+      "trashed": "{{name}} is in the Trash",
+      "pathCopied": "Path copied",
+      "references_one": "Updated {{count}} reference in {{files}} file",
+      "references_other": "Updated {{count}} references in {{files}} files",
+      "skipped_one": "{{count}} file changed meanwhile and was left as is",
+      "skipped_other": "{{count}} files changed meanwhile and were left as is"
+    },
+    "errors": {
+      "exists": "Something with this name is already there.",
+      "invalidName": "This name can't be used.",
+      "missing": "It is no longer on disk.",
+      "intoItself": "A folder can't go inside itself.",
+      "failed": "The file system refused. Check the folder's permissions.",
+      "unsaved": "This file has unsaved changes that conflict with the disk. Resolve them in the editor first."
+    }
   },
   "changes": {
     "noProjectTitle": "No project open",
@@ -579,6 +644,7 @@
     },
     "contextMenu": {
       "label": "Code actions",
+      "sendToChat": "Send to Chat",
       "show": "Show Editor Context Menu",
       "changeAll": "Change All Occurrences",
       "cut": "Cut",
@@ -709,7 +775,8 @@
       "runBusy": "This run is still going.",
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued from where it stopped.",
-      "runOver": "This run has already ended."
+      "runOver": "This run has already ended.",
+      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed."
     },
     "queues": {
       "emptyTitle": "No queues in this project",
@@ -1330,7 +1397,7 @@
       "title": "Past runs",
       "help": {
         "label": "About past runs",
-        "text": "Every run of a scenario in this project, newest first. A run that is still going is on the Queues tab.\n\nTook counts only the work: pauses and time spent waiting for your answer are left out. A star is your own mark - it does not sort the list or keep a run from being deleted."
+        "text": "Every run of a scenario in this project, newest first. A run that is still going is on the Queues tab.\n\nRuns marked ACC were made by the Amazing Claude Code plugin in JetBrains. They are here to look at: their queue, stars and deletion stay with the plugin.\n\nTook counts only the work: pauses and time spent waiting for your answer are left out. A star is your own mark - it does not sort the list or keep a run from being deleted."
       },
       "emptyTitle": "Nothing has been run yet.",
       "loading": "Reading the runs…",
@@ -1350,6 +1417,8 @@
       "star": "Star this run",
       "unstar": "Remove the star",
       "delete": "Delete this run",
+      "acc": "ACC",
+      "accHint": "Made by the Amazing Claude Code plugin in JetBrains. View only: the plugin runs it.",
       "confirmDelete": {
         "title": "Delete this run?",
         "note": "Its record goes from this machine.",
@@ -1476,6 +1545,7 @@
     "code": {
       "title": "Code",
       "chart": "Lines changed by you and by agents",
+      "chartTitle": "Lines changed",
       "empty": "No code changes in this period",
       "yourLines": "Your lines",
       "agentLines": "Agent lines",
@@ -1489,6 +1559,7 @@
     "time": {
       "title": "Time",
       "chart": "Your presence and agent work",
+      "chartTitle": "Presence and agent work",
       "empty": "No activity in this period",
       "present": "You present",
       "working": "Agents working",
@@ -1501,6 +1572,8 @@
     "habits": {
       "title": "When you work",
       "metric": "What the calendar shows",
+      "calendar": "Last 12 months",
+      "rhythm": "Rhythm",
       "presence": "Presence",
       "tokens": "Tokens",
       "less": "Less",
@@ -1520,6 +1593,7 @@
     "tokens": {
       "title": "Tokens & cost",
       "chart": "Tokens used by agents",
+      "chartTitle": "Tokens used",
       "empty": "No tokens in this period",
       "series": "Tokens",
       "costNote": "{{cost}} at API prices",
@@ -2950,7 +3024,7 @@
     "title": "Remote Control",
     "close": "Close",
     "enabled": "Remote Control on",
-    "relay": "Through {{host}}",
+    "relay": "On your own relay",
     "offHint": "Off: the IDE is not on the relay",
     "state": {
       "off": "Off",
@@ -2971,6 +3045,7 @@
     "keysNotKept": "This Mac has no keychain encryption for the IDE: paired phones work until the IDE restarts, then pair them again.",
     "thisIde": "This IDE",
     "fingerprintNote": "The phone shows this code when it pairs",
+    "relayLabel": "Relay",
     "pair": {
       "title": "Pair a phone",
       "start": "Show pairing code",

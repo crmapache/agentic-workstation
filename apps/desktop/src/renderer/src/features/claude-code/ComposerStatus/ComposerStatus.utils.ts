@@ -11,7 +11,7 @@ import {
   SETUP_SEPARATOR,
   OTHER_MODEL_ICON,
 } from './ComposerStatus.constants'
-import type { SetupSection } from './ComposerStatus.types'
+import type { SetupFlow, SetupSection } from './ComposerStatus.types'
 
 /** Иконка модели в разделе Model: по семье, у модели без семьи Claude - общая. */
 export const modelIcon = (model: string): LucideIcon => {
@@ -25,6 +25,16 @@ export const nextSection = (section: SetupSection, step: 1 | -1): SetupSection =
   const count = SETUP_SECTIONS.length
 
   return SETUP_SECTIONS[(SETUP_SECTIONS.indexOf(section) + step + count) % count] ?? section
+}
+
+/**
+ * Куда ведёт выбор в разделе: идём шагами от открытия - в следующий раздел, последний шаг и
+ * раздел, открытый человеком самим, - никуда, панель закрывается.
+ */
+export const stepAfterPick = ({ section, guided }: SetupFlow): SetupSection | null => {
+  const next = SETUP_SECTIONS[SETUP_SECTIONS.indexOf(section) + 1]
+
+  return guided && next ? next : null
 }
 
 /**

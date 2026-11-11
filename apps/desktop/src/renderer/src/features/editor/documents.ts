@@ -2,11 +2,11 @@ import type { editor } from 'monaco-editor/editor/editor.api.js'
 
 import type { ProjectDiskChange } from '@shared/fs'
 
+import { connectDocuments } from '../../state/editor-documents'
 import type { EditorTabs } from '../../state/editor-tabs.types'
 import { tabTarget } from '../../state/editor-tabs.utils'
 import { useSelectionStore } from '../../state/selection.store'
 import { isTouched, documentKey } from './documents.utils'
-import { connectDocuments } from './editor-bus'
 import { EditorDocument } from './editor-document'
 import type { DocumentHost } from './editor-document'
 import { SAVE_COMMAND } from './editor.constants'

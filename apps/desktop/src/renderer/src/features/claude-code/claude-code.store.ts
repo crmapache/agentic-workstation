@@ -1,8 +1,12 @@
 import { create } from 'zustand'
 
+import type { DraftChip } from '@shared/claude-draft'
+
 import { MENU_PARENT } from './claude.constants'
 import type { TabCall, MenuState, MenuScreen, RewindTarget } from './claude.types'
+import { useComposerStore } from './composer.store'
 import type { ComposerDraft } from './draft.types'
+import { appendChip, EMPTY_DRAFT } from './draft.utils'
 import { applyDraft } from './field-bus'
 
 type ClaudeCodeStore = {
@@ -15,6 +19,11 @@ type ClaudeCodeStore = {
    * у проекта без разговоров - путь проекта (composer.store).
    */
   fillDraft: (key: string, content: string | ComposerDraft) => void
+  /**
+   * Дописать чип в конец поля разговора тем же шагом отмены, с прежними цитатами: цитата из
+   * ленты (Quote), кусок файла из редактора (Send to Chat).
+   */
+  appendChip: (key: string, chip: DraftChip) => void
   /** Сообщение, к которому открыт диалог отката. */
   rewindTarget: RewindTarget | null
   openRewind: (target: RewindTarget) => void
@@ -62,6 +71,13 @@ export const useClaudeCodeStore = create<ClaudeCodeStore>()((set) => ({
         : content,
     )
     set((state) => ({ focusRequest: state.focusRequest + 1 }))
+  },
+  appendChip: (key, chip) => {
+    const draft = useComposerStore.getState().drafts[key] ?? EMPTY_DRAFT
+
+    useClaudeCodeStore
+      .getState()
+      .fillDraft(key, { tokens: appendChip(draft.tokens, chip), quotes: draft.quotes })
   },
   rewindTarget: null,
   openRewind: (rewindTarget) => set({ rewindTarget }),

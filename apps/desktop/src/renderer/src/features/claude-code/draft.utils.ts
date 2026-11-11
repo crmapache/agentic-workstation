@@ -26,9 +26,27 @@ const hasBytes = (token: DraftToken): boolean =>
 /** Склеится ли дописанное с этим текстом: в конце не пробел. */
 export const endsOpen = (text: string): boolean => text.length > 0 && !/\s$/.test(text)
 
-/** Кусок файла: путь через «@», как в терминале, и строки в скобках. */
-export const referenceText = (chip: DraftChip): string =>
-  chip.range ? `@${chip.value} (${chip.range})` : `@${chip.value}`
+/**
+ * Ограда блока кода - длиннее любой серии обратных кавычек в тексте: иначе кусок Markdown с
+ * блоком внутри закрыл бы её сам.
+ */
+export const fenceFor = (text: string): string =>
+  '`'.repeat(Math.max(3, ...[...text.matchAll(/`+/g)].map((run) => run[0].length + 1)))
+
+/**
+ * Кусок файла: путь через «@», как в терминале, и строки в скобках. С текстом («Send to Chat»
+ * из редактора) - за ними сам выделенный кусок блоком кода: модели едет ровно он, а не строки
+ * целиком. Блок кончается переводом строки - слова после чипа идут уже под ним.
+ */
+export const referenceText = (chip: DraftChip): string => {
+  const place = chip.range ? `@${chip.value} (${chip.range})` : `@${chip.value}`
+
+  if (chip.text === undefined || !chip.range) return place
+
+  const fence = fenceFor(chip.text)
+
+  return `${place}:\n${fence}\n${chip.text}\n${fence}\n`
+}
 
 /** Вложение внутри строки - ровно то, что модель увидит на его месте. */
 export const tokenText = (token: DraftToken): string => {

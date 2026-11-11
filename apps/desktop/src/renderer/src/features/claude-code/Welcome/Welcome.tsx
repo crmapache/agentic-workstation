@@ -1,8 +1,8 @@
-import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
+import { AI_ICON } from '../../../lib/ai-icon.constants'
 import styles from './Welcome.module.scss'
 
 /**
@@ -15,7 +15,7 @@ export const Welcome = () => {
   return (
     <div className={styles.welcome}>
       <EmptyState
-        icon={Sparkles}
+        icon={AI_ICON}
         title={t('claudeCode.welcome.title')}
         description={t('claudeCode.welcome.text')}
       />

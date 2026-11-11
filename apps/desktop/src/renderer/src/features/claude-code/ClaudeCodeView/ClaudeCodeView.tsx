@@ -1,8 +1,8 @@
-import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
+import { useChatHandoff } from '../chat-handoff.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'
 import { useProjectConversations } from '../claude.queries'
 import { useGaugeCalm } from '../panel-look.hooks'
@@ -13,6 +13,7 @@ import { LoginGate } from '../LoginGate/LoginGate'
 import { needsSignIn } from '../LoginGate/LoginGate.utils'
 import { SearchWindow } from '../SearchWindow/SearchWindow'
 import { SideMenu } from '../SideMenu/SideMenu'
+import { AI_ICON } from '../../../lib/ai-icon.constants'
 import {
   usePanelKeys,
   usePanelFocus,
@@ -39,12 +40,13 @@ export const ClaudeCodeView = () => {
   const handleAction = useAnswerOnAction(active)
 
   useEnsureConversation(project, state, conversations.length)
+  useChatHandoff(project, active)
   useGaugeCalm()
 
   if (!project) {
     return (
       <EmptyState
-        icon={Sparkles}
+        icon={AI_ICON}
         title={t('claudeCode.noProjectTitle')}
         description={t('claudeCode.noProjectText')}
       />

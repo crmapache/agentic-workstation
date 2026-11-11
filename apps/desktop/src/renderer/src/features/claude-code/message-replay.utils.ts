@@ -4,6 +4,7 @@ import {
   REPLAY_RANGE,
   QUOTATION_MIN,
   REPLAY_COMMAND,
+  REPLAY_SNIPPET,
   REPLAY_TRAILING,
   REPLAY_QUOTATION,
   REPLAY_ATTACHMENT,
@@ -141,29 +142,48 @@ const commandHead = (body: string): { tokens: DraftToken[]; rest: string } => {
     : { tokens: [], rest: body }
 }
 
-/**
- * Текст сообщения обратно кусками. answered - что агент уже сказал в разговоре: по
- * нему кавычки отличаются от цитаты ответа.
- */
-export const replayedDraft = (text: string, answered: readonly string[] = []): MessageDraft => {
-  const { quotes, body } = takeQuotedLines(text)
-  const said = answered.map(normalise).join('\n')
-  const head = commandHead(body)
-  const tokens: DraftToken[] = [...head.tokens]
-  let quoted = 0
+/** Кусок текста без блоков кода: цитаты ответа (по счёту с quoted) и вложения на местах. */
+const plainTokens = (text: string, said: string, quoted: { count: number }): DraftToken[] => {
+  const tokens: DraftToken[] = []
 
-  for (const piece of splitQuotations(head.rest)) {
+  for (const piece of splitQuotations(text)) {
     const needle = piece.quotation ? normalise(piece.text) : ''
 
     if (needle.length >= QUOTATION_MIN && said.includes(needle)) {
-      quoted += 1
-      tokens.push(chipToken({ kind: 'quote', value: `ref${quoted}`, text: piece.text }))
+      quoted.count += 1
+      tokens.push(chipToken({ kind: 'quote', value: `ref${quoted.count}`, text: piece.text }))
       continue
     }
 
     // Кавычки, которых агент не говорил, остаются как написаны - с самими кавычками.
     tokens.push(...attachmentTokens(piece.quotation ? `"${piece.text}"` : piece.text))
   }
+
+  return tokens
+}
+
+/**
+ * Текст сообщения обратно кусками. answered - что агент уже сказал в разговоре: по
+ * нему кавычки отличаются от цитаты ответа. Куски файла с текстом («Send to Chat») узнаются
+ * первыми, целиком: кавычки и «@» внутри кода - часть кода.
+ */
+export const replayedDraft = (text: string, answered: readonly string[] = []): MessageDraft => {
+  const { quotes, body } = takeQuotedLines(text)
+  const said = answered.map(normalise).join('\n')
+  const head = commandHead(body)
+  const tokens: DraftToken[] = [...head.tokens]
+  const quoted = { count: 0 }
+  let at = 0
+
+  for (const match of head.rest.matchAll(REPLAY_SNIPPET)) {
+    const [whole, path = '', range = '', , snippet = ''] = match
+
+    tokens.push(...plainTokens(head.rest.slice(at, match.index), said, quoted))
+    tokens.push(chipToken({ kind: 'ref', value: path, range, text: snippet }))
+    at = match.index + whole.length
+  }
+
+  tokens.push(...plainTokens(head.rest.slice(at), said, quoted))
 
   return { tokens: merge(tokens), quotes }
 }

@@ -21,7 +21,11 @@ export const clipboardText = (token: DraftToken): string => {
 
   if (chip.kind === 'cmd') return `/${chip.value}`
   if (chip.kind === 'quote' || chip.kind === 'paste') return chip.text ?? ''
-  if (chip.kind === 'ref') return chip.range ? `${chip.value} (${chip.range})` : chip.value
+  if (chip.kind === 'ref') {
+    const place = chip.range ? `${chip.value} (${chip.range})` : chip.value
+
+    return chip.text === undefined ? place : `${place}\n${chip.text}\n`
+  }
   // Байты из буфера: путь, куда их записали, а не записали - хотя бы номер.
   if (chip.data) return chip.path || `[${chip.value}]`
 

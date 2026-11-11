@@ -1,17 +1,10 @@
-import {
-  X,
-  History,
-  Palette,
-  Sparkles,
-  Smartphone,
-  ArrowRightLeft,
-  SquareTerminal,
-} from 'lucide-react'
+import { X, History, Palette, Smartphone, ArrowRightLeft, SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { MAIN_VIEWS } from '../views/main-views'
 import { toggleShowcase } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
+import { AI_ICON } from '../../lib/ai-icon.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { useWorkspace, useActiveProject, useWorkspaceActions } from '../../state/workspace.queries'
 import { OPEN_PANEL_KEY } from '../../features/claude-code/panel-keys.constants'
@@ -114,7 +107,7 @@ export const useIdeActions = (): SearchAction[] => {
     {
       id: 'view.claudeCode',
       label: t('searchEverywhere.actions.toggleClaudeCode'),
-      icon: Sparkles,
+      icon: AI_ICON,
       // Та же дверь, что у клавиши: показать с клавиатурой в поле или спрятать из панели.
       shortcut: OPEN_PANEL_KEY.join(''),
       run: toggleClaudePanel,
