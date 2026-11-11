@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
-import type { Scenario, ScenarioSchedule } from '@shared/scenarios'
 import { isProviderId } from '@shared/providers'
+import type { Scenario, ScenarioSchedule } from '@shared/scenarios'
 import { SCENARIO_REPEATS } from '@shared/scenarios'
 
 import type { LockedFile } from './locked-file'

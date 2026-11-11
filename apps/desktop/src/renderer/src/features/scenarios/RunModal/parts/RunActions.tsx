@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { Play, Pause, Square, RotateCcw, ScrollText, ChevronLeft } from 'lucide-react'
+import {
+  Play,
+  Pause,
+  Square,
+  RotateCcw,
+  ScrollText,
+  ChevronLeft,
+  MessageSquare,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { isRunFinished } from '@shared/scenario-runs'
@@ -18,7 +26,14 @@ import { StopDialog } from './StopDialog'
  * продолжение, стоп с вопросом. Законченный, но подхватываемый прогон вместо паузы и стопа
  * предлагает «Continue the run»; отказ главного процесса встаёт уведомлением с кодом.
  */
-export const RunActions = ({ place, run, logKey, onMainThread, onBack }: RunActionsProps) => {
+export const RunActions = ({
+  place,
+  run,
+  logKey,
+  onMainThread,
+  onBack,
+  onClose,
+}: RunActionsProps) => {
   const { t } = useTranslation()
   const actions = useScenarioActions()
   const [isStopping, setIsStopping] = useState(false)
@@ -38,6 +53,8 @@ export const RunActions = ({ place, run, logKey, onMainThread, onBack }: RunActi
   }
 
   const handleCarryOn = () => void actions.carryOn(run.id)
+
+  const handleChat = () => void actions.openChat(place, run.id).then((ok) => ok && onClose())
 
   return (
     <>
@@ -69,6 +86,13 @@ export const RunActions = ({ place, run, logKey, onMainThread, onBack }: RunActi
         <Button size="sm" icon={Square} onClick={handleAskStop}>
           {t('scenarios.run.stop')}
         </Button>
+      )}
+      {isOver && run.headConversationId && (
+        <Tooltip label={t('scenarios.run.chatHint')}>
+          <Button size="sm" variant="ghost" icon={MessageSquare} onClick={handleChat}>
+            {t('scenarios.run.chat')}
+          </Button>
+        </Tooltip>
       )}
       {isOver && isResumable(run) && (
         <Tooltip label={t('scenarios.run.carryOnHint')}>

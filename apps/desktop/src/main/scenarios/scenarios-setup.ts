@@ -7,6 +7,7 @@ import { Notification } from 'electron'
 import type { ClaudeService } from '../claude/claude-service'
 import { broadcast } from '../ipc/broadcast'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import { loadReleasedHeads } from '../claude/history/released-heads'
 import { claudeScenarioProvider } from '../providers/claude/claude-scenarios'
 import { ScenarioService } from './scenario-service'
 
@@ -40,6 +41,8 @@ export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioSer
     })
     note.show()
   }
+  await loadReleasedHeads(join(setup.dataDir, 'scenario-released.json'))
+
   const service = await ScenarioService.load({
     dataDir: setup.dataDir,
     worktreesRoot: WORKTREES_ROOT,

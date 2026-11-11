@@ -18,6 +18,8 @@ export type RunActionsProps = {
   logKey: string | null
   onMainThread: () => void
   onBack: () => void
+  /** Разговор головы ушёл в панель провайдера - окно прогона больше не нужно. */
+  onClose: () => void
 }
 
 export type RunPageProps = {

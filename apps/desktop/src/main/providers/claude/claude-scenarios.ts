@@ -7,6 +7,7 @@ import { scenarioArgs } from '../../scenarios/scenario-launch'
 import type { ClaudeCli } from '../../claude/cli/cli-locator'
 import { CliProcess } from '../../claude/cli/cli-process'
 import { CLI_ENV_OVERRIDES } from '../../claude/cli/cli.constants'
+import { releaseHead } from '../../claude/history/released-heads'
 import { claudeHome, transcriptDirs } from '../../claude/history/transcript-paths'
 import { ScenarioAuthor } from '../../scenarios/author/scenario-author'
 import { scenarioEnv, scenarioAccounts } from './claude-scenario-accounts'
@@ -132,5 +133,13 @@ export const claudeScenarioProvider = (
     draft: (projectPath, draftId, description, scope) =>
       author.draft(projectPath, draftId, description, scope),
     cancelDraft: (draftId) => author.cancel(draftId),
+    openChat: async (cwd, sessionId) => {
+      releaseHead(sessionId)
+
+      return claude
+        .openHistory(cwd, sessionId)
+        .then(() => true)
+        .catch(() => false)
+    },
   }
 }

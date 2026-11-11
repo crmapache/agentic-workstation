@@ -994,7 +994,9 @@
         "earlier": "Load earlier messages",
         "scenario": "Scenario",
         "card": "Card"
-      }
+      },
+      "chat": "Continue in a chat",
+      "chatHint": "Open the main thread as an ordinary chat in the Claude Code panel. It stops being the main thread and can change files again."
     },
     "editor": {
       "save": "Save",

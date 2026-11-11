@@ -68,4 +68,14 @@ describe('аргументы запуска', () => {
       '--strict-mcp-config',
     )
   })
+
+  it('adds the released head briefing after the panel one, on one line', () => {
+    const args = buildLaunchArgs(
+      { ...base, resume: false, extraBriefing: 'Role is over.' },
+      features,
+    )
+    const briefing = args[args.indexOf('--append-system-prompt') + 1]
+
+    expect(briefing?.endsWith(' Role is over.')).toBe(true)
+  })
 })

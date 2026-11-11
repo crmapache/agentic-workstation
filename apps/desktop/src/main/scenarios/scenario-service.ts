@@ -211,6 +211,28 @@ export class ScenarioService {
     return this.logs.page(run.cwd || projectPath, conversationId, earlier)
   }
 
+  /**
+   * Разговор головы - обычной вкладкой панели провайдера, с роли главного потока снятой. Прогон
+   * в worktree: сначала его папка открывается проектом - вкладки панели живут по проектам.
+   */
+  async openChat(projectPath: string, runId: string): Promise<ScenarioCode | null> {
+    const desk = this.desk(projectPath)
+    const run = await desk.run(runId)
+    const provider = run && this.providers.get(run.provider)
+
+    if (!run || !run.headConversationId) return 'runGone'
+    if (desk.live.has(runId)) return 'runBusy'
+    if (!provider) return 'providerMissing'
+
+    const cwd = run.cwd || projectPath
+
+    await desk.hidden.release(run.headConversationId)
+
+    if (cwd !== projectPath) this.options.events.openProject(cwd)
+
+    return (await provider.openChat(cwd, run.headConversationId)) ? null : 'runGone'
+  }
+
   schedule(projectPath: string, hour: ScenarioHourRequest) {
     return this.afterShelves(projectPath, scheduleHour(this.desk(projectPath), hour))
   }

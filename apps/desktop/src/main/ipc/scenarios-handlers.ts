@@ -128,6 +128,8 @@ export const createScenariosHandlers = (
     },
     'scenarios:stepLog': ({ place, runId, key, earlier }) =>
       scenarios.log(placeRoot(place), assertId(runId, 'runId'), text(key, 'key'), earlier === true),
+    'scenarios:openChat': async ({ place, runId }) =>
+      outcome(await scenarios.openChat(placeRoot(place), assertId(runId, 'runId'))),
     'scenarios:deleteRun': async ({ projectId, runId }) =>
       outcome(await scenarios.shelves.deleteRun(root(projectId), assertId(runId, 'runId'))),
     'scenarios:starRun': async ({ projectId, runId, starred }) =>

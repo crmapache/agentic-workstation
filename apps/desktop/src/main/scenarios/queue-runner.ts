@@ -13,7 +13,7 @@ import type { ScenarioRun } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
-import { carryOnRun, launchRun } from './launch-run'
+import { launchRun, carryOnRun } from './launch-run'
 import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
 import type { QueueBook } from './queues/queue-book'

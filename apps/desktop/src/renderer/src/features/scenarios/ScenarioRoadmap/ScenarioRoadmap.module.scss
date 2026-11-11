@@ -107,8 +107,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-  animation: roadmap-arc-turn var(--duration-spin) linear infinite;
-}
+    animation: roadmap-arc-turn var(--duration-spin) linear infinite;
+  }
 }
 
 .fold {

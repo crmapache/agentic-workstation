@@ -29,6 +29,8 @@ export const useScenarioActions = () => {
     control: (place: RunPlace, runId: string, action: ScenarioRunControl) =>
       invoke('scenarios:control', { place, runId, action }),
     carryOn: (runId: string) => report(invoke('scenarios:carryOn', { runId })),
+    openChat: (place: RunPlace, runId: string) =>
+      report(invoke('scenarios:openChat', { place, runId })),
     answer: (place: RunPlace, runId: string, allow: boolean, text: string) =>
       invoke('scenarios:answer', { place, runId, allow, text }),
     deleteRun: (projectId: string, runId: string) =>

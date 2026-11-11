@@ -43,4 +43,9 @@ export type ScenarioProvider = {
     scope: ScenarioScope,
   ) => Promise<ScenarioDraftOutcome>
   cancelDraft: (draftId: string) => void
+  /**
+   * Продолжить разговор головы прогона обычной вкладкой панели провайдера (Continue in a chat):
+   * роль главного потока с разговора снимается. cwd - папка прогона (проект или worktree).
+   */
+  openChat: (cwd: string, sessionId: string) => Promise<boolean>
 }

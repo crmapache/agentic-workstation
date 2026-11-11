@@ -6,6 +6,7 @@ import { CliProcess } from '../cli/cli-process'
 import { CLI_ENV_OVERRIDES, CHECKPOINTS_VARIABLE } from '../cli/cli.constants'
 import type { Environment } from '../cli/shell-env'
 import { fileCheckpointing } from '../config/config-files'
+import { releasedBriefing } from '../history/released-heads'
 import { findTranscript } from '../history/transcript-paths'
 import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
@@ -75,6 +76,7 @@ export const spawnConversationProcess = async (
         permissionMode: meta.permissionMode,
         fork: meta.fork,
         mcpConfig: connectors?.path ?? null,
+        extraBriefing: releasedBriefing(meta.sessionId),
       },
       cli.features,
     )

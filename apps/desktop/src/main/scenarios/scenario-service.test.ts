@@ -98,6 +98,7 @@ const provider = (fakes: FakeCli[], titles: string[]): ScenarioProvider => ({
   },
   draft: () => Promise.resolve({ ok: false, error: 'no', cancelled: false }),
   cancelDraft: () => undefined,
+  openChat: () => Promise.resolve(true),
 })
 
 /** Подождать, пока условие станет правдой: движок и запись на диск идут своими тактами. */

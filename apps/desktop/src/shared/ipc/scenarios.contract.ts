@@ -93,6 +93,8 @@ export type ScenariosInvokeContract = {
     request: RunRequest & { key: string; earlier: boolean }
     response: StepLogPage
   }
+  /** Продолжить разговор головы законченного прогона обычной вкладкой панели провайдера. */
+  'scenarios:openChat': { request: RunRequest; response: ScenarioOutcome }
   'scenarios:deleteRun': { request: ProjectRequest & { runId: string }; response: ScenarioOutcome }
   'scenarios:starRun': {
     request: ProjectRequest & { runId: string; starred: boolean }
@@ -135,6 +137,7 @@ export const SCENARIOS_CHANNELS = {
   'scenarios:answer': true,
   'scenarios:tell': true,
   'scenarios:stepLog': true,
+  'scenarios:openChat': true,
   'scenarios:deleteRun': true,
   'scenarios:starRun': true,
   'scenarios:schedule': true,

@@ -61,6 +61,7 @@ export const RunModal = ({ request }: RunModalProps) => {
             logKey={logKey}
             onMainThread={handleMainThread}
             onBack={back}
+            onClose={close}
           />
         )
       }
