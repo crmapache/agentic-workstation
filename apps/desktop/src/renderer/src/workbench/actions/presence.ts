@@ -2,13 +2,7 @@ import { useEffect } from 'react'
 
 import { notePresence, flushActivity } from '../../lib/activity-log'
 import { useWorkspace } from '../../state/workspace.queries'
-
-/** Сколько после последнего ввода человек ещё считается в окне: читает код, смотрит ленту. */
-const IDLE_MS = 3 * 60_000
-/** Как часто отмечать минуту, пока человек тут без ввода. */
-const TICK_MS = 15_000
-/** Движение мыши - не чаще раза в секунду: событий бывает по сотне в секунду. */
-const MOVE_MS = 1_000
+import { isPresent, PRESENCE_MOVE_MS, PRESENCE_TICK_MS } from './presence.utils'
 
 /**
  * Присутствие человека для статистики: минута считается, если окно в фокусе и за последние три
@@ -24,20 +18,20 @@ export const usePresence = (): void => {
     let lastMove = 0
 
     const mark = () => {
-      if (document.hasFocus() && Date.now() - lastInput <= IDLE_MS) notePresence(projectId)
+      if (isPresent(Date.now(), lastInput, document.hasFocus())) notePresence(projectId)
     }
     const handleInput = () => {
       lastInput = Date.now()
       mark()
     }
     const handleMove = () => {
-      if (Date.now() - lastMove < MOVE_MS) return
+      if (Date.now() - lastMove < PRESENCE_MOVE_MS) return
 
       lastMove = Date.now()
       handleInput()
     }
     const handleLeave = () => flushActivity()
-    const tick = window.setInterval(mark, TICK_MS)
+    const tick = window.setInterval(mark, PRESENCE_TICK_MS)
 
     window.addEventListener('keydown', handleInput, true)
     window.addEventListener('pointerdown', handleInput, true)
