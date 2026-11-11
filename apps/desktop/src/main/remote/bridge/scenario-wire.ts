@@ -68,6 +68,7 @@ export const runSummaryWire = (run: RunSummary, keyOf: KeyOf): RunSummaryWire =>
   roadmap: run.roadmap,
   limit: run.limit,
   starred: run.starred,
+  origin: run.origin,
 })
 
 /** Прогон целиком: дорожка, шаги, заметки, вопрос головы. Промпты шагов остаются в IDE. */
@@ -86,6 +87,7 @@ export const runWire = (run: ScenarioRun, keyOf: KeyOf): RunWire => ({
   failure: run.failure,
   cost: run.cost,
   limit: run.limit,
+  origin: run.origin,
   stages: run.snapshot.stages.map((stage) => ({ id: stage.id, title: stage.title })),
   steps: run.steps.map((step) => ({
     key: step.key,

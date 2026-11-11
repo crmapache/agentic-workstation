@@ -100,6 +100,7 @@ export const launchRun = async (
     starred: false,
     answering: false,
     limit: null,
+    origin: 'ide',
   }
   const engine = new ScenarioEngine(
     record,

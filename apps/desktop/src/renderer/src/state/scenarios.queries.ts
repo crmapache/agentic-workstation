@@ -1,5 +1,6 @@
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
+import { isRunFinished } from '@shared/scenario-runs'
 import type { ScenarioShelvesView } from '@shared/scenario-view'
 import type { WorkspaceState } from '@shared/workspace'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +9,9 @@ import type { RunPlace } from '@shared/ipc/scenarios.contract'
 import { invoke } from '../lib/ipc'
 import { useIpcEvent } from '../lib/ipc.hooks'
 import { QUERY_KEYS } from './query-keys'
+
+/** Как часто перечитывать историю, пока в ней идёт прогон ACC. */
+const ACC_REFRESH_MS = 15_000
 
 /**
  * Сценарии на уровне IDE (ADR 0039). Владелец - главный процесс: очереди всех проектов,
@@ -30,6 +34,12 @@ export const useScenarioShelves = (projectId: string | null) =>
     queryFn: () => invoke('scenarios:shelves', { projectId: projectId ?? '' }),
     enabled: projectId !== null,
     staleTime: Infinity,
+    // Прогон ACC идёт: о нём главный процесс событий не шлёт (его ведёт плагин), поэтому
+    // история перечитывается сама, пока он не кончится.
+    refetchInterval: (query) =>
+      query.state.data?.runs.some((run) => run.origin === 'acc' && !isRunFinished(run.state))
+        ? ACC_REFRESH_MS
+        : false,
   })
 
 /** Прогон целиком; свежий присылает главный процесс, пока он идёт. */

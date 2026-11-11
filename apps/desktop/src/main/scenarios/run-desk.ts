@@ -10,6 +10,7 @@ import { transcriptIn } from './scenario-launch'
 import type { EngineHost } from './engine/engine-core'
 import type { ScenarioEngine } from './engine/scenario-engine'
 import type { SessionSpawn } from './engine/scenario-session'
+import { AccRuns } from './store/acc-runs'
 import { HiddenBook } from './store/hidden-book'
 import { LockedFile, projectKey } from './store/locked-file'
 import { RunStore } from './store/run-store'
@@ -28,6 +29,8 @@ export type DeskHost = {
   projectPath: string
   dataDir: string
   claudeHome: () => Promise<string>
+  /** Дом плагина ACC: его прогоны этого проекта - в истории, на чтение. */
+  accHome: string
   onLive: () => void
   onRun: (run: ScenarioRun) => void
   /** Прогон кончился, как бы ни кончился: записан на диск, место освобождено. */
@@ -54,6 +57,8 @@ export type Live = {
 export class RunDesk {
   readonly store: ScenarioStore
   readonly runs: RunStore
+  /** Прогоны, сделанные в проекте плагином ACC, - только посмотреть. */
+  readonly acc: AccRuns
   readonly schedules: ScheduleStore
   readonly hidden: HiddenBook
   readonly live = new Map<string, Live>()
@@ -72,6 +77,7 @@ export class RunDesk {
 
     this.store = new ScenarioStore(host.projectPath, host.claudeHome)
     this.runs = new RunStore(join(host.dataDir, 'scenario-runs', key))
+    this.acc = new AccRuns(host.projectPath, host.accHome)
     this.schedules = new ScheduleStore(file('scenario-schedules', 'schedules.json'))
     this.hidden = new HiddenBook(file('scenario-conversations', 'conversations.json'), () =>
       this.runs.conversations(),
@@ -211,8 +217,13 @@ export class RunDesk {
     for (const holder of this.live.values()) holder.engine.follow(to)
   }
 
+  /** Прогон по id: идущий, свой записанный или, если такого нет, прогон ACC этого проекта. */
   async run(runId: string): Promise<ScenarioRun | null> {
-    return this.live.get(runId)?.engine.run ?? (await this.runs.read(runId))
+    return (
+      this.live.get(runId)?.engine.run ??
+      (await this.runs.read(runId)) ??
+      (await this.acc.read(runId))
+    )
   }
 
   /** Выход из IDE: идущие прогоны останавливаются (их можно подхватить) и дописываются. */

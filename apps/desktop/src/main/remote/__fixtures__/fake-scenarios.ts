@@ -123,6 +123,7 @@ export const RUN: ScenarioRun = {
   starred: false,
   answering: false,
   limit: null,
+  origin: 'ide',
 }
 
 export const LIVE: RunSummary = {
@@ -152,4 +153,5 @@ export const LIVE: RunSummary = {
   roadmap: [],
   starred: false,
   limit: null,
+  origin: 'ide',
 }

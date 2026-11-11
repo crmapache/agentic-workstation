@@ -59,23 +59,28 @@ export const RunHistory = ({
                 </>
               }
               aside={
-                <>
-                  <IconButton
-                    icon={Star}
-                    size="touch"
-                    label={t(run.starred ? 'scenarios.unstar' : 'scenarios.star')}
-                    active={run.starred ?? false}
-                    disabled={screen.busy}
-                    onClick={() => screen.handleStar(run.id, !run.starred)}
-                  />
-                  <IconButton
-                    icon={Trash2}
-                    size="touch"
-                    label={t('scenarios.deleteRun')}
-                    disabled={screen.busy}
-                    onClick={() => setDeleting(run.id)}
-                  />
-                </>
+                // Прогон ACC IDE только показывает: звезду и удаление решает плагин.
+                run.origin === 'acc' ? (
+                  <Badge tone="neutral">{t('scenarios.accRun')}</Badge>
+                ) : (
+                  <>
+                    <IconButton
+                      icon={Star}
+                      size="touch"
+                      label={t(run.starred ? 'scenarios.unstar' : 'scenarios.star')}
+                      active={run.starred ?? false}
+                      disabled={screen.busy}
+                      onClick={() => screen.handleStar(run.id, !run.starred)}
+                    />
+                    <IconButton
+                      icon={Trash2}
+                      size="touch"
+                      label={t('scenarios.deleteRun')}
+                      disabled={screen.busy}
+                      onClick={() => setDeleting(run.id)}
+                    />
+                  </>
+                )
               }
               onClick={() =>
                 navigate({

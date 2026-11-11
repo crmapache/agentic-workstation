@@ -19,12 +19,14 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import type { RunActionsProps } from '../RunModal.types'
 import { isResumable } from '../../scenarios-runs.utils'
 import { useScenarioActions } from '../../scenarios.actions'
+import { AccRunBadge } from '../../AccRunBadge/AccRunBadge'
 import { ScenarioConfirm } from '../../ScenarioConfirm/ScenarioConfirm'
 
 /**
  * Кнопки в шапке окна прогона: разговор главного потока (или назад из журнала), пауза или
  * продолжение, стоп с вопросом. Законченный, но подхватываемый прогон вместо паузы и стопа
- * предлагает «Continue the run»; отказ главного процесса встаёт уведомлением с кодом.
+ * предлагает «Continue the run»; отказ главного процесса встаёт уведомлением с кодом. Прогон
+ * плагина ACC - только смотреть: его ведёт ACC, остаются журналы и разговор головы.
  */
 export const RunActions = ({
   place,
@@ -38,6 +40,7 @@ export const RunActions = ({
   const actions = useScenarioActions()
   const [isStopping, setIsStopping] = useState(false)
   const isOver = isRunFinished(run.state)
+  const isOurs = run.origin !== 'acc'
 
   const handlePause = () => void actions.control(place, run.id, 'pause')
 
@@ -72,7 +75,9 @@ export const RunActions = ({
           </Tooltip>
         )
       )}
-      {!isOver &&
+      {!isOurs && <AccRunBadge />}
+      {isOurs &&
+        !isOver &&
         (run.state === 'paused' ? (
           <Button size="sm" variant="primary" icon={Play} onClick={handleResume}>
             {t('scenarios.run.resume')}
@@ -82,7 +87,7 @@ export const RunActions = ({
             {t('scenarios.run.pause')}
           </Button>
         ))}
-      {!isOver && (
+      {isOurs && !isOver && (
         <Button size="sm" icon={Square} onClick={handleAskStop}>
           {t('scenarios.run.stop')}
         </Button>
@@ -94,7 +99,7 @@ export const RunActions = ({
           </Button>
         </Tooltip>
       )}
-      {isOver && isResumable(run) && (
+      {isOurs && isOver && isResumable(run) && (
         <Tooltip label={t('scenarios.run.carryOnHint')}>
           <Button size="sm" variant="primary" icon={RotateCcw} onClick={handleCarryOn}>
             {t('scenarios.run.carryOn')}

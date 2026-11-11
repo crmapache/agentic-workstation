@@ -132,6 +132,7 @@
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued.",
       "runOver": "This run is over.",
+      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed.",
       "permissionMode": "The new conversation did not start in a mode the phone may choose. Start it at the computer.",
       "imageTooBig": "This photo is too big to send to the phone.",
       "askTaken": "This side question is already asked. Ask again.",
@@ -780,7 +781,8 @@
     "deleteRunConfirm": "Delete this run?",
     "deleteRunText": "Its record goes from the computer.",
     "delete": "Delete",
-    "write": "Write with AI"
+    "write": "Write with AI",
+    "accRun": "ACC"
   },
   "scenario": {
     "title": "Scenario",

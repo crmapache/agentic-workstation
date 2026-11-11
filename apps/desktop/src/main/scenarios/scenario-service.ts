@@ -11,6 +11,7 @@ import type {
   ScenarioStartRequest,
 } from '@shared/scenario-queues'
 import type { RunState, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
+import { isRunFinished } from '@shared/scenario-runs'
 import type {
   StepLogPage,
   RunControlRefusal,
@@ -32,6 +33,7 @@ import { ScenarioShelves } from './scenario-shelves'
 import { StepLogs } from './step-logs'
 import { QueueBook } from './queues/queue-book'
 import { runningItem, recoverQueue } from './queues/queue-rules'
+import { ACC_HOME } from './store/acc-runs'
 
 /** Раз в полминуты: часы расписания и шаг очередей - страховка, двигаются они и сами. */
 const BEAT_MS = 30_000
@@ -50,6 +52,8 @@ export type ScenarioServiceOptions = {
   dataDir: string
   /** Папка CLI с личной полкой; тесты дают свою, чтобы не читать настоящую. */
   claudeHome?: () => Promise<string>
+  /** Дом плагина ACC с его прогонами; тесты дают свой. */
+  accHome?: string
   worktreesRoot: string
   providers: readonly ScenarioProvider[]
   events: ScenarioEvents
@@ -117,6 +121,7 @@ export class ScenarioService {
         projectPath,
         dataDir: this.options.dataDir,
         claudeHome: this.options.claudeHome ?? claudeHome,
+        accHome: this.options.accHome ?? ACC_HOME,
         onLive: () => this.sendQueues(),
         onRun: (run) => this.options.events.onRun(projectPath, run),
         onFinished: (run) => {
@@ -265,6 +270,8 @@ export class ScenarioService {
 
     if (!run || !run.headConversationId) return 'runGone'
     if (desk.live.has(runId)) return 'runBusy'
+    // Идущий прогон ACC ведёт ACC: второй CLI на тот же транскрипт писал бы в него вдвоём.
+    if (run.origin === 'acc' && !isRunFinished(run.state)) return 'runForeign'
     if (!provider) return 'providerMissing'
 
     const cwd = run.cwd || projectPath

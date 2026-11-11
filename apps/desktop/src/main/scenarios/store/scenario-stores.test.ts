@@ -176,4 +176,5 @@ const runRecord = async () => ({
   starred: false,
   answering: false,
   limit: null,
+  origin: 'ide' as const,
 })

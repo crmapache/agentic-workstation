@@ -151,5 +151,6 @@ export type ScenarioCode =
   | 'runGone'
   | 'runNotResumable'
   | 'runOver'
+  | 'runForeign'
 
 export type ScenarioOutcome = { ok: true } | { ok: false; code: ScenarioCode }

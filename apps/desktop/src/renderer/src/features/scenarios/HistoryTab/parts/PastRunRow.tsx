@@ -13,6 +13,7 @@ import { formatCost, formatDuration } from '../../scenarios-format.utils'
 import { answerChips } from '../../scenarios-forms.utils'
 import { endedLabel, momentLabel } from '../../scenarios-moments.utils'
 import { runWorked } from '../../scenarios-timeline.utils'
+import { AccRunBadge } from '../../AccRunBadge/AccRunBadge'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 
@@ -20,6 +21,7 @@ import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
  * Строка прошлого прогона: какой (имя и ответы - то, чем две ночи одного сценария различаются,
  * теми же чипами, что у записи очереди), когда начат и кончился, сколько работал, во что обошёлся,
  * чем кончился. Звезда - метка человека и ничего больше: не сортирует и от удаления не защищает.
+ * Прогон плагина ACC - с меткой ACC и без звезды и удаления: его запись IDE не пишет.
  */
 export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRunRowProps) => {
   const { t } = useTranslation()
@@ -27,6 +29,7 @@ export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRu
     run.state === 'failed' && run.failure ? t(`scenarios.history.failures.${run.failure}`) : ''
   const isOver = run.finishedAt > 0
   const hasAnswers = answerChips(run.inputs).length > 0
+  const isAcc = run.origin === 'acc'
   const pill = <ScenarioStatePill of="run" state={run.state} />
 
   const handleOpen = () => onOpen(run.id)
@@ -44,6 +47,7 @@ export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRu
       onClick={handlePress}>
       <button type="button" className={clsx(styles.colRun, styles.runOpen)} onClick={handleOpen}>
         <span className={styles.runName}>{run.scenarioName}</span>
+        {isAcc && <AccRunBadge />}
         {hasAnswers && (
           <span className={styles.answers}>
             <ScenarioFormsAnswers inputs={run.inputs} />
@@ -62,21 +66,25 @@ export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRu
         {failure ? <Tooltip label={failure}>{pill}</Tooltip> : pill}
       </span>
       <span className={styles.colStar}>
-        <IconButton
-          icon={Star}
-          size="sm"
-          label={run.starred ? t('scenarios.history.unstar') : t('scenarios.history.star')}
-          active={run.starred}
-          onClick={() => onStar(run)}
-        />
+        {!isAcc && (
+          <IconButton
+            icon={Star}
+            size="sm"
+            label={run.starred ? t('scenarios.history.unstar') : t('scenarios.history.star')}
+            active={run.starred}
+            onClick={() => onStar(run)}
+          />
+        )}
       </span>
       <span className={styles.colDrop}>
-        <IconButton
-          icon={Trash2}
-          size="sm"
-          label={t('scenarios.history.delete')}
-          onClick={() => onDelete(run)}
-        />
+        {!isAcc && (
+          <IconButton
+            icon={Trash2}
+            size="sm"
+            label={t('scenarios.history.delete')}
+            onClick={() => onDelete(run)}
+          />
+        )}
       </span>
     </div>
   )

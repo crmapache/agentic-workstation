@@ -2,20 +2,24 @@ import { rm, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { isProviderId } from '@shared/providers'
-import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
+import type { RunOrigin, RunSummary, ScenarioRun } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
 
 import { abandoned, summarise } from './run-summary'
 import { isUsableId, parseScenario } from './scenario-parse'
 
-const RECORD = 'run.json'
-const SUMMARY = 'summary.json'
+/** Файлы папки прогона - те же имена, что у ACC: его папки читаются тем же кодом. */
+export const RECORD = 'run.json'
+export const SUMMARY = 'summary.json'
 
-const isRaw = (value: unknown): value is Record<string, unknown> =>
+export const isRaw = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** Запись прогона с диска; пишет её только IDE, но файл могли тронуть - поля по умолчанию. */
-const parseRun = (value: unknown): ScenarioRun | null => {
+/**
+ * Запись прогона с диска - своя или ACC (поля те же, у старых записей ACC части нет), но файл
+ * могли тронуть: поля по умолчанию. Кто вёл прогон, говорит место записи, а не она сама.
+ */
+export const parseRun = (value: unknown, origin: RunOrigin): ScenarioRun | null => {
   if (!isRaw(value) || typeof value['id'] !== 'string') return null
 
   const scope = value['scope'] === 'user' ? 'user' : 'project'
@@ -57,6 +61,7 @@ const parseRun = (value: unknown): ScenarioRun | null => {
     provider: isProviderId(value['provider']) ? value['provider'] : 'claude',
     scope,
     snapshot,
+    origin,
   }
 }
 
@@ -75,7 +80,7 @@ export class RunStore {
           const summary = JSON.parse(await readFile(join(this.dir, id, SUMMARY), 'utf8')) as unknown
 
           return isRaw(summary) && typeof summary['id'] === 'string'
-            ? (summary as RunSummary)
+            ? { ...(summary as RunSummary), origin: 'ide' as const }
             : null
         } catch {
           return null
@@ -92,7 +97,10 @@ export class RunStore {
     if (!isUsableId(id)) return null
 
     try {
-      return parseRun(JSON.parse(await readFile(join(this.dir, id, RECORD), 'utf8')) as unknown)
+      return parseRun(
+        JSON.parse(await readFile(join(this.dir, id, RECORD), 'utf8')) as unknown,
+        'ide',
+      )
     } catch {
       return null
     }

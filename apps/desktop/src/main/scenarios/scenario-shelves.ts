@@ -8,6 +8,7 @@ import type { Scenario, ScenarioCode } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import type { RunDesk } from './run-desk'
+import { withAccRuns } from './store/acc-runs'
 import { scopeOf, parseScenario } from './store/scenario-parse'
 
 export type ShelvesHost = {
@@ -18,8 +19,8 @@ export type ShelvesHost = {
 }
 
 /**
- * Полки сценариев проекта и личная, история прогонов и расписание - то, что вид сценариев
- * показывает о проекте. Удалённые сценарии уносят свои часы; файл, который не прочитался, -
+ * Полки сценариев проекта и личная, история прогонов (свои и сделанные в проекте плагином ACC)
+ * и расписание - то, что вид сценариев показывает о проекте. Удалённые сценарии уносят свои часы; файл, который не прочитался, -
  * это не «пусто», и по нему ничего не удаляется.
  */
 export class ScenarioShelves {
@@ -36,7 +37,7 @@ export class ScenarioShelves {
 
     return {
       scenarios: [...(project ?? []), ...(user ?? [])],
-      runs: await desk.runs.summaries(),
+      runs: withAccRuns(await desk.runs.summaries(), await desk.acc.summaries()),
       schedules: hours ?? [],
       schedulesUnread: hours === null,
       canShare: await desk.store.canShare(),
@@ -108,6 +109,7 @@ export class ScenarioShelves {
     const desk = this.host.desk(projectPath)
 
     if (desk.live.has(runId)) return 'runBusy'
+    if (await this.isForeign(desk, runId)) return 'runForeign'
 
     await desk.runs.delete(runId)
     this.host.onShelves(projectPath)
@@ -123,10 +125,16 @@ export class ScenarioShelves {
     const desk = this.host.desk(projectPath)
 
     if (desk.live.has(runId)) return 'runBusy'
+    if (await this.isForeign(desk, runId)) return 'runForeign'
     if (!(await desk.runs.star(runId, starred))) return 'runGone'
 
     this.host.onShelves(projectPath)
 
     return null
+  }
+
+  /** Прогон ACC: своей записи у IDE нет, а его книгу IDE не пишет. */
+  private async isForeign(desk: RunDesk, runId: string): Promise<boolean> {
+    return (await desk.runs.read(runId)) === null && (await desk.acc.read(runId)) !== null
   }
 }

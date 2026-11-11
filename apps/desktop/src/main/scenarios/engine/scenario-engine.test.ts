@@ -86,6 +86,7 @@ const runOf = (scenario: Scenario): ScenarioRun => ({
   starred: false,
   answering: false,
   limit: null,
+  origin: 'ide',
 })
 
 /** Голова, которая всё одобряет: готова, слоты по описанию, карточка сделана. */

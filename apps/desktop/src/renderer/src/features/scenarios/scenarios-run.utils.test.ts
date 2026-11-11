@@ -94,6 +94,7 @@ const run = (over: Partial<ScenarioRun> = {}): ScenarioRun => ({
   starred: false,
   answering: false,
   limit: null,
+  origin: 'ide',
   ...over,
 })
 

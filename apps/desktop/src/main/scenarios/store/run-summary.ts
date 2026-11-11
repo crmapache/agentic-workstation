@@ -65,6 +65,7 @@ export const summarise = (run: ScenarioRun): RunSummary => {
       : road.map((stop) => ({ ...stop, title: stop.title.slice(0, ROADMAP_TITLE) })),
     starred: run.starred,
     limit: run.limit,
+    origin: run.origin,
   }
 }
 

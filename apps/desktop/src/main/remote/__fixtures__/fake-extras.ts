@@ -148,6 +148,7 @@ export const historySummaryOf = (projectPath: string): RunSummary => ({
   roadmap: [],
   starred: true,
   limit: null,
+  origin: 'ide',
 })
 
 export const scheduleOf = (hour: ScenarioHourRequest): ScenarioSchedule => ({

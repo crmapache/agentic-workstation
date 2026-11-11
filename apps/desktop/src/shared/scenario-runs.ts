@@ -8,6 +8,12 @@ import type { Scenario, ScenarioScope } from './scenarios'
 
 export type RunState = 'starting' | 'running' | 'paused' | 'blocked' | 'done' | 'failed' | 'stopped'
 
+/**
+ * Кто вёл прогон: IDE или плагин ACC в JetBrains. Прогоны ACC этого проекта видны в истории
+ * только на чтение: ими, их очередью и расписанием управляет ACC, и IDE их не пишет.
+ */
+export type RunOrigin = 'ide' | 'acc'
+
 export type StepState =
   'waiting' | 'running' | 'asking' | 'judging' | 'paused' | 'done' | 'failed' | 'skipped'
 
@@ -166,6 +172,7 @@ export type ScenarioRun = {
   /** Голова прямо сейчас отвечает человеку. */
   answering: boolean
   limit: RunLimit | null
+  origin: RunOrigin
 }
 
 /** Остановка на дороге карточки идущего прогона. */
@@ -200,6 +207,7 @@ export type RunSummary = {
   roadmap: RoadmapStop[]
   starred: boolean
   limit: RunLimit | null
+  origin: RunOrigin
 }
 
 export const isRunFinished = (state: RunState): boolean =>

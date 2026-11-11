@@ -11,6 +11,7 @@ import type { Scenario } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import { ScenarioService } from './scenario-service'
+import { accProjectKey } from './store/acc-runs'
 import type { FakeScript } from './engine/__fixtures__/fake-cli'
 import { FakeCli } from './engine/__fixtures__/fake-cli'
 
@@ -156,6 +157,7 @@ beforeEach(async () => {
     dataDir: join(dir, 'data'),
     worktreesRoot: join(dir, 'worktrees'),
     claudeHome: () => Promise.resolve(join(dir, 'home')),
+    accHome: join(dir, 'acc'),
     providers: [provider(fakes, titles)],
     events: {
       onQueues: () => undefined,
@@ -234,6 +236,31 @@ describe('scenario service', () => {
     expect(scenarios.control(project, runId, 'pause', 'running')).toBe('runOver')
     expect(scenarios.control(project, 'nope', 'stop', 'running')).toBe('runOver')
     expect(scenarios.answer(project, runId, true, '', { stepKey: 'x', askedAt: 1 })).toBe(false)
+  })
+
+  it('shows the runs ACC made in the project, read only', async () => {
+    const scenarios = service as ScenarioService
+    const folder = join(dir, 'acc', 'scenario-runs', accProjectKey(project), 'accRun01')
+    const snapshot = { version: 1, id: 'a', name: 'A', inputs: [], stages: [] }
+
+    await mkdir(folder, { recursive: true })
+    await writeFile(
+      join(folder, 'summary.json'),
+      JSON.stringify({ id: 'accRun01', scenarioName: 'A', startedAt: 5, state: 'done' }),
+    )
+    await writeFile(
+      join(folder, 'run.json'),
+      JSON.stringify({ id: 'accRun01', snapshot, state: 'done', headConversationId: 'h' }),
+    )
+
+    const view = await scenarios.shelves.view(project)
+
+    expect(view.runs.map((run) => `${run.id}:${run.origin}`)).toEqual(['accRun01:acc'])
+    expect((await scenarios.run(project, 'accRun01'))?.origin).toBe('acc')
+    expect(await scenarios.shelves.deleteRun(project, 'accRun01')).toBe('runForeign')
+    expect(await scenarios.shelves.starRun(project, 'accRun01', true)).toBe('runForeign')
+    expect(await scenarios.carryOn('accRun01')).toBe('runGone')
+    expect(scenarios.control(project, 'accRun01', 'stop')).toBe('runOver')
   })
 
   it('refuses a scenario that is not on the shelf and a queue that is closed', async () => {

@@ -75,6 +75,7 @@ const run = (id: string, patch: Partial<RunSummary> = {}): RunSummary => ({
   roadmap: [],
   starred: false,
   limit: null,
+  origin: 'ide',
   ...patch,
 })
 

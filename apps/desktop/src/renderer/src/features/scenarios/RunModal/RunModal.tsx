@@ -35,7 +35,8 @@ export const RunModal = ({ request }: RunModalProps) => {
   const queueName = useQueueName(run?.queueId)
   const { logKey, rootRef, openLog, back } = useRunPage(run)
   // Поле главному потоку - под таймлайном и под его же разговором; в журнале карточки - нет.
-  const isTelling = run !== null && (logKey === null || logKey === HEAD_LOG)
+  // Голове прогона ACC пишет только ACC.
+  const isTelling = run !== null && run.origin !== 'acc' && (logKey === null || logKey === HEAD_LOG)
   const description = run
     ? logKey === null
       ? runDescription(queueName, run.inputs)

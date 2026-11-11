@@ -54,6 +54,9 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
     )
   }
 
+  // Прогон ACC (плагин в JetBrains) - только посмотреть: им управляет ACC.
+  const isAcc = run.origin === 'acc'
+
   return (
     <Screen
       title={run.scenarioName}
@@ -68,11 +71,12 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
       agentId={route.agentId}
       help={help}
       footer={
-        !isRunOver(run.state) && (
+        !isRunOver(run.state) &&
+        !isAcc && (
           <RunFooter draftKey={`run|${route.agentId}|${run.id}`} run={run} screen={screen} />
         )
       }>
-      <CarryOnCard run={run} busy={screen.busy} onCarryOn={screen.carryOn} />
+      {!isAcc && <CarryOnCard run={run} busy={screen.busy} onCarryOn={screen.carryOn} />}
       <RunSteps run={run} onOpenLog={handleOpenLog} />
       <ListGroup label={t('run.headLog')}>
         <ListRow

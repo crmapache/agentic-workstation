@@ -219,6 +219,11 @@ export type RunSummaryWire = {
   limit: RunLimitWire | null
   /** Отмечен звёздочкой в истории прогонов; нет поля - IDE старше этой отметки. */
   starred?: boolean | undefined
+  /**
+   * Кто вёл прогон: ide или acc (плагин ACC в JetBrains - его прогон IDE только показывает:
+   * ни звезды, ни удаления, ни продолжения). Нет поля - IDE старше: прогон её.
+   */
+  origin?: string | undefined
 }
 
 export type RunStepWire = {
