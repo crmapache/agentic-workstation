@@ -1,0 +1,562 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Тело окна редактора: оглавление слева, правка справа. Оглавление стоит на месте, пока
+// правая часть прокручивается вместе с телом окна: по нему ходят по длинному этапу.
+.body {
+  display: grid;
+  grid-template-columns: var(--size-outline) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  container-type: inline-size;
+}
+
+// ---------- Подвал ----------
+
+.footerStart {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.footerEnd {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Отказ сохранения - строкой в подвале, а не тостом: правка остаётся открытой, и причина
+// стоит рядом с Save, пока человек решает, что с ней делать.
+.refusal {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// ---------- Селекторы ----------
+
+// Подпись капсом и значение кнопкой: MODEL Opus, как строка под полем ввода панели.
+.picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pickerCaption {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+// Тон слова режима: тихий, справка (план), внимание (правки без вопроса), опасно (без вопросов).
+.quiet {
+  color: var(--color-fg);
+}
+
+.info {
+  color: var(--color-info);
+}
+
+.accent {
+  color: var(--color-accent-strong);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+// ---------- Оглавление ----------
+
+.outline {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  padding-right: var(--space-3);
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+.outlineLabel {
+  @include caps-label;
+
+  padding: var(--space-2) var(--space-1-5) var(--space-1);
+  color: var(--color-fg-subtle);
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+// Строка оглавления: имена переносятся, а не режутся - колонка узкая, а «Review, then…»
+// у двух этапов подряд не отличить.
+.outlineRow {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  width: 100%;
+  min-height: var(--size-tree-row);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.selected,
+.selected:hover {
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
+}
+
+.outlineText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.outlineNote {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+}
+
+.outlineCount {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+// Карточки открытого этапа - под ним, с отступом на ширину номера: клик попадает в карточку,
+// а не в этап, которому она принадлежит.
+.outlineCard {
+  @include button-reset;
+  @include interactive-surface;
+
+  width: 100%;
+  padding: var(--space-1) var(--space-1-5) var(--space-1) var(--space-6);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+// Номер этапа или карточки - плашкой цифрой: порядок читается раньше имени.
+.number {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-hover);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+}
+
+// «Добавить» пунктиром: место, где встанет новое, а не действие над тем, что есть.
+.addDashed {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  min-height: var(--size-control-md);
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-fg);
+    }
+  }
+}
+
+.outlineAdd {
+  margin-top: var(--space-2);
+}
+
+// ---------- Находки под оглавлением ----------
+
+.problems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin-top: var(--space-4);
+}
+
+.problemsBad {
+  color: var(--color-danger);
+}
+
+.problemsSoft {
+  color: var(--color-warning);
+}
+
+.problem {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+// Глиф встаёт по первой строке текста, а не по середине абзаца.
+.problemIcon {
+  flex-shrink: 0;
+  margin-top: var(--space-0-5);
+}
+
+.problemIconBad {
+  color: var(--color-danger);
+}
+
+.problemIconSoft {
+  color: var(--color-warning);
+}
+
+// ---------- Правая часть ----------
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+// Подпись части с линией до заметки справа: «STAGE 2 · REVIEW ——— GOES ROUND ×3».
+.paneLabel {
+  @include caps-label;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-control-sm);
+  color: var(--color-fg-muted);
+}
+
+// Подпись части и кнопка справа: кнопка - вне подписи, капс ей не нужен.
+.paneHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  > .paneLabel {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.paneLabelText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.paneRule {
+  flex: 1;
+  min-width: var(--space-4);
+  height: var(--border-width);
+  background-color: var(--color-border);
+}
+
+.paneNote {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.fieldLabel {
+  @include caps-label;
+
+  color: var(--color-fg-muted);
+}
+
+// Пояснение рядом с подписью - обычным регистром: это фраза, а не заголовок.
+.aside {
+  margin-left: var(--space-2);
+  color: var(--color-fg-subtle);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-4) var(--space-2);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+// Селекторы рядом и с переносом, как строка под полем ввода.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-1-5);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+}
+
+.grow {
+  flex: 3 1 0;
+  min-width: 0;
+}
+
+.slotName {
+  flex: 2 1 0;
+  min-width: 0;
+}
+
+.addRow {
+  display: flex;
+}
+
+// Плитка вопроса или списка: всё, что о нём, - в одной рамке.
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-raised);
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+// Как имя пишется в промпте - тем же цветом, что подсветка в самом промпте.
+.mention {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+}
+
+.mentionInput {
+  color: var(--color-syntax-constant);
+}
+
+// ---------- Карточка ----------
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-raised);
+  scroll-margin-top: var(--space-3);
+}
+
+// Карточка, на которую указало оглавление: рамка заметнее, без свечения.
+.cardOpen {
+  border-color: var(--color-border-strong);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+// Имя карточки правится на месте, как имя вкладки: рамка - только под указателем и в фокусе.
+.cardTitle {
+  flex: 1 1 0;
+  min-width: var(--size-tab-min-narrow);
+  height: var(--size-control-sm);
+  padding: 0 var(--space-1-5);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  background-color: transparent;
+  color: var(--color-fg-strong);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  user-select: text;
+  transition: border-color var(--duration-normal) var(--easing-standard);
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--color-border);
+    }
+  }
+
+  &:focus {
+    border-color: var(--color-accent-border);
+    background-color: var(--color-surface-sunken);
+  }
+
+  &::placeholder {
+    color: var(--color-fg-disabled);
+  }
+}
+
+.inherits {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--color-fg-disabled);
+  font-size: var(--font-size-xs);
+}
+
+// Два коротких ответа рядом, когда есть место: что должно быть правдой в конце и что
+// передать дальше. Оба читает голова, поэтому они вместе.
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+
+  > * {
+    flex: 1 1 var(--size-text-narrow);
+    min-width: 0;
+  }
+}
+
+// ---------- Промпт карточки ----------
+
+// Подложка с подсвеченными именами под прозрачным textarea. Поле обязано остаться textarea
+// (своё выделение, отмена, проверка), поэтому свет кладётся снизу, а у обоих слоёв одни и те же
+// метрики - шрифт, поля, межстрочный, перенос - и потому свет ложится ровно под буквами.
+.prompt {
+  @include field-frame;
+
+  position: relative;
+  border-radius: var(--radius-sm);
+}
+
+.promptBack,
+.promptField {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: calc(var(--size-control-lg) * 3);
+  max-height: var(--size-code-max);
+  margin: 0;
+  padding: var(--space-2);
+  border: none;
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  font-variant-ligatures: none;
+  line-height: var(--line-height-normal);
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+
+  // Полоса прокрутки занимает место у обоих слоёв, есть что крутить или нет: у окна свои
+  // полосы, и без резерва поле переносило бы строки на её ширину раньше подложки - с третьей
+  // строки свет лежал бы под чужими словами (замер ACC: 834 против 846 px).
+  scrollbar-gutter: stable;
+}
+
+.promptBack {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--color-fg);
+  pointer-events: none;
+}
+
+// Видимые буквы рисует подложка; у поля - только каретка, выделение и пустая подсказка.
+.promptField {
+  position: relative;
+  display: block;
+  field-sizing: content;
+  overflow-y: auto;
+  outline: none;
+  background-color: transparent;
+  color: transparent;
+  caret-color: var(--color-accent-strong);
+  resize: none;
+  user-select: text;
+
+  &::placeholder {
+    color: var(--color-fg-disabled);
+  }
+}
+
+.promptInput,
+.promptSlot {
+  border-radius: var(--radius-xs);
+}
+
+.promptInput {
+  background-color: color-mix(in srgb, var(--color-syntax-constant) var(--tint-soft), transparent);
+  color: var(--color-syntax-constant);
+}
+
+.promptSlot {
+  background-color: color-mix(in srgb, var(--color-syntax-keyword) var(--tint-soft), transparent);
+  color: var(--color-syntax-keyword);
+}
+
+// Узкое окно IDE: оглавление встаёт над правкой, линия между ними - горизонтальная.
+@container (width < 560px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline {
+    position: static;
+    padding: 0 0 var(--space-3);
+    border-right: none;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+}

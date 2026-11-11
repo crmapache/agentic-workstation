@@ -16,17 +16,21 @@ import { SearchLayer } from '../SearchLayer/SearchLayer'
 import { SidePanel } from '../SidePanel/SidePanel'
 import { TerminalDock } from '../TerminalDock/TerminalDock'
 import { TitleBar } from '../TitleBar/TitleBar'
+import { CONVERSATION_LOG } from '../views/conversation-log'
+import { useMainViewBadges } from '../views/main-view-badges'
 import { MAIN_VIEWS } from '../views/main-views'
 import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
 import { ViewStack } from '../ViewStack/ViewStack'
+import { ConversationLogContext } from '../../state/conversation-log.context'
 import { PANEL_MIN_WIDTH } from '../../state/layout.constants'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
 import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
 import { GitNotice } from '../../features/git/GitNotice/GitNotice'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
+import { ScenarioNotice } from '../../features/scenarios/ScenarioNotice/ScenarioNotice'
 import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsDialog'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
 import { UpdateNotice } from '../../features/updates/UpdateNotice/UpdateNotice'
@@ -55,6 +59,7 @@ export const Workbench = () => {
   const openFile = useOpenFile()
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
+  const mainBadges = useMainViewBadges()
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -96,17 +101,21 @@ export const Workbench = () => {
               edge="start"
               label={t('mainViews.label')}
               views={MAIN_VIEWS}
+              badges={mainBadges}
               activeViewId={main.activeViewId}
               isPanelOpen={arrangement.isMainShown}
               onSelect={selectMainView}
             />
             <main ref={mainRef} className={styles.main}>
               <div className={clsx(styles.mainSheet, arrangement.isMainShown && styles.mainOpen)}>
-                <ViewStack
-                  views={MAIN_VIEWS}
-                  activeViewId={main.activeViewId}
-                  isOpen={arrangement.isMainShown}
-                />
+                {/* Виды середины (журнал шага сценария) показывают разговор провайдера его лентой. */}
+                <ConversationLogContext value={CONVERSATION_LOG}>
+                  <ViewStack
+                    views={MAIN_VIEWS}
+                    activeViewId={main.activeViewId}
+                    isOpen={arrangement.isMainShown}
+                  />
+                </ConversationLogContext>
               </div>
             </main>
 
@@ -158,6 +167,7 @@ export const Workbench = () => {
         <NotificationArea>
           <UpdateNotice />
           <GitNotice />
+          <ScenarioNotice />
         </NotificationArea>
       </div>
     </OpenFileContext>

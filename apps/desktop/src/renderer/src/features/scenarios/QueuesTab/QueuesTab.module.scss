@@ -1,0 +1,6 @@
+// Очереди проекта - полосами одна под другой.
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

@@ -1,0 +1,91 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+// Одно поле с подписью над ним: подпись над полем, а не сбоку - ответ (задача, ветка) длинный.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+// Подпись поля капсом: AT, REPEAT, IT ASKS FOR.
+.caption {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+.hint {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+// Подпись вопроса сценария - его словами, обычным регистром: это вопрос, а не раздел.
+.inputCaption {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Без ответа час не ставится - это и есть «обрати внимание».
+.mustFill {
+  color: var(--color-fg-accent);
+  font-size: var(--font-size-xs);
+}
+
+.timeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Меню выглядит полем: оно и есть поле формы, а не тихая кнопка строки.
+.box {
+  @include field-frame;
+
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+}
+
+// В колонке поля меню не тянется на всю ширину: оно ростом со своё значение.
+.boxStart {
+  align-self: flex-start;
+}
+
+.timeColon {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+}
+
+.due {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Вопросы: каждый своим полем, просторнее, чем подпись и одно поле.
+.asks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.providerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

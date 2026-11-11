@@ -49,6 +49,21 @@ export const QUERY_KEYS = {
   connectors: ['connectors'],
   /** Живые оболочки терминала всех проектов (ADR 0037); вышедшие убирает главный процесс. */
   terminalSessions: ['terminal', 'sessions'],
+  /** Очереди сценариев всех проектов и идущие прогоны (ADR 0039). */
+  scenarioQueues: ['scenarios', 'queues'],
+  /** Полки, история и расписание сценариев проекта. */
+  scenarioShelves: (projectId: string) => ['scenarios', 'shelves', projectId],
+  /** Прогон сценария целиком - только открытый. */
+  scenarioRun: (runId: string) => ['scenarios', 'run', runId],
+  /** Журнал шага прогона - разговор провайдера той же лентой, что в его панели. */
+  scenarioStepLog: (runId: string, key: string) => ['scenarios', 'step-log', runId, key],
+  /**
+   * Что сейчас в worktree очереди - для вопроса перед удалением. Событий о нём нет: за минуту
+   * в worktree могли закоммитить, поэтому читается на каждое открытие вопроса.
+   */
+  scenarioWorktreeFacts: (queueId: string) => ['scenarios', 'worktree-facts', queueId],
+  /** Провайдеры ИИ и на месте ли они. */
+  providers: ['providers'],
   /** MCP-серверы из конфига Claude Code для переноса: свежие на каждое открытие. */
   connectorImportCandidates: ['connectors-import', 'candidates'],
   /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */

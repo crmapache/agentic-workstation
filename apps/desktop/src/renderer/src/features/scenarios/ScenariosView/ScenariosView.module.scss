@@ -1,0 +1,31 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид середины окна: шапка и вкладки прибиты сверху, прокручивается только страница под ними.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+// В узкой середине пять вкладок не влезают: ряд прокручивается вбок, а не режет последнюю
+// (как переключатель потоков в панели Claude Code).
+.tabs {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--size-panel-gutter) 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// Страница на всю ширину середины, поля по бокам - общее поле зоны окна.
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--size-panel-gutter);
+}

@@ -1,0 +1,128 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Дорога карточек: кружки ростом с маленький контрол, связка - короткая черта одной длины
+// везде (размеры совпадают с ROAD в scenarios.constants: по ним ряд складывается до отрисовки).
+.scenarioRoadmap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.road {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.place {
+  display: inline-flex;
+  border-radius: var(--radius-full);
+}
+
+// Этап, где стоит прогон, подложен полосой тона того, что прогон делает.
+.bandworking {
+  @include tinted-plaque(var(--color-warning));
+
+  border-color: transparent;
+}
+
+.bandasking {
+  @include tinted-plaque(var(--color-accent));
+
+  border-color: transparent;
+}
+
+.bandpaused {
+  @include tinted-plaque(var(--color-fg-subtle));
+
+  border-color: transparent;
+}
+
+.link {
+  flex-shrink: 0;
+  width: var(--space-2);
+  height: var(--border-width);
+  background-color: var(--color-border-strong);
+}
+
+.stop {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+}
+
+.done {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.failed {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.skipped {
+  border-style: dashed;
+  color: var(--color-fg-disabled);
+}
+
+.ahead {
+  color: var(--color-fg-subtle);
+}
+
+.here {
+  color: var(--color-fg-strong);
+}
+
+.working {
+  border-color: var(--color-warning);
+  background-color: var(--color-bg-selected);
+}
+
+.asking {
+  border-color: var(--color-accent);
+  background-color: var(--color-bg-selected);
+}
+
+.paused {
+  border-color: var(--color-fg-subtle);
+}
+
+// Дуга бежит по кольцу текущей: рамка, крутящаяся сама, без свечения.
+.arc {
+  position: absolute;
+  inset: calc(var(--border-width) * -1);
+  border: var(--border-width) solid transparent;
+  border-top-color: var(--color-fg-strong);
+  border-radius: var(--radius-full);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  animation: roadmap-arc-turn var(--duration-spin) linear infinite;
+}
+}
+
+.fold {
+  flex-shrink: 0;
+  width: var(--space-8);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+  text-align: center;
+}
+
+// Своё вращение, как у Spinner: общей анимации кольца в дизайн-системе нет.
+@keyframes roadmap-arc-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}

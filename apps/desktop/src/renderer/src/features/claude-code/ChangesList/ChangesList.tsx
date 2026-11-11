@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
 
+import { useFeedScope } from '../feed-scope.context'
 import { COLLAPSE_AFTER, COLLAPSED_COUNT } from './ChangesList.constants'
 import { useChangesList } from './ChangesList.hooks'
 import styles from './ChangesList.module.scss'
@@ -22,8 +23,12 @@ import { ChangeRow } from './parts/ChangeRow'
 export const ChangesList = ({ turn }: ChangesListProps) => {
   const { t } = useTranslation()
   const list = useChangesList(turn)
+  const { readOnly } = useFeedScope()
   const [isUnfolded, setIsUnfolded] = useState(false)
-  const { changes, revertable } = turn
+  const { changes } = turn
+  // В журнале чужого разговора файлы видны и открываются, но откатывать их не нам: копии
+  // хода держит процесс, которого у журнала нет.
+  const revertable = turn.revertable && !readOnly
   const isFoldable = changes.length > COLLAPSE_AFTER
   const shown = isFoldable && !isUnfolded ? changes.slice(0, COLLAPSED_COUNT) : changes
   const hasButtons = revertable && changes.some((change) => change.undoable)

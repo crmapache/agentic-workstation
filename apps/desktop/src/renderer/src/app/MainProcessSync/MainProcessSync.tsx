@@ -1,5 +1,6 @@
 import { useConnectorsSync } from '../../state/connectors.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
+import { useScenariosSync } from '../../state/scenarios.queries'
 import { useUpdateStatusSync } from '../../state/updates.queries'
 import { useWorkspaceSync } from '../../state/workspace.queries'
 import { useAsideSync } from '../../features/claude-code/aside.queries'
@@ -29,6 +30,7 @@ export const MainProcessSync = () => {
   useEditorSync()
   useConnectorsSync()
   useTerminalSync()
+  useScenariosSync()
 
   return null
 }

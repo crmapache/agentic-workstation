@@ -1,0 +1,450 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Таймлайн прогона: рельса слева (точка на шаг, номер на этап), карточки и слова справа.
+.scenarioRunTimeline {
+  display: flex;
+  flex-direction: column;
+}
+
+// Строка: колонка рельсы шириной с номер этапа и содержимое. Отступ - низом строки, а не
+// промежутком ленты: рельса тянется через него без разрыва.
+.row {
+  display: grid;
+  grid-template-columns: var(--size-control-xs) minmax(0, 1fr);
+  column-gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+
+  &::before {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    width: var(--border-width);
+    background-color: var(--color-border);
+    content: '';
+    translate: -50% 0;
+  }
+}
+
+// Точка шага стоит на уровне его шапки (поле карточки + половина строки с плашкой).
+.dot {
+  position: relative;
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  margin-top: calc(var(--space-2) + (var(--size-control-xs) - var(--size-status-dot)) / 2);
+  border: var(--border-width) solid var(--color-fg-disabled);
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-panel);
+
+  &.going {
+    border-color: var(--color-warning);
+    background-color: var(--color-warning);
+  }
+
+  &.asking {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+  }
+
+  &.paused {
+    border-color: var(--color-fg-subtle);
+    background-color: var(--color-fg-subtle);
+  }
+
+  &.done {
+    border-color: var(--color-success);
+    background-color: var(--color-success);
+  }
+
+  &.failed {
+    border-color: var(--color-danger);
+    background-color: var(--color-danger);
+  }
+}
+
+// Этап - глава: номер в кружке на рельсе, заголовок капсом, черта и вердикт этапа.
+.stageRow {
+  --stage-tone: var(--color-fg-muted);
+
+  padding-top: var(--space-1);
+
+  &:not(:first-child) {
+    padding-top: var(--space-3);
+  }
+
+  &.here {
+    --stage-tone: var(--color-fg-accent);
+  }
+
+  &.done {
+    --stage-tone: var(--color-success);
+  }
+
+  &.ahead {
+    --stage-tone: var(--color-fg-subtle);
+  }
+}
+
+.stageNumber {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border: var(--border-width) solid var(--stage-tone);
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-panel);
+  color: var(--stage-tone);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.stageHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: var(--size-control-xs);
+}
+
+.stageTitle {
+  @include caps-label;
+  @include truncate;
+
+  color: var(--color-fg-muted);
+}
+
+.stageLine {
+  flex: 1;
+  min-width: var(--space-4);
+  height: var(--border-width);
+  background-color: var(--color-border);
+}
+
+.stageVerdict {
+  @include caps-label;
+
+  flex-shrink: 0;
+  color: var(--stage-tone);
+  white-space: nowrap;
+}
+
+// Карточка шага. Нажимается вся (дверь - кнопка под содержимым, на всю карточку); содержимое
+// поверх неё нажатий не берёт, поэтому Markdown внутри - только чтение.
+.step {
+  position: relative;
+  min-width: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-raised);
+}
+
+.stepGoing {
+  border-color: color-mix(in srgb, var(--color-warning) var(--tint-border), transparent);
+}
+
+.stepAsking {
+  border-color: var(--color-accent-border);
+}
+
+.stepFailed {
+  border-color: color-mix(in srgb, var(--color-danger) var(--tint-border), transparent);
+}
+
+// Впереди - план: пунктир, без подложки, тусклым.
+.stepAhead {
+  border-style: dashed;
+  background-color: transparent;
+
+  .stepTitle {
+    color: var(--color-fg-subtle);
+    font-weight: var(--font-weight-regular);
+  }
+}
+
+.door {
+  @include button-reset;
+  @include interactive-surface;
+
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.stepBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  pointer-events: none;
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+  min-height: var(--size-control-xs);
+}
+
+.stepTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.stepPlace {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.stepTime {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stepTimeGoing {
+  color: var(--color-fg);
+}
+
+.stepItem {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.slot {
+  @include truncate;
+
+  max-width: 100%;
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-xs);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.stepLine {
+  color: var(--color-fg-muted);
+}
+
+.stepSaying {
+  color: var(--color-fg);
+}
+
+.verdict {
+  font-size: var(--font-size-sm);
+}
+
+.verdictDone {
+  color: var(--color-success);
+}
+
+.verdictLater {
+  color: var(--color-warning);
+}
+
+.reason {
+  color: var(--color-fg-muted);
+}
+
+.verdictUndone {
+  color: var(--color-danger);
+}
+
+.handoff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  color: var(--color-fg-muted);
+}
+
+.handoffLabel {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.nudge {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.finishing {
+  margin-left: var(--space-1);
+  color: var(--color-warning);
+}
+
+.stepError {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+// Мелкий Markdown: кегль строки, без полей абзацев, цвет - от того, кто его поставил.
+.glance {
+  position: relative;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.glanceText > div {
+  color: inherit;
+  font-size: inherit;
+}
+
+.glanceText :is(p, h1, h2, h3, h4) {
+  margin-block: 0;
+  font-size: inherit;
+}
+
+// Текст как есть, пока разбор Markdown не приехал (или его нет): переносы - как написаны.
+.plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Три строки по высоте. Говорящий показывает последние строки - текст прижат к низу окна.
+.clamped {
+  max-height: 3lh;
+  overflow: hidden;
+}
+
+.newest {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+
+  > .glanceText {
+    flex-shrink: 0;
+  }
+}
+
+// Обрезано - крайняя строка притушена слоем цвета карточки: у начала - снизу, у живых слов -
+// сверху. Слой ровный, без градиента (ADR 0006).
+.cut::after {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1lh;
+  background-color: var(--color-surface-raised);
+  content: '';
+  opacity: var(--opacity-muted);
+  pointer-events: none;
+}
+
+.cut.newest::after {
+  top: 0;
+  bottom: auto;
+}
+
+// Слова между шагами: тон - кто сказал. Голова и IDE - справка (мятный), человек -
+// нейтрально, ожидание лимита - предупреждение.
+.note {
+  --tone: var(--color-info);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid color-mix(in srgb, var(--tone) var(--tint-border), transparent);
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--tone) var(--tint-soft), transparent);
+  color: var(--color-fg);
+}
+
+.notePerson {
+  --tone: var(--color-fg-subtle);
+}
+
+.noteLimit {
+  --tone: var(--color-warning);
+}
+
+.noteWho {
+  @include caps-label;
+
+  color: var(--tone);
+}
+
+.notePerson .noteWho {
+  color: var(--color-fg-muted);
+}
+
+.noteText {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+// Слова человека - как он их набрал: переносы строк его.
+.noteVerbatim {
+  white-space: pre-wrap;
+}
+
+.noteWaiting {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+}
+
+.relayed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding-top: var(--space-1);
+  border-top: var(--border-width) solid
+    color-mix(in srgb, var(--tone) var(--tint-border), transparent);
+}
+
+.relayedLabel {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+}
+
+.answering {
+  font-size: var(--font-size-xs);
+}
+
+// Перелив, как у строки «думает» в ленте (градиент - токен, ADR 0025): свет течёт по буквам
+// слева направо, за период сдвигается ровно на свою ширину - шва нет.
+.shimmer {
+  background-image: var(--gradient-shimmer);
+  background-size: 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: answering-flow var(--duration-shimmer) linear infinite;
+}
+
+@keyframes answering-flow {
+  to {
+    background-position: -200% 0;
+  }
+}

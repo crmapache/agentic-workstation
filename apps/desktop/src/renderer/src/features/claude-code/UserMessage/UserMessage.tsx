@@ -26,7 +26,7 @@ import { MessageImages } from './parts/MessageImages'
  */
 export const UserMessage = memo(({ item }: UserMessageProps) => {
   const { t } = useTranslation()
-  const { conversationId } = useFeedScope()
+  const { conversationId, author } = useFeedScope()
   const draft = useMessageDraft(conversationId, item)
   const [openedImage, setOpenedImage] = useState<number | null>(null)
   const [openedPicture, setOpenedPicture] = useState<OpenedPicture | null>(null)
@@ -43,7 +43,7 @@ export const UserMessage = memo(({ item }: UserMessageProps) => {
         {/* Написала панель (продолжение оборванной работы) - PANEL, причина в подсказке. */}
         <Tooltip label={why} disabled={!why} placement="top">
           <span className={styles.label}>
-            {item.auto ? t('claudeCode.carryOn.label') : t('claudeCode.message.you')}
+            {item.auto ? t('claudeCode.carryOn.label') : author || t('claudeCode.message.you')}
           </span>
         </Tooltip>
         <span className={styles.time}>{formatClock(item.time)}</span>

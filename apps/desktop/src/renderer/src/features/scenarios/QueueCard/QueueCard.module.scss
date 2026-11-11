@@ -1,0 +1,386 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Полоса очереди внутри карточки: шапка, остановка, элементы, идущий, кнопки - сверху вниз.
+.lane,
+.compact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.compact {
+  gap: var(--space-2);
+}
+
+// Шапка: имя забирает свободное место и режется, метки и меню - справа.
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+// Имя тянется на всю строку и режется троеточием, меню - у правого края.
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+
+  > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// Провайдер, папка и состояние: переносятся, а не сжимают друг друга.
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+
+// Ростом с кнопку шапки: подсказка-обёртка тянется на высоту ряда, и имя встаёт по центру.
+.name {
+  @include truncate;
+
+  margin: 0;
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--size-control-sm);
+
+  // Двойной клик - переименование, а не выделение слова.
+  user-select: none;
+}
+
+.nameField {
+  flex: 1;
+  min-width: 0;
+}
+
+.provider {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Очередь встала: полоса с причиной и действием. Остановка рукой человека - серая, провал и
+// отказ - тоном ошибки; текст остаётся обычным, цветом говорит только плашка.
+.hold {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1-5) var(--space-2) var(--space-1-5) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-hover);
+  color: var(--color-fg);
+}
+
+.holdDanger {
+  @include tinted-plaque(var(--color-danger));
+
+  color: var(--color-fg);
+}
+
+.holdText {
+  flex: 1;
+  min-width: 0;
+  line-height: var(--line-height-snug);
+}
+
+.holdActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Элементы - плашками в ряд с переносом: порядок читается слева направо.
+.items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-1-5) var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+// Идущий - подложкой и рамкой поярче: глаз находит его в ряду сразу.
+.itemRunning {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-hover);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.itemNumber {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.itemName {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.itemOpen {
+  @include button-reset;
+  @include truncate;
+  @include interactive-surface;
+
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--size-control-xs);
+}
+
+// Метка «очередь встанет после него» - оранжевым: это то, что человек поставил сам и о чём
+// должен помнить.
+.mark {
+  display: block;
+  flex: none;
+  color: var(--color-fg-accent);
+}
+
+.refusal {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.itemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.condition {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Идущий подробно.
+.running {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.stage {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.readings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.reading {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.readingKey {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.readingValue {
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Вопрос человеку - оранжевой плашкой: единственное в полосе, что ждёт ответа.
+.ask {
+  @include tinted-plaque(var(--color-accent));
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+}
+
+.askLabel {
+  @include caps-label;
+
+  flex-shrink: 0;
+  color: var(--color-fg-accent);
+}
+
+.askText {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.controlsEnd {
+  margin-left: auto;
+}
+
+// Текст вопросов «остановить», «закрыть»: строки одна под другой.
+.dialogText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: var(--color-fg-muted);
+  line-height: var(--line-height-snug);
+}
+
+.checking {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Доска: имя - кнопка к очереди в её проекте.
+.compactName {
+  @include button-reset;
+  @include truncate;
+  @include interactive-surface;
+
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--size-control-sm);
+  text-align: left;
+}
+
+.compactItems {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+// Элементы точками: точка ростом с метку состояния, место вокруг - чтобы в неё попадали мышью.
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-0-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dotPlace {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dot {
+  --tone: var(--color-fg-subtle);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border-radius: var(--radius-full);
+
+  &::before {
+    content: '';
+    box-sizing: border-box;
+    width: var(--size-status-dot);
+    height: var(--size-status-dot);
+    border-radius: var(--radius-full);
+    background-color: var(--tone);
+  }
+}
+
+.dotButton {
+  @include button-reset;
+  @include interactive-surface;
+}
+
+.warning {
+  --tone: var(--color-warning);
+}
+
+.accent {
+  --tone: var(--color-accent);
+}
+
+.success {
+  --tone: var(--color-success);
+}
+
+.danger {
+  --tone: var(--color-danger);
+}
+
+.neutral {
+  --tone: var(--color-fg-subtle);
+}
+
+// Ещё не начинался - пустой кружок.
+.waiting::before {
+  border: var(--border-width) solid var(--color-fg-subtle);
+  background-color: transparent;
+}

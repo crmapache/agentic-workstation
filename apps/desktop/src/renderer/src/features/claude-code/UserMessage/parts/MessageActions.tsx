@@ -26,7 +26,7 @@ import { PinItem } from '../../PinItem/PinItem'
  */
 export const MessageActions = ({ item, draft }: MessageActionsProps) => {
   const { t } = useTranslation()
-  const { conversationId } = useFeedScope()
+  const { conversationId, readOnly } = useFeedScope()
   const { isCopied, copy } = useCopy()
   const openRewind = useClaudeCodeStore((store) => store.openRewind)
   const reuseDraft = useReuseDraft()
@@ -42,15 +42,22 @@ export const MessageActions = ({ item, draft }: MessageActionsProps) => {
 
   const handleRewind = () => openRewind({ conversationId, messageId: item.id })
 
+  const copyButton = (
+    <IconButton
+      icon={isCopied ? Check : Copy}
+      size="sm"
+      label={isCopied ? t('claudeCode.message.copied') : t('claudeCode.message.copy')}
+      onClick={handleCopy}
+    />
+  )
+
+  // Журнал чужого разговора: копия остаётся, а вернуть в поле, закрепить и откатить там нечего.
+  if (readOnly) return <div className={styles.actions}>{copyButton}</div>
+
   return (
     <div className={styles.actions}>
       <PinButton conversationId={conversationId} itemId={item.id} />
-      <IconButton
-        icon={isCopied ? Check : Copy}
-        size="sm"
-        label={isCopied ? t('claudeCode.message.copied') : t('claudeCode.message.copy')}
-        onClick={handleCopy}
-      />
+      {copyButton}
       <MessageMenu>
         <MenuItem
           icon={Undo2}

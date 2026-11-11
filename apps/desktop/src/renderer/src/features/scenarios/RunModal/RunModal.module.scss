@@ -1,0 +1,205 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Тело окна: уведомление об отказе (если есть) над страницей прогона или журналом.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+// Тело окна прогона: цифры, то, что читают первым, и таймлайн - столбиком.
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+// Строка цифр: дорога своей ширины (сжимается только от тесноты), показания вместе, плашка
+// состояния в дальнем конце. Узкое окно переносит показания строкой ниже.
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.road {
+  flex-grow: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.readings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.reading {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.readingKey {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.readingValue {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+// Ошибка идущего прогона - словами движка, как есть.
+.error {
+  @include tinted-plaque(var(--color-danger));
+
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.limit {
+  @include tinted-plaque(var(--color-warning));
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.limitLabel {
+  @include caps-label;
+}
+
+.limitText {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+// Итог законченного прогона: тон - чем кончился (готово, не готово, остановлен рукой).
+.end {
+  --tone: var(--color-fg-subtle);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  border: var(--border-width) solid color-mix(in srgb, var(--tone) var(--tint-border), transparent);
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in srgb, var(--tone) var(--tint-soft), transparent);
+}
+
+.done {
+  --tone: var(--color-success);
+}
+
+.failed {
+  --tone: var(--color-danger);
+}
+
+.endText {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.endDetail {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.endActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  margin-top: var(--space-1);
+}
+
+// Вопрос прогона - тело карточки Card с тоном accent.
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.questionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.questionTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+// Аргументы вызова бывают длинными (целый файл в Write): окно своей высоты, дальше прокрутка.
+.questionDetail {
+  max-height: var(--size-code-compact-max);
+  overflow: auto;
+}
+
+.questionOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+// Поле и кнопки ответа - одной высоты (контрол md), в один ряд; узко - кнопки уходят ниже.
+.questionAnswer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.questionField {
+  flex: 1;
+  min-width: var(--size-tab-min);
+}
+
+.stopSubject {
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.stopNote {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}

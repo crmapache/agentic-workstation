@@ -1,0 +1,59 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Форма - разделы окна один под другим, с воздухом между ними.
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.reading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+}
+
+// Кнопка выбора - по своей ширине, а не на всю строку раздела.
+.picker {
+  display: flex;
+}
+
+.fields,
+.where {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+// Строка предупреждения или отказа: знак и слова, цвет - смыслом.
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+// Знак - по центру первой строки текста, а не по центру выросшего абзаца.
+.noteIcon {
+  display: block;
+  flex: none;
+  height: calc(var(--font-size-xs) * var(--line-height-snug));
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+// Подвал: обе кнопки справа (одна часть подвала встаёт справа своим margin-left).
+.footer {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}

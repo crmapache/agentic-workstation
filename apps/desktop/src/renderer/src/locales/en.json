@@ -630,7 +630,738 @@
   },
   "scenarios": {
     "title": "Scenarios",
-    "stub": "Scenarios are not built yet. This area will hold the project's scenarios and their runs."
+    "noProject": "Open a project to see its scenarios and queues.",
+    "help": {
+      "label": "About scenarios",
+      "title": "Scenarios",
+      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. Queues run side by side, so start a new one for unrelated work.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
+    },
+    "actions": {
+      "new": "New scenario",
+      "run": "Run scenario"
+    },
+    "tabs": {
+      "label": "Scenario sections",
+      "queues": "Queues",
+      "board": "All queues",
+      "library": "Library",
+      "schedule": "Schedule",
+      "history": "History"
+    },
+    "codes": {
+      "unknown": "Something went wrong.",
+      "scenarioGone": "This scenario is no longer on its shelf.",
+      "scenarioBroken": "This scenario has problems to fix before it can run.",
+      "scenarioMissingInput": "Answer every required question first.",
+      "scenarioNotWritten": "The scenario could not be saved.",
+      "scenarioNotDeleted": "The scenario could not be deleted.",
+      "scenarioOnBothShelves": "A scenario with this id is already on the other shelf.",
+      "scenarioNotMoved": "The scenario could not be moved.",
+      "orderNotWritten": "The order of the shelf could not be saved.",
+      "schedulesNotWritten": "The schedule could not be saved.",
+      "queueGone": "This queue no longer exists.",
+      "queueBusy": "Stop the running scenario first.",
+      "queueClosed": "This queue is closed. Start a new one.",
+      "itemGone": "This scenario is no longer in the queue.",
+      "notARepo": "A worktree needs a git repository, and this project is not one.",
+      "noCommits": "A worktree needs at least one commit in the repository.",
+      "worktreeFailed": "The worktree could not be created or used.",
+      "worktreeDirty": "The worktree has changes that are not committed.",
+      "providerMissing": "This AI provider is not available.",
+      "noClaude": "Claude Code is not installed or not found.",
+      "untrusted": "Trust this project folder in the Claude Code panel first.",
+      "runBusy": "This run is still going.",
+      "runGone": "This run is gone.",
+      "runNotResumable": "This run cannot be continued from where it stopped.",
+      "runOver": "This run has already ended."
+    },
+    "queues": {
+      "emptyTitle": "No queues in this project",
+      "emptyText": "Run a scenario: it starts a queue of its own.",
+      "run": "Run scenario",
+      "listLabel": "Queues of this project",
+      "name": {
+        "label": "Queue name",
+        "hint": "Double-click to rename. Leave it empty to let the AI name it."
+      },
+      "status": {
+        "running": "Running",
+        "paused": "Paused",
+        "asking": "Waiting for you",
+        "idle": "Idle",
+        "held": {
+          "stopAfter": "Stopped as asked",
+          "failed": "Stopped: not done",
+          "refused": "Stopped: would not start",
+          "interrupted": "Stopped: IDE closed"
+        }
+      },
+      "workdir": {
+        "worktree": "worktree · {{branch}}",
+        "removed": "worktree removed",
+        "project": "project folder"
+      },
+      "items": {
+        "label": "Scenarios in this queue",
+        "open": "Open this run",
+        "stopMark": "The queue stops after this one",
+        "afterSuccess": "after success",
+        "afterAny": "after any end",
+        "refused": "Would not start: {{why}}",
+        "dot": "{{number}}. {{name}} · {{state}}",
+        "dotStop": "{{number}}. {{name}} · {{state}} · the queue stops after it"
+      },
+      "itemMenu": {
+        "label": "Actions for {{name}}",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "stopAfter": "Stop after this",
+        "keepGoing": "Don't stop after this",
+        "afterSuccess": "Start only after success",
+        "remove": "Remove from queue"
+      },
+      "running": {
+        "worked": "active",
+        "tokens": "tokens",
+        "cost": "cost",
+        "progress": "Cards done",
+        "cards": "{{done}}/{{total}} cards",
+        "asking": "It is asking",
+        "askingBlank": "It stopped to ask you something.",
+        "answer": "Answer"
+      },
+      "hold": {
+        "stopAfter": "Stopped after {{name}}, as you asked.",
+        "failed": "{{name}} did not finish. Nothing after it starts until you resume.",
+        "refused": "{{name}} would not start: {{why}}",
+        "interrupted": "The IDE closed while {{name}} was running.",
+        "someone": "A scenario",
+        "resume": "Resume",
+        "dismiss": "Dismiss",
+        "openRun": "Open run"
+      },
+      "controls": {
+        "label": "Queue controls",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stopAfterCurrent": "Stop after current",
+        "keepGoing": "Don't stop after current",
+        "stop": "Stop",
+        "add": "Add scenario"
+      },
+      "stopDialog": {
+        "title": "Stop {{name}}?",
+        "text": "It stops now. You can continue it later from its run.",
+        "hold": "Hold the queue after it",
+        "holdNote": "Nothing after it starts until you resume.",
+        "confirm": "Stop"
+      },
+      "menu": {
+        "label": "Queue actions",
+        "rename": "Rename",
+        "openWorktree": "Open worktree as project",
+        "removeWorktree": "Remove worktree…",
+        "close": "Close queue",
+        "busy": "Wait until the running scenario ends."
+      },
+      "closeDialog": {
+        "title": "Close {{name}}?",
+        "text": "A closed queue goes to History and runs nothing more.",
+        "waiting_one": "1 scenario waiting in it will not run.",
+        "waiting_other": "{{count}} scenarios waiting in it will not run.",
+        "checking": "Checking its worktree…",
+        "worktreeKept": "Its worktree has work in it and stays, on branch {{branch}}.",
+        "worktreeDropped": "Its worktree has nothing new and is removed with it.",
+        "confirm": "Close queue"
+      }
+    },
+    "board": {
+      "emptyTitle": "No queues in any open project",
+      "emptyText": "Queues of every open project show up here.",
+      "run": "Run scenario",
+      "summary": "Queues at a glance",
+      "running": "{{count}} running",
+      "waiting": "{{count}} waiting for you",
+      "quiet": "Nothing running",
+      "current": "This project",
+      "open": "Go to project",
+      "openQueue": "Go to this queue in its project"
+    },
+    "library": {
+      "project": "In this project",
+      "user": "In every project",
+      "help": {
+        "label": "About this shelf",
+        "project": "A scenario on this shelf is a file in the project's .claude/scenarios folder. It travels with the repository: everyone working here has it, next to the project's own commands and skills.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, ⌥↑ and ⌥↓ do the same.",
+        "user": "A scenario on this shelf is yours alone: it lives in your home folder and follows you from project to project.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, ⌥↑ and ⌥↓ do the same."
+      },
+      "projectEmpty": "No shared scenario yet",
+      "userEmpty": "Nothing of your own yet",
+      "create": "New scenario",
+      "loading": "Reading the scenarios…",
+      "stages_one": "{{count}} stage",
+      "stages_other": "{{count}} stages",
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards",
+      "hasLoop": "has a loop",
+      "perItem": "per item",
+      "asksFor": "asks: {{names}}",
+      "broken": "needs fixing before it can run",
+      "problems_one": "{{count}} problem",
+      "problems_other": "{{count}} problems",
+      "running_one": "Running",
+      "running_other": "{{count}} running",
+      "queued_one": "Queued",
+      "queued_other": "{{count}} queued",
+      "run": "Run",
+      "fix": "Fix it",
+      "edit": "Edit",
+      "schedule": "Schedule a run",
+      "scheduleNext": "Schedule a run · next {{when}}",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "scheduled_one": "{{count}} scheduled",
+      "scheduled_other": "{{count}} scheduled",
+      "missed": "missed {{when}}",
+      "next": "next {{when}}",
+      "then": "then {{when}}",
+      "move": "Drag to another place or onto the other shelf (⌥↑ ⌥↓)",
+      "confirmDelete": {
+        "title": "Delete this scenario?",
+        "note": "Its file goes from the shelf. Runs it already made stay in the history.",
+        "submit": "Delete"
+      }
+    },
+    "launch": {
+      "title": "Run scenario",
+      "scenario": "Scenario",
+      "choose": "Choose a scenario",
+      "inProject": "In this project",
+      "inEvery": "In every project",
+      "broken": "Has problems to fix first. Open it in Library to see them.",
+      "loading": "Reading the scenarios…",
+      "emptyTitle": "No scenarios yet",
+      "emptyText": "Write one first, by hand or with AI.",
+      "newScenario": "New scenario",
+      "answers": "Answers",
+      "required": "{{label}} · required",
+      "provider": "Provider",
+      "unavailable": {
+        "noCli": "Not installed or not found"
+      },
+      "where": "Where",
+      "newQueue": "New queue",
+      "addTo": "Add to a queue",
+      "worktree": "Run in a separate worktree",
+      "worktreeNote": "A copy of the repository on its own branch, made from the current commit. Uncommitted changes are not carried over.",
+      "notGit": "Needs a git repository.",
+      "uncommitted_one": "1 uncommitted file stays in the project folder: the worktree will not have it.",
+      "uncommitted_other": "{{count}} uncommitted files stay in the project folder: the worktree will not have them.",
+      "sharedFolder": "{{name}} already works in the project folder: both queues would change the same files.",
+      "afterSuccess": "Start only after the previous one succeeds",
+      "afterSuccessNote": "If it fails or is stopped, the queue stops here and waits for you.",
+      "queueFacts": "{{place}} · {{state}}",
+      "run": "Run",
+      "add": "Add to queue"
+    },
+    "run": {
+      "loading": "Reading the run…",
+      "missing": "This run is gone",
+      "missingHint": "Its record is no longer on this machine.",
+      "help": {
+        "label": "About this run",
+        "title": "A run",
+        "text": "A run is one pass of a scenario. Cards do the work, each in its own conversation, and the main thread reads what every card did and decides what comes next: send it back, move on or stop.\n\nLog on a card opens that card's conversation as it is. Main thread opens the main thread's own conversation: how it read each card and why it decided what it did.\n\nWrite to the main thread at the bottom. It reads your words between cards and answers in the timeline.\n\nPause keeps everything alive and goes on from the same place. Stop cuts the current card short. A stopped or failed run can be continued: the same main thread picks up where it stood."
+      },
+      "mainThread": "Main thread",
+      "mainThreadHint": "The main thread's conversation: how it read each card and why it decided what it did",
+      "back": "Back to the run",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "stopTitle": "Stop the run?",
+      "stopNote": "Whatever a card is doing right now is cut short, and the stages after it never happen.",
+      "carryOn": "Continue the run",
+      "carryOnHint": "Picks up where it stood: the same main thread with everything it remembers, and the card that was cut short is told to carry on",
+      "active": "active",
+      "took": "took",
+      "tokens": "tokens",
+      "cost": "cost",
+      "started": "started",
+      "limit": {
+        "label": "Limit",
+        "named": "The {{window}} limit",
+        "plain": "The usage limit",
+        "defaultAccount": "Claude Code sign-in",
+        "resting": "{{limit}} of {{account}} ran out - the run goes on by itself at {{clock}}",
+        "unfitResting": "{{account}} could not take the run, and no other account has room - the run goes on by itself at {{clock}}",
+        "windows": {
+          "fiveHour": "5-hour",
+          "weekly": "weekly",
+          "weeklyOpus": "weekly Opus",
+          "weeklySonnet": "weekly Sonnet"
+        }
+      },
+      "moves": {
+        "choice": "Moved the run to {{to}} - the account you chose.",
+        "limitMoved": "{{limit}} of {{from}} ran out. Moved the run to {{to}}.",
+        "limitWait": "{{limit}} of {{from}} ran out, and no other account has room. The run waits.",
+        "unfitMoved": "{{from}} could not take the run. Moved the run to {{to}}.",
+        "unfitWait": "{{from}} could not take the run, and no other account has room. The run waits.",
+        "goesOnAt": "It goes on by itself at {{clock}}."
+      },
+      "question": {
+        "title": "It is asking",
+        "nothingSpent": "nothing is being spent while this stands",
+        "placeholder": "What to tell it…",
+        "send": "Send",
+        "allow": "Allow",
+        "refuse": "Refuse",
+        "copy": "Copy the arguments",
+        "copied": "Copied"
+      },
+      "stage": {
+        "titled": "Stage {{index}} · {{title}}",
+        "untitled": "Stage {{index}}",
+        "done": "done · {{took}}",
+        "here": "here now",
+        "notReached": "not reached",
+        "rounds": "×{{count}}",
+        "roundsUntil": "×{{count}}, until done",
+        "items_one": "{{count}} item",
+        "items_other": "{{count}} items",
+        "listAhead": "list not given yet",
+        "listEmpty": "empty list"
+      },
+      "step": {
+        "passOf": "pass {{pass}} of {{passes}}",
+        "passOfUpTo": "pass {{pass}} of up to {{passes}}",
+        "itemOf": "item {{index}} of {{count}}",
+        "secondGo": "second go",
+        "listPending": "waiting for the list",
+        "listEmpty": "nothing on the list",
+        "notYet": "not yet",
+        "log": "Log",
+        "openLog": "Open the log of {{title}}",
+        "meetsDone": "Meets its definition of done.",
+        "later": "comes back after the rest",
+        "sentBack": "Sent back: {{reason}}",
+        "takenOver": "The main thread took it over: {{reason}}",
+        "finishing": "the main thread is finishing it",
+        "handoff": "Passed on to the next card"
+      },
+      "notes": {
+        "head": "Main thread",
+        "you": "You",
+        "panel": "IDE",
+        "waiting": "waiting for the main thread to be free",
+        "passedOn": "Passed on to the card",
+        "answering": "The main thread is writing a reply…"
+      },
+      "end": {
+        "done": "Every card is done.",
+        "stopped": "You stopped it at {{card}}. Nothing after that card was started.",
+        "stoppedEarly": "You stopped it before the first card began.",
+        "failed": "It stopped on a failure at {{card}}.",
+        "failedEarly": "It stopped on a failure before the first card began."
+      },
+      "failures": {
+        "noHead": "The main thread could not start: {{error}}",
+        "noStart": "A card's session could not start: {{error}}",
+        "tooLong": "A card ran past its time (3 hours).",
+        "headSilent": "The main thread stopped answering.",
+        "crashed": "A process went away.",
+        "refused": "The main thread's turn failed: {{error}}",
+        "noVerdict": "The main thread never answered with a decision.",
+        "retries": "Sent back as many times as allowed, still not done.",
+        "stopped": "Cut short by you.",
+        "undone": "The main thread judged a card not done.",
+        "headGaveUp": "The main thread could not finish a card either.",
+        "longList": "The list was longer than a stage takes."
+      },
+      "tell": {
+        "label": "Write to the main thread",
+        "placeholder": "Write to the main thread…",
+        "over": "The run is over",
+        "send": "Send",
+        "sendHint": "Send to the main thread (⌘Enter)"
+      },
+      "log": {
+        "step": "Step · {{title}}",
+        "head": "Main thread",
+        "loading": "Reading…",
+        "missing": "There is no record of this conversation on this machine",
+        "earlier": "Load earlier messages",
+        "scenario": "Scenario",
+        "card": "Card"
+      }
+    },
+    "editor": {
+      "save": "Save",
+      "saving": "Saving…",
+      "discard": "Discard",
+      "untitled": "New scenario",
+      "unsaved": "Not saved yet",
+      "inRepository": "This project",
+      "everyProject": "Every project",
+      "stages_one": "{{count}} stage",
+      "stages_other": "{{count}} stages",
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards",
+      "issues_one": "{{count}} issue",
+      "issues_other": "{{count}} issues",
+      "issuesHint": "Listed under the outline. Red ones keep it from running.",
+      "untitledStage": "An untitled stage",
+      "untitledCard": "An untitled card",
+      "badName": "Letters, digits, - and _ only",
+      "pickerHint": "{{caption}}: {{value}}",
+      "help": {
+        "label": "How a scenario works",
+        "title": "Scenario editor",
+        "text": "A scenario is stages with cards. Each card is a job for its own AI session; the main thread reads what the card did, judges it by your briefing and decides what comes next.\n\nA prompt writes {{name}} where an answer to a question asked before the run goes, and [[name]] where the main thread fills in what the cards above found out. Both are lit up as you type.\n\nProblems are listed under the outline: red ones keep the scenario from running, yellow ones are worth tidying. Choosing the other shelf moves the file when you save."
+      },
+      "confirmDiscard": {
+        "title": "Discard your changes?",
+        "titleNew": "Discard this scenario?",
+        "note": "What you changed since it was last saved is lost.",
+        "noteNew": "It has not been saved yet, so nothing of it is kept.",
+        "submit": "Discard"
+      },
+      "outline": {
+        "label": "Outline of the scenario",
+        "scenario": "The scenario",
+        "nameAndShelf": "Name and shelf",
+        "head": "Main thread",
+        "inputs": "Asks for",
+        "stages": "Stages",
+        "addStage": "Add a stage",
+        "perItem": "per item",
+        "rounds": "×{{count}}",
+        "roundsUntil": "×{{count}}, until done",
+        "problems": "Cannot run until fixed",
+        "warnings": "Worth tidying"
+      },
+      "name": {
+        "label": "Name",
+        "keptIn": "Kept in",
+        "noRepository": "This project has no folder to keep it in"
+      },
+      "head": {
+        "title": "Main thread",
+        "note": "it reads this and judges every card by it",
+        "briefingHint": "What this round of work is for, in your own words. The main thread reads this and judges every card by it.",
+        "asNewTab": "As a new chat would",
+        "asNewTabHint": "Whatever a new chat tab starts with",
+        "onQuestion": "On a question",
+        "questionHead": "It answers",
+        "questionHeadHint": "The main thread answers a card's question itself",
+        "questionStop": "Stop and wait for me",
+        "questionStopHint": "The run stands still until you answer",
+        "onGiveUp": "When a card cannot finish",
+        "giveUpStop": "Stop the run",
+        "giveUpStopHint": "A card its session could not finish ends the run",
+        "giveUpHead": "The main thread finishes it",
+        "giveUpHeadHint": "The main thread takes the card over and does it itself",
+        "retries": "Send back",
+        "never": "Never",
+        "once": "Once",
+        "twice": "Twice",
+        "times": "{{count}} times"
+      },
+      "runsOn": {
+        "model": "Model",
+        "effort": "Effort",
+        "mode": "Mode",
+        "otherModels": "Other models",
+        "efforts": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "xhigh": "Extra high",
+          "max": "Max"
+        },
+        "effortHints": {
+          "low": "Quick answers, little thinking",
+          "medium": "Balanced speed and depth",
+          "high": "Thinks things through",
+          "xhigh": "Deep work on hard problems",
+          "max": "Everything it has, slowest"
+        },
+        "modes": {
+          "default": "Ask before edits",
+          "acceptEdits": "Accept edits",
+          "plan": "Plan mode",
+          "auto": "Auto",
+          "bypassPermissions": "Bypass permissions"
+        },
+        "modeHints": {
+          "default": "Asks before editing files or running commands",
+          "acceptEdits": "File edits go through, commands still ask",
+          "plan": "Explores and plans, changes nothing",
+          "auto": "Decides what is safe to run on its own",
+          "bypassPermissions": "Nothing asks. Only where mistakes are cheap"
+        }
+      },
+      "inputs": {
+        "title": "Asked before it starts",
+        "add": "Add a question",
+        "none": "Nothing is asked before this scenario starts.",
+        "name": "Name in prompts",
+        "namePlaceholder": "name",
+        "label": "On the form",
+        "labelPlaceholder": "What to call it on the form",
+        "placeholder": "Hint in the empty field",
+        "placeholderPlaceholder": "An example of an answer",
+        "required": "Must be filled",
+        "requiredHint": "The run does not start with this left empty",
+        "remove": "Remove this question"
+      },
+      "stage": {
+        "head": "Stage {{number}} · {{title}}",
+        "newTitle": "Stage {{number}}",
+        "title": "Stage title",
+        "goesRound": "goes round ×{{count}}",
+        "goesRoundUntil": "goes round ×{{count}}, until done",
+        "perItem": "once per item of a list",
+        "moveUp": "Move the stage up",
+        "moveDown": "Move the stage down",
+        "remove": "Remove this stage",
+        "lastStage": "A scenario keeps at least one stage",
+        "runs": "Runs",
+        "runsMenu": "How many times the stage runs",
+        "times_one": "{{count}} time",
+        "times_other": "{{count}} times",
+        "untilDone": "Or fewer, if the main thread says it is done",
+        "untilDoneHint": "The number stays a ceiling, so a run cannot go round all night",
+        "list": "The list",
+        "itemName": "Item name",
+        "listLabel": "What the list is",
+        "listHint": "What the list is and what one item of it looks like. The main thread gives the whole list as the stage begins, and the stage runs once for each item.",
+        "itemNote": "Each pass gets its own item wherever a prompt says {{slot}} - it needs no slot.",
+        "addCard": "Add a card to this stage"
+      },
+      "card": {
+        "title": "Card title",
+        "titleHint": "What this card is called",
+        "sameAsHead": "Same as the main thread",
+        "sameAsHeadHint": "Runs on what the main thread runs on",
+        "moveUp": "Move the card up",
+        "moveDown": "Move the card down",
+        "duplicate": "Duplicate the card",
+        "remove": "Remove this card",
+        "prompt": "What its session is told",
+        "promptHint": "What this card's own session is told. {{input}} is answered before the run; {{slot}} is filled by the main thread from what the cards above found out.",
+        "dod": "Done when",
+        "dodHint": "How the main thread is to tell this card is finished. Empty means the turn ending is enough.",
+        "after": "Hand on",
+        "afterHint": "What the main thread should do once this card is done - check something, note something down.",
+        "slots": "Slots it fills",
+        "noSlots": "None. Write {{slot}} in the prompt and describe it here.",
+        "slotName": "Slot name",
+        "slotPlaceholder": "name",
+        "slotDescription": "What the main thread is to put here",
+        "addSlot": "Add a slot",
+        "removeSlot": "Remove this slot",
+        "runsOn": "It runs on"
+      },
+      "problems": {
+        "noStages": "There are no stages in it.",
+        "emptyStage": "{{stage}}: there are no cards in it.",
+        "noPrompt": "{{card}}: nothing is written for its session to do.",
+        "unknownInput": "{{card}}: {{input}} is not something this scenario asks for.",
+        "undeclaredSlot": "{{card}}: {{slot}} is in the prompt but nobody is asked to fill it.",
+        "unusedSlot": "{{card}}: the slot {{name}} is described but never used in the prompt.",
+        "duplicateInput": "Two questions are both called {{name}}.",
+        "duplicateSlot": "{{card}}: two slots are both called {{name}}.",
+        "badInputName": "\"{{name}}\" is not a name - use letters, digits, - and _.",
+        "badSlotName": "{{card}}: \"{{name}}\" is not a name - use letters, digits, - and _.",
+        "badItemName": "{{stage}}: \"{{name}}\" is not a name for the item - use letters, digits, - and _.",
+        "noItemList": "{{stage}}: nothing says what the list is.",
+        "itemSlotClash": "{{card}}: the slot {{name}} has the name of the stage's item, which the IDE fills itself.",
+        "unusedItem": "{{stage}}: no prompt writes {{slot}}, so every pass is told the same.",
+        "unnamedInput": "A question has no name yet.",
+        "unnamedSlot": "{{card}}: a slot has no name yet.",
+        "unnamedItem": "{{stage}}: the item of the list has no name."
+      }
+    },
+    "author": {
+      "title": "New scenario",
+      "description": "Say what the work is - Claude writes it down",
+      "reading": "Claude is reading the project",
+      "what": "What the work is",
+      "placeholder": "Describe the round of work: what to do, in what order, and what has to be true at the end.",
+      "keptIn": "Kept in",
+      "inRepository": "This project",
+      "inRepositoryNote": "It travels with the repository: everyone working here has it.",
+      "everyProject": "Every project",
+      "everyProjectNote": "Yours alone: it follows you from project to project.",
+      "noRepository": "This project has no folder to keep a shared scenario in.",
+      "byHand": "Build it myself",
+      "write": "Write it for me",
+      "writing": "Claude is writing it…",
+      "writingLabel": "Claude is writing the scenario",
+      "failed": "Claude could not write it: {{error}}",
+      "help": {
+        "label": "About writing a scenario",
+        "text": "Say in your own words what the round of work is, and Claude writes it down as stages and cards. It reads the project and your skills first; at a high effort this can take a few minutes.\n\nWhat it writes is not saved: it opens in the editor, you look it over and press Save. Build it myself opens an empty scenario instead."
+      },
+      "errors": {
+        "noClaude": "Claude Code is not installed or could not be found.",
+        "untrusted": "Trust this folder in a chat first: Claude reads the project to write the scenario.",
+        "outdated": "This Claude Code is too old to write a scenario. Update it and try again.",
+        "timeout": "No answer in ten minutes. Try a shorter description, or build it yourself.",
+        "empty": "Say what the work is first.",
+        "unreadable": "Claude answered, but not with a scenario. Try again, or build it yourself."
+      }
+    },
+    "schedule": {
+      "title": "Scheduled runs",
+      "add": "Schedule a run",
+      "help": {
+        "label": "About the schedule",
+        "text": "At its hour a scheduled run starts the scenario in a new queue, with the answers given when it was set - at that hour there is nobody at the keyboard to answer.\n\nHours start only while this IDE is open. One that passes with it closed is not run late: its row says it was missed, and Run now starts it by hand."
+      },
+      "unreadTitle": "The schedule could not be read.",
+      "unreadNote": "The file on this machine may be damaged. Nothing is written over a list that could not be read.",
+      "emptyTitle": "Nothing is scheduled.",
+      "emptyNote": "Set an hour for a scenario and it starts on its own.",
+      "missedGroup": "Missed",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "missed": "missed",
+      "missedAt": "missed {{when}}",
+      "inTime": "in {{time}}",
+      "todayAt": "today {{clock}}",
+      "yesterdayAt": "yesterday {{clock}}",
+      "repeats": {
+        "once": "once",
+        "daily": "every day",
+        "weekdays": "weekdays",
+        "weekly": "every {{day}}"
+      },
+      "orphan": "Its scenario is not on either shelf",
+      "noAnswers": "no answers needed",
+      "worktree": "Worktree",
+      "worktreeHint": "Starts in a separate git worktree",
+      "runNow": "Run now",
+      "edit": "Change this scheduled run",
+      "remove": "Delete this scheduled run",
+      "confirmDelete": {
+        "title": "Delete this scheduled run?",
+        "note": "The scenario stays; only this hour goes.",
+        "submit": "Delete"
+      },
+      "form": {
+        "title": "Schedule a run",
+        "adding": "{{name}} · adding one",
+        "changing": "{{name}} · changing it",
+        "choose": "Choose a scenario",
+        "scenario": "Scenario",
+        "noScenarios": "There is no scenario that can run yet.",
+        "at": "At",
+        "hour": "Hour",
+        "minute": "Minute",
+        "due": "next {{when}}, in {{time}}",
+        "repeat": "Repeat",
+        "repeats": {
+          "once": "Once",
+          "daily": "Every day",
+          "weekdays": "Weekdays",
+          "weekly": "Weekly"
+        },
+        "onDay": "On",
+        "asksFor": "It asks for",
+        "mustFill": "must be filled",
+        "worktree": "Start in a separate worktree",
+        "worktreeHint": "Each start makes a new queue in its own git worktree, so your files stay as they are",
+        "provider": "Provider",
+        "unavailable": "Not available",
+        "submit": "Set the time",
+        "help": {
+          "label": "About scheduled runs",
+          "text": "Answers to the scenario's questions are given now, because at that hour there is nobody at the keyboard to answer.\n\nEach start makes a new queue. With a separate worktree it works in its own copy of the repository on its own branch, and your files stay as they are.\n\nIt starts only while this IDE is open. An hour that passes with it closed is not run late - the row says it was missed."
+        }
+      }
+    },
+    "history": {
+      "title": "Past runs",
+      "help": {
+        "label": "About past runs",
+        "text": "Every run of a scenario in this project, newest first. A run that is still going is on the Queues tab.\n\nTook counts only the work: pauses and time spent waiting for your answer are left out. A star is your own mark - it does not sort the list or keep a run from being deleted."
+      },
+      "emptyTitle": "Nothing has been run yet.",
+      "loading": "Reading the runs…",
+      "table": {
+        "run": "Run",
+        "started": "Started",
+        "finished": "Finished",
+        "took": "Took",
+        "cost": "Cost",
+        "state": "State"
+      },
+      "todayAt": "today {{clock}}",
+      "yesterdayAt": "yesterday {{clock}}",
+      "more_one": "Show {{count}} more",
+      "more_other": "Show {{count}} more",
+      "fewer": "Show fewer",
+      "star": "Star this run",
+      "unstar": "Remove the star",
+      "delete": "Delete this run",
+      "confirmDelete": {
+        "title": "Delete this run?",
+        "note": "Its record goes from this machine.",
+        "submit": "Delete"
+      },
+      "failures": {
+        "noHead": "The main thread could not start.",
+        "noStart": "A card's session could not start.",
+        "tooLong": "A card ran past its time (3 hours).",
+        "headSilent": "The main thread stopped answering.",
+        "crashed": "A process went away.",
+        "refused": "The main thread's turn failed.",
+        "noVerdict": "The main thread never answered with a decision.",
+        "retries": "Sent back as many times as allowed, still not done.",
+        "stopped": "Cut short by you.",
+        "undone": "The main thread judged a card not done.",
+        "headGaveUp": "The main thread could not finish a card either.",
+        "longList": "The list was longer than a stage takes."
+      }
+    },
+    "worktree": {
+      "title": "Remove worktree?",
+      "checking": "Checking the worktree…",
+      "gone": "This queue or its worktree is gone.",
+      "missing": "The folder is already gone.",
+      "ahead_one": "1 commit is not merged anywhere. Its branch keeps it, only the folder goes.",
+      "ahead_other": "{{count}} commits are not merged anywhere. Their branch keeps them, only the folder goes.",
+      "dirty": "It has uncommitted changes. They are lost with the folder.",
+      "clean": "Nothing to lose: no new commits and no changes.",
+      "remove": "Remove",
+      "removeAnyway": "Remove anyway"
+    },
+    "common": {
+      "states": {
+        "starting": "Starting",
+        "running": "Running",
+        "paused": "Paused",
+        "blocked": "Waiting for you",
+        "done": "Done",
+        "failed": "Not done",
+        "stopped": "Stopped",
+        "limit": "Waiting out a limit"
+      },
+      "stepStates": {
+        "waiting": "Not yet",
+        "running": "Running",
+        "asking": "Asking",
+        "judging": "Main thread",
+        "paused": "Paused",
+        "done": "Done",
+        "failed": "Not done",
+        "skipped": "Skipped"
+      },
+      "more": "+{{count}}"
+    }
   },
   "statistics": {
     "title": "Statistics",
@@ -638,6 +1369,13 @@
   },
   "claudeCode": {
     "title": "Claude Code",
+    "conversationLog": {
+      "label": "Conversation",
+      "speakers": {
+        "main": "MAIN THREAD",
+        "scenario": "SCENARIO"
+      }
+    },
     "agents": {
       "chipAgent": "AGENT",
       "chipWorkflow": "WORKFLOW",
@@ -1971,5 +2709,8 @@
       "textSizeReset": "Reset Text Size"
     },
     "longQuery": "The text is too long: search takes up to {{count}} characters."
+  },
+  "activityBar": {
+    "waiting": "{{label}} - {{count}} waiting for you"
   }
 }

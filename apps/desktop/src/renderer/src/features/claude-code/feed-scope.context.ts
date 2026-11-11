@@ -2,10 +2,17 @@ import { use, createContext } from 'react'
 
 import type { PendingRequest } from '@shared/claude'
 
-/** Чья это лента: разговор (для действий) и папка проекта (пути от корня, открытие файлов). */
+/**
+ * Чья это лента: разговор (для действий) и папка проекта (пути от корня, открытие файлов).
+ * readOnly - лента не панели, а журнал (шаг сценария, ConversationLog): разговор не наш, и
+ * откат, «вернуть в поле», булавки и откат файлов хода в нём били бы мимо. author - чья
+ * подпись у сообщений со стороны человека, если пишет не он (главный поток прогона).
+ */
 type FeedScope = {
   conversationId: string
   projectPath: string
+  readOnly?: boolean | undefined
+  author?: string | undefined
 }
 
 /**

@@ -1,0 +1,12 @@
+// Вопрос перед необратимым: что уходит - сильнее, что из этого выйдет - обычным текстом.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.subject {
+  overflow-wrap: anywhere;
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-medium);
+}
