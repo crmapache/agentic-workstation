@@ -35,7 +35,41 @@ export const slugOf = (scenarioName: string, queueId: string): string => {
   return `${words || 'queue'}-${queueId.slice(0, 4).toLowerCase()}`
 }
 
-type Host = { book: QueueBook; onQueues: () => void; worktreesRoot: string }
+type Host = {
+  book: QueueBook
+  onQueues: () => void
+  worktreesRoot: string
+  /** Очереди, чей worktree сейчас удаляется: шаг и постановка их обходят. */
+  removing: Set<string>
+}
+
+/**
+ * Пометить worktree удалённым поверх свежей очереди: git удаляет минутами, и за это время у
+ * очереди могли поменяться имя или элементы - старый снимок их бы стёр.
+ */
+const markRemoved = (queueId: string, host: Host) => {
+  const latest = host.book.get(queueId)
+
+  if (latest?.workdir.kind !== 'worktree') return
+
+  host.book.put({ ...latest, workdir: { ...latest.workdir, removed: true } })
+  host.onQueues()
+}
+
+/** Удаление под отметкой «идёт»: пока git работает, в папке ничего не начинается. */
+const whileRemoving = async <T>(
+  queueId: string,
+  host: Host,
+  work: () => Promise<T>,
+): Promise<T> => {
+  host.removing.add(queueId)
+
+  try {
+    return await work()
+  } finally {
+    host.removing.delete(queueId)
+  }
+}
 
 /**
  * Worktree очереди: создаётся при создании очереди (галочка в окне запуска), живёт, пока
@@ -87,20 +121,21 @@ export const queueWorktree = {
     if (workdir.kind !== 'worktree' || workdir.removed) return null
 
     try {
-      await removeWorktree({
-        projectPath: queue.projectPath,
-        path: workdir.path,
-        gitBranch: workdir.gitBranch,
-        force,
-        deleteBranch: 'if-merged',
-        root: host.worktreesRoot,
-      })
+      await whileRemoving(queue.id, host, () =>
+        removeWorktree({
+          projectPath: queue.projectPath,
+          path: workdir.path,
+          gitBranch: workdir.gitBranch,
+          force,
+          deleteBranch: 'if-merged',
+          root: host.worktreesRoot,
+        }),
+      )
     } catch (error) {
       return codeOf(error)
     }
 
-    host.book.put({ ...queue, workdir: { ...workdir, removed: true } })
-    host.onQueues()
+    markRemoved(queue.id, host)
 
     return null
   },
@@ -111,21 +146,20 @@ export const queueWorktree = {
 
     if (workdir.kind !== 'worktree' || workdir.removed) return
 
-    const gone = await removeIfEmpty({
-      projectPath: queue.projectPath,
-      path: workdir.path,
-      gitBranch: workdir.gitBranch,
-      baseCommit: workdir.baseCommit,
-      root: host.worktreesRoot,
-    }).catch((error: unknown) => {
+    const gone = await whileRemoving(queue.id, host, () =>
+      removeIfEmpty({
+        projectPath: queue.projectPath,
+        path: workdir.path,
+        gitBranch: workdir.gitBranch,
+        baseCommit: workdir.baseCommit,
+        root: host.worktreesRoot,
+      }),
+    ).catch((error: unknown) => {
       console.warn('[scenarios] пустой worktree не удалился:', error)
 
       return false
     })
 
-    if (!gone) return
-
-    host.book.put({ ...queue, workdir: { ...workdir, removed: true } })
-    host.onQueues()
+    if (gone) markRemoved(queue.id, host)
   },
 }

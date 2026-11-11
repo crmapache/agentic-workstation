@@ -1,24 +1,23 @@
-import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 
 import type { ProviderId } from '@shared/providers'
 import type {
-  QueueItem,
   QueueAction,
   ScenarioQueue,
   ScenarioStartOutcome,
   ScenarioStartRequest,
 } from '@shared/scenario-queues'
-import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import { launchRun, carryOnRun } from './launch-run'
+import { QueueNaming } from './queue-naming'
+import { shortId, placeItem } from './queue-placing'
 import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
 import type { QueueBook } from './queues/queue-book'
 import * as rules from './queues/queue-rules'
-import { scopeOf } from './store/scenario-parse'
 
 export type RunnerHost = {
   book: QueueBook
@@ -27,9 +26,22 @@ export type RunnerHost = {
   worktreesRoot: string
   onQueues: () => void
   notify: (title: string, body: string) => void
+  /** IDE закрывается: новых прогонов не поднимать. */
+  isClosing: () => boolean
+  /** Очереди, чей worktree сейчас удаляется (git на это тратит минуты). */
+  removing: Set<string>
 }
 
-const shortId = () => randomUUID().replaceAll('-', '').slice(0, 16)
+/**
+ * Папка, где работает очередь: проект или папка проекта в её worktree; null - worktree удалён
+ * или его папки больше нет на диске (стёрли руками) - CLI в ней упал бы с «claude ENOENT».
+ */
+const workdirOf = (queue: ScenarioQueue): string | null => {
+  if (queue.workdir.kind === 'project') return queue.projectPath
+  if (queue.workdir.removed || !existsSync(queue.workdir.projectDir)) return null
+
+  return queue.workdir.projectDir
+}
 
 /** Что сказать человеку, когда очередь встала сама. */
 const HOLD_WORDS: Record<string, string> = {
@@ -46,45 +58,56 @@ const HOLD_WORDS: Record<string, string> = {
 export class QueueRunner {
   /** Очереди, которые сейчас делают шаг: второй шаг той же очереди подождёт первого. */
   private readonly stepping = new Map<string, Promise<void>>()
+  /** Идущие постановки: создание worktree длится минутами, выход из IDE их дожидается. */
+  private readonly starting = new Set<Promise<unknown>>()
+  private readonly naming: QueueNaming
 
-  constructor(private readonly host: RunnerHost) {}
+  constructor(private readonly host: RunnerHost) {
+    this.naming = new QueueNaming(host)
+  }
 
   /** Поставить сценарий: в новую очередь (с worktree или без) или в существующую. */
-  async start(request: ScenarioStartRequest, from = ''): Promise<ScenarioStartOutcome> {
-    const desk = this.host.desk(request.projectPath)
-    const scenario = await desk.store.find(request.scenarioId, scopeOf(request.scope))
+  start(request: ScenarioStartRequest, from = ''): Promise<ScenarioStartOutcome> {
+    const work = this.startNow(request, from)
 
-    if (!scenario) return { ok: false, code: 'scenarioGone' }
-    if (!isRunnable(scenario)) return { ok: false, code: 'scenarioBroken' }
-    if (missingInputs(scenario, request.inputs).length > 0)
-      return { ok: false, code: 'scenarioMissingInput' }
-    if (!this.host.provider(request.provider)) return { ok: false, code: 'providerMissing' }
+    this.starting.add(work)
+    void work.finally(() => this.starting.delete(work))
 
-    const item: QueueItem = {
-      id: shortId(),
-      scenarioId: scenario.id,
-      scope: scenario.scope,
-      scenarioName: scenario.name,
-      inputs: answersOf(scenario, request.inputs),
-      provider: request.provider,
-      afterSuccess: request.afterSuccess,
-      addedAt: Date.now(),
-      runId: '',
-      state: 'waiting',
-      refusal: null,
-    }
-    const placed =
-      request.target.kind === 'new'
-        ? await this.openQueue(request.projectPath, item, request.target.worktree)
-        : this.joinQueue(request.target.queueId, request.projectPath, item)
+    return work
+  }
 
+  private async startNow(
+    request: ScenarioStartRequest,
+    from: string,
+  ): Promise<ScenarioStartOutcome> {
+    if (this.host.isClosing()) return { ok: false, code: 'runBusy' }
+
+    const placed = await placeItem(this.host, request)
     if ('code' in placed) return { ok: false, ...placed }
 
     this.host.onQueues()
     void this.name(placed.queueId)
     await this.step(placed.queueId, from)
 
-    return { ok: true, queueId: placed.queueId, itemId: item.id }
+    return { ok: true, queueId: placed.queueId, itemId: placed.itemId }
+  }
+
+  /** Идёт ли в папке самого проекта (без worktree) какой-нибудь сценарий. */
+  folderBusy(projectPath: string): boolean {
+    return this.host.book
+      .all()
+      .some(
+        (queue) =>
+          queue.projectPath === projectPath &&
+          queue.closedAt === 0 &&
+          queue.workdir.kind === 'project' &&
+          rules.runningItem(queue) !== null,
+      )
+  }
+
+  /** Почему элемент не стартовал; null - стартовал или ещё ждёт своей очереди. */
+  refusalOf(queueId: string, itemId: string): ScenarioCode | null {
+    return this.host.book.get(queueId)?.items.find((item) => item.id === itemId)?.refusal ?? null
   }
 
   /** Сделать шаг очереди: поднять следующий, если она свободна. */
@@ -102,6 +125,11 @@ export class QueueRunner {
     })
 
     return next
+  }
+
+  /** Выход из IDE ждёт шагов, которые уже начались: они могли быть посреди запуска. */
+  async settle(): Promise<void> {
+    await Promise.all([...this.starting, ...this.stepping.values()])
   }
 
   /** Прогон кончился: элемент получает исход, очередь решает, встать ей или идти дальше. */
@@ -133,8 +161,16 @@ export class QueueRunner {
     this.host.book.put(changed)
     this.host.onQueues()
 
-    if (action.kind === 'close') await queueWorktree.dropIfEmpty(changed, this.host)
-    if (action.kind === 'resume') await this.step(queueId)
+    if (action.kind === 'close') {
+      await queueWorktree.dropIfEmpty(changed, this.host)
+
+      return null
+    }
+
+    // Человек стёр имя - имя снова за ИИ.
+    if (action.kind === 'rename' && changed.nameSource === 'fallback') void this.name(queueId)
+    // Правка могла снять остановку (убран отказавший элемент) - шаг сразу, а не по таймеру.
+    await this.step(queueId)
 
     return null
   }
@@ -148,6 +184,8 @@ export class QueueRunner {
     const reopened = rules.reopenItem(found.queue, found.itemId)
 
     if (!reopened) return 'runNotResumable'
+    // Worktree очереди удалён или удаляется - прогону негде продолжаться.
+    if (!workdirOf(found.queue) || this.host.removing.has(found.queue.id)) return 'worktreeFailed'
 
     const item = reopened.items.find((one) => one.id === found.itemId)
     const provider = item && this.host.provider(item.provider)
@@ -164,100 +202,49 @@ export class QueueRunner {
     return null
   }
 
-  /** Имя от ИИ: по сценариям очереди и ответам на их вводы, пока человек не назвал сам. */
-  async name(queueId: string): Promise<void> {
-    const queue = this.host.book.get(queueId)
-    const first = queue?.items[0]
-
-    if (!queue || !first || queue.nameSource === 'user') return
-
-    const provider = this.host.provider(first.provider)
-    const described = queue.items
-      .map((item) => {
-        const answers = Object.values(item.inputs).filter((value) => value.trim())
-
-        return `- ${item.scenarioName}${answers.length > 0 ? `: ${answers.join('; ')}` : ''}`
-      })
-      .join('\n')
-    const title = await provider?.suggestTitle(`Scenarios queued:\n${described}`).catch(() => null)
-    const now = this.host.book.get(queueId)
-
-    if (!title || !now) return
-
-    const renamed = rules.renameQueue(now, title, 'ai')
-
-    if (this.host.book.put(renamed)) this.host.onQueues()
-  }
-
-  private async openQueue(
-    projectPath: string,
-    item: QueueItem,
-    worktree: boolean,
-  ): Promise<{ queueId: string } | { code: ScenarioCode; detail?: string }> {
-    const id = shortId()
-    const workdir = worktree
-      ? await queueWorktree.create(projectPath, item.scenarioName, id, this.host.worktreesRoot)
-      : ({ kind: 'project' } as const)
-
-    if ('code' in workdir) return workdir
-
-    const queue: ScenarioQueue = {
-      id,
-      projectPath,
-      name: rules.fallbackName(item.scenarioName, item.inputs),
-      nameSource: 'fallback',
-      createdAt: Date.now(),
-      closedAt: 0,
-      workdir,
-      items: [item],
-      stopAfterItemId: '',
-      hold: null,
-    }
-
-    this.host.book.put(queue)
-
-    return { queueId: id }
-  }
-
-  private joinQueue(
-    queueId: string,
-    projectPath: string,
-    item: QueueItem,
-  ): { queueId: string } | { code: ScenarioCode } {
-    const queue = this.host.book.get(queueId)
-
-    if (!queue || queue.projectPath !== projectPath) return { code: 'queueGone' }
-    if (queue.closedAt > 0) return { code: 'queueClosed' }
-
-    this.host.book.put(rules.addItem(queue, item))
-
-    return { queueId }
+  /** Имя от ИИ - см. QueueNaming: принимается ответ только на свежий вопрос. */
+  name(queueId: string): Promise<void> {
+    return this.naming.name(queueId)
   }
 
   private async stepNow(queueId: string, from: string): Promise<void> {
-    const queue = this.host.book.get(queueId)
-    const item = queue && rules.nextToStart(queue)
+    const found = this.host.book.get(queueId)
 
-    if (!queue || !item) return
+    if (!found || this.host.isClosing()) return
+
+    const queue = rules.holdBeforeFailure(found, Date.now())
+
+    // Следующий ждёт успеха, а перед ним неуспех - очередь встаёт и говорит почему.
+    if (queue !== found) {
+      this.host.book.put(queue)
+      this.host.onQueues()
+      this.sayHold(found, queue)
+
+      return
+    }
+
+    const item = rules.nextToStart(queue)
+
+    // Worktree удаляется прямо сейчас - в его папке ничего не начинать.
+    if (!item || this.host.removing.has(queueId)) return
 
     const provider = this.host.provider(item.provider)
     const runId = shortId()
-    const cwd = queue.workdir.kind === 'worktree' ? queue.workdir.projectDir : queue.projectPath
-    const refusal: ScenarioCode | null =
-      queue.workdir.kind === 'worktree' && queue.workdir.removed
-        ? 'worktreeFailed'
-        : provider
-          ? await launchRun(this.host.desk(queue.projectPath), provider, {
-              id: item.scenarioId,
-              scope: item.scope,
-              inputs: item.inputs,
-              from,
-              runId,
-              cwd,
-              queueId,
-              itemId: item.id,
-            })
-          : 'providerMissing'
+    const cwd = workdirOf(queue)
+    const refusal: ScenarioCode | null = !cwd
+      ? 'worktreeFailed'
+      : provider
+        ? await launchRun(this.host.desk(queue.projectPath), provider, {
+            id: item.scenarioId,
+            scope: item.scope,
+            inputs: item.inputs,
+            from,
+            runId,
+            cwd,
+            queueId,
+            itemId: item.id,
+          })
+        : 'providerMissing'
     const latest = this.host.book.get(queueId) ?? queue
     const next = refusal
       ? rules.markRefused(latest, item.id, refusal, Date.now())

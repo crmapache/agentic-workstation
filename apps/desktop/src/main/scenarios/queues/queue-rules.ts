@@ -21,11 +21,46 @@ export type ItemOutcome = 'done' | 'failed' | 'stopped'
 export const runningItem = (queue: ScenarioQueue): QueueItem | null =>
   queue.items.find((item) => item.state === 'running') ?? null
 
+/** Последний прошедший элемент - тот, чей исход решает за следующего «только после успеха». */
+const lastOver = (queue: ScenarioQueue): QueueItem | null =>
+  queue.items.filter((item) => isItemOver(item.state)).at(-1) ?? null
+
+/**
+ * Следующий ждёт успеха, а прошедший перед ним не удался и человек его не отпускал. Так
+ * бывает, когда элемент поставили уже после провала: в момент провала ждущих не было, и
+ * очередь не встала.
+ */
+const blockedByFailure = (queue: ScenarioQueue, next: QueueItem): QueueItem | null => {
+  const before = lastOver(queue)
+
+  return next.afterSuccess &&
+    before &&
+    before.state !== 'done' &&
+    before.id !== queue.acknowledgedItemId
+    ? before
+    : null
+}
+
 /** Следующий, кто стартует сейчас; null - очередь стоит, занята, закрыта или пуста. */
 export const nextToStart = (queue: ScenarioQueue): QueueItem | null => {
   if (queue.closedAt > 0 || queue.hold || runningItem(queue)) return null
 
-  return queue.items.find((item) => item.state === 'waiting') ?? null
+  const next = queue.items.find((item) => item.state === 'waiting') ?? null
+
+  return next && !blockedByFailure(queue, next) ? next : null
+}
+
+/**
+ * Очередь свободна, а следующий не может стартовать из-за неуспеха перед ним - встать с той
+ * же причиной, что при провале: человек решает, идти ли дальше. Иначе - та же очередь.
+ */
+export const holdBeforeFailure = (queue: ScenarioQueue, now: number): ScenarioQueue => {
+  if (queue.closedAt > 0 || queue.hold || runningItem(queue)) return queue
+
+  const next = queue.items.find((item) => item.state === 'waiting')
+  const failed = next && blockedByFailure(queue, next)
+
+  return failed ? { ...queue, hold: { reason: 'failed', itemId: failed.id, at: now } } : queue
 }
 
 const patchItem = (
@@ -84,7 +119,10 @@ export const settleItem = (
 /** Resume: снять остановку; отказ старта первого ждущего забывается - пусть попробует снова. */
 export const resumeQueue = (queue: ScenarioQueue): ScenarioQueue => {
   const first = queue.items.find((item) => item.state === 'waiting')
-  const resumed = { ...queue, hold: null }
+  // Resume после неуспеха - «иди дальше всё равно»: элемент «после успеха» за ним не ждёт.
+  const acknowledgedItemId =
+    queue.hold && queue.hold.reason !== 'refused' ? queue.hold.itemId : queue.acknowledgedItemId
+  const resumed = { ...queue, hold: null, acknowledgedItemId }
 
   return first ? patchItem(resumed, first.id, { refusal: null }) : resumed
 }
@@ -154,7 +192,18 @@ export const renameQueue = (
   const clean = name.replace(/\s+/g, ' ').trim().slice(0, 80)
 
   if (source !== 'user' && queue.nameSource === 'user') return queue
-  if (!clean) return source === 'user' ? { ...queue, nameSource: 'fallback' } : queue
+  if (!clean && source !== 'user') return queue
+
+  // Пустое имя от человека отдаёт имя обратно: запасное сразу, ИИ - следом (QueueRunner).
+  if (!clean) {
+    const first = queue.items[0]
+
+    return {
+      ...queue,
+      name: first ? fallbackName(first.scenarioName, first.inputs) : queue.name,
+      nameSource: 'fallback',
+    }
+  }
 
   return { ...queue, name: clean, nameSource: source }
 }
@@ -175,7 +224,14 @@ export const reopenItem = (queue: ScenarioQueue, itemId: string): ScenarioQueue 
 
   if (!last || last.id !== itemId || last.state === 'done') return null
 
-  return { ...patchItem(queue, itemId, { state: 'running' }), hold: null }
+  // Очередь стояла «после него» (остановка рукой или «Stop after current»): продолженный, он
+  // снова кончится остановкой, а не запуском следующего без Resume.
+  const stopAfterItemId =
+    queue.hold?.reason === 'stopAfter' && queue.hold.itemId === itemId
+      ? itemId
+      : queue.stopAfterItemId
+
+  return { ...patchItem(queue, itemId, { state: 'running' }), hold: null, stopAfterItemId }
 }
 
 /**

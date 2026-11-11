@@ -99,6 +99,7 @@ export const parseQueue = (value: unknown): ScenarioQueue | null => {
     items,
     stopAfterItemId: text(value.stopAfterItemId),
     hold: parseHold(value.hold),
+    acknowledgedItemId: text(value.acknowledgedItemId),
   }
 }
 

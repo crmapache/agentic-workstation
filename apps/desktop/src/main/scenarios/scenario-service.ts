@@ -67,6 +67,9 @@ export class ScenarioService {
   readonly shelves: ScenarioShelves
   private readonly clock: NodeJS.Timeout
   private open: readonly string[] = []
+  private closing = false
+  /** Очереди, чей worktree сейчас удаляется: им не стартовать и не принимать сценарии. */
+  private readonly removing = new Set<string>()
 
   private constructor(
     private readonly book: QueueBook,
@@ -80,6 +83,8 @@ export class ScenarioService {
       worktreesRoot: options.worktreesRoot,
       onQueues: () => this.sendQueues(),
       notify: options.events.notify,
+      isClosing: () => this.closing,
+      removing: this.removing,
     })
     this.shelves = new ScenarioShelves({
       desk: (path) => this.desk(path),
@@ -87,7 +92,7 @@ export class ScenarioService {
       dataDir: options.dataDir,
       onShelves: (path) => this.sendShelves(path),
     })
-    setHiddenConversations((path) => this.desk(path).hidden.all())
+    setHiddenConversations((path) => this.hiddenFor(path))
     this.clock = setInterval(() => void this.beat(), BEAT_MS)
     this.clock.unref()
   }
@@ -169,6 +174,7 @@ export class ScenarioService {
       book: this.book,
       onQueues: () => this.sendQueues(),
       worktreesRoot: this.options.worktreesRoot,
+      removing: this.removing,
     })
   }
 
@@ -243,7 +249,9 @@ export class ScenarioService {
 
   /** Выход из IDE: идущие прогоны останавливаются и дописываются, очереди - тоже. */
   async shutdown(): Promise<void> {
+    this.closing = true
     clearInterval(this.clock)
+    await this.runner.settle()
     await Promise.all([...this.desks.values()].map((desk) => desk.shutdown()))
     await this.book.settle()
   }
@@ -253,6 +261,22 @@ export class ScenarioService {
       .view(projectPath)
       .then((view) => this.options.events.onShelves(projectPath, view))
       .catch((error: unknown) => console.warn('[scenarios] полки не собрались:', error))
+  }
+
+  /**
+   * Книжка скрытых разговоров для папки: worktree, открытый проектом, - это прогоны исходного
+   * проекта его очереди, и их разговоры записаны в его книжке, а не в новой пустой.
+   */
+  private hiddenFor(path: string): Promise<ReadonlySet<string>> {
+    const owner = this.book
+      .all()
+      .find(
+        (queue) =>
+          queue.workdir.kind === 'worktree' &&
+          (queue.workdir.path === path || queue.workdir.projectDir === path),
+      )
+
+    return this.desk(owner?.projectPath ?? path).hidden.all()
   }
 
   private sendQueues(): void {

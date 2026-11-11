@@ -65,6 +65,8 @@ export const launchRun = async (
   const ready = await prepared(desk, provider, request.cwd)
 
   if ('code' in ready) return ready.code
+  // Пока искали CLI, IDE начала закрываться: движок, поднятый после остановки, никто бы не погасил.
+  if (desk.isClosing) return 'runBusy'
 
   const record: ScenarioRun = {
     id: request.runId,
@@ -141,6 +143,7 @@ export const carryOnRun = async (
   const ready = await prepared(desk, provider, cwd)
 
   if ('code' in ready) return ready.code
+  if (desk.isClosing) return 'runBusy'
 
   const engine = new ScenarioEngine(
     record,

@@ -1,6 +1,6 @@
 import type { QueueAction, WorktreeAction } from '@shared/scenario-queues'
 import type { ScenarioRunControl, ScenarioHourRequest } from '@shared/scenario-view'
-import type { ScenarioOutcome } from '@shared/scenarios'
+import type { ScenarioScope, ScenarioOutcome } from '@shared/scenarios'
 import type { RunPlace } from '@shared/ipc/scenarios.contract'
 
 import { invoke } from '../../lib/ipc'
@@ -41,11 +41,16 @@ export const useScenarioActions = () => {
       report(invoke('scenarios:schedule', { projectId, hour })),
     unschedule: (projectId: string, scheduleId: string) =>
       report(invoke('scenarios:unschedule', { projectId, scheduleId })),
-    remove: (projectId: string, id: string, scope: string) =>
+    remove: (projectId: string, id: string, scope: ScenarioScope) =>
       report(invoke('scenarios:delete', { projectId, id, scope })),
-    duplicate: (projectId: string, id: string, scope: string) =>
+    duplicate: (projectId: string, id: string, scope: ScenarioScope) =>
       report(invoke('scenarios:duplicate', { projectId, id, scope })),
-    place: (projectId: string, id: string, from: string, to: string, before: string) =>
-      report(invoke('scenarios:place', { projectId, id, from, to, before })),
+    place: (
+      projectId: string,
+      id: string,
+      from: ScenarioScope,
+      to: ScenarioScope,
+      before: string,
+    ) => report(invoke('scenarios:place', { projectId, id, from, to, before })),
   }
 }

@@ -1,6 +1,13 @@
 import type { ConversationFeed } from './claude-feed'
+import type { ProviderId } from './providers'
 import type { RunSummary, ScenarioRun } from './scenario-runs'
-import type { Scenario, ScenarioCode, ScenarioSchedule } from './scenarios'
+import type {
+  Scenario,
+  ScenarioCode,
+  ScenarioScope,
+  ScenarioRepeat,
+  ScenarioSchedule,
+} from './scenarios'
 
 /**
  * Что вид сценариев получает от главного процесса о проекте: полки, прошлые прогоны и
@@ -38,15 +45,15 @@ export type StepLogPage = { found: boolean; feed: ConversationFeed | null }
 /** Отложенный запуск из формы When; scheduleId пусто - новый. */
 export type ScenarioHourRequest = {
   scenarioId: string
-  scope: string
+  scope: ScenarioScope
   scheduleId: string
   at: number
-  repeat: string
+  repeat: ScenarioRepeat
   weekday: number
   inputs: Record<string, string>
   /** Час поднимет новую очередь - в отдельном worktree или в папке проекта. */
   worktree: boolean
-  provider: string
+  provider: ProviderId
 }
 
 export type ScenarioRunControl = 'pause' | 'resume' | 'stop'

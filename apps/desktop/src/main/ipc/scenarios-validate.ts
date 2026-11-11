@@ -2,6 +2,7 @@ import type { ProviderId } from '@shared/providers'
 import { PROVIDER_IDS } from '@shared/providers'
 import type { QueueAction, QueueTarget, WorktreeAction } from '@shared/scenario-queues'
 import type { ScenarioRunControl, ScenarioHourRequest } from '@shared/scenario-view'
+import { SCENARIO_REPEATS } from '@shared/scenarios'
 import type { RunPlace } from '@shared/ipc/scenarios.contract'
 
 import { assertOneOf, assertString } from './validate'
@@ -122,16 +123,14 @@ export const parseHour = (value: unknown): ScenarioHourRequest => {
   const record = asRecord(value, 'hour')
 
   assertString(record.scenarioId, 'scenarioId')
-  assertString(record.scope, 'scope')
   assertString(record.scheduleId, 'scheduleId')
-  assertString(record.repeat, 'repeat')
 
   return {
     scenarioId: record.scenarioId,
-    scope: record.scope,
+    scope: assertOneOf(record.scope, ['project', 'user'] as const, 'scope'),
     scheduleId: record.scheduleId,
     at: assertCount(record.at, 'at', 0, 24 * 60 - 1),
-    repeat: record.repeat,
+    repeat: assertOneOf(record.repeat, SCENARIO_REPEATS, 'repeat'),
     weekday: assertCount(record.weekday, 'weekday', 1, 7),
     inputs: parseInputs(record.inputs),
     worktree: record.worktree === true,

@@ -1,5 +1,5 @@
 import type { ImageAttachment } from '../claude'
-import type { ProviderInfo } from '../providers'
+import type { ProviderId, ProviderInfo } from '../providers'
 import type {
   QueueAction,
   QueueTarget,
@@ -19,14 +19,15 @@ import type {
   ScenarioDraftOutcome,
   ScenarioShelvesChanged,
 } from '../scenario-view'
-import type { Scenario, ScenarioOutcome } from '../scenarios'
+import type { Scenario, ScenarioScope, ScenarioOutcome } from '../scenarios'
 
 type ProjectRequest = { projectId: string }
-type ShelfItem = ProjectRequest & { id: string; scope: string }
+type ShelfItem = ProjectRequest & { id: string; scope: ScenarioScope }
 
 /**
- * Где искать прогон: у очереди (доска очередей - там и чужие открытые проекты) или в
- * истории проекта. Путь проекта окно не называет - его знает главный процесс.
+ * Где искать прогон: у очереди (доска очередей - очереди всех проектов IDE, и закрытых вкладок
+ * тоже: очереди живут на уровне IDE, ADR 0039) или в истории открытого проекта. Путь проекта
+ * окно не называет - его знает главный процесс по своей очереди.
  */
 export type RunPlace = { queueId: string } | { projectId: string }
 type RunRequest = { place: RunPlace; runId: string }
@@ -41,18 +42,23 @@ export type ScenariosInvokeContract = {
   'scenarios:shelves': { request: ProjectRequest; response: ScenarioShelvesView }
   'scenarios:fetch': { request: ShelfItem; response: Scenario | null }
   'scenarios:save': {
-    request: ProjectRequest & { scenario: unknown; scope: string }
+    request: ProjectRequest & { scenario: Scenario; scope: ScenarioScope }
     response: ScenarioSaveOutcome
   }
   'scenarios:delete': { request: ShelfItem; response: ScenarioOutcome }
   'scenarios:duplicate': { request: ShelfItem; response: ScenarioOutcome }
   /** Перенести на полку to перед сценарием before (пусто - в конец). */
   'scenarios:place': {
-    request: ProjectRequest & { id: string; from: string; to: string; before: string }
+    request: ProjectRequest & {
+      id: string
+      from: ScenarioScope
+      to: ScenarioScope
+      before: string
+    }
     response: ScenarioOutcome
   }
   'scenarios:draft': {
-    request: ProjectRequest & { draftId: string; description: string; scope: string }
+    request: ProjectRequest & { draftId: string; description: string; scope: ScenarioScope }
     response: ScenarioDraftOutcome
   }
   'scenarios:cancelDraft': { request: { draftId: string }; response: void }
@@ -61,9 +67,9 @@ export type ScenariosInvokeContract = {
   'scenarios:start': {
     request: ProjectRequest & {
       scenarioId: string
-      scope: string
+      scope: ScenarioScope
       inputs: Record<string, string>
-      provider: string
+      provider: ProviderId
       target: QueueTarget
       afterSuccess: boolean
     }

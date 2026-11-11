@@ -73,8 +73,15 @@ export const claudeScenarioProvider = (
 
       if (!located || !env) return null
 
-      return new DeferredProcess(async () => {
+      return new DeferredProcess(async (wanted) => {
         const connectors = await claude.connectors.configFor(place.projectPath).catch(() => null)
+
+        // Сессию остановили, пока писался конфиг шлюза: CLI с хуками проекта не нужен вовсе.
+        if (!wanted()) {
+          connectors?.release()
+
+          return null
+        }
 
         try {
           return new CliProcess(

@@ -17,6 +17,7 @@ import {
   fallbackName,
   recoverQueue,
   setStopAfter,
+  holdBeforeFailure,
 } from './queue-rules'
 
 const item = (id: string, patch: Partial<QueueItem> = {}): QueueItem => ({
@@ -45,6 +46,7 @@ const queueOf = (...items: QueueItem[]): ScenarioQueue => ({
   items,
   stopAfterItemId: '',
   hold: null,
+  acknowledgedItemId: '',
 })
 
 const ids = (queue: ScenarioQueue) => queue.items.map((one) => one.id)
@@ -165,7 +167,47 @@ describe('queue rules', () => {
 
     expect(mine).toMatchObject({ name: 'My name', nameSource: 'user' })
     expect(renameQueue(mine, 'Other', 'ai').name).toBe('My name')
-    expect(renameQueue(mine, '', 'user').nameSource).toBe('fallback')
+
+    const cleared = renameQueue({ ...mine, items: [item('a')] }, '', 'user')
+
+    expect(cleared).toMatchObject({ name: 'Scenario a', nameSource: 'fallback' })
+    expect(renameQueue(cleared, 'From AI', 'ai').name).toBe('From AI')
+  })
+
+  it('does not start an after-success item added after a failure, and holds instead', () => {
+    const failed = settleItem(markStarted(queueOf(item('a')), 'a', 'r1'), 'a', 'failed', 1)
+
+    expect(failed.hold).toBeNull()
+
+    const added = addItem(failed, item('b'))
+
+    expect(nextToStart(added)).toBeNull()
+
+    const held = holdBeforeFailure(added, 5)
+
+    expect(held.hold).toEqual({ reason: 'failed', itemId: 'a', at: 5 })
+    expect(nextToStart(resumeQueue(held))?.id).toBe('b')
+    expect(nextToStart(addItem(failed, item('c', { afterSuccess: false })))?.id).toBe('c')
+  })
+
+  it('keeps the stop mark when the run it stopped after is continued', () => {
+    const stopped = settleItem(
+      setStopAfter(
+        markStarted(queueOf(item('a'), item('b', { afterSuccess: false })), 'a', 'r'),
+        'a',
+      ),
+      'a',
+      'stopped',
+      1,
+    )
+    const reopened = reopenItem(stopped, 'a')
+
+    expect(reopened?.stopAfterItemId).toBe('a')
+
+    const again = reopened && settleItem(reopened, 'a', 'done', 2)
+
+    expect(again?.hold?.reason).toBe('stopAfter')
+    expect(again && nextToStart(again)).toBeNull()
   })
 
   it('closes only an idle queue and takes nothing more into it', () => {

@@ -13,8 +13,12 @@ export class DeferredProcess implements SessionProcess {
   private dead = false
   private readonly ready: Promise<CliProcess | null>
 
-  constructor(start: () => Promise<CliProcess | null>, wires: Pick<SessionWires, 'onExit'>) {
-    this.ready = start().then(
+  /** start получает «ещё нужен ли»: остановленной сессии процесс не поднимают вовсе. */
+  constructor(
+    start: (wanted: () => boolean) => Promise<CliProcess | null>,
+    wires: Pick<SessionWires, 'onExit'>,
+  ) {
+    this.ready = start(() => !this.dead).then(
       (process) => this.settle(process, wires),
       (error: unknown) => {
         console.warn('[scenarios] процесс сессии не поднялся:', error)
