@@ -2,8 +2,9 @@
 # Выкладка релея Remote Control и телефонного клиента из этого рабочего дерева на
 # https://agentic-workstation-relay.mzpizote.com (ADR 0041).
 #
-#   apps/relay/scripts/relay-deploy.sh         # спросит перед выкладкой
-#   apps/relay/scripts/relay-deploy.sh --yes   # без вопроса, когда никто не смотрит
+#   apps/relay/scripts/relay-deploy.sh               # спросит перед выкладкой
+#   apps/relay/scripts/relay-deploy.sh --yes         # без вопроса, когда никто не смотрит
+#   apps/relay/scripts/relay-deploy.sh --relay-only  # без клиента телефона (раздаётся заглушка)
 #
 # Выкладка на секунду рвёт все сокеты (IDE и телефоны переподключаются сами и догоняют
 # своё по журналу), а новый клиент доходит до телефона при следующей загрузке - поэтому
@@ -30,9 +31,11 @@ COOL_DIR="$HOME/Documents/railway-migration/scripts"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 ASK=1
+PHONE=1
 for arg in "$@"; do
   case "$arg" in
     --yes) ASK=0 ;;
+    --relay-only) PHONE=0 ;;
     *)
       echo "незнакомый аргумент: $arg" >&2
       exit 2
@@ -76,9 +79,11 @@ echo "==> упаковываю исходники ($BUILD_ID)"
 # образе они раздавались бы как файлы клиента.
 PACK=(package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json apps/relay packages)
 for manifest in "$ROOT"/apps/*/package.json; do
+  # Без клиента - и без его манифеста: по нему Dockerfile решает, собирать ли клиент.
+  [ "$PHONE" = 0 ] && [ "$manifest" = "$ROOT/apps/phone/package.json" ] && continue
   PACK+=("${manifest#"$ROOT"/}")
 done
-[ -d "$ROOT/apps/phone" ] && PACK+=(apps/phone)
+[ "$PHONE" = 1 ] && [ -d "$ROOT/apps/phone" ] && PACK+=(apps/phone)
 ARCHIVE="$(mktemp -t aw-relay).tgz"
 (cd "$ROOT" && COPYFILE_DISABLE=1 tar czf "$ARCHIVE" \
   --exclude=node_modules --exclude=dist --exclude=out --exclude=coverage \

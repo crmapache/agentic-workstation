@@ -35,7 +35,15 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 
-const startRelay = async (): Promise<{ relay: Relay; url: string }> => {
+/**
+ * Боевой релей вместо своего (проверка после выкладки): `wss://…` в переменной. Тогда счёт
+ * соединений не сверяется - на боевом релее сидят и другие, а перезапуск релея не проверяется.
+ */
+const LIVE_RELAY = process.env['AGENTIC_WORKSTATION_REMOTE_LIVE_RELAY'] ?? ''
+
+const startRelay = async (): Promise<{ relay: Relay | null; url: string }> => {
+  if (LIVE_RELAY) return { relay: null, url: LIVE_RELAY }
+
   const relay = createRelay(
     { ...readConfig({}), staticDir: '', logLevel: 'silent' },
     () => undefined,
@@ -87,12 +95,12 @@ describe('Remote Control: IDE, релей и телефон', () => {
 
     const phone = await connectPhone(url)
 
-    expect(relay.connections()).toBe(2)
+    if (relay) expect(relay.connections()).toBe(2)
 
     // Пара: QR → доказательство → Approve человека с отпечатком на экране.
     const pairing = service.startPairing().pairing
 
-    expect(pairing?.url.startsWith(`${url.replace('ws://', 'http://')}/pair#aw1.`)).toBe(true)
+    expect(pairing?.url.startsWith(`${url.replace(/^ws/, 'http')}/pair#aw1.`)).toBe(true)
 
     const offer = await phone.pairInit(pairing?.url ?? '', 'Pixel')
     const pending = await until(() => service.view().pending, 'pending phone')
@@ -201,22 +209,27 @@ describe('Remote Control: IDE, релей и телефон', () => {
     expect(ide.calls.length).toBe(sentBefore)
   })
 
-  it('выключенная связь не держит линию, включённая переживает перезапуск релея', async () => {
-    const { relay, url } = await startRelay()
-    const service = await RemoteService.load({
-      file: memoryFile(),
-      vault: memoryVault,
-      ports: fakeIde().ports,
-      relayUrl: url,
-      machine: () => ({ label: 'test', ideVersion: '0' }),
-      onView: () => undefined,
-    })
+  it.skipIf(LIVE_RELAY)(
+    'выключенная связь не держит линию, включённая переживает перезапуск релея',
+    async () => {
+      const started = await startRelay()
+      const relay = started.relay as Relay
+      const url = started.url
+      const service = await RemoteService.load({
+        file: memoryFile(),
+        vault: memoryVault,
+        ports: fakeIde().ports,
+        relayUrl: url,
+        machine: () => ({ label: 'test', ideVersion: '0' }),
+        onView: () => undefined,
+      })
 
-    cleanups.push(() => service.shutdown())
-    service.setEnabled(true)
-    await until(() => (relay.connections() === 1 ? true : null), 'IDE on the relay')
-    service.setEnabled(false)
-    await until(() => (relay.connections() === 0 ? true : null), 'IDE gone from the relay')
-    expect(service.view().state).toBe('off')
-  })
+      cleanups.push(() => service.shutdown())
+      service.setEnabled(true)
+      await until(() => (relay.connections() === 1 ? true : null), 'IDE on the relay')
+      service.setEnabled(false)
+      await until(() => (relay.connections() === 0 ? true : null), 'IDE gone from the relay')
+      expect(service.view().state).toBe('off')
+    },
+  )
 })
