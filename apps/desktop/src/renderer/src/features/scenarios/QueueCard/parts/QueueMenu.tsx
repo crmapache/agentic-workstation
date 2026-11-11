@@ -69,15 +69,17 @@ export const QueueMenu = ({ queue, onRename }: QueueMenuProps) => {
                 />
               </>
             )}
-            <MenuSeparator />
-            <MenuItem
-              icon={Archive}
-              label={t('scenarios.queues.menu.close')}
-              description={busy}
-              wrapDescription
-              disabled={isBusy}
-              onSelect={handleClose}
-            />
+            {queue.closedAt === 0 && <MenuSeparator />}
+            {queue.closedAt === 0 && (
+              <MenuItem
+                icon={Archive}
+                label={t('scenarios.queues.menu.close')}
+                description={busy}
+                wrapDescription
+                disabled={isBusy}
+                onSelect={handleClose}
+              />
+            )}
           </Menu>
         )}
       </Popover>

@@ -694,7 +694,8 @@
           "failed": "Stopped: not done",
           "refused": "Stopped: would not start",
           "interrupted": "Stopped: IDE closed"
-        }
+        },
+        "closed": "Closed, worktree kept"
       },
       "workdir": {
         "worktree": "worktree · {{branch}}",
@@ -766,11 +767,11 @@
       },
       "closeDialog": {
         "title": "Close {{name}}?",
-        "text": "A closed queue goes to History and runs nothing more.",
+        "text": "A closed queue runs nothing more. Its past runs stay in History.",
         "waiting_one": "1 scenario waiting in it will not run.",
         "waiting_other": "{{count}} scenarios waiting in it will not run.",
         "checking": "Checking its worktree…",
-        "worktreeKept": "Its worktree has work in it and stays, on branch {{branch}}.",
+        "worktreeKept": "Its worktree has work in it and stays, on branch {{branch}}. The queue stays in the list until you remove the worktree.",
         "worktreeDropped": "Its worktree has nothing new and is removed with it.",
         "confirm": "Close queue"
       }

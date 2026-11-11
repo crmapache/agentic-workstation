@@ -153,7 +153,14 @@ export class ScenarioService {
 
   queuesView(): ScenarioQueuesView {
     return {
-      queues: this.book.all().filter((queue) => queue.closedAt === 0),
+      // Закрытая очередь с живым worktree остаётся на виду: открыть или удалить его можно только
+      // с её карточки (решение владельца - worktree живёт, пока человек его не удалит).
+      queues: this.book
+        .all()
+        .filter(
+          (queue) =>
+            queue.closedAt === 0 || (queue.workdir.kind === 'worktree' && !queue.workdir.removed),
+        ),
       live: [...this.desks.values()].flatMap((desk) => desk.liveRuns()),
     }
   }

@@ -22,6 +22,8 @@ export const QueueCard = ({ queue, live, compact = false, onOpen }: QueueCardPro
   const [isRenaming, setIsRenaming] = useState(false)
   const status = queueStatus(queue, live)
   const isGoing = runningItemOf(queue) !== null
+  // Закрытая очередь на виду только ради своего worktree: запускать в неё больше нечего.
+  const isClosed = queue.closedAt > 0
 
   if (compact) return <QueueCompact queue={queue} live={live} status={status} onOpen={onOpen} />
 
@@ -37,7 +39,7 @@ export const QueueCard = ({ queue, live, compact = false, onOpen }: QueueCardPro
         {queue.hold && <QueueHold queue={queue} hold={queue.hold} />}
         <QueueItems queue={queue} live={live} />
         {isGoing && live && <QueueRunning queue={queue} live={live} />}
-        <QueueControls queue={queue} live={live} />
+        {!isClosed && <QueueControls queue={queue} live={live} />}
       </div>
     </Card>
   )

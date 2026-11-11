@@ -21,6 +21,8 @@ export type QueueStatus =
   | { kind: 'asking' }
   | { kind: 'held'; reason: QueueHoldReason }
   | { kind: 'idle' }
+  /** Закрыта человеком, но её worktree ещё живёт - карточка ради него. */
+  | { kind: 'closed' }
 
 /** Элемент, который идёт сейчас; в очереди он один или его нет. */
 export const runningItemOf = (queue: ScenarioQueue): QueueItem | null =>
@@ -52,6 +54,7 @@ export const isAsking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
  * ответить, и это то, что человек должен увидеть.
  */
 export const queueStatus = (queue: ScenarioQueue, live: RunSummary | undefined): QueueStatus => {
+  if (queue.closedAt > 0) return { kind: 'closed' }
   if (runningItemOf(queue)) {
     if (live && isAsking(live)) return { kind: 'asking' }
 
@@ -75,6 +78,7 @@ export const statusTone = (status: QueueStatus): BadgeTone => {
       return status.reason === 'failed' || status.reason === 'refused' ? 'danger' : 'neutral'
     case 'paused':
     case 'idle':
+    case 'closed':
       return 'neutral'
   }
 }
