@@ -5,6 +5,7 @@ import type { ConnectorsService } from '../connectors/connectors-service'
 import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
+import type { LocalHistory } from '../history/local-history'
 import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
@@ -27,6 +28,7 @@ import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
+import { createLocalHistoryHandlers } from './local-history-handlers'
 import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createRemoteHandlers } from './remote-handlers'
 import { createScenariosHandlers } from './scenarios-handlers'
@@ -57,6 +59,8 @@ type Services = HandlerContext & {
   stats: StatsService
   /** Remote Control: связь с телефонами через свой релей (ADR 0041). */
   remote: RemoteService
+  /** Локальная история файлов (ADR 0045): версии за месяц, возврат любой. */
+  history: LocalHistory
 }
 
 /**
@@ -64,7 +68,7 @@ type Services = HandlerContext & {
  * запрос и зовёт сервис: логика живёт в сервисах и модулях, не здесь.
  */
 export const createInvokeHandlers = (services: Services): InvokeHandlers => {
-  const { workspace, updates, search, claude } = services
+  const { workspace, updates, search, claude, history } = services
 
   return {
     ...createWorkspaceHandlers(services),
@@ -76,9 +80,11 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
       new FileOpsService({
         listFiles: (root) => search.listFiles(root),
         trash: (absolute) => shell.trashItem(absolute),
+        history,
       }),
     ),
-    ...createEditorHandlers(workspace),
+    ...createLocalHistoryHandlers(workspace, history),
+    ...createEditorHandlers(workspace, history),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
     ...createClaudeHandlers(workspace, claude),

@@ -5,6 +5,7 @@ import type { EditorInvokeContract } from '@shared/ipc/editor.contract'
 import { readImageFile } from '../fs/image-file'
 import { readTextFile, readOutsideTextFile } from '../fs/text-file'
 import { writeTextFile, writeOutsideTextFile } from '../fs/text-write'
+import type { LocalHistory } from '../history/local-history'
 import { readWebImage } from '../preview/web-image'
 import { fetchWebImage } from '../preview/web-image-session'
 import { editorSaved, allowUnsavedQuit } from '../window/editor-save'
@@ -58,19 +59,30 @@ const fileTarget = (
   return { rootPath, relativePath }
 }
 
-/** Каналы редактора: проект - только открытый, поля - нужного типа, дальше - main/fs. */
+/**
+ * Каналы редактора: проект - только открытый, поля - нужного типа, дальше - main/fs. Файлы
+ * проекта видит локальная история (ADR 0045): открытый файл она запоминает как есть, а
+ * сохранение - своей правкой, а не «извне».
+ */
 export const createEditorHandlers = (
   workspace: WorkspaceService,
+  history: LocalHistory,
 ): Pick<InvokeHandlers, EditorChannels> => ({
-  'fs:readFile': (request) => {
+  'fs:readFile': async (request) => {
     const target = fileTarget(workspace, request)
     const known = versionOrNull(request.known, 'known')
 
-    return 'absolutePath' in target
-      ? readOutsideTextFile(target.absolutePath, known)
-      : readTextFile(target.rootPath, target.relativePath, known)
+    if ('absolutePath' in target) return readOutsideTextFile(target.absolutePath, known)
+
+    const read = await readTextFile(target.rootPath, target.relativePath, known)
+
+    if (read.kind !== 'missing' && read.kind !== 'unchanged') {
+      history.opened(target.rootPath, target.relativePath)
+    }
+
+    return read
   },
-  'fs:writeFile': (request) => {
+  'fs:writeFile': async (request) => {
     const target = fileTarget(workspace, request)
     const { text, bom, expected, base, outside } = request
 
@@ -84,9 +96,17 @@ export const createEditorHandlers = (
       outside: outside === undefined ? false : assertBoolean(outside, 'outside'),
     }
 
-    return 'absolutePath' in target
-      ? writeOutsideTextFile(target.absolutePath, write)
-      : writeTextFile(target.rootPath, target.relativePath, write)
+    if ('absolutePath' in target) return writeOutsideTextFile(target.absolutePath, write)
+
+    const { rootPath, relativePath } = target
+    const tracked = await history.beforeWrite(rootPath, relativePath, 'edit')
+    const written = await writeTextFile(rootPath, relativePath, write)
+
+    if (written.kind === 'saved' && tracked !== null) {
+      void history.settle(rootPath, [tracked], 'edit')
+    }
+
+    return written
   },
   'fs:readImage': ({ projectId, relativePath, known }) => {
     assertString(relativePath, 'relativePath')

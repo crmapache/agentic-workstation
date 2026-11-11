@@ -21,6 +21,11 @@ import type { FsPathsInvokeContract } from './fs-paths.contract'
 import { FS_PATHS_CHANNELS } from './fs-paths.contract'
 import type { GitChangesEventContract, GitChangesInvokeContract } from './git-changes.contract'
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
+import type {
+  LocalHistoryEventContract,
+  LocalHistoryInvokeContract,
+} from './local-history.contract'
+import { LOCAL_HISTORY_EVENTS, LOCAL_HISTORY_CHANNELS } from './local-history.contract'
 import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './project-sync.contract'
 import { PROJECT_SYNC_EVENTS, PROJECT_SYNC_CHANNELS } from './project-sync.contract'
 import type { RemoteEventContract, RemoteInvokeContract } from './remote.contract'
@@ -46,6 +51,7 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   ClaudeSearchInvokeContract &
   FsPathsInvokeContract &
   FileOpsInvokeContract &
+  LocalHistoryInvokeContract &
   ProjectSyncInvokeContract &
   GitChangesInvokeContract &
   EditorInvokeContract &
@@ -60,6 +66,7 @@ export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
   ClaudeSearchEventContract &
   ProjectSyncEventContract &
+  LocalHistoryEventContract &
   GitChangesEventContract &
   EditorEventContract &
   WindowEventContract &
@@ -78,6 +85,7 @@ export const AREA_CHANNELS = {
   ...CLAUDE_SEARCH_CHANNELS,
   ...FS_PATHS_CHANNELS,
   ...FILE_OPS_CHANNELS,
+  ...LOCAL_HISTORY_CHANNELS,
   ...PROJECT_SYNC_CHANNELS,
   ...GIT_CHANGES_CHANNELS,
   ...EDITOR_CHANNELS,
@@ -95,6 +103,7 @@ export const AREA_EVENTS = {
   ...CLAUDE_PANEL_EVENTS,
   ...CLAUDE_SEARCH_EVENTS,
   ...PROJECT_SYNC_EVENTS,
+  ...LOCAL_HISTORY_EVENTS,
   ...GIT_CHANGES_EVENTS,
   ...EDITOR_EVENTS,
   ...WINDOW_EVENTS,

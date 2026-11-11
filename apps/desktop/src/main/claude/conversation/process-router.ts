@@ -1,6 +1,7 @@
 import type { ConversationUsage } from '@shared/claude'
 
 import { callForResult, callFromMessage } from '../calls/call-reasons'
+import { announceAgentEdit } from '../changes/agent-edits-tap'
 import type { CliMessage } from '../cli/cli-messages'
 import { recordField, stringField } from '../cli/cli-messages'
 import { mergeCommands, modelsFromReply, commandsFromInit, commandsFromChange } from './cli-replies'
@@ -192,8 +193,11 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
   // Картина лимита поменялась (CLI шлёт это, когда окно подходит к пределу или упёрлось).
   if (message.type === 'rate_limit_event') host.onUsageHint(runtime)
 
-  // Лента держит дифф правки обрезанным для показа - точные правки хода копит откат.
-  runtime.turnRevert.observe(message)
+  // Лента держит дифф правки обрезанным для показа - точные правки хода копит откат; их же
+  // видит локальная история (ADR 0045): «до» правки агента, если её снимок опоздал.
+  const edit = runtime.turnRevert.observe(message)
+
+  if (edit) announceAgentEdit(edit)
   feed.builder.apply(message)
   feed.schedule()
 

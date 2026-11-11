@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { constants } from 'node:fs'
 import type { BigIntStats } from 'node:fs'
-import { rm, open, stat, rename, readFile, realpath } from 'node:fs/promises'
+import { rm, open, stat, mkdir, rename, readFile, realpath } from 'node:fs/promises'
 import { join, dirname, basename } from 'node:path'
 
-import type { TextHash, FileWrite, FileVersion } from '@shared/fs'
+import type { TextHash, FileWrite, FileFailure, FileVersion } from '@shared/fs'
 
 import { MISSING_CODES, PERMISSION_BITS } from './text-file.constants'
 import {
@@ -163,7 +163,7 @@ const writeAt = async (
 }
 
 /** Запись в учёте идущих: выход из IDE её дождётся. */
-const tracked = (job: Promise<FileWrite>): Promise<FileWrite> => {
+const tracked = <T>(job: Promise<T>): Promise<T> => {
   const settle = () => void pending.delete(job)
 
   pending.add(job)
@@ -202,6 +202,46 @@ export const writeTextFile = (
  */
 export const writeOutsideTextFile = (path: string, request: WriteRequest): Promise<FileWrite> =>
   tracked(writeOutsideFile(path, request))
+
+/**
+ * Байты файла проекта поверх того, что на диске, - возврат версии из локальной истории (ADR
+ * 0045): та же безопасная запись и права старого файла, ссылка пишется в свою цель. Пропавший
+ * файл появляется снова, вместе с папками над ним. Писать можно только внутри проекта - и
+ * через ссылки тоже. На месте файла папка - occupied.
+ */
+const writeBytes = async (
+  rootPath: string,
+  relativePath: string,
+  bytes: Buffer,
+): Promise<'saved' | 'occupied' | FileFailure> => {
+  try {
+    const absolute = insideRoot(rootPath, relativePath)
+    const realRoot = await realpath(rootPath)
+    const current = await statOrNull(absolute)
+
+    if (current && !current.isFile()) return 'occupied'
+    if (!current) await mkdir(dirname(absolute), { recursive: true })
+
+    const target = current
+      ? await realpath(absolute)
+      : join(await realpath(dirname(absolute)), basename(absolute))
+
+    if (relativeInside(realRoot, target) === null) return 'outside'
+
+    await saveBytes(target, bytes, current)
+
+    return 'saved'
+  } catch (error) {
+    return failureOf(error, relativePath)
+  }
+}
+
+/** Записать байты файла проекта (writeBytes) в учёте идущих записей: выход из IDE их дождётся. */
+export const writeProjectBytes = (
+  rootPath: string,
+  relativePath: string,
+  bytes: Buffer,
+): Promise<'saved' | 'occupied' | FileFailure> => tracked(writeBytes(rootPath, relativePath, bytes))
 
 /** Дождаться записей, которые ещё идут: перед выходом из IDE. */
 export const settleWrites = async (): Promise<void> => {

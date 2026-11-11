@@ -13,7 +13,7 @@ import { MAX_FILE_BYTES } from './changes.constants'
 import { readCopy, copiesTaken, findTurnStart, copyRecordsFrom } from './file-copies'
 import { revertOnDisk } from './file-revert'
 import { turnTools, turnChanges } from './turn-changes'
-import type { TurnFile } from './turn-edits'
+import type { TurnFile, EditEntry } from './turn-edits'
 import { filesOf, TurnEdits } from './turn-edits'
 import type { SettledFile } from './turn-settle'
 import { settleFile } from './turn-settle'
@@ -68,9 +68,9 @@ export class TurnRevert {
 
   constructor(private readonly runtime: ConversationRuntime) {}
 
-  /** Строка живого потока CLI: правки и вызовы Write - в учёт хода. */
-  observe(message: CliMessage): void {
-    this.edits.observe(message)
+  /** Строка живого потока CLI: правки и вызовы Write - в учёт хода. Ответ - правка строки. */
+  observe(message: CliMessage): EditEntry | null {
+    return this.edits.observe(message)
   }
 
   /**

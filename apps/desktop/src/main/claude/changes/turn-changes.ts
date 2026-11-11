@@ -1,6 +1,7 @@
 import type { FeedItem, ToolInput, FileChange, ToolFeedItem } from '@shared/claude-feed'
 
 import { isRecord } from '../cli/cli-messages'
+import { EDIT_TOOL_PATH_FIELD } from './changes.constants'
 import { lineDiff } from './line-diff'
 import type { EditEntry } from './turn-edits'
 import { hunkCounts } from './turn-settle'
@@ -9,14 +10,6 @@ import { hunkCounts } from './turn-settle'
 type ToolChange = Omit<FileChange, 'reverted' | 'refusal'>
 
 type Counts = Pick<FileChange, 'added' | 'removed' | 'created' | 'counted'>
-
-/** Инструменты правки и где у них путь файла. Остальные (Read) файл только смотрят. */
-const PATH_FIELD: Record<string, string> = {
-  Edit: 'file_path',
-  MultiEdit: 'file_path',
-  Write: 'file_path',
-  NotebookEdit: 'notebook_path',
-}
 
 /** Так Write говорит текстом, что создал файл, - читается, только когда структуры нет. */
 const CREATED_TEXT = /^File created successfully/
@@ -93,7 +86,7 @@ const changeOf = (
   tool: ToolFeedItem,
   ledger: ReadonlyMap<string, EditEntry> | undefined,
 ): ToolChange | null => {
-  const field = PATH_FIELD[tool.name]
+  const field = EDIT_TOOL_PATH_FIELD[tool.name]
   const inputPath = field ? text(tool.input, field) : ''
   const { result } = tool
 

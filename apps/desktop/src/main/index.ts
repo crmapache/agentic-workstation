@@ -18,6 +18,7 @@ import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
 import { GitStatusService } from './git/git-status-service'
+import { LocalHistory } from './history/local-history'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
@@ -36,6 +37,7 @@ import { createMainWindow } from './window/main-window'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import type { StoredAccounts } from './claude/accounts/account-store'
+import { watchAgentEdits } from './claude/changes/agent-edits-tap'
 import { locateClaudeCli } from './claude/cli/cli-locator'
 import { ProcessGroup } from './claude/cli/process-group'
 import { loginShellEnv } from './claude/cli/shell-env'
@@ -141,9 +143,25 @@ const bootstrap = async () => {
       workspace.getState().projects.map((project) => project.rootPath),
     )
 
+  const rootOf = (projectId: string) =>
+    workspace.getState().projects.find((project) => project.id === projectId)?.rootPath
+  // Локальная история файлов (ADR 0045): события - из слежения за диском, записи IDE и ленты
+  // агента; окну - у каких файлов история пополнилась.
+  const history = await LocalHistory.open({
+    dataDir: app.getPath('userData'),
+    listFiles: (root) => search.listFiles(root),
+    onChange: (root, paths) => {
+      for (const project of workspace.getState().projects) {
+        if (project.rootPath === root)
+          broadcast('history:changed', { projectId: project.id, paths })
+      }
+    },
+  })
+  // Точные правки агентов из потоков CLI - «до» правки, если снимок истории опоздал.
+  watchAgentEdits((edit) => history.agentEdited(edit))
   // Слежение за диском открытых проектов: окну - что перечитать в дереве и в редакторе и
   // что .git поменялся (ветка), статусу git и списку изменений - повод перечитаться и
-  // разослать себя, если стали другими.
+  // разослать себя, если стали другими; истории - что сверить.
   const gitStatus = new GitStatusService({
     status: (projectId, status) => broadcast('git:status', { projectId, status }),
     changes: (projectId, changes) => broadcast('git:changes', { projectId, changes }),
@@ -154,6 +172,10 @@ const bootstrap = async () => {
     }
 
     gitStatus.changed(projectId, { git, paths })
+
+    const root = rootOf(projectId)
+
+    if (root && (paths === null || paths.length > 0)) history.diskChanged(root, paths)
   })
   // Файлы вне проекта, открытые вкладками, - тем же событием проекта вкладки: редактор
   // узнаёт их по абсолютному пути.
@@ -164,6 +186,8 @@ const bootstrap = async () => {
     for (const projectId of watchers.sync(workspace.getState().projects)) {
       gitStatus.forget(projectId)
     }
+
+    history.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
   }
 
   // Терминалы под панелью Claude Code (ADR 0037): оболочка в корне проекта, закрытый проект
@@ -195,7 +219,10 @@ const bootstrap = async () => {
   })
 
   observeClaude = features.observeClaude
-  observeFeed = features.observeFeed
+  observeFeed = (patch) => {
+    features.observeFeed(patch)
+    history.agentFeed(patch)
+  }
   observeCall = features.observeCall
   searchProjects()
   watchProjects()
@@ -219,6 +246,7 @@ const bootstrap = async () => {
     scenarios: features.scenarios,
     stats: features.statistics.stats,
     remote: features.remote,
+    history,
     getWindow: () => mainWindow,
   }
 
@@ -247,6 +275,8 @@ const bootstrap = async () => {
       // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
       await features.shutdown()
       await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
+      // История - после записей: возврат версии, идущий в эту секунду, ещё сверяется.
+      await history.close()
       // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
       await connectors.stop()
     } finally {

@@ -7,6 +7,7 @@ import type {
   ReferencePlan,
   FileMoveOutcome,
 } from '@shared/file-ops'
+import type { HistoryCause } from '@shared/local-history'
 import type { ProjectFileList } from '@shared/search'
 
 import { checkMove, copyEntry, moveEntry, trashEntry, createEntry } from './file-ops'
@@ -29,11 +30,23 @@ const PLAN_BATCH = 200
 
 const breathe = () => new Promise((resolve) => setImmediate(resolve))
 
+/**
+ * Локальная история (ADR 0045): перенос едет вместе с историей файла, правка ссылок - своей
+ * причиной, а не «извне», удаляемое запоминается до корзины.
+ */
+export type FileOpsHistory = {
+  expect: (root: string, path: string, cause: HistoryCause) => void
+  settle: (root: string, paths: readonly string[], cause?: HistoryCause) => Promise<void>
+  /** Перенос - работой в очереди истории проекта: её сверка не увидит его наполовину. */
+  move: (root: string, from: string, rename: () => Promise<FileOpOutcome>) => Promise<FileOpOutcome>
+}
+
 export type FileOpsHost = {
   /** Файлы проекта без игнорируемых - тот же список, что у поиска по имени. */
   listFiles: (root: string) => Promise<ProjectFileList>
   /** В корзину системы (shell.trashItem). */
   trash: (absolute: string) => Promise<void>
+  history?: FileOpsHistory
 }
 
 /** Тексты файлов, где могут быть ссылки, и конфигов с синонимами путей. */
@@ -110,11 +123,21 @@ export class FileOpsService {
     if ('ok' in checked) return checked
 
     const { edits } = updateReferences ? await this.plan(root, move) : { edits: [] }
-    const moved = await moveEntry(root, move.from, move.to)
+    const { history } = this.host
+    const rename = () => moveEntry(root, move.from, move.to)
+    const moved = await (history ? history.move(root, move.from, rename) : rename())
 
     if (!moved.ok) return moved
 
+    for (const file of edits) history?.expect(root, file.movedTo, 'refactor')
+
     const written = await Promise.all(edits.map((file) => this.rewrite(root, file)))
+
+    await history?.settle(
+      root,
+      edits.map((file) => file.movedTo),
+      'refactor',
+    )
 
     return {
       ok: true,
@@ -129,8 +152,19 @@ export class FileOpsService {
     return this.queued(root, () => copyEntry(root, from, toDirectory))
   }
 
+  /** В корзину; история сначала запоминает последнее содержимое - его можно вернуть. */
   trash(root: string, path: string): Promise<FileOpOutcome> {
-    return this.queued(root, () => trashEntry(root, path, this.host.trash))
+    return this.queued(root, async () => {
+      const { history } = this.host
+
+      await history?.settle(root, [path])
+
+      const outcome = await trashEntry(root, path, this.host.trash)
+
+      if (outcome.ok) await history?.settle(root, [path])
+
+      return outcome
+    })
   }
 
   private queued<T>(root: string, job: () => Promise<T>): Promise<T> {

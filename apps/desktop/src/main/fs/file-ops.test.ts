@@ -225,6 +225,42 @@ describe('действия с файлами из дерева', () => {
     expect(await service.trash(root, '')).toEqual({ ok: false, code: 'invalidName' })
   })
 
+  it('локальной истории - перенос в её очереди, правка ссылок своей причиной, корзина', async () => {
+    const calls: string[] = []
+    const service = new FileOpsService({
+      listFiles,
+      trash: async (absolute) => rm(absolute, { recursive: true }),
+      history: {
+        expect: (_root, path, cause) => void calls.push(`expect ${path} ${cause}`),
+        settle: (_root, paths, cause) => {
+          calls.push(`settle ${paths.join(',')} ${cause ?? '-'}`)
+
+          return Promise.resolve()
+        },
+        move: async (_root, from, rename) => {
+          const outcome = await rename()
+
+          calls.push(`move ${from} ${outcome.ok ? outcome.path : 'failed'}`)
+
+          return outcome
+        },
+      },
+    })
+
+    await put('src/Foo.ts', '')
+    await put('src/a.ts', "import './Foo'")
+    await service.move(root, { from: 'src/Foo.ts', to: 'src/Bar.ts' }, true)
+    await service.trash(root, 'src/a.ts')
+
+    expect(calls).toEqual([
+      'move src/Foo.ts src/Bar.ts',
+      'expect src/a.ts refactor',
+      'settle src/a.ts refactor',
+      'settle src/a.ts -',
+      'settle src/a.ts -',
+    ])
+  })
+
   it('имена: подпапки в имени, копии как в Finder', () => {
     expect(childPath('', 'a/b.ts')).toBe('a/b.ts')
     expect(childPath('src', ' x.ts ')).toBe('src/x.ts')
