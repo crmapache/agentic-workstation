@@ -119,12 +119,18 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('button', { name: /secret-client/ }).waitFor()
     await page.getByRole('button', { name: /All queues/ }).waitFor()
     await page.getByText('Online').waitFor()
-    // Воркер сборки (оболочка и уведомления, классический скрипт) встаёт в настоящем браузере;
-    // релей без ключей VAPID - раздела уведомлений нет: предложить нечего.
+    // Воркер сборки (оболочка и уведомления, классический скрипт) встаёт в настоящем браузере.
+    // Раздел уведомлений - ровно когда релей их умеет: свой релей без ключей VAPID - нет, боевой
+    // (AGENTIC_WORKSTATION_PHONE_LIVE_RELAY) с ключами - есть.
     expect(
       await page.evaluate(async () => Boolean((await navigator.serviceWorker.ready).active)),
     ).toBe(true)
-    expect(await page.getByRole('heading', { name: 'Notifications' }).count()).toBe(0)
+
+    const relayInfo = (await (await fetch(`${ide.pageUrl}/v1/info`)).json()) as { push?: boolean }
+
+    expect(await page.getByRole('heading', { name: 'Notifications' }).count()).toBe(
+      relayInfo.push === true ? 1 : 0,
+    )
     await shot('03-machines')
 
     // Проект: разговоры, прошлые разговоры, очереди; главные действия - в низу, в одном ряду.
