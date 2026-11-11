@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { moveDuration, CURSOR_POINTS } from './overlay.utils'
+import { CURSOR_PATH, moveDuration } from './overlay.utils'
 
 describe('курсор агента', () => {
   it('едет не быстрее и не дольше пределов', () => {
@@ -9,7 +9,10 @@ describe('курсор агента', () => {
     expect(moveDuration({ x: 0, y: 0 }, { x: 660, y: 0 })).toBe(300)
   })
 
-  it('острие стрелки - в начале координат', () => {
-    expect(CURSOR_POINTS.startsWith('1,1 ')).toBe(true)
+  it('острие стрелки - у начала координат: слой сдвигает её на 2 px, нажатие - в острие', () => {
+    const [x = 0, y = 0] = (/^M([\d.]+) ([\d.]+)/.exec(CURSOR_PATH) ?? []).slice(1).map(Number)
+
+    expect(x).toBeLessThan(3)
+    expect(y).toBeLessThan(4)
   })
 })

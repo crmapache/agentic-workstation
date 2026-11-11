@@ -255,6 +255,7 @@ describe.skipIf(!ready)(
         socketPath: join(socketDir, `${channel}.sock`),
         hostDir: join(dir, `native-host-${channel}`),
         extensionDir: join(dir, 'chrome-extension'),
+        legacyExtensionDir: null,
       })
 
       // Chromium со своей папкой профиля ищет манифесты host в <профиль>/NativeMessagingHosts.

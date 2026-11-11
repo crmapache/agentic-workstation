@@ -28,6 +28,7 @@ describe('мост браузера: установка и уборка', () => 
     socketPath,
     hostDir: join(dir, 'native-host/dev'),
     extensionDir: join(dir, 'chrome-extension'),
+    legacyExtensionDir: null,
   })
 
   const source = async () => {

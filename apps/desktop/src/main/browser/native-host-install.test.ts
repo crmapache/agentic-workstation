@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { rm, stat, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { rm, stat, lstat, mkdir, mkdtemp, readFile, readlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -44,12 +44,15 @@ describe('места моста браузера', () => {
       channel: 'installed',
       socketPath: '/Users/u/.agentic-workstation/browser/installed.sock',
       hostDir: '/Users/u/.agentic-workstation/native-host/installed',
-      extensionDir: '/Users/u/.agentic-workstation/chrome-extension',
+      // Папку расширения выбирают в окне Chrome - она видимая, не в скрытой .agentic-workstation.
+      extensionDir: '/Users/u/Agentic Workstation/Chrome Extension',
+      legacyExtensionDir: '/Users/u/.agentic-workstation/chrome-extension',
     })
     expect(dev.socketPath).toBe('/Users/u/.agentic-workstation/browser/dev.sock')
     expect(copy.channel).toBe('dev')
     expect(copy.socketPath).toMatch(/browser\/dev-[0-9a-f]{8}\.sock$/)
     expect(copy.extensionDir).toMatch(/chrome-extension-dev-[0-9a-f]{8}$/)
+    expect(copy.legacyExtensionDir).toBeNull()
   })
 
   it('длинный домашний путь не роняет старт: сокет - во временной папке, не влез и туда - null', () => {
@@ -111,6 +114,7 @@ describe('установка моста', () => {
       socketPath: '/tmp/x.sock',
       hostDir: join(dir, 'home/native-host/dev'),
       extensionDir: join(dir, 'home/chrome-extension'),
+      legacyExtensionDir: null,
     }
     const manifests = join(dir, 'Chrome/NativeMessagingHosts')
 
@@ -156,5 +160,63 @@ describe('установка моста', () => {
       join(dir, 'Google/Chrome/NativeMessagingHosts'),
       join(dir, 'Arc/User Data/NativeMessagingHosts'),
     ])
+  })
+})
+
+describe('переезд папки расширения из скрытой в видимую', () => {
+  let dir = ''
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'aw-move-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  const shipped = async () => {
+    const extensionDir = join(dir, 'dist')
+
+    await mkdir(extensionDir, { recursive: true })
+    await writeFile(join(extensionDir, 'build.json'), JSON.stringify({ build: 'b1' }))
+    await writeFile(join(extensionDir, 'manifest.json'), '{}')
+    await writeFile(join(dir, 'host.js'), '')
+
+    return { hostJs: join(dir, 'host.js'), extensionDir }
+  }
+
+  const placesIn = () => ({
+    channel: 'dev' as const,
+    socketPath: '/tmp/x.sock',
+    hostDir: join(dir, 'home/.agentic-workstation/native-host/dev'),
+    extensionDir: join(dir, 'home/Agentic Workstation/Chrome Extension'),
+    legacyExtensionDir: join(dir, 'home/.agentic-workstation/chrome-extension'),
+  })
+
+  it('старая скрытая папка становится ссылкой на новую: загруженное оттуда расширение живо', async () => {
+    const places = placesIn()
+
+    await mkdir(places.legacyExtensionDir, { recursive: true })
+    await writeFile(join(places.legacyExtensionDir, 'build.json'), JSON.stringify({ build: 'b0' }))
+
+    await installBridge(await shipped(), places, '/bin/ide', [])
+
+    expect((await lstat(places.legacyExtensionDir)).isSymbolicLink()).toBe(true)
+    expect(await readlink(places.legacyExtensionDir)).toBe(places.extensionDir)
+    expect(await extensionBuildIn(places.legacyExtensionDir)).toBe('b1')
+    expect(await extensionBuildIn(places.extensionDir)).toBe('b1')
+
+    // Повтор ничего не ломает: ссылка остаётся ссылкой.
+    await installBridge(await shipped(), places, '/bin/ide', [])
+    expect((await lstat(places.legacyExtensionDir)).isSymbolicLink()).toBe(true)
+  })
+
+  it('старой папки не было - ссылку не заводим', async () => {
+    const places = placesIn()
+
+    await installBridge(await shipped(), places, '/bin/ide', [])
+
+    await expect(lstat(places.legacyExtensionDir)).rejects.toThrow()
+    expect(await extensionBuildIn(places.extensionDir)).toBe('b1')
   })
 })

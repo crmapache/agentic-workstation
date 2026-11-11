@@ -48,13 +48,14 @@ const writeIcons = async (): Promise<void> => {
   const tokens = parseTokens(await readFile(TOKENS_PATH, 'utf8'))
   const background = hexColor(tokenHex(tokens, '--color-surface-sunken'))
   const accent = hexColor(tokenHex(tokens, '--color-accent'))
+  const rim = hexColor(tokenHex(tokens, '--color-fg-strong'))
 
   await mkdir(join(DIST, 'icons'), { recursive: true })
 
   for (const size of ICON_SIZES) {
     await writeFile(
       join(DIST, 'icons', `icon-${size}.png`),
-      encodePng(size, drawIcon(size, background, accent)),
+      encodePng(size, drawIcon(size, background, accent, rim)),
     )
   }
 }

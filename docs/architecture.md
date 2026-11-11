@@ -287,8 +287,8 @@ iframe под их строкой и ссылками `f2e7` (`page-frames.ts`: 
 сессиями, их расширение подключает само), клики и ввод `Input.*` (точка во фрейме другого
 процесса - со сдвигом его iframe, `page-nodes.ts`), курсор агента и рамка в странице. Инструменты - `connectors/kinds/browser/`, мост
 ставит и убирает `BrowserRuntime` вместе с коннектором (манифесты host во все браузеры
-семейства Chromium, копия расширения в `~/.agentic-workstation/chrome-extension` для «Load
-unpacked»). Протокол, имена host, id расширения и ссылка на вкладку - пакет
+семейства Chromium, копия расширения в видимой `~/Agentic Workstation/Chrome Extension` для
+«Load unpacked»). Протокол, имена host, id расширения и ссылка на вкладку - пакет
 `packages/browser-protocol`. На виде Connectors у Browser - шаги установки и профили Chrome на
 связи (`connectors:state`).
 

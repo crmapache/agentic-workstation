@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { cp, rm, chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, rm, chmod, lstat, mkdir, symlink, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { EXTENSION_ORIGIN } from '@agentic-workstation/browser-protocol/extension-id'
@@ -61,6 +61,19 @@ export const extensionBuildIn = async (dir: string): Promise<string | null> => {
 }
 
 /**
+ * Прежняя папка расширения (скрытая) - ссылка на новую. Расширение, уже загруженное оттуда,
+ * продолжает работать и обновляться; папки там не было - ссылку не заводим, мусорить незачем.
+ */
+const pointLegacyDir = async (legacy: string, current: string): Promise<void> => {
+  const info = await lstat(legacy).catch(() => null)
+
+  if (!info || info.isSymbolicLink()) return
+
+  await rm(legacy, { recursive: true, force: true })
+  await symlink(current, legacy, 'dir')
+}
+
+/**
  * Поставить мост: копия host.js и обёртка (права 700), копия расширения (только если сборка
  * другая - иначе Chrome зря перечитывал бы папку), манифест host в каждую папку браузера.
  * Ответ - сборка расширения в папке, её IDE называет расширению в welcome.
@@ -85,6 +98,9 @@ export const installBridge = async (
     await rm(places.extensionDir, { recursive: true, force: true })
     await cp(source.extensionDir, places.extensionDir, { recursive: true })
   }
+
+  if (places.legacyExtensionDir)
+    await pointLegacyDir(places.legacyExtensionDir, places.extensionDir)
 
   const manifest = `${JSON.stringify(hostManifest(places.channel, wrapper), null, 2)}\n`
 

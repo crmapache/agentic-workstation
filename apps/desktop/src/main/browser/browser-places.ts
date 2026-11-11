@@ -4,9 +4,10 @@ import { join } from 'node:path'
 import type { HostChannel } from '@agentic-workstation/browser-protocol/protocol'
 
 /**
- * Где живёт мост браузера одной IDE (ADR 0040). Всё - в ~/.agentic-workstation: путь без
- * пробелов (обёртку host запускает Chrome, папку расширения человек выбирает в «Load
- * unpacked») и не меняется между версиями IDE.
+ * Где живёт мост браузера одной IDE (ADR 0040). Служебное (сокет, host) - в скрытой
+ * ~/.agentic-workstation: путь без пробелов (обёртку host запускает Chrome) и не меняется между
+ * версиями IDE. Папку расширения человек сам выбирает в окне «Load unpacked» Chrome, а скрытую
+ * папку там не найти, - она видимая, в домашней папке.
  */
 export type BrowserPlaces = {
   channel: HostChannel
@@ -19,12 +20,22 @@ export type BrowserPlaces = {
   hostDir: string
   /** Копия собранного расширения - её человек ставит «Load unpacked». */
   extensionDir: string
+  /**
+   * Где расширение лежало раньше (скрытая папка): если человек уже загрузил его оттуда, на
+   * этом месте остаётся ссылка на новую папку - иначе Chrome отключил бы расширение.
+   */
+  legacyExtensionDir: string | null
 }
 
 /** У unix-сокета на macOS путь не длиннее 103 байт (sun_path - 104 с нулём). */
 export const SOCKET_PATH_MAX = 103
 
 export const BASE_DIR_NAME = '.agentic-workstation'
+
+/** Видимая папка в домашней: её находят в окне выбора папки Chrome. */
+export const VISIBLE_DIR_NAME = 'Agentic Workstation'
+
+export const EXTENSION_DIR_NAME = 'Chrome Extension'
 
 /** Папка сокета во временной папке пользователя, когда домашний путь слишком длинный. */
 const TMP_SOCKET_DIR = 'agentic-workstation-browser'
@@ -66,7 +77,12 @@ export const browserPlaces = ({
     channel,
     socketPath,
     hostDir: join(base, 'native-host', tag),
-    extensionDir: join(base, profileDir ? `chrome-extension-${tag}` : 'chrome-extension'),
+    // Отдельный профиль - копия для проверки: её расширение человеку не нужно и в домашней
+    // папке на виду мусорило бы.
+    extensionDir: profileDir
+      ? join(base, `chrome-extension-${tag}`)
+      : join(home, VISIBLE_DIR_NAME, EXTENSION_DIR_NAME),
+    legacyExtensionDir: profileDir ? null : join(base, 'chrome-extension'),
   }
 }
 

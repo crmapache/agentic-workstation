@@ -425,7 +425,7 @@
         "title": "Install in Chrome",
         "steps": {
           "one": "Open Chrome extensions and turn on Developer mode, top right.",
-          "two": "Click Load unpacked and choose the extension folder.",
+          "two": "Click Load unpacked and choose the extension folder: in your home folder, Agentic Workstation › Chrome Extension.",
           "three": "Pin the extension: its window shows the connection and stops the AI."
         },
         "openExtensions": "Open Chrome extensions",

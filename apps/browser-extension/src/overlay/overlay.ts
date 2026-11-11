@@ -2,7 +2,7 @@ import type { CursorAction } from '@agentic-workstation/browser-protocol/protoco
 
 import type { OverlayCommand } from '../common/messages'
 import styles from './overlay.css?inline'
-import { CURSOR_SIZE, moveDuration, CURSOR_POINTS } from './overlay.utils'
+import { CURSOR_PATH, CURSOR_SIZE, moveDuration } from './overlay.utils'
 
 /**
  * Курсор и рамка агента в странице (ADR 0040). Скрипт внедряет сервис-воркер по требованию
@@ -43,7 +43,6 @@ class Overlay {
   constructor() {
     const root = this.host.attachShadow({ mode: 'closed' })
     const style = document.createElement('style')
-    const label = document.createElement('span')
 
     for (const [name, value] of Object.entries(HOST_STYLE)) {
       this.host.style.setProperty(name, value, 'important')
@@ -57,9 +56,9 @@ class Overlay {
     style.textContent = styles
     this.frame.className = 'frame'
     this.cursor.className = 'cursor'
-    label.className = 'label'
-    label.textContent = chrome.i18n.getMessage('cursorLabel')
-    this.cursor.append(arrow(), label)
+    // Курсор без подписи: чей он, говорят цвет и свечение, а текст рядом с ним только мешал бы
+    // читать страницу.
+    this.cursor.append(arrow())
     root.append(style, this.frame, this.cursor)
   }
 
@@ -130,14 +129,14 @@ class Overlay {
 
 const arrow = (): SVGSVGElement => {
   const svg = document.createElementNS(SVG, 'svg')
-  const path = document.createElementNS(SVG, 'polygon')
+  const path = document.createElementNS(SVG, 'path')
 
   svg.setAttribute('class', 'arrow')
   svg.setAttribute('width', String(CURSOR_SIZE))
   svg.setAttribute('height', String(CURSOR_SIZE))
   svg.setAttribute('viewBox', `0 0 ${CURSOR_SIZE} ${CURSOR_SIZE}`)
-  path.setAttribute('points', CURSOR_POINTS)
-  path.setAttribute('stroke-width', '1.5')
+  path.setAttribute('d', CURSOR_PATH)
+  path.setAttribute('stroke-width', '1.25')
   svg.append(path)
 
   return svg

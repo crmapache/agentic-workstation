@@ -36,27 +36,19 @@
   opacity: 1;
 }
 
+/*
+ * Стрелка - акцентом со светлым тонким контуром (читается и на белой странице, и на тёмной) и
+ * свечением вокруг. Острие стрелки - около (2, 2) её поля: поле сдвинуто на столько же, и
+ * нажатие приходится в острие.
+ */
 .arrow {
   display: block;
+  margin-top: calc(-1 * var(--space-0-5));
+  margin-left: calc(-1 * var(--space-0-5));
   fill: var(--color-accent);
   stroke: var(--color-fg-strong);
   stroke-linejoin: round;
-}
-
-.label {
-  position: absolute;
-  top: var(--space-5);
-  left: var(--space-4);
-  padding: var(--space-0-5) var(--space-2);
-  border: var(--border-width) solid var(--color-accent-border);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-overlay);
-  color: var(--color-fg-accent);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-tight);
-  white-space: nowrap;
+  filter: var(--glow-agent-cursor);
 }
 
 .ripple {
@@ -67,6 +59,7 @@
   height: var(--size-control-md);
   border: var(--focus-ring-width) solid var(--color-accent);
   border-radius: var(--radius-full);
+  filter: var(--glow-agent-cursor);
   translate: -50% -50%;
   animation: ripple var(--duration-reveal) var(--easing-out) both;
 }

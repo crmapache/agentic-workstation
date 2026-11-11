@@ -1,8 +1,9 @@
 import { crc32, deflateSync } from 'node:zlib'
 
 /**
- * Значок расширения рисуется при сборке, а не лежит картинкой в git: оранжевая стрелка
- * курсора агента на графитовой плитке, цвета - из токенов дизайн-системы.
+ * Значок расширения рисуется при сборке, а не лежит картинкой в git: тот же наконечник курсора,
+ * что едет по странице (src/overlay/overlay.utils.ts), - акцентом, со светлым тонким контуром и
+ * мягким свечением на графитовой плитке. Цвета - из токенов дизайн-системы.
  */
 
 export const ICON_SIZES = [16, 32, 48, 128] as const
@@ -11,16 +12,24 @@ type Rgb = readonly [number, number, number]
 
 type Point = readonly [number, number]
 
-/** Стрелка курсора в долях стороны значка - та же, что едет по странице. */
-const ARROW: readonly Point[] = [
-  [0.3, 0.17],
-  [0.3, 0.8],
-  [0.45, 0.66],
-  [0.55, 0.86],
-  [0.64, 0.82],
-  [0.54, 0.62],
-  [0.74, 0.62],
+/**
+ * Наконечник в долях стороны значка - сердцевина без скругления: острие, правый угол, выемка,
+ * нижний угол. Скругление углов даёт ROUND - всё, что ближе него к сердцевине, - стрелка.
+ * Чуть правее и ниже середины: у наконечника вес внизу справа, так он на глаз по центру.
+ */
+const POINTER: readonly Point[] = [
+  [0.27, 0.25],
+  [0.81, 0.49],
+  [0.57, 0.57],
+  [0.49, 0.81],
 ]
+
+const ROUND = 0.035
+/** Светлый контур стрелки - тонкий, как у курсора на странице. */
+const RIM = 0.022
+/** Свечение вокруг: доля акцента у самого края и как быстро гаснет. */
+const GLOW_STRENGTH = 0.6
+const GLOW_REACH = 0.075
 
 /** Сглаживание: столько точек на сторону пикселя. */
 const SAMPLES = 4
@@ -50,6 +59,31 @@ const insidePolygon = ([x, y]: Point, polygon: readonly Point[]): boolean => {
   return inside
 }
 
+/** Расстояние от точки до отрезка. */
+const toSegment = ([x, y]: Point, [ax, ay]: Point, [bx, by]: Point): number => {
+  const dx = bx - ax
+  const dy = by - ay
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy))
+}
+
+/** Насколько точка снаружи скруглённого наконечника; внутри - 0 и меньше. */
+export const pointerDistance = (point: Point): number => {
+  if (insidePolygon(point, POINTER)) return -ROUND
+
+  let nearest = Number.POSITIVE_INFINITY
+
+  for (let i = 0; i < POINTER.length; i += 1) {
+    const from = POINTER[i] as Point
+    const to = POINTER[(i + 1) % POINTER.length] as Point
+
+    nearest = Math.min(nearest, toSegment(point, from, to))
+  }
+
+  return nearest - ROUND
+}
+
 const insideRoundedSquare = ([x, y]: Point): boolean => {
   const cx = Math.min(Math.max(x, CORNER), 1 - CORNER)
   const cy = Math.min(Math.max(y, CORNER), 1 - CORNER)
@@ -57,14 +91,30 @@ const insideRoundedSquare = ([x, y]: Point): boolean => {
   return (x - cx) ** 2 + (y - cy) ** 2 <= CORNER ** 2
 }
 
-/** Пиксели RGBA: плитка фона, на ней стрелка. */
-export const drawIcon = (size: number, background: Rgb, accent: Rgb): Uint8Array => {
+const mix = (from: Rgb, to: Rgb, amount: number): [number, number, number] => [
+  from[0] + (to[0] - from[0]) * amount,
+  from[1] + (to[1] - from[1]) * amount,
+  from[2] + (to[2] - from[2]) * amount,
+]
+
+/** Цвет одной точки значка: плитка, свечение, контур, стрелка. */
+const colorAt = (point: Point, background: Rgb, accent: Rgb, rim: Rgb): Rgb => {
+  const distance = pointerDistance(point)
+
+  if (distance <= -RIM) return accent
+  if (distance <= 0) return rim
+
+  return mix(background, accent, GLOW_STRENGTH * Math.exp(-((distance / GLOW_REACH) ** 2)))
+}
+
+/** Пиксели RGBA: плитка фона, на ней светящаяся стрелка. */
+export const drawIcon = (size: number, background: Rgb, accent: Rgb, rim: Rgb): Uint8Array => {
   const pixels = new Uint8Array(size * size * 4)
 
   for (let py = 0; py < size; py += 1) {
     for (let px = 0; px < size; px += 1) {
       let tile = 0
-      let arrow = 0
+      const sum = [0, 0, 0]
 
       for (let sy = 0; sy < SAMPLES; sy += 1) {
         for (let sx = 0; sx < SAMPLES; sx += 1) {
@@ -73,20 +123,22 @@ export const drawIcon = (size: number, background: Rgb, accent: Rgb): Uint8Array
             (py + (sy + 0.5) / SAMPLES) / size,
           ]
 
-          if (insideRoundedSquare(point)) tile += 1
+          if (!insideRoundedSquare(point)) continue
 
-          if (insidePolygon(point, ARROW)) arrow += 1
+          const color = colorAt(point, background, accent, rim)
+
+          tile += 1
+          sum[0] = (sum[0] as number) + color[0]
+          sum[1] = (sum[1] as number) + color[1]
+          sum[2] = (sum[2] as number) + color[2]
         }
       }
 
       const total = SAMPLES * SAMPLES
-      const mix = arrow / total
       const offset = (py * size + px) * 4
 
       for (let channel = 0; channel < 3; channel += 1) {
-        pixels[offset + channel] = Math.round(
-          (background[channel] as number) * (1 - mix) + (accent[channel] as number) * mix,
-        )
+        pixels[offset + channel] = tile ? Math.round((sum[channel] as number) / tile) : 0
       }
 
       pixels[offset + 3] = Math.round((255 * tile) / total)
