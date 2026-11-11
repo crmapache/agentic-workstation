@@ -234,16 +234,20 @@ const bootstrap = async () => {
       return
     }
 
-    conversationSearch.dispose()
-    watchers.dispose()
-    outsideWatchers.dispose()
-    // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
-    await features.shutdown()
-    await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
-    // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
-    await connectors.stop()
-    quitting = 'ready'
-    app.quit()
+    try {
+      conversationSearch.dispose()
+      watchers.dispose()
+      outsideWatchers.dispose()
+      // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
+      await features.shutdown()
+      await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
+      // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
+      await connectors.stop()
+    } finally {
+      // Что бы ни упало выше, IDE закрывается: иначе следующий ⌘Q гасился бы молча.
+      quitting = 'ready'
+      app.quit()
+    }
   }
 
   app.on('before-quit', (event) => {

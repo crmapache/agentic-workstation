@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
+import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
 import type { RemoteService } from './remote/remote-service'
@@ -12,6 +13,14 @@ import { startScenarios } from './scenarios/scenarios-setup'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
 import type { WorkspaceService } from './workspace/workspace-service'
+
+/** Сколько выход из IDE ждёт возможности IDE поверх провайдеров. */
+const FEATURES_SHUTDOWN_MAX_MS = 10 * SECOND_MS
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+const warnShutdown = (error: unknown) =>
+  console.warn('[app] возможность IDE не остановилась:', error)
 
 export type IdeFeatures = {
   scenarios: ScenarioService
@@ -64,9 +73,16 @@ export const startIdeFeatures = async (setup: {
       remote.workspaceChanged()
     },
     shutdown: async () => {
-      await remote.shutdown()
-      await scenarios.shutdown()
-      await statistics.stats.close()
+      // Порядок важен (связь, потом прогоны, потом база), но выход не ждёт дольше потолка:
+      // постановка сценария в worktree тянется минутами, а ⌘Q и установка обновления - нет.
+      // Сбой одного шага не должен оставить IDE незакрываемой.
+      const steps = async () => {
+        await remote.shutdown().catch(warnShutdown)
+        await scenarios.shutdown().catch(warnShutdown)
+        await statistics.stats.close().catch(warnShutdown)
+      }
+
+      await Promise.race([steps(), delay(FEATURES_SHUTDOWN_MAX_MS)])
     },
   }
 }

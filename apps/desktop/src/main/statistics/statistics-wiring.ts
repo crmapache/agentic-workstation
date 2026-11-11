@@ -103,5 +103,11 @@ export const startStatistics = async (setup: StatisticsSetup): Promise<Statistic
     })
   }
 
-  return { stats, observeClaude, projectsChanged: () => void stats.refreshProjects(projectOf) }
+  // База не открылась или поток упал - смена проектов не должна ронять главный процесс.
+  const projectsChanged = () =>
+    void stats.refreshProjects(projectOf).catch((error: unknown) => {
+      console.warn('[statistics] projects were not refreshed', error)
+    })
+
+  return { stats, observeClaude, projectsChanged }
 }
