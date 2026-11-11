@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Один раз на всю жизнь проекта: создаёт самоподписанный сертификат подписи кода
-# «Amazing IDE Code Signing», кладёт его в связку ключей входа, а копию (.p12) - в
+# «Agentic Workstation Code Signing», кладёт его в связку ключей входа, а копию (.p12) - в
 # корень репозитория (git её не видит). Ничего не спрашивает. Подробности и почему
 # так - docs/code-signing.md.
 #
@@ -13,14 +13,14 @@
 
 set -euo pipefail
 
-CERT_NAME="Amazing IDE Code Signing"
+CERT_NAME="Agentic Workstation Code Signing"
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-OUTPUT="$REPO_ROOT/amazing-ide-code-signing.p12"
+OUTPUT="$REPO_ROOT/agentic-workstation-code-signing.p12"
 LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 # Пароль копии фиксированный и записан в docs/code-signing.md: секрет - сам файл,
 # а пустой пароль macOS при импорте не принимает.
-P12_PASSWORD="amazing-ide"
+P12_PASSWORD="agentic-workstation"
 
 # Второй сертификат с тем же именем - худшее, что может случиться: сборки подпишутся
 # им, и установленные копии перестанут принимать обновления.

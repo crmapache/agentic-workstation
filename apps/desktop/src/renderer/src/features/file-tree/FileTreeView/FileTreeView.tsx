@@ -1,7 +1,7 @@
 import { FolderOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import { DirectoryChildren } from '../FileTreeNode/parts/DirectoryChildren'
 import { useActiveProject } from '../../../state/workspace.queries'

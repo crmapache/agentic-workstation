@@ -1,4 +1,4 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 
 // Отступ строки: базовый плюс шаг на каждый уровень. --depth приходит из JS.
 @mixin indent($extra: 0px) {

@@ -1,7 +1,7 @@
 import { ArrowDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../Feed.module.scss'
 import type { JumpButtonProps } from '../Feed.types'

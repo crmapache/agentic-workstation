@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { Plug, History, Settings, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { RingMeter } from '@amazing-ide/ui/RingMeter'
-import { Sheet } from '@amazing-ide/ui/Sheet'
-import { Slider } from '@amazing-ide/ui/Slider'
-import { Switch } from '@amazing-ide/ui/Switch'
+import { Button } from '@agentic-workstation/ui/Button'
+import { HelpButton } from '@agentic-workstation/ui/HelpButton'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { RingMeter } from '@agentic-workstation/ui/RingMeter'
+import { Sheet } from '@agentic-workstation/ui/Sheet'
+import { Slider } from '@agentic-workstation/ui/Slider'
+import { Switch } from '@agentic-workstation/ui/Switch'
 
 import { RING_SAMPLES } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
@@ -47,6 +48,7 @@ export const SettingsSection = () => {
             disabled
             onChange={() => undefined}
           />
+          <Switch label={t('samples.enabled')} labelHidden checked={isOn} onChange={setIsOn} />
         </div>
       </Specimen>
 
@@ -82,7 +84,14 @@ export const SettingsSection = () => {
           <Sheet
             open={isSheetOpen}
             title={isNested ? t('samples.settings') : t('samples.menuLabel')}
-            hint={t('samples.sheetHint')}
+            help={
+              <HelpButton
+                label={t('samples.help')}
+                title={t('samples.menuLabel')}
+                text={t('samples.sheetHelp')}
+                closeLabel={t('samples.close')}
+              />
+            }
             backLabel={t('samples.back')}
             closeLabel={t('samples.close')}
             screenKey={isNested ? 'settings' : 'menu'}

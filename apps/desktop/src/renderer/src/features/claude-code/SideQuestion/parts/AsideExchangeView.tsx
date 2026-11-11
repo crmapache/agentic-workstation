@@ -1,7 +1,7 @@
 import { Copy, Check, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../SideQuestion.module.scss'
 import type { AsideExchangeProps } from '../SideQuestion.types'

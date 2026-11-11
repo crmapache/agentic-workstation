@@ -9,9 +9,9 @@ import {
 
 describe('findAppBundle', () => {
   it('находит бандл по исполняемому файлу, в том числе с пробелами в имени', () => {
-    expect(findAppBundle('/Applications/Amazing IDE.app/Contents/MacOS/Amazing IDE')).toBe(
-      '/Applications/Amazing IDE.app',
-    )
+    expect(
+      findAppBundle('/Applications/Agentic Workstation.app/Contents/MacOS/Agentic Workstation'),
+    ).toBe('/Applications/Agentic Workstation.app')
   })
 
   it('не-бандл (dev-режим, Electron из node_modules вне .app) - null', () => {
@@ -21,23 +21,23 @@ describe('findAppBundle', () => {
 
 describe('isTransientLocation', () => {
   it('dmg и карантинная копия - временные, папка - нет', () => {
-    expect(isTransientLocation('/Volumes/Amazing IDE/Amazing IDE.app')).toBe(true)
+    expect(isTransientLocation('/Volumes/Agentic Workstation/Agentic Workstation.app')).toBe(true)
     expect(
-      isTransientLocation('/private/var/folders/x/AppTranslocation/ABC/d/Amazing IDE.app'),
+      isTransientLocation('/private/var/folders/x/AppTranslocation/ABC/d/Agentic Workstation.app'),
     ).toBe(true)
-    expect(isTransientLocation('/Applications/Amazing IDE.app')).toBe(false)
+    expect(isTransientLocation('/Applications/Agentic Workstation.app')).toBe(false)
   })
 })
 
 describe('parseDesignatedRequirement', () => {
   it('вытаскивает правило из вывода codesign', () => {
     const output = [
-      'Executable=/Applications/Amazing IDE.app/Contents/MacOS/Amazing IDE',
-      'designated => identifier "io.github.crmapache.amazingide" and certificate leaf = H"ad34"',
+      'Executable=/Applications/Agentic Workstation.app/Contents/MacOS/Agentic Workstation',
+      'designated => identifier "io.github.crmapache.agenticworkstation" and certificate leaf = H"ad34"',
     ].join('\n')
 
     expect(parseDesignatedRequirement(output)).toBe(
-      'identifier "io.github.crmapache.amazingide" and certificate leaf = H"ad34"',
+      'identifier "io.github.crmapache.agenticworkstation" and certificate leaf = H"ad34"',
     )
   })
 

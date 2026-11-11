@@ -48,7 +48,7 @@ describe('readTextFile и writeTextFile', () => {
 
   beforeAll(async () => {
     // Настоящий путь: /var/folders на маке - ссылка на /private/var/folders.
-    base = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-text-')))
+    base = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-text-')))
     root = join(base, 'project')
     outside = join(base, 'elsewhere')
     await mkdir(join(root, 'src'), { recursive: true })

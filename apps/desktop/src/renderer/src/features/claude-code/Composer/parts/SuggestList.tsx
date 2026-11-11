@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { ListBox } from '@amazing-ide/ui/ListBox'
-import { ListBoxOption } from '@amazing-ide/ui/ListBoxOption'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { ListBox } from '@agentic-workstation/ui/ListBox'
+import { ListBoxOption } from '@agentic-workstation/ui/ListBoxOption'
 
 import { SUGGEST_ICONS } from '../Composer.constants'
 import styles from '../Composer.module.scss'

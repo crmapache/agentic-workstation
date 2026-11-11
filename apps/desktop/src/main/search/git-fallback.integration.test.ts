@@ -18,7 +18,7 @@ const IDENTITY = {
 }
 
 /** Как сломать git: переменная окружения, которую читает обёртка ниже. */
-const FAKE_GIT_ENV = 'AMAZING_IDE_FAKE_GIT'
+const FAKE_GIT_ENV = 'AGENTIC_WORKSTATION_FAKE_GIT'
 
 /**
  * Обёртка вместо git в PATH. no-max-count - как git до 2.38: на --max-count код 129.
@@ -56,7 +56,7 @@ describe('поиск текста, когда git grep не справился',
       execFileSync('git', args, { cwd, env: { ...process.env, ...IDENTITY } })
     const realGit = execFileSync('/bin/sh', ['-c', 'command -v git']).toString().trim()
 
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-git-fallback-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-git-fallback-'))
     repo = join(root, 'repo')
     await mkdir(join(root, 'bin'))
     await writeFile(join(root, 'bin', 'git'), wrapperScript(realGit))

@@ -21,7 +21,8 @@ export const useRoomMeasure = () => {
   const mainRef = useRef<HTMLElement>(null)
   const providerRef = useRef<HTMLElement>(null)
   const isSideOpen = useLayoutStore((state) => state.side.isOpen)
-  const isProviderOpen = useLayoutStore((state) => state.provider.isOpen)
+  // Правая колонка стоит, пока открыта панель провайдера или терминал под ней.
+  const isProviderOpen = useLayoutStore((state) => state.provider.isOpen || state.terminal.isOpen)
   const setRoom = useLayoutStore((state) => state.setRoom)
 
   // До отрисовки: в узком окне середина не мелькнёт при старте, а сразу встанет свёрнутой.

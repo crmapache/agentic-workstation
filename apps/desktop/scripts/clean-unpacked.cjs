@@ -1,11 +1,11 @@
 // Хук electron-builder: после того как dmg и zip собраны, сносит распакованные
 // каталоги сборки (mac-arm64 и подобные).
 //
-// Дело не в месте на диске: распакованный Amazing IDE.app внутри проекта для
+// Дело не в месте на диске: распакованный Agentic Workstation.app внутри проекта для
 // Spotlight такое же приложение, как установленное, и запустить можно не то.
 // Исключить вложенную папку из индексации нечем. Терять нечего: установщики уже
 // собраны из этого каталога. Если он нужен (посмотреть подпись, см.
-// docs/code-signing.md) - сборка с AMAZING_IDE_KEEP_UNPACKED=1.
+// docs/code-signing.md) - сборка с AGENTIC_WORKSTATION_KEEP_UNPACKED=1.
 
 const fs = require('node:fs/promises')
 const path = require('node:path')
@@ -13,7 +13,7 @@ const path = require('node:path')
 const UNPACKED_DIR = /^mac(-.+)?$/
 
 module.exports = async function afterAllArtifactBuild({ outDir }) {
-  if (process.env.AMAZING_IDE_KEEP_UNPACKED === '1') {
+  if (process.env.AGENTIC_WORKSTATION_KEEP_UNPACKED === '1') {
     return []
   }
 

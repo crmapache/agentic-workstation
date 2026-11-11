@@ -7,7 +7,7 @@ import type { ManualUpdateReason } from '@shared/updates'
 
 const run = promisify(execFile)
 
-/** Путь к бандлу по пути исполняемого файла: …/Amazing IDE.app/Contents/MacOS/Amazing IDE. */
+/** Путь к бандлу по пути исполняемого файла: …/Agentic Workstation.app/Contents/MacOS/Agentic Workstation. */
 export const findAppBundle = (executablePath: string): string | null =>
   /^(.+?\.app)\/Contents\/MacOS\/[^/]+$/.exec(executablePath)?.[1] ?? null
 

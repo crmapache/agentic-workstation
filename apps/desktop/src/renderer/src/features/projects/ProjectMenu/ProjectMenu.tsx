@@ -1,16 +1,16 @@
 import { useTranslation } from 'react-i18next'
 
-import { Avatar } from '@amazing-ide/ui/Avatar'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
-import { MenuSeparator } from '@amazing-ide/ui/MenuSeparator'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
+import { MenuSeparator } from '@agentic-workstation/ui/MenuSeparator'
 
 import { PROJECT_ACTIONS } from '../project-actions.constants'
 import { useProjectActionRunner } from '../project-actions.hooks'
-import { projectTone, projectInitials } from '../projects.utils'
 import { displayPath } from '../../../lib/path.utils'
 import { useAppInfo } from '../../../state/app-info.queries'
+import { projectTone, projectInitials } from '../../../state/project-avatar.utils'
 import { useWorkspace, useWorkspaceActions } from '../../../state/workspace.queries'
 
 const projectAvatar = (name: string) => (

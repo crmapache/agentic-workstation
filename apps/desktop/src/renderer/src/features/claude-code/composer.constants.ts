@@ -1,8 +1,8 @@
 /** Ключ хранилища окна: черновики поля переживают перезагрузку и перезапуск. */
-export const COMPOSER_STORAGE_KEY = 'amazing-ide.claude-composer.v1'
+export const COMPOSER_STORAGE_KEY = 'agentic-workstation.claude-composer.v1'
 
 /** Прежнее хранилище, где черновики были голым текстом: забираются оттуда один раз. */
-export const LEGACY_STORAGE_KEY = 'amazing-ide.claude-code.v1'
+export const LEGACY_STORAGE_KEY = 'agentic-workstation.claude-code.v1'
 
 /**
  * Пауза перед записью черновиков на диск: пишется после паузы в наборе, а не на каждую

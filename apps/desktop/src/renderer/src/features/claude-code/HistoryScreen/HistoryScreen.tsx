@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next'
 
 import type { HistoryEntry } from '@shared/claude'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
+import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'

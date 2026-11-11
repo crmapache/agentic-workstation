@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { ClosableTab } from '@amazing-ide/ui/ClosableTab'
+import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
 
 import styles from '../ComponentsView.module.scss'
 import { Specimen } from '../../Specimen/Specimen'

@@ -192,7 +192,13 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ['react', 'react-dom', 'react/*', '@amazing-ide/ui', '@amazing-ide/ui/*'],
+              group: [
+                'react',
+                'react-dom',
+                'react/*',
+                '@agentic-workstation/ui',
+                '@agentic-workstation/ui/*',
+              ],
               message: 'Главный процесс и общий контракт не зависят от интерфейса.',
             },
           ],
@@ -210,7 +216,7 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ['electron', 'node:*', 'react', 'react/*', '@amazing-ide/ui/*'],
+              group: ['electron', 'node:*', 'react', 'react/*', '@agentic-workstation/ui/*'],
               message:
                 'shared едет во все процессы: только типы и чистые данные, без Electron и Node.',
             },
@@ -264,7 +270,7 @@ export default defineConfig(
           // Только у элементов разметки: у компонентов (Dialog, Card, Toast) title - свой проп.
           selector: "JSXOpeningElement[name.name=/^[a-z]/] > JSXAttribute[name.name='title']",
           message:
-            'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@amazing-ide/ui/Tooltip).',
+            'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@agentic-workstation/ui/Tooltip).',
         },
         {
           selector: 'JSXText[value=/\\S/]',

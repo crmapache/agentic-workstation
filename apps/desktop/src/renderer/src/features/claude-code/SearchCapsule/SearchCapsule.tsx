@@ -2,9 +2,9 @@ import clsx from 'clsx'
 import { X, Search, ChevronUp, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Spinner } from '@amazing-ide/ui/Spinner'
+import { Button } from '@agentic-workstation/ui/Button'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { useSearchStore } from '../search.store'
 import styles from './SearchCapsule.module.scss'

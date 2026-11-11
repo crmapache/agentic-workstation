@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { DraftChip } from '@shared/claude-draft'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { chipLabel } from '../chips.utils'
 import { useFeedScope } from '../feed-scope.context'

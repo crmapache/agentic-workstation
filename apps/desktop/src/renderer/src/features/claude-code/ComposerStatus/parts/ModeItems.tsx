@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PERMISSION_MODES } from '@shared/claude'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { MODE_ICONS } from '../ComposerStatus.constants'
 import type { PickerProps } from '../ComposerStatus.types'

@@ -1,0 +1,8 @@
+/* Поправки к виду xterm.js, которых нет в его теме. Классы - xterm, поэтому файл обычный, а
+   не CSS Modules; грузится вместе с терминалом (TerminalView), после xterm.css. */
+
+/* Под текстом - лист терминала: чёрный фон области прокрутки из xterm.css тему не слушает
+   и закрывал бы лист. */
+.xterm .xterm-viewport {
+  background-color: transparent;
+}

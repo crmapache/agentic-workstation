@@ -6,6 +6,16 @@
  * число на месте.
  */
 
+const TEXT_SHADOW_MESSAGE = 'Тени у текста нет: стиль плоский (ADR 0006)'
+
+/**
+ * Область перетаскивания окна - только миксинами из _mixins.scss: no-drag на обычном
+ * элементе вычитается из шапки, даже когда элемент прокручен за край панели и не виден,
+ * и окно перестаёт тянуться над ним.
+ */
+const APP_REGION_MESSAGE =
+  'Область перетаскивания окна - только миксинами window-drag-region и over-window-drag-region'
+
 /** Свойства, которым разрешены только токены (и пара безопасных ключевых слов). */
 const TOKEN_ONLY_PROPERTIES = [
   '/color$/',
@@ -70,8 +80,11 @@ export default {
     // всплывающего слоя и как кольцо фокуса. Градиент как фон - подложка окна и цвет букв
     // перелива «думает» (ADR 0025): это не объём, а цвет.
     'property-disallowed-list': [
-      ['text-shadow'],
-      { message: 'Тени у текста нет: стиль плоский (ADR 0006)' },
+      ['text-shadow', '/^(-webkit-)?app-region$/'],
+      {
+        message: (property) =>
+          property.endsWith('app-region') ? APP_REGION_MESSAGE : TEXT_SHADOW_MESSAGE,
+      },
     ],
     'declaration-property-value-allowed-list': [
       {
@@ -112,11 +125,21 @@ export default {
       },
     },
     {
-      // Поправки к разметке Monaco: классы в ней чужие, не CSS Modules, и camelCase к ним
-      // не относится. Значения - по-прежнему только токены.
-      files: ['apps/desktop/src/renderer/src/features/editor/monaco.css'],
+      // Поправки к разметке Monaco и xterm.js: классы в ней чужие, не CSS Modules, и
+      // camelCase к ним не относится. Значения - по-прежнему только токены.
+      files: [
+        'apps/desktop/src/renderer/src/features/editor/monaco.css',
+        'apps/desktop/src/renderer/src/features/terminal/xterm.css',
+      ],
       rules: {
         'selector-class-pattern': null,
+      },
+    },
+    {
+      // Миксины области перетаскивания окна - единственное место, где она задаётся.
+      files: ['packages/ui/src/styles/_mixins.scss'],
+      rules: {
+        'property-disallowed-list': [['text-shadow'], { message: TEXT_SHADOW_MESSAGE }],
       },
     },
     {

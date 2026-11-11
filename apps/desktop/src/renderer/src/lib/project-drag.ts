@@ -3,7 +3,7 @@
  * свой MIME, пути от корня проекта по строке, папка кончается «/». Внутри страницы это
  * обычный DnD - системе пути не нужны.
  */
-export const PROJECT_PATHS_MIME = 'application/x-amazing-ide-paths'
+export const PROJECT_PATHS_MIME = 'application/x-agentic-workstation-paths'
 
 /** Положить пути в перетаскивание; text/plain - тот же список, если бросят мимо панели. */
 export const writeProjectPaths = (transfer: DataTransfer, paths: readonly string[]): void => {

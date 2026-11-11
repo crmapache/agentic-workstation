@@ -11,12 +11,17 @@
   background-color: var(--color-surface-sunken);
 }
 
+// Вкладки делят ряд поровну, какой бы ширины он ни был: растянутый раскладкой ряд (столбец
+// экрана, лист) не оставляет тёмный хвост справа от вкладок. Ряд по своему содержимому - как
+// был: уже своей подписи вкладка не становится (автоминимум флекса), и ширины не меняются.
 .tab {
   @include button-reset;
   @include interactive-surface;
 
   display: inline-flex;
+  flex: 1 1 0;
   align-items: center;
+  justify-content: center;
   gap: var(--space-1-5);
   height: var(--size-control-sm);
   padding: 0 var(--space-3);
@@ -34,6 +39,12 @@
       color: var(--color-fg);
     }
   }
+}
+
+// На всю ширину родителя, даже там, где раскладка ряд не растягивает (строка с соседями).
+.fill {
+  display: flex;
+  width: 100%;
 }
 
 .active,

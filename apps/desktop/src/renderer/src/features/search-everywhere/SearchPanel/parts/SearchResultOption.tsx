@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { ListBoxOption } from '@amazing-ide/ui/ListBoxOption'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { ListBoxOption } from '@agentic-workstation/ui/ListBoxOption'
 
 import type { SearchResultOptionProps } from '../SearchPanel.types'
 import { splitPath } from '../../../../lib/path.utils'

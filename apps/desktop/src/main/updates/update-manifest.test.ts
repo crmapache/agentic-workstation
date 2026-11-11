@@ -8,7 +8,7 @@ const validManifest = {
   releasedAt: '2026-10-15T12:00:00.000Z',
   assets: {
     'mac-arm64': {
-      url: 'https://github.com/o/r/releases/download/v0.2.0/amazing-ide-mac-arm64.zip',
+      url: 'https://github.com/o/r/releases/download/v0.2.0/agentic-workstation-mac-arm64.zip',
       sha512: 'abc==',
       size: 1024,
     },

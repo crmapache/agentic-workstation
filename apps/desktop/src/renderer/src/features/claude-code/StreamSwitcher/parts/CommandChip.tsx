@@ -2,9 +2,9 @@ import clsx from 'clsx'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import styles from '../StreamSwitcher.module.scss'
 import type { CommandChipProps } from '../StreamSwitcher.types'

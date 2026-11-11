@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CONFIG_GROUPS } from '@shared/claude-config'
 
-import { Card } from '@amazing-ide/ui/Card'
+import { Card } from '@agentic-workstation/ui/Card'
 
 import { useClaudeConfig, useSetClaudeConfig } from '../claude-settings.queries'
 import type { MenuScreenProps } from '../claude.types'
@@ -42,7 +42,6 @@ export const ClaudeConfigScreen = ({ project }: MenuScreenProps) => {
 
   return (
     <PanelScreen title={t('claudeCode.menu.titles.claudeConfig.title')}>
-      <p className={styles.intro}>{t('claudeCode.claudeConfig.intro')}</p>
       {config.isPending && (
         <div className={styles.empty}>{t('claudeCode.claudeConfig.loading')}</div>
       )}

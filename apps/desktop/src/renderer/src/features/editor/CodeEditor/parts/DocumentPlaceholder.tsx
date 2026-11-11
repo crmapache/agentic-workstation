@@ -1,7 +1,7 @@
 import { FileX, FileMinus, FileWarning, FileQuestion } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import type { DocumentPlaceholderProps } from '../CodeEditor.types'
 import { formatSize } from '../../editor.utils'

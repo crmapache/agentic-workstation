@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import clsx from 'clsx'
 
+import { ownClose } from '../Modal/Modal.hooks'
 import { useModalDialog } from './Dialog.hooks'
 import styles from './Dialog.module.scss'
 import type { DialogProps } from './Dialog.types'
@@ -31,7 +32,7 @@ export const Dialog = ({
       ref={ref}
       aria-label={title}
       className={clsx(styles.dialog, backdrop === 'clear' && styles.clear)}
-      onClose={onClose}>
+      onClose={ownClose(onClose)}>
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.title}>{title}</div>
         <div className={styles.body}>{children}</div>

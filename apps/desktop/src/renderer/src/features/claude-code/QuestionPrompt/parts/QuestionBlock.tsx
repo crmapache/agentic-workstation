@@ -1,10 +1,10 @@
 import { PenLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { MAX_DIGIT_KEYS } from '../QuestionPrompt.constants'
 import styles from '../QuestionPrompt.module.scss'

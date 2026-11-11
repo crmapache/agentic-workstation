@@ -1,4 +1,4 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 
 .componentsView {
   display: flex;
@@ -19,6 +19,20 @@
   height: var(--size-control-lg);
   border: var(--border-width) dashed var(--color-border);
   border-radius: var(--radius-md);
+}
+
+// Два листа окна через обычный зазор: ручка между ними - в зазоре (inGap).
+.resizeSheets {
+  display: flex;
+  gap: var(--space-2);
+  height: var(--size-plaque-lg);
+}
+
+.resizeSheet {
+  @include window-sheet;
+
+  position: relative;
+  flex: 1;
 }
 
 // Меню вне всплывающей панели: тот же стеклянный лист, только в потоке страницы,
@@ -95,4 +109,36 @@
 // Часть значения своим тоном - режим в значении кнопки модели, усилия и режима.
 .accentText {
   color: var(--color-accent-strong);
+}
+
+// Плитки сеткой, как на виде Connectors: колонок сколько влезет, но не меньше двух.
+.tileGrid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(var(--size-tile-min), calc((100% - var(--space-3)) / 2)), 1fr)
+  );
+  gap: var(--space-3);
+  width: 100%;
+}
+
+// Вид целиком: рамка - место середины окна, шапка вида сверху, разделы под ней.
+.pageBox {
+  overflow: hidden;
+  border: var(--border-width) dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-editor);
+}
+
+.pageBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--size-panel-gutter);
+}
+
+.sampleText {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
 }

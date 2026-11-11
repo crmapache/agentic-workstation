@@ -1,0 +1,63 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Лист терминала - плотный, как редактор: вывод читается на ровном фоне, стекла нет.
+.terminalPanel {
+  @include window-sheet(var(--color-surface-editor));
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+// Шапка - верхняя полоса зоны той же высоты, что вкладки разговоров и файлов: поле, ряд
+// контрола md, поле, линия.
+.head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1-5) var(--space-1-5) 0;
+  padding-bottom: var(--space-1-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+// Имя окна, как «Terminal» в WebStorm: подпись, не вкладка.
+.title {
+  flex-shrink: 0;
+  padding-inline-start: var(--space-1-5);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+// Вкладки и «+» сразу за последней; длинный ряд прокручивается вбок, а не переносится:
+// высота шапки у окна инструмента постоянная.
+.strip {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-0-5);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

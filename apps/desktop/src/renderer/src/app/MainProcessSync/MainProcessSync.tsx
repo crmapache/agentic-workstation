@@ -1,3 +1,4 @@
+import { useConnectorsSync } from '../../state/connectors.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
 import { useUpdateStatusSync } from '../../state/updates.queries'
 import { useWorkspaceSync } from '../../state/workspace.queries'
@@ -8,6 +9,7 @@ import { useEditorSync } from '../../features/editor/editor-sync.hooks'
 import { useDirectorySync } from '../../features/file-tree/file-tree.queries'
 import { useGitStatusSync } from '../../features/file-tree/git-status.queries'
 import { useGitHeadSync } from '../../features/git/git.queries'
+import { useTerminalSync } from '../../features/terminal/terminal.queries'
 
 /**
  * Подписки на события главного процесса - по одной на всё окно. Отдельный
@@ -25,6 +27,8 @@ export const MainProcessSync = () => {
   useGitChangesSync()
   useGitHeadSync()
   useEditorSync()
+  useConnectorsSync()
+  useTerminalSync()
 
   return null
 }

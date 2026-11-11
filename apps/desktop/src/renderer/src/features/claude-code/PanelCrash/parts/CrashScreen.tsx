@@ -1,8 +1,8 @@
 import { RotateCw, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { Button } from '@agentic-workstation/ui/Button'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import styles from '../PanelCrash.module.scss'
 import type { CrashScreenProps } from '../PanelCrash.types'

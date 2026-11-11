@@ -2,9 +2,9 @@ import { useEffect } from 'react'
 import { GitBranch } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@amazing-ide/ui/DropdownButton'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
+import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import { useGitActionRunner } from '../git-actions.hooks'
 import { useGitDialogsStore } from '../git-dialogs.store'

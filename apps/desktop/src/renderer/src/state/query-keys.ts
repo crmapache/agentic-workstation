@@ -45,6 +45,14 @@ export const QUERY_KEYS = {
   gitPullRequest: (projectId: string, branch: string) => ['git', 'pull-request', projectId, branch],
   /** Ключ мутации pull: «git занят» видят все, кто зовёт действия git проекта. */
   gitPull: (projectId: string) => ['git', 'pull', projectId],
+  /** Коннекторы к приложениям (ADR 0028): состояние целиком, свежее присылает главный процесс. */
+  connectors: ['connectors'],
+  /** Живые оболочки терминала всех проектов (ADR 0037); вышедшие убирает главный процесс. */
+  terminalSessions: ['terminal', 'sessions'],
+  /** MCP-серверы из конфига Claude Code для переноса: свежие на каждое открытие. */
+  connectorImportCandidates: ['connectors-import', 'candidates'],
+  /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */
+  connectorAgentApps: ['connectors-agent-apps'],
   /** Разговоры с Claude Code и лента каждого (ADR 0009). */
   claudeState: ['claude', 'state'],
   claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],
@@ -59,7 +67,6 @@ export const QUERY_KEYS = {
   /** Файлы настроек Claude Code проекта и его собственные настройки (/config). */
   claudeProjectSettings: (projectId: string) => ['claude', 'project-settings', projectId],
   claudeConfig: (projectId: string) => ['claude', 'config', projectId],
-  mcpServers: (conversationId: string) => ['claude', 'mcp', conversationId],
   pluginCatalog: (projectId: string) => ['claude', 'plugins', projectId],
   /** Картинка за чипом: place - место картинки строкой, whole - целиком, а не превью. */
   claudePicture: (projectId: string, place: string, whole: boolean) => [

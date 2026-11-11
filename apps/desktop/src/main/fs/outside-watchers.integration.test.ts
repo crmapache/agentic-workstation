@@ -32,7 +32,7 @@ describe('OutsideWatchers', () => {
 
   beforeAll(async () => {
     // realpath: /var у macOS - ссылка на /private/var, слежение отдаёт настоящий путь.
-    base = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-outside-watch-')))
+    base = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-outside-watch-')))
     await mkdir(join(base, 'plans'))
     await writeFile(join(base, 'plans', 'plan.md'), '# 1\n')
     await writeFile(join(base, 'plans', 'other.md'), 'x')

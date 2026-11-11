@@ -19,6 +19,14 @@
   }
 }
 
+// Один ползунок: подсветка наведения - круглая, вплотную вокруг дорожки.
+.bare {
+  width: auto;
+  min-height: 0;
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+}
+
 .text {
   display: flex;
   flex: 1;

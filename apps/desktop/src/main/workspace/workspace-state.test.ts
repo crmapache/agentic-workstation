@@ -28,10 +28,16 @@ const threeProjects: WorkspaceState = {
 
 describe('addProject', () => {
   it('добавляет проект в конец, делает активным и берёт имя из пути', () => {
-    const state = addProject(EMPTY_WORKSPACE, '/Users/max/Projects/amazing-ide', ids('x'))
+    const state = addProject(EMPTY_WORKSPACE, '/Users/max/Projects/agentic-workstation', ids('x'))
 
     expect(state).toEqual({
-      projects: [{ id: 'x', name: 'amazing-ide', rootPath: '/Users/max/Projects/amazing-ide' }],
+      projects: [
+        {
+          id: 'x',
+          name: 'agentic-workstation',
+          rootPath: '/Users/max/Projects/agentic-workstation',
+        },
+      ],
       activeProjectId: 'x',
       recentProjects: [],
     })

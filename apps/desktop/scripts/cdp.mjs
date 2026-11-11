@@ -6,8 +6,8 @@ import { dirname, resolve } from 'node:path'
  * Chrome DevTools Protocol. Без Playwright и без зависимостей - WebSocket есть в Node.
  *
  * Окно должно быть запущено с открытым портом отладки:
- *   dev:        AMAZING_IDE_CDP_PORT=5316 pnpm dev
- *   собранное:  "/Applications/Amazing IDE.app/Contents/MacOS/Amazing IDE" --remote-debugging-port=5316
+ *   dev:        AGENTIC_WORKSTATION_CDP_PORT=5316 pnpm dev
+ *   собранное:  "/Applications/Agentic Workstation.app/Contents/MacOS/Agentic Workstation" --remote-debugging-port=5316
  *
  * Команды:
  *   node scripts/cdp.mjs screenshot [файл.png]     снимок окна (по умолчанию .screenshots/window.png)
@@ -25,7 +25,7 @@ import { dirname, resolve } from 'node:path'
  * нажатие по шапке, за которую таскают окно, тут дойдёт до страницы, а у человека нет.
  */
 
-const port = process.env.AMAZING_IDE_CDP_PORT ?? '5316'
+const port = process.env.AGENTIC_WORKSTATION_CDP_PORT ?? '5316'
 const [command, argument] = process.argv.slice(2)
 
 const findPageSocketUrl = async () => {

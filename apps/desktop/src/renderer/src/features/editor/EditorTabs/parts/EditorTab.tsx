@@ -2,9 +2,9 @@ import type { MouseEvent } from 'react'
 import { GitCompareArrows } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { ClosableTab } from '@amazing-ide/ui/ClosableTab'
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { openWhenReleased } from '@amazing-ide/ui/Popover.utils'
+import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
 import styles from '../EditorTabs.module.scss'
 import type { EditorTabProps } from '../EditorTabs.types'

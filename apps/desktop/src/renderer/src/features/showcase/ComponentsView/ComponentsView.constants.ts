@@ -1,4 +1,7 @@
+import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
+
 import type {
+  ChipSample,
   FileSample,
   RingSample,
   BadgeSample,
@@ -9,7 +12,7 @@ import type {
 
 // Инициалы - данные, как у настоящих проектов (projectInitials), а не текст интерфейса.
 export const AVATAR_SAMPLES: readonly AvatarSample[] = [
-  { tone: 0, initials: 'AI' },
+  { tone: 0, initials: 'AW' },
   { tone: 1, initials: 'RR' },
   { tone: 2, initials: 'SM' },
   { tone: 3, initials: 'CC' },
@@ -100,4 +103,21 @@ export const RING_SAMPLES: readonly RingSample[] = [
   { key: 'high', value: 78, pace: 52, tone: 'high', burning: false },
   { key: 'danger', value: 91, pace: null, tone: 'danger', burning: false },
   { key: 'burning', value: 100, pace: null, tone: 'accent', burning: true },
+]
+
+/** Тоны плашки иконки по порядку: те же, что у метки. */
+export const PLAQUE_TONES: readonly BadgeTone[] = [
+  'neutral',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+]
+
+// Имена проектов - данные, а не текст интерфейса.
+export const CHIP_SAMPLES: readonly ChipSample[] = [
+  { name: 'agentic-workstation', initials: 'AW', tone: 0 },
+  { name: 'roas-radar', initials: 'RR', tone: 1 },
+  { name: 'web-tanks', initials: 'WT', tone: 3 },
 ]

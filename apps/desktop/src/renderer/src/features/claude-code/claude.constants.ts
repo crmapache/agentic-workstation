@@ -39,15 +39,13 @@ export const ANCHOR_MIN_CHARS = 8
 export const ROW_ICON_SIZE = 14
 export const ROW_ICON_STROKE = 1.75
 
-/** Почему экран MCP или плагинов не смог - словами. */
+/** Почему экран плагинов или /config не смог - словами. */
 export const TOOLS_FAILURE_KEYS: Record<ToolsFailure, ParseKeys> = {
   untrusted: 'claudeCode.tools.failures.untrusted',
   'cli-not-found': 'claudeCode.tools.failures.cliNotFound',
   'project-missing': 'claudeCode.tools.failures.projectMissing',
   'process-exited': 'claudeCode.tools.failures.processExited',
   refused: 'claudeCode.tools.failures.refused',
-  'unsafe-url': 'claudeCode.tools.failures.unsafeUrl',
-  'bad-command': 'claudeCode.tools.failures.badCommand',
   failed: 'claudeCode.tools.failures.failed',
 }
 
@@ -59,7 +57,6 @@ export const TOOLS_FAILURE_KEYS: Record<ToolsFailure, ParseKeys> = {
 export const MENU_PARENT: Record<MenuScreen, MenuScreen> = {
   menu: 'menu',
   history: 'menu',
-  mcp: 'menu',
   plugins: 'menu',
   accounts: 'menu',
   settings: 'menu',

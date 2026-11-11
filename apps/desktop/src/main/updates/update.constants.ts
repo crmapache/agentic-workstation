@@ -5,7 +5,7 @@ import packageJson from '../../../package.json'
  * качать обновления приложение должно без токена. Задаётся в package.json, оттуда
  * же его читают скилл /release и скрипт манифеста.
  */
-const RELEASES_REPO = packageJson.amazingIde.releasesRepo
+const RELEASES_REPO = packageJson.agenticWorkstation.releasesRepo
 
 /** Манифест последнего релиза. GitHub сам ведёт /latest на новейший релиз. */
 export const UPDATE_FEED_URL = `https://github.com/${RELEASES_REPO}/releases/latest/download/latest.json`
@@ -16,7 +16,7 @@ export const RELEASE_PAGE_URL = `https://github.com/${RELEASES_REPO}/releases/la
  * Подменяет адрес манифеста. Нужна, чтобы прогнать обновление целиком на своей
  * машине с локальным сервером, не выпуская релиз (см. docs/releasing.md).
  */
-export const UPDATE_FEED_OVERRIDE_ENV = 'AMAZING_IDE_UPDATE_FEED'
+export const UPDATE_FEED_OVERRIDE_ENV = 'AGENTIC_WORKSTATION_UPDATE_FEED'
 
 /** Ключ сборки в манифесте: платформа и архитектура. Пока собираем только эту. */
 export const UPDATE_ASSET_KEY = 'mac-arm64'
@@ -35,7 +35,7 @@ export const DOWNLOAD_TIMEOUT_MS = 15 * 60 * 1000
  * Папка рядом с установленным приложением, куда распаковывается новая версия.
  * Рядом - чтобы подмена была переименованием на том же диске, а не копированием.
  */
-export const STAGING_DIR_NAME = '.amazing-ide-update'
+export const STAGING_DIR_NAME = '.agentic-workstation-update'
 
 /**
  * Старая версия на время подмены, внутри той же папки. Если новая не встала,

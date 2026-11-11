@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import styles from '../ClaudeConfigScreen.module.scss'
 import type { ConfigRowProps } from '../ClaudeConfigScreen.types'

@@ -1,0 +1,14 @@
+// Пояснение читают целиком: основной кегль, свободный межстрочный, абзацы с воздухом.
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.paragraph {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  white-space: pre-line;
+}

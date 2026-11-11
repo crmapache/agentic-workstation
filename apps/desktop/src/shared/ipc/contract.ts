@@ -10,17 +10,7 @@ import type { EditorRef, MessageDraft } from '../claude-draft'
 import type { FeedPatch, FleetTranscript, ConversationFeed } from '../claude-feed'
 import type { PanelPrefsPatch, ConversationCall } from '../claude-prefs'
 import type { RewindScope, RewindOutcome, RewindPreview } from '../claude-rewind'
-import type {
-  McpAction,
-  McpListing,
-  McpOutcome,
-  McpAddScope,
-  PluginScope,
-  PluginAction,
-  McpAddRequest,
-  PluginCatalog,
-  PluginsOutcome,
-} from '../claude-tools'
+import type { PluginScope, PluginAction, PluginCatalog, PluginsOutcome } from '../claude-tools'
 import type { DirectoryEntry } from '../fs'
 import type {
   GitHead,
@@ -203,17 +193,6 @@ export type InvokeContract = {
   'accounts:logout': { request: void; response: ClaudeState }
   /** Взять аккаунт amazing-claude-code: его хранилище, без повторного входа. */
   'accounts:import': { request: { sourceId: string }; response: ClaudeState }
-  /** MCP-серверы проекта - у процесса разговора (поднимает уснувший). */
-  'mcp:list': { request: ConversationRequest; response: McpListing }
-  'mcp:act': {
-    request: ConversationRequest & { name: string; action: McpAction }
-    response: McpOutcome
-  }
-  'mcp:add': { request: ConversationRequest & { server: McpAddRequest }; response: McpOutcome }
-  'mcp:remove': {
-    request: ConversationRequest & { name: string; scope: McpAddScope }
-    response: McpOutcome
-  }
   /** Плагины: установленные для проекта, каталог маркетплейсов и сами маркетплейсы. */
   'plugins:catalog': { request: ProjectRequest; response: PluginCatalog }
   'plugins:act': {
@@ -369,10 +348,6 @@ export const INVOKE_CHANNELS = Object.keys({
   'accounts:forget': true,
   'accounts:logout': true,
   'accounts:import': true,
-  'mcp:list': true,
-  'mcp:act': true,
-  'mcp:add': true,
-  'mcp:remove': true,
   'plugins:catalog': true,
   'plugins:act': true,
   'plugins:addMarketplace': true,

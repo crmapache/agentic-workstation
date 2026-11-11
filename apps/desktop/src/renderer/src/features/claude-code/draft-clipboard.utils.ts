@@ -11,7 +11,7 @@ import { tokensText } from './draft.utils'
  */
 
 /** Метка своего содержимого в text/html буфера. */
-export const CLIPBOARD_ATTRIBUTE = 'data-amazing-ide-tokens'
+export const CLIPBOARD_ATTRIBUTE = 'data-agentic-workstation-tokens'
 
 /** Вложение в буфере: путь, а не подпись и не синтаксис поля. */
 export const clipboardText = (token: DraftToken): string => {

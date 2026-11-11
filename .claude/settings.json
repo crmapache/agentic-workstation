@@ -20,7 +20,7 @@
       "Bash(pnpm exec stylelint *)",
       "Bash(pnpm exec prettier *)",
       "Bash(pnpm exec tsc *)",
-      "Bash(pnpm --filter @amazing-ide/desktop *)",
+      "Bash(pnpm --filter @agentic-workstation/desktop *)",
       "Bash(node apps/desktop/scripts/cdp.mjs *)",
       "Bash(node scripts/cdp.mjs *)"
     ]

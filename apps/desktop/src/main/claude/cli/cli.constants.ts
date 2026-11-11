@@ -2,7 +2,7 @@
 export const SHELL_ENV_TIMEOUT_MS = 10_000
 
 /** Метка перед окружением в выводе оболочки: профиль может напечатать что-то своё. */
-export const SHELL_ENV_MARKER = '__AMAZING_IDE_ENV__'
+export const SHELL_ENV_MARKER = '__AGENTIC_WORKSTATION_ENV__'
 
 /** Папки от домашней, куда CLI ставят установщики, даже если их нет в PATH. */
 export const EXTRA_BIN_DIRS = [
@@ -53,4 +53,4 @@ export const CLI_ENV_OVERRIDES = {
  * «запустить в терминале» то, что в окне делается кнопкой.
  */
 export const PANEL_BRIEFING =
-  'You are running inside the Claude Code panel of Amazing IDE, a desktop IDE. A person is watching the conversation live and answers permission prompts, questions and plan approvals with buttons in the panel, so ask them as usual. Do not tell them to switch to a terminal or an interactive session for that.'
+  'You are running inside the Claude Code panel of Agentic Workstation, a desktop IDE. A person is watching the conversation live and answers permission prompts, questions and plan approvals with buttons in the panel, so ask them as usual. Do not tell them to switch to a terminal or an interactive session for that.'

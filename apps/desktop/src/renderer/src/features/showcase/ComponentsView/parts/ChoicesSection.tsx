@@ -2,16 +2,22 @@ import { useState } from 'react'
 import { Bot, Search, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Card } from '@amazing-ide/ui/Card'
-import { ChoiceMark } from '@amazing-ide/ui/ChoiceMark'
-import { ClosableTab } from '@amazing-ide/ui/ClosableTab'
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Card } from '@agentic-workstation/ui/Card'
+import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
+import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { TextField } from '@agentic-workstation/ui/TextField'
+import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 
-import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.constants'
+import {
+  CHIP_SAMPLES,
+  SAMPLE_ICON_SIZE,
+  SAMPLE_ICON_STROKE_WIDTH,
+} from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
@@ -19,17 +25,28 @@ import { TabStripSpecimen } from './TabStripSpecimen'
 
 /**
  * Раздел «Выбор и раскрытие»: карточка вопроса к человеку, строки-раскрывашки,
- * закрываемые вкладки, варианты выбора с отметкой и меню с полем поиска в шапке.
+ * закрываемые вкладки, варианты выбора с отметкой, плашки-переключатели и меню с полем
+ * поиска в шапке.
  */
 export const ChoicesSection = () => {
   const { t } = useTranslation('showcase')
   const [isOpen, setIsOpen] = useState(true)
   const [choice, setChoice] = useState('red')
   const [query, setQuery] = useState('')
+  const [chips, setChips] = useState<ReadonlySet<string>>(() => new Set(['agentic-workstation']))
   const icon = (Icon: typeof Bot) => (
     <Icon size={SAMPLE_ICON_SIZE} strokeWidth={SAMPLE_ICON_STROKE_WIDTH} aria-hidden />
   )
 
+  const handleChip = (name: string, on: boolean) =>
+    setChips((previous) => {
+      const next = new Set(previous)
+
+      if (on) next.add(name)
+      else next.delete(name)
+
+      return next
+    })
   return (
     <ShowcaseSection title={t('sections.choices')}>
       <Specimen label={t('specimens.cardAccent')} layout="column">
@@ -101,6 +118,19 @@ export const ChoicesSection = () => {
         <ChoiceMark shape="square" checked={false} />
         <ChoiceMark shape="square" checked />
         <ChoiceMark shape="square" tone="success" checked />
+      </Specimen>
+
+      <Specimen label={t('specimens.toggleChip')}>
+        {CHIP_SAMPLES.map(({ name, initials, tone }) => (
+          <ToggleChip
+            key={name}
+            label={name}
+            leading={<Avatar initials={initials} tone={tone} />}
+            hint={t('samples.chipHint', { name })}
+            pressed={chips.has(name)}
+            onChange={(on) => handleChip(name, on)}
+          />
+        ))}
       </Specimen>
 
       <Specimen label={t('specimens.menuChoices')} layout="column">

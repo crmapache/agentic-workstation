@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../SearchWindow.module.scss'
 import type { SearchErrorProps } from '../SearchWindow.types'

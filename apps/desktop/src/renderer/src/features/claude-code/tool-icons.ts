@@ -1,4 +1,4 @@
-import type { BadgeTone } from '@amazing-ide/ui/Badge.types'
+import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
 /** Вид вызова в шапке карточки - чип, как в ACC. */
 export type ToolChip =

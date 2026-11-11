@@ -9,14 +9,6 @@ import { QUERY_KEYS } from '../../state/query-keys'
 import type { ToolsAction, ScreenNoticeValue } from './claude.types'
 import { toolsFailureText } from './claude.utils'
 
-/** MCP-серверы проекта, как их видит процесс разговора (уснувший он поднимет). */
-export const useMcpServers = (conversationId: string) =>
-  useQuery({
-    queryKey: QUERY_KEYS.mcpServers(conversationId),
-    queryFn: () => invoke('mcp:list', { conversationId }),
-    staleTime: 0,
-  })
-
 /** Плагины проекта, каталог маркетплейсов и сами маркетплейсы - каждый раз заново. */
 export const usePluginCatalog = (projectId: string) =>
   useQuery({
@@ -26,7 +18,7 @@ export const usePluginCatalog = (projectId: string) =>
   })
 
 /**
- * Действие экрана инструментов (MCP, плагины): запустить, показать итог плашкой -
+ * Действие экрана инструментов (плагины, /config): запустить, показать итог плашкой -
  * успех своими словами или отчётом CLI, отказ причиной и текстом CLI, - и положить
  * список, пришедший вместе с итогом, в кэш. Занятость - у мутации: над каким
  * элементом она сейчас идёт.

@@ -1,6 +1,6 @@
 import { X, ImageIcon } from 'lucide-react'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../claude.constants'
 import styles from './ImageTile.module.scss'

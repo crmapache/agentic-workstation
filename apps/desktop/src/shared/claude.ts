@@ -114,7 +114,11 @@ export type ConversationUsage = {
  * Почему разговор не может идти - код, текст окно берёт из i18n. untrusted - папке
  * проекта ещё не доверились: Claude Code прочитает её настройки, хуки и CLAUDE.md.
  */
-export type ConversationError = 'cli-not-found' | 'untrusted' | 'project-missing'
+/**
+ * Почему разговор не начинается: нет CLI, папка не доверена или пропала, процесс не
+ * поднялся (start-failed - сбой подготовки, подробности в журнале IDE).
+ */
+export type ConversationError = 'cli-not-found' | 'untrusted' | 'project-missing' | 'start-failed'
 
 /**
  * Откуда форк: разговор-источник и строка его транскрипта, до которой форк несёт

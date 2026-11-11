@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Lightbox } from '@amazing-ide/ui/Lightbox'
+import { Lightbox } from '@agentic-workstation/ui/Lightbox'
 
 import styles from '../UserMessage.module.scss'
 import type { MessageImagesProps } from '../UserMessage.types'

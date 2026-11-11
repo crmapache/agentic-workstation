@@ -10,5 +10,7 @@ export type ViewDescriptor<ViewId extends string> = {
   id: ViewId
   icon: LucideIcon
   labelKey: ParseKeys
+  /** Слова, по которым вид находит поиск везде, кроме его имени (gmail - коннекторы). */
+  keywords?: string[]
   Component: LazyExoticComponent<ComponentType>
 }

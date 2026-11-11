@@ -45,7 +45,7 @@ func commandLine(of pid: pid_t) -> String {
 
 // Только копия агента (её папка в аргументах Electron): ни dev, ни установленную IDE
 // человека скрипт не трогает.
-let agentOut = "\(NSHomeDirectory())/.amazing-ide-agent/out"
+let agentOut = "\(NSHomeDirectory())/.agentic-workstation-agent/out"
 let agentApp = NSWorkspace.shared.runningApplications.first {
   $0.executableURL?.lastPathComponent == "Electron" && commandLine(of: $0.processIdentifier).contains(agentOut)
 }

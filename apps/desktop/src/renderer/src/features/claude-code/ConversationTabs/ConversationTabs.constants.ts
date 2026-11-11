@@ -1,6 +1,6 @@
 import type { SoundEvent } from '@shared/claude-prefs'
 
-import type { ClosableTabCall } from '@amazing-ide/ui/ClosableTab.types'
+import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 
 /**
  * Повод звука - в цвет света вкладки. Три цвета, а не семь: взгляд на полосу вмещает

@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util'
  * Пишет latest.json - манифест релиза, по которому установленные копии IDE узнают
  * о новой версии (см. src/main/updates/update-manifest.ts). Кладёт его рядом с zip.
  *
- *   node scripts/write-update-manifest.mjs --zip dist/amazing-ide-mac-arm64.zip \
+ *   node scripts/write-update-manifest.mjs --zip dist/agentic-workstation-mac-arm64.zip \
  *     --version 0.2.0 --base-url https://github.com/<repo>/releases/download/v0.2.0 \
  *     [--notes "что нового"]
  *

@@ -1,0 +1,106 @@
+@use '../../styles/mixins' as *;
+
+// Плитка - кнопка размером с карточку: подложка и рамка как у Card, наведение светлее.
+.tile {
+  @include button-reset;
+  @include interactive-surface(var(--color-surface-raised-hover));
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-fg);
+  text-align: left;
+
+  &:focus-visible {
+    background-color: var(--color-surface-raised-hover);
+  }
+}
+
+.solid {
+  background-color: var(--color-surface-raised);
+}
+
+// Приглашение добавить: без подложки, рамка пунктиром - не путается с уже подключённым.
+.dashed {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+
+// Открытая плитка: залита, как выбранное, рамка ярче.
+.selected {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-selected);
+}
+
+// Выключенное: тише, но читается - его открывают, чтобы включить. Плашку гасит IconPlaque.
+.muted {
+  .title,
+  .description {
+    color: var(--color-fg-subtle);
+  }
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+// Заголовок и состояние в одну строку: заголовок по центру высоты плашки иконки, состояние -
+// в углу, вровень с верхом плашки. Узкой плитке заголовок важнее: меньше половины строки ему
+// не достаётся - состояние уходит ниже.
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  min-height: var(--size-menu-tile);
+}
+
+.title {
+  @include truncate;
+
+  flex: 1 1 0;
+  min-width: 50%;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: flex-start;
+
+  // Верх букв метки - вровень с верхом плашки: метка выше своих букв (высота контрола xs,
+  // буквы по её середине), и без сдвига они стояли бы на полметки ниже края. Кегль - метки,
+  // чтобы cap мерил её заглавные.
+  margin-top: calc((1cap - var(--size-control-xs)) / 2);
+  font-size: var(--font-size-xs);
+}
+
+.description {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+}
+
+// Объяснение читают целиком: переносится по словам.
+.wrap {
+  line-height: var(--line-height-snug);
+  white-space: normal;
+}
+
+.meta {
+  @include truncate;
+
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

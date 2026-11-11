@@ -1,9 +1,9 @@
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
-import { MenuSeparator } from '@amazing-ide/ui/MenuSeparator'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
+import { MenuSeparator } from '@agentic-workstation/ui/MenuSeparator'
 
 import { MAIN_MODELS, DEFAULT_CHOICE_ICON } from '../ComposerStatus.constants'
 import type { PickerProps } from '../ComposerStatus.types'

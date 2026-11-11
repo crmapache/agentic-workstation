@@ -3,7 +3,7 @@ import { Image, Quote, SquareSlash, ClipboardList } from 'lucide-react'
 
 import type { ChipKind } from '@shared/claude-draft'
 
-import type { FileIconKind } from '@amazing-ide/ui/FileIcon.types'
+import type { FileIconKind } from '@agentic-workstation/ui/FileIcon.types'
 
 import type { PathChipKind } from './draft.types'
 

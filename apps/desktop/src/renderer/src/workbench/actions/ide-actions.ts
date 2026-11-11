@@ -1,4 +1,4 @@
-import { X, History, Palette, Sparkles, ArrowRightLeft } from 'lucide-react'
+import { X, History, Palette, Sparkles, ArrowRightLeft, SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { MAIN_VIEWS } from '../views/main-views'
@@ -19,6 +19,8 @@ import { useProjectActionRunner } from '../../features/projects/project-actions.
 import type { SearchAction } from '../../features/search-everywhere/search-everywhere.types'
 import { useClaudePanelToggle } from './claude-panel'
 import { useSettingsActions } from './settings-actions'
+import { useTerminalToggle } from './terminal-dock'
+import { TERMINAL_KEY } from './terminal-dock.constants'
 
 /**
  * Действия IDE для поиска везде. Собраны здесь, а не в поиске: им нужны проекты, git
@@ -38,6 +40,7 @@ export const useIdeActions = (): SearchAction[] => {
   const selectSideView = useLayoutStore((state) => state.selectSideView)
   const selectMainView = useLayoutStore((state) => state.selectMainView)
   const toggleClaudePanel = useClaudePanelToggle()
+  const terminal = useTerminalToggle()
   const settingsActions = useSettingsActions()
 
   const projectActions: SearchAction[] = PROJECT_ACTIONS.map((entry) => ({
@@ -95,6 +98,7 @@ export const useIdeActions = (): SearchAction[] => {
       id: `view.main.${view.id}`,
       label: t('searchEverywhere.actions.toggleView', { name: t(view.labelKey) }),
       icon: view.icon,
+      keywords: view.keywords,
       run: () => selectMainView(view.id),
     })),
     {
@@ -104,6 +108,14 @@ export const useIdeActions = (): SearchAction[] => {
       // Та же дверь, что у клавиши: показать с клавиатурой в поле или спрятать из панели.
       shortcut: OPEN_PANEL_KEY.join(''),
       run: toggleClaudePanel,
+    },
+    {
+      id: 'view.terminal',
+      label: t('searchEverywhere.actions.toggleTerminal'),
+      icon: SquareTerminal,
+      keywords: ['shell', 'console', 'zsh'],
+      shortcut: TERMINAL_KEY.join(''),
+      run: terminal.toggleFromKeyboard,
     },
     // Витрина есть только в dev и в копии окна агента, в релизе нет и действия.
     ...(toggleShowcase

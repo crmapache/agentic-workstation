@@ -2,7 +2,12 @@ import type { PanelSide, MainViewId, SideViewId, ProviderViewId } from './layout
 
 /** Виды, которые есть сейчас. Сохранённый вид не из списка - удалённый, его не открыть. */
 export const SIDE_VIEW_IDS: readonly SideViewId[] = ['files', 'changes']
-export const MAIN_VIEW_IDS: readonly MainViewId[] = ['file', 'scenarios', 'statistics']
+export const MAIN_VIEW_IDS: readonly MainViewId[] = [
+  'file',
+  'scenarios',
+  'statistics',
+  'connectors',
+]
 export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code']
 
 /**
@@ -26,5 +31,15 @@ export const DEFAULT_PANEL_WIDTH: Record<PanelSide, number> = {
   provider: 520,
 }
 
+/**
+ * Ниже терминал не бывает (просьба владельца), и панель провайдера над ним - тоже, пока
+ * колонке хватает места на обоих. Не хватает - делят её пополам (ADR 0037).
+ */
+export const TERMINAL_MIN_HEIGHT = 250
+export const PROVIDER_MIN_HEIGHT = 250
+
+/** Открытый терминал - половина колонки, как попросил владелец. */
+export const DEFAULT_TERMINAL_SHARE = 0.5
+
 /** Ключ в localStorage. Версия в имени: сменилась форма - старое не подхватится. */
-export const LAYOUT_STORAGE_KEY = 'amazing-ide.layout.v1'
+export const LAYOUT_STORAGE_KEY = 'agentic-workstation.layout.v1'

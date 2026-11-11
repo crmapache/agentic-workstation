@@ -2,7 +2,7 @@ import type { ParseKeys } from 'i18next'
 
 import type { ShellFeedItem } from '@shared/claude-feed'
 
-import type { BadgeTone } from '@amazing-ide/ui/Badge.types'
+import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
 /** Чем кончилась команда - меткой: тон и подпись; идущую показывает ToolStatus. */
 export const shellOutcome = (

@@ -28,7 +28,7 @@ export const DIFF_COMPARE_WAIT_MS = 1_000
 export const DIFF_COMPARING_ATTRIBUTE = 'data-comparing'
 
 /** Команда Monaco за ⌘S в редакторе: записать файл по явной просьбе. */
-export const SAVE_COMMAND = 'amazingIde.saveFile'
+export const SAVE_COMMAND = 'agenticWorkstation.saveFile'
 
 /**
  * Дорожка полосы прокрутки редактора. Бегунок на ней (monaco.css) - как родной тонкий у

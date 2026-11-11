@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { ProgressBar } from '@amazing-ide/ui/ProgressBar'
+import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import { useNow } from '../clock.hooks'
 import { USAGE_TICK_MS, USAGE_STALE_MS } from '../usage.constants'

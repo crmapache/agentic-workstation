@@ -2,9 +2,13 @@ import type { ReactNode } from 'react'
 
 export type SheetProps = {
   open: boolean
-  /** Заголовок экрана капсом и серая подсказка под ним в одну строку. */
+  /** Заголовок экрана капсом. */
   title: string
-  hint?: string | undefined
+  /**
+   * Пояснение экрана - кнопка «?» (HelpButton) перед крестиком: что это и как работает
+   * лежит за ней, а не абзацем на экране.
+   */
+  help?: ReactNode | undefined
   /** Есть - в шапке стрелка назад, а Esc делает шаг назад вместо закрытия. */
   onBack?: (() => void) | undefined
   onClose: () => void

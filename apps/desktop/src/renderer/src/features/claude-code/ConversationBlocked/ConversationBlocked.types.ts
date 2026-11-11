@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { Conversation, ConversationError } from '@shared/claude'
 import type { Project } from '@shared/workspace'
 
-import type { CardTone } from '@amazing-ide/ui/Card.types'
+import type { CardTone } from '@agentic-workstation/ui/Card.types'
 
 export type ConversationBlockedProps = {
   project: Project

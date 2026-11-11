@@ -1,9 +1,9 @@
 import { Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Slider } from '@amazing-ide/ui/Slider'
-import { Switch } from '@amazing-ide/ui/Switch'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Slider } from '@agentic-workstation/ui/Slider'
+import { Switch } from '@agentic-workstation/ui/Switch'
 
 import styles from '../SoundsScreen.module.scss'
 import type { SoundRowProps } from '../SoundsScreen.types'

@@ -1,9 +1,9 @@
 import { ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Card } from '@amazing-ide/ui/Card'
-import { Kbd } from '@amazing-ide/ui/Kbd'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Card } from '@agentic-workstation/ui/Card'
+import { Kbd } from '@agentic-workstation/ui/Kbd'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { toolLabel } from '../tool-summary.utils'

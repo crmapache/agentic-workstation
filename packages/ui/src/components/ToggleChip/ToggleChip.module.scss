@@ -1,0 +1,65 @@
+@use '../../styles/mixins' as *;
+
+// Выключенная: пунктирная рамка и тихий текст - как приглашение у Tile dashed. Скругление
+// соосно знаку внутри: у значка проекта radius-xs, до рамки - space-1, вместе - radius-md.
+// Таблетка (radius-full) вокруг квадратного значка спорила бы с его углами.
+.chip {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  max-width: 100%;
+  height: var(--size-control-md);
+  padding: 0 var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-normal) var(--easing-standard),
+    border-color var(--duration-normal) var(--easing-standard),
+    color var(--duration-normal) var(--easing-standard);
+}
+
+// Со знаком слева - поле слева меньше: от рамки до знака столько же, сколько сверху и снизу.
+.withLeading {
+  padding-left: var(--space-1);
+}
+
+// Знак - в гнезде размером со значок проекта: иконка и Avatar встают одинаково.
+.leading {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
+  opacity: var(--opacity-muted);
+  transition: opacity var(--duration-normal) var(--easing-standard);
+}
+
+.label {
+  @include truncate;
+}
+
+// Включённая - залита, как выбранное, рамка сплошная, знак в полный цвет.
+.pressed {
+  border-style: solid;
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
+
+  .leading {
+    opacity: 1;
+  }
+
+  // Наведение у залитой - светлее заливки, а не обычная подсветка поверх неё (та тусклее).
+  @media (hover: hover) {
+    &:not(:disabled):hover {
+      background-color: var(--color-bg-active);
+    }
+  }
+}

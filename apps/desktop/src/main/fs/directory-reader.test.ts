@@ -10,7 +10,7 @@ describe('readDirectory', () => {
   let root = ''
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-tree-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-tree-'))
     await mkdir(join(root, 'src'))
     await mkdir(join(root, '.git'))
     await writeFile(join(root, 'file10.ts'), '')
@@ -54,7 +54,7 @@ describe('readDirectory: имена в NFD', () => {
 
   beforeAll(async () => {
     // Так пишет имена Finder: «й» - это «и» и отдельный знак U+0306.
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-tree-nfd-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-tree-nfd-'))
     await mkdir(join(root, 'й'))
     await writeFile(join(root, 'й', 'файл.txt'), '')
   })

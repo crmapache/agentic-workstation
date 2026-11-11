@@ -1,0 +1,133 @@
+import type { ConnectorAvailability } from '@shared/connector-availability'
+import type { GenerateConnectorRequest } from '@shared/connector-spec'
+import type {
+  AgentApp,
+  ConnectorsState,
+  AddToTypeRequest,
+  UpdateTypeRequest,
+  AddConnectorRequest,
+} from '@shared/connectors'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+import { invoke } from '../lib/ipc'
+import { useIpcEvent } from '../lib/ipc.hooks'
+import { QUERY_KEYS } from './query-keys'
+
+/** Коннекторы к приложениям (ADR 0028). Владелец - главный процесс, здесь зеркало. */
+export const useConnectors = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.connectors,
+    queryFn: () => invoke('connectors:get'),
+    staleTime: Infinity,
+  })
+
+/**
+ * Приложения ИИ на этом Mac, которым можно отдать настройку в браузере. Своего события нет:
+ * приложение ставят вне IDE, поэтому список свежий на каждый показ, а не навсегда.
+ */
+export const useAgentApps = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.connectorAgentApps,
+    queryFn: () => invoke('connectors:agentApps'),
+  })
+
+/** Вход кончился в браузере, сервис ответил - главный процесс шлёт состояние целиком. */
+export const useConnectorsSync = () => {
+  const queryClient = useQueryClient()
+
+  useIpcEvent('connectors:state', (state) => {
+    queryClient.setQueryData(QUERY_KEYS.connectors, state)
+  })
+}
+
+/**
+ * Действия с коннекторами. Каждый ответ - новое состояние, оно сразу в кэше. Добавление и
+ * импорт клиента Google отвечают ещё и причиной отказа - её показывает форма.
+ */
+export const useConnectorActions = () => {
+  const queryClient = useQueryClient()
+  const keep = (state: ConnectorsState) => queryClient.setQueryData(QUERY_KEYS.connectors, state)
+  const act = useMutation({
+    mutationFn: (run: () => Promise<ConnectorsState>) => run(),
+    onSuccess: keep,
+  })
+  const run = (call: () => Promise<ConnectorsState>) => act.mutate(call)
+
+  return {
+    add: async (request: AddConnectorRequest) => {
+      const outcome = await invoke('connectors:add', request)
+
+      keep(outcome.state)
+
+      return outcome
+    },
+    importGoogleApp: async () => {
+      const outcome = await invoke('connectors:importGoogleApp')
+
+      keep(outcome.state)
+
+      return outcome.error
+    },
+    /** Ещё одно подключение своего типа: ответ с причиной отказа, как у add. */
+    addToType: async (request: AddToTypeRequest) => {
+      const outcome = await invoke('connectors:addToType', request)
+
+      keep(outcome.state)
+
+      return outcome
+    },
+    removeType: (typeId: string) => run(() => invoke('connectors:removeType', { typeId })),
+    updateType: (request: UpdateTypeRequest) => run(() => invoke('connectors:updateType', request)),
+    remove: (id: string) => run(() => invoke('connectors:remove', { id })),
+    signIn: (id: string) => run(() => invoke('connectors:signIn', { id })),
+    cancelSignIn: (id: string) => run(() => invoke('connectors:cancelSignIn', { id })),
+    signOut: (id: string) => run(() => invoke('connectors:signOut', { id })),
+    refresh: (id: string) => run(() => invoke('connectors:refresh', { id })),
+    /** Новый ключ своего MCP. Отказ главного процесса - false: форма скажет об этом. */
+    setToken: async (id: string, token: string): Promise<boolean> => {
+      try {
+        keep(await invoke('connectors:setToken', { id, token }))
+
+        return true
+      } catch {
+        return false
+      }
+    },
+    setEnabled: (id: string, enabled: boolean) =>
+      run(() => invoke('connectors:setEnabled', { id, enabled })),
+    setToolEnabled: (id: string, tool: string, enabled: boolean) =>
+      run(() => invoke('connectors:setToolEnabled', { id, tool, enabled })),
+    forgetGoogleApp: () => run(() => invoke('connectors:forgetGoogleApp')),
+    /**
+     * Описание человека. Ответ кладётся в кэш напрямую, без мутации: окно сохраняет его и
+     * при закрытии, когда того, кто позвал, уже нет.
+     */
+    setDescription: async (id: string, description: string) => {
+      try {
+        keep(await invoke('connectors:setDescription', { id, description }))
+      } catch (error) {
+        console.warn('[connectors] описание не сохранилось', error)
+      }
+    },
+    setAvailability: (id: string, availability: ConnectorAvailability) =>
+      run(() => invoke('connectors:setAvailability', { id, availability })),
+    importCandidates: () => invoke('connectors:importCandidates'),
+    importServers: async (keys: string[]) => {
+      const outcome = await invoke('connectors:import', { keys })
+
+      keep(outcome.state)
+
+      return outcome
+    },
+    /** Описание коннектора от ИИ - минуты: работа идёт в главном процессе, итог - событием. */
+    generate: (request: GenerateConnectorRequest) =>
+      run(() => invoke('connectors:generate', request)),
+    cancelGenerate: () => run(() => invoke('connectors:cancelGenerate')),
+    dismissGeneration: () => run(() => invoke('connectors:dismissGeneration')),
+    /** Промпт - в новый разговор приложения ИИ; false - приложение не открылось. */
+    openInAgentApp: (app: AgentApp, prompt: string) =>
+      invoke('connectors:openInAgentApp', { app, prompt }),
+    /** Slack app с готовым описанием - в браузере; false - браузер не открылся. */
+    createSlackApp: () => invoke('connectors:createSlackApp'),
+  }
+}

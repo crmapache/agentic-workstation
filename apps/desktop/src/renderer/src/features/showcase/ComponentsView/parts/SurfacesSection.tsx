@@ -1,28 +1,44 @@
-import { Pin, FilePlus, FolderOpen, MoreHorizontal, MousePointerClick } from 'lucide-react'
+import {
+  Pin,
+  Mail,
+  Plus,
+  FilePlus,
+  FolderOpen,
+  MoreHorizontal,
+  SquareTerminal,
+  MousePointerClick,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar } from '@amazing-ide/ui/Avatar'
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Card } from '@amazing-ide/ui/Card'
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Kbd } from '@amazing-ide/ui/Kbd'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
-import { MenuSeparator } from '@amazing-ide/ui/MenuSeparator'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Card } from '@agentic-workstation/ui/Card'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Kbd } from '@agentic-workstation/ui/Kbd'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
+import { MenuSeparator } from '@agentic-workstation/ui/MenuSeparator'
+import { Tile } from '@agentic-workstation/ui/Tile'
 
 import { KBD_SAMPLES } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { PageSpecimen } from './PageSpecimen'
 
-/** Раздел «Поверхности»: карточка, пустое состояние и меню вне всплывающей панели. */
+/**
+ * Раздел «Поверхности»: вид с шапкой и разделами, карточка, плитки сеткой, пустое состояние
+ * и меню вне всплывающей панели.
+ */
 export const SurfacesSection = () => {
   const { t } = useTranslation('showcase')
 
   return (
     <ShowcaseSection title={t('sections.surfaces')}>
+      <PageSpecimen />
+
       <Specimen label={t('specimens.card')} layout="column">
         <Card
           title={t('samples.cardTitle')}
@@ -38,6 +54,38 @@ export const SurfacesSection = () => {
         <Card size="sm" title={t('samples.cardCompactTitle')}>
           {t('samples.cardCompactBody')}
         </Card>
+      </Specimen>
+
+      <Specimen label={t('specimens.tile')} layout="column">
+        <div className={styles.tileGrid}>
+          <Tile
+            icon={Mail}
+            iconTone="danger"
+            title={t('samples.tileTitle')}
+            description={t('samples.tileDescription')}
+            meta={t('samples.tileMeta')}
+            status={<Badge tone="success">{t('samples.active')}</Badge>}
+            onClick={() => undefined}
+          />
+          <Tile
+            icon={SquareTerminal}
+            title={t('samples.tileMutedTitle')}
+            description={t('samples.tileMutedDescription')}
+            meta={t('samples.tileMeta')}
+            status={<Badge tone="neutral">{t('samples.tileOff')}</Badge>}
+            muted
+            onClick={() => undefined}
+          />
+          <Tile
+            icon={Plus}
+            iconTone="accent"
+            variant="dashed"
+            title={t('samples.tileAddTitle')}
+            description={t('samples.tileAddDescription')}
+            wrapDescription
+            onClick={() => undefined}
+          />
+        </div>
       </Specimen>
 
       <Specimen label={t('specimens.emptyState')} layout="column">
@@ -72,7 +120,7 @@ export const SurfacesSection = () => {
             <MenuSeparator />
             <MenuSection title={t('samples.menuSection')}>
               <MenuItem
-                leading={<Avatar initials="AI" tone={0} />}
+                leading={<Avatar initials="AW" tone={0} />}
                 label={t('samples.currentItem')}
                 description={t('samples.currentPath')}
                 current

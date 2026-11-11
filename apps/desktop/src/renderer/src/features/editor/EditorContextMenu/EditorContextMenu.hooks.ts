@@ -3,7 +3,7 @@ import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
-import { openWhenReleased } from '@amazing-ide/ui/Popover.utils'
+import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
 import { monaco } from '../monaco-setup'
 import { MENU_TARGETS, WIDGET_LAYERS, SHOW_MENU_ACTION } from './EditorContextMenu.constants'

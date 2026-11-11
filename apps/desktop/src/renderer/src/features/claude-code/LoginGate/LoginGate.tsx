@@ -1,8 +1,8 @@
 import { LogIn, RotateCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { Button } from '@agentic-workstation/ui/Button'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { accountTitle } from '../AccountsScreen/AccountsScreen.utils'

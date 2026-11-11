@@ -8,7 +8,8 @@ import { LabelRow } from './LabelRow'
 /**
  * Отметки с подписью, как в ACC: SESSION - процесс упал (с кодом выхода и причиной из
  * stderr), FAST - быстрый режим не включился и почему, SETTINGS - репозиторий перебивает
- * выбранный аккаунт: чьи имена, без значений.
+ * выбранный аккаунт: чьи имена, без значений. CONNECTORS - процесс поднялся без
+ * коннекторов IDE.
  */
 export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
   const { t } = useTranslation()
@@ -23,6 +24,14 @@ export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
           {reason ? t(reason) : t('claudeCode.notice.fast.reasons.unknown')}
         </span>
         <span className={styles.reason}>{t('claudeCode.notice.fast.hint')}</span>
+      </LabelRow>
+    )
+  }
+
+  if (item.code === 'connectors-missing') {
+    return (
+      <LabelRow label={t('claudeCode.notice.connectorsMissing.label')} tone="warning">
+        {t('claudeCode.notice.connectorsMissing.text')}
       </LabelRow>
     )
   }

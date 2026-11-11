@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next'
 
-import { Avatar } from '@amazing-ide/ui/Avatar'
-import { DropdownButton } from '@amazing-ide/ui/DropdownButton'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import { useProjectsStore } from '../projects.store'
-import { projectTone, projectInitials } from '../projects.utils'
 import { CloneDialog } from '../CloneDialog/CloneDialog'
 import { ProjectMenu } from '../ProjectMenu/ProjectMenu'
+import { projectTone, projectInitials } from '../../../state/project-avatar.utils'
 import { useActiveProject } from '../../../state/workspace.queries'
 
 /**

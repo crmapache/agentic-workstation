@@ -298,6 +298,8 @@ export type NoticeCode =
   | 'mod'
   /** Выбранная модель не доехала: detail - что выбрали, subject - что отвечает. */
   | 'model-stuck'
+  /** Конфиг коннекторов IDE не записался: этот процесс работает без них (ADR 0029). */
+  | 'connectors-missing'
   /** CLI сам перешёл на другую модель (по подписи ответа): detail - откуда, subject - куда. */
   | 'model-swap'
 

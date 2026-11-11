@@ -1,11 +1,11 @@
 import { Ellipsis } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { MessageMenuProps } from './MessageMenu.types'
 

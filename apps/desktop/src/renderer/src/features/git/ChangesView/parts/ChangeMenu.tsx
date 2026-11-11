@@ -1,11 +1,11 @@
 import { Copy, FileCode, GitCompareArrows } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSeparator } from '@amazing-ide/ui/MenuSeparator'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { useAnchoredPopover } from '@amazing-ide/ui/Popover.hooks'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSeparator } from '@agentic-workstation/ui/MenuSeparator'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { ChangeMenuProps } from '../ChangesView.types'
 import { useSelectionStore } from '../../../../state/selection.store'

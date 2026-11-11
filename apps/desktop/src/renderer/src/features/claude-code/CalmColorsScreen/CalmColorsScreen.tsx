@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 
 import { GAUGE_VIVID_CALM, GAUGE_VIVID_FULL } from '@shared/claude-prefs'
 
-import { Card } from '@amazing-ide/ui/Card'
-import { ProgressBar } from '@amazing-ide/ui/ProgressBar'
-import { RingMeter } from '@amazing-ide/ui/RingMeter'
-import { Slider } from '@amazing-ide/ui/Slider'
+import { Card } from '@agentic-workstation/ui/Card'
+import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
+import { RingMeter } from '@agentic-workstation/ui/RingMeter'
+import { Slider } from '@agentic-workstation/ui/Slider'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { usePanelPrefs } from '../claude.queries'
@@ -66,7 +66,6 @@ export const CalmColorsScreen = () => {
         />
         <span className={styles.hint}>{t('claudeCode.calmColors.hint')}</span>
       </div>
-      <p className={styles.note}>{t('claudeCode.calmColors.keeps')}</p>
     </PanelScreen>
   )
 }

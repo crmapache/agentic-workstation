@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../NoticeRow.module.scss'
 import type { NoticeItemProps } from '../NoticeRow.types'

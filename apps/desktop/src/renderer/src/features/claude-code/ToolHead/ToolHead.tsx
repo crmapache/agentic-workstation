@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
+import { Badge } from '@agentic-workstation/ui/Badge'
 
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../claude.constants'
 import { useFeedScope, useAwaitingTool } from '../feed-scope.context'

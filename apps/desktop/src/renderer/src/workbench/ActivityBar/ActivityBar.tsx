@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from './ActivityBar.module.scss'
 import type { ActivityBarProps } from './ActivityBar.types'
@@ -8,7 +8,8 @@ import type { ActivityBarProps } from './ActivityBar.types'
 /**
  * Вертикальная полоса иконок: зона 2 переключает виды левой панели, зона 3 - GUI
  * провайдеров LLM справа, зона 8 - виды середины окна. Один компонент на все три.
- * Подсказка встаёт в сторону от края полосы, чтобы не закрыть соседние иконки.
+ * Подсказка встаёт в сторону от края полосы, чтобы не закрыть соседние иконки. Внизу
+ * полосы - то, что открывается под областью (терминал под панелью провайдера, ADR 0037).
  */
 export const ActivityBar = <ViewId extends string>({
   views,
@@ -16,6 +17,7 @@ export const ActivityBar = <ViewId extends string>({
   isPanelOpen,
   edge,
   label,
+  footer,
   onSelect,
 }: ActivityBarProps<ViewId>) => {
   const { t } = useTranslation()
@@ -33,6 +35,7 @@ export const ActivityBar = <ViewId extends string>({
           onClick={() => onSelect(view.id)}
         />
       ))}
+      {footer && <div className={styles.footer}>{footer}</div>}
     </nav>
   )
 }

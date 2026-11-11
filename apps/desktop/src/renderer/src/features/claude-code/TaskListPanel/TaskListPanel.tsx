@@ -3,8 +3,8 @@ import clsx from 'clsx'
 import { ListTodo } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
-import { Spinner } from '@amazing-ide/ui/Spinner'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../claude.constants'
 import { STATE_ICON, STATE_CLASS } from './TaskListPanel.constants'

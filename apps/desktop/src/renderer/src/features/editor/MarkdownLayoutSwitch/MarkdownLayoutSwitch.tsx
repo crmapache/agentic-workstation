@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import type { MarkdownLayout } from '../editor.types'
 import { useMarkdownLayout, useMarkdownLayoutStore } from '../markdown-layout.store'

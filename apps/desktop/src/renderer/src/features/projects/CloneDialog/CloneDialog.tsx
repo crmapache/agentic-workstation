@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Dialog } from '@amazing-ide/ui/Dialog'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Dialog } from '@agentic-workstation/ui/Dialog'
+import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { displayPath } from '../../../lib/path.utils'
 import { useAppInfo } from '../../../state/app-info.queries'

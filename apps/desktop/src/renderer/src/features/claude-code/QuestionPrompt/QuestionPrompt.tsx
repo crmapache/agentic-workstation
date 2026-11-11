@@ -1,9 +1,9 @@
 import { X, ChevronUp, ChevronDown, MessageCircleQuestion } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Card } from '@amazing-ide/ui/Card'
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Card } from '@agentic-workstation/ui/Card'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useQuestion } from './QuestionPrompt.hooks'
 import styles from './QuestionPrompt.module.scss'

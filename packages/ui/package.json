@@ -1,8 +1,8 @@
 {
-  "name": "@amazing-ide/ui",
+  "name": "@agentic-workstation/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Дизайн-система Amazing IDE: токены, база и примитивы. Плоское тёмное стекло (ADR 0006).",
+  "description": "Дизайн-система Agentic Workstation: токены, база и примитивы. Плоское тёмное стекло (ADR 0006).",
   "sideEffects": [
     "*.css"
   ],

@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import { History, GitCompare, LayoutDashboard } from 'lucide-react'
+import { Mail, Plug, History, GitCompare, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar } from '@amazing-ide/ui/Avatar'
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Button } from '@amazing-ide/ui/Button'
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { Kbd } from '@amazing-ide/ui/Kbd'
-import { Tabs } from '@amazing-ide/ui/Tabs'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Button } from '@agentic-workstation/ui/Button'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { IconPlaque } from '@agentic-workstation/ui/IconPlaque'
+import { Kbd } from '@agentic-workstation/ui/Kbd'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
 
 import {
   KBD_SAMPLES,
+  PLAQUE_TONES,
   BADGE_SAMPLES,
   AVATAR_SAMPLES,
   FILE_ICON_SAMPLES,
@@ -97,6 +99,14 @@ export const IndicatorsSection = () => {
         ))}
       </Specimen>
 
+      <Specimen label={t('specimens.iconPlaque')}>
+        {PLAQUE_TONES.map((tone) => (
+          <IconPlaque key={tone} icon={Mail} tone={tone} />
+        ))}
+        <IconPlaque icon={Mail} tone="danger" muted />
+        <IconPlaque icon={Plug} tone="accent" size="lg" />
+      </Specimen>
+
       <Specimen label={t('specimens.kbd')}>
         {KBD_SAMPLES.map((keys) => (
           <Kbd key={keys.join('+')} keys={keys} />
@@ -109,6 +119,10 @@ export const IndicatorsSection = () => {
         <Button size="sm" variant="ghost" onClick={handleGrow}>
           {t('samples.countGrow')}
         </Button>
+      </Specimen>
+
+      <Specimen label={t('specimens.tabsFill')} layout="column">
+        <Tabs label={t('samples.tabsLabel')} items={tabs} value={tab} onChange={setTab} fill />
       </Specimen>
     </ShowcaseSection>
   )

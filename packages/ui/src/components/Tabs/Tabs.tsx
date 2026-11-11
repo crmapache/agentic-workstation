@@ -11,9 +11,16 @@ import { nextTabIndex } from './Tabs.utils'
  * Ряд вкладок-разделов: переключает содержимое одной зоны (разделы витрины,
  * позже - настройки). Стрелки ходят по кругу и сразу выбирают, в ряд по Tab
  * попадает только выбранная. Вкладки проектов в шапке - своя фича, не эта.
- * Со счётчиком - разделы найденного (окно поиска по разговорам).
+ * Со счётчиком - разделы найденного (окно поиска по разговорам). Вкладки делят ряд
+ * поровну, растянут ли он раскладкой или fill (режим на всю ширину над тем, что он меняет).
  */
-export const Tabs = <TabId extends string>({ label, items, value, onChange }: TabsProps<TabId>) => {
+export const Tabs = <TabId extends string>({
+  label,
+  items,
+  value,
+  onChange,
+  fill = false,
+}: TabsProps<TabId>) => {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const current = items.findIndex((item) => item.id === value)
     const target = nextTabIndex(event.key, current, items.length)
@@ -27,7 +34,11 @@ export const Tabs = <TabId extends string>({ label, items, value, onChange }: Ta
   }
 
   return (
-    <div role="tablist" aria-label={label} className={styles.tabs} onKeyDown={handleKeyDown}>
+    <div
+      role="tablist"
+      aria-label={label}
+      className={clsx(styles.tabs, fill && styles.fill)}
+      onKeyDown={handleKeyDown}>
       {items.map(({ id, label: itemLabel, icon: Icon, count, flash, hint }) => {
         const isActive = id === value
         const tab = (

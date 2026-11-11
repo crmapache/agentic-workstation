@@ -3,9 +3,9 @@ import clsx from 'clsx'
 import { Redo2, Undo2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../ChangesList.module.scss'
 import type { ChangeRowProps } from '../ChangesList.types'

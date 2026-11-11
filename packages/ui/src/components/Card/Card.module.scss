@@ -59,11 +59,14 @@
   font-size: var(--font-size-sm);
 }
 
+// Действия - по середине строки заголовка, а не по верху: метка ниже кнопки ростом и без
+// этой высоты встала бы выше подписи.
 .actions {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-1);
+  min-height: var(--size-control-sm);
 }
 
 .divider {

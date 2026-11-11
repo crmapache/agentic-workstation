@@ -3,12 +3,12 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { DropdownButton } from '@amazing-ide/ui/DropdownButton'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
-import { Tabs } from '@amazing-ide/ui/Tabs'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import {
   MODE_TONES,

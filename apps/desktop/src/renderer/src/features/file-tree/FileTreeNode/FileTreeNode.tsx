@@ -3,7 +3,7 @@ import type { DragEvent } from 'react'
 import clsx from 'clsx'
 import { ChevronRight } from 'lucide-react'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
 
 import { useIsExpanded, useRevealSerial, useFileTreeStore } from '../file-tree.store'
 import { useTreeStatus } from '../git-status.queries'

@@ -1,5 +1,5 @@
 {
-  "name": "amazing-ide-editor-bench",
+  "name": "agentic-workstation-editor-bench",
   "private": true,
   "type": "module",
   "description": "Стенд сравнения движков редактора для ADR 0005. Не входит в workspace.",

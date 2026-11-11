@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { usePullRequest } from '../git.queries'
 import { PULL_REQUEST_ICONS } from './PullRequestLink.constants'

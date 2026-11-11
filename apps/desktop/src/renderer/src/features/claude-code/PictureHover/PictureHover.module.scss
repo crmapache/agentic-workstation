@@ -1,4 +1,4 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 @include breathing-keyframes;
 
 // Обёртка чипа не меняет раскладку текста: чип стоит в строке, как стоял. Чип - флекс, и

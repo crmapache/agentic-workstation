@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react'
 import { X, PencilLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { chipLabel, chipTitle } from '../chips.utils'
 import { PictureHover } from '../PictureHover/PictureHover'

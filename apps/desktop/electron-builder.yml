@@ -1,5 +1,5 @@
-appId: io.github.crmapache.amazingide
-productName: Amazing IDE
+appId: io.github.crmapache.agenticworkstation
+productName: Agentic Workstation
 copyright: Copyright © crmapache
 
 directories:
@@ -9,8 +9,8 @@ directories:
   buildResources: packaging
 
 # Убирает распакованные каталоги сборки, когда установщики уже собраны: иначе
-# внутри проекта лежит второй Amazing IDE.app, и Spotlight показывает его наравне
-# с установленным. Оставить каталог - AMAZING_IDE_KEEP_UNPACKED=1.
+# внутри проекта лежит второй Agentic Workstation.app, и Spotlight показывает его наравне
+# с установленным. Оставить каталог - AGENTIC_WORKSTATION_KEEP_UNPACKED=1.
 afterAllArtifactBuild: ./scripts/clean-unpacked.cjs
 
 # Подпись бандла сертификатом проекта - до сборки dmg и zip (см. mac.identity ниже).
@@ -23,8 +23,26 @@ files:
   - out/**/*
   - package.json
   - '!**/*.map'
+  # Терминал (ADR 0037): node-pty везёт готовые бинарники всех платформ (одни отладочные
+  # символы Windows - десятки мегабайт) и исходники для node-gyp. В сборку - только свои.
+  - '!**/node_modules/node-pty/prebuilds/win32-*/**'
+  - '!**/node_modules/node-pty/prebuilds/linux-*/**'
+  - '!**/node_modules/node-pty/prebuilds/darwin-x64/**'
+  - '!**/node_modules/node-pty/{src,third_party,scripts}/**'
+  - '!**/node_modules/node-pty/binding.gyp'
+
+# Нативный модуль терминала и его spawn-helper - вне app.asar: процесс из архива не
+# запустить, а node-pty сам ищет помощника в app.asar.unpacked.
+asarUnpack:
+  - '**/node_modules/node-pty/prebuilds/darwin-arm64/**'
 
 asar: true
+
+# Нативные модули главного процесса (koffi, node-pty) - на Node-API с готовыми бинарниками
+# в пакетах: под версию Electron их пересобирать не нужно. Иначе electron-builder собирает
+# node-pty из исходников через node-gyp, а это требует исправных Command Line Tools и без них
+# роняет сборку (ADR 0037).
+npmRebuild: false
 
 mac:
   category: public.app-category.developer-tools
@@ -43,10 +61,10 @@ mac:
 
   # Фиксированные имена без версии: под ними файлы и публикуются, а сайт и
   # манифест обновлений ссылаются на них, не зная версии заранее.
-  artifactName: amazing-ide-mac-${arch}.${ext}
+  artifactName: agentic-workstation-mac-${arch}.${ext}
 
   # Подписывает не electron-builder, а наш хук scripts/sign-app.cjs - самоподписанным
-  # сертификатом «Amazing IDE Code Signing» (Developer ID нет, как в snakein).
+  # сертификатом «Agentic Workstation Code Signing» (Developer ID нет, как в snakein).
   #
   # Сертификат не убирает предупреждение Gatekeeper при первой установке, зато даёт
   # приложению устойчивую подпись: правило, по которому macOS узнаёт «то же самое
@@ -67,7 +85,7 @@ mac:
   entitlementsInherit: packaging/entitlements.mac.plist
 
 dmg:
-  title: Amazing IDE
+  title: Agentic Workstation
   contents:
     - x: 130
       y: 220

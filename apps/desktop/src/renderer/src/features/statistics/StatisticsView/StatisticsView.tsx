@@ -1,7 +1,7 @@
 import { ChartColumn } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 /**
  * Статистика в середине окна. Пока заглушка: статистика будет своей у IDE, по всем

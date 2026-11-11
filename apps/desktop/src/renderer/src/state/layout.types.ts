@@ -2,7 +2,7 @@
 export type SideViewId = 'files' | 'changes'
 
 /** Виды зоны 6 (середина окна), переключаются иконками полосы слева от неё. */
-export type MainViewId = 'file' | 'scenarios' | 'statistics'
+export type MainViewId = 'file' | 'scenarios' | 'statistics' | 'connectors'
 
 /** GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3. */
 export type ProviderViewId = 'claude-code'
@@ -21,11 +21,18 @@ export type PanelState<ViewId extends string> = ViewAreaState<ViewId> & {
 
 export type PanelSide = 'side' | 'provider'
 
+/**
+ * Терминал внизу правой колонки, под GUI провайдера (ADR 0037): открыт ли и какую долю
+ * высоты колонки занимает. Доля, а не пиксели: окно меняет высоту, а раздел остаётся там же.
+ */
+export type TerminalDockState = { isOpen: boolean; share: number }
+
 /** Раскладка целиком: так она сохраняется и восстанавливается. */
 export type Layout = {
   side: PanelState<SideViewId>
   main: ViewAreaState<MainViewId>
   provider: PanelState<ProviderViewId>
+  terminal: TerminalDockState
 }
 
 /**

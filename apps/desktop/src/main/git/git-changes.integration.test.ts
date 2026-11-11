@@ -39,7 +39,7 @@ describe('список изменений и версия из HEAD', () => {
   }
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-changes-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-changes-'))
     repo = join(root, 'repo')
     gitIn(root, 'init', '--initial-branch=main', repo)
     await write('.gitignore', 'out/\n*.log\n')

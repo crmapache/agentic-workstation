@@ -1,0 +1,61 @@
+@use '../../styles/mixins' as *;
+
+// Подпись, ошибка и рамка - как у TextField: два поля рядом в форме читаются одной парой.
+.textArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.label {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Видна только скринридеру.
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// Растёт с набранным от трёх строк до десяти, дальше прокрутка: ручки размера нет -
+// высоту даёт текст, а не перетаскивание. Строки в lh: растут вместе с размером текста.
+.area {
+  @include field-frame;
+
+  min-height: calc(3lh + 2 * var(--space-1-5) + 2 * var(--border-width));
+  max-height: calc(10lh + 2 * var(--space-1-5) + 2 * var(--border-width));
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  outline: none;
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  resize: none;
+  field-sizing: content;
+  user-select: text;
+
+  &::placeholder {
+    color: var(--color-fg-disabled);
+  }
+
+  &:disabled {
+    color: var(--color-fg-subtle);
+  }
+}
+
+.invalid,
+.invalid:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: var(--shadow-danger);
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}

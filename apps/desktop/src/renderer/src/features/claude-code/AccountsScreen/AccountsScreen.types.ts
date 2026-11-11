@@ -19,7 +19,7 @@ export type AccountCardProps = {
   onForget: (account: ClaudeAccount) => void
 }
 
-export type AccountNotesProps = {
+export type DesignSignInProps = {
   /** Идёт действие или вход: кнопка Claude Design ждёт. */
   busy: boolean
 }

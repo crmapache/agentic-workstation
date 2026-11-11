@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'

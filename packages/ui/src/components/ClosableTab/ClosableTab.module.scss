@@ -16,6 +16,10 @@
   // Глубина форка приходит из разметки (style), без неё - корень группы.
   --tab-indent: 0;
 
+  // Подложка крестика - плотнее обычной кнопки sm, а глиф тот же: на вкладке подложка
+  // в полную кнопку закрывала почти всю её высоту и спорила с подписью.
+  --tab-close-size: var(--size-control-xs);
+
   position: relative;
   display: flex;
   isolation: isolate;
@@ -287,13 +291,13 @@
   // Справа - место под крестик и зазор до него: подложка крестика под курсором не
   // касается последней буквы.
   .fit & {
-    padding: 0 calc(var(--size-control-sm) + var(--space-2)) 0 var(--space-3);
+    padding: 0 calc(var(--tab-close-size) + var(--space-2)) 0 var(--space-3);
   }
 
   // Форк отступает ступенью на каждый уровень глубины.
   .grow & {
     width: 100%;
-    padding: 0 calc(var(--size-control-sm) + var(--space-2)) 0
+    padding: 0 calc(var(--tab-close-size) + var(--space-2)) 0
       calc(var(--space-3) + var(--space-2) * var(--tab-indent));
   }
 }
@@ -327,7 +331,7 @@
 // вкладки с одинаковым зазором до края со всех сторон: сверху и снизу его задаёт разница
 // высот вкладки и кнопки, справа - тот же (right - от края под рамкой).
 .close {
-  --close-inset: calc((var(--size-control-md) - var(--size-control-sm)) / 2);
+  --close-inset: calc((var(--size-control-md) - var(--tab-close-size)) / 2);
 
   position: absolute;
   right: calc(var(--close-inset) - var(--border-width));
@@ -342,8 +346,11 @@
   }
 
   // Подложка крестика концентрична вкладке: радиус вкладки минус зазор до её края. С
-  // обычным радиусом кнопки угол подложки спорил с углом вкладки.
+  // обычным радиусом кнопки угол подложки спорил с углом вкладки. Размер - свой
+  // (--tab-close-size), глиф остаётся от кнопки sm.
   button {
+    width: var(--tab-close-size);
+    height: var(--tab-close-size);
     border-radius: calc(var(--radius-lg) - var(--close-inset));
   }
 }

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { useResourceUsage } from '../status-bar.queries'
 import styles from './ResourceUsage.module.scss'

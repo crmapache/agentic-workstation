@@ -1,4 +1,4 @@
-import { ChoiceMark } from '@amazing-ide/ui/ChoiceMark'
+import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 
 import styles from '../Markdown.module.scss'
 import type { MarkdownListProps } from '../Markdown.types'

@@ -1,7 +1,7 @@
 import { Workflow } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 /**
  * Сценарии проекта в середине окна. Пока заглушка: сценарии переезжают на уровень IDE

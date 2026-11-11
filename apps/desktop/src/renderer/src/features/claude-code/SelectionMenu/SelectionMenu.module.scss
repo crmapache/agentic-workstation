@@ -1,9 +1,11 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 
-// Меню у выделения - стеклянный слой поверх ленты, как всплывающие панели окна.
+// Меню у выделения - стеклянный слой поверх ленты, как всплывающие панели окна. Если
+// выделение уходит за верх ленты, меню встаёт на шапку окна - кнопки нажимаются и там.
 .selectionMenu {
   @include glass-overlay;
   @include enter-transition;
+  @include over-window-drag-region;
 
   position: fixed;
   z-index: var(--z-overlay);

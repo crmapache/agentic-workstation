@@ -94,7 +94,7 @@ export const scheduleSwap = ({
     [
       '-c',
       SWAP_SCRIPT,
-      'amazing-ide-update',
+      'agentic-workstation-update',
       String(process.pid),
       installedBundle,
       stagedBundle,

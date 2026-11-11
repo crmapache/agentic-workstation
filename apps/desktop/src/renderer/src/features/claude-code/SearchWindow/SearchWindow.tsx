@@ -2,8 +2,8 @@ import { useRef, useEffect } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Tabs } from '@amazing-ide/ui/Tabs'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
 
 import { useNow } from '../clock.hooks'
 import { AI_CLOCK_MS, SEARCH_KEYS, SEARCH_TABS } from '../search.constants'

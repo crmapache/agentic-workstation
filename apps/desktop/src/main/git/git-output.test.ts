@@ -50,8 +50,12 @@ describe('summarizeGitError', () => {
 
 describe('repositoryName', () => {
   it('имя папки как у git clone', () => {
-    expect(repositoryName('git@github.com:crmapache/amazing-ide.git')).toBe('amazing-ide')
-    expect(repositoryName('https://github.com/crmapache/amazing-ide/')).toBe('amazing-ide')
+    expect(repositoryName('git@github.com:crmapache/agentic-workstation.git')).toBe(
+      'agentic-workstation',
+    )
+    expect(repositoryName('https://github.com/crmapache/agentic-workstation/')).toBe(
+      'agentic-workstation',
+    )
     expect(repositoryName('/Users/max/repos/local')).toBe('local')
   })
 

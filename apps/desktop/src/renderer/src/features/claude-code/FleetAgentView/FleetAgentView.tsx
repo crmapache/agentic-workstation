@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { isDropped, fleetAgentOf, fleetDotState, fleetAgentFacts } from '../agents.utils'
 import { TICK_MS } from '../claude.constants'

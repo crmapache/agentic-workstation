@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { fastModeShown, modelHasFastMode } from '@shared/claude-fast-mode'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useModelCatalog } from '../claude.queries'

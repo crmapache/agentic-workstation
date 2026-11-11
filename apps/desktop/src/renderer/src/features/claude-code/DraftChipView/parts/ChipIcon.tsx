@@ -1,4 +1,4 @@
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
 
 import styles from '../DraftChipView.module.scss'
 import type { ChipIconProps } from '../DraftChipView.types'

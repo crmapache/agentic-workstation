@@ -1,7 +1,7 @@
 import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../NoticeRow.module.scss'
 import type { SessionFieldProps } from '../NoticeRow.types'

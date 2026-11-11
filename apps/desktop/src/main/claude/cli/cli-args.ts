@@ -16,6 +16,12 @@ export type LaunchOptions = {
    * `at` под нашим id. Родившийся форк продолжается своим транскриптом.
    */
   fork: { sourceSessionId: string; at: string } | null
+  /**
+   * Файл серверов шлюза коннекторов IDE (ADR 0028) для проекта разговора. Нет коннекторов -
+   * null. Других MCP у Claude в IDE нет (ADR 0029): ни из конфига человека, ни из плагинов,
+   * ни коннекторов claude.ai.
+   */
+  mcpConfig: string | null
 }
 
 /** С чего начать сессию: продолжить, ответвить от источника или начать с нашим id. */
@@ -68,4 +74,8 @@ export const buildLaunchArgs = (options: LaunchOptions, features: CliFeatures): 
   ...(features.allowSkipPermissions ? ['--allow-dangerously-skip-permissions'] : []),
   ...(options.model ? ['--model', options.model] : []),
   ...(options.effort ? ['--effort', options.effort] : []),
+  // MCP у Claude в IDE - только коннекторы IDE (ADR 0029): их входы не зависят от аккаунта
+  // Claude, а серверы из конфига человека и плагинов ломались бы на каждой смене аккаунта.
+  '--strict-mcp-config',
+  ...(options.mcpConfig ? ['--mcp-config', options.mcpConfig] : []),
 ]

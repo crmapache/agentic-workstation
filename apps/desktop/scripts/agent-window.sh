@@ -7,14 +7,14 @@
 #   node apps/desktop/scripts/cdp.mjs screenshot .screenshots/<что>.png
 #   bash apps/desktop/scripts/agent-window.sh stop
 #
-# start собирает текущий код в ~/.amazing-ide-agent, открывает в окне переданные
+# start собирает текущий код в ~/.agentic-workstation-agent, открывает в окне переданные
 # папки как проекты (первая - активная) и ждёт порт отладки 5316. stop гасит окно и
 # удаляет папку целиком. Изменил код - stop и снова start.
 
 set -euo pipefail
 
 DESKTOP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-WORK_DIR="$HOME/.amazing-ide-agent"
+WORK_DIR="$HOME/.agentic-workstation-agent"
 CDP_PORT=5316
 
 stop() {
@@ -58,7 +58,7 @@ start() {
 
   # Копия живёт за окнами человека, а закрытое окно Chromium не рисует: кадры стоят, страница
   # считает себя скрытой, и всё, что ждёт кадра (показ разницы, покадровые замеры), молчит.
-  AMAZING_IDE_PROFILE_DIR="$WORK_DIR/profile" AMAZING_IDE_CDP_PORT="$CDP_PORT" \
+  AGENTIC_WORKSTATION_PROFILE_DIR="$WORK_DIR/profile" AGENTIC_WORKSTATION_CDP_PORT="$CDP_PORT" \
     nohup ./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron "$WORK_DIR/out" \
     --disable-backgrounding-occluded-windows >"$WORK_DIR/app.log" 2>&1 &
 

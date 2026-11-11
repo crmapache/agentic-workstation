@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { SearchTab } from '../search-everywhere.types'
 import { SearchPanel } from '../SearchPanel/SearchPanel'

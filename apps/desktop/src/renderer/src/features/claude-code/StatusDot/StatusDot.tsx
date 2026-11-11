@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from './StatusDot.module.scss'
 import type { StatusDotProps } from './StatusDot.types'

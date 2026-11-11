@@ -1,6 +1,6 @@
 import type { MarkdownLayout } from './editor.types'
 
-export const MARKDOWN_LAYOUT_STORAGE_KEY = 'amazing-ide.markdown-layout.v1'
+export const MARKDOWN_LAYOUT_STORAGE_KEY = 'agentic-workstation.markdown-layout.v1'
 
 /** Как открывается первый файл Markdown, пока вид ни разу не выбирали: как было - кодом. */
 export const DEFAULT_MARKDOWN_LAYOUT: MarkdownLayout = 'editor'

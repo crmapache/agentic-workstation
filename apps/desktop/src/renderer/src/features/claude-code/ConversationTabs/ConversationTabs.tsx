@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { ClaudeState } from '@shared/claude'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'
@@ -64,7 +64,7 @@ export const ConversationTabs = ({ project, conversations, activeId }: Conversat
     if (active) void fork(active.id, null)
   }
 
-  // Корень бокового меню: прошлые разговоры, MCP, плагины, аккаунты, настройки.
+  // Корень бокового меню: прошлые разговоры, коннекторы, плагины, аккаунты, настройки.
   const handleOpenMenu = () => openMenu()
 
   const handleMenu = (id: string, anchor: HTMLElement) => setMenu({ id, anchor })

@@ -1,4 +1,4 @@
-# Amazing IDE
+# Agentic Workstation
 
 A lightweight IDE for macOS built on Electron and React: project tabs, a file tree,
 an editor and GUIs for LLM providers, with Claude Code first.
@@ -32,7 +32,7 @@ provider panel. See [docs/architecture.md](docs/architecture.md).
 
 ```
 pnpm check                                       # types, lint, styles, tests, format
-pnpm --filter @amazing-ide/desktop update:e2e    # end-to-end self-update test
+pnpm --filter @agentic-workstation/desktop update:e2e    # end-to-end self-update test
 ```
 
 ## Releases
@@ -44,5 +44,5 @@ hours and offer to update in place. See [docs/releasing.md](docs/releasing.md).
 First install: download the dmg, drag the app to Applications, then run once:
 
 ```
-xattr -cr "/Applications/Amazing IDE.app"
+xattr -cr "/Applications/Agentic Workstation.app"
 ```

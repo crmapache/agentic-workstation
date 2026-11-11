@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { X, Blocks, Palette } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Tabs } from '@amazing-ide/ui/Tabs'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
 
 import { useShowcaseStore } from '../showcase.store'
 import { ComponentsView } from '../ComponentsView/ComponentsView'

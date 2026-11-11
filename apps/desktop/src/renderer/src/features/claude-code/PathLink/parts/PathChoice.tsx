@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
 
 import type { PathChoiceProps } from '../PathLink.types'
 

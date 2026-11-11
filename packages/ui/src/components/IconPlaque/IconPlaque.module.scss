@@ -1,0 +1,54 @@
+@use '../../styles/mixins' as *;
+
+// Плашка тона: иконка и тонкая рамка цвета тона на его же подложке, как у Avatar и
+// плашки строки меню. Тон задаёт класс тона через --tone.
+.plaque {
+  --tone: var(--color-fg-muted);
+
+  @include tinted-plaque(var(--tone));
+
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.md {
+  width: var(--size-menu-tile);
+  height: var(--size-menu-tile);
+  border-radius: var(--radius-md);
+}
+
+.lg {
+  width: var(--size-plaque-lg);
+  height: var(--size-plaque-lg);
+  border-radius: var(--radius-lg);
+}
+
+.neutral {
+  --tone: var(--color-fg-muted);
+}
+
+.accent {
+  --tone: var(--color-accent-strong);
+}
+
+.success {
+  --tone: var(--color-success);
+}
+
+.warning {
+  --tone: var(--color-warning);
+}
+
+.danger {
+  --tone: var(--color-danger);
+}
+
+.info {
+  --tone: var(--color-info);
+}
+
+.muted {
+  --tone: var(--color-fg-subtle);
+}

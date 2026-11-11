@@ -41,6 +41,12 @@
   flex-shrink: 0;
 }
 
+// Стрелка меню - тише подписи: подсказка, что откроется список.
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+}
+
 // Главное действие - тонированное: оранжевый текст и рамка на тёмно-оранжевой
 // подложке. Сплошная оранжевая заливка кричала бы с каждого тоста.
 .primary {
@@ -61,6 +67,11 @@
   color: var(--color-fg-muted);
 }
 
+// Необратимое (удалить): тот же язык, что у главного, только красный - не путается с ним.
+.danger {
+  @include tinted-plaque(var(--color-danger));
+}
+
 @media (hover: hover) {
   .primary:not(:disabled):hover {
     background-color: var(--color-accent-soft-hover);
@@ -68,6 +79,11 @@
 
   .secondary:not(:disabled):hover {
     background-color: var(--color-surface-raised-hover);
+  }
+
+  .danger:not(:disabled):hover {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger-strong);
   }
 
   .ghost:not(:disabled):hover {
@@ -85,4 +101,12 @@
 .ghost:not(:disabled):active {
   background-color: var(--color-bg-active);
   transition-duration: var(--duration-fast);
+}
+
+// Меню кнопки открыто - она стоит нажатой, как IconButton со своей панелью. Стоит после
+// hover той же силы: курсор на кнопке сразу после нажатия не гасит нажатое.
+.secondary[aria-expanded='true']:not(:disabled),
+.ghost[aria-expanded='true']:not(:disabled) {
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
 }

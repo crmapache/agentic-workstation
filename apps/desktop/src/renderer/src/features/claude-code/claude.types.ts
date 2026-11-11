@@ -16,8 +16,8 @@ import type {
 import type { ToolsResult } from '@shared/claude-tools'
 import type { Project } from '@shared/workspace'
 
-import type { ClosableTabCall } from '@amazing-ide/ui/ClosableTab.types'
-import type { RingMeterTone } from '@amazing-ide/ui/RingMeter.types'
+import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
+import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
 export type ToolKind = 'hidden' | 'plain' | 'edit' | 'agent' | 'plan' | 'question'
 
@@ -57,8 +57,7 @@ export type SettingsScreen =
  * Экран бокового меню панели (как в ACC): корень со списком и по экрану за каждым
  * пунктом. Шаг назад ведёт к родителю (MENU_PARENT), а не сразу к корню.
  */
-export type MenuScreen =
-  'menu' | 'history' | 'mcp' | 'plugins' | 'accounts' | 'settings' | SettingsScreen
+export type MenuScreen = 'menu' | 'history' | 'plugins' | 'accounts' | 'settings' | SettingsScreen
 
 /** Что получает каждый экран бокового меню: проект панели и выбранный разговор. */
 export type MenuScreenProps = { project: Project; conversation: Conversation | null }
@@ -79,7 +78,7 @@ export type RewindTarget = { conversationId: string; messageId: string }
 export type ScreenNoticeValue = { tone: 'info' | 'success' | 'danger'; text: string } | null
 
 /**
- * Действие экрана инструментов (MCP, плагины): запуск, как его назвать - над чем оно и
+ * Действие экрана инструментов (плагины, /config): запуск, как его назвать - над чем оно и
  * что сказать при успехе, - и куда положить список, который пришёл вместе с итогом.
  */
 export type ToolsAction<Input, Outcome extends { result: ToolsResult }> = {

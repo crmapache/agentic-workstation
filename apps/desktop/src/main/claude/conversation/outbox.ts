@@ -270,7 +270,14 @@ export class ConversationOutbox {
       runtime.syncStatus()
     }
 
-    const process = await runtime.prepareProcess()
+    // Отказ подготовки не должен оставить ход «в работе», а сообщение - потерянным: оно
+    // ждёт в очереди, причина - во вкладке.
+    const process = await runtime.prepareProcess().catch((error: unknown) => {
+      console.warn('[claude] процесс разговора не подготовлен', error)
+      runtime.update({ error: 'start-failed' })
+
+      return null
+    })
 
     if (!process) {
       if (startsTurn) runtime.turnActive = false

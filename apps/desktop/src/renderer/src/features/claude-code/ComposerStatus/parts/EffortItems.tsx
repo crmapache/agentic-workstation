@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { EFFORT_ICONS, EFFORT_MENU_ORDER, DEFAULT_CHOICE_ICON } from '../ComposerStatus.constants'
 import type { PickerProps } from '../ComposerStatus.types'

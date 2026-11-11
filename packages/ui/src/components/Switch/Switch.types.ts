@@ -5,5 +5,10 @@ export type SwitchProps = {
   description?: string | undefined
   checked: boolean
   disabled?: boolean | undefined
+  /**
+   * Только ползунок: подпись - имя для скринридера и подсказка по наведению. Для места, где
+   * и так ясно, что включают (шапка окна предмета). Пояснение тогда не показывается.
+   */
+  labelHidden?: boolean | undefined
   onChange: (checked: boolean) => void
 }

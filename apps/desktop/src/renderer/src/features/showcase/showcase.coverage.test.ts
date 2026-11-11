@@ -62,7 +62,7 @@ describe('витрина и README покрывают дизайн-систем�
 
   it('каждый примитив есть в витрине', () => {
     const missing = components.filter(
-      (name) => !showcaseCode.includes(`from '@amazing-ide/ui/${name}'`),
+      (name) => !showcaseCode.includes(`from '@agentic-workstation/ui/${name}'`),
     )
 
     expect(missing, 'добавь образец в features/showcase/ComponentsView').toEqual([])

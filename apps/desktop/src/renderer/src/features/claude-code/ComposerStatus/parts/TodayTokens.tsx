@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useQuery } from '@tanstack/react-query'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { TODAY_TOKENS_REFRESH_MS } from '../ComposerStatus.constants'
 import styles from '../ComposerStatus.module.scss'

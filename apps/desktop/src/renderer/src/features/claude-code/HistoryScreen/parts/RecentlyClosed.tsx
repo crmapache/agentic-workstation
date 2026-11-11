@@ -1,8 +1,8 @@
 import { RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { MenuSection } from '@amazing-ide/ui/MenuSection'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSection } from '@agentic-workstation/ui/MenuSection'
 
 import type { RecentlyClosedProps } from '../HistoryScreen.types'
 import { useClaudeActions } from '../../claude-actions.hooks'

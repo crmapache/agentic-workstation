@@ -1,4 +1,4 @@
-import type { RingMeterTone } from '@amazing-ide/ui/RingMeter.types'
+import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
 /**
  * По показанию на каждую ступень лестницы - с тех процентов, где ступени и начинаются:

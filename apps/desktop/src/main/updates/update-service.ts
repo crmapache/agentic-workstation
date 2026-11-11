@@ -110,7 +110,7 @@ export class UpdateService {
     if (installedBundle === null) return
 
     const stagingDir = join(dirname(installedBundle), STAGING_DIR_NAME)
-    const zipPath = join(this.options.downloadsDir, `amazing-ide-${version}.zip`)
+    const zipPath = join(this.options.downloadsDir, `agentic-workstation-${version}.zip`)
 
     try {
       this.lastProgressPercent = -1

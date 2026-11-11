@@ -1,15 +1,20 @@
 import { Suspense } from 'react'
 import clsx from 'clsx'
+import { SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useClaudePanelKey, useClaudePanelToggle } from '../actions/claude-panel'
 import { useFileViewOnSelect } from '../actions/file-view'
 import { useOpenFile } from '../actions/open-file'
+import { useTerminalKey, useTerminalToggle } from '../actions/terminal-dock'
 import { useWindowCommands } from '../actions/window-commands'
 import { ActivityBar } from '../ActivityBar/ActivityBar'
 import { NotificationArea } from '../NotificationArea/NotificationArea'
 import { SearchLayer } from '../SearchLayer/SearchLayer'
 import { SidePanel } from '../SidePanel/SidePanel'
+import { TerminalDock } from '../TerminalDock/TerminalDock'
 import { TitleBar } from '../TitleBar/TitleBar'
 import { MAIN_VIEWS } from '../views/main-views'
 import { PROVIDER_VIEWS } from '../views/provider-views'
@@ -31,15 +36,16 @@ import styles from './Workbench.module.scss'
 /**
  * Раскладка окна IDE (docs/architecture.md): 1 шапка (проект, ветка) и под ней вкладки
  * проектов, 2, 3 и 8 полосы переключения видов, 4 строка состояния, 5 левая панель,
- * 6 середина (файл, сценарии, статистика), 7 GUI провайдера LLM; поверх - поиск везде,
- * настройки и витрина. Workbench только расставляет зоны, мерит под них место и связывает
- * их с раскладкой; что внутри каждой - решают фичи.
+ * 6 середина (файл, сценарии, статистика), 7 GUI провайдера LLM и терминал под ним;
+ * поверх - поиск везде, настройки и витрина. Workbench только расставляет зоны, мерит под
+ * них место и связывает их с раскладкой; что внутри каждой - решают фичи.
  */
 export const Workbench = () => {
   const { t } = useTranslation()
   const side = useLayoutStore((state) => state.side)
   const main = useLayoutStore((state) => state.main)
   const provider = useLayoutStore((state) => state.provider)
+  const isTerminalOpen = useLayoutStore((state) => state.terminal.isOpen)
   const selectSideView = useLayoutStore((state) => state.selectSideView)
   const selectMainView = useLayoutStore((state) => state.selectMainView)
   const selectProviderView = useLayoutStore((state) => state.selectProviderView)
@@ -48,9 +54,12 @@ export const Workbench = () => {
   const { rowRef, sideRef, mainRef, providerRef } = useRoomMeasure()
   const openFile = useOpenFile()
   const toggleClaudePanel = useClaudePanelToggle()
+  const terminal = useTerminalToggle()
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
+  // ⌥F12, как в WebStorm: терминал под правой панелью и клавиатура в нём (или спрятать).
+  useTerminalKey(terminal.toggleFromKeyboard)
   useFileViewOnSelect()
   // Settings… (⌘,) и размер текста (⌘+, ⌘-, ⌘0) из меню приложения.
   useWindowCommands()
@@ -110,6 +119,8 @@ export const Workbench = () => {
               width={arrangement.provider}
               minWidth={PANEL_MIN_WIDTH.provider}
               resizeLabel={t('providerViews.resize')}
+              dock={<TerminalDock isOpen={isTerminalOpen} fills={!provider.isOpen} />}
+              isDockOpen={isTerminalOpen}
               onResize={(delta) => resizePanel('provider', delta)}
             />
             <ActivityBar
@@ -118,6 +129,15 @@ export const Workbench = () => {
               views={PROVIDER_VIEWS}
               activeViewId={provider.activeViewId}
               isPanelOpen={provider.isOpen}
+              footer={
+                <IconButton
+                  icon={SquareTerminal}
+                  label={t('terminal.toggle')}
+                  active={isTerminalOpen}
+                  tooltipPlacement="start"
+                  onClick={terminal.toggle}
+                />
+              }
               onSelect={selectProviderView}
             />
 

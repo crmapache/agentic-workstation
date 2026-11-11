@@ -5,8 +5,8 @@ import styles from './Card.module.scss'
 import type { CardProps } from './Card.types'
 
 /**
- * Стеклянная карточка внутри панели: заголовок, строка пояснения, действия справа и
- * содержимое. Для группы настроек, сводки, блока в GUI провайдера. Тон accent - то, что
+ * Стеклянная карточка внутри панели: заголовок, строка состояния, справа действия и «?»
+ * справки у самого края, содержимое. Для группы настроек, сводки, блока в GUI провайдера. Тон accent - то, что
  * ждёт ответа человека: оранжевая рамка и заголовок. Всплывающее поверх окна - Popover
  * или Dialog, не карточка.
  */
@@ -14,12 +14,13 @@ export const Card = ({
   title,
   description,
   icon: Icon,
+  help,
   tone = 'neutral',
   size = 'md',
   actions,
   children,
 }: CardProps) => {
-  const hasHeader = Boolean(title || actions)
+  const hasHeader = Boolean(title || actions || help)
 
   return (
     <section aria-label={title} className={clsx(styles.card, styles[tone], styles[size])}>
@@ -42,7 +43,12 @@ export const Card = ({
               )}
               {description && <div className={styles.description}>{description}</div>}
             </div>
-            {actions && <div className={styles.actions}>{actions}</div>}
+            {(actions || help) && (
+              <div className={styles.actions}>
+                {actions}
+                {help}
+              </div>
+            )}
           </div>
           {size === 'md' && <div className={styles.divider} />}
         </>

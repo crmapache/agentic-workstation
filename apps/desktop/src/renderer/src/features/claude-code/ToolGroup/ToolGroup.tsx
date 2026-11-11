@@ -1,8 +1,8 @@
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 
 import { useFeedScope, useAwaitingTool } from '../feed-scope.context'
 import { chipTone, toolChip } from '../tool-icons'

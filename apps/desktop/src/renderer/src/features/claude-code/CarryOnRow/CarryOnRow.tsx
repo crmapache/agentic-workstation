@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { ClaudeState } from '@shared/claude'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import { useNow } from '../clock.hooks'
 import { formatClock } from '../UserMessage/UserMessage.utils'

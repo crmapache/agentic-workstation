@@ -7,7 +7,7 @@ import { app } from 'electron'
  * собранную IDE можно было запустить рядом с установленной и не задеть её -
  * так работает scripts/update-e2e.sh.
  */
-export const PROFILE_DIR_ENV = 'AMAZING_IDE_PROFILE_DIR'
+export const PROFILE_DIR_ENV = 'AGENTIC_WORKSTATION_PROFILE_DIR'
 
 /**
  * Выбирает, где IDE хранит состояние. Звать до app.whenReady: от userData зависит

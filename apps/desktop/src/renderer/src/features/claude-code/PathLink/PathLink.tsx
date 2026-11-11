@@ -2,8 +2,8 @@ import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Popover } from '@amazing-ide/ui/Popover'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { usePathOpening } from './PathLink.hooks'
 import styles from './PathLink.module.scss'

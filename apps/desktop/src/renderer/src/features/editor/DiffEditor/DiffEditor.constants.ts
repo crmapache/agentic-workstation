@@ -5,9 +5,9 @@
  * нет, её ⌘Z и ⇧⌘Z - отмена и повтор правой стороны.
  */
 export const DIFF_ACTIONS = {
-  nextChange: 'amazingIde.diff.nextChange',
-  previousChange: 'amazingIde.diff.previousChange',
-  openFile: 'amazingIde.diff.openFile',
-  undo: 'amazingIde.diff.undo',
-  redo: 'amazingIde.diff.redo',
+  nextChange: 'agenticWorkstation.diff.nextChange',
+  previousChange: 'agenticWorkstation.diff.previousChange',
+  openFile: 'agenticWorkstation.diff.openFile',
+  undo: 'agenticWorkstation.diff.undo',
+  redo: 'agenticWorkstation.diff.redo',
 } as const

@@ -7,14 +7,15 @@ import type { SheetProps } from './Sheet.types'
 
 /**
  * Лист, который выезжает справа поверх панели: боковое меню со своим экраном за каждым
- * пунктом. Шапка - стрелка назад на вложенных экранах, заголовок с подсказкой, крестик.
+ * пунктом. Шапка - стрелка назад на вложенных экранах, заголовок, «?» с пояснением экрана
+ * и крестик.
  * Esc - шаг назад, на корне закрывает; клик по затемнению закрывает. Встаёт поверх
  * ближайшего родителя с position: relative.
  */
 export const Sheet = ({
   open,
   title,
-  hint,
+  help,
   onBack,
   onClose,
   backLabel,
@@ -36,10 +37,8 @@ export const Sheet = ({
       <aside className={styles.sheet} aria-label={title}>
         <div className={styles.head}>
           {onBack && <IconButton icon={ChevronLeft} size="sm" label={backLabel} onClick={onBack} />}
-          <div className={styles.titles}>
-            <span className={styles.title}>{title}</span>
-            {hint && <span className={styles.hint}>{hint}</span>}
-          </div>
+          <span className={styles.title}>{title}</span>
+          {help}
           <IconButton icon={X} size="sm" label={closeLabel} onClick={onClose} />
         </div>
         <div ref={bodyRef} className={styles.body} onScroll={handleScroll}>

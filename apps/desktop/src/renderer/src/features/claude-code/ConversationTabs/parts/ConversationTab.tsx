@@ -2,8 +2,8 @@ import type { MouseEvent } from 'react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ClosableTab } from '@amazing-ide/ui/ClosableTab'
-import { openWhenReleased } from '@amazing-ide/ui/Popover.utils'
+import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
+import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
 import { FORK_MARK } from '../ConversationTabs.constants'
 import styles from '../ConversationTabs.module.scss'

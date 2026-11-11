@@ -8,7 +8,7 @@
 export const TEXT_SIZE = { min: 60, max: 200, step: 5, default: 100 } as const
 
 /** Ключ в localStorage. Версия в имени: сменилась форма - старое не подхватится. */
-export const TEXT_SIZE_STORAGE_KEY = 'amazing-ide.text-size.v1'
+export const TEXT_SIZE_STORAGE_KEY = 'agentic-workstation.text-size.v1'
 
 /** Переменная на корне документа, от которой токены считают кегли и высоты строк. */
 export const FONT_SCALE_PROPERTY = '--font-scale'

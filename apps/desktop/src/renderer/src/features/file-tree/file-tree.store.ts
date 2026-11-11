@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 import { ancestorPaths } from './file-tree.utils'
 
-const FILE_TREE_STORAGE_KEY = 'amazing-ide.file-tree.v1'
+const FILE_TREE_STORAGE_KEY = 'agentic-workstation.file-tree.v1'
 
 /** Последняя просьба показать файл в дереве. Номер растёт на каждую - даже на тот же файл. */
 type RevealRequest = {

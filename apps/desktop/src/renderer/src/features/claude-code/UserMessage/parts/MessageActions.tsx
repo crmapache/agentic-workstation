@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import { Copy, Check, Undo2, History } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import styles from '../UserMessage.module.scss'
 import type { MessageActionsProps } from '../UserMessage.types'

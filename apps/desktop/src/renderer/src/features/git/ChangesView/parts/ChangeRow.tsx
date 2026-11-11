@@ -2,8 +2,8 @@ import type { DragEvent, MouseEvent, KeyboardEvent } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { openWhenReleased } from '@amazing-ide/ui/Popover.utils'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
 import { CHANGE_LETTERS } from '../ChangesView.constants'
 import styles from '../ChangesView.module.scss'

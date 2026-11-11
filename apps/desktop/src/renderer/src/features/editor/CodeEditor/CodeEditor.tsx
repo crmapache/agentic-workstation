@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { ResizeHandle } from '@amazing-ide/ui/ResizeHandle'
+import { ResizeHandle } from '@agentic-workstation/ui/ResizeHandle'
 
 import { documentKey } from '../documents.utils'
 import { useDocumentStatus } from '../editor.store'

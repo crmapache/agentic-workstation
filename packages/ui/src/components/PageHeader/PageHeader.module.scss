@@ -1,0 +1,35 @@
+@use '../../styles/mixins' as *;
+
+// Полоса шапки: подложка панели светлее середины окна и линия снизу - шапку видно как
+// отдельную часть, а не первую строку страницы. Ростом с полосу вкладок файлов и разговоров
+// (поле, ряд контрола md, поле, линия): линия под шапкой - на той же высоте, что у панели
+// рядом и у вида «файл», и не прыгает при смене вида. Поля по бокам - общее поле зоны.
+.pageHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: calc(var(--size-control-md) + 2 * var(--space-1-5) + var(--border-width));
+  padding: var(--space-1-5) var(--size-panel-gutter);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background-color: var(--color-surface-panel);
+}
+
+.title {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}

@@ -16,7 +16,7 @@ describe('locatePath', () => {
 
   beforeAll(async () => {
     // Настоящий путь: /var/folders на маке - ссылка на /private/var/folders.
-    base = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-locate-')))
+    base = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-locate-')))
     root = join(base, 'project')
     home = join(base, 'home')
     outside = join(base, 'elsewhere')

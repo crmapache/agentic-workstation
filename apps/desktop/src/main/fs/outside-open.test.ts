@@ -38,7 +38,7 @@ describe('openOutside', () => {
   let base = ''
 
   beforeAll(async () => {
-    base = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-outside-')))
+    base = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-outside-')))
     await mkdir(join(base, 'folder'))
     await writeFile(join(base, 'notes.md'), '')
     await writeFile(join(base, 'run.sh'), '')

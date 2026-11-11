@@ -2,7 +2,7 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import { COLLAPSE_AFTER, COLLAPSED_COUNT } from './ChangesList.constants'
 import { useChangesList } from './ChangesList.hooks'

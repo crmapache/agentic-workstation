@@ -9,7 +9,7 @@ import { fileCheckpointing } from '../config/config-files'
 import { findTranscript } from '../history/transcript-paths'
 import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
-import type { ConversationRuntime } from './conversation-runtime'
+import type { ConnectorsLaunch, ConversationRuntime } from './conversation-runtime'
 
 /**
  * Окружение процесса разговора. Копии файлов (откат кода) - только если человек их не
@@ -22,6 +22,18 @@ const conversationEnv = (env: Environment, checkpoints: boolean): Environment =>
       ([name]) => checkpoints || name !== CHECKPOINTS_VARIABLE,
     ),
   )
+
+/**
+ * Коннекторы IDE для нового процесса. Конфиг не записался (диск полон, нет прав) - процесс
+ * поднимается без них, а лента говорит об этом строкой: разговор важнее коннекторов.
+ */
+export const connectorsLaunch = (runtime: ConversationRuntime): Promise<ConnectorsLaunch | null> =>
+  runtime.host.mcpConfig(runtime.meta.projectPath).catch((error: unknown) => {
+    console.warn('[claude] конфиг коннекторов не записан', error)
+    runtime.feed.builder.addNotice('connectors-missing', '')
+
+    return null
+  })
 
 /**
  * Процесс CLI для разговора; null - папки проекта больше нет. Транскрипт сессии уже
@@ -50,28 +62,45 @@ export const spawnConversationProcess = async (
   runtime.host.panel?.launching(runtime, runtime.host.accountId())
 
   const checkpoints = await fileCheckpointing(meta.projectPath)
-  const args = buildLaunchArgs(
-    {
-      sessionId: meta.sessionId,
-      resume,
-      model: runtime.meta.model,
-      effort: meta.effort,
-      permissionMode: meta.permissionMode,
-      fork: meta.fork,
-    },
-    cli.features,
-  )
-  const process: CliProcess = new CliProcess(
-    { binary: cli.binary, args, cwd: meta.projectPath, env: conversationEnv(cli.env, checkpoints) },
-    {
-      onMessage: (message) => runtime.handleMessage(process, message),
-      onControlRequest: (request) => runtime.handleControlRequest(process, request),
-      onExit: (code, stderrTail) => {
-        runtime.handleExit(process, code, stderrTail)
-        runtime.host.panel?.exited(runtime, process)
+  const connectors = await connectorsLaunch(runtime)
+  let process: CliProcess
+
+  try {
+    const args = buildLaunchArgs(
+      {
+        sessionId: meta.sessionId,
+        resume,
+        model: runtime.meta.model,
+        effort: meta.effort,
+        permissionMode: meta.permissionMode,
+        fork: meta.fork,
+        mcpConfig: connectors?.path ?? null,
       },
-    },
-  )
+      cli.features,
+    )
+
+    process = new CliProcess(
+      {
+        binary: cli.binary,
+        args,
+        cwd: meta.projectPath,
+        env: conversationEnv(cli.env, checkpoints),
+      },
+      {
+        onMessage: (message) => runtime.handleMessage(process, message),
+        onControlRequest: (request) => runtime.handleControlRequest(process, request),
+        onExit: (code, stderrTail) => {
+          // Процесс кончился - его ключ шлюза и процессы команд больше не нужны.
+          connectors?.release()
+          runtime.handleExit(process, code, stderrTail)
+          runtime.host.panel?.exited(runtime, process)
+        },
+      },
+    )
+  } catch (error) {
+    connectors?.release()
+    throw error
+  }
 
   // Быстрый режим ездит с разговором: просьба - первой строкой, CLI берёт её до первого
   // сообщения (аргументом нельзя - это JSON, а кавычки в аргументах запрещены).

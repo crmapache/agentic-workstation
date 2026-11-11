@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
 
 import styles from '../UserMessage.module.scss'
 import type { EditorLineProps } from '../UserMessage.types'

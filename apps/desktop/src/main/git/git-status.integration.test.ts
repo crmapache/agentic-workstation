@@ -36,7 +36,7 @@ describe('readGitStatus', () => {
   }
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-status-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-status-'))
     repo = join(root, 'repo')
     gitIn(root, 'init', '--initial-branch=main', repo)
     await write('.gitignore', 'out/\n*.log\n')

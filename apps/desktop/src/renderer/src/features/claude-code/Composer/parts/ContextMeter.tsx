@@ -1,8 +1,8 @@
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { RingMeter } from '@amazing-ide/ui/RingMeter'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { RingMeter } from '@agentic-workstation/ui/RingMeter'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../Composer.module.scss'
 import type { ContextMeterProps } from '../Composer.types'

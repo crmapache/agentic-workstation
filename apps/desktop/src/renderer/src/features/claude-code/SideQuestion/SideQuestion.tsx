@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import type { AsideExchange } from '@shared/claude-panel'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Button } from '@agentic-workstation/ui/Button'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { useAsideThread, useAsideActions } from '../aside.queries'
 import { useClaudeCodeStore } from '../claude-code.store'

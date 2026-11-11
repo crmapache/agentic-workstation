@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { X, ArrowUp, CornerUpLeft, GripVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../QueueList.module.scss'
 import type { QueueRowProps } from '../QueueList.types'

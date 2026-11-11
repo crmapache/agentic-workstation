@@ -1,7 +1,7 @@
 import { useMemo, Fragment, useState, useEffect, createElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ChoiceMark } from '@amazing-ide/ui/ChoiceMark'
+import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 
 import { documents } from '../documents'
 import { formatSize } from '../editor.utils'

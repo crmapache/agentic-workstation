@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Lightbox } from '@amazing-ide/ui/Lightbox'
+import { Lightbox } from '@agentic-workstation/ui/Lightbox'
 
 import { usePicture } from '../picture.queries'
 import { useActiveProject } from '../../../state/workspace.queries'

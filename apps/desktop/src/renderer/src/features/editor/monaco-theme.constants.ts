@@ -6,7 +6,7 @@ import {
 } from '../../lib/highlighter.constants'
 
 /** Имя темы Monaco, собранной из токенов дизайн-системы. */
-export const EDITOR_THEME = 'amazing-ide'
+export const EDITOR_THEME = 'agentic-workstation'
 
 /**
  * Роли дизайн-системы, из которых собирается тема редактора (ADR 0005: своих цветов у

@@ -15,6 +15,397 @@
       "reset": "Reset to 100%"
     }
   },
+  "connectors": {
+    "title": "Connectors",
+    "vaultMissing": "Keychain encryption is unavailable, so the IDE can't save sign-ins. Connectors that need a sign-in won't work until it is back.",
+    "vaultReset": "Saved sign-ins couldn't be read, most likely the keychain key changed. Sign in to your connectors again; the old file is kept next to the new one.",
+    "listTitle": "Your connectors",
+    "empty": "No connectors yet. Add the first one below.",
+    "kinds": {
+      "gmail": {
+        "name": "Gmail",
+        "hint": "Search and read mail, write drafts, labels",
+        "short": "Gmail"
+      },
+      "calendar": {
+        "name": "Google Calendar",
+        "hint": "Events, busy times, your own meetings",
+        "short": "Google Calendar"
+      },
+      "notion": {
+        "name": "Notion",
+        "hint": "Pages and databases through the official Notion MCP",
+        "short": "Notion"
+      },
+      "slack": {
+        "name": "Slack",
+        "hint": "Channels, threads and search through the official Slack MCP",
+        "short": "Slack"
+      },
+      "atlassian": {
+        "name": "Jira & Confluence",
+        "hint": "Issues and pages on Atlassian Cloud through the official Atlassian MCP",
+        "short": "Jira & Confluence"
+      },
+      "todoist": {
+        "name": "Todoist",
+        "hint": "Tasks, projects and comments through the official Todoist MCP",
+        "short": "Todoist"
+      },
+      "playwright": {
+        "name": "Playwright",
+        "hint": "A browser the AI drives: pages, clicks, forms, screenshots",
+        "short": "Playwright"
+      },
+      "mcp": {
+        "name": "MCP server by URL",
+        "hint": "Any remote MCP server: Linear, Sentry, your own",
+        "short": "MCP"
+      },
+      "command": {
+        "name": "MCP server command",
+        "hint": "An MCP server this Mac runs: npx, node, a script",
+        "short": "MCP"
+      },
+      "http": {
+        "name": "Create with AI",
+        "hint": "Describe a service: the AI reads its API docs and builds the connector",
+        "short": "API"
+      }
+    },
+    "status": {
+      "connected": "Connected",
+      "signed-out": "Sign-in needed",
+      "signing-in": "Signing in",
+      "failed": "Not responding",
+      "disabled": "Off"
+    },
+    "failure": {
+      "sign-in-failed": "Sign-in failed. Try again.",
+      "sign-in-timeout": "The browser didn't come back within 5 minutes. Try again.",
+      "sign-in-denied": "Access was denied in the browser.",
+      "callback-busy": "Port 5319 is busy: another copy of the IDE is signing in. Finish there and try again.",
+      "unreachable": "The service didn't answer. Refresh to try again.",
+      "vault-unavailable": "Keychain encryption is unavailable, so the sign-in can't be saved.",
+      "google-app-missing": "Set up Google sign-in first.",
+      "google-app-rejected": "Google rejected the IDE's Google app: its secret was reset or the client was deleted. Import a fresh client file above.",
+      "google-api-disabled": "The API is turned off in your Google Cloud project. Enable Gmail API and Google Calendar API there, then sign in again.",
+      "google-scope-missing": "Some permissions were unchecked on Google's consent screen. Sign in again and leave them all on."
+    },
+    "signingIn": "Finish signing in in your browser.",
+    "actions": {
+      "signIn": "Sign in",
+      "signInAgain": "Sign in again",
+      "cancel": "Cancel",
+      "signOut": "Sign out",
+      "refresh": "Refresh tools",
+      "enabled": "Available to AI",
+      "replaceToken": "Replace token",
+      "saveToken": "Save",
+      "tokenLabel": "New token",
+      "tokenFailed": "The IDE couldn't save this token. Try again."
+    },
+    "remove": {
+      "question": "Remove {{name}}? Its sign-in is deleted from the IDE.",
+      "confirm": "Remove",
+      "cancel": "Keep",
+      "button": "Remove connector"
+    },
+    "tools": {
+      "title": "Tools",
+      "count": "{{enabled}} of {{total}} on",
+      "none": "Tools appear after sign-in.",
+      "groups": {
+        "read": "Read",
+        "write": "Write",
+        "outbound": "Sends to people"
+      }
+    },
+    "add": {
+      "title": "Add a connector",
+      "groups": {
+        "apps": "Apps",
+        "custom": "Custom"
+      },
+      "label": "Label",
+      "labelPlaceholder": "Work",
+      "name": "Name",
+      "namePlaceholder": "Playwright",
+      "multiple": "Several connections",
+      "multipleHint": "Connect it more than once, like Gmail. It shows up in Apps.",
+      "submit": "Add and sign in",
+      "submitPlain": "Add",
+      "googleFirst": "Set up Google sign-in above first: Gmail and Calendar sign in through it.",
+      "errors": {
+        "bad-name": "Use Latin letters or digits in the name.",
+        "bad-label": "Use Latin letters or digits in the label.",
+        "name-taken": "A connector with this name already exists.",
+        "bad-url": "Enter an https address. Plain http works only for this Mac (localhost).",
+        "missing-secret": "Fill in every field.",
+        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the sign-in.",
+        "google-app-missing": "Set up Google sign-in first.",
+        "failed": "The IDE couldn't add this connector. Check the fields and try again.",
+        "bad-command": "Check the command and variables: an unclosed quote, a variable without \"=\", or a $NAME that your shell doesn't set.",
+        "bad-profile": "Enter the profile folder: a path from / or ~.",
+        "bad-version": "Use latest or a version number like 0.0.78.",
+        "bad-spec": "The connector description didn't pass the check. Generate it again."
+      },
+      "slack": {
+        "steps": {
+          "one": "Create the app: Slack opens with it ready. Pick the workspace and press Create.",
+          "two": "In the app's Agents & AI Apps, turn on Model Context Protocol.",
+          "three": "Copy the Client ID and Client Secret from Basic Information here."
+        },
+        "create": "Create Slack app",
+        "createFailed": "The browser didn't open. Try again.",
+        "guide": "Open Slack apps",
+        "clientId": "Client ID",
+        "clientSecret": "Client Secret"
+      },
+      "mcp": {
+        "url": "Server URL",
+        "urlPlaceholder": "https://mcp.example.com/mcp",
+        "auth": "Sign-in",
+        "authOptions": {
+          "oauth": "Browser",
+          "token": "Token",
+          "none": "None"
+        },
+        "token": "Token"
+      },
+      "command": {
+        "line": "Command",
+        "linePlaceholder": "npx -y @scope/server --flag value",
+        "env": "Environment variables",
+        "envPlaceholder": "API_KEY=… OTHER=\"a b\""
+      },
+      "playwright": {
+        "profile": "Browser profile",
+        "profiles": {
+          "isolated": "Clean each time",
+          "saved": "Saved"
+        },
+        "profileDir": "Profile folder",
+        "profileDirPlaceholder": "~/.playwright-profiles/work",
+        "headless": "Hidden browser",
+        "headlessHint": "No browser window on screen",
+        "version": "Version",
+        "versionPlaceholder": "latest"
+      },
+      "todoist": {
+        "token": "API token"
+      },
+      "sheetTitle": "Add {{name}}",
+      "cancel": "Cancel"
+    },
+    "types": {
+      "badge": "Custom",
+      "remove": "Remove connector",
+      "question_one": "Remove {{name}} and its connection? Its sign-in is deleted from the IDE.",
+      "question_other": "Remove {{name}} and its {{count}} connections? Their sign-ins are deleted from the IDE.",
+      "questionEmpty": "Remove {{name}} from Apps?",
+      "confirm": "Remove",
+      "cancel": "Keep",
+      "settings": {
+        "title": "Connector",
+        "name": "Name",
+        "multiple": "Several connections",
+        "multipleHint": "It shows up in Apps, like Gmail",
+        "multipleLocked": "It has {{count}} connections"
+      }
+    },
+    "google": {
+      "title": "Google sign-in",
+      "ready": "Ready",
+      "missing": "Not set up",
+      "client": "Client {{hint}}",
+      "steps": {
+        "one": "In Google Cloud Console, pick a project and enable Gmail API and Google Calendar API.",
+        "two": "In Google Auth Platform, name the app, choose the External audience and publish it. Publishing needs a home page and privacy policy on your own domain; until then, add your accounts as test users.",
+        "three": "Create an OAuth client of type Desktop app and download its JSON file (client_secret_….json) right away: Google shows the secret only once.",
+        "four": "Choose that file here."
+      },
+      "console": "Open Google Cloud Console",
+      "import": "Choose JSON file…",
+      "replace": "Replace…",
+      "forget": "Remove",
+      "errors": {
+        "bad-file": "This is not a Google OAuth client file.",
+        "not-desktop-client": "This client is a Web application. Create a Desktop app client instead.",
+        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the client."
+      },
+      "setUpWithAi": "Set up with AI",
+      "openIn": "Open in {{app}}",
+      "copyPrompt": "Copy prompt",
+      "promptCopied": "Prompt copied",
+      "agentFailed": "{{app}} didn't open. Copy the prompt and paste it there.",
+      "agentPrompt": "Set up a Google OAuth client for Agentic Workstation, a desktop app, in my Google account, working in my browser. I'm already signed in to Google. If a site asks for a sign-in, a 2-step code, a payment method or accepting terms, stop and ask me.\n\nThe goal: any Google account I choose can sign in to Gmail and Calendar in Agentic Workstation. For that the app has to be published (\"In production\"). Google publishes only apps with a home page and a privacy policy on a domain I own and have verified in Google Search Console. Free shared addresses (github.io, web.app, blogspot.com, Google Sites) don't count.\n\n1. Open https://console.cloud.google.com/ and create a new project named \"Agentic Workstation\". If a project with this name already exists, use it. Don't change any other project.\n2. In that project, open APIs & Services > Library and enable \"Gmail API\" and \"Google Calendar API\".\n3. Open Google Auth Platform (https://console.cloud.google.com/auth/overview). If it asks to get started: app name \"Agentic Workstation\", user support email and developer contact email - my email, audience - External. Don't add scopes under Data Access: the app asks for them at sign-in.\n4. In Google Auth Platform > Clients, create a client: application type \"Desktop app\", name \"Agentic Workstation\". Download its JSON file right in the dialog that appears after creating it: Google shows the client secret only once. If the dialog closed without the download, create one more client the same way. The file is named like client_secret_....json and goes to Downloads. Tell me its name: I can already choose it in the IDE.\n5. Ask me whether I have my own domain and where its DNS is managed. Don't guess it.\nIf I have one:\na. Put two public pages on it: a home page and a privacy policy, on the same domain (for example https://example.com/agentic-workstation and https://example.com/agentic-workstation/privacy, or a subdomain). Use the hosting I already have for this domain. If I have none, offer a free hosting that serves my own domain (Cloudflare Pages, GitHub Pages) and ask before creating accounts or projects there.\nThe home page: Agentic Workstation is a desktop IDE for macOS; it connects my own Gmail and Google Calendar to the AI assistants inside the IDE, so they can search and read mail, manage drafts and labels, and read and change calendar events; sending mail and invitations stays off until I turn it on. Link to the privacy policy from it.\nThe privacy policy: the app reads and changes Gmail messages, drafts and labels and Calendar events and calendars only to do what I ask in the IDE; sign-in tokens are stored encrypted on my Mac and never sent to the app developer; mail and events the AI reads are sent to the AI provider I use in the IDE (for example Anthropic for Claude) as part of the conversation; the data is not sold or used for advertising; access can be revoked at https://myaccount.google.com/permissions; a contact email - mine. Add this sentence: \"Agentic Workstation's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.\"\nb. Verify the domain in Google Search Console (https://search.google.com/search-console) with this same Google account: a Domain property, confirmed by a DNS TXT record. Only add new DNS records, never change or delete existing ones, and ask me before adding.\nc. In Google Auth Platform > Branding, fill in the app home page and privacy policy links and add the domain under Authorized domains. Don't upload a logo: it needs a separate review by Google. Save.\nd. In Google Auth Platform > Audience, press \"Publish app\" and confirm. If Google says the app needs verification, skip it: the app is for my own use.\nIf I have no domain, or \"Publish app\" stays unavailable, tell me why and offer two ways: buy a domain and continue from step a, or leave the app in \"Testing\" and add the Google accounts I name under Audience > Test users. In testing mode only test users can sign in, and Google asks them to sign in again every 7 days.\n\nDon't copy the client secret anywhere and don't paste it into any chat or form. At the end, tell me whether the app is published or which test users you added."
+    },
+    "agentApps": {
+      "claude": "Claude",
+      "codex": "Codex"
+    },
+    "availability": {
+      "all": "All projects",
+      "onlyOne": "Only in {{name}}",
+      "only_one": "Only in {{count}} project",
+      "only_other": "Only in {{count}} projects",
+      "none": "In no project"
+    },
+    "projects": {
+      "title": "Projects",
+      "empty": "Open a project to choose it here.",
+      "forgotten": "Other folders",
+      "forget": "Forget",
+      "move": "Move…",
+      "moveTo": "Move its settings to:",
+      "modes": {
+        "all": "All projects",
+        "only": "Selected only"
+      },
+      "otherFolder": "{{path}} · not among open or recent projects"
+    },
+    "import": {
+      "title": "Import from Claude Code",
+      "loading": "Reading Claude Code settings…",
+      "none": "No MCP servers found in Claude Code settings.",
+      "scopes": {
+        "user": "all projects",
+        "local": "project {{name}}, private",
+        "project": "project {{name}}, .mcp.json"
+      },
+      "signIn": "sign in again",
+      "submit_one": "Import {{count}} server",
+      "submit_other": "Import {{count}} servers",
+      "done_one": "Imported {{count}} server.",
+      "done_other": "Imported {{count}} servers.",
+      "skipped": "Skipped: {{names}}.",
+      "close": "Done",
+      "blocked": {
+        "taken": "already added",
+        "duplicate": "same name as another server in this list",
+        "bad-name": "the name has no Latin letters or digits, so it can't be a server name"
+      },
+      "renamed": "becomes {{name}} in the IDE: rules for its old name won't match",
+      "pending": "not approved in Claude Code yet",
+      "reasons": {
+        "taken": "name already taken",
+        "variable": "a variable in its settings isn't set in your shell",
+        "unreachable": "the server didn't answer, so its sign-in is unknown - try again later",
+        "vault-unavailable": "no encryption for its keys",
+        "failed": "couldn't be added"
+      },
+      "tileHint": "Your MCP servers from Claude Code settings, with the same names"
+    },
+    "ai": {
+      "service": "Service",
+      "servicePlaceholder": "Todoist",
+      "goal": "What should the AI be able to do?",
+      "goalPlaceholder": "Read my tasks and projects, add and complete tasks",
+      "docs": "API docs URL (optional)",
+      "docsPlaceholder": "https://developer.todoist.com",
+      "generate": "Build connector",
+      "generating": "Reading the {{service}} API docs and building the connector. It takes a few minutes.",
+      "cancel": "Stop",
+      "again": "Start over",
+      "auth": {
+        "bearer": "API key (Bearer)",
+        "header": "API key in the {{name}} header",
+        "query": "API key in the {{name}} parameter",
+        "basic": "Login and password",
+        "none": "No key needed"
+      },
+      "key": "API key",
+      "username": "Login",
+      "password": "Password",
+      "add": "Add connector",
+      "errors": {
+        "unsupported": "This service doesn't offer a personal API key, so the AI can't build a key-based connector. Use an MCP server for it if there is one.",
+        "cli-missing": "Claude Code is not installed, and it builds the connector.",
+        "cancelled": "Stopped.",
+        "timeout": "The AI didn't finish in 10 minutes. Try again, maybe with a link to the API docs.",
+        "invalid": "The AI's description didn't pass the check. Try again, maybe with a link to the API docs.",
+        "failed": "The AI couldn't build the connector. Try again."
+      },
+      "host": "Calls only",
+      "foreignHost": "This address is not on the docs site ({{docs}}). Make sure it's the official API of the service before adding your key.",
+      "dropped_one": "Left out {{count}} tool that didn't pass the check: {{names}}.",
+      "dropped_other": "Left out {{count}} tools that didn't pass the check: {{names}}.",
+      "state": {
+        "running": "Building",
+        "ready": "Ready to review",
+        "failed": "Didn't work out"
+      }
+    },
+    "tile": {
+      "tools_one": "{{count}} tool",
+      "tools_other": "{{count}} tools"
+    },
+    "facts": {
+      "account": "Account",
+      "service": "Service",
+      "address": "Address",
+      "command": "Command"
+    },
+    "modal": {
+      "close": "Close"
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "connection": {
+      "title": "Connection"
+    },
+    "description": {
+      "title": "Description",
+      "placeholder": "What it is and when to use it"
+    },
+    "help": {
+      "label": "Help",
+      "page": {
+        "title": "About connectors",
+        "text": "Connectors belong to the IDE, not to an AI account. Every AI panel sees them, and switching the Claude account keeps them signed in.\n\nAdd as many of one kind as you need: work and personal mail side by side.\n\nEach connector chooses its projects: all of them or only the ones you pick. Open a connector to change its sign-in, projects and tools."
+      },
+      "description": {
+        "title": "Description",
+        "text": "Your own words about this connector: what it is and when to use it.\n\nThe AI gets the description together with the connector, so it can tell similar connectors apart and pick the right one - say, which Playwright server is for which project.\n\nIt saves as you type."
+      },
+      "projects": {
+        "title": "Projects",
+        "text": "All projects: every project sees the connector, new ones too.\n\nSelected only: only the projects switched on see it. New projects don't get it.\n\nSwitching to Selected only starts with every project on, so nothing changes until you switch some off."
+      },
+      "tools": {
+        "title": "Tools",
+        "text": "Tools are grouped by what they do: Read only looks, Write changes your own data, Sends to people sends messages, emails or posts that other people see.\n\nSending tools are off by default. Only you can turn them on here; the AI can't.\n\nThe refresh button asks the service for its tools again."
+      },
+      "forgotten": {
+        "title": "Other folders",
+        "text": "Settings kept for folders that aren't among open or recent projects - renamed, moved or long closed. Move them to the folder's new project, or forget the ones that are gone."
+      },
+      "add": {
+        "name": "The label tells connections of one connector apart: Work, Personal. Latin letters and digits.",
+        "custom": "Name: how the connector is called everywhere, with a capital letter - Playwright, Linear. Server names come from it once and don't change when you rename it: rules and hooks rely on them.\n\nSeveral connections: connect it more than once, like Gmail. Each connection gets its own label and sign-in. Such a connector shows up in Apps, marked Custom, and you can remove it from there.",
+        "gmail": "Gmail signs in through your own Google app: set it up once above, then add as many accounts as you need. You sign in in your browser.",
+        "calendar": "Google Calendar signs in through your own Google app: set it up once above, then add as many accounts as you need. You sign in in your browser.",
+        "notion": "Notion connects through its official MCP server. You sign in in your browser and pick the workspace there.",
+        "slack": "Slack lets only apps made inside a workspace, or published in the Slack Marketplace, use its MCP. So each workspace gets its own small Slack app, and each app gets its own connector: add another connector for another workspace.\n\nCreate Slack app opens Slack with the app ready: the redirect URL and the permissions the Slack MCP asks for are filled in. Model Context Protocol is the one switch Slack doesn't let set in advance.\n\nIf the workspace needs an admin to approve apps, Slack asks the admin first.\n\nUsing an app you already have? Add http://localhost:5319/callback as a redirect URL under OAuth & Permissions.",
+        "atlassian": "Jira and Confluence on Atlassian Cloud - sites like yourteam.atlassian.net - through Atlassian's official MCP server. You sign in in your browser and allow access to your sites there.\n\nJira and Confluence on a company's own server (Data Center) don't work through it.",
+        "todoist": "Todoist through its official MCP server, signed in with your API token: Todoist → Settings → Integrations → Developer → API token.\n\nThe token doesn't expire. If you reset it in Todoist, replace it in the connector.",
+        "playwright": "A browser the AI drives through the Playwright MCP server on this Mac. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
+        "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this Mac.",
+        "command": "An MCP server this Mac starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
+        "http": "Describe a service: the AI reads its API docs and builds the connector as a list of HTTP requests, not code. It takes a few minutes, and you can close this window meanwhile: the result waits in the catalog.\n\nCheck what the AI built before adding it. Your API key is stored encrypted in the IDE; the AI that built the connector never sees it.",
+        "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are."
+      },
+      "type": {
+        "title": "Custom connector",
+        "text": "A connector you added yourself. Each connection gets its own label and sign-in; the command or the address is shared.\n\nRemoving the connector removes its connections too."
+      },
+      "google": {
+        "title": "Google sign-in",
+        "text": "Google has no shared sign-in app for desktop IDEs, so Gmail and Calendar sign in through your own Google app. You create it once, and it serves every Gmail and Calendar connector.\n\nThe JSON file is that app's ID card: Google gives it to you when you create an OAuth client. It holds the app's ID and secret, not your password or mail. The IDE keeps it encrypted and uses it only to open Google's sign-in page.\n\nSet up with AI opens Claude or Codex with the setup prompt ready. Send it there: the AI clicks through Google Cloud Console in your browser and downloads the file, then you choose it here. For another AI, copy the prompt.\n\nTo let any of your Google accounts sign in, the app has to be published, and Google publishes only apps with a home page and privacy policy on a domain you own. The AI makes the pages and verifies the domain with you. Without a domain the app stays in testing: only accounts added as test users can sign in, and Google asks them to sign in again every 7 days.\n\nWhen you sign in, Google warns that the app isn't verified. It's your own app: continue."
+      }
+    }
+  },
   "projects": {
     "open": "Open project",
     "close": "Close {{name}}",
@@ -38,18 +429,35 @@
     "label": "Main area views",
     "file": "File",
     "scenarios": "Scenarios",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "connectors": "Connectors"
   },
   "providerViews": {
     "label": "LLM providers",
     "claudeCode": "Claude Code",
     "resize": "Resize LLM panel"
   },
+  "terminal": {
+    "title": "Terminal",
+    "toggle": "Terminal",
+    "tabs": "Terminal tabs",
+    "local": "Local",
+    "localNumbered": "Local ({{number}})",
+    "closeTab": "Close {{name}}",
+    "newTab": "New terminal tab",
+    "hide": "Hide",
+    "resize": "Resize the terminal",
+    "failed": "The shell didn't start",
+    "retry": "Try again"
+  },
   "fileTree": {
     "noProjectTitle": "No project open",
     "noProjectText": "Open a folder to see its files here.",
     "emptyFolder": "Empty folder",
-    "readError": "Could not read this folder"
+    "readError": "Could not read this folder",
+    "emptyProjectTitle": "Nothing here yet",
+    "emptyProjectText": "This project folder is empty. Files you add to it show up here.",
+    "rootErrorTitle": "Can't read the project"
   },
   "changes": {
     "noProjectTitle": "No project open",
@@ -699,6 +1107,10 @@
         "terminal": "In a terminal",
         "terminalNote": "Continues this conversation in a terminal opened in the project folder",
         "none": "No ID yet - the conversation gets one with its first message"
+      },
+      "connectorsMissing": {
+        "label": "CONNECTORS",
+        "text": "This conversation runs without IDE connectors: their config file couldn't be written. They come back when the conversation restarts."
       }
     },
     "permission": {
@@ -789,7 +1201,9 @@
       "missingText": "It was moved or deleted while the project was open. Put it back, then try again. Your message is waiting in the queue.",
       "retry": "Try again",
       "cliTitle": "Claude Code is not installed",
-      "cliText": "Install it, then check again. Your message is waiting in the queue."
+      "cliText": "Install it, then check again. Your message is waiting in the queue.",
+      "startTitle": "Claude Code didn't start",
+      "startText": "Something went wrong while preparing the conversation. The details are in the IDE log. Your message is waiting in the queue."
     },
     "forkChat": "Fork this chat",
     "forkNothing": "Nothing to fork yet",
@@ -919,69 +1333,6 @@
       "refusedMissing": "The file is gone",
       "refusedFailed": "Couldn't write the file"
     },
-    "mcp": {
-      "refresh": "Refresh",
-      "loading": "Asking Claude Code for its servers…",
-      "none": "No MCP servers configured for this project.",
-      "finishInBrowser": "Finish signing in to {{name}} in the browser. The list updates itself.",
-      "tools_one": "{{count}} tool",
-      "tools_other": "{{count}} tools",
-      "authenticate": "Sign in",
-      "reconnect": "Reconnect",
-      "retry": "Retry",
-      "enable": "Enable",
-      "disable": "Disable",
-      "remove": "Remove",
-      "cancel": "Cancel",
-      "removeTitle": "Remove {{name}}?",
-      "removeText": "The server goes out of its configuration. Chats in this project restart Claude Code to pick that up when they are free.",
-      "addTitle": "Add a server",
-      "addHint": "Chats in this project pick it up when Claude Code restarts after the current turn.",
-      "name": "Name",
-      "namePlaceholder": "sentry",
-      "transport": "Connection",
-      "command": "Command",
-      "commandPlaceholder": "npx -y @sentry/mcp-server",
-      "url": "URL",
-      "urlPlaceholder": "https://mcp.sentry.dev/mcp",
-      "scope": "Save to",
-      "add": "Add server",
-      "transports": {
-        "stdio": "Command",
-        "http": "HTTP",
-        "sse": "SSE"
-      },
-      "addScopes": {
-        "local": "Just me, this project",
-        "project": "Project (.mcp.json)",
-        "user": "Just me, everywhere"
-      },
-      "scopes": {
-        "project": "This project (.mcp.json)",
-        "local": "Just me, this project",
-        "user": "Just me, everywhere",
-        "claudeai": "claude.ai",
-        "managed": "Organization",
-        "dynamic": "Built-in and plugins",
-        "other": "Other"
-      },
-      "status": {
-        "connected": "Connected",
-        "pending": "Connecting",
-        "needsAuth": "Needs sign-in",
-        "failed": "Failed",
-        "disabled": "Off",
-        "unknown": "Unknown"
-      },
-      "done": {
-        "reconnect": "{{name}} reconnected.",
-        "enable": "{{name}} is on.",
-        "disable": "{{name}} is off.",
-        "authenticate": "{{name}} is signed in.",
-        "add": "{{name}} added. Chats pick it up after their current turn.",
-        "remove": "{{name}} removed."
-      }
-    },
     "plugins": {
       "loading": "Reading plugins…",
       "tabs": {
@@ -1030,13 +1381,11 @@
         "projectMissing": "The project folder is gone.",
         "processExited": "Claude Code stopped before answering. Try again.",
         "refused": "Claude Code didn't manage it.",
-        "unsafeUrl": "The server asked to open an address that isn't a website, so it stayed closed.",
-        "badCommand": "The command has an unclosed quote.",
         "failed": "Something went wrong. Try again."
       }
     },
     "accounts": {
-      "intro": "Chats run on the selected account. Each account keeps only its own sign-in: chats, settings, MCP servers and plugins are shared.",
+      "help": "Chats run on the account in use. Each account keeps only its own sign-in: chats, settings, skills, hooks, plugins and history are shared.\n\nAdd account opens a Terminal window for the sign-in. Your existing account is not touched.\n\nConnectors (Gmail, Notion, Slack and MCP servers) belong to the IDE, not to the account: switching keeps them signed in.\n\nClaude Design signs in per account too, and only a terminal can do it. Authorize Claude Design opens one for the account in use; DesignSync then works in the panel by itself.",
       "defaultTitle": "Default sign-in",
       "untitled": "Account",
       "current": "In use",
@@ -1068,10 +1417,6 @@
       "openFailed": "Terminal didn't open, so the sign-in didn't start. Try again.",
       "logoutFailed": "Couldn't sign out: Claude Code is still signed in. Try again.",
       "designNoAccount": "The account in use could not be resolved, so nothing was opened.",
-      "addHint": "A Terminal window opens for the sign-in. Your existing account is not touched.",
-      "mcpNote": "MCP servers sign in per account, so a new one authenticates them once. Skills, hooks, settings and history are shared.",
-      "designTitle": "Claude Design",
-      "designNote": "Claude Design signs in per account too, and only a terminal can do it. This opens one for the account in use; DesignSync then works in the panel by itself.",
       "designAuthorize": "Authorize Claude Design",
       "refusedUntil": "Limit refused · until {{clock}}",
       "unavailable": {
@@ -1098,82 +1443,61 @@
       "open": "Menu",
       "back": "Back",
       "close": "Close the menu",
-      "footer": "Amazing IDE",
+      "help": "About this screen",
+      "helpClose": "Close",
+      "footer": "Agentic Workstation",
       "version": "v{{version}}",
       "titles": {
         "menu": {
-          "title": "Menu",
-          "hint": "everything the panel keeps out of the way"
+          "title": "Menu"
         },
         "history": {
-          "title": "History",
-          "hint": "past conversations of this project"
-        },
-        "mcp": {
-          "title": "MCP servers",
-          "hint": "status · sign in · reconnect"
+          "title": "History"
         },
         "plugins": {
-          "title": "Plugins",
-          "hint": "installed · browse · marketplaces"
+          "title": "Plugins"
         },
         "accounts": {
-          "title": "Claude accounts",
-          "hint": "which subscription pays for the work"
+          "title": "Claude accounts"
         },
         "settings": {
-          "title": "Settings",
-          "hint": "how the panel behaves and sounds"
+          "title": "Settings"
         },
         "sounds": {
-          "title": "Sound alerts",
-          "hint": "when the panel calls you"
+          "title": "Sound alerts"
         },
         "calmColors": {
-          "title": "No-stress colors",
-          "hint": "how the gauges are painted"
+          "title": "No-stress colors"
         },
         "newChat": {
-          "title": "New chats",
-          "hint": "what a new tab starts with"
+          "title": "New chats"
         },
         "newChatModel": {
-          "title": "Default model",
-          "hint": "what a new tab starts on"
+          "title": "Default model"
         },
         "newChatEffort": {
-          "title": "Default effort",
-          "hint": "how hard a new tab thinks"
+          "title": "Default effort"
         },
         "newChatMode": {
-          "title": "Default mode",
-          "hint": "what new tabs start in"
+          "title": "Default mode"
         },
         "shareEditor": {
-          "title": "Editor in messages",
-          "hint": "what goes along with a message"
+          "title": "Editor in messages"
         },
         "pasteCollapse": {
-          "title": "Pasted text",
-          "hint": "when a paste folds into a chip"
+          "title": "Pasted text"
         },
         "claudeConfig": {
-          "title": "Claude Code settings",
-          "hint": "what /config changes"
+          "title": "Claude Code settings"
         },
         "customModels": {
-          "title": "Custom models",
-          "hint": "ones Claude Code does not offer"
+          "title": "Custom models"
         }
       },
       "rows": {
         "history": {
           "label": "History",
           "sub": "Past conversations of this project"
-        },
-        "mcp": {
-          "label": "MCP servers",
-          "sub": "Status, sign-in, reconnect"
         },
         "plugins": {
           "label": "Plugins",
@@ -1274,7 +1598,7 @@
       "label": "Colour in the gauges",
       "hint": "The whole ladder at 100%, one calm tone at 0%",
       "percent": "{{value}}%",
-      "keeps": "Nothing else changes: an error stays red, a permission stays what it is. Those are things that happened, not a mood."
+      "help": "Nothing else changes: an error stays red, a permission stays what it is. Those are things that happened, not a mood."
     },
     "newChats": {
       "rows": {
@@ -1297,7 +1621,7 @@
       "bypassOff": "Bypass permissions is not offered: this project's or your organization's settings switch it off."
     },
     "claudeConfig": {
-      "intro": "Claude Code's own settings - the ones /config changes in a terminal, and they apply there too. Claude Code writes every change itself.",
+      "help": "Claude Code's own settings - the ones /config changes in a terminal, and they apply there too. Claude Code writes every change itself.",
       "loading": "Asking Claude Code for its settings…",
       "unreadable": "This Claude Code listed its settings in a form the panel cannot read. /config in a terminal still works.",
       "groups": {
@@ -1412,10 +1736,10 @@
     "shareEditor": {
       "label": "Send the open file along",
       "hint": "Each message carries the file open in the editor - the way Claude Code does it in a terminal",
-      "note": "The file’s chip under the field has this same switch, and there a single message can go without it, or with it. A slash command never carries it."
+      "help": "The file’s chip under the field has this same switch, and there a single message can go without it, or with it. A slash command never carries it."
     },
     "pasteCollapse": {
-      "note": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it.",
+      "help": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it.",
       "never": "Never fold",
       "neverSub": "Everything stays in the field, except a paste over {{thousands}},000 characters",
       "fold": "Fold long pastes",
@@ -1519,7 +1843,7 @@
       "mb": "{{value}} MB",
       "gb": "{{value}} GB"
     },
-    "usageHint": "Used by Amazing IDE, all its processes, as in Activity Monitor. CPU 100% is one full core."
+    "usageHint": "Used by Agentic Workstation, all its processes, as in Activity Monitor. CPU 100% is one full core."
   },
   "updates": {
     "availableTitle": "Version {{version}} is available",
@@ -1638,6 +1962,7 @@
       "switchProject": "Switch to Project {{name}}",
       "openRecent": "Open Recent Project {{name}}",
       "toggleClaudeCode": "Show or Hide Claude Code",
+      "toggleTerminal": "Show or Hide Terminal",
       "toggleView": "Show or Hide {{name}}",
       "toggleDesignSystem": "Show or Hide Design System",
       "openSettings": "Settings…",

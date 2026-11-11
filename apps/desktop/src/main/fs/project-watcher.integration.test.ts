@@ -58,7 +58,7 @@ describe('ProjectWatcher', () => {
 
   beforeAll(async () => {
     // realpath: /var у macOS - ссылка на /private/var, FSEvents отдаёт настоящий путь.
-    root = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-watch-')))
+    root = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-watch-')))
   })
 
   afterAll(() => rm(root, { recursive: true, force: true }))

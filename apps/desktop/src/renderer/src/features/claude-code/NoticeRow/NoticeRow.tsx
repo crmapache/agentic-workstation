@@ -74,6 +74,7 @@ export const NoticeRow = memo(({ item }: NoticeRowProps) => {
     case 'process-exited':
     case 'fast':
     case 'outranked':
+    case 'connectors-missing':
       return <NoticeLabelRow item={item} />
     // Лог мода CLI и судьба выбора модели (panel/): свои строки рядом.
     case 'mod':

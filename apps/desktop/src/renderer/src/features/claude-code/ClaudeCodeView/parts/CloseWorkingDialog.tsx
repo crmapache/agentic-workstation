@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Dialog } from '@amazing-ide/ui/Dialog'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Dialog } from '@agentic-workstation/ui/Dialog'
 
 import type { CloseWorkingDialogProps } from '../ClaudeCodeView.types'
 import { keyLine } from '../../panel-keys.utils'

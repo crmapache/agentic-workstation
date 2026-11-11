@@ -1,4 +1,4 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 
 // Полоса иконок - узкий лист рядом с листом панели. Сверху иконку отделяет тот же
 // зазор, что и по бокам. Активный вид отмечает сама кнопка - залитой плашкой.
@@ -12,4 +12,12 @@
   gap: var(--space-1);
   width: var(--size-activity-bar);
   padding: var(--space-1-5) 0;
+}
+
+// Низ полосы: прижат к нижнему краю, как кнопка Terminal в полосе WebStorm.
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: auto;
 }

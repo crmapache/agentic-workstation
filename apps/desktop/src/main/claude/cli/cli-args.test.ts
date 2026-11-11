@@ -13,6 +13,7 @@ const base = {
   effort: null,
   permissionMode: 'default' as const,
   fork: null,
+  mcpConfig: null,
 }
 
 /** Значение флага в аргументах. */
@@ -50,5 +51,21 @@ describe('аргументы запуска', () => {
 
   it('слои настроек не урезаются: CLI читает все, как в терминале', () => {
     expect(buildLaunchArgs({ ...base, resume: false }, features)).not.toContain('--setting-sources')
+  })
+
+  it('MCP - только коннекторы IDE: строгий конфиг всегда, файл - когда они есть', () => {
+    const path = '/Users/me/Library/Application Support/Agentic Workstation/connectors-mcp.json'
+
+    expect(buildLaunchArgs({ ...base, resume: false }, features)).not.toContain('--mcp-config')
+    expect(buildLaunchArgs({ ...base, resume: false }, features)).toContain('--strict-mcp-config')
+    expect(
+      valueOf(
+        buildLaunchArgs({ ...base, resume: false, mcpConfig: path }, features),
+        '--mcp-config',
+      ),
+    ).toBe(path)
+    expect(buildLaunchArgs({ ...base, resume: false, mcpConfig: path }, features)).toContain(
+      '--strict-mcp-config',
+    )
   })
 })

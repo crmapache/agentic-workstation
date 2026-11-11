@@ -3,12 +3,12 @@
 ## Зачем сертификат, если Apple приложение не заверяет
 
 Developer ID нет, поэтому сборка подписана самоподписанным сертификатом
-`Amazing IDE Code Signing` - так же, как snakein. Предупреждение Gatekeeper при
+`Agentic Workstation Code Signing` - так же, как snakein. Предупреждение Gatekeeper при
 первой установке он не убирает (это умеет только Developer ID), поэтому человек один
 раз выполняет:
 
 ```
-xattr -cr "/Applications/Amazing IDE.app"
+xattr -cr "/Applications/Agentic Workstation.app"
 ```
 
 Сертификат решает другую задачу. macOS узнаёт приложение не по имени и не по пути, а
@@ -22,7 +22,7 @@ designated => cdhash H"4b7bccfc3cfb5fdaf8537e6cba09d4586a8c1662"
 С сертификатом - идентификатор и сертификат, которые от сборки к сборке не меняются:
 
 ```
-designated => identifier "io.github.crmapache.amazingide" and certificate leaf = H"..."
+designated => identifier "io.github.crmapache.agenticworkstation" and certificate leaf = H"..."
 ```
 
 На этом держится самообновление: установленная IDE ставит новую версию, только если
@@ -38,15 +38,19 @@ designated => identifier "io.github.crmapache.amazingide" and certificate leaf =
 
 Поэтому:
 
-- копия лежит в корне репозитория: `amazing-ide-code-signing.p12`, пароль
-  `amazing-ide` (секрет - сам файл, а пустой пароль macOS при импорте не принимает).
+- копия лежит в корне репозитория: `agentic-workstation-code-signing.p12`, пароль
+  `agentic-workstation` (секрет - сам файл, а пустой пароль macOS при импорте не принимает).
   Удалять её нельзя;
 - в git `.p12` и `.pem` не попадают (`.gitignore`): это приватный ключ, которым
   подписывается то, что запускается у людей;
 - у этого проекта свой сертификат, отдельный от snakein и notastream: общий ключ
   связал бы судьбу продуктов без всякой пользы.
 
-Создан 2026-10-16, отпечаток `AC7AA9E35B2E6C086162367A9570C3A34A0A37D1`.
+Создан 2026-11-10, отпечаток `12E08D08B8E1EC971DEAA83F78FBC8DC6BB1C5B3`. Прежний
+`Amazing IDE Code Signing` (2026-10-16, `AC7AA9E35B2E6C086162367A9570C3A34A0A37D1`) заменён
+при переименовании до первого релиза ([ADR 0038](adr/0038-rename-agentic-workstation.md)):
+он остаётся в связке ключей, его копия `amazing-ide-code-signing.p12` - в корне, но ничего
+не подписывает.
 
 ## Кто подписывает и почему без доверия
 
@@ -75,8 +79,8 @@ bash apps/desktop/scripts/create-signing-cert.sh
 Положить копию в корень репозитория и импортировать:
 
 ```
-security import amazing-ide-code-signing.p12 -k ~/Library/Keychains/login.keychain-db \
-  -P amazing-ide -T /usr/bin/codesign
+security import agentic-workstation-code-signing.p12 -k ~/Library/Keychains/login.keychain-db \
+  -P agentic-workstation -T /usr/bin/codesign
 ```
 
 `-T /usr/bin/codesign` важен: без него каждая подпись при сборке ждёт подтверждения
@@ -87,7 +91,7 @@ security import amazing-ide-code-signing.p12 -k ~/Library/Keychains/login.keycha
 Сертификат на месте:
 
 ```
-security find-identity -p codesigning | grep "Amazing IDE Code Signing"
+security find-identity -p codesigning | grep "Agentic Workstation Code Signing"
 ```
 
 Пометка `CSSMERR_TP_NOT_TRUSTED` в строке - норма: доверие подписи не нужно.
@@ -95,8 +99,8 @@ security find-identity -p codesigning | grep "Amazing IDE Code Signing"
 Собранное приложение подписано им, а не ad-hoc:
 
 ```
-AMAZING_IDE_KEEP_UNPACKED=1 pnpm dist
-codesign -d -r- "apps/desktop/dist/mac-arm64/Amazing IDE.app"
+AGENTIC_WORKSTATION_KEEP_UNPACKED=1 pnpm dist
+codesign -d -r- "apps/desktop/dist/mac-arm64/Agentic Workstation.app"
 ```
 
 В ответе должно быть `certificate leaf`. Если там `cdhash` - сборка ушла с ad-hoc

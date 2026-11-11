@@ -1,0 +1,34 @@
+// Код - на самой тёмной поверхности, как блок кода в ответе: ровный фон, тонкая рамка.
+.snippet {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+}
+
+// Первая строка - по середине кнопки копии: поля сверху и снизу добирают строку до её
+// высоты. Перенесённые строки идут ниже.
+.code {
+  flex: 1;
+  min-width: 0;
+  padding-block: calc((var(--size-control-sm) - 1lh) / 2);
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+// Слово - целым куском: строка переносится между словами, а не после дефиса внутри флага.
+// Слово шире строки переносится внутри себя.
+.word {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { SoundEvent } from '@shared/claude-prefs'
 import { SOUND_EVENTS } from '@shared/claude-prefs'
 
-import { Card } from '@amazing-ide/ui/Card'
+import { Card } from '@agentic-workstation/ui/Card'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { usePanelPrefs } from '../claude.queries'

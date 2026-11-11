@@ -6,7 +6,7 @@
 export const PIN_LIMIT = 3
 
 /** Ключ закреплённых в localStorage окна. */
-export const PINS_STORAGE_KEY = 'amazing-ide.claude-pins.v1'
+export const PINS_STORAGE_KEY = 'agentic-workstation.claude-pins.v1'
 
 /**
  * Сколько текста закреплённого уходит в строку полки. Видимый обрез делает браузер по

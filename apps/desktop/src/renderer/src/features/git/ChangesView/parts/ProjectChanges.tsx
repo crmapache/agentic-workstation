@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { GitChange } from '@shared/git'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import styles from '../ChangesView.module.scss'
 import type { ChangeMenuTarget, ProjectChangesProps } from '../ChangesView.types'

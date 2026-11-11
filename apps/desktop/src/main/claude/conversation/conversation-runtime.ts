@@ -28,6 +28,12 @@ import { answerFor, matchesRequest, modeFromAlways } from './pending-requests'
 import { routeMessage } from './process-router'
 import { spawnConversationProcess } from './spawn'
 
+/**
+ * Конфиг коннекторов IDE для одного процесса разговора (ADR 0029): файл для
+ * `--mcp-config` и «процесс кончился» - ключ шлюза и процессы команд этого процесса гаснут.
+ */
+export type ConnectorsLaunch = { path: string; release: () => void }
+
 /** Что разговору нужно от сервиса: CLI, доверие к папке и куда сообщать об изменениях. */
 export type ConversationHost = CliTap & {
   cli: () => Promise<ClaudeCli | null>
@@ -48,6 +54,11 @@ export type ConversationHost = CliTap & {
    * вкладки). key - у повода, который CLI повторяет (лимит того же окна): зовёт раз.
    */
   onCall: (conversationId: string, reason: SoundEvent, key?: string) => void
+  /**
+   * Конфиг коннекторов IDE для нового процесса в проекте (ADR 0029); коннекторов нет -
+   * null. Не записался - отказ: процесс поднимется без них.
+   */
+  mcpConfig: (projectPath: string) => Promise<ConnectorsLaunch | null>
 }
 
 /**
@@ -365,7 +376,13 @@ export class ConversationRuntime {
       return null
     }
 
-    const process = await spawnConversationProcess(this, cli)
+    // Сбой подготовки (файловая система, CLI) - причина во вкладке, а не повисший ход.
+    const process = await spawnConversationProcess(this, cli).catch((error: unknown) => {
+      console.warn('[claude] процесс разговора не поднялся', error)
+      this.update({ error: 'start-failed' })
+
+      return null
+    })
 
     if (!process || this.disposed) {
       if (process) void process.stop()

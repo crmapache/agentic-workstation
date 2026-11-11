@@ -1,8 +1,8 @@
-import { Plug, Puzzle, History, Settings, UsersRound } from 'lucide-react'
+import { Puzzle, History, Settings, UsersRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { useMenuSummary } from '../SideMenu.hooks'
 import { useClaudeCodeStore } from '../../claude-code.store'
@@ -10,7 +10,8 @@ import type { MenuScreenProps } from '../../claude.types'
 
 /**
  * Корень бокового меню: пункт - экран, справа - что он скажет, не открывая его (число
- * разговоров, «4/5» серверов, имя аккаунта цветом его состояния).
+ * разговоров, имя аккаунта цветом его состояния). Коннекторов здесь нет: у них своя кнопка
+ * вида Connectors в полосе у середины окна (ADR 0029).
  */
 export const MenuRoot = (props: MenuScreenProps) => {
   const { t } = useTranslation()
@@ -27,16 +28,6 @@ export const MenuRoot = (props: MenuScreenProps) => {
         hint={summary.history?.text}
         chevron
         onSelect={() => pickMenu('history')}
-      />
-      <MenuItem
-        icon={Plug}
-        iconTone={summary.mcp?.tone ?? 'neutral'}
-        label={t('claudeCode.menu.rows.mcp.label')}
-        description={t('claudeCode.menu.rows.mcp.sub')}
-        hint={summary.mcp?.text}
-        hintTone={summary.mcp?.tone}
-        chevron
-        onSelect={() => pickMenu('mcp')}
       />
       <MenuItem
         icon={Puzzle}

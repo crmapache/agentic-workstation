@@ -1,5 +1,5 @@
 /** Тема на CSS-переменных: цвет токена - роль `--color-syntax-*` (ADR 0009). */
-export const SYNTAX_THEME = 'amazing-ide'
+export const SYNTAX_THEME = 'agentic-workstation'
 
 /**
  * Сколько грамматике можно думать над одной строкой редактора. Дольше - строка остаётся

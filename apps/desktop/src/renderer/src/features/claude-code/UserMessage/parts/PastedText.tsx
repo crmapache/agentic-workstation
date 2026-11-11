@@ -2,8 +2,8 @@ import { memo, useMemo, useState } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../UserMessage.module.scss'
 import type { PastedTextProps } from '../UserMessage.types'

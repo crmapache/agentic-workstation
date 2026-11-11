@@ -16,7 +16,7 @@ export type ClosableTabProps = {
   /** Подсказка над вкладкой: полный путь проекта, полный заголовок разговора. */
   hint: string
   active: boolean
-  /** Подпись крестика для скринридера и подсказки: «Close amazing-ide». */
+  /** Подпись крестика для скринридера и подсказки: «Close agentic-workstation». */
   closeLabel: string
   /**
    * Перед подписью: точка состояния, знак форка. На выбранной tinted-вкладке им

@@ -1,4 +1,4 @@
-import { Switch } from '@amazing-ide/ui/Switch'
+import { Switch } from '@agentic-workstation/ui/Switch'
 
 import styles from '../ClaudeConfigScreen.module.scss'
 import type { ConfigRowProps } from '../ClaudeConfigScreen.types'

@@ -124,6 +124,27 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
     ],
   },
   {
+    titleKey: 'groups.ansi',
+    tokens: [
+      '--color-ansi-black',
+      '--color-ansi-red',
+      '--color-ansi-green',
+      '--color-ansi-yellow',
+      '--color-ansi-blue',
+      '--color-ansi-magenta',
+      '--color-ansi-cyan',
+      '--color-ansi-white',
+      '--color-ansi-bright-black',
+      '--color-ansi-bright-red',
+      '--color-ansi-bright-green',
+      '--color-ansi-bright-yellow',
+      '--color-ansi-bright-blue',
+      '--color-ansi-bright-magenta',
+      '--color-ansi-bright-cyan',
+      '--color-ansi-bright-white',
+    ],
+  },
+  {
     titleKey: 'groups.vcs',
     tokens: [
       '--color-vcs-modified',

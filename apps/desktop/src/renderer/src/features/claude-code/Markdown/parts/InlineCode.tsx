@@ -3,7 +3,7 @@ import type { KeyboardEvent } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../Markdown.module.scss'
 import type { InlineCodeProps } from '../Markdown.types'

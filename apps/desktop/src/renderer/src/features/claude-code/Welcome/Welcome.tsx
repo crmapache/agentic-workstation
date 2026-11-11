@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import styles from './Welcome.module.scss'
 

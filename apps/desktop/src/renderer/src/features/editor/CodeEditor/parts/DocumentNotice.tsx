@@ -1,7 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../CodeEditor.module.scss'
 import type { DocumentNoticeProps } from '../CodeEditor.types'

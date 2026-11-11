@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Button } from '@agentic-workstation/ui/Button'
+import { TextField } from '@agentic-workstation/ui/TextField'
 
 import styles from '../ClaudeConfigScreen.module.scss'
 import type { ConfigValueProps } from '../ClaudeConfigScreen.types'

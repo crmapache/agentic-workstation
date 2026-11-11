@@ -1,7 +1,7 @@
 import { Pin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { usePin } from '../pins.store'
 import type { PinButtonProps } from './PinButton.types'

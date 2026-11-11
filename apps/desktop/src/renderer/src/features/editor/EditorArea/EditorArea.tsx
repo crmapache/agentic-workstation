@@ -2,8 +2,8 @@ import { Suspense } from 'react'
 import { FolderOpen, MousePointerClick } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { Button } from '@agentic-workstation/ui/Button'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import { EditorTabs } from '../EditorTabs/EditorTabs'
 import { tabTarget } from '../../../state/editor-tabs.utils'

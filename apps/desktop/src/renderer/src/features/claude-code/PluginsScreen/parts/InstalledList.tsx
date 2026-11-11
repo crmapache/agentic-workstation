@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Button } from '@amazing-ide/ui/Button'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../PluginsScreen.module.scss'
 import type { InstalledListProps } from '../PluginsScreen.types'

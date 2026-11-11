@@ -1,10 +1,10 @@
 import { Copy, Pencil } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { useAnchoredPopover } from '@amazing-ide/ui/Popover.hooks'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { TabContextMenuProps } from '../ConversationTabs.types'
 import { useClaudeCodeStore } from '../../claude-code.store'

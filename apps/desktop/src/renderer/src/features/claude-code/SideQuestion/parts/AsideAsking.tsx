@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../SideQuestion.module.scss'
 import type { AsideAskingProps } from '../SideQuestion.types'

@@ -1,13 +1,13 @@
 {
-  "name": "@amazing-ide/desktop",
-  "productName": "Amazing IDE",
+  "name": "@agentic-workstation/desktop",
+  "productName": "Agentic Workstation",
   "version": "0.1.0",
   "private": true,
   "author": "crmapache",
   "description": "Лёгкая IDE для macOS: проекты, файлы, редактор и GUI провайдеров LLM",
   "main": "./out/main/index.js",
-  "amazingIde": {
-    "releasesRepo": "crmapache/amazing-ide-releases"
+  "agenticWorkstation": {
+    "releasesRepo": "crmapache/agentic-workstation-releases"
   },
   "scripts": {
     "postinstall": "node scripts/install-electron.mjs",
@@ -16,23 +16,28 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
-    "dist": "pnpm run build && AMAZING_IDE_SIGN=required electron-builder --mac --arm64 --publish never",
+    "dist": "pnpm run build && AGENTIC_WORKSTATION_SIGN=required electron-builder --mac --arm64 --publish never",
     "dist:local": "pnpm run build && electron-builder --mac --arm64 --publish never",
     "cdp": "node scripts/cdp.mjs",
     "update:e2e": "bash scripts/update-e2e.sh"
   },
   "dependencies": {
     "koffi": "3.3.3",
+    "node-pty": "1.2.0-beta.18",
     "semver": "7.8.5"
   },
   "devDependencies": {
-    "@amazing-ide/ui": "workspace:*",
+    "@agentic-workstation/ui": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@tanstack/react-query": "5.104.3",
     "@types/node": "24.13.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/semver": "7.8.0",
     "@vitejs/plugin-react": "6.1.2",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/addon-web-links": "0.12.0",
+    "@xterm/xterm": "6.0.0",
     "clsx": "2.1.1",
     "diff": "9.0.0",
     "electron": "44.7.2",
@@ -53,6 +58,7 @@
     "typescript": "6.0.3",
     "vite": "8.3.4",
     "vitest": "5.0.5",
+    "zod": "4.6.7",
     "zustand": "5.0.15"
   }
 }

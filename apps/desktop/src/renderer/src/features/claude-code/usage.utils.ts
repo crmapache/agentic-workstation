@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 
 import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
 
-import type { RingMeterTone } from '@amazing-ide/ui/RingMeter.types'
+import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
 import { DAY_MS, HOUR_MS, MINUTE_MS } from './claude.constants'
 import type { UsageRing } from './claude.types'

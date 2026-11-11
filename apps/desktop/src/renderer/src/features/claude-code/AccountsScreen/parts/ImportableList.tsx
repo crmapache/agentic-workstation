@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../AccountsScreen.module.scss'
 import type { ImportableListProps } from '../AccountsScreen.types'

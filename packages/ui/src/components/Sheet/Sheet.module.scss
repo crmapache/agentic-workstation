@@ -38,24 +38,13 @@
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
-.titles {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .title {
   @include caps-label;
-
-  color: var(--color-fg-strong);
-}
-
-.hint {
   @include truncate;
 
-  color: var(--color-fg-subtle);
-  font-size: var(--font-size-xs);
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-strong);
 }
 
 .body {

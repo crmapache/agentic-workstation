@@ -4,7 +4,7 @@
 # настоящего сертификата. Гонять после любой правки в src/main/updates, в
 # electron-builder.yml и в scripts/write-update-manifest.mjs.
 #
-#   pnpm --filter @amazing-ide/desktop update:e2e
+#   pnpm --filter @agentic-workstation/desktop update:e2e
 #
 # Что делает:
 #   1. Заводит временную связку ключей с одноразовым самоподписанным сертификатом.
@@ -12,7 +12,7 @@
 #      которым приложение достаётся с чужим для их машины сертификатом.
 #   2. Собирает две версии: текущую и следующую патч-версию, подписывает обе.
 #   3. Поднимает локальный манифест на 127.0.0.1:5317 и запускает текущую версию в
-#      отдельном профиле (AMAZING_IDE_PROFILE_DIR), рядом с установленной IDE.
+#      отдельном профиле (AGENTIC_WORKSTATION_PROFILE_DIR), рядом с установленной IDE.
 #   4. «Подделка»: в манифесте сборка с подписью ad-hoc. Ждёт отказа с причиной
 #      signature и проверяет, что установленная версия не изменилась.
 #   5. «Честное обновление»: в манифесте подписанная следующая версия. Ждёт, что
@@ -20,21 +20,21 @@
 #   6. Убирает всё за собой: процессы, сервер, связку ключей, папки, версию в package.json.
 #
 # Порты 5316 (отладка окна) и 5317 (манифест) должны быть свободны: dev с
-# AMAZING_IDE_CDP_PORT на это время надо погасить.
+# AGENTIC_WORKSTATION_CDP_PORT на это время надо погасить.
 
 set -euo pipefail
 
 DESKTOP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-WORK_DIR="$HOME/.amazing-ide-update-e2e"
+WORK_DIR="$HOME/.agentic-workstation-update-e2e"
 PROFILE_DIR="$WORK_DIR/profile"
 KEYCHAIN="$WORK_DIR/e2e.keychain-db"
 KEYCHAIN_PASSWORD="e2e"
-CERT_NAME="Amazing IDE E2E Signing"
+CERT_NAME="Agentic Workstation E2E Signing"
 CDP_PORT=5316
 FEED_PORT=5317
-APP="Amazing IDE.app"
-EXECUTABLE="Contents/MacOS/Amazing IDE"
-ZIP_NAME="amazing-ide-mac-arm64.zip"
+APP="Agentic Workstation.app"
+EXECUTABLE="Contents/MacOS/Agentic Workstation"
+ZIP_NAME="agentic-workstation-mac-arm64.zip"
 FEED_PID=""
 
 cd "$DESKTOP_DIR"
@@ -115,7 +115,7 @@ IDENTITY=$(security find-identity -p codesigning "$KEYCHAIN" | awk -v name="\"$C
 # из zip в папку $2 - ровно то, что получит установленная копия.
 build_signed() {
   set_version "$1"
-  if ! AMAZING_IDE_SIGN_IDENTITY="$IDENTITY" AMAZING_IDE_SIGN_KEYCHAIN="$KEYCHAIN" \
+  if ! AGENTIC_WORKSTATION_SIGN_IDENTITY="$IDENTITY" AGENTIC_WORKSTATION_SIGN_KEYCHAIN="$KEYCHAIN" \
     pnpm run dist >"$WORK_DIR/build-$1.log" 2>&1; then
     set_version "$BASE_VERSION"
     fail "сборка $1 упала, журнал: $WORK_DIR/build-$1.log"
@@ -134,13 +134,13 @@ publish() {
 }
 
 launch() {
-  AMAZING_IDE_PROFILE_DIR="$PROFILE_DIR" \
-    AMAZING_IDE_UPDATE_FEED="http://127.0.0.1:$FEED_PORT/latest.json" \
+  AGENTIC_WORKSTATION_PROFILE_DIR="$PROFILE_DIR" \
+    AGENTIC_WORKSTATION_UPDATE_FEED="http://127.0.0.1:$FEED_PORT/latest.json" \
     "$WORK_DIR/install/$APP/$EXECUTABLE" --remote-debugging-port=$CDP_PORT \
     >>"$WORK_DIR/app.log" 2>&1 &
 }
 
-page() { AMAZING_IDE_CDP_PORT=$CDP_PORT node scripts/cdp.mjs "$@" 2>/dev/null; }
+page() { AGENTIC_WORKSTATION_CDP_PORT=$CDP_PORT node scripts/cdp.mjs "$@" 2>/dev/null; }
 
 # Состояние обновления, как его видит окно: «kind», «kind:mode» или «kind:reason».
 UPDATE_STATE="window.ide.invoke('updates:getStatus').then((s) => s.kind === 'available' ? 'available:' + s.install.mode : s.kind === 'failed' ? 'failed:' + s.reason : s.kind)"
@@ -177,7 +177,7 @@ wait_for_state "available:automatic" 40
 page click '[data-action="update-install"]' >/dev/null
 wait_for_state "failed:signature" 90
 [ "$(installed_version)" = "$BASE_VERSION" ] || fail "после отказа версия сменилась на $(installed_version)"
-[ ! -e "$WORK_DIR/install/.amazing-ide-update" ] || fail "после отказа осталась папка распаковки"
+[ ! -e "$WORK_DIR/install/.agentic-workstation-update" ] || fail "после отказа осталась папка распаковки"
 echo "отвергнута, установлена по-прежнему $BASE_VERSION"
 stop_app
 

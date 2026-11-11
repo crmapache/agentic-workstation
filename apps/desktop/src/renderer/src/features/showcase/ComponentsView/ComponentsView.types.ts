@@ -1,10 +1,10 @@
 import type { ParseKeys } from 'i18next'
 
-import type { AvatarTone } from '@amazing-ide/ui/Avatar.types'
-import type { BadgeTone } from '@amazing-ide/ui/Badge.types'
-import type { FileIconKind } from '@amazing-ide/ui/FileIcon.types'
-import type { ProgressBarTone } from '@amazing-ide/ui/ProgressBar.types'
-import type { RingMeterTone } from '@amazing-ide/ui/RingMeter.types'
+import type { AvatarTone } from '@agentic-workstation/ui/Avatar.types'
+import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
+import type { FileIconKind } from '@agentic-workstation/ui/FileIcon.types'
+import type { ProgressBarTone } from '@agentic-workstation/ui/ProgressBar.types'
+import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
 export type SampleTabId = 'overview' | 'changes' | 'history'
 
@@ -25,3 +25,6 @@ export type RingSample = {
   tone: RingMeterTone
   burning: boolean
 }
+
+/** Проект в образце плашек-переключателей: имя - данные, как у настоящего проекта. */
+export type ChipSample = AvatarSample & { name: string }

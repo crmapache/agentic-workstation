@@ -1,13 +1,13 @@
 import { lazy } from 'react'
-import { FileCode, Workflow, ChartColumn } from 'lucide-react'
+import { Plug, FileCode, Workflow, ChartColumn } from 'lucide-react'
 
 import type { MainViewId } from '../../state/layout.types'
 import type { ViewDescriptor } from './views.types'
 
 /**
  * Виды середины окна (зона 6) в порядке иконок полосы слева от неё. Файл - то, что
- * открыли из левой панели; сценарии и статистика - возможности всей IDE, а не одного
- * провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
+ * открыли из левой панели; сценарии, статистика и коннекторы (ADR 0029) - возможности
+ * всей IDE, а не одного провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
  * фиче, запись здесь.
  */
 export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
@@ -38,6 +38,17 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     Component: lazy(() =>
       import('../../features/statistics/StatisticsView/StatisticsView').then((module) => ({
         default: module.StatisticsView,
+      })),
+    ),
+  },
+  {
+    id: 'connectors',
+    icon: Plug,
+    labelKey: 'mainViews.connectors',
+    keywords: ['integrations', 'mcp', 'gmail', 'mail', 'notion', 'slack', 'calendar'],
+    Component: lazy(() =>
+      import('../../features/connectors/ConnectorsView/ConnectorsView').then((module) => ({
+        default: module.ConnectorsView,
       })),
     ),
   },

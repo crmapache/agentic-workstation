@@ -1,8 +1,8 @@
 import { RotateCw, ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Card } from '@amazing-ide/ui/Card'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Card } from '@agentic-workstation/ui/Card'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { BLOCKED_VIEWS } from './ConversationBlocked.constants'
@@ -11,7 +11,7 @@ import type { ConversationBlockedProps } from './ConversationBlocked.types'
 
 /**
  * Почему разговор не может начаться и что с этим сделать: довериться папке, вернуть
- * папку проекта, поставить CLI. Сообщение, которое не ушло, ждёт в очереди рядом и
+ * папку проекта, поставить CLI, попробовать снова после сбоя. Сообщение, которое не ушло, ждёт в очереди рядом и
  * уходит, как только причина снята.
  */
 export const ConversationBlocked = ({ project, conversation, error }: ConversationBlockedProps) => {
@@ -43,7 +43,7 @@ export const ConversationBlocked = ({ project, conversation, error }: Conversati
             </Button>
           </div>
         )}
-        {error === 'project-missing' && waiting && (
+        {(error === 'project-missing' || error === 'start-failed') && waiting && (
           <div className={styles.actions}>
             <Button size="sm" icon={RotateCw} onClick={handleRetry}>
               {t('claudeCode.blocked.retry')}

@@ -2,8 +2,8 @@ import { memo } from 'react'
 import { Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useFeedScope } from '../feed-scope.context'

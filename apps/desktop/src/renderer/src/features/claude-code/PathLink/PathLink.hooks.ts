@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-import { useAnchoredPopover } from '@amazing-ide/ui/Popover.hooks'
+import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import { useOpenFileAction } from '../../../state/open-file.context'
 import type { OpenFileRequest } from '../../../state/open-file.context'

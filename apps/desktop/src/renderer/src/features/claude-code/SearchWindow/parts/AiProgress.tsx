@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { Check, Ellipsis } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Spinner } from '@amazing-ide/ui/Spinner'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import styles from '../SearchWindow.module.scss'
 import type { AiProgressProps } from '../SearchWindow.types'

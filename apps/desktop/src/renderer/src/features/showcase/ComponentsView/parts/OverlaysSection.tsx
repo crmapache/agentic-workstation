@@ -2,26 +2,27 @@ import { useState } from 'react'
 import { FilePlus, FolderOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Dialog } from '@amazing-ide/ui/Dialog'
-import type { DialogBackdrop } from '@amazing-ide/ui/Dialog.types'
-import { DropdownButton } from '@amazing-ide/ui/DropdownButton'
-import { Lightbox } from '@amazing-ide/ui/Lightbox'
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { Popover } from '@amazing-ide/ui/Popover'
-import { usePopover } from '@amazing-ide/ui/Popover.hooks'
-import { TextField } from '@amazing-ide/ui/TextField'
-import { Toast } from '@amazing-ide/ui/Toast'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Dialog } from '@agentic-workstation/ui/Dialog'
+import type { DialogBackdrop } from '@agentic-workstation/ui/Dialog.types'
+import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
+import { Lightbox } from '@agentic-workstation/ui/Lightbox'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { Popover } from '@agentic-workstation/ui/Popover'
+import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { TextField } from '@agentic-workstation/ui/TextField'
+import { Toast } from '@agentic-workstation/ui/Toast'
 
 import styles from '../ComponentsView.module.scss'
 import lightboxSample from '../../assets/lightbox-sample.png'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { ModalSpecimen } from './ModalSpecimen'
 
 /**
- * Раздел «Оверлеи»: уведомления трёх видов, живая всплывающая панель с меню и
- * модальный диалог - с затемнением окна и без. Всё настоящее - открывается, закрывается по Esc и клику мимо.
+ * Раздел «Оверлеи»: уведомления трёх видов, живая всплывающая панель с меню,
+ * модальный диалог - с затемнением окна и без - и окно с содержимым двух ширин. Всё настоящее - открывается, закрывается по Esc и клику мимо.
  */
 export const OverlaysSection = () => {
   const { t } = useTranslation('showcase')
@@ -120,6 +121,8 @@ export const OverlaysSection = () => {
           />
         </Dialog>
       </Specimen>
+
+      <ModalSpecimen />
 
       <Specimen label={t('specimens.lightbox')}>
         <Button variant="secondary" onClick={() => setIsLightboxOpen(true)}>

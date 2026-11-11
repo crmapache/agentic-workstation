@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Tabs } from '@amazing-ide/ui/Tabs'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
 
 import type { MenuScreenProps } from '../claude.types'
 import { PanelScreen } from '../PanelScreen/PanelScreen'

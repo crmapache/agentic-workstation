@@ -1,12 +1,20 @@
 import { it, expect, describe } from 'vitest'
 
 import type { Layout } from './layout.types'
-import { arrangeLayout, resizedPanels, restoreLayout, makeRoomForMain } from './layout.utils'
+import {
+  arrangeLayout,
+  resizedPanels,
+  restoreLayout,
+  terminalHeight,
+  makeRoomForMain,
+  resizedTerminalShare,
+} from './layout.utils'
 
 const defaults: Layout = {
   side: { activeViewId: 'files', isOpen: true, width: 280 },
   main: { activeViewId: 'file', isOpen: true },
   provider: { activeViewId: 'claude-code', isOpen: true, width: 440 },
+  terminal: { isOpen: false, share: 0.5 },
 }
 
 describe('restoreLayout', () => {
@@ -15,6 +23,7 @@ describe('restoreLayout', () => {
       side: { activeViewId: 'files', isOpen: false, width: 320 },
       main: { activeViewId: 'statistics', isOpen: false },
       provider: { activeViewId: 'claude-code', isOpen: false, width: 500 },
+      terminal: { isOpen: true, share: 0.3 },
     }
 
     expect(restoreLayout(saved, defaults)).toEqual(saved)
@@ -54,9 +63,12 @@ describe('restoreLayout', () => {
 
   it('битое или пустое сохранённое - раскладка по умолчанию', () => {
     expect(restoreLayout(undefined, defaults)).toEqual(defaults)
-    expect(restoreLayout({ side: 'oops', main: 7, provider: { width: '1' } }, defaults)).toEqual(
-      defaults,
-    )
+    expect(
+      restoreLayout(
+        { side: 'oops', main: 7, provider: { width: '1' }, terminal: { share: 1 } },
+        defaults,
+      ),
+    ).toEqual(defaults)
   })
 })
 
@@ -65,6 +77,7 @@ const wide: Layout = {
   side: { activeViewId: 'files', isOpen: true, width: 280 },
   main: { activeViewId: 'file', isOpen: true },
   provider: { activeViewId: 'claude-code', isOpen: true, width: 520 },
+  terminal: { isOpen: false, share: 0.5 },
 }
 
 describe('arrangeLayout', () => {
@@ -111,6 +124,16 @@ describe('arrangeLayout', () => {
       main: 308,
       isMainShown: true,
     })
+  })
+
+  it('правая колонка с одним терминалом занимает место, как открытая панель', () => {
+    const terminalOnly = {
+      ...wide,
+      provider: { ...wide.provider, isOpen: false },
+      terminal: { isOpen: true, share: 0.5 },
+    }
+
+    expect(arrangeLayout(terminalOnly, 1252)).toMatchObject({ provider: 520, main: 452 })
   })
 
   it('до первого замера ничего не ужимается и не сворачивается', () => {
@@ -186,5 +209,29 @@ describe('resizedPanels', () => {
 
   it('уже минимума не ужимается', () => {
     expect(resizedPanels(wide, 1252, 'side', -500).side.width).toBe(180)
+  })
+})
+
+// Минимумы из layout.constants: терминал 250, панель над ним 250.
+describe('terminalHeight', () => {
+  it('своя доля, пока обоим хватает их минимума', () => {
+    expect(terminalHeight(0.5, 800)).toBe(400)
+    expect(terminalHeight(0.1, 800)).toBe(250)
+    expect(terminalHeight(0.9, 800)).toBe(550)
+  })
+
+  it('колонке не хватает на оба минимума - пополам', () => {
+    expect(terminalHeight(0.2, 450)).toBe(225)
+  })
+})
+
+describe('resizedTerminalShare', () => {
+  it('ручка вверх растит терминал, но не дальше минимума панели над ним', () => {
+    expect(resizedTerminalShare(0.5, 800, -100)).toBe(0.625)
+    expect(resizedTerminalShare(0.5, 800, -1000)).toBe(550 / 800)
+  })
+
+  it('ручка вниз - терминал ниже, но не ниже своего минимума', () => {
+    expect(resizedTerminalShare(0.5, 800, 1000)).toBe(250 / 800)
   })
 })

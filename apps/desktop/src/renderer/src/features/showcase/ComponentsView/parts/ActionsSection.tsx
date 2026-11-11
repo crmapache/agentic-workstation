@@ -3,6 +3,7 @@ import {
   Zap,
   Play,
   Search,
+  Trash2,
   ArrowUp,
   Ellipsis,
   Settings,
@@ -12,12 +13,12 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Avatar } from '@amazing-ide/ui/Avatar'
-import { Button } from '@amazing-ide/ui/Button'
-import { DropdownButton } from '@amazing-ide/ui/DropdownButton'
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { ResizeHandle } from '@amazing-ide/ui/ResizeHandle'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Avatar } from '@agentic-workstation/ui/Avatar'
+import { Button } from '@agentic-workstation/ui/Button'
+import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { ResizeHandle } from '@agentic-workstation/ui/ResizeHandle'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
@@ -41,6 +42,9 @@ export const ActionsSection = () => {
           {t('samples.commit')}
         </Button>
         <Button variant="ghost">{t('samples.cancel')}</Button>
+        <Button variant="danger" icon={Trash2}>
+          {t('samples.remove')}
+        </Button>
         <Button variant="primary" disabled>
           {t('samples.disabled')}
         </Button>
@@ -56,9 +60,22 @@ export const ActionsSection = () => {
         <Button variant="ghost" size="sm">
           {t('samples.ghost')}
         </Button>
+        <Button variant="danger" size="sm">
+          {t('samples.remove')}
+        </Button>
         <Button variant="secondary" size="sm" disabled>
           {t('samples.disabled')}
         </Button>
+      </Specimen>
+
+      <Specimen label={t('specimens.menuButtons')}>
+        <Button size="sm" icon={Bot} menu>
+          {t('samples.setUpWithAi')}
+        </Button>
+        <Button size="sm" icon={Bot} menu aria-expanded>
+          {t('samples.setUpWithAi')}
+        </Button>
+        <Button menu>{t('samples.setUpWithAi')}</Button>
       </Specimen>
 
       <Specimen label={t('specimens.iconButtons')}>
@@ -77,7 +94,7 @@ export const ActionsSection = () => {
       <Specimen label={t('specimens.dropdowns')}>
         <DropdownButton
           label={t('samples.project')}
-          leading={<Avatar initials="AI" tone={0} />}
+          leading={<Avatar initials="AW" tone={0} />}
           menuLabel={t('samples.projectMenu')}
         />
         <DropdownButton
@@ -125,6 +142,25 @@ export const ActionsSection = () => {
       <Specimen label={t('specimens.resizeHandle')} layout="column">
         <div className={styles.resizeBox}>
           <ResizeHandle edge="end" label={t('samples.resizeLabel')} onResize={() => undefined} />
+          <ResizeHandle
+            edge="bottom"
+            label={t('samples.resizeHeightLabel')}
+            onResize={() => undefined}
+          />
+        </div>
+      </Specimen>
+
+      <Specimen label={t('specimens.resizeHandleInGap')} layout="column">
+        <div className={styles.resizeSheets}>
+          <div className={styles.resizeSheet} />
+          <div className={styles.resizeSheet}>
+            <ResizeHandle
+              edge="start"
+              inGap
+              label={t('samples.resizeLabel')}
+              onResize={() => undefined}
+            />
+          </div>
         </div>
       </Specimen>
     </ShowcaseSection>

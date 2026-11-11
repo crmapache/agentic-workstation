@@ -2,7 +2,7 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 
 import { OUTCOME_KEYS } from '../FindingsCard.constants'
 import styles from '../FindingsCard.module.scss'

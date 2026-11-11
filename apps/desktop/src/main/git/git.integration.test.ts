@@ -37,7 +37,7 @@ describe('git', () => {
   }
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-git-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-git-'))
     origin = join(root, 'origin.git')
     repo = join(root, 'repo')
     other = join(root, 'other')

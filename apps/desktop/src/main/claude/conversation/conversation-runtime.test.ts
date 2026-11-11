@@ -83,6 +83,7 @@ const makeRuntime = (trusted: { value: boolean }) => {
     accountId: () => '',
     onUsageHint: () => undefined,
     onCall: () => undefined,
+    mcpConfig: () => Promise.resolve(null),
   }
   const runtime = new ConversationRuntime(
     freshConversation({
@@ -639,5 +640,18 @@ describe('конец хода', () => {
       kind: 'notice',
       code: 'process-exited',
     })
+  })
+})
+
+describe('процесс не поднялся', () => {
+  it('сбой подготовки - сообщение ждёт в очереди, ход не висит, причина во вкладке', async () => {
+    const runtime = makeRuntime({ value: true })
+
+    vi.mocked(spawnConversationProcess).mockRejectedValueOnce(new Error('ENOSPC'))
+    await runtime.send(msg('hello'))
+
+    expect(runtime.turnActive).toBe(false)
+    expect(runtime.meta.queue.map((item) => item.text)).toEqual(['hello'])
+    expect(runtime.meta.error).toBe('start-failed')
   })
 })

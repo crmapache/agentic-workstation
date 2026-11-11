@@ -1,8 +1,8 @@
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { Button } from '@agentic-workstation/ui/Button'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../SearchWindow.module.scss'
 import type { AskFieldProps } from '../SearchWindow.types'

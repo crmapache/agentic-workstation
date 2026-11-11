@@ -11,6 +11,7 @@ import { ClaudePersistence } from './claude-persistence'
 import type { StoredClaude } from './claude-state'
 import { toStored, freshConversation, parseStoredClaude } from './claude-state'
 import { SHUTDOWN_MAX_MS } from './claude.constants'
+import { ConnectorsBridge } from './connectors-bridge'
 import { ConversationActions } from './conversation-actions'
 import { forkOriginFor } from './fork-origin'
 import { AccountService } from './accounts/account-service'
@@ -33,7 +34,6 @@ import { PanelSettings } from './settings/panel-settings'
 import { WorkspaceTrust } from './settings/workspace-trust'
 import { newTabConversation } from './tabs/new-tab'
 import { TabStrip } from './tabs/tab-strip'
-import { McpTools } from './tools/mcp-tools'
 import { PluginTools } from './tools/plugin-tools'
 import type { ToolsHost } from './tools/tools-host'
 import { TodayTokens } from './usage/today-tokens'
@@ -42,8 +42,6 @@ import { UsageService } from './usage/usage-service'
 export type ClaudeEvents = {
   onState: (state: ClaudeState) => void
   onFeed: (patch: FeedPatch) => void
-  /** Открыть адрес в браузере человека (вход в MCP-сервер); не сайт - false. */
-  openExternal: (url: string) => boolean
   /** Открыть файл программой по умолчанию (скрипт входа в аккаунт - в Терминале). */
   openPath: (path: string) => Promise<string>
   /** Разговор позвал человека: окно играет звук и подсвечивает вкладку. */
@@ -64,12 +62,12 @@ export class ClaudeService {
   readonly actions = new ConversationActions(this)
   /** Служебное поверх разговоров: /btw, моды, модель, продолжения, переезд аккаунта (panel/). */
   readonly panel = new PanelDesk(this, (path) => this.events.openPath(path))
-  /** MCP-серверы проекта. */
-  readonly mcp = new McpTools(this.toolsHost())
   /** Плагины и маркетплейсы. */
   readonly plugins = new PluginTools(this.toolsHost())
   /** Инструменты поля ввода: команды с диска, вложения. */
   readonly composer = new ComposerTools()
+  /** Коннекторы IDE в процессах разговоров: файл серверов шлюза, перезапуск, переподключение. */
+  readonly connectors = new ConnectorsBridge(() => this.runtimes.values())
   /** Полоса вкладок: порядок, группы форков, имена, закрытые - отдельно (tabs/). */
   readonly tabs = new TabStrip({
     runtimes: () => this.runtimes,
@@ -323,6 +321,7 @@ export class ClaudeService {
       if (runtime.process?.isAlive) this.usage.fromProcess(runtime.accountId, runtime.process)
     },
     onCall: (conversationId, reason, key) => this.calls.add(conversationId, reason, key),
+    mcpConfig: (projectPath) => this.connectors.configFor(projectPath),
     panel: this.panel,
   }
 
@@ -357,7 +356,7 @@ export class ClaudeService {
     this.tabs.add(conversation)
   }
 
-  /** Что нужно экранам MCP и плагинов: CLI выбранного аккаунта, разговоры, доверие. */
+  /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры, доверие. */
   private toolsHost(): ToolsHost {
     return {
       runtime: (conversationId) => this.runtime(conversationId),
@@ -365,7 +364,6 @@ export class ClaudeService {
       cli: () => this.host.cli(),
       isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
       onCommands: (projectPath, commands) => this.host.onCommands(projectPath, commands),
-      openExternal: (url) => this.events.openExternal(url),
     }
   }
 

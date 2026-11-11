@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Toast } from '@amazing-ide/ui/Toast'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Toast } from '@agentic-workstation/ui/Toast'
 
 import { useGitNoticeStore } from '../git-notice.store'
 import { SUCCESS_NOTICE_MS } from './GitNotice.constants'

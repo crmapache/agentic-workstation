@@ -2,8 +2,8 @@ import { memo, useMemo } from 'react'
 import { X, Pin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../PinnedBar.module.scss'
 import type { PinnedRowProps } from '../PinnedBar.types'

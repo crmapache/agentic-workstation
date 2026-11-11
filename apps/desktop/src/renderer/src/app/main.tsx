@@ -1,5 +1,5 @@
-import '@amazing-ide/ui/tokens.css'
-import '@amazing-ide/ui/base.css'
+import '@agentic-workstation/ui/tokens.css'
+import '@agentic-workstation/ui/base.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

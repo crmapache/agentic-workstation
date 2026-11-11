@@ -1,6 +1,6 @@
 ---
 name: release
-description: Выпустить новую версию Amazing IDE - поднять версию, прогнать проверки и сквозной тест обновления, собрать и подписать сертификатом проекта, проверить подпись, написать манифест обновлений и опубликовать dmg, zip и latest.json в публичный репозиторий релизов. Установленные копии увидят уведомление об обновлении. Использовать ТОЛЬКО по явной команде /release - это сборка и публичная заливка.
+description: Выпустить новую версию Agentic Workstation - поднять версию, прогнать проверки и сквозной тест обновления, собрать и подписать сертификатом проекта, проверить подпись, написать манифест обновлений и опубликовать dmg, zip и latest.json в публичный репозиторий релизов. Установленные копии увидят уведомление об обновлении. Использовать ТОЛЬКО по явной команде /release - это сборка и публичная заливка.
 disable-model-invocation: true
 argument-hint: '[patch|minor|major] [что нового - текст для уведомления]'
 allowed-tools: Bash(pnpm *) Bash(npm --prefix *) Bash(node *) Bash(gh *) Bash(git status *) Bash(git add *) Bash(git commit *) Bash(git log *) Bash(security find-identity *) Bash(codesign *) Bash(plutil *) Bash(curl *) Bash(jq *) Bash(ls *) Bash(rm -rf apps/desktop/dist/mac-arm64)
@@ -20,20 +20,20 @@ allowed-tools: Bash(pnpm *) Bash(npm --prefix *) Bash(node *) Bash(gh *) Bash(gi
 ## 0. Предусловия - любое не выполнено, остановись и скажи, что сделать
 
 ```
-security find-identity -p codesigning | grep "Amazing IDE Code Signing"
+security find-identity -p codesigning | grep "Agentic Workstation Code Signing"
 gh auth status
-node -p "require('./apps/desktop/package.json').amazingIde.releasesRepo"
+node -p "require('./apps/desktop/package.json').agenticWorkstation.releasesRepo"
 gh repo view <репозиторий релизов> --json visibility -q .visibility
 git status --porcelain
 ```
 
 - Нет сертификата - `docs/code-signing.md`: сначала поискать копию
-  `amazing-ide-code-signing.p12` в корне и импортировать её. **Не создавать новый**,
+  `agentic-workstation-code-signing.p12` в корне и импортировать её. **Не создавать новый**,
   если пользователь не подтвердил, что сертификата ещё никогда не было: новый
   сертификат отключит обновления у всех установленных копий. Пометка
   `CSSMERR_TP_NOT_TRUSTED` - норма, доверие не нужно.
 - Репозитория нет - создать его можно только с согласия пользователя
-  (`docs/releasing.md`), это публичное действие. Создан 2026-10-16.
+  (`docs/releasing.md`), это публичное действие. Создан 2026-10-16, переименован 2026-11-10.
 - Репозиторий должен быть `PUBLIC`: приложение качает обновления без токена.
 - Незакоммиченные правки - не мешают сборке, но шаг 7 тогда ничего не коммитит.
 
@@ -51,7 +51,7 @@ node -p "require('./apps/desktop/package.json').version"
 
 ```
 pnpm check
-pnpm --filter @amazing-ide/desktop update:e2e
+pnpm --filter @agentic-workstation/desktop update:e2e
 ```
 
 Оба должны пройти. Упало - откатить версию в `apps/desktop/package.json` и
@@ -60,15 +60,15 @@ pnpm --filter @amazing-ide/desktop update:e2e
 ## 3. Сборка с подписью
 
 ```
-AMAZING_IDE_KEEP_UNPACKED=1 pnpm dist
+AGENTIC_WORKSTATION_KEEP_UNPACKED=1 pnpm dist
 ```
 
 ## 4. Подпись и версия внутри - проверить до публикации
 
 ```
-codesign -d -r- "apps/desktop/dist/mac-arm64/Amazing IDE.app"
-codesign --verify --deep --strict "apps/desktop/dist/mac-arm64/Amazing IDE.app"
-plutil -extract CFBundleShortVersionString raw -o - "apps/desktop/dist/mac-arm64/Amazing IDE.app/Contents/Info.plist"
+codesign -d -r- "apps/desktop/dist/mac-arm64/Agentic Workstation.app"
+codesign --verify --deep --strict "apps/desktop/dist/mac-arm64/Agentic Workstation.app"
+plutil -extract CFBundleShortVersionString raw -o - "apps/desktop/dist/mac-arm64/Agentic Workstation.app/Contents/Info.plist"
 ```
 
 - В правиле подписи должно быть `certificate leaf`. `cdhash` - сборка ушла с подписью
@@ -85,7 +85,7 @@ rm -rf apps/desktop/dist/mac-arm64
 
 ```
 node apps/desktop/scripts/write-update-manifest.mjs \
-  --zip apps/desktop/dist/amazing-ide-mac-arm64.zip \
+  --zip apps/desktop/dist/agentic-workstation-mac-arm64.zip \
   --version <версия> \
   --base-url https://github.com/<репозиторий релизов>/releases/download/v<версия> \
   --notes "<что нового>"
@@ -103,9 +103,9 @@ gh release view v<версия> --repo <репозиторий релизов>
 
 ```
 gh release create v<версия> --repo <репозиторий релизов> \
-  --title "Amazing IDE <версия>" --notes "<что нового>" \
-  apps/desktop/dist/amazing-ide-mac-arm64.dmg \
-  apps/desktop/dist/amazing-ide-mac-arm64.zip \
+  --title "Agentic Workstation <версия>" --notes "<что нового>" \
+  apps/desktop/dist/agentic-workstation-mac-arm64.dmg \
+  apps/desktop/dist/agentic-workstation-mac-arm64.zip \
   apps/desktop/dist/latest.json
 ```
 
@@ -134,5 +134,5 @@ git commit -m "chore(desktop): release <версия>"
 ## 8. Отчёт
 
 По скиллу `human-output`, коротко: версия, ссылка на релиз, постоянная ссылка на dmg
-(`https://github.com/<репозиторий релизов>/releases/latest/download/amazing-ide-mac-arm64.dmg`),
+(`https://github.com/<репозиторий релизов>/releases/latest/download/agentic-workstation-mac-arm64.dmg`),
 что стало с версией в git (закоммичена или оставлена и почему).

@@ -1,7 +1,7 @@
 import { Pin, PinOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { usePin } from '../pins.store'
 import type { PinItemProps } from './PinItem.types'

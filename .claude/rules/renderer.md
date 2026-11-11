@@ -44,9 +44,9 @@ paths:
 
 ## Меню правой кнопки
 
-Панель - `useAnchoredPopover` (`@amazing-ide/ui/Popover.hooks`), якорь - вкладка или
+Панель - `useAnchoredPopover` (`@agentic-workstation/ui/Popover.hooks`), якорь - вкладка или
 точка нажатия. Открывать из `onContextMenu` через `openWhenReleased`
-(`@amazing-ide/ui/Popover.utils`): на macOS contextmenu приходит при нажатии, и
+(`@agentic-workstation/ui/Popover.utils`): на macOS contextmenu приходит при нажатии, и
 отпускание закрыло бы только что открытую панель как клик мимо (ревью).
 
 ## Когда делить

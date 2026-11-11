@@ -3,9 +3,9 @@ import clsx from 'clsx'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
-import { RingMeter } from '@amazing-ide/ui/RingMeter'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { RingMeter } from '@agentic-workstation/ui/RingMeter'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../StreamSwitcher.module.scss'
 import type { AgentChipProps } from '../StreamSwitcher.types'

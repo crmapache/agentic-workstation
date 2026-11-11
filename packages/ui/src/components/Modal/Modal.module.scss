@@ -1,0 +1,95 @@
+@use '../../styles/mixins' as *;
+
+// Окно поверх IDE: стеклянный лист, как у Dialog, только шире и с прокруткой внутри.
+// Высокое окно не доходит до краёв IDE на два space-8 сверху и снизу: шапка и подвал IDE
+// видны вокруг, и окно не читается как полноэкранный лист.
+.modal {
+  @include glass-overlay;
+  @include enter-transition;
+
+  max-width: none;
+  max-height: calc(100vh - 4 * var(--space-8));
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  color: var(--color-fg);
+
+  // Закрытый <dialog> браузер прячет сам (display: none) - раскладка только у открытого.
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &::backdrop {
+    background-color: var(--color-backdrop);
+    backdrop-filter: var(--glass-blur-backdrop);
+  }
+}
+
+.md {
+  width: min(var(--size-modal-md), 100vw - 2 * var(--space-6));
+}
+
+.lg {
+  width: min(var(--size-modal-lg), 100vw - 2 * var(--space-6));
+}
+
+.head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.title {
+  @include truncate;
+
+  margin: 0;
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.description {
+  @include truncate;
+
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.headerActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: calc(var(--size-control-md) + 2 * var(--space-3));
+  padding: var(--space-3) var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+}

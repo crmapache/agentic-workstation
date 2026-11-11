@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 
 import { DEFAULT_PASTE_COLLAPSE } from '@shared/claude-prefs'
 
-import { Menu } from '@amazing-ide/ui/Menu'
-import { MenuItem } from '@amazing-ide/ui/MenuItem'
-import { TextField } from '@amazing-ide/ui/TextField'
+import { Menu } from '@agentic-workstation/ui/Menu'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { usePanelPrefs } from '../claude.queries'
@@ -53,7 +53,6 @@ export const PasteCollapseScreen = () => {
 
   return (
     <PanelScreen title={t('claudeCode.menu.titles.pasteCollapse.title')}>
-      <p className={styles.note}>{t('claudeCode.pasteCollapse.note')}</p>
       <Menu label={t('claudeCode.menu.titles.pasteCollapse.title')} autoFocus>
         <MenuItem
           selection="single"

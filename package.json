@@ -1,5 +1,5 @@
 {
-  "name": "amazing-ide",
+  "name": "agentic-workstation",
   "private": true,
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.5.0",
@@ -7,10 +7,10 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @amazing-ide/desktop dev",
-    "build": "pnpm --filter @amazing-ide/desktop build",
-    "dist": "pnpm --filter @amazing-ide/desktop dist",
-    "dist:local": "pnpm --filter @amazing-ide/desktop dist:local",
+    "dev": "pnpm --filter @agentic-workstation/desktop dev",
+    "build": "pnpm --filter @agentic-workstation/desktop build",
+    "dist": "pnpm --filter @agentic-workstation/desktop dist",
+    "dist:local": "pnpm --filter @agentic-workstation/desktop dist:local",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "lint": "eslint .",

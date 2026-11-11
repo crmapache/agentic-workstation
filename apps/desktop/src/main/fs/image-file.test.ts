@@ -18,7 +18,7 @@ let root = ''
 const versionOf = (read: ProjectImageRead) => (read.kind === 'image' ? read.version : null)
 
 beforeAll(async () => {
-  base = await mkdtemp(join(tmpdir(), 'amazing-ide-image-'))
+  base = await mkdtemp(join(tmpdir(), 'agentic-workstation-image-'))
   root = join(base, 'project')
   await mkdir(join(root, 'docs'), { recursive: true })
   await writeFile(join(root, 'docs', 'shot.png'), PNG)

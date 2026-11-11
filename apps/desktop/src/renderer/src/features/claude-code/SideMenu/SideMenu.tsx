@@ -1,18 +1,20 @@
 import { useTranslation } from 'react-i18next'
 
-import { Sheet } from '@amazing-ide/ui/Sheet'
+import { HelpButton } from '@agentic-workstation/ui/HelpButton'
+import { Sheet } from '@agentic-workstation/ui/Sheet'
 
 import { useClaudeCodeStore } from '../claude-code.store'
 import type { MenuScreenProps } from '../claude.types'
 import { useAppInfo } from '../../../state/app-info.queries'
-import { SCREEN_VIEWS } from './SideMenu.constants'
+import { SCREEN_HELP, SCREEN_VIEWS } from './SideMenu.constants'
 import styles from './SideMenu.module.scss'
 import { MenuRoot } from './parts/MenuRoot'
 
 /**
  * Боковое меню панели (кнопка настроек в шапке), как в ACC: лист справа поверх
- * разговора, свой экран за каждым пунктом - история, MCP, плагины, аккаунты, настройки.
- * Шаг назад - к родителю экрана, Esc - тот же шаг, на корне закрывает меню.
+ * разговора, свой экран за каждым пунктом - история, плагины, аккаунты, настройки.
+ * Пояснение экрана - «?» в шапке листа (SCREEN_HELP). Шаг назад - к родителю экрана,
+ * Esc - тот же шаг, на корне закрывает меню.
  */
 export const SideMenu = ({ project, conversation }: MenuScreenProps) => {
   const { t } = useTranslation()
@@ -22,13 +24,24 @@ export const SideMenu = ({ project, conversation }: MenuScreenProps) => {
   const { data: info } = useAppInfo()
   const { screen } = menu
   const View = SCREEN_VIEWS[screen]
+  const helpKey = SCREEN_HELP[screen]
+  const title = t(`claudeCode.menu.titles.${screen}.title`)
   const isRoot = screen === 'menu'
 
   return (
     <Sheet
       open={menu.open}
-      title={t(`claudeCode.menu.titles.${screen}.title`)}
-      hint={t(`claudeCode.menu.titles.${screen}.hint`)}
+      title={title}
+      help={
+        helpKey && (
+          <HelpButton
+            label={t('claudeCode.menu.help')}
+            title={title}
+            text={t(helpKey)}
+            closeLabel={t('claudeCode.menu.helpClose')}
+          />
+        )
+      }
       backLabel={t('claudeCode.menu.back')}
       closeLabel={t('claudeCode.menu.close')}
       screenKey={screen}

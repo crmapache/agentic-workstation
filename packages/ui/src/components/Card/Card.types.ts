@@ -13,8 +13,10 @@ export type CardSize = 'md' | 'sm'
 export type CardProps = {
   /** Заголовок карточки. Нет - карточка без шапки, просто стеклянный лист. */
   title?: string | undefined
-  /** Мелкая строка под заголовком. */
+  /** Мелкая строка под заголовком - короткое состояние. Пояснение - в help. */
   description?: string | undefined
+  /** У правого края шапки, после действий: кнопка справки (HelpButton). */
+  help?: ReactNode | undefined
   /** Иконка перед заголовком. */
   icon?: LucideIcon | undefined
   tone?: CardTone | undefined

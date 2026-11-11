@@ -77,7 +77,7 @@ describe('поиск по проекту', () => {
   }
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), 'amazing-ide-search-'))
+    root = await mkdtemp(join(tmpdir(), 'agentic-workstation-search-'))
     repo = join(root, 'repo')
     plain = join(root, 'plain')
     outside = join(root, 'outside', 'credentials')

@@ -6,8 +6,10 @@ import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
 import { installApplicationMenu } from './menu'
+import { claudeAsk } from './claude/claude-ask'
 import { ClaudeService } from './claude/claude-service'
 import type { StoredClaude } from './claude/claude-state'
+import { startConnectors } from './connectors/connectors-setup'
 import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
@@ -17,17 +19,22 @@ import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
 import { SearchService } from './search/search-service'
 import { JsonFile } from './storage/json-file'
+import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
+import { terminalEnv } from './terminal/terminal-env'
+import { TerminalService } from './terminal/terminal-service'
+import { withZshIntegration } from './terminal/zsh-integration'
+import { ZSH_INTEGRATION_DIR } from './terminal/zsh-integration.constants'
 import { UpdateService } from './updates/update-service'
 import { UPDATE_FEED_URL, UPDATE_FEED_OVERRIDE_ENV } from './updates/update.constants'
 import { saveEditorBeforeQuit } from './window/editor-save'
 import { EDITOR_SAVE_TIMEOUT_MS } from './window/editor-save.constants'
 import { createMainWindow } from './window/main-window'
-import { openExternalWeb } from './window/open-external'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import type { StoredAccounts } from './claude/accounts/account-store'
 import { locateClaudeCli } from './claude/cli/cli-locator'
 import { ProcessGroup } from './claude/cli/process-group'
+import { loginShellEnv } from './claude/cli/shell-env'
 import { SearchDesk } from './claude/search/search-desk'
 import { SEARCH_DIR_NAME } from './claude/search/search.constants'
 
@@ -38,7 +45,7 @@ const PROFILE_DIR = applyAppProfile()
 
 // Порт отладки окна в dev: через него агент снимает скриншоты и кликает
 // (scripts/cdp.mjs). В собранном приложении порт открывают флагом запуска.
-const CDP_PORT = process.env['AMAZING_IDE_CDP_PORT']
+const CDP_PORT = process.env['AGENTIC_WORKSTATION_CDP_PORT']
 
 if (!app.isPackaged && CDP_PORT) app.commandLine.appendSwitch('remote-debugging-port', CDP_PORT)
 
@@ -80,7 +87,6 @@ const bootstrap = async () => {
       onState: (state) => broadcast('claude:state', state),
       onFeed: (patch) => broadcast('claude:feed', patch),
       onCall: (call) => broadcast('claude:call', call),
-      openExternal: openExternalWeb,
       openPath: (path) => shell.openPath(path),
     },
     {
@@ -90,6 +96,19 @@ const bootstrap = async () => {
   )
   // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
   claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
+  // Коннекторы к приложениям держит IDE, а не провайдер (ADR 0028): шлюз - до первого
+  // процесса разговора, его серверы процессы получают файлом --mcp-config.
+  const connectors = await startConnectors({
+    serversChanged: (affects) => claude.connectors.serversChanged(affects),
+    serverChanged: (serverName) => claude.connectors.serverChanged(serverName),
+    getWindow: () => mainWindow,
+    shellEnv: loginShellEnv,
+    projectPaths: () => workspace.getState().projects.map((project) => project.rootPath),
+    isTrusted: (projectPath) => claude.isTrusted(projectPath),
+    ask: claudeAsk(claude, join(app.getPath('userData'), 'ai-connector')),
+  })
+
+  claude.connectors.configFor = (projectPath) => connectors.mcpConfigFor(projectPath)
   // Поиск по разговорам панели - своим модулем (main/claude/search): индекс по проекту,
   // первая сборка - через 20 секунд после открытия проекта, поиск модели - на аккаунте панели.
   const conversationSearch = new SearchDesk({
@@ -131,11 +150,28 @@ const bootstrap = async () => {
     }
   }
 
+  // Терминалы под панелью Claude Code (ADR 0037): оболочка в корне проекта, закрытый проект
+  // гасит свои.
+  const terminals = new TerminalService(
+    {
+      output: (output) => broadcast('terminal:output', output),
+      sessions: (sessions) => broadcast('terminal:sessions', sessions),
+    },
+    {
+      spawn: spawnNodePty,
+      shell: loginShell,
+      env: withZshIntegration(join(app.getPath('userData'), ZSH_INTEGRATION_DIR), () =>
+        terminalEnv(process.env, app.getVersion()),
+      ),
+    },
+  )
+
   searchProjects()
   watchProjects()
   onWorkspace = () => {
     searchProjects()
     watchProjects()
+    terminals.keepProjects(workspace.getState().projects.map((project) => project.id))
   }
 
   const services = {
@@ -146,11 +182,14 @@ const bootstrap = async () => {
     gitStatus,
     outsideWatchers,
     conversationSearch,
+    connectors,
+    terminals,
     getWindow: () => mainWindow,
   }
 
-  // Процессы CLI и команды «!» - дети IDE: уходят вместе с ней, а не висят сиротами. Выход ждёт,
-  // пока они закроются, - иначе таймер добивания умер бы вместе с главным процессом.
+  // Процессы CLI, команды «!» и оболочки терминала - дети IDE: уходят вместе с ней, а не висят
+  // сиротами. Выход ждёт, пока они закроются, - иначе таймер добивания умер бы вместе с главным
+  // процессом.
   let quitting: 'no' | 'waiting' | 'ready' = 'no'
 
   // Сначала окно дописывает набранное в файлы: автосохранение ждёт паузы в наборе, а ⌘Q
@@ -169,7 +208,9 @@ const bootstrap = async () => {
     conversationSearch.dispose()
     watchers.dispose()
     outsideWatchers.dispose()
-    await Promise.allSettled([claude.shutdown(), settleWrites()])
+    await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
+    // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
+    await connectors.stop()
     quitting = 'ready'
     app.quit()
   }
@@ -185,7 +226,10 @@ const bootstrap = async () => {
     void quitWhenSaved()
   })
   // Последняя страховка: главный процесс уходит, не дождавшись (сбой, kill).
-  process.on('exit', () => ProcessGroup.killAllNow())
+  process.on('exit', () => {
+    ProcessGroup.killAllNow()
+    terminals.killAllNow()
+  })
 
   registerInvokeHandlers(createInvokeHandlers(services), RENDERER_URL)
   installApplicationMenu({ openProject: () => void pickAndOpenProject(services) })

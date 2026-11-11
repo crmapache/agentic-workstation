@@ -1,40 +1,108 @@
-// Сама ручка шире линии, чтобы в неё было легко попасть; видна только тонкая
-// черта по центру: при наведении светлая, при перетаскивании и фокусе оранжевая.
+// Сама ручка шире линии, чтобы в неё было легко попасть; видна только тонкая черта по
+// центру: при наведении светлая, при перетаскивании оранжевая. Наведение проступает с
+// задержкой: курсор, который просто пересекает зазор между листами, черту не зажигает.
 .handle {
   position: absolute;
   z-index: var(--z-resize-handle);
-  top: 0;
-  bottom: 0;
-  width: var(--size-resize-handle);
-  cursor: col-resize;
 
   &::after {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: var(--focus-ring-width);
     border-radius: var(--radius-full);
-    translate: -50% 0;
     transition: background-color var(--duration-normal) var(--easing-standard);
   }
 
   @media (hover: hover) {
     &:hover::after {
       background-color: var(--color-border-strong);
+      transition-delay: var(--duration-normal);
     }
   }
 
   &:active::after {
     background-color: var(--color-accent);
+    transition-delay: 0s;
   }
 }
 
+// Боковая: во всю высоту, тянет ширину.
+.x {
+  top: 0;
+  bottom: 0;
+  width: var(--size-resize-handle);
+  cursor: col-resize;
+
+  &::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: var(--focus-ring-width);
+    translate: -50% 0;
+  }
+}
+
+// Верхняя и нижняя: во всю ширину, тянет высоту.
+.y {
+  right: 0;
+  left: 0;
+  height: var(--size-resize-handle);
+  cursor: row-resize;
+
+  &::after {
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: var(--focus-ring-width);
+    translate: 0 -50%;
+  }
+}
+
+// На крае: середина ручки - на самой границе, черта ложится на разделительную линию.
 .start {
   left: calc(var(--size-resize-handle) / -2);
 }
 
 .end {
   right: calc(var(--size-resize-handle) / -2);
+}
+
+.top {
+  top: calc(var(--size-resize-handle) / -2);
+}
+
+.bottom {
+  bottom: calc(var(--size-resize-handle) / -2);
+}
+
+// В зазоре между листами окна (--space-2, как у всех листов): середина ручки - посередине
+// зазора, черта висит в чёрной раме, а не на рамке листа. Концы черты отступают на
+// скругление угла листа (--radius-xl): прямая поверх скругления читалась бы обрубком.
+.inGap {
+  --resize-gap-offset: calc((var(--space-2) + var(--size-resize-handle)) / -2);
+
+  &.start {
+    left: var(--resize-gap-offset);
+  }
+
+  &.end {
+    right: var(--resize-gap-offset);
+  }
+
+  &.top {
+    top: var(--resize-gap-offset);
+  }
+
+  &.bottom {
+    bottom: var(--resize-gap-offset);
+  }
+
+  &.x::after {
+    top: var(--radius-xl);
+    bottom: var(--radius-xl);
+  }
+
+  &.y::after {
+    right: var(--radius-xl);
+    left: var(--radius-xl);
+  }
 }

@@ -2,8 +2,8 @@ import { memo, useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 
 import styles from './ThinkingRow.module.scss'
 import type { ThinkingRowProps } from './ThinkingRow.types'

@@ -11,6 +11,8 @@ import type { ClaudeSettingsInvokeContract } from './claude-settings.contract'
 import { CLAUDE_SETTINGS_CHANNELS } from './claude-settings.contract'
 import type { ClaudeTabsEventContract, ClaudeTabsInvokeContract } from './claude-tabs.contract'
 import { CLAUDE_TABS_EVENTS, CLAUDE_TABS_CHANNELS } from './claude-tabs.contract'
+import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connectors.contract'
+import { CONNECTORS_EVENTS, CONNECTORS_CHANNELS } from './connectors.contract'
 import type { EditorEventContract, EditorInvokeContract } from './editor.contract'
 import { EDITOR_EVENTS, EDITOR_CHANNELS } from './editor.contract'
 import type { FsPathsInvokeContract } from './fs-paths.contract'
@@ -19,6 +21,8 @@ import type { GitChangesEventContract, GitChangesInvokeContract } from './git-ch
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
 import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './project-sync.contract'
 import { PROJECT_SYNC_EVENTS, PROJECT_SYNC_CHANNELS } from './project-sync.contract'
+import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
+import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
 import { WINDOW_EVENTS, WINDOW_CHANNELS } from './window.contract'
 
@@ -36,7 +40,9 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   ProjectSyncInvokeContract &
   GitChangesInvokeContract &
   EditorInvokeContract &
-  WindowInvokeContract
+  WindowInvokeContract &
+  ConnectorsInvokeContract &
+  TerminalInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
@@ -44,7 +50,9 @@ export type AreaEventContract = ClaudeTabsEventContract &
   ProjectSyncEventContract &
   GitChangesEventContract &
   EditorEventContract &
-  WindowEventContract
+  WindowEventContract &
+  ConnectorsEventContract &
+  TerminalEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -58,6 +66,8 @@ export const AREA_CHANNELS = {
   ...GIT_CHANGES_CHANNELS,
   ...EDITOR_CHANNELS,
   ...WINDOW_CHANNELS,
+  ...CONNECTORS_CHANNELS,
+  ...TERMINAL_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -69,4 +79,6 @@ export const AREA_EVENTS = {
   ...GIT_CHANGES_EVENTS,
   ...EDITOR_EVENTS,
   ...WINDOW_EVENTS,
+  ...CONNECTORS_EVENTS,
+  ...TERMINAL_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

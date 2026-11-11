@@ -13,7 +13,7 @@ import {
   restoreTabs,
 } from './editor-tabs.utils'
 
-const SELECTION_STORAGE_KEY = 'amazing-ide.selection.v1'
+const SELECTION_STORAGE_KEY = 'agentic-workstation.selection.v1'
 
 /**
  * Третья версия - ключи вкладок (файл или разница файла); вторая звала их путями (paths),

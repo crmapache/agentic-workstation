@@ -4,7 +4,7 @@ import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSmoothText, RevealProvider } from 'smooth-stream-text/react'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useCopy } from '../clipboard.hooks'
 import { useFeedScope } from '../feed-scope.context'

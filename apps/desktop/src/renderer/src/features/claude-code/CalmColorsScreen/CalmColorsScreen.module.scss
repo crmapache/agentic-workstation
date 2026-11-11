@@ -1,4 +1,4 @@
-@use '@amazing-ide/ui/mixins' as *;
+@use '@agentic-workstation/ui/mixins' as *;
 
 .sample {
   display: flex;
@@ -41,14 +41,8 @@
   gap: var(--space-1);
 }
 
-.hint,
-.note {
+.hint {
   color: var(--color-fg-subtle);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
-}
-
-.note {
-  margin: 0;
-  padding: 0 var(--space-1);
 }

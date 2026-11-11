@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Toast } from '@amazing-ide/ui/Toast'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Toast } from '@agentic-workstation/ui/Toast'
 
 import { useUpdateStatus, useUpdateActions } from '../../../state/updates.queries'
 import { RETRYABLE_FAILURES } from './UpdateNotice.constants'

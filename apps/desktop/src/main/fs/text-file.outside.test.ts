@@ -18,7 +18,7 @@ describe('файл вне проекта: readOutsideTextFile и writeOutsideTex
 
   beforeAll(async () => {
     // Настоящий путь: /var/folders на маке - ссылка на /private/var/folders.
-    base = await realpath(await mkdtemp(join(tmpdir(), 'amazing-ide-outside-')))
+    base = await realpath(await mkdtemp(join(tmpdir(), 'agentic-workstation-outside-')))
     await mkdir(join(base, 'folder'))
     await writeFile(join(base, 'plan.md'), '# план\n')
     await writeFile(join(base, 'logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00]))

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { Dialog } from '@amazing-ide/ui/Dialog'
-import { Tabs } from '@amazing-ide/ui/Tabs'
-import { Tooltip } from '@amazing-ide/ui/Tooltip'
+import { Button } from '@agentic-workstation/ui/Button'
+import { Dialog } from '@agentic-workstation/ui/Dialog'
+import { Tabs } from '@agentic-workstation/ui/Tabs'
+import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { REWIND_CHOICES } from './RewindDialog.constants'
 import { useRewindDialog } from './RewindDialog.hooks'

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { Quote, GitFork } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'

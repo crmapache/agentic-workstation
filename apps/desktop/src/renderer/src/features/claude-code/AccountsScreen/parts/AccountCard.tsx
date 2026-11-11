@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@amazing-ide/ui/Badge'
-import { Button } from '@amazing-ide/ui/Button'
+import { Badge } from '@agentic-workstation/ui/Badge'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import type { AccountCardProps } from '../AccountsScreen.types'
 import { accountTitle } from '../AccountsScreen.utils'

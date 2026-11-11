@@ -11,8 +11,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { FileIcon } from '@amazing-ide/ui/FileIcon'
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../DiffEditor.module.scss'
 import type { DiffToolbarProps } from '../DiffEditor.types'

@@ -1,0 +1,112 @@
+@use '../../styles/mixins' as *;
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+// Число - плашкой моноширинным: не прыгает, когда растёт. Капс подписи раздела sm его не
+// касается: «8 of 9 on» читается словами. Стоит на одной строке с заголовком (по базовой
+// линии), а не по центру: мельче и моноширинное, по центру оно висело выше букв заголовка.
+.count {
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-hover);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: normal;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-normal);
+}
+
+.description {
+  max-width: var(--size-text-measure);
+  margin: 0;
+  color: var(--color-fg-muted);
+  line-height: var(--line-height-snug);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Размер правит только свою шапку (> .head): раздел внутри раздела (sm в lg) берёт свой
+// вид, а не линию и кегль родителя.
+
+// Раздел вида: шапка отделена линией, содержимое - на шаг ниже неё.
+.lg {
+  gap: var(--space-4);
+
+  > .head {
+    padding-bottom: var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-border);
+
+    .text {
+      gap: var(--space-1);
+    }
+
+    .title {
+      color: var(--color-fg-strong);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      line-height: var(--line-height-tight);
+    }
+
+    .description {
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+// Раздел внутри окна: подпись капсом, как у Card, плотнее. Шапка - высотой кнопки sm,
+// есть в ней кнопки или нет: разделы в соседних колонках окна начинаются на одной линии,
+// а подпись не прыгает, когда кнопка появляется.
+.sm {
+  gap: var(--space-2);
+
+  > .head {
+    min-height: var(--size-control-sm);
+
+    .text {
+      gap: var(--space-0-5);
+    }
+
+    .title {
+      @include caps-label;
+
+      color: var(--color-fg-subtle);
+      line-height: var(--line-height-tight);
+    }
+
+    .description {
+      font-size: var(--font-size-xs);
+    }
+  }
+}

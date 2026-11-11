@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Disclosure } from '@amazing-ide/ui/Disclosure'
+import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 
 import styles from '../ChangesView.module.scss'
 import type { ChangeGroupProps } from '../ChangesView.types'

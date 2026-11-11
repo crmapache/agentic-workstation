@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { Copy, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useCopy } from '../clipboard.hooks'
 import { useCodeRuns } from './CodeBlock.hooks'

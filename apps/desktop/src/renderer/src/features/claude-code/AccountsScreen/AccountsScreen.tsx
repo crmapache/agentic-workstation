@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
+import { Button } from '@agentic-workstation/ui/Button'
 
 import { useClaudeState } from '../claude.queries'
 import { PanelScreen } from '../PanelScreen/PanelScreen'
@@ -11,13 +11,14 @@ import styles from './AccountsScreen.module.scss'
 import type { AccountsListProps } from './AccountsScreen.types'
 import { AccountCard } from './parts/AccountCard'
 import { AccountDialogs } from './parts/AccountDialogs'
-import { AccountNotes } from './parts/AccountNotes'
+import { DesignSignIn } from './parts/DesignSignIn'
 import { ImportableList } from './parts/ImportableList'
 
 /**
- * Аккаунты Claude: на каком идут разговоры, вошёл ли CLI в каждый, новый аккаунт и
- * аккаунты, уже заведённые в amazing-claude-code. Вход идёт в Терминале - панель ждёт
- * его сама. Сменить аккаунт - разговоры перейдут на него, как только освободятся.
+ * Аккаунты Claude: на каком идут разговоры, вошёл ли CLI в каждый, новый аккаунт, вход в
+ * Claude Design и аккаунты, уже заведённые в amazing-claude-code. Вход идёт в Терминале -
+ * панель ждёт его сама. Сменить аккаунт - разговоры перейдут на него, как только
+ * освободятся. Пояснения - за «?» в шапке листа, а не абзацами здесь.
  */
 export const AccountsScreen = () => {
   const accounts = useClaudeState().data?.accounts
@@ -47,7 +48,6 @@ const AccountsList = ({ accounts }: AccountsListProps) => {
           </Button>
         )
       }>
-      <div className={styles.intro}>{t('claudeCode.accounts.intro')}</div>
       {/* Проба: CLI не держит два входа порознь - словами, почему (и Add неактивна). */}
       {unavailable && <div className={styles.unavailable}>{t(unavailable)}</div>}
       <ul className={styles.list}>
@@ -74,8 +74,8 @@ const AccountsList = ({ accounts }: AccountsListProps) => {
           onClick={screen.add}>
           {t('claudeCode.accounts.add')}
         </Button>
+        <DesignSignIn busy={screen.busy || isSigningIn} />
       </div>
-      <AccountNotes busy={screen.busy || isSigningIn} />
       <ImportableList
         accounts={accounts.importable}
         busy={screen.busy}

@@ -1,8 +1,8 @@
 import { MessageSquarePlus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@amazing-ide/ui/Button'
-import { EmptyState } from '@amazing-ide/ui/EmptyState'
+import { Button } from '@agentic-workstation/ui/Button'
+import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import type { NoChatsProps } from '../ClaudeCodeView.types'
 import { useClaudeActions } from '../../claude-actions.hooks'

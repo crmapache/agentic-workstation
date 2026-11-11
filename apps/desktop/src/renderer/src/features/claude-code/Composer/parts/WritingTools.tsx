@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react'
 import { Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@amazing-ide/ui/IconButton'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { SLASH_GLYPH, PAPERCLIP_GLYPH } from '../Composer.constants'
 import styles from '../Composer.module.scss'
