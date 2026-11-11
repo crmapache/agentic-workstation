@@ -11,6 +11,7 @@ import {
   loadReleasedHeads,
   RELEASED_BRIEFING,
   takeReleasedFrame,
+  releasedHeadsSaved,
 } from './released-heads'
 
 let dir = ''
@@ -33,7 +34,8 @@ describe('released scenario heads', () => {
     expect(RELEASED_BRIEFING).not.toMatch(/["\n]/)
     expect(takeReleasedFrame('head-1')).toBe(RELEASED_FRAME)
     expect(takeReleasedFrame('head-1')).toBe('')
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Две записи подряд ложатся по очереди: на диске - последнее состояние, а не первое.
+    await releasedHeadsSaved()
 
     const stored = JSON.parse(await readFile(join(dir, 'released.json'), 'utf8')) as {
       released: string[]

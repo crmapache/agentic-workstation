@@ -10,7 +10,7 @@ import { putText, holdsText, createDocumentModel } from './document-model'
 import { documentKey, fileRequest } from './documents.utils'
 import { AUTOSAVE_DELAY_MS } from './editor.constants'
 import type { DocumentNotice, DocumentStatus } from './editor.types'
-import { noteEditorEdit } from './manual-edits'
+import { watchPastes, noteEditorEdit } from './manual-edits'
 
 const WRITE_FAILED: FileWrite = { kind: 'failed', reason: 'unknown' }
 
@@ -211,6 +211,7 @@ export class EditorDocument {
     if (this.model) return this.adopt(read)
 
     this.model = createDocumentModel(this.projectId, this.path, read.text)
+    watchPastes()
     this.model.onDidChangeContent((event) => {
       noteEditorEdit(this.projectId, this.path, event, this.applyingDisk)
       this.handleEdit()

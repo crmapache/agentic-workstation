@@ -22,12 +22,21 @@ type Stored = { released: string[]; framed: string[] }
 let file: JsonFile<Stored> | null = null
 const released = new Set<string>()
 const framed = new Set<string>()
+/** Записи - строго по очереди: две разом делят временный файл и ложатся в любом порядке. */
+let saving: Promise<void> = Promise.resolve()
 
 const save = () => {
-  void file
-    ?.write({ released: [...released], framed: [...framed] })
+  const target = file
+
+  if (!target) return
+
+  saving = saving
+    .then(() => target.write({ released: [...released], framed: [...framed] }))
     .catch((error: unknown) => console.warn('[claude] снятые роли голов не записались:', error))
 }
+
+/** Дождаться записей, начатых до этого момента. */
+export const releasedHeadsSaved = (): Promise<void> => saving
 
 /** Прочитать с диска: снятая роль переживает перезапуск IDE. */
 export const loadReleasedHeads = async (path: string): Promise<void> => {

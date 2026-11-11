@@ -7,10 +7,20 @@ import { editDelta } from './manual-edits.utils'
 const PASTE_WINDOW_MS = 150
 
 let pastedAt = 0
+let watching = false
 
-// Вставку узнаём по событию документа в фазе перехвата: так она видна и в Monaco, и в поле
-// разницы, а модель не говорит, откуда текст.
-document.addEventListener('paste', () => (pastedAt = Date.now()), true)
+/**
+ * Начать узнавать вставку - с первой открытой модели, а не при загрузке модуля: импорт без
+ * побочных эффектов, и модуль не требует DOM там, где модели нет. Вставку узнаём по событию
+ * документа в фазе перехвата: так она видна и в Monaco, и в поле разницы, а модель не говорит,
+ * откуда текст.
+ */
+export const watchPastes = (): void => {
+  if (watching) return
+
+  watching = true
+  document.addEventListener('paste', () => (pastedAt = Date.now()), true)
+}
 
 const extensionOf = (path: string): string => {
   const name = path.split('/').at(-1) ?? ''
