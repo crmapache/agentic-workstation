@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type { HistoryEntry } from '@shared/claude'
 
 import { stringField, parseCliLine } from '../cli/cli-messages'
+import { hiddenConversations } from './hidden-conversations'
 import {
   NEWLINE,
   HEAD_BYTES,
@@ -78,6 +79,7 @@ export const listHistory = async (
   openSessionIds: ReadonlySet<string>,
 ): Promise<HistoryEntry[]> => {
   const files: { file: string; sessionId: string; size: number; mtime: number }[] = []
+  const hidden = await hiddenConversations(rootPath)
 
   for (const dir of await transcriptDirs(rootPath)) {
     const names = await readdir(dir).catch(() => [])
@@ -86,7 +88,7 @@ export const listHistory = async (
       const file = join(dir, name)
       const info = await stat(file).catch(() => null)
 
-      if (info?.isFile()) {
+      if (info?.isFile() && !hidden.has(name.slice(0, -6))) {
         files.push({ file, sessionId: name.slice(0, -6), size: info.size, mtime: info.mtimeMs })
       }
     }

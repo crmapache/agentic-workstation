@@ -17,6 +17,7 @@ import { GitStatusService } from './git/git-status-service'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
+import { startScenarios } from './scenarios/scenarios-setup'
 import { SearchService } from './search/search-service'
 import { JsonFile } from './storage/json-file'
 import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
@@ -166,12 +167,21 @@ const bootstrap = async () => {
     },
   )
 
+  // Сценарии на уровне IDE (ADR 0039): очереди всех проектов, провайдеры-исполнители.
+  const scenarios = await startScenarios({
+    claude,
+    workspace,
+    dataDir: app.getPath('userData'),
+    getWindow: () => mainWindow,
+  })
+
   searchProjects()
   watchProjects()
   onWorkspace = () => {
     searchProjects()
     watchProjects()
     terminals.keepProjects(workspace.getState().projects.map((project) => project.id))
+    scenarios.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
   }
 
   const services = {
@@ -184,6 +194,7 @@ const bootstrap = async () => {
     conversationSearch,
     connectors,
     terminals,
+    scenarios,
     getWindow: () => mainWindow,
   }
 
@@ -208,6 +219,8 @@ const bootstrap = async () => {
     conversationSearch.dispose()
     watchers.dispose()
     outsideWatchers.dispose()
+    // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
+    await scenarios.shutdown()
     await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
     // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
     await connectors.stop()

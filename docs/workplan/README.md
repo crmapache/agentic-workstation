@@ -15,7 +15,7 @@
 
 | Часть          | Файл                                 | Статус    |
 | -------------- | ------------------------------------ | --------- |
-| Сценарии       | [10-scenarios.md](10-scenarios.md)   | не начато |
+| Сценарии       | [10-scenarios.md](10-scenarios.md)   | в работе  |
 | Статистика     | [20-statistics.md](20-statistics.md) | не начато |
 | Браузер        | [30-browser.md](30-browser.md)       | не начато |
 | Remote Control | [40-remote.md](40-remote.md)         | не начато |
@@ -111,7 +111,7 @@
 
 Отмечать здесь крупно, подробные чекбоксы - в файле части.
 
-- [ ] 0. Ветка, план, первый коммит (PLAN.md + docs/workplan)
+- [x] 0. Ветка, план, первый коммит (PLAN.md + docs/workplan)
 - [ ] 1. Сценарии ([10-scenarios.md](10-scenarios.md))
 - [ ] 2. Статистика ([20-statistics.md](20-statistics.md))
 - [ ] 3. Браузер ([30-browser.md](30-browser.md))
@@ -130,3 +130,28 @@
 
 - 2026-11-10 вечер. План написан, вопросы владельцу заданы и записаны выше. Ветка
   `feat/scenarios-stats-browser-remote` создана от `main` (23d2f43).
+- 2026-11-10 ~21:10. Сценарии, главный процесс: архив поднят в `main/scenarios/` (движок,
+  хранилища, автор - 64 теста зелёные), новый слой `main/providers/` (интерфейс
+  `ScenarioProvider`, Claude-реализация с `DeferredProcess`: CLI поднимается после записи файла
+  шлюза коннекторов, сессии получают коннекторы по исходному проекту). Очереди:
+  `shared/scenario-queues.ts`, чистые правила `queues/queue-rules.ts` (14 тестов),
+  `QueueBook` (userData/scenario-queues.json, без межпроцессных замков - у dev и установленной
+  IDE свои userData), `QueueRunner` (старт, шаг, конец прогона, правки, имя от ИИ через haiku -
+  проверено вживую: `--tools ''` + `--json-schema` даёт `{title}`), `RunDesk` (бывший
+  ScenarioDesk без очереди), расписание создаёт новую очередь. IPC-область
+  `shared/ipc/scenarios.contract.ts`, обработчики `ipc/scenarios-handlers.ts`, связка
+  `scenarios/scenarios-setup.ts` в `index.ts`. Скрытые разговоры - хук
+  `claude/history/hidden-conversations.ts` (история и поиск панели). Модуль
+  `git/git-worktree.ts` пишет агент. Окно: `state/scenarios.queries.ts`, каркас
+  `features/scenarios` (вкладки, хранилище, действия, уведомление в зоне уведомлений),
+  перенесены `ScenarioRoadmap`, `ScenarioStatePill`, `ScenarioFormsAnswers`. Дальше - три
+  агента на интерфейс (очереди и запуск; прогон и журнал шага; полки, редактор, автор,
+  расписание, история), потом сквозной тест сервиса и живая проверка.
+- ~21:30. Запущены агенты: интерфейс сценариев (очереди и запуск; прогон и журнал шага с
+  `ConversationLog` из claude-code через контекст `state/conversation-log.context.ts`; полки,
+  редактор, автор, расписание, история) и ядро статистики (`main/statistics/**`,
+  `shared/statistics.ts`, без IPC и окна). Факты: `node:sqlite` работает в настоящем главном
+  процессе Electron 44 (SQLite 3.53.4); журналов Claude Code 7.6 ГБ, ~3200 файлов - первый проход
+  только фоном. stylelint запускать из корня репозитория. Значок «ждут тебя» - проп `badges` у
+  `workbench/ActivityBar` готов, осталось передать `askingCount` в полосу зоны 8 в
+  `Workbench.tsx` после агента прогона.

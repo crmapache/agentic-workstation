@@ -21,6 +21,8 @@ import type { GitChangesEventContract, GitChangesInvokeContract } from './git-ch
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
 import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './project-sync.contract'
 import { PROJECT_SYNC_EVENTS, PROJECT_SYNC_CHANNELS } from './project-sync.contract'
+import type { ScenariosEventContract, ScenariosInvokeContract } from './scenarios.contract'
+import { SCENARIOS_EVENTS, SCENARIOS_CHANNELS } from './scenarios.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
@@ -42,7 +44,8 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   EditorInvokeContract &
   WindowInvokeContract &
   ConnectorsInvokeContract &
-  TerminalInvokeContract
+  TerminalInvokeContract &
+  ScenariosInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
@@ -52,7 +55,8 @@ export type AreaEventContract = ClaudeTabsEventContract &
   EditorEventContract &
   WindowEventContract &
   ConnectorsEventContract &
-  TerminalEventContract
+  TerminalEventContract &
+  ScenariosEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -68,6 +72,7 @@ export const AREA_CHANNELS = {
   ...WINDOW_CHANNELS,
   ...CONNECTORS_CHANNELS,
   ...TERMINAL_CHANNELS,
+  ...SCENARIOS_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -81,4 +86,5 @@ export const AREA_EVENTS = {
   ...WINDOW_EVENTS,
   ...CONNECTORS_EVENTS,
   ...TERMINAL_EVENTS,
+  ...SCENARIOS_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

@@ -4,6 +4,7 @@ import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
+import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
@@ -23,6 +24,7 @@ import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
 import { createProjectSyncHandlers } from './project-sync-handlers'
+import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createWindowHandlers } from './window-handlers'
@@ -43,6 +45,8 @@ type Services = HandlerContext & {
   connectors: ConnectorsService
   /** Оболочки терминала под панелью Claude Code (ADR 0037). */
   terminals: TerminalService
+  /** Сценарии на уровне IDE: полки, очереди, прогоны (ADR 0039). */
+  scenarios: ScenarioService
 }
 
 /**
@@ -70,6 +74,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createWindowHandlers(services.getWindow),
     ...createConnectorsHandlers(services.connectors),
     ...createTerminalHandlers(workspace, services.terminals),
+    ...createScenariosHandlers(workspace, claude, services.scenarios),
 
     'updates:getStatus': () => updates.getStatus(),
     'updates:install': () => updates.install(),
