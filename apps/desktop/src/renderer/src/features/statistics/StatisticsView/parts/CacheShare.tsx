@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { Section } from '@agentic-workstation/ui/Section'
+import { Card } from '@agentic-workstation/ui/Card'
 import { ShareBar } from '@agentic-workstation/ui/ShareBar'
 
 import type { CacheShareProps } from '../StatisticsView.types'
@@ -36,7 +36,7 @@ export const CacheShare = ({ tokens }: CacheShareProps) => {
   ]
 
   return (
-    <Section size="sm" title={t('statistics.tokens.cache')} count={formatCount(input)}>
+    <Card title={t('statistics.tokens.cache')} count={formatCount(input)}>
       <ShareBar
         label={t('statistics.tokens.cacheLabel', {
           read: formatPercent(shareOf(tokens.cacheRead, input)),
@@ -49,6 +49,6 @@ export const CacheShare = ({ tokens }: CacheShareProps) => {
           valueLabel: `${formatCount(part.value)} · ${formatPercent(shareOf(part.value, input))}`,
         }))}
       />
-    </Section>
+    </Card>
   )
 }

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { Card } from '@agentic-workstation/ui/Card'
 import { Section } from '@agentic-workstation/ui/Section'
 import { ShareBar } from '@agentic-workstation/ui/ShareBar'
 
@@ -13,7 +14,8 @@ import { StatisticsHelp } from './StatisticsHelp'
 
 /**
  * Инструменты: частые вызовы агентов, коннекторы (MCP) по серверу и вопросы разрешений в
- * IDE - сколько спрошено, разрешено и отказано.
+ * IDE - сколько спрошено, разрешено и отказано. Три карточки рядом, узкая середина - одна под
+ * другой.
  */
 export const ToolsSection = ({ data }: Pick<SectionProps, 'data'>) => {
   const { t } = useTranslation()
@@ -44,7 +46,7 @@ export const ToolsSection = ({ data }: Pick<SectionProps, 'data'>) => {
             parts: [{ key: 'calls', value: row.calls, tone: AGENTS_TONE }],
           }))}
         />
-        <Section size="sm" title={t('statistics.tools.permissions')}>
+        <Card title={t('statistics.tools.permissions')}>
           {asked === 0 ? (
             <p className={styles.note}>{t('statistics.nothing')}</p>
           ) : (
@@ -86,7 +88,7 @@ export const ToolsSection = ({ data }: Pick<SectionProps, 'data'>) => {
               />
             </div>
           )}
-        </Section>
+        </Card>
       </div>
     </Section>
   )

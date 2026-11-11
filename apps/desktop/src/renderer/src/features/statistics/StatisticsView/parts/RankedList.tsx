@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 
-import { Section } from '@agentic-workstation/ui/Section'
+import { Card } from '@agentic-workstation/ui/Card'
 import { ShareBar } from '@agentic-workstation/ui/ShareBar'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
@@ -11,13 +11,14 @@ import { rankedTotal } from '../StatisticsView.utils'
 /**
  * Список «кто больше»: имя и число в строку, под ними - полоса от самой большой строки (её
  * куски - чьё это: ты и агенты у языков). Инструменты, коннекторы, модели, проекты,
- * сценарии. Нет строк - короткое состояние вместо списка.
+ * сценарии. Своя карточка: в разделе она стоит рядом с графиком и не сливается с ним. Нет
+ * строк - короткое состояние вместо списка.
  */
 export const RankedList = ({ title, rows, emptyLabel }: RankedListProps) => {
   const total = rankedTotal(rows)
 
   return (
-    <Section size="sm" title={title}>
+    <Card title={title}>
       {rows.length === 0 ? (
         <p className={styles.note}>{emptyLabel}</p>
       ) : (
@@ -41,6 +42,6 @@ export const RankedList = ({ title, rows, emptyLabel }: RankedListProps) => {
           ))}
         </ul>
       )}
-    </Section>
+    </Card>
   )
 }
