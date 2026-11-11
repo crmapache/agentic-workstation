@@ -2,6 +2,7 @@ import {
   Bot,
   Zap,
   Play,
+  Plus,
   Search,
   Trash2,
   ArrowUp,
@@ -45,6 +46,9 @@ export const ActionsSection = () => {
         <Button variant="danger" icon={Trash2}>
           {t('samples.remove')}
         </Button>
+        <Button variant="dashed" icon={Plus}>
+          {t('samples.addStage')}
+        </Button>
         <Button variant="primary" disabled>
           {t('samples.disabled')}
         </Button>
@@ -62,6 +66,9 @@ export const ActionsSection = () => {
         </Button>
         <Button variant="danger" size="sm">
           {t('samples.remove')}
+        </Button>
+        <Button variant="dashed" size="sm" icon={Plus}>
+          {t('samples.addStage')}
         </Button>
         <Button variant="secondary" size="sm" disabled>
           {t('samples.disabled')}

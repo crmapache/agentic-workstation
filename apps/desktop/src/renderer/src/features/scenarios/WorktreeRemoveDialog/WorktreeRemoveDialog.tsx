@@ -53,7 +53,7 @@ export const WorktreeRemoveDialog = ({ request }: WorktreeRemoveDialogProps) => 
       onClose={close}
       actions={
         <>
-          <Button type="button" onClick={close}>
+          <Button type="button" variant="ghost" onClick={close}>
             {t('common.cancel')}
           </Button>
           <Button type="submit" variant="danger" disabled={!canRemove}>

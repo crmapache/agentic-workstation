@@ -1,18 +1,13 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
 
 // Чип ответа: имя вопроса приглушено, значение - то, ради чего чип и читают.
 .chip {
+  @include scenario-chip;
+
   display: inline-flex;
   align-items: baseline;
   gap: var(--space-1);
-  max-width: 100%;
-  min-width: 0;
-  padding: 0 var(--space-1-5);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-xs);
-  background-color: var(--color-surface-raised);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-normal);
 }
 
 .name {
@@ -23,6 +18,5 @@
 .value {
   @include truncate;
 
-  color: var(--color-fg-muted);
   font-family: var(--font-code);
 }

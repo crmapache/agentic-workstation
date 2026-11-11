@@ -19,7 +19,7 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import type { RunActionsProps } from '../RunModal.types'
 import { isResumable } from '../../scenarios-runs.utils'
 import { useScenarioActions } from '../../scenarios.actions'
-import { StopDialog } from './StopDialog'
+import { ScenarioConfirm } from '../../ScenarioConfirm/ScenarioConfirm'
 
 /**
  * Кнопки в шапке окна прогона: разговор главного потока (или назад из журнала), пауза или
@@ -107,9 +107,16 @@ export const RunActions = ({
         text={t('scenarios.run.help.text')}
         closeLabel={t('common.close')}
       />
-      {isStopping && (
-        <StopDialog subject={run.scenarioName} onStop={handleStop} onClose={handleCloseStop} />
-      )}
+      {/* Оборванная карточка при подхвате начнётся заново, этапы после неё не случатся. */}
+      <ScenarioConfirm
+        open={isStopping}
+        title={t('scenarios.run.stopTitle')}
+        subject={run.scenarioName}
+        note={t('scenarios.run.stopNote')}
+        submit={t('scenarios.run.stop')}
+        onSubmit={handleStop}
+        onClose={handleCloseStop}
+      />
     </>
   )
 }

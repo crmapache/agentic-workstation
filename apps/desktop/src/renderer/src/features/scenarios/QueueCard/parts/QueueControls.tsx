@@ -45,7 +45,12 @@ export const QueueControls = ({ queue, live }: QueueControlsProps) => {
     <div className={styles.controls} role="group" aria-label={t('scenarios.queues.controls.label')}>
       {running && (
         <>
-          <Button size="sm" icon={isPaused ? Play : Pause} disabled={!live} onClick={handlePause}>
+          <Button
+            size="sm"
+            variant={isPaused ? 'primary' : 'secondary'}
+            icon={isPaused ? Play : Pause}
+            disabled={!live}
+            onClick={handlePause}>
             {isPaused
               ? t('scenarios.queues.controls.resume')
               : t('scenarios.queues.controls.pause')}
@@ -55,7 +60,7 @@ export const QueueControls = ({ queue, live }: QueueControlsProps) => {
               ? t('scenarios.queues.controls.keepGoing')
               : t('scenarios.queues.controls.stopAfterCurrent')}
           </Button>
-          <Button size="sm" variant="ghost" icon={Square} disabled={!live} onClick={handleStop}>
+          <Button size="sm" icon={Square} disabled={!live} onClick={handleStop}>
             {t('scenarios.queues.controls.stop')}
           </Button>
         </>

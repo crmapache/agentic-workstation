@@ -1,7 +1,7 @@
 import type { StepState, RoadmapStop, ScenarioRun } from '@shared/scenario-runs'
 import { isStepOver } from '@shared/scenario-runs'
 
-import { ROAD, ROAD_SNAP } from './scenarios.constants'
+import { ROAD_SNAP } from './scenarios.constants'
 
 /**
  * Дорога карточек (roadmap.ts в ACC): кружки на одном расстоянии, текущий - в кольце. Цикл
@@ -9,6 +9,7 @@ import { ROAD, ROAD_SNAP } from './scenarios.constants'
  * окно вокруг текущей с наклоном вперёд и счётчики «+N» вместо остального.
  */
 
+/** Ширины частей дороги в пикселях - обмер нарисованных (useRoadMeasure), а не числа в коде. */
 export type RoadMetrics = { stop: number; link: number; fold: number }
 
 export type RoadItem = { kind: 'stop'; index: number } | { kind: 'fold'; from: number; to: number }
@@ -90,14 +91,14 @@ export const windowed = (count: number, here: number, size: number): RoadItem[] 
   return items
 }
 
-export const widthOf = (items: readonly RoadItem[], metrics: RoadMetrics = ROAD): number =>
+export const widthOf = (items: readonly RoadItem[], metrics: RoadMetrics): number =>
   items.length === 0
     ? 0
     : items.reduce((sum, item) => sum + (item.kind === 'stop' ? metrics.stop : metrics.fold), 0) +
       (items.length - 1) * metrics.link
 
 /** Полная ширина дороги без складок. */
-export const roadWidth = (count: number, metrics: RoadMetrics = ROAD): number =>
+export const roadWidth = (count: number, metrics: RoadMetrics): number =>
   count > 0 ? count * metrics.stop + (count - 1) * metrics.link : 0
 
 /** Самая длинная раскладка, что влезает в width. */
@@ -105,7 +106,7 @@ export const roadLayout = (
   count: number,
   here: number,
   width: number,
-  metrics: RoadMetrics = ROAD,
+  metrics: RoadMetrics,
 ): RoadItem[] => {
   if (count <= 0) return []
 

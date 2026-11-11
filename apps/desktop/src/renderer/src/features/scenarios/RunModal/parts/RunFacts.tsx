@@ -5,7 +5,8 @@ import { isRunFinished } from '@shared/scenario-runs'
 import styles from '../RunModal.module.scss'
 import type { RunFactsProps } from '../RunModal.types'
 import { readingsOf, roadMoodOf } from '../RunModal.utils'
-import { roadOf, roadWidth } from '../../scenarios-road.utils'
+import { roadOf } from '../../scenarios-road.utils'
+import { ScenarioReadings } from '../../ScenarioReadings/ScenarioReadings'
 import { ScenarioRoadmap } from '../../ScenarioRoadmap/ScenarioRoadmap'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 
@@ -21,22 +22,9 @@ export const RunFacts = ({ run, now }: RunFactsProps) => {
 
   return (
     <div className={styles.facts}>
-      {stops.length > 0 && (
-        <div
-          className={styles.road}
-          // eslint-disable-next-line no-restricted-syntax -- дорога занимает ровно свою ширину (число кружков приходит с прогоном), иначе показания уехали бы в дальний конец
-          style={{ flexBasis: roadWidth(stops.length) }}>
-          <ScenarioRoadmap stops={stops} mood={roadMoodOf(run.state)} />
-        </div>
-      )}
-      <div className={styles.readings}>
-        {readingsOf(t, run, now).map((reading) => (
-          <span key={reading.key} className={styles.reading}>
-            <span className={styles.readingKey}>{reading.label}</span>
-            <span className={styles.readingValue}>{reading.value}</span>
-          </span>
-        ))}
-      </div>
+      {/* Дорога своей ширины: иначе показания уехали бы в дальний конец строки. */}
+      {stops.length > 0 && <ScenarioRoadmap stops={stops} mood={roadMoodOf(run.state)} ownWidth />}
+      <ScenarioReadings readings={readingsOf(t, run, now)} />
       <span className={styles.state}>
         <ScenarioStatePill of="run" state={run.state} limited={!isOver && Boolean(run.limit)} />
       </span>

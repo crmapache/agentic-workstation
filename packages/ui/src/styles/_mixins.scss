@@ -176,3 +176,23 @@
     }
   }
 }
+
+// Перелив подписи «работа идёт» (ADR 0025): тёплый свет течёт по буквам слева направо. Градиент
+// вдвое шире подписи и повторяется, за период сдвигается ровно на свою ширину - шва нет. Цвет
+// букв - сам градиент, поэтому текст прозрачный поверх него. Кадры, как у breathing, - отдельно:
+// shimmer-keyframes в корне модуля.
+@mixin shimmer {
+  background-image: var(--gradient-shimmer);
+  background-size: 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer var(--duration-shimmer) linear infinite;
+}
+
+@mixin shimmer-keyframes {
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+}

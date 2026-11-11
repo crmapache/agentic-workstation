@@ -8,8 +8,9 @@ import { formatCost, formatTokens, formatDuration } from '../scenarios-format.ut
 import { startedLabel } from '../scenarios-moments.utils'
 import { runWorked } from '../scenarios-timeline.utils'
 import { MARK_CHARS } from '../scenarios.constants'
+import type { ScenarioReading } from '../ScenarioReadings/ScenarioReadings.types'
 import type { RoadMood } from '../ScenarioRoadmap/ScenarioRoadmap.types'
-import type { RunOpening, RunReading } from './RunModal.types'
+import type { RunOpening } from './RunModal.types'
 
 /**
  * Где открывается таймлайн: итог законченного прогона, ошибка, вопрос и лимит стоят над
@@ -34,7 +35,7 @@ export const roadMoodOf = (state: RunState): RoadMood => {
  * Строка цифр прогона: время работы (без пауз и вопросов человеку - «took» у законченного),
  * токены, деньги - только те, что есть, и когда начат. Три показания держатся вместе.
  */
-export const readingsOf = (t: TFunction, run: ScenarioRun, now: number): RunReading[] => {
+export const readingsOf = (t: TFunction, run: ScenarioRun, now: number): ScenarioReading[] => {
   const worked = {
     key: 'worked',
     label: isRunFinished(run.state) ? t('scenarios.run.took') : t('scenarios.run.active'),

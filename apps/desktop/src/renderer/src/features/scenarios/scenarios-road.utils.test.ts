@@ -2,7 +2,18 @@ import { it, expect, describe } from 'vitest'
 
 import type { RoadmapStop } from '@shared/scenario-runs'
 
-import { endOf, bandOf, hereOf, windowed, roadWidth, roadLayout } from './scenarios-road.utils'
+import {
+  endOf,
+  bandOf,
+  hereOf,
+  widthOf,
+  windowed,
+  roadWidth,
+  roadLayout,
+} from './scenarios-road.utils'
+
+/** Ширины частей при размере текста 100%: в окне их меряют по нарисованному. */
+const METRICS = { stop: 18, link: 8, fold: 36 }
 
 const stops = (states: RoadmapStop['state'][], stages: number[] = []): RoadmapStop[] =>
   states.map((state, at) => ({ state, stage: stages[at] ?? 1, pass: 1, title: `card ${at + 1}` }))
@@ -16,14 +27,26 @@ describe('road of cards', () => {
   })
 
   it('lays every stop out when they fit, and folds the rest around the present', () => {
-    expect(roadLayout(5, 2, roadWidth(5)).every((item) => item.kind === 'stop')).toBe(true)
+    expect(
+      roadLayout(5, 2, roadWidth(5, METRICS), METRICS).every((item) => item.kind === 'stop'),
+    ).toBe(true)
 
-    const folded = roadLayout(18, 9, 200)
+    const folded = roadLayout(18, 9, 200, METRICS)
 
     expect(folded[0]).toEqual({ kind: 'stop', index: 0 })
     expect(folded.at(-1)).toEqual({ kind: 'stop', index: 17 })
     expect(folded.some((item) => item.kind === 'fold')).toBe(true)
     expect(folded.some((item) => item.kind === 'stop' && item.index === 9)).toBe(true)
+  })
+
+  it('folds sooner when the parts grow with the IDE text size', () => {
+    const larger = { stop: 27, link: 8, fold: 54 }
+    const width = roadWidth(10, METRICS)
+    const items = roadLayout(10, 4, width, larger)
+
+    expect(roadLayout(10, 4, width, METRICS).every((item) => item.kind === 'stop')).toBe(true)
+    expect(items.some((item) => item.kind === 'fold')).toBe(true)
+    expect(widthOf(items, larger)).toBeLessThanOrEqual(width)
   })
 
   it('leans the window forward', () => {

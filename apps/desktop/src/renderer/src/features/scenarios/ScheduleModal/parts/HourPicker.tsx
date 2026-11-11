@@ -5,6 +5,7 @@ import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { Section } from '@agentic-workstation/ui/Section'
 
 import { DUE_TICK_MS, TIME_SEPARATOR } from '../ScheduleModal.constants'
 import styles from '../ScheduleModal.module.scss'
@@ -39,26 +40,21 @@ export const HourPicker = ({ hour, onChange }: HourPickerProps) => {
   }
 
   return (
-    <div className={styles.field}>
-      <span className={styles.caption}>{t('scenarios.schedule.form.at')}</span>
+    <Section size="sm" title={t('scenarios.schedule.form.at')}>
       <div className={styles.timeRow}>
-        <span className={styles.box}>
-          <DropdownButton
-            {...hours.triggerProps}
-            label={pad2(hourOf(hour.at))}
-            menuLabel={hourLabel}
-          />
-        </span>
+        <DropdownButton
+          {...hours.triggerProps}
+          label={pad2(hourOf(hour.at))}
+          menuLabel={hourLabel}
+        />
         <span className={styles.timeColon} aria-hidden>
           {TIME_SEPARATOR}
         </span>
-        <span className={styles.box}>
-          <DropdownButton
-            {...minutes.triggerProps}
-            label={pad2(minuteOf(hour.at))}
-            menuLabel={minuteLabel}
-          />
-        </span>
+        <DropdownButton
+          {...minutes.triggerProps}
+          label={pad2(minuteOf(hour.at))}
+          menuLabel={minuteLabel}
+        />
         <span className={styles.due}>
           {t('scenarios.schedule.form.due', { when: whenLabel(due), time: countdown(due - now) })}
         </span>
@@ -72,7 +68,6 @@ export const HourPicker = ({ hour, onChange }: HourPickerProps) => {
                 label={pad2(value)}
                 selection="single"
                 checked={value === hourOf(hour.at)}
-                current={value === hourOf(hour.at)}
                 onSelect={() => handleHour(value)}
               />
             ))}
@@ -88,13 +83,12 @@ export const HourPicker = ({ hour, onChange }: HourPickerProps) => {
                 label={pad2(value)}
                 selection="single"
                 checked={value === minuteOf(hour.at)}
-                current={value === minuteOf(hour.at)}
                 onSelect={() => handleMinute(value)}
               />
             ))}
           </Menu>
         )}
       </Popover>
-    </div>
+    </Section>
   )
 }

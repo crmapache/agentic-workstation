@@ -142,3 +142,25 @@
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
 }
+
+// Знак с кольцом работы вокруг (Spinner around): номер в кружке ростом с маленький контрол, как
+// текущая остановка дороги сценария. Кольцо - на месте рамки кружка, коробку ему даёт обёртка.
+.spinnerSign {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+}
+
+.spinnerAround {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}

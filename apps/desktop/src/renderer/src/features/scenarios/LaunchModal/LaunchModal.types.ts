@@ -28,7 +28,4 @@ export type LaunchPartProps = { form: LaunchForm }
 
 export type ScenarioOptionsProps = LaunchPartProps & { title: string; scenarios: Scenario[] }
 
-/** tone warning - предупреждение (жёлтым), danger - отказ (красным). */
-export type LaunchNoteProps = { tone?: 'warning' | 'danger' | undefined; children: string }
-
 export type LaunchFailureLineProps = { failure: LaunchFailure }

@@ -58,7 +58,9 @@ export const LaunchModal = ({ project, request }: LaunchModalProps) => {
       onClose={form.close}
       footer={
         <div className={styles.footer}>
-          <Button onClick={form.close}>{t('common.cancel')}</Button>
+          <Button variant="ghost" onClick={form.close}>
+            {t('common.cancel')}
+          </Button>
           <Button type="submit" form={formId} variant="primary" icon={Play} disabled={!form.canRun}>
             {form.target.kind === 'new' ? t('scenarios.launch.run') : t('scenarios.launch.add')}
           </Button>

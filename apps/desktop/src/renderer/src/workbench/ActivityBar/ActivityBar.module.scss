@@ -28,20 +28,22 @@
   display: flex;
 }
 
-// Число того, что ждёт человека: тонированная плашка акцента, как главная кнопка, - сплошная
-// заливка кричала бы с полосы весь вечер, пока прогон ждёт ответа.
+// Число того, что ждёт человека - капля на углу иконки, как число непрочитанных у кнопки ленты
+// (Feed .unread): тот же угол, кегль счётчика и ровные цифры. Только тонированная плашкой акцента,
+// как главная кнопка: сплошная заливка кричала бы с полосы весь вечер, пока прогон ждёт ответа.
 .badge {
-  @include caps-label;
-
   position: absolute;
-  top: calc(var(--space-0-5) * -1);
-  right: calc(var(--space-0-5) * -1);
-  min-width: var(--size-icon-sm);
-  padding: 0 var(--space-0-5);
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+  min-width: var(--size-status-dot);
+  padding: 0 var(--space-1);
   border: var(--border-width) solid var(--color-accent-border);
   border-radius: var(--radius-full);
   background-color: var(--color-accent-soft);
   color: var(--color-accent-strong);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-normal);
   text-align: center;
   pointer-events: none;
 }

@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
 
 // Полки библиотеки: два раздела вида один под другим. Контейнер - для узкой середины окна:
 // там часы и кнопки строки уходят под имя.
@@ -20,28 +21,10 @@
   gap: var(--space-1-5);
 }
 
-// Строка - плитка: по центру, а не по верху - слева две строки текста, справа одна, и кнопка
-// у верхней строки выглядела бы сползшей.
+// Строка - плитка, как час расписания; нажимается вся - открывает редактор.
 .row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  padding: var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-raised);
-  cursor: pointer;
-  transition:
-    background-color var(--duration-normal) var(--easing-standard),
-    border-color var(--duration-normal) var(--easing-standard);
-
-  @media (hover: hover) {
-    &:hover {
-      border-color: var(--color-border-strong);
-      background-color: var(--color-surface-raised-hover);
-    }
-  }
+  @include scenario-row;
+  @include scenario-row-press;
 }
 
 // Несомая строка спрятана: её место показывает рамка, уезжающая туда, куда она ляжет.
@@ -155,13 +138,8 @@
 }
 
 .chip {
+  @include scenario-chip;
   @include truncate;
-
-  max-width: 100%;
-  padding: 0 var(--space-1-5);
-  border-radius: var(--radius-xs);
-  background-color: var(--color-bg-hover);
-  color: var(--color-fg-muted);
 }
 
 .broken {

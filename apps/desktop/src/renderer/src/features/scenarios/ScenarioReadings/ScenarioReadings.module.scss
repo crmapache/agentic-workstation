@@ -1,0 +1,28 @@
+// Показания переносятся целиком, а не по словам: подпись не отрывается от своего значения.
+.scenarioReadings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.reading {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.label {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Значение - показание прибора: консольный шрифт, цифры одной ширины - часы тикают, а строка
+// не дрожит.
+.value {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import type { LaunchFailureLineProps } from '../LaunchModal.types'
-import { LaunchNote } from './LaunchNote'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 
 /**
  * Почему не запустилось - словами кода, а подробность (что сказал git) - следом: по ней
@@ -14,8 +14,8 @@ export const LaunchFailureLine = ({ failure }: LaunchFailureLineProps) => {
   })
 
   return (
-    <div role="alert">
-      <LaunchNote tone="danger">{failure.detail ? `${words} ${failure.detail}` : words}</LaunchNote>
-    </div>
+    <ScenarioAlert tone="danger" alert>
+      {failure.detail ? `${words} ${failure.detail}` : words}
+    </ScenarioAlert>
   )
 }

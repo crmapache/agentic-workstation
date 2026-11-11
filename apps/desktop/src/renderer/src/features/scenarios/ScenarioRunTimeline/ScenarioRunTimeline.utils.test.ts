@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { stepLineOf, stepToneOf, filledSlots } from './ScenarioRunTimeline.utils'
+import { stepLineOf, stepToneOf } from './ScenarioRunTimeline.utils'
 
 describe('stepToneOf', () => {
   it('тон точки - смысл плашки', () => {
@@ -26,11 +26,5 @@ describe('stepLineOf', () => {
 
   it('у строки впереди строки нет', () => {
     expect(stepLineOf({ ...step, state: 'waiting' })).toBe('')
-  })
-})
-
-describe('filledSlots', () => {
-  it('только заполненные слоты', () => {
-    expect(filledSlots({ branch: 'main', ticket: '' })).toEqual([['branch', 'main']])
   })
 })

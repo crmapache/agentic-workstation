@@ -10,6 +10,7 @@ import styles from '../QueueCard.module.scss'
 import type { QueueItemChipProps } from '../QueueCard.types'
 import { answerChips } from '../../scenarios-forms.utils'
 import { waitingItems } from '../../scenarios-queues.utils'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 import { QueueItemMenu } from './QueueItemMenu'
@@ -88,7 +89,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
           />
         )}
       </div>
-      {refusal && <span className={styles.refusal}>{refusal}</span>}
+      {refusal && <ScenarioAlert tone="danger">{refusal}</ScenarioAlert>}
       {(condition || hasAnswers) && (
         <div className={styles.itemMeta}>
           {condition && <span className={styles.condition}>{condition}</span>}

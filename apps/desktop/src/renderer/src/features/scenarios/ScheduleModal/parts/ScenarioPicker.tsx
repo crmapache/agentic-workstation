@@ -1,4 +1,3 @@
-import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
@@ -7,6 +6,7 @@ import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { MenuSection } from '@agentic-workstation/ui/MenuSection'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../ScheduleModal.module.scss'
 import type { ScenarioPickerProps } from '../ScheduleModal.types'
@@ -26,19 +26,18 @@ export const ScenarioPicker = ({ scenarios, value, onPick }: ScenarioPickerProps
   ] as const
 
   return (
-    <div className={styles.field}>
-      <span className={styles.caption}>{label}</span>
+    <Section size="sm" title={label}>
       {scenarios.length === 0 ? (
         <span className={styles.hint}>{t('scenarios.schedule.form.noScenarios')}</span>
       ) : (
-        <span className={clsx(styles.box, styles.boxStart)}>
+        <div className={styles.picker}>
           <DropdownButton
             {...popover.triggerProps}
             label={value?.name ?? t('scenarios.schedule.form.choose')}
             menuLabel={label}
             data-autofocus
           />
-        </span>
+        </div>
       )}
       <Popover {...popover.popoverProps} width="lg">
         {popover.isOpen && (
@@ -53,7 +52,8 @@ export const ScenarioPicker = ({ scenarios, value, onPick }: ScenarioPickerProps
                       <MenuItem
                         key={scenario.id}
                         label={scenario.name}
-                        current={scenario.id === value?.id && scope === value.scope}
+                        selection="single"
+                        checked={scenario.id === value?.id && scope === value.scope}
                         onSelect={() => {
                           popover.close()
                           onPick(scenario)
@@ -67,6 +67,6 @@ export const ScenarioPicker = ({ scenarios, value, onPick }: ScenarioPickerProps
           </Menu>
         )}
       </Popover>
-    </div>
+    </Section>
   )
 }

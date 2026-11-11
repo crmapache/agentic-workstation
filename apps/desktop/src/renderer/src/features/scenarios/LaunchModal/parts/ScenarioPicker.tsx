@@ -8,7 +8,7 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
 import { shelvesOf } from '../LaunchModal.utils'
-import { LaunchNote } from './LaunchNote'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 import { ScenarioOptions } from './ScenarioOptions'
 
 /**
@@ -42,7 +42,7 @@ export const ScenarioPicker = ({ form }: LaunchPartProps) => {
           </Menu>
         )}
       </Popover>
-      {form.isBroken && <LaunchNote>{t('scenarios.launch.broken')}</LaunchNote>}
+      {form.isBroken && <ScenarioAlert>{t('scenarios.launch.broken')}</ScenarioAlert>}
     </>
   )
 }

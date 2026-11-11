@@ -8,6 +8,7 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../EditorModal.module.scss'
 import type { EditorFooterProps } from '../EditorModal.types'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 
 /**
  * Подвал редактора: слева - сколько находок (сами они под оглавлением) или почему не
@@ -28,9 +29,9 @@ export const EditorFooter = ({
     <>
       <div className={styles.footerStart}>
         {refusal && (
-          <span role="alert" className={styles.refusal}>
+          <ScenarioAlert tone="danger" alert>
             {refusal}
-          </span>
+          </ScenarioAlert>
         )}
         {!refusal && problems.length > 0 && (
           <Tooltip label={t('scenarios.editor.issuesHint')}>

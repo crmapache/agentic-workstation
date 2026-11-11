@@ -38,16 +38,6 @@ export type EndBannerProps = { run: ScenarioRun }
 
 export type RunQuestionCardProps = { place: RunPlace; runId: string; question: RunQuestion }
 
-export type StopDialogProps = {
-  /** Что останавливают: имя сценария и очередь - два прогона одного сценария различаются ею. */
-  subject: string
-  onStop: () => void
-  onClose: () => void
-}
-
-/** Показание в строке цифр прогона: подпись и значение. */
-export type RunReading = { key: string; label: string; value: string }
-
 /**
  * Где открывается таймлайн: present - на строке, где прогон сейчас; top - наверху то, что
  * читать первым (вопрос, лимит, ошибка, итог законченного прогона).

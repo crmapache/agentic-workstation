@@ -15,28 +15,11 @@
   margin-left: auto;
 }
 
-// Подпись и то, что под ней: поле описания, группа выбора.
+// Поле описания и то, что под ним, пока модель пишет: полоса и часы.
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-}
-
-// Подпись раздела капсом: KEPT IN.
-.caption {
-  @include caps-label;
-
-  color: var(--color-fg-subtle);
-}
-
-.error {
-  @include tinted-plaque(var(--color-danger));
-
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-snug);
 }
 
 .wait {
@@ -96,9 +79,10 @@
   }
 }
 
-// Выбранное - заливка, а не свечение.
-.choiceOn,
-.choiceOn:not(:disabled):hover {
+// Выбранное - заливка, а не свечение: и при наведении, и при нажатии.
+.choiceOn {
+  @include interactive-surface(var(--color-bg-selected), var(--color-bg-selected));
+
   border-color: var(--color-border-strong);
   background-color: var(--color-bg-selected);
 }

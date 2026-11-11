@@ -1,0 +1,72 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Общие рецепты вида сценариев: строка-плитка, плашка сообщения, чип, точка состояния. Одна
+// и та же вещь на разных вкладках и в разных окнах рисуется одним рецептом - иначе каждая
+// вкладка рисовала её по-своему, и вид расходился от правки к правке. Только значения вида:
+// раскладку внутри задаёт тот, кто подключил.
+
+// Строка-плитка списка (сценарий на полке, час расписания): подложка и рамка плитки, всё в
+// строке - по её середине: кнопки справа не прилипают к верху двухэтажного текста.
+@mixin scenario-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-raised);
+}
+
+// Строка или карточка, которая нажимается целиком (открыть сценарий, прогон, журнал шага):
+// наведение светлее подложки плитки, как у Tile. Без заливки нажатия: в строке свои кнопки, и
+// :active от нажатия на любую из них мигал бы всей строкой.
+@mixin scenario-row-press {
+  cursor: pointer;
+  transition: background-color var(--duration-normal) var(--easing-standard);
+
+  @media (hover: hover) {
+    &:hover {
+      background-color: var(--color-surface-raised-hover);
+    }
+  }
+}
+
+// Плашка сообщения тона: итог, ошибка, ожидание лимита, слова между шагами, остановка очереди.
+// Тон - в подложке и рамке; текст внутри задаёт тот, кто подключил.
+@mixin scenario-plaque($tone) {
+  @include tinted-plaque($tone);
+
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// Чип - короткое значение рядом с главным: ответ на вопрос, слот, факт сценария. Залит, а не в
+// рамке: на плитке цвета подложки рамочный чип читался бы дыркой.
+@mixin scenario-chip {
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-bg-hover);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+// Точка состояния (элемент очереди, шаг прогона): залита тоном --tone, его ставит тот, кто
+// подключил. Ещё не начавшийся - пустое кольцо, одного цвета везде.
+@mixin scenario-dot {
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  border: var(--border-width) solid var(--tone, var(--color-fg-subtle));
+  border-radius: var(--radius-full);
+  background-color: var(--tone, var(--color-fg-subtle));
+}
+
+@mixin scenario-dot-unstarted($fill: transparent) {
+  border-color: var(--color-fg-subtle);
+  background-color: $fill;
+}

@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@include shimmer-keyframes;
 
 .feed {
   display: flex;
@@ -108,21 +109,10 @@
   color: var(--color-fg-muted);
 }
 
-// Перелив: тёплый свет течёт по буквам слева направо (градиент - токен, ADR 0025). Он
-// вдвое шире подписи и повторяется; за период сдвигается ровно на свою ширину - шва нет.
-// Цвет букв - сам градиент, поэтому текст прозрачный поверх него.
+// Перелив: тёплый свет течёт по буквам слева направо (ADR 0025), тот же, что у строки «главный
+// поток пишет ответ» в таймлайне сценария.
 .shimmer {
-  background-image: var(--gradient-shimmer);
-  background-size: 200% 100%;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer-flow var(--duration-shimmer) linear infinite;
-}
-
-@keyframes shimmer-flow {
-  to {
-    background-position: -200% 0;
-  }
+  @include shimmer;
 }
 
 // Цифры рядом со словами - тихие и одной ширины: секунды тикают, а строка не дрожит. Точка

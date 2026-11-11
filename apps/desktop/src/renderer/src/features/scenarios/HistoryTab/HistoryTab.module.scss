@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
 
 // Рамка-контейнер таблицы: по её ширине колонки уходят одна за другой в узкой середине окна.
 .frame {
@@ -32,14 +33,7 @@
 }
 
 .tableLine {
-  cursor: pointer;
-  transition: background-color var(--duration-normal) var(--easing-standard);
-
-  @media (hover: hover) {
-    &:hover {
-      background-color: var(--color-surface-raised-hover);
-    }
-  }
+  @include scenario-row-press;
 }
 
 .tableHead {
@@ -55,6 +49,7 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+  overflow: hidden;
 }
 
 .runOpen {
@@ -73,18 +68,13 @@
   font-size: var(--font-size-sm);
 }
 
-// Метка уступает имени: ответ - свободный текст, ссылка бывает длинной.
-.mark {
-  @include truncate;
-
+// Ответы уступают имени: ответ - свободный текст, ссылка бывает длинной.
+.answers {
+  display: flex;
   flex: 0 2 auto;
+  gap: var(--space-1);
   min-width: 0;
-  padding: 0 var(--space-1-5);
-  border-radius: var(--radius-xs);
-  background-color: var(--color-bg-hover);
-  color: var(--color-fg-muted);
-  font-family: var(--font-code);
-  font-size: var(--font-size-xs);
+  overflow: hidden;
 }
 
 // Время, длительность и цена - показания: консольный шрифт, ровные цифры.

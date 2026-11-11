@@ -1,10 +1,10 @@
 import { X, Plus, ArrowUp, ArrowDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@agentic-workstation/ui/Button'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
-import { GLYPH_SIZE, ICON_STROKE_WIDTH } from '../EditorModal.constants'
 import styles from '../EditorModal.module.scss'
 import type { StagePaneProps } from '../EditorModal.types'
 import { stageNote } from '../EditorModal.utils'
@@ -89,13 +89,12 @@ export const StagePane = ({
           onRemove={() => onStage((one) => withoutCard(one, card.id))}
         />
       ))}
-      <button
-        type="button"
-        className={styles.addDashed}
+      <Button
+        variant="dashed"
+        icon={Plus}
         onClick={() => onStage((one) => ({ ...one, cards: [...one.cards, blankCard()] }))}>
-        <Plus size={GLYPH_SIZE} strokeWidth={ICON_STROKE_WIDTH} aria-hidden />
         {t('scenarios.editor.stage.addCard')}
-      </button>
+      </Button>
     </>
   )
 }

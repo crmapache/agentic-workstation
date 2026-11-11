@@ -37,7 +37,7 @@ export const CloseQueueDialog = ({ queue, onClose }: CloseQueueDialogProps) => {
       onClose={onClose}
       actions={
         <>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={onClose}>
             {t('common.cancel')}
           </Button>
           <Button type="submit" variant="primary">

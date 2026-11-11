@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
 
 // Тело окна: уведомление об отказе (если есть) над страницей прогона или журналом.
 .body {
@@ -35,39 +36,6 @@
   border-bottom: var(--border-width) solid var(--color-border);
 }
 
-.road {
-  flex-grow: 0;
-  flex-shrink: 1;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.readings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-}
-
-.reading {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  white-space: nowrap;
-}
-
-.readingKey {
-  color: var(--color-fg-subtle);
-  font-size: var(--font-size-xs);
-}
-
-.readingValue {
-  color: var(--color-fg);
-  font-family: var(--font-code);
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-}
-
 .state {
   display: flex;
   align-items: center;
@@ -76,23 +44,18 @@
 
 // Ошибка идущего прогона - словами движка, как есть.
 .error {
-  @include tinted-plaque(var(--color-danger));
+  @include scenario-plaque(var(--color-danger));
 
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
   user-select: text;
 }
 
 .limit {
-  @include tinted-plaque(var(--color-warning));
+  @include scenario-plaque(var(--color-warning));
 
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
 }
 
 .limitLabel {
@@ -101,20 +64,17 @@
 
 .limitText {
   color: var(--color-fg);
-  font-size: var(--font-size-sm);
 }
 
 // Итог законченного прогона: тон - чем кончился (готово, не готово, остановлен рукой).
 .end {
   --tone: var(--color-fg-subtle);
 
+  @include scenario-plaque(var(--tone));
+
   display: flex;
   flex-direction: column;
   gap: var(--space-1-5);
-  padding: var(--space-3);
-  border: var(--border-width) solid color-mix(in srgb, var(--tone) var(--tint-border), transparent);
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in srgb, var(--tone) var(--tint-soft), transparent);
 }
 
 .done {
@@ -133,7 +93,6 @@
 
 .endDetail {
   color: var(--color-fg-muted);
-  font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
   user-select: text;
 }
@@ -189,17 +148,5 @@
 
 .questionField {
   flex: 1;
-  min-width: var(--size-tab-min);
-}
-
-.stopSubject {
-  color: var(--color-fg-strong);
-  font-weight: var(--font-weight-medium);
-  overflow-wrap: anywhere;
-}
-
-.stopNote {
-  margin-top: var(--space-1);
-  color: var(--color-fg-muted);
-  font-size: var(--font-size-sm);
+  min-width: var(--size-field-min);
 }

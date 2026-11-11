@@ -26,14 +26,6 @@
   gap: var(--space-2);
 }
 
-// Отказ сохранения - строкой в подвале, а не тостом: правка остаётся открытой, и причина
-// стоит рядом с Save, пока человек решает, что с ней делать.
-.refusal {
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-snug);
-}
-
 // ---------- Селекторы ----------
 
 // Подпись капсом и значение кнопкой: MODEL Opus, как строка под полем ввода панели.
@@ -110,12 +102,6 @@
   overflow-wrap: anywhere;
 }
 
-.selected,
-.selected:hover {
-  background-color: var(--color-bg-selected);
-  color: var(--color-fg-strong);
-}
-
 .outlineText {
   display: flex;
   flex: 1;
@@ -127,7 +113,7 @@
 .outlineNote {
   color: var(--color-fg-subtle);
   font-family: var(--font-code);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
 }
 
 .outlineCount {
@@ -137,20 +123,30 @@
   font-size: var(--font-size-xs);
 }
 
-// Карточки открытого этапа - под ним, с отступом на ширину номера: клик попадает в карточку,
-// а не в этап, которому она принадлежит.
+// Карточки открытого этапа - под ним, имя - ровно под именем этапа (поле строки, номер, зазор):
+// клик попадает в карточку, а не в этап, которому она принадлежит.
 .outlineCard {
   @include button-reset;
   @include interactive-surface;
 
   width: 100%;
-  padding: var(--space-1) var(--space-1-5) var(--space-1) var(--space-6);
+  padding: var(--space-1) var(--space-1-5) var(--space-1)
+    calc(var(--space-1-5) * 2 + var(--size-control-xs));
   border-radius: var(--radius-md);
   color: var(--color-fg-subtle);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
   text-align: left;
   overflow-wrap: anywhere;
+}
+
+// Выбранное - заливка и при наведении, и при нажатии: тот же рецепт наведения, что у строки, но
+// своим цветом. Стоит после строк оглавления - иначе их наведение перебило бы заливку.
+.selected {
+  @include interactive-surface(var(--color-bg-selected), var(--color-bg-selected));
+
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
 }
 
 // Номер этапа или карточки - плашкой цифрой: порядок читается раньше имени.
@@ -169,31 +165,10 @@
   font-size: var(--font-size-2xs);
 }
 
-// «Добавить» пунктиром: место, где встанет новое, а не действие над тем, что есть.
-.addDashed {
-  @include button-reset;
-  @include interactive-surface;
-
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1-5);
-  min-height: var(--size-control-md);
-  padding: var(--space-1) var(--space-2);
-  border: var(--border-width) dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  color: var(--color-fg-subtle);
-  font-size: var(--font-size-sm);
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--color-fg);
-    }
-  }
-}
-
+// «Add stage» на всю ширину колонки, отступом от последнего этапа.
 .outlineAdd {
+  display: flex;
+  flex-direction: column;
   margin-top: var(--space-2);
 }
 
@@ -415,37 +390,10 @@
   min-width: 0;
 }
 
-// Имя карточки правится на месте, как имя вкладки: рамка - только под указателем и в фокусе.
+// Имя карточки - обычное поле (TextField), как имя этапа: забирает свободное место строки.
 .cardTitle {
   flex: 1 1 0;
-  min-width: var(--size-tab-min-narrow);
-  height: var(--size-control-sm);
-  padding: 0 var(--space-1-5);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  outline: none;
-  background-color: transparent;
-  color: var(--color-fg-strong);
-  font: inherit;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  user-select: text;
-  transition: border-color var(--duration-normal) var(--easing-standard);
-
-  @media (hover: hover) {
-    &:hover {
-      border-color: var(--color-border);
-    }
-  }
-
-  &:focus {
-    border-color: var(--color-accent-border);
-    background-color: var(--color-surface-sunken);
-  }
-
-  &::placeholder {
-    color: var(--color-fg-disabled);
-  }
+  min-width: var(--size-field-min);
 }
 
 .inherits {

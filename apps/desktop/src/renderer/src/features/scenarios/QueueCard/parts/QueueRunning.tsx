@@ -33,7 +33,7 @@ export const QueueRunning = ({ queue, live }: QueueRunningProps) => {
             value={live.total > 0 ? live.done / live.total : 0}
             label={t('scenarios.queues.running.progress')}
           />
-          <span className={styles.readingValue}>
+          <span className={styles.progressCount}>
             {t('scenarios.queues.running.cards', { done: live.done, total: live.total })}
           </span>
         </div>

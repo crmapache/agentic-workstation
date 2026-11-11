@@ -1,4 +1,6 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
+@include shimmer-keyframes;
 
 // Таймлайн прогона: рельса слева (точка на шаг, номер на этап), карточки и слова справа.
 .scenarioRunTimeline {
@@ -31,39 +33,37 @@
   }
 }
 
-// Точка шага стоит на уровне его шапки (поле карточки + половина строки с плашкой).
+// Точка шага стоит на уровне его шапки (поле карточки + половина строки с плашкой). Тон - тот
+// же, что у точки элемента очереди; шаг впереди - пустое кольцо, залитое цветом листа, чтобы
+// рельса не просвечивала сквозь него.
 .dot {
+  @include scenario-dot;
+
   position: relative;
-  width: var(--size-status-dot);
-  height: var(--size-status-dot);
   margin-top: calc(var(--space-2) + (var(--size-control-xs) - var(--size-status-dot)) / 2);
-  border: var(--border-width) solid var(--color-fg-disabled);
-  border-radius: var(--radius-full);
-  background-color: var(--color-surface-panel);
+
+  &.ahead {
+    @include scenario-dot-unstarted(var(--color-surface-panel));
+  }
 
   &.going {
-    border-color: var(--color-warning);
-    background-color: var(--color-warning);
+    --tone: var(--color-warning);
   }
 
   &.asking {
-    border-color: var(--color-accent);
-    background-color: var(--color-accent);
+    --tone: var(--color-accent);
   }
 
   &.paused {
-    border-color: var(--color-fg-subtle);
-    background-color: var(--color-fg-subtle);
+    --tone: var(--color-fg-subtle);
   }
 
   &.done {
-    border-color: var(--color-success);
-    background-color: var(--color-success);
+    --tone: var(--color-success);
   }
 
   &.failed {
-    border-color: var(--color-danger);
-    background-color: var(--color-danger);
+    --tone: var(--color-danger);
   }
 }
 
@@ -170,7 +170,7 @@
 
 .door {
   @include button-reset;
-  @include interactive-surface;
+  @include scenario-row-press;
 
   position: absolute;
   inset: 0;
@@ -235,18 +235,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-}
-
-.slot {
-  @include truncate;
-
-  max-width: 100%;
-  padding: 0 var(--space-1);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-xs);
-  color: var(--color-fg-muted);
-  font-family: var(--font-code);
-  font-size: var(--font-size-xs);
 }
 
 .stepLine {
@@ -368,14 +356,12 @@
 .note {
   --tone: var(--color-info);
 
+  @include scenario-plaque(var(--tone));
+
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid color-mix(in srgb, var(--tone) var(--tint-border), transparent);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--tone) var(--tint-soft), transparent);
   color: var(--color-fg);
 }
 
@@ -398,7 +384,6 @@
 }
 
 .noteText {
-  font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   overflow-wrap: anywhere;
   user-select: text;
@@ -433,18 +418,7 @@
   font-size: var(--font-size-xs);
 }
 
-// Перелив, как у строки «думает» в ленте (градиент - токен, ADR 0025): свет течёт по буквам
-// слева направо, за период сдвигается ровно на свою ширину - шва нет.
+// Перелив, как у строки «думает» в ленте (ADR 0025): тот же миксин, тот же свет.
 .shimmer {
-  background-image: var(--gradient-shimmer);
-  background-size: 200% 100%;
-  background-clip: text;
-  color: transparent;
-  animation: answering-flow var(--duration-shimmer) linear infinite;
-}
-
-@keyframes answering-flow {
-  to {
-    background-position: -200% 0;
-  }
+  @include shimmer;
 }

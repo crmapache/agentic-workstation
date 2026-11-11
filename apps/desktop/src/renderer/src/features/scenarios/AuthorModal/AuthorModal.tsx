@@ -7,6 +7,7 @@ import { Modal } from '@agentic-workstation/ui/Modal'
 import { TextArea } from '@agentic-workstation/ui/TextArea'
 
 import { draftErrorCode } from '../scenarios-forms.utils'
+import { ScenarioAlert } from '../ScenarioAlert/ScenarioAlert'
 import type { ScenariosTabProps } from '../ScenariosView/ScenariosView.types'
 import { useScenarioShelves } from '../../../state/scenarios.queries'
 import { useScenarioDraft } from './AuthorModal.hooks'
@@ -91,11 +92,11 @@ export const AuthorModal = ({ project }: ScenariosTabProps) => {
           {form.drafting && <DraftWait since={form.drafting.since} />}
         </div>
         {form.error && !isDrafting && (
-          <p role="alert" className={styles.error}>
+          <ScenarioAlert tone="danger" alert>
             {errorCode
               ? t(`scenarios.author.errors.${errorCode}`)
               : t('scenarios.author.failed', { error: form.error })}
-          </p>
+          </ScenarioAlert>
         )}
         <ChoiceRows
           label={t('scenarios.author.keptIn')}

@@ -65,9 +65,6 @@ export const NAME_SAMPLE = 'name'
  */
 export const BACKDROP_TAIL = '\n'
 
-/** Глиф рядом с текстом (кнопка «добавить») - как --size-icon-sm. */
-export const GLYPH_SIZE = 14
-
 /** Глиф находки в оглавлении - мельче обычного: строка находки набрана кеглем xs. */
 export const PROBLEM_ICON_SIZE = 12
 

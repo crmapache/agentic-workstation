@@ -10,7 +10,7 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
-import { LaunchNote } from './LaunchNote'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 
 /**
  * Кто исполняет сценарий - провайдер ИИ. Сейчас он один (Claude Code), но выбор уже здесь: у
@@ -54,7 +54,7 @@ export const ProviderPicker = ({ form }: LaunchPartProps) => {
         )}
       </Popover>
       {provider && !provider.available && (
-        <LaunchNote tone="danger">{reason(provider) ?? ''}</LaunchNote>
+        <ScenarioAlert tone="danger">{reason(provider) ?? ''}</ScenarioAlert>
       )}
     </>
   )

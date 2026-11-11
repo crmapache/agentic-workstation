@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Switch } from '@agentic-workstation/ui/Switch'
 
 import type { LaunchPartProps } from '../LaunchModal.types'
-import { LaunchNote } from './LaunchNote'
+import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 
 /**
  * Что решается вместе с «куда». Новая очередь - отдельный ли worktree: без него две очереди в
@@ -37,10 +37,14 @@ export const WhereOptions = ({ form }: LaunchPartProps) => {
         onChange={form.setIsWorktree}
       />
       {form.worktree && form.uncommitted > 0 && (
-        <LaunchNote>{t('scenarios.launch.uncommitted', { count: form.uncommitted })}</LaunchNote>
+        <ScenarioAlert>
+          {t('scenarios.launch.uncommitted', { count: form.uncommitted })}
+        </ScenarioAlert>
       )}
       {form.neighbour && (
-        <LaunchNote>{t('scenarios.launch.sharedFolder', { name: form.neighbour.name })}</LaunchNote>
+        <ScenarioAlert>
+          {t('scenarios.launch.sharedFolder', { name: form.neighbour.name })}
+        </ScenarioAlert>
       )}
     </>
   )

@@ -8,9 +8,11 @@ import { Badge } from '@agentic-workstation/ui/Badge'
 import { RUN_ROW } from '../ScenarioRunTimeline.constants'
 import styles from '../ScenarioRunTimeline.module.scss'
 import type { StepRowProps } from '../ScenarioRunTimeline.types'
-import { isGoing, stepLineOf, stepToneOf, filledSlots } from '../ScenarioRunTimeline.utils'
+import { isGoing, stepLineOf, stepToneOf } from '../ScenarioRunTimeline.utils'
 import { formatDuration } from '../../scenarios-format.utils'
+import { answerChips } from '../../scenarios-forms.utils'
 import { itemLabelOf, stepPlaceWords } from '../../scenarios-run.utils'
+import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 import { Glance } from './Glance'
 import { StepOutcome } from './StepOutcome'
@@ -30,7 +32,7 @@ export const StepRow = ({ row, worked, onOpenLog }: StepRowProps) => {
   const where = stepPlaceWords(t, step, row)
   const item = itemLabelOf(step)
   const line = stepLineOf(step)
-  const slots = filledSlots(step.slots)
+  const hasSlots = answerChips(step.slots).length > 0
   // Строка «пустой список» уже сказала, чем кончилось: «not yet» под ней было бы неправдой.
   const time =
     step.startedAt > 0
@@ -74,11 +76,9 @@ export const StepRow = ({ row, worked, onOpenLog }: StepRowProps) => {
             )}
           </div>
           {item && <div className={styles.stepItem}>{item}</div>}
-          {slots.length > 0 && (
+          {hasSlots && (
             <div className={styles.slots}>
-              {slots.map(([name, value]) => (
-                <span key={name} className={styles.slot}>{`${name}: ${value}`}</span>
-              ))}
+              <ScenarioFormsAnswers inputs={step.slots} />
             </div>
           )}
           {line.trim() && (

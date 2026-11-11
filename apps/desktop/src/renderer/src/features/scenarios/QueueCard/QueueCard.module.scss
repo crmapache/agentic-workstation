@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
 
 // Полоса очереди внутри карточки: шапка, остановка, элементы, идущий, кнопки - сверху вниз.
 .lane,
@@ -79,20 +80,18 @@
 // Очередь встала: полоса с причиной и действием. Остановка рукой человека - серая, провал и
 // отказ - тоном ошибки; текст остаётся обычным, цветом говорит только плашка.
 .hold {
+  --tone: var(--color-fg-subtle);
+
+  @include scenario-plaque(var(--tone));
+
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-1-5) var(--space-2) var(--space-1-5) var(--space-3);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-hover);
   color: var(--color-fg);
 }
 
 .holdDanger {
-  @include tinted-plaque(var(--color-danger));
-
-  color: var(--color-fg);
+  --tone: var(--color-danger);
 }
 
 .holdText {
@@ -177,12 +176,6 @@
   color: var(--color-fg-accent);
 }
 
-.refusal {
-  color: var(--color-danger);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-snug);
-}
-
 .itemMeta {
   display: flex;
   flex-wrap: wrap;
@@ -217,26 +210,9 @@
   gap: var(--space-2);
 }
 
-.readings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
-.reading {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-}
-
-.readingKey {
-  color: var(--color-fg-subtle);
-  font-size: var(--font-size-xs);
-}
-
-.readingValue {
-  color: var(--color-fg-muted);
+// Сколько карточек готово рядом с полосой - показание, как цифры прогона.
+.progressCount {
+  color: var(--color-fg);
   font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
@@ -245,13 +221,11 @@
 
 // Вопрос человеку - оранжевой плашкой: единственное в полосе, что ждёт ответа.
 .ask {
-  @include tinted-plaque(var(--color-accent));
+  @include scenario-plaque(var(--color-accent));
 
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
   color: var(--color-fg);
 }
 
@@ -345,12 +319,9 @@
   border-radius: var(--radius-full);
 
   &::before {
+    @include scenario-dot;
+
     content: '';
-    box-sizing: border-box;
-    width: var(--size-status-dot);
-    height: var(--size-status-dot);
-    border-radius: var(--radius-full);
-    background-color: var(--tone);
   }
 }
 
@@ -381,6 +352,5 @@
 
 // Ещё не начинался - пустой кружок.
 .waiting::before {
-  border: var(--border-width) solid var(--color-fg-subtle);
-  background-color: transparent;
+  @include scenario-dot-unstarted;
 }

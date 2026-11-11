@@ -30,7 +30,3 @@ export const stepLineOf = (
 
   return step.summary.trim() ? step.summary : step.prompt
 }
-
-/** Слоты, которые голова заполнила, - именем и значением. */
-export const filledSlots = (slots: Readonly<Record<string, string>>): [string, string][] =>
-  Object.entries(slots).filter(([, value]) => value.length > 0)

@@ -3,30 +3,30 @@ import clsx from 'clsx'
 import { Star, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { answerLabel } from '@shared/scenario-rules'
-
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
-import { OWN_PRESS, PAST_MARK_CHARS } from '../HistoryTab.constants'
+import { OWN_PRESS } from '../HistoryTab.constants'
 import styles from '../HistoryTab.module.scss'
 import type { PastRunRowProps } from '../HistoryTab.types'
 import { formatCost, formatDuration } from '../../scenarios-format.utils'
+import { answerChips } from '../../scenarios-forms.utils'
 import { endedLabel, momentLabel } from '../../scenarios-moments.utils'
 import { runWorked } from '../../scenarios-timeline.utils'
+import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 
 /**
- * Строка прошлого прогона: какой (имя и первый ответ - то, чем две ночи одного сценария
- * различаются), когда начат и кончился, сколько работал, во что обошёлся, чем кончился.
- * Звезда - метка человека и ничего больше: не сортирует и от удаления не защищает.
+ * Строка прошлого прогона: какой (имя и ответы - то, чем две ночи одного сценария различаются,
+ * теми же чипами, что у записи очереди), когда начат и кончился, сколько работал, во что обошёлся,
+ * чем кончился. Звезда - метка человека и ничего больше: не сортирует и от удаления не защищает.
  */
 export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRunRowProps) => {
   const { t } = useTranslation()
-  const mark = answerLabel(run.inputs, PAST_MARK_CHARS)
   const failure =
     run.state === 'failed' && run.failure ? t(`scenarios.history.failures.${run.failure}`) : ''
   const isOver = run.finishedAt > 0
+  const hasAnswers = answerChips(run.inputs).length > 0
   const pill = <ScenarioStatePill of="run" state={run.state} />
 
   const handleOpen = () => onOpen(run.id)
@@ -44,7 +44,11 @@ export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRu
       onClick={handlePress}>
       <button type="button" className={clsx(styles.colRun, styles.runOpen)} onClick={handleOpen}>
         <span className={styles.runName}>{run.scenarioName}</span>
-        {mark && <span className={styles.mark}>{mark}</span>}
+        {hasAnswers && (
+          <span className={styles.answers}>
+            <ScenarioFormsAnswers inputs={run.inputs} />
+          </span>
+        )}
       </button>
       <span className={styles.colStarted}>{momentLabel(run.startedAt, words, now)}</span>
       <span className={styles.colFinished}>

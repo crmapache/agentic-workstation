@@ -2,7 +2,8 @@ import clsx from 'clsx'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { GLYPH_SIZE, ICON_STROKE_WIDTH } from '../EditorModal.constants'
+import { Button } from '@agentic-workstation/ui/Button'
+
 import styles from '../EditorModal.module.scss'
 import type { EditorOutlineProps } from '../EditorModal.types'
 import { OutlineProblems } from './OutlineProblems'
@@ -45,13 +46,11 @@ export const EditorOutline = ({ draft, at, problems, onPlace, onAddStage }: Edit
       {draft.stages.map((stage, index) => (
         <OutlineStage key={stage.id} stage={stage} number={index + 1} at={at} onPlace={onPlace} />
       ))}
-      <button
-        type="button"
-        className={clsx(styles.addDashed, styles.outlineAdd)}
-        onClick={onAddStage}>
-        <Plus size={GLYPH_SIZE} strokeWidth={ICON_STROKE_WIDTH} aria-hidden />
-        {t('scenarios.editor.outline.addStage')}
-      </button>
+      <div className={styles.outlineAdd}>
+        <Button size="sm" variant="dashed" icon={Plus} onClick={onAddStage}>
+          {t('scenarios.editor.outline.addStage')}
+        </Button>
+      </div>
       <OutlineProblems draft={draft} problems={problems} onPlace={onPlace} />
     </nav>
   )

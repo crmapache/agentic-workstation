@@ -5,6 +5,7 @@ import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
+import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../ScheduleModal.module.scss'
 import type { ProviderPickerProps } from '../ScheduleModal.types'
@@ -20,14 +21,14 @@ export const ProviderPicker = ({ providers, value, onPick }: ProviderPickerProps
   const chosen = providers.find((one) => one.id === value)
 
   return (
-    <div className={styles.providerRow}>
-      <span className={styles.caption}>{label}</span>
-      <DropdownButton
-        {...popover.triggerProps}
-        size="sm"
-        label={chosen?.label ?? value}
-        menuLabel={label}
-      />
+    <Section size="sm" title={label}>
+      <div className={styles.picker}>
+        <DropdownButton
+          {...popover.triggerProps}
+          label={chosen?.label ?? value}
+          menuLabel={label}
+        />
+      </div>
       <Popover {...popover.popoverProps}>
         {popover.isOpen && (
           <Menu label={label} autoFocus>
@@ -39,7 +40,8 @@ export const ProviderPicker = ({ providers, value, onPick }: ProviderPickerProps
                   provider.available ? undefined : t('scenarios.schedule.form.unavailable')
                 }
                 disabled={!provider.available}
-                current={provider.id === value}
+                selection="single"
+                checked={provider.id === value}
                 onSelect={() => {
                   popover.close()
                   onPick(provider.id)
@@ -49,6 +51,6 @@ export const ProviderPicker = ({ providers, value, onPick }: ProviderPickerProps
           </Menu>
         )}
       </Popover>
-    </div>
+    </Section>
   )
 }

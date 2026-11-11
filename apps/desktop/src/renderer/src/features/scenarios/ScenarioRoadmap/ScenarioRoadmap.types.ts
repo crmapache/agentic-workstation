@@ -6,6 +6,11 @@ export type RoadMood = 'working' | 'asking' | 'paused' | 'over'
 export type ScenarioRoadmapProps = {
   stops: readonly RoadmapStop[]
   mood: RoadMood
+  /**
+   * Дорога ровно своей ширины (сжимается только от тесноты), а не на всё место: строка цифр
+   * окна прогона ставит показания сразу за ней. Флекс-элемент ряда.
+   */
+  ownWidth?: boolean | undefined
 }
 
 export type RoadStopProps = {

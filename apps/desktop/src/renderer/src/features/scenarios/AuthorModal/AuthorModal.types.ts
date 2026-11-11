@@ -31,7 +31,7 @@ export type ChoiceRow<Id extends string> = {
 }
 
 export type ChoiceRowsProps<Id extends string> = {
-  /** Подпись группы капсом над строками и имя для скринридера. */
+  /** Заголовок раздела над строками и имя группы для скринридера. */
   label: string
   items: readonly ChoiceRow<Id>[]
   value: Id

@@ -43,7 +43,7 @@ export const StopRunDialog = ({ queue, item, runId, onClose }: StopRunDialogProp
       onClose={onClose}
       actions={
         <>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={onClose}>
             {t('common.cancel')}
           </Button>
           <Button type="submit" variant="danger">

@@ -1277,6 +1277,7 @@
         "worktree": "Start in a separate worktree",
         "worktreeHint": "Each start makes a new queue in its own git worktree, so your files stay as they are",
         "provider": "Provider",
+        "where": "Where",
         "unavailable": "Not available",
         "submit": "Set the time",
         "help": {

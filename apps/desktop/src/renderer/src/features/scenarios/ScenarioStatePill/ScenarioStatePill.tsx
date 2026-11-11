@@ -7,7 +7,8 @@ import type { ScenarioStatePillProps } from './ScenarioStatePill.types'
 
 /**
  * Плашка состояния прогона или шага (StatePill в ACC): точка тона и слово. Показание, а не
- * действие: на карточке прогона стоит концом строки показаний. Прогон на лимите - своё слово.
+ * действие: на карточке прогона стоит концом строки показаний. Прогон на лимите - своё слово и
+ * жёлтый, как у полосы лимита: он ждёт часа, а не человека (оранжевый - «ждёт тебя»).
  */
 export const ScenarioStatePill = (props: ScenarioStatePillProps) => {
   const { t } = useTranslation()
@@ -18,6 +19,8 @@ export const ScenarioStatePill = (props: ScenarioStatePillProps) => {
       : t(`scenarios.common.stepStates.${props.state}`)
 
   return (
-    <Badge tone={props.limited ? 'accent' : (STATE_TONES[props.state] ?? 'neutral')}>{label}</Badge>
+    <Badge tone={props.limited ? 'warning' : (STATE_TONES[props.state] ?? 'neutral')}>
+      {label}
+    </Badge>
   )
 }
