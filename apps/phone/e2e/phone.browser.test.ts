@@ -18,6 +18,7 @@ import {
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
 import type { Harness } from './ide-harness'
 import { until, PERMISSION, startHarness } from './ide-harness'
+import { latencyFrom } from './latency-proxy'
 import {
   boxOf,
   SHOTS,
@@ -39,6 +40,16 @@ import {
  */
 
 const DIST = join(import.meta.dirname, '..', 'dist')
+
+/**
+ * Задержка в одну сторону до своего релея - как у боевого из дома: без неё ответ IDE приходит
+ * раньше, чем экран успел смениться, и гонки «ответ пришёл на другой экран» не видны.
+ * AGENTIC_WORKSTATION_PHONE_LATENCY_MS: `120` - ровно, `80-150` - в пределах, `0` - без неё.
+ */
+const LATENCY = latencyFrom(process.env['AGENTIC_WORKSTATION_PHONE_LATENCY_MS'], {
+  min: 80,
+  max: 150,
+})
 
 let ide: Harness
 
@@ -68,7 +79,7 @@ const back = () => page.getByRole('button', { name: 'Back' }).click()
 
 beforeAll(async () => {
   mkdirSync(SHOTS, { recursive: true })
-  ide = await startHarness({ staticDir: DIST })
+  ide = await startHarness({ staticDir: DIST, latency: LATENCY })
   browser = await chromium.launch({ headless: true })
   context = await browser.newContext({
     viewport: VIEWPORT,
@@ -843,13 +854,21 @@ describe('телефон в мобильном Chromium против насто�
     })
     await page.getByText('Mondays at 09:30', { exact: false }).waitFor()
 
+    // Черновик ИИ: «назад», пока IDE сохраняет. Сценарий ложится на полку, а поздний ответ не
+    // уводит с полок, куда человек ушёл сам, и не стирает их из истории (ответ идёт через релей
+    // сотни миллисекунд - задержка прокси выше даёт столько же).
     await page.getByRole('button', { name: 'Write with AI' }).click()
     await page.getByRole('textbox', { name: 'What should the scenario do?' }).fill('Tidy the repo')
     await page.getByRole('button', { name: 'Write', exact: true }).click()
     await page.getByRole('button', { name: 'Save to shelf' }).waitFor()
     await shot('40-draft')
     await page.getByRole('button', { name: 'Save to shelf' }).click()
+    await back()
     await called('scenarios.save')
+    await page.getByRole('button', { name: /Drafted/ }).waitFor()
+    expect(new URL(page.url()).pathname).toMatch(/\/scenarios$/)
+    await page.getByRole('button', { name: /Drafted/ }).click()
+    await page.getByRole('heading', { name: 'Drafted' }).waitFor()
     await back()
 
     await page

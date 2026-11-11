@@ -9,7 +9,7 @@ import type {
 import { useClient } from '../../../lib/client'
 import { newId } from '../../../lib/ids'
 import type { RouteOf } from '../../../lib/route.types'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import type { ShelfScope } from '../../../lib/routes'
 import { CommandError } from '../../../state/command-error'
 import { useCommand } from '../../../state/commands.hooks'
@@ -26,7 +26,6 @@ export const useDraftScreen = (route: RouteOf<'draft'>) => {
   const { t } = useTranslation()
   const { agentId, projectKey } = route
   const client = useClient()
-  const navigate = useRouter((state) => state.navigate)
   const cancel = useCommand(agentId, 'scenarios.cancelDraft', { quiet: true })
   const save = useCommand(agentId, 'scenarios.saveDraft', {
     invalidates: queryKeys.shelves(agentId, projectKey),
@@ -94,6 +93,8 @@ export const useDraftScreen = (route: RouteOf<'draft'>) => {
   const handleSave = async () => {
     if (phase.kind !== 'ready') return
 
+    // Нажали «назад», пока IDE сохраняла: сценарий ляжет на полку, а экран останется тем, что выбран.
+    const navigate = navigateFromHere()
     const saved = (await save
       .mutateAsync({ projectKey, draftId: phase.draftId })
       .catch(() => null)) as SavedDraftWire | null

@@ -374,7 +374,14 @@ AES-GCM, окно повторов), линия до релея с отступ�
 React Query (`src/state/mirror.ts`), интерфейсное - в Zustand; общее экранов - `src/shell/`
 (экран с полосой связи и уведомлениями над низом, карточка решения над полем `Dock`, ожидание
 IDE `LinkWait`); токены и примитивы - `packages/ui` (размер `touch` у кнопок, полей и строк).
-Сквозная проверка в мобильном Chromium - `pnpm --filter @agentic-workstation/phone e2e`.
+Экран, который по итогу команды ведёт дальше (сохранить, запустить, открыть), ведёт только через
+`navigateFromHere` (`src/lib/router.store.ts`): ответ идёт через релей сотни миллисекунд, и если
+человек за это время ушёл с экрана, переход не делается.
+Сквозная проверка в мобильном Chromium - `pnpm --filter @agentic-workstation/phone e2e`: свой
+релей за прокси с задержкой 80-150 мс в одну сторону (`e2e/latency-proxy.ts`,
+`AGENTIC_WORKSTATION_PHONE_LATENCY_MS`), иначе гонки «ответ пришёл на другой экран» не видны.
+Боевой релей - `AGENTIC_WORKSTATION_PHONE_LIVE_RELAY` (страница - выложенная сборка), а с
+`AGENTIC_WORKSTATION_PHONE_LIVE_PAGE=local` - своя сборка через настоящую сеть до выкладки.
 
 ## Части кода и кто кого импортирует
 

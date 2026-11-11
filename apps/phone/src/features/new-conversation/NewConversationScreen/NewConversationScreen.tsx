@@ -7,7 +7,7 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import { modeOptions, modelOptions, effortOptions } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import { useCommand } from '../../../state/commands.hooks'
 import { useInventory } from '../../../state/remote.queries'
 import { LinkWait } from '../../../shell/LinkWait/LinkWait'
@@ -24,7 +24,6 @@ type NewArgs = CommandArgs<'conversation.new'>
 export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversation'> }) => {
   const { t } = useTranslation()
   const { agentId, projectKey } = route
-  const navigate = useRouter((state) => state.navigate)
   const inventory = useInventory(agentId).data
   const project = inventory?.projects.find((one) => one.key === projectKey)
   const providers = inventory?.providers.filter((one) => one.available) ?? []
@@ -38,6 +37,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
   const handleCreate = async () => {
     if (!provider) return
 
+    const navigate = navigateFromHere()
     const data = (await create
       .mutateAsync({
         projectKey,

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { RouteOf } from '../../../lib/route.types'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import { inputsReady, scenarioKey } from '../../../lib/scenarios.utils'
 import { useCommand } from '../../../state/commands.hooks'
 import { useWatch, useQueues, useShelves, useInventory } from '../../../state/remote.queries'
@@ -14,7 +14,6 @@ import { startArgs } from './StartScenarioScreen.utils'
  */
 export const useStartScenario = (route: RouteOf<'startScenario'>) => {
   const { agentId, projectKey } = route
-  const navigate = useRouter((state) => state.navigate)
   const shelves = useShelves(agentId, projectKey)
   const queues = useQueues(agentId, projectKey).data
   const inventory = useInventory(agentId).data
@@ -39,6 +38,7 @@ export const useStartScenario = (route: RouteOf<'startScenario'>) => {
   const handleStart = async () => {
     if (!scenario || !provider) return
 
+    const navigate = navigateFromHere()
     const data = (await start
       .mutateAsync(startArgs(projectKey, scenario, { ...form, provider }))
       .catch(() => null)) as { queueId?: string } | null

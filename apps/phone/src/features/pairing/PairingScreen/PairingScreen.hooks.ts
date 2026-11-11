@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useClient } from '../../../lib/client'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import type { PairingOffer } from '../../../remote/pairing'
 import { usePairingStore } from '../../../state/pairing.store'
 import type { PairingPhase } from './PairingScreen.types'
@@ -17,7 +17,6 @@ export const usePairing = () => {
   const client = useClient()
   const taken = usePairingStore((state) => state.taken)
   const clearCode = usePairingStore((state) => state.clear)
-  const navigate = useRouter((state) => state.navigate)
   const [offer, setOffer] = useState<PairingOffer | null>(null)
   const [phase, setPhase] = useState<PairingPhase>({ kind: 'preparing' })
   const [label, setLabel] = useState(
@@ -48,6 +47,7 @@ export const usePairing = () => {
 
     setPhase({ kind: 'waiting' })
 
+    const navigate = navigateFromHere()
     const outcome = await client.pair(offer, label)
 
     if (!outcome.ok) return setPhase({ kind: 'failed', reason: outcome.reason })

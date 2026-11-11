@@ -10,7 +10,7 @@ import type { OpenedConversationWire } from '@agentic-workstation/remote-protoco
 import { useClient } from '../../../lib/client'
 import { newId } from '../../../lib/ids'
 import type { RouteOf } from '../../../lib/route.types'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import { CommandError } from '../../../state/command-error'
 import { useCommand } from '../../../state/commands.hooks'
 import { useInventory } from '../../../state/remote.queries'
@@ -26,7 +26,6 @@ import type { AiRun, SearchResult } from './SearchScreen.types'
 export const useSearchScreen = (route: RouteOf<'search'>) => {
   const { agentId, projectKey } = route
   const client = useClient()
-  const navigate = useRouter((state) => state.navigate)
   const inventory = useInventory(agentId).data
   const search = useCommand(agentId, 'conversation.search', { quiet: true })
   const cancel = useCommand(agentId, 'conversation.searchCancel')
@@ -94,6 +93,7 @@ export const useSearchScreen = (route: RouteOf<'search'>) => {
   const handleOpen = async (hit: SearchHitWire) => {
     if (open.isPending) return
 
+    const navigate = navigateFromHere()
     const data = (await open
       .mutateAsync({ projectKey, provider: hit.provider ?? provider, sessionId: hit.sessionId })
       .catch(() => null)) as OpenedConversationWire | null

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { RouteOf } from '../../../lib/route.types'
-import { useRouter } from '../../../lib/router.store'
+import { navigateFromHere } from '../../../lib/router.store'
 import { inputsReady, scenarioKey } from '../../../lib/scenarios.utils'
 import { useCommand } from '../../../state/commands.hooks'
 import { queryKeys } from '../../../state/query-keys'
@@ -16,7 +16,6 @@ import { scheduleArgs } from './ScheduleScreen.utils'
  */
 export const useScheduleScreen = (route: RouteOf<'schedule'>) => {
   const { agentId, projectKey, scope, scenarioId } = route
-  const navigate = useRouter((state) => state.navigate)
   const shelves = useShelves(agentId, projectKey)
   const inventory = useInventory(agentId).data
   const schedule = useCommand(agentId, 'scenarios.schedule', {
@@ -35,6 +34,7 @@ export const useScheduleScreen = (route: RouteOf<'schedule'>) => {
   const handleSubmit = async () => {
     if (!args) return
 
+    const navigate = navigateFromHere()
     const done = await schedule
       .mutateAsync(args)
       .then(() => true)

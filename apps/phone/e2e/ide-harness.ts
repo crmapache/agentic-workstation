@@ -17,6 +17,10 @@ import {
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
 import type { StoredRemote } from '../../desktop/src/main/remote/store/remote-state'
+import type { Latency } from './latency-proxy'
+import { NO_LATENCY, startLatencyProxy } from './latency-proxy'
+import { startLivePage } from './live-page'
+import { withSavedScenarios } from './saved-shelf'
 
 /**
  * Настоящий релей на свободном порту и настоящий RemoteService главного процесса с подделками
@@ -77,16 +81,29 @@ export type Harness = Awaited<ReturnType<typeof startHarness>>
  */
 const LIVE_RELAY = process.env['AGENTIC_WORKSTATION_PHONE_LIVE_RELAY'] ?? ''
 
+/**
+ * `local` - с боевым релеем страница всё же своей сборки (dist), с локального адреса: проверка
+ * правки клиента через настоящую сеть до выкладки (live-page.ts).
+ */
+const LIVE_PAGE = process.env['AGENTIC_WORKSTATION_PHONE_LIVE_PAGE'] ?? ''
+
 /** Что релей отдал службе пушей - подписка и payload, как их видит он. */
 export type PushOrder = Parameters<NonNullable<RelayOptions['pushSender']>>[0]
 
-/** Свой релей на свободном порту или боевой; close - погасить свой (боевой не трогаем). */
-const relayFor = async (staticDir: string, push: RelayPush | null) => {
+/**
+ * Свой релей на свободном порту или боевой; close - погасить свой (боевой не трогаем). С
+ * задержкой и страница, и IDE ходят к своему релею через прокси, который держит каждый кусок
+ * байтов в пути (latency-proxy.ts): у боевого релея задержку даёт сама сеть.
+ */
+const relayFor = async (staticDir: string, push: RelayPush | null, latency: Latency) => {
   if (LIVE_RELAY) {
+    const page =
+      LIVE_PAGE === 'local' && staticDir ? await startLivePage(staticDir, LIVE_RELAY) : null
+
     return {
       relayUrl: LIVE_RELAY.replace(/^http/, 'ws'),
-      pageUrl: LIVE_RELAY,
-      close: () => Promise.resolve(),
+      pageUrl: page?.pageUrl ?? LIVE_RELAY,
+      close: () => page?.close() ?? Promise.resolve(),
     }
   }
 
@@ -100,12 +117,17 @@ const relayFor = async (staticDir: string, push: RelayPush | null) => {
     () => undefined,
     push ? { pushSender: push.sender } : {},
   )
-  const port = await relay.listen(0)
+  const relayPort = await relay.listen(0)
+  const proxy = latency.max > 0 ? await startLatencyProxy(relayPort, latency) : null
+  const port = proxy?.port ?? relayPort
 
   return {
     relayUrl: `ws://127.0.0.1:${port}`,
     pageUrl: `http://127.0.0.1:${port}`,
-    close: () => relay.close(),
+    close: async () => {
+      await proxy?.close()
+      await relay.close()
+    },
   }
 }
 
@@ -115,8 +137,18 @@ type RelayPush = {
   sender: NonNullable<RelayOptions['pushSender']>
 }
 
-export const startHarness = async (options: { staticDir?: string; push?: RelayPush } = {}) => {
-  const relay = await relayFor(options.staticDir ?? '', options.push ?? null)
+/**
+ * latency - задержка в одну сторону между релеем и каждым, кто к нему ходит (страница, ядро
+ * телефона, IDE); по умолчанию её нет. С боевым релеем не действует.
+ */
+export const startHarness = async (
+  options: { staticDir?: string; push?: RelayPush; latency?: Latency } = {},
+) => {
+  const relay = await relayFor(
+    options.staticDir ?? '',
+    options.push ?? null,
+    options.latency ?? NO_LATENCY,
+  )
   const file = memoryFile()
   const { relayUrl } = relay
   const ide = fakeIde()
@@ -196,7 +228,7 @@ export const startHarness = async (options: { staticDir?: string; push?: RelayPu
     },
   }
   ide.ports.scenarios = {
-    ...ide.ports.scenarios,
+    ...withSavedScenarios(ide.ports.scenarios),
     start: (request) => {
       ide.calls.push({ name: 'scenarios.start', args: [request] })
       queues.queues = [
@@ -254,8 +286,19 @@ export const startHarness = async (options: { staticDir?: string; push?: RelayPu
       service = live
       await until(() => live.view().state === 'connected', 'IDE back on the relay')
     },
-    /** Новый код пары - адрес, который IDE рисует QR. */
-    pairingUrl: () => live.startPairing().pairing?.url ?? '',
+    /**
+     * Новый код пары - адрес, который IDE рисует QR, на хосте страницы: со своей сборкой перед
+     * боевым релеем (live-page.ts) IDE назвала бы боевой хост, а страница там - выложенная.
+     */
+    pairingUrl: () => {
+      const url = live.startPairing().pairing?.url
+
+      if (!url) return ''
+
+      const { pathname, hash } = new URL(url)
+
+      return new URL(`${pathname}${hash}`, relay.pageUrl).href
+    },
     /** Человек в IDE нажал Approve, когда телефон попросился. */
     approve: async () => {
       const pending = await until(() => live.view().pending, 'a phone asking to pair', 15_000)

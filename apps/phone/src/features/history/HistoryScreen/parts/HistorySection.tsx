@@ -10,7 +10,7 @@ import { Spinner } from '@agentic-workstation/ui/Spinner'
 import styles from '../HistoryScreen.module.scss'
 import { useNow } from '../../../../lib/now.hooks'
 import type { RouteOf } from '../../../../lib/route.types'
-import { useRouter } from '../../../../lib/router.store'
+import { navigateFromHere } from '../../../../lib/router.store'
 import { sinceText } from '../../../../lib/time.utils'
 import { useCommand } from '../../../../state/commands.hooks'
 import { failureText } from '../../../../state/commands.utils'
@@ -38,7 +38,6 @@ export const HistorySection = ({
 }) => {
   const { t } = useTranslation()
   const { agentId, projectKey } = route
-  const navigate = useRouter((state) => state.navigate)
   const history = useHistory(agentId, projectKey, provider.id)
   const open = useCommand(agentId, 'conversation.openHistory')
   const now = useNow(60_000)
@@ -48,6 +47,7 @@ export const HistorySection = ({
   const handleOpen = async (sessionId: string) => {
     if (open.isPending) return
 
+    const navigate = navigateFromHere()
     const data = (await open
       .mutateAsync({ projectKey, provider: provider.id, sessionId })
       .catch(() => null)) as OpenedConversationWire | null
