@@ -52,5 +52,5 @@
 | [0038](0038-rename-agentic-workstation.md)        | Новое имя - Agentic Workstation, чисто, до первого релиза                                  | Принято                                                      |
 | [0039](0039-scenario-queues-ide-level.md)         | Сценарии на уровне IDE: очереди, worktree на очередь, провайдер - исполнитель              | Принято                                                      |
 | [0042](0042-statistics-ide-level.md)              | Статистика IDE: транскрипты в SQLite в своём потоке, графики - свои примитивы              | Принято                                                      |
-| [0040](0040-browser-extension.md)                 | Браузер для ИИ: расширение Chrome по native messaging, встроенный коннектор Browser        | Предложено                                                   |
+| [0040](0040-browser-extension.md)                 | Браузер для ИИ: расширение Chrome по native messaging, встроенный коннектор Browser        | Принято                                                      |
 | [0041](0041-remote-control-ide-level.md)          | Remote Control на уровне IDE: свой релей, свой протокол v1, провод из архива               | Принято                                                      |
