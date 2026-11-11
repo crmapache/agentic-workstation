@@ -44,7 +44,7 @@ export type BridgeHost = {
 }
 
 /** Ключи проектов и подмена папок - по одному состоянию IDE, пересчитываются вместе. */
-type Lens = { keys: ProjectKeys; redact: Redact }
+export type Lens = { keys: ProjectKeys; redact: Redact }
 
 /**
  * Мост Remote Control к IDE: инвентарь машины, подписки (лента и состояние разговора, прогон,
@@ -109,9 +109,12 @@ export class Bridge {
         return this.chains.run(deviceId, () => this.subscribe(deviceId, message))
       case 'unsubscribe':
         return this.chains.run(deviceId, () => this.unsubscribe(deviceId, message))
-      // Стук, «забудь меня» и куски решает агент (agent/inbound.ts): сюда они не доходят.
+      // Стук, «забудь меня», подписку на пуши и куски решает агент (agent/inbound.ts): сюда
+      // они не доходят.
       case 'ping':
       case 'unpair':
+      case 'pushSet':
+      case 'pushClear':
       case 'part':
         return
     }
@@ -307,8 +310,11 @@ export class Bridge {
     })
   }
 
-  /** Ключи и подмена папок по текущему состоянию IDE - до первой перемены проектов или очередей. */
-  private lens(): Lens {
+  /**
+   * Ключи и подмена папок по текущему состоянию IDE - до первой перемены проектов или очередей.
+   * Их же берут уведомления (push/): имена и адреса экранов в пуше те же, что на линии.
+   */
+  lens(): Lens {
     if (this.lensCache) return this.lensCache
 
     const { ports } = this.host

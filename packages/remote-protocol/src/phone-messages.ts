@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { isAddress } from './frame'
 import { ALL_PROJECTS, PROJECT_KEY_PATTERN } from './project-key'
+import { p256dhBytes, pushAuthBytes, isPushEndpointShape } from './push'
 
 /**
  * Что телефон говорит IDE. Каждое сообщение - JSON-объект с версией протокола `p` и видом
@@ -74,6 +75,22 @@ const pingSchema = z.object({ p: P, k: z.literal('ping'), n: z.int().min(0).opti
 const unpairSchema = z.object({ p: P, k: z.literal('unpair') })
 
 /**
+ * Подписка браузера телефона на пуши (push.ts): куда будить его, когда он не на связи. Шлётся
+ * каждой IDE после включения уведомлений и заново на каждой новой линии - подписка, потерянная
+ * IDE или заменённая браузером, так возвращается сама. IDE держит её у записи телефона.
+ */
+const pushSetSchema = z.object({
+  p: P,
+  k: z.literal('pushSet'),
+  endpoint: z.string().refine(isPushEndpointShape, 'not a push service address'),
+  p256dh: z.string().refine((text) => p256dhBytes(text) !== null, 'not a P-256 point'),
+  auth: z.string().refine((text) => pushAuthBytes(text) !== null, 'not a push secret'),
+})
+
+/** Уведомления на телефоне выключили: IDE забывает подписку и больше не будит. */
+const pushClearSchema = z.object({ p: P, k: z.literal('pushClear') })
+
+/**
  * Что смотреть: разговор (лента и состояние), прогон сценария или очереди проекта (`*` -
  * доска всех очередей). Ровно что-то одно. since и epoch - что у телефона уже есть: тот же
  * epoch и номер в журнале - придут только заплатки после него, иначе снимок.
@@ -135,6 +152,8 @@ export const phoneMessageSchema = z.union([
   inventorySchema,
   pingSchema,
   unpairSchema,
+  pushSetSchema,
+  pushClearSchema,
   subscribeSchema,
   unsubscribeSchema,
   cmdSchema,
@@ -153,6 +172,8 @@ export type CmdMessage = z.output<typeof cmdSchema>
 
 export type PartMessage = z.output<typeof partSchema>
 
+export type PushSetMessage = z.output<typeof pushSetSchema>
+
 /** Запечатанное слово телефона после открытия; null - не сообщение протокола. */
 export const parsePhoneMessage = (value: unknown): PhoneMessage | null => {
   const parsed = phoneMessageSchema.safeParse(value)
@@ -166,6 +187,8 @@ export const MESSAGE_LIMITS: Readonly<Record<Exclude<PhoneMessageKind, 'cmd'>, n
   inventory: 60,
   ping: 20,
   unpair: 6,
+  pushSet: 12,
+  pushClear: 12,
   subscribe: 120,
   unsubscribe: 120,
   part: 400,

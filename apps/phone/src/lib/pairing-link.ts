@@ -34,3 +34,22 @@ export const takePairingCode = (place: Place, history: History): TakenCode => {
       ? { kind: 'invalid' }
       : { kind: 'none' }
 }
+
+/**
+ * Код из вставленного адреса пары. Нужен приложению с экрана «Домой» на iPhone: у него своё
+ * хранилище, отдельное от Safari, а камера открывает QR в Safari - пара оттуда в приложение не
+ * попадает, и уведомления (они есть только у приложения) включить было бы не у чего. Адрес
+ * копируют в камере (долгое нажатие на ссылку QR) и вставляют здесь. Только адрес пары этого
+ * же релея: пара идёт через релей страницы, с чужого IDE не услышит.
+ */
+export const codeFromLink = (text: string, origin: string): TakenCode => {
+  try {
+    const url = new URL(text.trim())
+    const code =
+      url.origin === origin && url.pathname === PAIRING_PATH ? parsePairingFragment(url.hash) : null
+
+    return code ? { kind: 'code', code } : { kind: 'invalid' }
+  } catch {
+    return { kind: 'invalid' }
+  }
+}

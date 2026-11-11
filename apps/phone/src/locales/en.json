@@ -5,7 +5,34 @@
   },
   "push": {
     "title": "Agentic Workstation",
-    "body": "Your IDE needs you."
+    "body": "Your IDE needs you.",
+    "providers": {
+      "claude": "Claude"
+    },
+    "scenario": "Scenario",
+    "titles": {
+      "trouble": "{{who}} in {{project}} stopped",
+      "limit": "{{who}} in {{project}} hit a usage limit",
+      "extraUsage": "{{who}} in {{project}} uses extra usage",
+      "permission": "{{who}} in {{project}} needs you",
+      "question": "{{who}} in {{project}} needs you",
+      "plan": "{{who}} in {{project}} needs you",
+      "held": "Queue stopped in {{project}}"
+    },
+    "bodies": {
+      "trouble": "{{title}}: the turn ended with an error",
+      "limit": "{{title}}: waits until {{time}}",
+      "limitUnknown": "{{title}}: waits for the limit to reset",
+      "extraUsage": "{{title}}: the account now pays for extra usage",
+      "permission": "{{title}}: allow {{tool}}?",
+      "question": "{{title}}: a question for you",
+      "plan": "{{title}}: a plan to review",
+      "held": {
+        "stopAfter": "{{title}}: stopped where you asked",
+        "failed": "{{title}}: a scenario failed",
+        "refused": "{{title}}: a scenario could not start"
+      }
+    }
   },
   "common": {
     "back": "Back",
@@ -116,7 +143,7 @@
     "title": "Pair with your IDE",
     "help": {
       "title": "Pairing",
-      "text": "The QR code in the IDE's Remote Control window opens this page with a one-time code. The code never leaves the phone: it is removed from the address at once.\n\nCompare the keys before you pair. The IDE key here must match the key in the Remote Control window. When the IDE asks you to approve this phone, it shows the phone key - it must match the one here.\n\nAfter you approve, the phone and the IDE talk end-to-end encrypted through the relay, which only passes frames and cannot read them. Several IDEs can be paired with one phone."
+      "text": "The QR code in the IDE's Remote Control window opens this page with a one-time code. The code never leaves the phone: it is removed from the address at once.\n\nCompare the keys before you pair. The IDE key here must match the key in the Remote Control window. When the IDE asks you to approve this phone, it shows the phone key - it must match the one here.\n\nAfter you approve, the phone and the IDE talk end-to-end encrypted through the relay, which only passes frames and cannot read them. Several IDEs can be paired with one phone.\n\nAn app added to the Home Screen keeps its own pairings, apart from Safari. To pair it, press and hold the link of the QR code in the camera, choose Copy Link and paste it on this screen."
     },
     "ideKey": "IDE key",
     "ideKeyHint": "Must match the key in the IDE's Remote Control window",
@@ -141,6 +168,11 @@
       "title": "This code does not work",
       "description": "It is not from Agentic Workstation or it is damaged. Show a new code in the IDE and scan it again."
     },
+    "link": {
+      "label": "Pairing link",
+      "hint": "In the camera, press and hold the link of the QR code, choose Copy Link and paste it here.",
+      "submit": "Pair with this link"
+    },
     "failed": {
       "proof": "The answer did not match the code. Show a new code in the IDE and scan it again.",
       "fingerprint": "The IDE key is not the one in the code. Pairing stopped for safety.",
@@ -162,6 +194,7 @@
       "title": "No IDE paired yet",
       "description": "Open Remote Control in Agentic Workstation and scan the QR code with the phone camera."
     },
+    "pairIde": "Pair an IDE",
     "notPersistent": "This browser does not keep data: pairings last until the page is closed.",
     "version": "IDE {{version}}",
     "loading": "Getting the projects",
@@ -185,6 +218,21 @@
       "conversations_other": "{{count}} conversations",
       "queues_one": "{{count}} queue",
       "queues_other": "{{count}} queues"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "help": {
+        "title": "Notifications",
+        "text": "When this phone is not looking, a paired IDE can wake it: a conversation asks for a permission, a question or a plan, stops with an error or hits a usage limit, a scenario asks a question or a queue stops. Tapping the notification opens that conversation, queue or run. A finished turn does not notify.\n\nThe text is encrypted on the computer for this phone only. The relay and the push service of your phone see that a notification was sent, not what it says.\n\nTurn off stops notifications from every IDE paired with this phone."
+      },
+      "on": "On. Your IDEs wake this phone when they need you.",
+      "off": "Get a notification when an IDE needs you.",
+      "turnOn": "Turn on notifications",
+      "turnOff": "Turn off",
+      "install": "Add to Home Screen to get notifications.",
+      "denied": "Notifications are blocked. Allow them for this app in the phone settings.",
+      "unsupported": "This browser does not show notifications.",
+      "failed": "Notifications could not be turned on."
     }
   },
   "project": {

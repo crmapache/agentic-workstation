@@ -125,6 +125,13 @@ export class Hub {
     this.mailboxes.hold(key, envelope.from, raw, now)
   }
 
+  /** Слово самого релея стороне - только на открытый сокет: в ящик его класть незачем. */
+  tell(address: Buffer, frame: Buffer): void {
+    const target = this.connections.get(encodeAddress(address))
+
+    if (target?.socket.readyState === OPEN) target.socket.send(frame)
+  }
+
   present(address: Buffer): boolean {
     return this.connections.has(encodeAddress(address))
   }

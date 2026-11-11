@@ -31,6 +31,10 @@ import type { Kind } from './hub.ts'
 import { Hub, CLOSE_POLICY, CLOSE_BAD_ADDRESS, CLOSE_BAD_VERSION } from './hub.ts'
 import { Mailboxes } from './mailbox.ts'
 import { PRIVACY_PAGE } from './privacy.ts'
+import { pushGoneFrame } from './push-frame.ts'
+import type { PushSender } from './push-sender.ts'
+import { webPushSender } from './push-sender.ts'
+import { Pushes } from './push.ts'
 import { serveStatic } from './static-files.ts'
 
 /**
@@ -52,8 +56,20 @@ export type Relay = {
 
 const HEADERS = { 'x-content-type-options': 'nosniff' }
 
+/** Звонков службам пушей в пути разом. */
+const PUSHES_IN_FLIGHT = 64
+
+/** Что тест подставляет вместо настоящего: отправитель пушей, который никуда не звонит. */
+export type RelayOptions = { pushSender?: PushSender }
+
+const noSender: PushSender = () => Promise.resolve(0)
+
 /** Релей поверх настроек. Создание отдельно от запуска: тест поднимает свой на свободном порту. */
-export const createRelay = (config: Config, log: (line: string) => void): Relay => {
+export const createRelay = (
+  config: Config,
+  log: (line: string) => void,
+  options: RelayOptions = {},
+): Relay => {
   const mailboxes = new Mailboxes({
     ttlMs: config.mailboxTtlMs,
     maxFrames: config.mailboxMaxFrames,
@@ -61,6 +77,17 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     totalBytes: config.mailboxTotalBytes,
   })
   const hub = new Hub(mailboxes, log)
+  const pushes = new Pushes(
+    config.push,
+    {
+      perMinute: config.pushPerMinute,
+      totalPerMinute: config.pushTotalPerMinute,
+      ttlSeconds: config.pushTtlSeconds,
+      maxInFlight: PUSHES_IN_FLIGHT,
+    },
+    options.pushSender ?? (config.push ? webPushSender(config.push) : noSender),
+    log,
+  )
 
   const http = createServer((request: IncomingMessage, response: ServerResponse) => {
     const path = (request.url ?? '/').split('?')[0] ?? '/'
@@ -80,7 +107,9 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
           wireMax: WIRE_VERSION,
           maxFrameBytes: config.maxFrameBytes,
           mailboxTtlSeconds: Math.round(config.mailboxTtlMs / 1000),
-          push: false,
+          push: pushes.enabled,
+          // Ключ, которым телефон подписывается у своей службы пушей (applicationServerKey).
+          ...(pushes.enabled ? { pushPublicKey: pushes.publicKey } : {}),
         }),
       )
 
@@ -247,8 +276,18 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
           return log(`${addressHint(address)} sent a frame from someone else - dropped`)
         }
 
-        // Службы пушей пока нет: «разбуди» некому отдать, а держать его - незачем.
-        if (envelope.type === FRAME_PUSH) return
+        // «Разбуди телефон» - только от IDE и только службе пушей: дальше кадр не идёт.
+        // Подписки нет - слово IDE на её нынешний сокет, а не в ящик: потерянное слово она
+        // услышит снова со следующим пушем.
+        if (envelope.type === FRAME_PUSH) {
+          if (kind !== 'agent') return
+
+          const device = Buffer.from(envelope.to)
+
+          return void pushes.take(address, data.subarray(HEADER_BYTES), Date.now(), () =>
+            hub.tell(address, pushGoneFrame(address, device)),
+          )
+        }
 
         hub.route(envelope, data, Date.now())
       } catch (error) {
@@ -276,7 +315,10 @@ export const createRelay = (config: Config, log: (line: string) => void): Relay 
     connection.on('error', () => undefined)
   }
 
-  const sweeping = setInterval(() => mailboxes.sweep(Date.now()), 30_000)
+  const sweeping = setInterval(() => {
+    mailboxes.sweep(Date.now())
+    pushes.sweep(Date.now())
+  }, 30_000)
 
   sweeping.unref()
 

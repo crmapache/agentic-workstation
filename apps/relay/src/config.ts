@@ -1,5 +1,8 @@
 import { join } from 'node:path'
 
+import type { PushKeys } from './push-keys.ts'
+import { readPushKeys } from './push-keys.ts'
+
 /**
  * Всё, что крутится без правки кода. Значения по умолчанию - боевые и намеренно скромные:
  * релей держит в памяти чужой трафик и ничего больше, поэтому каждый предел отвечает на
@@ -41,6 +44,15 @@ export type Config = {
   logLevel: 'silent' | 'info'
   /** Метка сборки образа (скрипт выкладки): по ней проверка после выкладки узнаёт новый контейнер. */
   build: string
+  /** Ключи VAPID - подпись релея перед службами пушей; null - пуши выключены (pushOff - почему). */
+  push: PushKeys | null
+  pushOff: string
+  /** Пушей в минуту от одной IDE: её уведомления и так сложены по разговору и виду. */
+  pushPerMinute: number
+  /** Пушей в минуту на весь релей: чужой поток не должен испортить ключ VAPID у служб. */
+  pushTotalPerMinute: number
+  /** Сколько служба держит пуш для выключенного телефона. */
+  pushTtlSeconds: number
 }
 
 type Env = Record<string, string | undefined>
@@ -55,6 +67,12 @@ const positive = (env: Env, name: string, fallback: number): number => {
 const DEFAULT_STATIC = join(import.meta.dirname, '..', 'public')
 
 export const readConfig = (env: Env = process.env): Config => ({
+  ...readPushKeys(env),
+  pushPerMinute: positive(env, 'RELAY_PUSH_PER_MINUTE', 30),
+  pushTotalPerMinute: positive(env, 'RELAY_PUSH_TOTAL_PER_MINUTE', 1200),
+  // Четыре часа: разрешение, отвеченное за столом утром, к полуночи никому не нужно, а
+  // устаревшее уведомление хуже никакого - зовёт смотреть разговор, который ушёл дальше.
+  pushTtlSeconds: positive(env, 'RELAY_PUSH_TTL_SECONDS', 4 * 60 * 60),
   port: env['PORT'] === '0' ? 0 : positive(env, 'PORT', DEFAULT_PORT),
   maxFrameBytes: positive(env, 'RELAY_MAX_FRAME_BYTES', 256 * 1024),
   mailboxTtlMs: positive(env, 'RELAY_MAILBOX_TTL_SECONDS', 120) * 1000,

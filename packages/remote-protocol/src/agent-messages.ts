@@ -64,7 +64,7 @@ export type InventoryMessage = Versioned & {
   at: number
   epoch: string
   machine: Machine
-  /** Что умеет эта IDE: parts - сообщение частями. */
+  /** Что умеет эта IDE: parts - сообщение частями, push - будить телефон пушем. */
   caps: string[]
   providers: ProviderCaps[]
   projects: InventoryProject[]
@@ -230,6 +230,9 @@ export const parseHandshakeReply = (value: unknown): HandshakeReply | null =>
 
 /** Что умеет эта сторона протокола v1. */
 export const CAP_PARTS = 'parts'
+
+/** IDE принимает подписку на пуши (pushSet) и будит телефон, когда его нет на линии (push.ts). */
+export const CAP_PUSH = 'push'
 
 /**
  * Сколько IDE помнит итог команды по id: столько телефон может повторять команду без итога,

@@ -18,6 +18,11 @@ export class ConversationCalls {
   constructor(
     private readonly mutedSounds: () => readonly SoundEvent[],
     private readonly emit: (call: ConversationCall) => void,
+    /**
+     * Каждый повод - и выключенный в звуках: телефону (Remote Control) звонят не звуком
+     * стола, и тишина за столом не должна глушить его уведомления.
+     */
+    private readonly observe: (call: ConversationCall) => void = () => undefined,
   ) {}
 
   add(conversationId: string, reason: SoundEvent, key?: string): void {
@@ -42,7 +47,11 @@ export class ConversationCalls {
     for (const [conversationId, reasons] of this.gathered) {
       const reason = strongestCall(reasons)
 
-      if (reason && !muted.includes(reason)) this.emit({ conversationId, reason })
+      if (!reason) continue
+
+      this.observe({ conversationId, reason })
+
+      if (!muted.includes(reason)) this.emit({ conversationId, reason })
     }
 
     this.gathered.clear()

@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import { toBase64Url } from '@agentic-workstation/remote-protocol/base64'
 
-import { takePairingCode } from './pairing-link'
+import { codeFromLink, takePairingCode } from './pairing-link'
 
 const AGENT = toBase64Url(new Uint8Array(16).fill(7))
 
@@ -73,5 +73,27 @@ describe('код пары из адреса', () => {
       kind: 'none',
     })
     expect(other.calls).toEqual(['/m/x?a=1'])
+  })
+})
+
+describe('код пары вставленным адресом (приложение с экрана «Домой»)', () => {
+  const ORIGIN = 'https://relay.example'
+
+  it('адрес пары этого релея - код', () => {
+    expect(codeFromLink(`  ${ORIGIN}/pair${FRAGMENT}\n`, ORIGIN)).toMatchObject({
+      kind: 'code',
+      code: { agentId: AGENT, fingerprint: '0011223344556677' },
+    })
+  })
+
+  it('чужой релей, не страница пары, испорченный код и не адрес - не код', () => {
+    expect(codeFromLink(`https://other.example/pair${FRAGMENT}`, ORIGIN)).toEqual({
+      kind: 'invalid',
+    })
+    expect(codeFromLink(`${ORIGIN}/elsewhere${FRAGMENT}`, ORIGIN)).toEqual({ kind: 'invalid' })
+    expect(codeFromLink(`${ORIGIN}/pair#aw1.${AGENT}.short.0011223344556677`, ORIGIN)).toEqual({
+      kind: 'invalid',
+    })
+    expect(codeFromLink('pair me please', ORIGIN)).toEqual({ kind: 'invalid' })
   })
 })

@@ -17,7 +17,10 @@ export const FRAME_SEALED = 0x01
 /** Слово самого релея: «был обрыв, переспроси». Единственное, что он говорит сам. */
 export const FRAME_CONTROL = 0x02
 
-/** «Разбуди устройство» - для службы пушей; пока её нет, такой кадр отбрасывается. */
+/**
+ * «Разбуди устройство» - только от IDE: тело - подписка телефона и запечатанный для него
+ * payload (push-frame.ts). Релей отдаёт payload службе пушей и дальше кадр не пересылает.
+ */
 export const FRAME_PUSH = 0x03
 
 /** Вызов релея «докажи, что адрес твой» (claim.ts) - только от релея стороне. */
@@ -25,6 +28,9 @@ export const FRAME_CHALLENGE = 0x04
 
 /** Ответ стороны на вызов: ключ подписи и подпись. Никуда не пересылается. */
 export const FRAME_PROOF = 0x05
+
+/** Слово релея IDE после пуша: подписки телефона больше нет. Только от релея стороне. */
+export const FRAME_PUSH_GONE = 0x06
 
 export type Envelope = { type: number; to: Buffer; from: Buffer }
 
@@ -41,7 +47,7 @@ export const readEnvelope = (raw: Buffer, maxBytes: number): Envelope => {
 
   const type = raw.readUInt8(1)
 
-  // Вызов шлёт только релей: от стороны такой кадр - не на языке релея.
+  // Вызов и «подписки нет» шлёт только релей: от стороны такой кадр - не на языке релея.
   if (![FRAME_SEALED, FRAME_CONTROL, FRAME_PUSH, FRAME_PROOF].includes(type)) {
     throw new FrameError(`unknown frame type ${type}`)
   }

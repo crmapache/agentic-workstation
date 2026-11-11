@@ -4,7 +4,7 @@ import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { InventoryMessage } from '@agentic-workstation/remote-protocol/agent-messages'
-import { CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
+import { CAP_PUSH, CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
 import { EFFORTS, PHONE_PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
@@ -74,7 +74,7 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
     at: now,
     epoch: input.epoch,
     machine: input.machine,
-    caps: [CAP_PARTS],
+    caps: [CAP_PARTS, CAP_PUSH],
     providers: input.providers.map((provider) => capsOf(provider, claude)),
     projects: [...open, ...recent],
   }

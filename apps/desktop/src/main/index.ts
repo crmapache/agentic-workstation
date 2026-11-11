@@ -4,6 +4,7 @@ import { app, shell, BrowserWindow } from 'electron'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
+import type { ConversationCall } from '@shared/claude-prefs'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
@@ -69,6 +70,7 @@ const bootstrap = async () => {
   // позже панели.
   let observeClaude = (_state: ClaudeState): void => undefined
   let observeFeed = (_patch: FeedPatch): void => undefined
+  let observeCall = (_call: ConversationCall): void => undefined
   const workspace = await WorkspaceService.load(
     new JsonFile<WorkspaceState>(join(app.getPath('userData'), 'workspace.json')),
     (state) => {
@@ -100,6 +102,7 @@ const bootstrap = async () => {
         observeFeed(patch)
       },
       onCall: (call) => broadcast('claude:call', call),
+      observeCall: (call) => observeCall(call),
       openPath: (path) => shell.openPath(path),
     },
     {
@@ -191,6 +194,7 @@ const bootstrap = async () => {
 
   observeClaude = features.observeClaude
   observeFeed = features.observeFeed
+  observeCall = features.observeCall
   searchProjects()
   watchProjects()
   onWorkspace = () => {

@@ -7,14 +7,19 @@ import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
 import { PAIR_REFUSED_LABEL } from '@agentic-workstation/remote-protocol/crypto-spec'
 import {
+  FRAME_PUSH,
+  decodeFrame,
   encodeFrame,
   FRAME_SEALED,
   decodeAddress,
   FRAME_CONTROL,
   FRAME_CHALLENGE,
+  FRAME_PUSH_GONE,
 } from '@agentic-workstation/remote-protocol/frame'
 import { splitIntoParts } from '@agentic-workstation/remote-protocol/parts'
 import type { PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { PushNotice } from '@agentic-workstation/remote-protocol/push'
+import { decodePushBody } from '@agentic-workstation/remote-protocol/push'
 
 import { mac, until, WebCryptoPhone } from '../__fixtures__/webcrypto-phone'
 import type { SocketLike } from '../link/relay-link'
@@ -56,6 +61,8 @@ const setup = async () => {
   const sockets: FakeSocket[] = []
   /** Что телефон отправил - чтобы повторить кадр как есть. */
   const fromPhone: Uint8Array[] = []
+  /** Что агент отдал релею - все кадры, и те, что телефону не пересылаются (пуши). */
+  const toRelay: Uint8Array[] = []
   const socketOf = (): FakeSocket => {
     const socket: FakeSocket = {
       binaryType: '',
@@ -64,7 +71,10 @@ const setup = async () => {
       onmessage: null,
       onclose: null,
       onerror: null,
-      send: (data) => phone.receive(new Uint8Array(data)),
+      send: (data) => {
+        toRelay.push(new Uint8Array(data))
+        phone.receive(new Uint8Array(data))
+      },
       close: () => undefined,
     }
 
@@ -93,6 +103,7 @@ const setup = async () => {
       linkUp: () => events.push('linkUp'),
       knownCommand: (_deviceId, commandId) => known.has(commandId),
       forgotten: () => events.push('forgotten'),
+      pushChanged: () => events.push('pushChanged'),
     },
   )
   const current = () => sockets.at(-1) as FakeSocket
@@ -128,7 +139,7 @@ const setup = async () => {
   agent.start()
   open()
 
-  return { agent, store, deliver, handled, events, phone, fromPhone, sockets, open, pair }
+  return { agent, store, deliver, handled, events, phone, fromPhone, toRelay, sockets, open, pair }
 }
 
 describe('телефон и IDE: пара, переподключение, печать, отзыв', () => {
@@ -508,5 +519,113 @@ describe('линия и слово релея', () => {
     await phone.send({ p: 1, k: 'ping' })
 
     expect(await until(() => events.find((event) => event === 'woke'), 'woke')).toBe('woke')
+  })
+})
+
+describe('пуши: подписка телефона, кадр релею, слово «подписки нет»', () => {
+  const SUBSCRIPTION = {
+    endpoint: 'https://web.push.apple.com/QGuQyavXutnMH7j1g0kVHw',
+    p256dh: Buffer.from(
+      Uint8Array.from({ length: 65 }, (_, index) => (index === 0 ? 4 : index)),
+    ).toString('base64url'),
+    auth: Buffer.alloc(16, 7).toString('base64url'),
+  }
+
+  const notice = (tag: string): PushNotice => ({
+    p: 1,
+    reason: 'permission',
+    detail: '',
+    provider: 'claude',
+    project: 'demo',
+    title: 'Fix the login bug',
+    tool: 'Bash',
+    until: 0,
+    tag,
+    route: { screen: 'conversation', projectKey: `p-${'k'.repeat(22)}`, conversationId: 'c1' },
+    at: 1,
+  })
+
+  it('подписка ложится к паре один раз, та же на новой линии - не перемена, pushClear снимает', async () => {
+    const { store, events, phone, pair } = await setup()
+
+    await pair()
+    await phone.send({ p: 1, k: 'pushSet', ...SUBSCRIPTION })
+    await until(() => store.pushOf(phone.deviceId), 'subscription stored')
+
+    expect(store.pushOf(phone.deviceId)).toEqual(SUBSCRIPTION)
+    expect(store.hasPush(phone.deviceId)).toBe(true)
+
+    await phone.send({ p: 1, k: 'pushSet', ...SUBSCRIPTION })
+    await phone.send({ p: 1, k: 'ping', n: 1 })
+    await phone.next('pong')
+    expect(events.filter((event) => event === 'pushChanged')).toHaveLength(1)
+
+    await phone.send({ p: 1, k: 'pushClear' })
+    await until(() => (store.hasPush(phone.deviceId) ? null : true), 'subscription cleared')
+    expect(events.filter((event) => event === 'pushChanged')).toHaveLength(2)
+  })
+
+  it('кадр релею: подписка открыто, уведомление - под ключом пары, тема одна на тег', async () => {
+    const { agent, store, phone, pair, toRelay } = await setup()
+
+    await pair()
+    await phone.send({ p: 1, k: 'pushSet', ...SUBSCRIPTION })
+    await until(() => store.pushOf(phone.deviceId), 'subscription stored')
+
+    const pushes = () =>
+      toRelay.map((raw) => decodeFrame(raw)).filter((frame) => frame.type === FRAME_PUSH)
+
+    expect(agent.pushes.send(phone.deviceId, notice('c-c1'))).toBe(true)
+    expect(agent.pushes.send(phone.deviceId, notice('c-c1'))).toBe(true)
+    expect(agent.pushes.send(phone.deviceId, notice('q-q1'))).toBe(true)
+
+    const [first, second, third] = pushes()
+
+    expect(Buffer.from(first?.to ?? []).toString('base64url')).toBe(phone.deviceId)
+    expect(Buffer.from(first?.from ?? []).toString('base64url')).toBe(store.agentId())
+
+    const body = decodePushBody(first?.body ?? new Uint8Array(0))
+
+    expect(body?.endpoint).toBe(SUBSCRIPTION.endpoint)
+    expect(Buffer.from(body?.p256dh ?? []).toString('base64url')).toBe(SUBSCRIPTION.p256dh)
+    expect(Buffer.from(body?.auth ?? []).toString('base64url')).toBe(SUBSCRIPTION.auth)
+    // Текст уведомления в кадре не виден - ни имени проекта, ни разговора.
+    expect(Buffer.from(first?.body ?? []).toString('latin1')).not.toContain('demo')
+    expect(await phone.openPush(body?.payload ?? new Uint8Array(0))).toEqual(notice('c-c1'))
+
+    const topicOf = (frame: typeof first) =>
+      Buffer.from(decodePushBody(frame?.body ?? new Uint8Array(0))?.topic ?? []).toString('hex')
+
+    expect(topicOf(first)).toHaveLength(32)
+    expect(topicOf(second)).toBe(topicOf(first))
+    expect(topicOf(third)).not.toBe(topicOf(first))
+  })
+
+  it('слово релея «подписки нет» снимает подписку; отзыв уносит её с парой', async () => {
+    const { agent, store, events, phone, pair, deliver } = await setup()
+
+    await pair()
+    await phone.send({ p: 1, k: 'pushSet', ...SUBSCRIPTION })
+    await until(() => store.pushOf(phone.deviceId), 'subscription stored')
+
+    deliver(
+      encodeFrame(
+        FRAME_PUSH_GONE,
+        decodeAddress(store.agentId()),
+        decodeAddress(phone.deviceId),
+        0n,
+        new Uint8Array(0),
+      ),
+    )
+
+    expect(store.hasPush(phone.deviceId)).toBe(false)
+    expect(events).toContain('pushChanged')
+    expect(agent.pushes.send(phone.deviceId, notice('c-c1'))).toBe(false)
+
+    await phone.send({ p: 1, k: 'pushSet', ...SUBSCRIPTION })
+    await until(() => store.pushOf(phone.deviceId), 'subscription stored again')
+    agent.revoke(phone.deviceId)
+    expect(store.hasPush(phone.deviceId)).toBe(false)
+    expect(store.pushDevices()).toEqual([])
   })
 })

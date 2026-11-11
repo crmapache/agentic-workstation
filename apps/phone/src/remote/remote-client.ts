@@ -12,7 +12,10 @@ import {
 } from '@agentic-workstation/remote-protocol/frame'
 import type { PairingCode } from '@agentic-workstation/remote-protocol/pairing-url'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { PushSubscriptionWire } from '@agentic-workstation/remote-protocol/push'
 
+import type { AgentRoutes } from './agent-routes'
+import { routeAgentMessage } from './agent-routes'
 import type { CommandOutcome } from './command-desk'
 import { CommandDesk } from './command-desk'
 import { Emitter } from './emitter'
@@ -24,6 +27,7 @@ import { MachineSession } from './machine-session'
 import type { PairOutcome, PairingOffer } from './pairing'
 import { prepareOffer } from './pairing'
 import { claimFrame, newSigningIdentity } from './proofs'
+import { PushSync } from './push-sync'
 import type { SocketLike, SocketState } from './relay-socket'
 import { RelaySocket } from './relay-socket'
 import type { WatchTarget } from './watch-desk'
@@ -67,6 +71,8 @@ export class RemoteClient {
   private readonly sockets = new Map<string, RelaySocket>()
   private readonly handshakes: Handshakes
   private readonly liveness: Liveness
+  private readonly pushes: PushSync
+  private readonly routes: AgentRoutes
   private device: DeviceIdentity | null
   private incoming: Promise<void> = Promise.resolve()
 
@@ -97,6 +103,19 @@ export class RemoteClient {
       add: (record) => this.addSession(record),
       now: () => this.now(),
     })
+    this.routes = {
+      watches: this.watches,
+      commands: this.commands,
+      handshakes: this.handshakes,
+      catchUp: (session) => this.catchUp(session),
+    }
+    this.pushes = new PushSync(
+      (agentId, message) => void this.send(agentId, message),
+      () =>
+        [...this.sessions.values()]
+          .filter((session) => session.isOpen && !session.record.revoked)
+          .map((session) => session.agentId),
+    )
     this.liveness = new Liveness({
       sessions: () => [...this.sessions.values()],
       sockets: () => [...this.sockets.values()],
@@ -194,6 +213,14 @@ export class RemoteClient {
     return this.commands.run(agentId, name, args)
   }
 
+  /**
+   * Подписка этого браузера на пуши (push/push-setup.ts) - каждой спаренной IDE; null -
+   * уведомления выключены, IDE забывает подписку.
+   */
+  setPushSubscription(subscription: PushSubscriptionWire | null): void {
+    this.pushes.set(subscription)
+  }
+
   /** Переподключиться к IDE сейчас: новое рукопожатие, не дожидаясь часов. */
   reconnect(agentId: string): void {
     const session = this.sessions.get(agentId)
@@ -268,41 +295,13 @@ export class RemoteClient {
   }
 
   private dispatch(session: MachineSession, message: AgentMessage) {
-    const { agentId } = session
-
-    switch (message.k) {
-      case 'inventory':
-        session.caps = message.caps
-        break
-      case 'feed':
-        this.watches.snapshot(agentId, message)
-        break
-      case 'patch':
-        this.watches.patch(agentId, message)
-        break
-      case 'conversationGone':
-        this.watches.gone(agentId, message.conversationId)
-        break
-      case 'result':
-        this.commands.result(message)
-        break
-      case 'notice':
-        this.commands.noticed(message)
-        break
-      case 'resync':
-        this.catchUp(session)
-        break
-      case 'revoked':
-        void this.handshakes.revoked(session, message.tag)
-        break
-    }
-
-    this.events.emit('message', agentId, message)
+    routeAgentMessage(this.routes, session, message)
+    this.events.emit('message', session.agentId, message)
   }
 
   /**
-   * Ключи с IDE готовы: представиться, получить список, вернуть подписки и повторить команды
-   * без итога - посланное на прежних ключах могло не дойти.
+   * Ключи с IDE готовы: представиться, получить список, вернуть подписки, повторить команды
+   * без итога (посланное на прежних ключах могло не дойти) и напомнить подписку на пуши.
    */
   private opened(session: MachineSession) {
     session.lastHeard = this.now()
@@ -315,6 +314,7 @@ export class RemoteClient {
     })
     this.watches.resubscribeAll(session.agentId)
     this.commands.resend(session.agentId)
+    this.pushes.opened(session.agentId)
   }
 
   /**

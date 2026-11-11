@@ -9,9 +9,11 @@ import {
   FRAME_SEALED,
   FRAME_CONTROL,
   MAX_BODY_BYTES,
+  FRAME_PUSH_GONE,
 } from '@agentic-workstation/remote-protocol/frame'
 import type { PhoneMessage } from '@agentic-workstation/remote-protocol/phone-messages'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { PushSubscriptionWire } from '@agentic-workstation/remote-protocol/push'
 
 import type { Lane, Seal, Outgoing } from '../link/outbox'
 import { RemoteOutbox } from '../link/outbox'
@@ -27,6 +29,7 @@ import { Inbound } from './inbound'
 import { RemoteLimits } from './limits'
 import type { PendingPairing } from './pairing'
 import { PairingDesk } from './pairing'
+import { PushOut } from './push-out'
 
 /** Телефон «на связи», если говорил недавно: дольше его стука (25 с). */
 export const AWAKE_MS = 45_000
@@ -57,6 +60,8 @@ export type AgentHandlers = {
   /** Команду с этим id мост уже принял: её повтор не тратит предел частоты. */
   knownCommand: (deviceId: string, commandId: string) => boolean
   forgotten: (deviceId: string) => void
+  /** Подписка телефона на пуши появилась, сменилась или ушла (его слово или слово релея). */
+  pushChanged: (deviceId: string) => void
 }
 
 /**
@@ -69,6 +74,7 @@ export class RemoteAgent {
   readonly sessions = new DeviceSessions()
   readonly pairing = new PairingDesk()
   readonly limits = new RemoteLimits()
+  readonly pushes: PushOut
   private readonly handshakes: Handshakes
   private readonly inbound: Inbound
   private readonly lastHeard = new Map<string, number>()
@@ -96,6 +102,15 @@ export class RemoteAgent {
         console.warn('[remote] телефон попросил его забыть - отзыв')
         this.revoke(deviceId)
         this.core.onView()
+      },
+      subscribe: (deviceId, subscription) => this.setPush(deviceId, subscription),
+    })
+    this.pushes = new PushOut({
+      store: core.store,
+      address: () => this.address,
+      offer: (deviceId, frame) => {
+        this.outbox.offerUrgent(deviceId, { frame })
+        this.flush()
       },
     })
   }
@@ -158,7 +173,12 @@ export class RemoteAgent {
   }
 
   isAwake(deviceId: string): boolean {
-    return Date.now() - (this.lastHeard.get(deviceId) ?? 0) < AWAKE_MS
+    return Date.now() - this.heardAt(deviceId) < AWAKE_MS
+  }
+
+  /** Когда телефон говорил последний раз (часы IDE); 0 - не говорил с начала линии. */
+  heardAt(deviceId: string): number {
+    return this.lastHeard.get(deviceId) ?? 0
   }
 
   /** Тело телефону - в очередь; запечатается при отправке. Ключей нет или не влезает - false. */
@@ -282,6 +302,7 @@ export class RemoteAgent {
 
   private receive(envelope: Envelope) {
     if (envelope.type === FRAME_CONTROL) return this.relayLost(envelope)
+    if (envelope.type === FRAME_PUSH_GONE) return this.pushGone(envelope)
 
     const deviceId = encodeAddress(envelope.from)
 
@@ -320,6 +341,30 @@ export class RemoteAgent {
 
     console.warn('[remote] релей сказал, что кадры телефона к IDE пропали - телефону «переспроси»')
     this.reply(deviceId, { p: PROTOCOL_VERSION, k: 'resync' })
+  }
+
+  /**
+   * Подписка телефона на пуши: его слово pushSet или pushClear. Тот же адрес службы на каждой
+   * новой линии - не перемена: ни записи на диск, ни новой точки отсчёта у уведомлений.
+   */
+  private setPush(deviceId: string, subscription: PushSubscriptionWire | null) {
+    if (!this.core.store.setPush(deviceId, subscription)) return
+
+    this.handlers.pushChanged(deviceId)
+    this.core.onView()
+  }
+
+  /**
+   * Слово релея: служба пушей этого телефона ответила «такой подписки нет» (браузер её снял,
+   * PWA удалили) - дальше будить его нечем, пока он не пришлёт новую.
+   */
+  private pushGone(envelope: Envelope) {
+    const deviceId = encodeAddress(envelope.from)
+
+    if (!this.core.store.pushOf(deviceId)) return
+
+    console.warn('[remote] служба пушей забыла подписку телефона - она снята')
+    this.setPush(deviceId, null)
   }
 
   /** Телефону, которого не пустили, - слово под секретом его кода. */

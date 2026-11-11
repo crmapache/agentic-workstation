@@ -28,6 +28,12 @@ import {
   FRAME_CHALLENGE,
 } from '@agentic-workstation/remote-protocol/frame'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
+import {
+  PUSH_KEY_LABEL,
+  parsePushNotice,
+  readPushPayload,
+} from '@agentic-workstation/remote-protocol/push'
+import type { PushNotice } from '@agentic-workstation/remote-protocol/push'
 import { proofBody, claimInput } from '@agentic-workstation/remote-protocol/relay-claim'
 
 import type { Pair, Message, Signing, PhoneKeys } from './webcrypto-kit'
@@ -102,6 +108,25 @@ export class WebCryptoPhone {
     if (!this.auth) return false
 
     return toBase64(await mac(this.auth, [REVOKED_LABEL, this.agentId, this.deviceId])) === tag
+  }
+
+  /**
+   * Payload пуша, как его откроет воркер телефона: ключ пуша - HKDF долгого ключа пары своей
+   * меткой, открытая часть payload - дополнительные данные. Не открылось - null.
+   */
+  async openPush(payload: Uint8Array): Promise<PushNotice | null> {
+    const parts = readPushPayload(payload)
+
+    if (!parts || !this.auth) return null
+
+    try {
+      const key = await hkdf(new Uint8Array(0), this.auth, PUSH_KEY_LABEL, 32)
+      const body = await aes(key, 'decrypt', parts.nonce, parts.header, parts.sealed)
+
+      return parsePushNotice(decodeBody(body))
+    } catch {
+      return null
+    }
   }
 
   /** Первый шаг пары: открыт адрес из QR, телефон доказывает, что видел код. */

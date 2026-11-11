@@ -18,11 +18,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "web-push": "4.0.0",
     "ws": "8.22.0"
   },
   "devDependencies": {
     "@agentic-workstation/remote-protocol": "workspace:*",
     "@types/node": "24.13.3",
+    "@types/web-push": "3.6.4",
     "@types/ws": "8.18.2",
     "typescript": "6.0.3",
     "vitest": "5.0.5"

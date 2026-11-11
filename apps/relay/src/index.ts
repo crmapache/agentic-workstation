@@ -15,7 +15,10 @@ const log = (line: string): void => {
 
 const relay = createRelay(config, log)
 
-void relay.listen(config.port).then((port) => log(`relay ${RELAY_VERSION} listening on ${port}`))
+void relay.listen(config.port).then((port) => {
+  log(`relay ${RELAY_VERSION} listening on ${port}`)
+  log(config.push ? 'push on' : `push off: ${config.pushOff}`)
+})
 
 /** Coolify гасит контейнер SIGTERM: закрыть сокеты и выйти, а не ждать SIGKILL. */
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {

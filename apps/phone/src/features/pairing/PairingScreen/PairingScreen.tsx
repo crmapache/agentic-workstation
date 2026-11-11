@@ -9,11 +9,13 @@ import { Screen } from '../../../shell/Screen/Screen'
 import { usePairing } from './PairingScreen.hooks'
 import { PairingFooter } from './parts/PairingFooter'
 import { PairingKeys } from './parts/PairingKeys'
+import { PairingLinkForm } from './parts/PairingLinkForm'
 
 /**
  * Пара телефона с IDE по QR из окна Remote Control. Код приходит фрагментом адреса и стёрт из
- * него ещё до первого кадра (lib/pairing-link.ts). Отпечаток IDE из кода телефон сверяет сам,
- * а человек сверяет отпечаток телефона на экране IDE, прежде чем нажать Approve.
+ * него ещё до первого кадра (lib/pairing-link.ts) - или вставленным адресом (приложение с экрана
+ * «Домой», куда камера адрес не отдаёт). Отпечаток IDE из кода телефон сверяет сам, а человек
+ * сверяет отпечаток телефона на экране IDE, прежде чем нажать Approve.
  */
 export const PairingScreen = () => {
   const { t } = useTranslation()
@@ -33,11 +35,12 @@ export const PairingScreen = () => {
           title={t(invalid ? 'pairing.invalid.title' : 'pairing.noCode.title')}
           description={t(invalid ? 'pairing.invalid.description' : 'pairing.noCode.description')}
           action={
-            <Button size="touch" onClick={handleHome}>
+            <Button size="touch" variant="ghost" onClick={handleHome}>
               {t('pairing.toMachines')}
             </Button>
           }
         />
+        <PairingLinkForm />
       </Screen>
     )
   }

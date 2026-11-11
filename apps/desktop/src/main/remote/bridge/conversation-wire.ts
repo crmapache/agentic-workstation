@@ -55,10 +55,14 @@ export class StatusClock {
 const outcomeOf = (conversation: Conversation): ConversationOutcome =>
   conversation.outcome === 'error' ? 'failed' : conversation.outcome
 
+/** Имя разговора, как его видит телефон: ещё без имени - имя источника форка или «New chat». */
+export const titleOf = (conversation: Conversation): string =>
+  conversation.title || conversation.fork?.sourceTitle || 'New chat'
+
 export const summaryOf = (conversation: Conversation, since: number): ConversationSummary => ({
   id: conversation.id,
   provider: CLAUDE_PROVIDER,
-  title: conversation.title || conversation.fork?.sourceTitle || 'New chat',
+  title: titleOf(conversation),
   status: statusOf(conversation),
   outcome: outcomeOf(conversation),
   since,

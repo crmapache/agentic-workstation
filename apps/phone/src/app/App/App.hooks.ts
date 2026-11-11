@@ -4,9 +4,13 @@ import type { QueryClient } from '@tanstack/react-query'
 
 import { takePairingCode } from '../../lib/pairing-link'
 import { useRouter } from '../../lib/router.store'
+import { parseRoute } from '../../lib/routes'
+import type { PushSetup } from '../../push/push-setup'
 import type { RemoteClient } from '../../remote/remote-client'
 import { mirrorClient } from '../../state/mirror'
 import { usePairingStore } from '../../state/pairing.store'
+import type { OpenScreenMessage } from '../../sw/sw.types'
+import { OPEN_SCREEN } from '../../sw/sw.types'
 
 /**
  * Жизнь страницы вокруг ядра: зеркало в кэш, линия на время жизни страницы, переподключение,
@@ -45,4 +49,42 @@ export const useClientLifecycle = (client: RemoteClient, queryClient: QueryClien
       window.removeEventListener('hashchange', handleHash)
     }
   }, [client, queryClient, synced])
+}
+
+const isOpenScreen = (value: unknown): value is OpenScreenMessage =>
+  typeof value === 'object' &&
+  value !== null &&
+  (value as { k?: unknown }).k === OPEN_SCREEN &&
+  typeof (value as { url?: unknown }).url === 'string'
+
+/**
+ * Уведомления: что с ними сейчас - при запуске и когда страница снова на виду (разрешение
+ * могли поменять в настройках телефона). Нажатое уведомление при открытом окне приходит словом
+ * воркера, и окно переходит на экран без перезагрузки - линия с IDE остаётся.
+ */
+export const useNotifications = (push: PushSetup) => {
+  const navigate = useRouter((state) => state.navigate)
+
+  useEffect(() => {
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') void push.start()
+    }
+    const handleWorker = (event: MessageEvent) => {
+      if (!isOpenScreen(event.data)) return
+
+      const route = parseRoute(event.data.url)
+
+      if (route.name !== 'notFound') navigate(route)
+    }
+    const worker = 'serviceWorker' in navigator ? navigator.serviceWorker : null
+
+    void push.start()
+    document.addEventListener('visibilitychange', handleVisible)
+    worker?.addEventListener('message', handleWorker)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisible)
+      worker?.removeEventListener('message', handleWorker)
+    }
+  }, [push, navigate])
 }

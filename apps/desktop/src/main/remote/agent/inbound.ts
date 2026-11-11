@@ -9,6 +9,7 @@ import {
   PROTOCOL_VERSION,
   parsePhoneMessage,
 } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { PushSubscriptionWire } from '@agentic-workstation/remote-protocol/push'
 
 import type { Lane } from '../link/outbox'
 import type { RemoteLimits } from './limits'
@@ -22,6 +23,8 @@ export type InboundHost = {
   reply: (deviceId: string, message: AgentMessage, lane?: Lane) => void
   /** Телефон сам просит его забыть: тот же отзыв, что из окна IDE. */
   unpair: (deviceId: string) => void
+  /** Подписка телефона на пуши; null - уведомления на телефоне выключили. */
+  subscribe: (deviceId: string, subscription: PushSubscriptionWire | null) => void
 }
 
 /** О скольких отброшенных сообщениях телефона помнить, что ему уже сказано. */
@@ -30,8 +33,9 @@ const NOTICED_KEPT = 32
 /**
  * Открытые слова спаренного телефона - через пределы частоты и веса наверх. Ничто не теряется
  * молча: отброшенная команда получает итог rateLimited, отброшенный или пропавший кусок
- * сообщения - слово notice с id сообщения, и телефон кончает свою команду сразу. Стук (ping) и
- * «забудь меня» (unpair) решаются здесь: мосту до них дела нет.
+ * сообщения - слово notice с id сообщения, и телефон кончает свою команду сразу. Стук (ping),
+ * «забудь меня» (unpair) и подписка на пуши (pushSet, pushClear) решаются здесь: мосту до них
+ * дела нет.
  */
 export class Inbound {
   private readonly parts = new RemoteParts()
@@ -70,6 +74,13 @@ export class Inbound {
     }
 
     if (message.k === 'unpair') return this.host.unpair(deviceId)
+    if (message.k === 'pushClear') return this.host.subscribe(deviceId, null)
+
+    if (message.k === 'pushSet') {
+      const { endpoint, p256dh, auth } = message
+
+      return this.host.subscribe(deviceId, { endpoint, p256dh, auth })
+    }
 
     this.host.handlers.handle(deviceId, message)
   }

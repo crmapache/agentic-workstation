@@ -52,6 +52,8 @@ export type ClaudeEvents = {
   openPath: (path: string) => Promise<string>
   /** Разговор позвал человека: окно играет звук и подсвечивает вкладку. */
   onCall: (call: ConversationCall) => void
+  /** Тот же повод, и выключенный в звуках: для тех, кто зовёт человека не звуком (телефон). */
+  observeCall?: (call: ConversationCall) => void
 }
 
 /** Где на диске аккаунты Claude: реестр и папка их хранилищ входа. */
@@ -97,6 +99,7 @@ export class ClaudeService {
   private readonly calls = new ConversationCalls(
     () => this.settings.prefs.mutedSounds,
     (call) => this.events.onCall(call),
+    (call) => this.events.observeCall?.(call),
   )
   private readonly trust: WorkspaceTrust
   private activeByProject: Record<string, string>

@@ -3,6 +3,7 @@ import { get } from 'node:http'
 import { join } from 'node:path'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
+import { generateVAPIDKeys } from 'web-push'
 import { WebSocket } from 'ws'
 
 import {
@@ -12,14 +13,17 @@ import {
   FRAME_PROOF,
   FRAME_SEALED,
   FRAME_CHALLENGE,
+  FRAME_PUSH_GONE,
 } from '@agentic-workstation/remote-protocol/frame'
+import { encodePushBody } from '@agentic-workstation/remote-protocol/push'
 import type { ClaimKind } from '@agentic-workstation/remote-protocol/relay-claim'
 import { proofBody, claimInput } from '@agentic-workstation/remote-protocol/relay-claim'
 
 import type { Config } from './config.ts'
 import { readConfig } from './config.ts'
 import { readEnvelope, FRAME_CONTROL } from './frame.ts'
-import type { Relay } from './server.ts'
+import type { PushOrder } from './push-frame.ts'
+import type { Relay, RelayOptions } from './server.ts'
 import { createRelay } from './server.ts'
 
 /**
@@ -134,7 +138,7 @@ describe('релей', () => {
   let port: number
   const opened: WebSocket[] = []
 
-  const start = async (over: Partial<Config> = {}) => {
+  const start = async (over: Partial<Config> = {}, options: RelayOptions = {}) => {
     relay = createRelay(
       {
         ...readConfig({}),
@@ -143,6 +147,7 @@ describe('релей', () => {
         ...over,
       },
       () => undefined,
+      options,
     )
     port = await relay.listen(0)
   }
@@ -419,9 +424,88 @@ describe('релей', () => {
       wireMax: 1,
       maxFrameBytes: 256 * 1024,
       mailboxTtlSeconds: 120,
+      push: false,
     })
+    expect(info).not.toHaveProperty('pushPublicKey')
     expect(privacy).toContain('content-blind')
     expect(privacy).toContain('7 days')
+  })
+
+  it('пуш: ключ VAPID в /v1/info, кадр IDE - службе пушей, дальше никому; «подписки нет» - IDE', async () => {
+    const vapid = generateVAPIDKeys()
+    const orders: PushOrder[] = []
+    let status = 201
+
+    await relay.close()
+    await start(
+      {
+        push: { ...vapid, subject: 'https://relay.example' },
+        pushOff: '',
+      },
+      {
+        pushSender: (order) => {
+          orders.push(order)
+
+          return Promise.resolve(status)
+        },
+      },
+    )
+
+    const info = (await (await fetch(`http://127.0.0.1:${port}/v1/info`)).json()) as Record<
+      string,
+      unknown
+    >
+
+    expect(info).toMatchObject({ push: true, pushPublicKey: vapid.publicKey })
+
+    const a = await connect('/v1/agent', agent)
+    const d = await connect('/v1/device', device)
+    const payload = new Uint8Array(48).fill(5)
+    const pushFrame = (from: Identity, to: Identity) =>
+      Buffer.from(
+        encodeFrame(
+          FRAME_PUSH,
+          to.address,
+          from.address,
+          0n,
+          encodePushBody({
+            topic: null,
+            p256dh: Uint8Array.from({ length: 65 }, (_, index) => (index === 0 ? 4 : index)),
+            auth: new Uint8Array(16).fill(1),
+            endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+            payload,
+          }),
+        ),
+      )
+
+    a.send(pushFrame(agent, device))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    expect(orders).toHaveLength(1)
+    expect(orders[0]?.endpoint).toBe('https://fcm.googleapis.com/fcm/send/abc')
+    expect(orders[0]?.payload.equals(Buffer.from(payload))).toBe(true)
+    // Телефон кадр не получает: пуш - разговор релея со службой, а не кадр кому-то.
+    await expect(nextFrame(d, 200)).rejects.toThrow('no frame arrived')
+
+    // Телефон будить IDE не может: его FRAME_PUSH службе не уходит.
+    d.send(pushFrame(device, agent))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(orders).toHaveLength(1)
+
+    // Служба: подписки нет - IDE слышит это словом релея от имени телефона.
+    status = 410
+    a.send(pushFrame(agent, device))
+
+    const gone = decodeFrame(new Uint8Array(await nextFrame(a)))
+
+    expect(gone.type).toBe(FRAME_PUSH_GONE)
+    expect(Buffer.from(gone.to).equals(Buffer.from(agent.address))).toBe(true)
+    expect(Buffer.from(gone.from).equals(Buffer.from(device.address))).toBe(true)
+    expect(gone.body).toHaveLength(0)
+
+    // Это слово - только релея: от стороны оно не пересылается.
+    d.send(Buffer.from(encodeFrame(FRAME_PUSH_GONE, agent.address, device.address, 0n, payload)))
+    await expect(nextFrame(a, 200)).rejects.toThrow('no frame arrived')
   })
 
   it('страницы - со строгой политикой, без реферера, только HTTPS и камерой для себя', async () => {

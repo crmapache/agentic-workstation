@@ -119,6 +119,12 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('button', { name: /secret-client/ }).waitFor()
     await page.getByRole('button', { name: /All queues/ }).waitFor()
     await page.getByText('Online').waitFor()
+    // Воркер сборки (оболочка и уведомления, классический скрипт) встаёт в настоящем браузере;
+    // релей без ключей VAPID - раздела уведомлений нет: предложить нечего.
+    expect(
+      await page.evaluate(async () => Boolean((await navigator.serviceWorker.ready).active)),
+    ).toBe(true)
+    expect(await page.getByRole('heading', { name: 'Notifications' }).count()).toBe(0)
     await shot('03-machines')
 
     // Проект: разговоры, прошлые разговоры, очереди; главные действия - в низу, в одном ряду.
@@ -536,7 +542,11 @@ describe('телефон в мобильном Chromium против насто�
   })
 
   it('IDE не отвечает: пусто с «переподключить», потом устаревшее с полосой; отпустила - полоса', async () => {
-    await page.goto(ide.pairingUrl())
+    // Пара вставленным адресом - как у приложения с экрана «Домой»: камера адрес ему не отдаёт.
+    await page.getByRole('button', { name: 'Pair an IDE' }).click()
+    await page.getByLabel('Pairing link').fill(ide.pairingUrl())
+    await shot('19b-pair-link')
+    await page.getByRole('button', { name: 'Pair with this link' }).click()
     await expect
       .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
       .toBe(true)

@@ -1,14 +1,23 @@
+import { createECDH } from 'node:crypto'
+
 import { it, expect, describe, afterEach } from 'vitest'
 
 import { readConfig } from '@agentic-workstation/relay/config'
-import type { Relay } from '@agentic-workstation/relay/server'
+import type { Relay, RelayOptions } from '@agentic-workstation/relay/server'
 import { createRelay } from '@agentic-workstation/relay/server'
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
 
 import type { JsonFile } from '../storage/json-file'
 import { RemoteService } from './remote-service'
-import { itemOf, fakeIde, PROJECT_PATH, CONVERSATION_ID } from './__fixtures__/fake-ide'
+import {
+  itemOf,
+  fakeIde,
+  PERMISSION,
+  PROJECT_PATH,
+  conversationOf,
+  CONVERSATION_ID,
+} from './__fixtures__/fake-ide'
 import { until, WebCryptoPhone } from './__fixtures__/webcrypto-phone'
 import type { StoredRemote } from './store/remote-state'
 
@@ -24,6 +33,39 @@ const memoryFile = () =>
     read: () => Promise.resolve(null),
     write: () => Promise.resolve(),
   }) as unknown as JsonFile<StoredRemote>
+
+/** Что релей отдал службе пушей: подписка и payload, как их видит он. */
+type PushOrder = Parameters<NonNullable<RelayOptions['pushSender']>>[0]
+
+/** Файл в памяти, который помнит записанное: IDE перезапускается с тем же состоянием. */
+const keptFile = () => {
+  let saved: StoredRemote | null = null
+
+  return {
+    read: () => Promise.resolve(saved),
+    write: (value: StoredRemote) => {
+      saved = value
+
+      return Promise.resolve()
+    },
+  } as unknown as JsonFile<StoredRemote>
+}
+
+/** Ключи VAPID на тест: служба пушей - подделка, настоящим звонить не нужно. */
+const testVapid = () => {
+  for (;;) {
+    const ecdh = createECDH('prime256v1')
+
+    ecdh.generateKeys()
+
+    if (ecdh.getPrivateKey().length === 32) {
+      return {
+        publicKey: ecdh.getPublicKey().toString('base64url'),
+        privateKey: ecdh.getPrivateKey().toString('base64url'),
+      }
+    }
+  }
+}
 
 const memoryVault = {
   available: () => true,
@@ -317,6 +359,104 @@ describe('Remote Control: IDE, релей и телефон', () => {
       service.setEnabled(false)
       await until(() => (relay.connections() === 0 ? true : null), 'IDE gone from the relay')
       expect(service.view().state).toBe('off')
+    },
+  )
+
+  it.skipIf(LIVE_RELAY)(
+    'пуш: телефон не на связи будится через релей, текст открывает только он; на связи - не будится',
+    async () => {
+      const orders: PushOrder[] = []
+      const relay = createRelay(
+        {
+          ...readConfig({}),
+          staticDir: '',
+          logLevel: 'silent',
+          push: { ...testVapid(), subject: 'https://relay.example' },
+          pushOff: '',
+        },
+        () => undefined,
+        {
+          pushSender: (order) => {
+            orders.push(order)
+
+            return Promise.resolve(201)
+          },
+        },
+      )
+      const url = `ws://127.0.0.1:${await relay.listen(0)}`
+
+      cleanups.push(() => relay.close())
+
+      const file = keptFile()
+      const ide = fakeIde()
+      const load = () =>
+        RemoteService.load({
+          file,
+          vault: memoryVault,
+          ports: ide.ports,
+          relayUrl: url,
+          machine: () => ({ label: 'test', ideVersion: '0' }),
+          onView: () => undefined,
+        })
+      const first = await load()
+
+      first.setEnabled(true)
+      await until(() => (first.view().state === 'connected' ? true : null), 'IDE on the relay')
+
+      const phone = await connectPhone(url)
+      const offer = await phone.pairInit(first.startPairing().pairing?.url ?? '')
+
+      first.approve(await until(() => first.view().pending, 'pending phone'))
+      await phone.pairAck(offer)
+      await phone.send({
+        p: 1,
+        k: 'pushSet',
+        endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+        p256dh: Buffer.from(
+          Uint8Array.from({ length: 65 }, (_, index) => (index === 0 ? 4 : index)),
+        ).toString('base64url'),
+        auth: Buffer.alloc(16, 7).toString('base64url'),
+      })
+      await until(
+        () => (first.view().devices[0]?.notifications ? true : null),
+        'the subscription in the IDE',
+      )
+      await first.shutdown()
+
+      // IDE перезапустили, телефон в кармане: разговор встал на вопросе - будим.
+      const second = await load()
+
+      cleanups.push(() => second.shutdown())
+      await until(() => (second.view().state === 'connected' ? true : null), 'IDE back')
+      ide.state.conversations = [conversationOf({ pending: PERMISSION, status: 'waiting' })]
+      second.claudeChanged(ide.state)
+
+      const order = await until(() => orders[0], 'a push at the push service')
+      const notice = await phone.openPush(order.payload)
+
+      expect(order.endpoint).toBe('https://fcm.googleapis.com/fcm/send/abc')
+      expect(notice).toMatchObject({
+        reason: 'permission',
+        project: 'secret-client',
+        title: 'Fix the login bug',
+        tool: 'Bash',
+        route: { screen: 'conversation', conversationId: CONVERSATION_ID },
+      })
+      expect(order.payload.toString('latin1')).not.toContain('secret-client')
+
+      // Телефон вернулся и говорит: новый вопрос он видит сам - пуша нет.
+      await phone.resume()
+      await phone.send({ p: 1, k: 'ping', n: 1 })
+      await phone.next('pong')
+      ide.state.conversations = [
+        conversationOf({ pending: { ...PERMISSION, requestId: 'perm-2' }, status: 'waiting' }),
+      ]
+      second.claudeChanged(ide.state)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      await phone.send({ p: 1, k: 'ping', n: 2 })
+      await phone.next('pong', (message) => message['n'] === 2)
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      expect(orders).toHaveLength(1)
     },
   )
 })

@@ -2989,6 +2989,7 @@
       "title": "Paired phones",
       "empty": "No phones yet",
       "online": "On the line",
+      "notifications": "Notifications",
       "seen": "{{fingerprint}} · seen {{when}}",
       "revoke": "Revoke",
       "revokeLabel": "Revoke {{label}}"

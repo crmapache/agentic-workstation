@@ -36,7 +36,10 @@ export const FRAME_SEALED = 0x01
 /** Слово самого релея, и только одно: «был обрыв, переспроси». Никогда не содержимое. */
 export const FRAME_CONTROL = 0x02
 
-/** «Разбуди устройство»: релей отдаёт кадр целиком службе пушей. */
+/**
+ * «Разбуди устройство», только IDE → релей: тело - подписка телефона и payload, запечатанный
+ * для него (push.ts). Релей отдаёт payload службе пушей и дальше кадр никому не пересылает.
+ */
 export const FRAME_PUSH = 0x03
 
 /**
@@ -48,12 +51,20 @@ export const FRAME_CHALLENGE = 0x04
 /** Ответ на вызов: открытый ключ подписи и подпись вызова. Релей его не пересылает никому. */
 export const FRAME_PROOF = 0x05
 
+/**
+ * Слово релея IDE после пуша: служба пушей ответила, что подписки этого телефона больше нет
+ * (404 или 410), или адрес службы не из белого списка релея. Кому - IDE, от кого - телефон,
+ * тела нет. IDE забывает подписку: дальше будить его нечем, пока он не пришлёт новую.
+ */
+export const FRAME_PUSH_GONE = 0x06
+
 export type FrameType =
   | typeof FRAME_SEALED
   | typeof FRAME_CONTROL
   | typeof FRAME_PUSH
   | typeof FRAME_CHALLENGE
   | typeof FRAME_PROOF
+  | typeof FRAME_PUSH_GONE
 
 const TYPES: readonly number[] = [
   FRAME_SEALED,
@@ -61,6 +72,7 @@ const TYPES: readonly number[] = [
   FRAME_PUSH,
   FRAME_CHALLENGE,
   FRAME_PROOF,
+  FRAME_PUSH_GONE,
 ]
 
 export type Frame = {

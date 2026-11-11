@@ -40,6 +40,12 @@ export type StoredRemote = {
   signing: string
   /** Долгие ключи пар по телефону, запечатанные хранилищем. */
   secrets: Record<string, string>
+  /**
+   * Подписки телефонов на пуши (push.ts протокола) - JSON, запечатанный хранилищем, как ключи:
+   * адрес службы пушей и ключи браузера - то, по чему телефон можно будить. Уходит вместе с
+   * парой (отзыв, «забудь меня», новая пара) и по слову релея «подписки нет».
+   */
+  pushes: Record<string, string>
 }
 
 export const REMOTE_FORMAT = 'aw-remote/2'
@@ -55,6 +61,7 @@ export const emptyRemote = (): StoredRemote => ({
   identity: '',
   signing: '',
   secrets: {},
+  pushes: {},
 })
 
 const text = (value: unknown, max = 4096): string =>
@@ -103,13 +110,16 @@ export const parseStoredRemote = (raw: unknown): StoredRemote => {
   const revoked = Array.isArray(stored['revoked'])
     ? stored['revoked'].map(parseRevoked).filter((entry) => entry !== null)
     : []
-  const secrets: Record<string, string> = {}
-  const rawSecrets = stored['secrets']
+  const sealedById = (raw: unknown): Record<string, string> => {
+    const out: Record<string, string> = {}
 
-  if (typeof rawSecrets === 'object' && rawSecrets !== null) {
-    for (const [id, sealed] of Object.entries(rawSecrets as Record<string, unknown>)) {
-      if (ADDRESS_PATTERN.test(id) && typeof sealed === 'string') secrets[id] = sealed
+    if (typeof raw === 'object' && raw !== null) {
+      for (const [id, sealed] of Object.entries(raw as Record<string, unknown>)) {
+        if (ADDRESS_PATTERN.test(id) && typeof sealed === 'string') out[id] = sealed
+      }
     }
+
+    return out
   }
 
   return {
@@ -119,11 +129,13 @@ export const parseStoredRemote = (raw: unknown): StoredRemote => {
     revoked: revoked.slice(-REVOKED_REMEMBERED),
     identity: text(stored['identity'], 8192),
     signing: text(stored['signing'], 8192),
-    secrets,
+    secrets: sealedById(stored['secrets']),
+    // Файл без подписок (до пушей) - просто без них: формат тот же.
+    pushes: sealedById(stored['pushes']),
   }
 }
 
-/** Отпустить телефон: запись и секрет уходят, надгробие с тегом встаёт последним. */
+/** Отпустить телефон: запись, секрет и подписка уходят, надгробие с тегом встаёт последним. */
 export const withRevoked = (stored: StoredRemote, deviceId: string, tag: string): StoredRemote => {
   const { [deviceId]: _gone, ...secrets } = stored.secrets
 
@@ -131,6 +143,7 @@ export const withRevoked = (stored: StoredRemote, deviceId: string, tag: string)
     ...stored,
     devices: stored.devices.filter((device) => device.id !== deviceId),
     secrets,
+    pushes: withoutPush(stored.pushes, deviceId),
     revoked: [
       ...stored.revoked.filter((entry) => entry.id !== deviceId),
       { id: deviceId, tag },
@@ -138,7 +151,10 @@ export const withRevoked = (stored: StoredRemote, deviceId: string, tag: string)
   }
 }
 
-/** Новый или вернувшийся телефон: запись заменяется, надгробие с него снимается. */
+/**
+ * Новый или вернувшийся телефон: запись заменяется, надгробие с него снимается. Подписка
+ * прежней пары уходит: новая пара - новый ключ пуша, и телефон пришлёт подписку заново.
+ */
 export const withDevice = (
   stored: StoredRemote,
   device: StoredDevice,
@@ -147,8 +163,18 @@ export const withDevice = (
   ...stored,
   devices: [...stored.devices.filter((item) => item.id !== device.id), device],
   secrets: { ...stored.secrets, [device.id]: sealed },
+  pushes: withoutPush(stored.pushes, device.id),
   revoked: stored.revoked.filter((entry) => entry.id !== device.id),
 })
+
+export const withoutPush = (
+  pushes: Record<string, string>,
+  deviceId: string,
+): Record<string, string> => {
+  const { [deviceId]: _gone, ...rest } = pushes
+
+  return rest
+}
 
 /**
  * Адрес релея - только защищённый: телефону `crypto.subtle` дают лишь в защищённом контексте.

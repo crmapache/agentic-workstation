@@ -9,7 +9,10 @@ import type { PhoneListProps } from '../RemoteModal.types'
 import { seenAt } from '../RemoteModal.utils'
 import { useRemoteActions } from '../../remote.queries'
 
-/** Спаренные телефоны: имя (его назвал сам телефон), отпечаток, на связи ли, и отзыв. */
+/**
+ * Спаренные телефоны: имя (его назвал сам телефон), отпечаток, на связи ли, включены ли на нём
+ * уведомления (прислал подписку на пуши), и отзыв.
+ */
 export const PhoneList = ({ devices }: PhoneListProps) => {
   const { t, i18n } = useTranslation()
   const { revoke } = useRemoteActions()
@@ -35,6 +38,9 @@ export const PhoneList = ({ devices }: PhoneListProps) => {
                     : device.fingerprint}
                 </span>
               </div>
+              {device.notifications && (
+                <Badge tone="info">{t('remote.phones.notifications')}</Badge>
+              )}
               {device.online && <Badge tone="success">{t('remote.phones.online')}</Badge>}
               <Button
                 variant="danger"

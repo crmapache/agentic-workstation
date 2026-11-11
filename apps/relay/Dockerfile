@@ -15,8 +15,10 @@ RUN npm install -g pnpm@11.5.0
 COPY . .
 # Телефонный клиент (apps/phone, пакет @agentic-workstation/phone, сборка в apps/phone/dist)
 # собирается в папку раздачи релея. Его ещё нет - остаётся заглушка apps/relay/public.
-# Релею в рантайме нужен только ws: он копируется из хранилища pnpm как есть (зависимостей у
-# него нет), без второй установки в образе.
+# Рантайм релея - его зависимости (ws, web-push и то, что тянет web-push) без dev и без
+# workspace: pnpm deploy кладёт их в /out/node_modules рядом с исходниками. --legacy - потому
+# что пакеты workspace не впрыскиваются (inject-workspace-packages), а релею они в рантайме и
+# не нужны: протокол он не импортирует.
 RUN set -eu; \
   if [ -f apps/phone/package.json ]; then \
     pnpm install --frozen-lockfile --filter "@agentic-workstation/phone..." --filter "@agentic-workstation/relay"; \
@@ -26,9 +28,11 @@ RUN set -eu; \
   else \
     pnpm install --frozen-lockfile --prod --filter "@agentic-workstation/relay"; \
   fi; \
-  mkdir -p /out/node_modules; \
-  cp -RL apps/relay/node_modules/ws /out/node_modules/ws; \
-  cp -R apps/relay/src apps/relay/public apps/relay/package.json /out/; \
+  pnpm --filter @agentic-workstation/relay deploy --prod --legacy /deploy; \
+  mkdir -p /out; \
+  cp -a /deploy/node_modules /out/node_modules; \
+  cp -R /deploy/src /deploy/package.json /out/; \
+  cp -R apps/relay/public /out/public; \
   rm -f /out/src/*.test.ts
 
 FROM node:24-alpine

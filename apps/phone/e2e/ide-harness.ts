@@ -2,7 +2,9 @@ import type { Conversation, PendingRequest } from '@shared/claude'
 import type { FeedItem } from '@shared/claude-feed'
 import type { QueueAction, ScenarioQueue } from '@shared/scenario-queues'
 
+import type { Config } from '@agentic-workstation/relay/config'
 import { readConfig } from '@agentic-workstation/relay/config'
+import type { RelayOptions } from '@agentic-workstation/relay/server'
 import { createRelay } from '@agentic-workstation/relay/server'
 
 import { RemoteService } from '../../desktop/src/main/remote/remote-service'
@@ -23,11 +25,19 @@ import type { StoredRemote } from '../../desktop/src/main/remote/store/remote-st
  * очередь. Телефон - кто угодно с адресом релея: ядро клиента в Node или страница в Chromium.
  */
 
-const memoryFile = () =>
-  ({
-    read: () => Promise.resolve(null),
-    write: () => Promise.resolve(),
-  }) as unknown as JsonFile<StoredRemote>
+/** Файл в памяти, который помнит записанное: перезапуск IDE видит те же пары и подписки. */
+const memoryFile = () => {
+  let saved: StoredRemote | null = null
+
+  return {
+    read: () => Promise.resolve(saved),
+    write: (value: StoredRemote) => {
+      saved = value
+
+      return Promise.resolve()
+    },
+  } as unknown as JsonFile<StoredRemote>
+}
 
 const memoryVault = {
   available: () => true,
@@ -67,8 +77,11 @@ export type Harness = Awaited<ReturnType<typeof startHarness>>
  */
 const LIVE_RELAY = process.env['AGENTIC_WORKSTATION_PHONE_LIVE_RELAY'] ?? ''
 
+/** Что релей отдал службе пушей - подписка и payload, как их видит он. */
+export type PushOrder = Parameters<NonNullable<RelayOptions['pushSender']>>[0]
+
 /** Свой релей на свободном порту или боевой; close - погасить свой (боевой не трогаем). */
-const relayFor = async (staticDir: string) => {
+const relayFor = async (staticDir: string, push: RelayPush | null) => {
   if (LIVE_RELAY) {
     return {
       relayUrl: LIVE_RELAY.replace(/^http/, 'ws'),
@@ -77,7 +90,16 @@ const relayFor = async (staticDir: string) => {
     }
   }
 
-  const relay = createRelay({ ...readConfig({}), staticDir, logLevel: 'silent' }, () => undefined)
+  const relay = createRelay(
+    {
+      ...readConfig({}),
+      staticDir,
+      logLevel: 'silent',
+      ...(push ? { push: push.keys, pushOff: '' } : {}),
+    },
+    () => undefined,
+    push ? { pushSender: push.sender } : {},
+  )
   const port = await relay.listen(0)
 
   return {
@@ -87,8 +109,15 @@ const relayFor = async (staticDir: string) => {
   }
 }
 
-export const startHarness = async (options: { staticDir?: string } = {}) => {
-  const relay = await relayFor(options.staticDir ?? '')
+/** Пуши у своего релея: ключи VAPID теста и служба пушей - подделка, настоящим не звоним. */
+type RelayPush = {
+  keys: NonNullable<Config['push']>
+  sender: NonNullable<RelayOptions['pushSender']>
+}
+
+export const startHarness = async (options: { staticDir?: string; push?: RelayPush } = {}) => {
+  const relay = await relayFor(options.staticDir ?? '', options.push ?? null)
+  const file = memoryFile()
   const { relayUrl } = relay
   const ide = fakeIde()
   const { state, feed, queues } = ide
@@ -167,24 +196,36 @@ export const startHarness = async (options: { staticDir?: string } = {}) => {
     },
   }
 
-  service = await RemoteService.load({
-    file: memoryFile(),
-    vault: memoryVault,
-    ports: ide.ports,
-    relayUrl,
-    machine: () => ({ label: 'Agentic Workstation on test-mac', ideVersion: '0.1.0' }),
-    onView: () => undefined,
-  })
-  service.setEnabled(true)
-  await until(() => service?.view().state === 'connected', 'IDE on the relay')
+  const load = () =>
+    RemoteService.load({
+      file,
+      vault: memoryVault,
+      ports: ide.ports,
+      relayUrl,
+      machine: () => ({ label: 'Agentic Workstation on test-mac', ideVersion: '0.1.0' }),
+      onView: () => undefined,
+    })
+  let live = await load()
 
-  const live = service
+  service = live
+  live.setEnabled(true)
+  await until(() => live.view().state === 'connected', 'IDE on the relay')
 
   return {
     relayUrl,
     pageUrl: relay.pageUrl,
-    service: live,
+    /** Сервис IDE сейчас - после restart другой. */
+    get service() {
+      return live
+    },
     ide,
+    /** IDE перезапустили (тот же профиль): телефоны ей пока не слышны. */
+    restart: async () => {
+      await live.shutdown()
+      live = await load()
+      service = live
+      await until(() => live.view().state === 'connected', 'IDE back on the relay')
+    },
     /** Новый код пары - адрес, который IDE рисует QR. */
     pairingUrl: () => live.startPairing().pairing?.url ?? '',
     /** Человек в IDE нажал Approve, когда телефон попросился. */

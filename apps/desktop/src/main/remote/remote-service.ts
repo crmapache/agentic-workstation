@@ -1,5 +1,6 @@
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
+import type { ConversationCall } from '@shared/claude-prefs'
 import type { RemoteView } from '@shared/remote'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -67,7 +68,11 @@ export class RemoteService {
           ? fingerprint(exportPublic(store.identity().publicKey))
           : '',
       keysKept: store.keysKept,
-      devices: store.devices.map((device) => ({ ...device, online: online.has(device.id) })),
+      devices: store.devices.map((device) => ({
+        ...device,
+        online: online.has(device.id),
+        notifications: store.hasPush(device.id),
+      })),
       pairing: agent?.pairing.current() ?? null,
       pending: agent?.pendingPairing() ?? null,
     }
@@ -134,6 +139,11 @@ export class RemoteService {
 
   feedPatched(patch: FeedPatch): void {
     this.line?.feedPatched(patch)
+  }
+
+  /** Разговор позвал человека (звук окна): телефону не на связи - пуш. */
+  claudeCalled(call: ConversationCall): void {
+    this.line?.claudeCalled(call)
   }
 
   queuesChanged(): void {

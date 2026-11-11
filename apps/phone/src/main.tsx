@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 
 import { bootClient } from './lib/client'
 import { takePairingCode } from './lib/pairing-link'
+import { bootPush } from './lib/push'
 import { usePairingStore } from './state/pairing.store'
 import { App } from './app/App/App'
 
@@ -15,17 +16,18 @@ import { App } from './app/App/App'
 usePairingStore.getState().take(takePairingCode(window.location, window.history))
 
 const client = await bootClient()
+const push = bootPush(client)
 const root = document.getElementById('root')
 
 if (root) {
   createRoot(root).render(
     <StrictMode>
-      <App client={client} />
+      <App client={client} push={push} />
     </StrictMode>,
   )
 }
 
-// Оболочка для работы без сети и установки на экран «Домой» - только у сборки.
+// Оболочка для работы без сети, установки на экран «Домой» и уведомлений - только у сборки.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.register('/sw.js')
 }

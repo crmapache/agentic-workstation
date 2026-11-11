@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
+import type { ConversationCall } from '@shared/claude-prefs'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
@@ -11,6 +12,8 @@ import { RemoteAgent } from './agent/remote-agent'
 import { Bridge } from './bridge/bridge'
 import type { BridgePorts } from './bridge/bridge-ports'
 import type { SocketLike } from './link/relay-link'
+import type { ConversationEvent } from './push/attention'
+import { PushDesk } from './push/push-desk'
 import type { RemoteStore } from './store/remote-store'
 
 /** Сердцебиение линии и слив очереди. */
@@ -27,13 +30,22 @@ export type LineDeps = {
   home?: string
 }
 
+/** Повод звука окна - повод пуша; остальные (вопросы, план) пуш берёт из состояния, конец хода не будит. */
+const PUSHED_CALLS: Partial<Record<ConversationCall['reason'], ConversationEvent['reason']>> = {
+  error: 'trouble',
+  limit: 'limit',
+  extraUsage: 'extraUsage',
+}
+
 /**
- * Remote Control, пока он включён: агент на релее и мост к сервисам IDE. Живёт от включения
- * до выключения и уносит с собой всё, что держал: подписки, журналы лент, очереди кадров.
+ * Remote Control, пока он включён: агент на релее, мост к сервисам IDE и пуши телефонам не на
+ * связи. Живёт от включения до выключения и уносит с собой всё, что держал: подписки, журналы
+ * лент, очереди кадров.
  */
 export class RemoteLine {
   readonly agent: RemoteAgent
   readonly bridge: Bridge
+  readonly pushes: PushDesk
   private readonly beat: NodeJS.Timeout
   private flushTimer: NodeJS.Immediate | null = null
 
@@ -53,7 +65,11 @@ export class RemoteLine {
         woke: (deviceId) => this.bridge.woke(deviceId),
         linkUp: () => this.bridge.linkUp(),
         knownCommand: (deviceId, commandId) => this.bridge.knows(deviceId, commandId),
-        forgotten: (deviceId) => this.bridge.forget(deviceId),
+        forgotten: (deviceId) => {
+          this.bridge.forget(deviceId)
+          this.pushes.forget(deviceId)
+        },
+        pushChanged: (deviceId) => this.pushes.subscribed(deviceId, deps.store.hasPush(deviceId)),
       },
     )
     this.bridge = new Bridge({
@@ -73,9 +89,18 @@ export class RemoteLine {
       // Жизнь линии: телефон с номером ленты из прошлой жизни получит снимок, а не дыру.
       epoch: randomBytes(6).toString('base64url'),
     })
+    this.pushes = new PushDesk({
+      conversations: () => deps.ports.conversations.getState().conversations,
+      queues: () => deps.ports.scenarios.queuesView(),
+      lens: () => this.bridge.lens(),
+      subscribers: () => deps.store.pushDevices(),
+      heardAt: (deviceId) => this.agent.heardAt(deviceId),
+      send: (deviceId, notice) => this.agent.pushes.send(deviceId, notice),
+    })
     this.beat = setInterval(() => {
       this.agent.beat()
       this.bridge.sweep()
+      this.pushes.soon()
       // «На связи» гаснет само, когда телефон замолчал, - окну нужно это увидеть.
       deps.onView()
     }, BEAT_MS)
@@ -93,12 +118,21 @@ export class RemoteLine {
     if (this.flushTimer) clearImmediate(this.flushTimer)
 
     this.flushTimer = null
+    this.pushes.stop()
     this.bridge.stop()
     this.agent.stop()
   }
 
   claudeChanged(state: ClaudeState): void {
     this.bridge.claudeChanged(state)
+    this.pushes.soon()
+  }
+
+  /** Разговор позвал человека: упал, лимит, доплата - повод разбудить телефон не на связи. */
+  claudeCalled(call: ConversationCall): void {
+    const reason = PUSHED_CALLS[call.reason]
+
+    if (reason) this.pushes.called({ conversationId: call.conversationId, reason, at: Date.now() })
   }
 
   feedPatched(patch: FeedPatch): void {
@@ -107,14 +141,17 @@ export class RemoteLine {
 
   queuesChanged(): void {
     this.bridge.queuesChanged()
+    this.pushes.soon()
   }
 
   runChanged(run: ScenarioRun): void {
     this.bridge.runChanged(run)
+    this.pushes.runChanged(run)
   }
 
   workspaceChanged(): void {
     this.bridge.workspaceChanged()
+    this.pushes.soon()
   }
 
   /** Слить очередь, как только текущая работа кончится: пачка за один такт - одним сливом. */

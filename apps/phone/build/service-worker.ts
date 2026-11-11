@@ -1,84 +1,51 @@
+import { build } from 'vite'
+
+import type { PushStrings } from '../src/push/push-text'
+
 /**
- * Сервис-воркер телефонного клиента - текстом при сборке: список оболочки (страница, сборка,
- * значки) известен только после неё. Кэшируется только оболочка: сокет к релею и его адреса
- * (/v1, /healthz, /privacy) воркер не трогает. Секрет пары живёт во фрагменте адреса, а
- * фрагмент браузер в запрос не кладёт никогда - в кэш он не попадёт по построению.
- *
- * push и notificationclick - шов под уведомления: пока их никто не подписывает (релей говорит
- * push: false), они молчат. Содержимое пуша будет запечатано - воркер показывает общее слово.
+ * Сервис-воркер телефонного клиента - отдельной сборкой, классическим скриптом в один файл:
+ * воркер-модуль Safari и Firefox поддерживают не везде, а общий с страницей кусок сделал бы
+ * его модулем. Исходники - src/sw (оболочка и уведомления на WebCrypto, ключами пары из
+ * IndexedDB). Список оболочки известен только после сборки страницы, поэтому собирается в её
+ * конце, а имя кэша, файлы и слова уведомлений подставляются вместо __SW_CONFIG__.
  */
-export const serviceWorkerSource = (input: {
+export const buildServiceWorker = async (input: {
+  root: string
   cacheName: string
   shell: string[]
-  push: { title: string; body: string }
-}): string => `// Сборка apps/phone: build/service-worker.ts. Руками не править.
-const CACHE = ${JSON.stringify(input.cacheName)}
-const SHELL = ${JSON.stringify(input.shell)}
-const SHELL_PATHS = new Set(SHELL)
-const PUSH = ${JSON.stringify(input.push)}
-const BYPASS = /^\\/(v1\\/|healthz|privacy)/
+  strings: PushStrings
+}): Promise<string> => {
+  const built = await build({
+    // Свой конфиг не читается: иначе плагин PWA собирал бы воркер внутри сборки воркера.
+    configFile: false,
+    root: input.root,
+    logLevel: 'warn',
+    publicDir: false,
+    define: {
+      __SW_CONFIG__: JSON.stringify({
+        cacheName: input.cacheName,
+        shell: input.shell,
+        strings: input.strings,
+      }),
+    },
+    build: {
+      write: false,
+      minify: true,
+      copyPublicDir: false,
+      lib: {
+        entry: 'src/sw/service-worker.ts',
+        formats: ['iife'],
+        name: 'agenticWorkstationWorker',
+        fileName: () => 'sw.js',
+      },
+    },
+  })
+  const outputs = Array.isArray(built) ? built : [built]
+  const chunk = outputs
+    .flatMap((output) => ('output' in output ? output.output : []))
+    .find((item) => item.type === 'chunk' && item.fileName === 'sw.js')
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting()),
-  )
-})
+  if (!chunk || chunk.type !== 'chunk') throw new Error('the service worker did not build')
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key.startsWith('aw-phone-') && key !== CACHE)
-            .map((key) => caches.delete(key)),
-        ),
-      )
-      .then(() => self.clients.claim()),
-  )
-})
-
-self.addEventListener('fetch', (event) => {
-  const request = event.request
-
-  if (request.method !== 'GET') return
-
-  const url = new URL(request.url)
-
-  if (url.origin !== self.location.origin || BYPASS.test(url.pathname)) return
-
-  // Страница - из сети (релей отдаёт её без кэша), без сети - оболочка из кэша.
-  if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/index.html')))
-
-    return
-  }
-
-  if (SHELL_PATHS.has(url.pathname)) {
-    event.respondWith(caches.match(url.pathname).then((hit) => hit || fetch(request)))
-  }
-})
-
-self.addEventListener('push', (event) => {
-  event.waitUntil(
-    self.registration.showNotification(PUSH.title, {
-      body: PUSH.body,
-      icon: '/icons/icon-192.png',
-      tag: 'agentic-workstation',
-    }),
-  )
-})
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windows) => (windows[0] ? windows[0].focus() : self.clients.openWindow('/'))),
-  )
-})
-`
+  return `// Сборка apps/phone: src/sw, build/service-worker.ts. Руками не править.\n${chunk.code}`
+}

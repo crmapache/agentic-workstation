@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs'
 
 import type { Plugin } from 'vite'
 
+import type { PushStrings } from '../src/push/push-text'
 import { drawIcon, hexColor, encodePng } from './icons'
-import { serviceWorkerSource } from './service-worker'
+import { buildServiceWorker } from './service-worker'
 
 /** Значки: размер и maskable (Android режет края сам) - имена закреплены манифестом. */
 const ICONS = [
@@ -23,16 +24,16 @@ export const paletteColor = (tokensCss: string, name: string): string => {
   return match[1]
 }
 
-type PwaOptions = { tokensPath: string; localePath: string }
+type PwaOptions = { root: string; tokensPath: string; localePath: string }
 
-type Locale = { app: { name: string; shortName: string }; push: { title: string; body: string } }
+type Locale = { app: { name: string; shortName: string }; push: PushStrings }
 
 /**
  * PWA телефонного клиента при сборке: манифест (имя, тёмная тема из токенов), значки, сервис-
- * воркер оболочки со списком файлов этой сборки и ссылки на них в странице. В dev ничего этого
+ * воркер (оболочка со списком файлов этой сборки и уведомления) и ссылки на них в странице. В dev ничего этого
  * нет: воркер в разработке только мешал бы, держа старую сборку.
  */
-export const pwa = ({ tokensPath, localePath }: PwaOptions): Plugin => {
+export const pwa = ({ root, tokensPath, localePath }: PwaOptions): Plugin => {
   const tokens = readFileSync(tokensPath, 'utf8')
   const locale = JSON.parse(readFileSync(localePath, 'utf8')) as Locale
   const background = paletteColor(tokens, 'palette-graphite-1000')
@@ -51,7 +52,7 @@ export const pwa = ({ tokensPath, localePath }: PwaOptions): Plugin => {
         injectTo: 'head',
       },
     ],
-    generateBundle(_options, bundle) {
+    async generateBundle(_options, bundle) {
       for (const icon of ICONS) {
         this.emitFile({
           type: 'asset',
@@ -102,7 +103,12 @@ export const pwa = ({ tokensPath, localePath }: PwaOptions): Plugin => {
       this.emitFile({
         type: 'asset',
         fileName: 'sw.js',
-        source: serviceWorkerSource({ cacheName, shell: files, push: locale.push }),
+        source: await buildServiceWorker({
+          root,
+          cacheName,
+          shell: files,
+          strings: locale.push,
+        }),
       })
     },
   }

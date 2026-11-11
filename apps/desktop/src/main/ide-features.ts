@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
+import type { ConversationCall } from '@shared/claude-prefs'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
@@ -32,6 +33,8 @@ export type IdeFeatures = {
   observeClaude: (state: ClaudeState) => void
   /** Живая заплатка ленты разговора: Remote Control (телефонам, которые смотрят разговор). */
   observeFeed: (patch: FeedPatch) => void
+  /** Разговор позвал человека: Remote Control будит телефон не на связи. */
+  observeCall: (call: ConversationCall) => void
   /** Проекты открыли или закрыли. */
   projectsChanged: () => void
   /** Выход из IDE: связь с телефонами гаснет, прогоны пишутся остановленными, база закрывается. */
@@ -72,6 +75,7 @@ export const startIdeFeatures = async (setup: {
       providers.claudeChanged(state)
     },
     observeFeed: (patch) => remote.feedPatched(patch),
+    observeCall: (call) => remote.claudeCalled(call),
     projectsChanged: () => {
       statistics.projectsChanged()
       scenarios.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))

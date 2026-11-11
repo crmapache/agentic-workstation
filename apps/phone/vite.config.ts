@@ -21,6 +21,7 @@ export default defineConfig({
   plugins: [
     react(),
     pwa({
+      root: import.meta.dirname,
       tokensPath: join(import.meta.dirname, '../../packages/ui/src/styles/tokens.css'),
       localePath: join(import.meta.dirname, 'src/locales/en.json'),
     }),

@@ -162,6 +162,66 @@ describe('ключи - только через хранилище', () => {
     expect(lost.revokedTag(ID)).toBeNull()
   })
 
+  const SUBSCRIPTION = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+    p256dh: Buffer.from(
+      Uint8Array.from({ length: 65 }, (_, index) => (index === 0 ? 4 : index)),
+    ).toString('base64url'),
+    auth: Buffer.alloc(16, 7).toString('base64url'),
+  }
+
+  it('подписка на пуши - запечатанной у пары, переживает перезапуск, уходит с отзывом и новой парой', async () => {
+    const { file, written } = fileWith()
+    const store = await RemoteStore.load(file, sealing)
+
+    store.identity()
+    store.remember(device, Buffer.from('secret'))
+
+    expect(store.setPush('Z'.repeat(22), SUBSCRIPTION)).toBe(false)
+    expect(store.setPush(ID, SUBSCRIPTION)).toBe(true)
+    expect(store.setPush(ID, { ...SUBSCRIPTION })).toBe(false)
+    await store.flush()
+
+    const saved = written.at(-1)!
+
+    expect(saved.pushes[ID]?.startsWith('sealed:')).toBe(true)
+    expect(JSON.stringify(saved)).not.toContain('fcm.googleapis.com')
+
+    const again = await RemoteStore.load(fileWith(saved).file, sealing)
+
+    expect(again.pushOf(ID)).toEqual(SUBSCRIPTION)
+    expect(again.pushDevices()).toEqual([ID])
+
+    // Новая пара того же телефона - новый ключ пуша: прежняя подписка не годится.
+    again.remember(device, Buffer.from('new secret'))
+    expect(again.hasPush(ID)).toBe(false)
+
+    again.setPush(ID, SUBSCRIPTION)
+    again.revoke(ID)
+    await again.flush()
+    expect(again.pushOf(ID)).toBeNull()
+    expect(withRevoked(saved, ID, '').pushes).toEqual({})
+  })
+
+  it('подписка без хранилища - только в памяти; запечатанная не открылась - её нет', async () => {
+    const { file, written } = fileWith()
+    const store = await RemoteStore.load(file, bare)
+
+    store.identity()
+    store.remember(device, Buffer.from('secret'))
+    store.setPush(ID, SUBSCRIPTION)
+    await store.flush()
+
+    expect(store.pushOf(ID)).toEqual(SUBSCRIPTION)
+    expect(written.at(-1)?.pushes).toEqual({})
+
+    const broken = { ...withDevice(emptyRemote(), device, 'sealed:aa'), pushes: { [ID]: 'junk' } }
+    const loaded = await RemoteStore.load(fileWith(broken).file, sealing)
+
+    expect(loaded.pushOf(ID)).toBeNull()
+    expect(parseStoredRemote({ format: REMOTE_FORMAT, devices: [device] }).pushes).toEqual({})
+  })
+
   it('ключ IDE не открылся - новый ключ и новый адрес: две копии профиля не делят один адрес', async () => {
     const { file, written } = fileWith()
     const first = await RemoteStore.load(file, sealing)

@@ -1,3 +1,6 @@
+import type { PushSubscriptionWire } from '@agentic-workstation/remote-protocol/push'
+import { isPushSubscription } from '@agentic-workstation/remote-protocol/push'
+
 import type { KeyPair } from '../wire/crypto'
 import {
   addressOf,
@@ -8,7 +11,7 @@ import {
 } from '../wire/crypto'
 import type { JsonFile } from '../../storage/json-file'
 import type { StoredDevice, StoredRemote } from './remote-state'
-import { withDevice, withRevoked, parseStoredRemote } from './remote-state'
+import { withDevice, withoutPush, withRevoked, parseStoredRemote } from './remote-state'
 
 /** Системное хранилище секретов (safeStorage); в тесте - подделка. */
 export type Vault = {
@@ -56,7 +59,7 @@ const persisted = (state: StoredRemote, kept: boolean): StoredRemote =>
         ...state,
         devices: state.devices.filter((device) => !!state.secrets[device.id]),
       }
-    : { ...state, identity: '', signing: '', devices: [], secrets: {} }
+    : { ...state, identity: '', signing: '', devices: [], secrets: {}, pushes: {} }
 
 /**
  * Кто эта IDE на релее и кого пустили. Ключи - через хранилище; без него они живут только в
@@ -67,6 +70,8 @@ export class RemoteStore {
   private keys: Keys | null = null
   /** Секреты пар, когда хранилища нет: до перезапуска IDE. */
   private readonly memorySecrets = new Map<string, Buffer>()
+  /** Подписки на пуши, когда хранилища нет, - тоже только до перезапуска. */
+  private readonly memoryPushes = new Map<string, PushSubscriptionWire>()
   private saveTimer: NodeJS.Timeout | null = null
 
   private constructor(
@@ -135,8 +140,65 @@ export class RemoteStore {
 
     if (!kept) this.memorySecrets.set(device.id, secret)
 
+    this.memoryPushes.delete(device.id)
     this.state = withDevice(this.state, device, kept ? this.vault.seal(secret) : '')
     this.saveSoon(0)
+  }
+
+  /** Подписка телефона на пуши; нет - будить его нечем (не включал, выключил, служба забыла). */
+  pushOf(deviceId: string): PushSubscriptionWire | null {
+    if (!this.state.devices.some((device) => device.id === deviceId)) return null
+
+    const sealed = this.state.pushes[deviceId]
+
+    if (!sealed) return this.memoryPushes.get(deviceId) ?? null
+
+    return parseSubscription(this.vault.open(sealed))
+  }
+
+  /**
+   * Есть ли у телефона подписка - без открытия хранилища: спрашивается на каждую перемену в
+   * IDE, а safeStorage - вызов в Связку ключей.
+   */
+  hasPush(deviceId: string): boolean {
+    return (
+      this.state.devices.some((device) => device.id === deviceId) &&
+      (!!this.state.pushes[deviceId] || this.memoryPushes.has(deviceId))
+    )
+  }
+
+  /** Телефоны с подпиской на пуши: их и будят. */
+  pushDevices(): string[] {
+    return this.state.devices.map((device) => device.id).filter((id) => this.hasPush(id))
+  }
+
+  /**
+   * Подписка телефона - или null, чтобы забыть. Ответ - поменялась ли она: телефон шлёт ту же
+   * на каждой новой линии, и диск без перемен не трогается.
+   */
+  setPush(deviceId: string, subscription: PushSubscriptionWire | null): boolean {
+    if (!this.state.devices.some((device) => device.id === deviceId)) return false
+    if (JSON.stringify(this.pushOf(deviceId)) === JSON.stringify(subscription)) return false
+
+    const kept = this.vault.available()
+
+    this.memoryPushes.delete(deviceId)
+
+    if (subscription && !kept) this.memoryPushes.set(deviceId, subscription)
+
+    this.state = {
+      ...this.state,
+      pushes:
+        subscription && kept
+          ? {
+              ...this.state.pushes,
+              [deviceId]: this.vault.seal(Buffer.from(JSON.stringify(subscription))),
+            }
+          : withoutPush(this.state.pushes, deviceId),
+    }
+    this.saveSoon(0)
+
+    return true
   }
 
   /**
@@ -149,6 +211,7 @@ export class RemoteStore {
     const tag = auth ? revokedTag(auth, this.agentId(), deviceId).toString('base64') : ''
 
     this.memorySecrets.delete(deviceId)
+    this.memoryPushes.delete(deviceId)
     this.state = withRevoked(this.state, deviceId, tag)
     this.saveSoon(0)
 
@@ -217,6 +280,7 @@ export class RemoteStore {
       this.state,
     )
     this.memorySecrets.clear()
+    this.memoryPushes.clear()
     this.update({
       identity: kept ? this.vault.seal(exportPrivate(fresh.identity.privateKey)) : '',
       signing: kept ? this.vault.seal(exportPrivate(fresh.signing.privateKey)) : '',
@@ -236,6 +300,26 @@ export class RemoteStore {
 
     this.saveTimer = setTimeout(() => void this.flush(), delay)
     this.saveTimer.unref()
+  }
+}
+
+/** Подписка из запечатанного JSON; не открылась или не той формы - null. */
+const parseSubscription = (plain: Buffer | null): PushSubscriptionWire | null => {
+  try {
+    const value = plain ? (JSON.parse(plain.toString('utf8')) as unknown) : null
+
+    if (typeof value !== 'object' || value === null) return null
+
+    const { endpoint, p256dh, auth } = value as Record<string, unknown>
+    const subscription = {
+      endpoint: typeof endpoint === 'string' ? endpoint : '',
+      p256dh: typeof p256dh === 'string' ? p256dh : '',
+      auth: typeof auth === 'string' ? auth : '',
+    }
+
+    return isPushSubscription(subscription) ? subscription : null
+  } catch {
+    return null
   }
 }
 
