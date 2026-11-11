@@ -96,7 +96,8 @@ export const modelRows = (models: readonly StatsModelRow[], rowValue: RowValue):
 
 /**
  * Проекты по токенам: имя - последняя папка, полный путь - в подсказке, открытый сейчас -
- * ярче. Папки вне известных проектов - одной строкой «Other folders».
+ * ярче. Папки вне известных проектов - одной строкой «Other folders». Проект без токенов
+ * (у него только время или строки агентов) в этом рейтинге - пустая строка, её нет.
  */
 export const projectRows = (
   projects: readonly StatsProjectRow[],
@@ -104,11 +105,13 @@ export const projectRows = (
   otherFolders: string,
   rowValue: RowValue,
 ): RankedRow[] =>
-  projects.map((project) => ({
-    key: project.project ?? '',
-    label: project.project === null ? otherFolders : projectLabel(project.project),
-    value: rowValue(project.tokens, project.cost),
-    hint: project.project ?? undefined,
-    current: project.project !== null && project.project === activePath,
-    parts: [{ key: 'tokens', value: project.tokens, tone: AGENTS_TONE }],
-  }))
+  projects
+    .filter((project) => project.tokens > 0)
+    .map((project) => ({
+      key: project.project ?? '',
+      label: project.project === null ? otherFolders : projectLabel(project.project),
+      value: rowValue(project.tokens, project.cost),
+      hint: project.project ?? undefined,
+      current: project.project !== null && project.project === activePath,
+      parts: [{ key: 'tokens', value: project.tokens, tone: AGENTS_TONE }],
+    }))
