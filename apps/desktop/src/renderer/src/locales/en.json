@@ -1335,7 +1335,7 @@
       "title": "Remove worktree?",
       "checking": "Checking the worktree…",
       "gone": "This queue or its worktree is gone.",
-      "missing": "The folder is already gone.",
+      "missing": "The folder is already gone. Removing cleans up what git still remembers of it.",
       "ahead_one": "1 commit is not merged anywhere. Its branch keeps it, only the folder goes.",
       "ahead_other": "{{count}} commits are not merged anywhere. Their branch keeps them, only the folder goes.",
       "dirty": "It has uncommitted changes. They are lost with the folder.",

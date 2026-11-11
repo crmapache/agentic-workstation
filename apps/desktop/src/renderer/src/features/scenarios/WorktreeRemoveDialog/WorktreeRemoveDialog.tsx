@@ -34,7 +34,8 @@ export const WorktreeRemoveDialog = ({ request }: WorktreeRemoveDialogProps) => 
   })
   const workdir = view?.queues.find((queue) => queue.id === request.queueId)?.workdir
   const isDirty = facts.data?.dirty === true
-  const canRemove = facts.data?.exists === true && !remove.isPending
+  // Папки уже нет (стёрли руками) - удалить всё равно можно: git забудет её запись и ветку.
+  const canRemove = facts.data !== undefined && !remove.isPending
 
   const handleSubmit = () => {
     if (canRemove) remove.mutate(isDirty)
