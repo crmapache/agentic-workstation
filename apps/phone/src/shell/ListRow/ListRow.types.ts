@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 
 export type ListRowProps = {
-  title: string
+  /** Строка или текст с метками папок (PathText): заголовок прошлого разговора. */
+  title: ReactNode
   /** Строка под заголовком: состояние, сколько, с какого времени. */
   description?: ReactNode | undefined
   /** Слева: значок, аватар проекта, отметка. */

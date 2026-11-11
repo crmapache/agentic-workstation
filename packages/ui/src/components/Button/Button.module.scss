@@ -37,11 +37,15 @@
   font-size: var(--font-size-md);
 }
 
-// Под палец: не ниже цели касания, но растёт со строкой текста, если та крупнее.
+// Под палец: не ниже цели касания, но растёт со строкой текста, если та крупнее. Длинная подпись
+// переносится строкой ниже, а не вылезает за кнопку: в половину экрана телефона «Keep going
+// after this» не влезает, и обрезать её нельзя - это то, что нажмут.
 .touch {
   min-height: var(--size-touch-target);
-  padding: 0 var(--space-4);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-md);
+  text-align: center;
+  white-space: normal;
 }
 
 .icon {

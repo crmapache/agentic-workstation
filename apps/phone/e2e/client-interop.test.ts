@@ -7,11 +7,17 @@ import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import { FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
 import { parsePairingFragment } from '@agentic-workstation/remote-protocol/pairing-url'
 
+import { loadEarlierPage } from '../src/remote/earlier-pages'
 import type { KeyStore } from '../src/remote/keystore'
 import { memoryKeyStore } from '../src/remote/keystore'
 import type { SocketLike } from '../src/remote/relay-socket'
 import { RemoteClient } from '../src/remote/remote-client'
-import { CONVERSATION_ID } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import {
+  itemOf,
+  PROJECT_PATH,
+  CONVERSATION_ID,
+} from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import { imageOf, PAST_SESSION } from '../../desktop/src/main/remote/__fixtures__/fake-reads'
 import type { Harness } from './ide-harness'
 import { until, startHarness } from './ide-harness'
 
@@ -148,6 +154,103 @@ describe('ядро телефона против настоящей IDE', () => 
       name: 'respond',
       args: [CONVERSATION_ID, 'perm-1', { kind: 'permission', decision: { behavior: 'allow' } }],
     })
+  })
+
+  it('ранние сообщения: страница из IDE встаёт перед лентой, а заплатки идут дальше', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+    const agentId = code.agentId
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    ide.ide.feed.hasEarlier = true
+    ide.ide.earlier.push(itemOf('e0', `Read ${PROJECT_PATH}/README.md`), itemOf('e1', 'Earlier'))
+    client.watch(agentId, { kind: 'conversation', conversationId: CONVERSATION_ID })
+
+    const snapshot = await until(() => inbox.feeds.at(-1), 'feed snapshot')
+
+    expect(snapshot.hasEarlier).toBe(true)
+    expect(await loadEarlierPage(client, agentId, CONVERSATION_ID)).toEqual({
+      ok: true,
+      data: true,
+    })
+
+    const view = client.watches.feedOf(agentId, CONVERSATION_ID)
+
+    expect(view?.items.map((item) => item.id)).toEqual(['e0', 'e1', 'u1', 'a1'])
+    expect(view?.hasEarlier).toBe(false)
+    expect(JSON.stringify(view)).not.toContain('/Users/')
+
+    // Живая заплатка после страницы - по номеру, как прежде: страница номер не трогала.
+    ide.say('a2', 'Still here')
+    await until(
+      () => client.watches.feedOf(agentId, CONVERSATION_ID)?.items.at(-1)?.id === 'a2',
+      'patch after the page',
+    )
+    expect(client.watches.feedOf(agentId, CONVERSATION_ID)?.items[0]?.id).toBe('e0')
+  })
+
+  it('история проекта и продолжение прошлого разговора', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+    const inventory = await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    const projectKey = inventory.projects[0]?.key ?? ''
+    const history = await client.command(code.agentId, 'conversation.history', {
+      projectKey,
+      provider: 'claude',
+    })
+
+    expect(history).toMatchObject({
+      ok: true,
+      data: { entries: [{ isOpen: true }, { sessionId: PAST_SESSION, isOpen: false }] },
+    })
+    expect(JSON.stringify(history)).not.toContain('/Users/')
+
+    const opened = await client.command(code.agentId, 'conversation.openHistory', {
+      projectKey,
+      provider: 'claude',
+      sessionId: PAST_SESSION,
+    })
+
+    expect(opened).toEqual({ ok: true, data: { conversationId: `history-${PAST_SESSION}` } })
+  })
+
+  it('фото сообщения крупно: маленькое - как есть, большое - уменьшенным в один кадр', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    ide.ide.images.set('u1:0', imageOf(1000))
+    ide.ide.images.set('u1:1', imageOf(3_000_000))
+
+    const small = await client.command(code.agentId, 'conversation.image', {
+      conversationId: CONVERSATION_ID,
+      messageId: 'u1',
+      index: 0,
+    })
+    const big = await client.command(code.agentId, 'conversation.image', {
+      conversationId: CONVERSATION_ID,
+      messageId: 'u1',
+      index: 1,
+    })
+
+    expect(small).toEqual({ ok: true, data: { dataUrl: imageOf(1000), reduced: false } })
+    expect(big).toMatchObject({ ok: true, data: { reduced: true } })
+  })
+
+  it('доска всех очередей: очереди всех проектов с именем проекта, без путей', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    client.watch(code.agentId, { kind: 'queues', scope: '*' })
+
+    const board = await until(() => lastOf(inbox, 'queues'), 'all queues')
+
+    expect(board).toMatchObject({
+      scope: '*',
+      queues: [{ id: 'q1', projectName: 'secret-client' }],
+    })
+    expect(JSON.stringify(board)).not.toContain('/Users/')
   })
 
   it('фото частями: сообщение тяжелее кадра собирается в IDE целиком', async () => {

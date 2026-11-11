@@ -17,9 +17,11 @@ import type {
 
 type KeyOf = (rootPath: string) => string
 
-export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf): QueueWire => ({
+/** Очередь телефону; nameOf - имя проекта для доски всех очередей (ProjectKeys.nameOf). */
+export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): QueueWire => ({
   id: queue.id,
   projectKey: keyOf(queue.projectPath),
+  projectName: nameOf(queue.projectPath),
   name: queue.name,
   createdAt: queue.createdAt,
   closedAt: queue.closedAt,

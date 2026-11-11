@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
 import { Badge } from '@agentic-workstation/ui/Badge'
-import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import styles from '../MachinesScreen.module.scss'
 import {
@@ -13,10 +12,15 @@ import {
 } from '../../../../lib/projects.utils'
 import { useRouter } from '../../../../lib/router.store'
 import type { MirroredInventory } from '../../../../state/remote.types'
+import { LinkWait } from '../../../../shell/LinkWait/LinkWait'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
+import { BoardRow } from './BoardRow'
 
-/** Открытые проекты IDE, под ними - недавние (у них видны только очереди сценариев). */
+/**
+ * Открытые проекты IDE, под ними - недавние (у них видны только очереди сценариев) и доска всех
+ * очередей машины.
+ */
 export const MachineProjects = ({
   agentId,
   inventory,
@@ -27,7 +31,7 @@ export const MachineProjects = ({
   const { t } = useTranslation()
   const navigate = useRouter((state) => state.navigate)
 
-  if (!inventory) return <Spinner size="md" label={t('machines.loading')} />
+  if (!inventory) return <LinkWait agentId={agentId} label={t('machines.loading')} />
 
   const open = inventory.projects.filter((project) => project.open)
   const recent = inventory.projects.filter((project) => !project.open)
@@ -75,6 +79,7 @@ export const MachineProjects = ({
           <ListGroup label={t('machines.recent')}>{rowsOf(recent)}</ListGroup>
         </>
       )}
+      <BoardRow agentId={agentId} inventory={inventory} />
     </>
   )
 }

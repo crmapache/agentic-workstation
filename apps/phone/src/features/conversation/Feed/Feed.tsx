@@ -1,36 +1,59 @@
-import { useMemo } from 'react'
-import { MessageSquare } from 'lucide-react'
+import { useMemo, useState, useCallback } from 'react'
+import { ArrowUpToLine, MessageSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
+import { Button } from '@agentic-workstation/ui/Button'
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { Spinner } from '@agentic-workstation/ui/Spinner'
 
+import { PhotoViewer } from '../PhotoViewer/PhotoViewer'
+import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import styles from './Feed.module.scss'
+import type { FeedProps, OpenPhoto } from './Feed.types'
 import { topLevel, innerSteps } from './Feed.utils'
 import { FeedItemView } from './parts/FeedItemView'
 import { TaskList } from './parts/TaskList'
 
 /**
  * Лента разговора на телефоне: снимок последних элементов и живые заплатки, свой лёгкий рендер.
- * То, что случилось внутри субагентов, - числом шагов на строке его вызова.
+ * Выше снимка - страницами по кнопке. То, что случилось внутри субагентов, - числом шагов на
+ * строке его вызова; фото сообщения открывается крупно.
  */
-export const Feed = ({ view, working }: { view: FeedView | undefined; working: string | null }) => {
+export const Feed = ({ agentId, view, working, loadingEarlier, onLoadEarlier }: FeedProps) => {
   const { t } = useTranslation()
+  const [photo, setPhoto] = useState<OpenPhoto | null>(null)
   const items = useMemo(() => (view ? topLevel(view.items) : []), [view])
   const steps = useMemo(() => (view ? innerSteps(view.items) : new Map<string, number>()), [view])
+  // Стабильная ссылка: строки ленты - memo, и новая функция перерисовала бы каждую.
+  const handleOpenPhoto = useCallback((opened: OpenPhoto) => setPhoto(opened), [])
 
-  if (!view) return <Spinner size="md" label={t('conversation.loading')} />
+  if (!view) return <LinkWait agentId={agentId} label={t('conversation.loading')} />
 
-  if (items.length === 0 && !working) {
+  if (items.length === 0 && !working && !view.hasEarlier) {
     return <EmptyState icon={MessageSquare} title={t('conversation.empty')} />
   }
 
   return (
     <div className={styles.feed}>
-      {view.hasEarlier && <p className={styles.event}>{t('feed.earlier')}</p>}
+      {view.hasEarlier && view.items.length > 0 && (
+        <div className={styles.earlier}>
+          <Button
+            size="touch"
+            variant="ghost"
+            icon={ArrowUpToLine}
+            disabled={loadingEarlier}
+            onClick={onLoadEarlier}>
+            {t(loadingEarlier ? 'feed.loadingEarlier' : 'feed.earlier')}
+          </Button>
+        </div>
+      )}
       {items.map((item) => (
-        <FeedItemView key={item.id} item={item} steps={steps.get(item.id) ?? 0} />
+        <FeedItemView
+          key={item.id}
+          item={item}
+          steps={steps.get(item.id) ?? 0}
+          onOpenPhoto={handleOpenPhoto}
+        />
       ))}
       {view.tasks.some((task) => task.state !== 'completed') && <TaskList tasks={view.tasks} />}
       {working && (
@@ -39,6 +62,12 @@ export const Feed = ({ view, working }: { view: FeedView | undefined; working: s
           <span className={styles.workingText}>{working}</span>
         </p>
       )}
+      <PhotoViewer
+        agentId={agentId}
+        conversationId={view.conversationId}
+        photo={photo}
+        onClose={() => setPhoto(null)}
+      />
     </div>
   )
 }

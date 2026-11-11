@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import type { InventoryProject } from '@agentic-workstation/remote-protocol/wire-types'
 import { Badge } from '@agentic-workstation/ui/Badge'
-import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../ProjectScreen.module.scss'
@@ -14,6 +13,7 @@ import { sinceText } from '../../../../lib/time.utils'
 import type { MirroredInventory } from '../../../../state/remote.types'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
+import { PathText } from '../../../../shell/PathText/PathText'
 
 /** Разговоры проекта по провайдерам: у каждого - состояние и с какого времени. */
 export const ConversationGroups = ({
@@ -31,18 +31,14 @@ export const ConversationGroups = ({
   const offset = inventory.at - inventory.receivedAt
   const groups = groupByProvider(project.conversations, inventory.providers)
 
+  // Новый разговор - кнопкой в низу экрана; здесь только честное «пока нет».
   if (groups.length === 0) {
     return (
       <Section
         size="sm"
         title={t('project.conversations')}
         description={t('project.noConversations')}>
-        <Button
-          size="touch"
-          variant="dashed"
-          onClick={() => navigate({ name: 'newConversation', agentId, projectKey: project.key })}>
-          {t('project.newConversation')}
-        </Button>
+        {null}
       </Section>
     )
   }
@@ -55,7 +51,7 @@ export const ConversationGroups = ({
             {group.items.map((conversation) => (
               <ListRow
                 key={conversation.id}
-                title={conversation.title}
+                title={<PathText text={conversation.title} />}
                 description={[
                   conversation.waiting && t(`project.waiting.${conversation.waiting}`),
                   sinceText(t, conversation.since, now, offset),

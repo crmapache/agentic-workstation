@@ -8,6 +8,8 @@ import { PHONE_PERMISSION_MODES } from '@agentic-workstation/remote-protocol/com
 
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
+import { ConversationReads } from './conversation-reads'
+import type { Redact } from './fit'
 import type { ProjectKeys } from './project-keys'
 import { runProjectPath, shelfScenarioWire } from './scenario-wire'
 
@@ -52,10 +54,15 @@ const responseOf = (decision: Decision): RequestResponse => {
  * по id, их проект находит IDE.
  */
 export class CommandDesk {
+  private readonly reads: ConversationReads
+
   constructor(
     private readonly ports: BridgePorts,
     private readonly keys: () => ProjectKeys,
-  ) {}
+    redact: () => Redact,
+  ) {
+    this.reads = new ConversationReads(ports, keys, redact)
+  }
 
   run(command: Command): Promise<Outcome> {
     return command.name.startsWith('conversation.')
@@ -67,6 +74,8 @@ export class CommandDesk {
     const { conversations } = this.ports
 
     if (command.name === 'conversation.new') return this.newConversation(command.args)
+    if (command.name === 'conversation.history') return this.reads.history(command.args)
+    if (command.name === 'conversation.openHistory') return this.reads.openHistory(command.args)
 
     const id = 'conversationId' in command.args ? command.args.conversationId : ''
     const conversation = conversations.getState().conversations.find((one) => one.id === id)
@@ -112,6 +121,10 @@ export class CommandDesk {
         conversations.setOptions(id, { effort: command.args.effort })
 
         return done()
+      case 'conversation.earlier':
+        return this.reads.earlier(command.args)
+      case 'conversation.image':
+        return this.reads.image(command.args)
       default:
         return fail('unknownCommand')
     }

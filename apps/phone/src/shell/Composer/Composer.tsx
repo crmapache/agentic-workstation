@@ -10,7 +10,8 @@ import { ImageStrip } from './parts/ImageStrip'
 
 /**
  * Поле сообщения с фото: камера или галерея одним выбором системы, отправка кнопкой - Enter на
- * телефоне переносит строку. Пока ход идёт, сообщение встаёт в очередь IDE.
+ * телефоне переносит строку. Пока ход идёт, сообщение встаёт в очередь IDE, а перед «отправить»
+ * стоит то, что даёт экран (Stop хода).
  */
 export const Composer = ({
   draftKey,
@@ -18,6 +19,7 @@ export const Composer = ({
   sendLabel,
   allowImages = true,
   disabled = false,
+  actions,
   onSend,
 }: ComposerProps) => {
   const { t } = useTranslation()
@@ -60,6 +62,7 @@ export const Composer = ({
           disabled={disabled}
           onChange={(event) => setText(event.target.value)}
         />
+        {actions}
         <IconButton
           icon={ArrowUp}
           size="touch"

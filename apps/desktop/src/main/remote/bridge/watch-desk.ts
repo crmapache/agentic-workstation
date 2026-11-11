@@ -213,7 +213,7 @@ export class WatchDesk {
         scope: watch.scope,
         queues: view.queues
           .filter((queue) => inScope(queue.projectPath))
-          .map((queue) => queueWire(queue, keyOf)),
+          .map((queue) => queueWire(queue, keyOf, (path) => keys.nameOf(path))),
         live: view.live
           .filter((run) => inScope(run.projectPath))
           .map((run) => runSummaryWire(run, keyOf)),

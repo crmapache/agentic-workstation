@@ -50,6 +50,7 @@ export const TextDialog = ({
         </>
       }>
       <TextField
+        size="touch"
         label={label}
         value={value}
         maxLength={maxLength}

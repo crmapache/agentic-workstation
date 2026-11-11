@@ -19,6 +19,12 @@ const CONVERSATION_ID = z.string().regex(/^[A-Za-z0-9-]{1,80}$/)
 
 const PROJECT_KEY = z.string().regex(PROJECT_KEY_PATTERN)
 
+/** id прошлого разговора у провайдера - UUID сессии CLI. */
+const SESSION_ID = z.string().regex(/^[A-Za-z0-9-]{1,80}$/)
+
+/** id элемента ленты - каким его назвала IDE: телефон только возвращает его обратно. */
+const ITEM_ID = z.string().min(1).max(200)
+
 const TEXT = z.string().max(MAX_TEXT_CHARS)
 
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const
@@ -85,6 +91,10 @@ const TARGET = z.discriminatedUnion('kind', [
  * вопрос несёт его опознание: разговору - requestId вопроса CLI, прогону - stepKey и askedAt.
  * Ответ на снятый или сменившийся вопрос IDE отказывает (questionGone), а не кладёт на
  * следующий.
+ *
+ * Чтение по просьбе - тоже команды: история проекта у провайдера, страница ленты выше
+ * того, что у телефона (before - его самый ранний элемент), картинка сообщения для просмотра.
+ * Ответ каждой влезает в один кадр - IDE урезает его сама (wire-types.ts).
  */
 export const COMMAND_ARGS = {
   'conversation.send': z.object({ conversationId: CONVERSATION_ID, text: TEXT, images: IMAGES }),
@@ -109,6 +119,18 @@ export const COMMAND_ARGS = {
   'conversation.setEffort': z.object({
     conversationId: CONVERSATION_ID,
     effort: z.enum(EFFORTS).nullable(),
+  }),
+  'conversation.history': z.object({ projectKey: PROJECT_KEY, provider: PROVIDER }),
+  'conversation.openHistory': z.object({
+    projectKey: PROJECT_KEY,
+    provider: PROVIDER,
+    sessionId: SESSION_ID,
+  }),
+  'conversation.earlier': z.object({ conversationId: CONVERSATION_ID, before: ITEM_ID }),
+  'conversation.image': z.object({
+    conversationId: CONVERSATION_ID,
+    messageId: ITEM_ID,
+    index: z.int().min(0).max(99),
   }),
   'scenarios.shelves': z.object({ projectKey: PROJECT_KEY }),
   'scenarios.start': z.object({
@@ -153,6 +175,10 @@ export const COMMAND_LIMITS: Readonly<Record<CommandName, number>> = {
   'conversation.rename': 20,
   'conversation.setModel': 20,
   'conversation.setEffort': 20,
+  'conversation.history': 20,
+  'conversation.openHistory': 10,
+  'conversation.earlier': 30,
+  'conversation.image': 30,
   'scenarios.shelves': 30,
   'scenarios.start': 10,
   'scenarios.queue': 30,

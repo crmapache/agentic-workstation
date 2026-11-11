@@ -148,6 +148,11 @@ export type QueueItemWire = {
 export type QueueWire = {
   id: string
   projectKey: string
+  /**
+   * Имя проекта для доски всех очередей: очередь переживает и закрытие проекта, и его уход из
+   * недавних - а в инвентаре только открытые и недавние. Имя, не путь.
+   */
+  projectName: string
   name: string
   createdAt: number
   closedAt: number
@@ -236,3 +241,30 @@ export type ShelfScenarioWire = {
   name: string
   inputs: { id: string; name: string; label: string; placeholder: string; required: boolean }[]
 }
+
+/**
+ * Прошлый разговор проекта у провайдера (у Claude Code - транскрипт CLI): открыть его - вкладка в
+ * IDE, а телефону - обычный разговор. isOpen - уже открыт вкладкой.
+ */
+export type HistoryEntryWire = {
+  sessionId: string
+  title: string
+  updatedAt: number
+  isOpen: boolean
+}
+
+/** История проекта на телефон: свежие сверху, сколько влезло в кадр; more - есть ещё старее. */
+export type HistoryWire = { entries: HistoryEntryWire[]; more: boolean }
+
+/**
+ * Страница ленты выше того, что у телефона (conversation.earlier): элементы перед before по
+ * порядку, сколько влезло в кадр. hasEarlier - выше этой страницы есть ещё.
+ */
+export type FeedPageWire = { items: FeedItemWire[]; hasEarlier: boolean }
+
+/**
+ * Картинка сообщения для просмотра на телефоне (conversation.image): data URL. Целиком она
+ * весит мегабайты, а ответ - один кадр: не влезла - IDE уменьшает её (JPEG по длинной стороне),
+ * и reduced это говорит. Оригинал остаётся в IDE.
+ */
+export type MessageImageWire = { dataUrl: string; reduced: boolean }

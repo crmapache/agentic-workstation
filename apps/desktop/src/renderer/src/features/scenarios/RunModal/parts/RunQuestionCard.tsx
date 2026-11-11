@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import { useState } from 'react'
-import { MessageCircleQuestion } from 'lucide-react'
+import { ScrollText, MessageCircleQuestion } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@agentic-workstation/ui/Badge'
@@ -18,9 +18,11 @@ import { useScenarioActions } from '../../scenarios.actions'
  * Вопрос, на котором прогон стоит, - наверху, где начинают читать. Варианты - кнопками: что
  * предложили, то и нажимают. Аргументы вызова - только у разрешения (у вопроса с вариантами в
  * них то же, что уже стоит словами), и Refuse - только у него: «нет» на вопрос с вариантами
- * дошло бы до карточки как «никто не ответил».
+ * дошло бы до карточки как «никто не ответил». Урезанные подробности (truncated) говорят об
+ * этом и ведут в журнал шага, где вызов целиком; Allow за столом остаётся - человек может
+ * посмотреть журнал, а телефон урезанное одобрить не даёт.
  */
-export const RunQuestionCard = ({ place, runId, question }: RunQuestionCardProps) => {
+export const RunQuestionCard = ({ place, runId, question, onOpenLog }: RunQuestionCardProps) => {
   const { t } = useTranslation()
   const actions = useScenarioActions()
   const [text, setText] = useState('')
@@ -60,6 +62,18 @@ export const RunQuestionCard = ({ place, runId, question }: RunQuestionCardProps
               copyLabel={t('scenarios.run.question.copy')}
               copiedLabel={t('scenarios.run.question.copied')}
             />
+          </div>
+        )}
+        {question.truncated && (
+          <div role="note" className={styles.questionTrimmed}>
+            <span className={styles.questionTrimmedText}>
+              {t('scenarios.run.question.trimmed')}
+            </span>
+            {onOpenLog && (
+              <Button size="sm" variant="secondary" icon={ScrollText} onClick={onOpenLog}>
+                {t('scenarios.run.question.openLog')}
+              </Button>
+            )}
           </div>
         )}
         {!isPermission && (

@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { openingOf, roadMoodOf, runDescription } from './RunModal.utils'
+import { openingOf, askingStep, roadMoodOf, runDescription } from './RunModal.utils'
 
 describe('openingOf', () => {
   const going = { state: 'running' as const, error: '', question: null, limit: null }
@@ -50,5 +50,30 @@ describe('runDescription', () => {
     )
     expect(runDescription('', { ticket: 'ABC-12' })).toBe('ABC-12')
     expect(runDescription('Night fixes', {})).toBe('Night fixes')
+  })
+})
+
+describe('askingStep', () => {
+  const step = (key: string) =>
+    ({ key, title: key }) as unknown as Parameters<typeof askingStep>[0]['steps'][number]
+  const question = {
+    stepKey: 's1:c1:1',
+    title: 'Write the report?',
+    tool: 'Write',
+    detail: '{"content":"…',
+    options: [],
+    askedAt: 1,
+    truncated: true,
+  }
+
+  it('урезанный вопрос ведёт в журнал своего шага - там вызов целиком', () => {
+    const steps = [step('s1:c0:1'), step('s1:c1:1')]
+
+    expect(askingStep({ steps, question })?.key).toBe('s1:c1:1')
+  })
+
+  it('нет вопроса или шага в записи - кнопки нет', () => {
+    expect(askingStep({ steps: [step('s1:c0:1')], question })).toBeNull()
+    expect(askingStep({ steps: [step('s1:c1:1')], question: null })).toBeNull()
   })
 })

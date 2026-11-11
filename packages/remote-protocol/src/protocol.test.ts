@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 import { parseAgentMessage, parseHandshakeReply } from './agent-messages'
 import { decodeBody, encodeBody, utf8Length } from './body'
 import { parseCommand, COMMAND_NAMES, COMMAND_LIMITS, REFUSED_COMMANDS } from './commands'
-import { applyFeedPatch, feedFromSnapshot } from './feed'
+import { applyFeedPatch, prependFeedPage, feedFromSnapshot } from './feed'
 import { MAX_BODY_BYTES } from './frame'
 import { MAX_IMAGES_CHARS } from './message-size'
 import { pairingUrl, parsePairingFragment } from './pairing-url'
@@ -90,6 +90,51 @@ describe('белый список команд', () => {
         action: { kind: 'stopAfter', itemId: null },
       }).ok,
     ).toBe(true)
+  })
+
+  it('история, страница выше и картинка - чтение по просьбе с проверкой аргументов', () => {
+    const project = `p-${AGENT}`
+
+    expect(
+      parseCommand('conversation.history', { projectKey: project, provider: 'claude' }).ok,
+    ).toBe(true)
+    expect(
+      parseCommand('conversation.history', { projectKey: '/Users/x', provider: 'claude' }).ok,
+    ).toBe(false)
+    expect(
+      parseCommand('conversation.openHistory', {
+        projectKey: project,
+        provider: 'claude',
+        sessionId: CONVERSATION,
+      }).ok,
+    ).toBe(true)
+    expect(
+      parseCommand('conversation.openHistory', {
+        projectKey: project,
+        provider: 'claude',
+        sessionId: '../../etc/passwd',
+      }).ok,
+    ).toBe(false)
+    expect(
+      parseCommand('conversation.earlier', { conversationId: CONVERSATION, before: 'a1' }).ok,
+    ).toBe(true)
+    expect(
+      parseCommand('conversation.earlier', { conversationId: CONVERSATION, before: '' }).ok,
+    ).toBe(false)
+    expect(
+      parseCommand('conversation.image', {
+        conversationId: CONVERSATION,
+        messageId: 'u1',
+        index: 0,
+      }).ok,
+    ).toBe(true)
+    expect(
+      parseCommand('conversation.image', {
+        conversationId: CONVERSATION,
+        messageId: 'u1',
+        index: -1,
+      }).ok,
+    ).toBe(false)
   })
 
   it('у каждой команды свой предел частоты', () => {
@@ -267,6 +312,30 @@ describe('лента на телефоне', () => {
 
     expect(next?.items).toEqual([item('b', '2'), item('c', '1')])
     expect(next?.seq).toBe(5)
+  })
+
+  it('страница выше встаёт перед лентой, только если лента начинается тем, перед чем просили', () => {
+    const page = { items: [item('y', '1'), item('z', '1'), item('a', 'old')], hasEarlier: false }
+    const prepended = prependFeedPage(view, 'a', page)
+
+    // «a» уже есть - второй раз не встаёт; номер журнала тот же: страница - не заплатка.
+    expect(prepended?.items.map((one) => one.id)).toEqual(['y', 'z', 'a', 'b'])
+    expect(prepended?.items[2]).toEqual(item('a', '1'))
+    expect(prepended).toMatchObject({ seq: 4, hasEarlier: false })
+    // Пока страница шла, пришёл снимок с другим началом - страница не к этой ленте.
+    expect(prependFeedPage(view, 'b', page)).toBeNull()
+
+    // Заплатка после страницы меняет её элементы на месте, новое - в конец.
+    const patched =
+      prepended && applyFeedPatch(prepended, patch(5, [item('y', '2'), item('n', '1')]))
+
+    expect(patched?.items.map((one) => `${one.id}${String(one['text'])}`)).toEqual([
+      'y2',
+      'z1',
+      'a1',
+      'b1',
+      'n1',
+    ])
   })
 
   it('повтор - без перемен, пропуск номера и другая жизнь IDE - подписаться заново', () => {

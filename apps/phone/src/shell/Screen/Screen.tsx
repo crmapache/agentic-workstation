@@ -4,18 +4,23 @@ import { useTranslation } from 'react-i18next'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
+import { LinkBanner } from '../LinkBanner/LinkBanner'
+import { Toasts } from '../Toasts/Toasts'
 import { useRouter } from '../../lib/router.store'
 import styles from './Screen.module.scss'
 import type { ScreenProps } from './Screen.types'
 
 /**
- * Экран телефона: шапка (назад, заголовок, действия, «?»), прокручиваемое тело и низ над полосой
- * «домой». Высота - по видимой части экрана (dvh): клавиатура и панели браузера её не перекрывают.
+ * Экран телефона: шапка (назад, заголовок, «?»), полоса связи с IDE экрана, прокручиваемое тело
+ * и низ над полосой «домой» - главные действия под большим пальцем. Уведомления встают сразу
+ * над низом и не закрывают его кнопки. Высота - по видимой части экрана (dvh): клавиатура и
+ * панели браузера её не перекрывают.
  */
 export const Screen = ({
   title,
   subtitle,
   back = true,
+  agentId,
   actions,
   help,
   banner,
@@ -36,7 +41,15 @@ export const Screen = ({
         )}
         <div className={styles.titles}>
           <h1 className={styles.title}>{title}</h1>
-          {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
+          {subtitle && (
+            <div className={styles.subtitle}>
+              {typeof subtitle === 'string' ? (
+                <span className={styles.subtitleText}>{subtitle}</span>
+              ) : (
+                subtitle
+              )}
+            </div>
+          )}
         </div>
         {actions && <div className={styles.actions}>{actions}</div>}
         {help && (
@@ -49,11 +62,21 @@ export const Screen = ({
           />
         )}
       </header>
+      {agentId && <LinkBanner agentId={agentId} />}
       {banner}
       <div ref={bodyRef} className={styles.body}>
         {children}
       </div>
-      {footer && <footer className={styles.footer}>{footer}</footer>}
+      {footer ? (
+        <footer className={styles.footer}>
+          <Toasts />
+          {footer}
+        </footer>
+      ) : (
+        <div className={styles.toastsAnchor}>
+          <Toasts />
+        </div>
+      )}
     </div>
   )
 }

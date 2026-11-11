@@ -19,7 +19,16 @@
     "online": "Online",
     "connecting": "Connecting",
     "offline": "Not answering",
-    "revoked": "Released"
+    "revoked": "Released",
+    "banner": {
+      "offline": "The IDE is not answering. What you see may be out of date.",
+      "revoked": "The IDE released this phone. Pair again to control it."
+    },
+    "wait": {
+      "offlineTitle": "The IDE is not answering",
+      "offlineText": "The computer may be asleep, the IDE closed, or Remote Control turned off.",
+      "revokedTitle": "The IDE released this phone"
+    }
   },
   "status": {
     "running": "Working",
@@ -96,7 +105,8 @@
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued.",
       "runOver": "This run is over.",
-      "permissionMode": "The new conversation did not start in a mode the phone may choose. Start it at the computer."
+      "permissionMode": "The new conversation did not start in a mode the phone may choose. Start it at the computer.",
+      "imageTooBig": "This photo is too big to send to the phone."
     },
     "questionGone": "This question was already answered.",
     "runMoved": "The run changed since this screen was drawn. Check it and try again.",
@@ -181,7 +191,7 @@
     "title": "Project",
     "help": {
       "title": "Project",
-      "text": "Conversations are grouped by provider. Each shows what it is doing now and since when: working, needs you (a permission, a question or a plan) or idle.\n\nScenario queues run scenarios one after another, in their own worktree or in the project folder. A recent project that is not open in the IDE shows only its queues."
+      "text": "Conversations are grouped by provider. Each shows what it is doing now and since when: working, needs you (a permission, a question or a plan) or idle. Past conversations can be opened and continued.\n\nScenario queues run scenarios one after another, in their own worktree or in the project folder. A recent project that is not open in the IDE shows only its queues."
     },
     "loading": "Waiting for the IDE",
     "loadingQueues": "Getting the queues",
@@ -208,17 +218,13 @@
     "title": "Conversation",
     "help": {
       "title": "Conversation",
-      "text": "The feed shows the end of the conversation as the IDE sees it, and updates live.\n\nWhile Claude works, a new message waits in the IDE's queue and goes after the current turn. Stop ends the turn.\n\nA permission can be allowed once or denied. Allowing a tool always, bypass and auto modes, the terminal and ! commands are only available at the computer."
+      "text": "The feed shows the end of the conversation as the IDE sees it, and updates live. Load earlier brings older messages from the IDE, a page at a time.\n\nWhile Claude works, a new message waits in the IDE's queue and goes after the current turn. Stop next to the message field ends the turn.\n\nA permission can be allowed once or denied. Allowing a tool always, bypass and auto modes, the terminal and ! commands are only available at the computer.\n\nTap a photo to see it large. A big photo comes reduced to fit the phone; the original stays in the IDE."
     },
     "loading": "Getting the conversation",
     "empty": "Nothing here yet",
     "gone": {
       "title": "This conversation is closed",
       "description": "It was closed in the IDE, or its project was closed."
-    },
-    "link": {
-      "offline": "The IDE is not answering. What you see may be out of date.",
-      "revoked": "The IDE released this phone."
     },
     "errors": {
       "cli-not-found": "Claude Code is not found on the computer.",
@@ -228,10 +234,10 @@
       "other": "Claude Code cannot run: {{code}}"
     },
     "working": "Working · {{time}}",
-    "stop": "Stop the turn",
+    "stop": "Stop",
     "send": "Send",
     "placeholder": "Message",
-    "placeholderQueued": "Message - goes after this turn",
+    "placeholderQueued": "Queue a message",
     "queued": "Waiting in the IDE",
     "queuedMark": "Next",
     "queuedPhotos_one": "{{count}} photo",
@@ -251,7 +257,7 @@
     "photosTooBig": "These photos are too big for one message. Send fewer."
   },
   "feed": {
-    "earlier": "Earlier messages are in the IDE",
+    "earlier": "Load earlier messages",
     "tasks": "Tasks {{done}} of {{total}}",
     "tool": "Tool",
     "thinking": "Thinking",
@@ -316,7 +322,8 @@
       "shell": "Command",
       "turn": "Turn",
       "notice": "Notice"
-    }
+    },
+    "loadingEarlier": "Loading earlier messages"
   },
   "pending": {
     "more_one": "{{count}} more after this",
@@ -452,7 +459,8 @@
       "wordsPlaceholder": "Optional for allow or refuse",
       "allow": "Allow",
       "refuse": "Refuse",
-      "send": "Answer"
+      "send": "Answer",
+      "ownPlaceholder": "Optional, replaces the choice"
     },
     "roadmap": "Roadmap",
     "noSteps": "No steps yet",
@@ -488,5 +496,49 @@
     "worktree": "In its own worktree",
     "worktreeHint": "A separate branch; the project files stay as they are",
     "start": "Start"
+  },
+  "photo": {
+    "open": "Open photo {{number}}",
+    "loading": "Getting the full photo",
+    "reduced": "Reduced to fit the phone. The original is in the IDE.",
+    "missing": "The IDE no longer has this photo.",
+    "tooBig": "This photo is too big to send to the phone.",
+    "failed": "The full photo did not come.",
+    "previewShown": "This is the preview; the original is in the IDE."
+  },
+  "history": {
+    "title": "Past conversations",
+    "help": {
+      "title": "Past conversations",
+      "text": "Earlier conversations of this project, newest first, for each provider. Opening one opens it in the IDE as a tab of this project, and you can go on with it here.\n\nA conversation that is already open as a tab opens without changing what the IDE shows."
+    },
+    "loading": "Getting past conversations",
+    "empty": "No past conversations yet",
+    "more": "Older conversations are in the IDE.",
+    "open": "Open",
+    "untitled": "Untitled conversation",
+    "retry": "Try again",
+    "notOpen": {
+      "title": "This project is not open in the IDE",
+      "description": "Open it in the IDE to see its past conversations."
+    }
+  },
+  "board": {
+    "title": "All queues",
+    "help": {
+      "title": "All queues",
+      "text": "Open scenario queues of every project on this IDE, grouped by project, like All queues in the IDE. A queue stays here even when its project is closed: scenarios run at the IDE level.\n\nTap a queue to manage it and its running scenario."
+    },
+    "summary": "Queues at a glance",
+    "running_one": "{{count}} running",
+    "running_other": "{{count}} running",
+    "waiting_one": "{{count}} needs you",
+    "waiting_other": "{{count}} need you",
+    "quiet": "Nothing running",
+    "none": "No open queues",
+    "empty": {
+      "title": "No open queues",
+      "description": "Start a scenario from a project to see it here."
+    }
   }
 }

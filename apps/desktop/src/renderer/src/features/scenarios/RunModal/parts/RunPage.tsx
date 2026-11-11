@@ -2,6 +2,7 @@ import { isRunFinished } from '@shared/scenario-runs'
 
 import styles from '../RunModal.module.scss'
 import type { RunPageProps } from '../RunModal.types'
+import { askingStep } from '../RunModal.utils'
 import { useNow } from '../../scenarios-clock.hooks'
 import { CLOCK_TICK_MS } from '../../scenarios.constants'
 import { ScenarioRunTimeline } from '../../ScenarioRunTimeline/ScenarioRunTimeline'
@@ -18,6 +19,7 @@ import { RunQuestionCard } from './RunQuestionCard'
 export const RunPage = ({ ref, place, run, onOpenLog }: RunPageProps) => {
   const isOver = isRunFinished(run.state)
   const now = useNow(!isOver, CLOCK_TICK_MS)
+  const asking = askingStep(run)
 
   return (
     <div ref={ref} className={styles.page}>
@@ -26,7 +28,12 @@ export const RunPage = ({ ref, place, run, onOpenLog }: RunPageProps) => {
       {!isOver && run.error && <div className={styles.error}>{run.error}</div>}
       {!isOver && run.limit && <LimitStrip limit={run.limit} />}
       {!isOver && run.question && (
-        <RunQuestionCard place={place} runId={run.id} question={run.question} />
+        <RunQuestionCard
+          place={place}
+          runId={run.id}
+          question={run.question}
+          onOpenLog={asking ? () => onOpenLog(asking) : undefined}
+        />
       )}
       <ScenarioRunTimeline run={run} now={now} onOpenLog={onOpenLog} />
     </div>

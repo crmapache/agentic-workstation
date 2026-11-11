@@ -955,7 +955,9 @@
         "allow": "Allow",
         "refuse": "Refuse",
         "copy": "Copy the arguments",
-        "copied": "Copied"
+        "copied": "Copied",
+        "trimmed": "Only the start of the call is shown here. The full call is in the step log.",
+        "openLog": "Open the step log"
       },
       "stage": {
         "titled": "Stage {{index}} · {{title}}",

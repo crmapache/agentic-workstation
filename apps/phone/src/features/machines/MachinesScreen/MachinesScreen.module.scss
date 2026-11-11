@@ -1,15 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
-.banner {
-  @include tinted-plaque(var(--color-warning));
-
-  flex: none;
-  margin: 0;
-  padding: var(--space-2) var(--size-panel-gutter);
-  border-width: 0 0 var(--border-width);
-  font-size: var(--font-size-sm);
-}
-
 .machine {
   display: flex;
   flex-direction: column;
@@ -32,4 +22,12 @@
 .actions {
   display: flex;
   gap: var(--space-2);
+}
+
+// Значок строки - как глиф кнопки, тише текста.
+.rowIcon {
+  display: block;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-fg-subtle);
 }

@@ -25,6 +25,7 @@ import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.co
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { TouchSpecimens } from './TouchSpecimens'
 
 /**
  * Раздел «Действия»: кнопки всех вариантов и размеров, кнопки-иконки, переключатели,
@@ -75,19 +76,7 @@ export const ActionsSection = () => {
         </Button>
       </Specimen>
 
-      <Specimen label={t('specimens.buttonsTouch')}>
-        <Button variant="primary" size="touch" icon={Play}>
-          {t('samples.run')}
-        </Button>
-        <Button variant="secondary" size="touch">
-          {t('samples.secondary')}
-        </Button>
-        <Button variant="danger" size="touch" icon={Trash2}>
-          {t('samples.remove')}
-        </Button>
-        <IconButton icon={Search} size="touch" label={t('samples.search')} />
-        <IconButton icon={ArrowUp} size="touch" variant="primary" label={t('samples.send')} />
-      </Specimen>
+      <TouchSpecimens />
 
       <Specimen label={t('specimens.menuButtons')}>
         <Button size="sm" icon={Bot} menu>

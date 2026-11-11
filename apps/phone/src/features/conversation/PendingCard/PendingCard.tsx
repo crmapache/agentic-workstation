@@ -4,7 +4,7 @@ import { PlanCard } from './parts/PlanCard'
 import { QuestionCard } from './parts/QuestionCard'
 
 /**
- * Вопрос, на котором стоит ход, - над полем ввода: разрешение (разрешить один раз или нет -
+ * Вопрос, на котором стоит ход, - над полем ввода (Dock): разрешение (разрешить один раз или нет -
  * «всегда» с телефона не даётся), вопрос с вариантами, план (одобрить или доработать).
  */
 export const PendingCard = (props: PendingCardProps) => {

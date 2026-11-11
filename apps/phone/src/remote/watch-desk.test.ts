@@ -154,4 +154,23 @@ describe('подписки и ленты телефона', () => {
     expect(views.at(-1)?.items.map((one) => one.id)).toEqual(['n1', 'n2'])
     expect(views.at(-1)?.seq).toBe(41)
   })
+
+  it('страница выше встаёт перед лентой, если та начинается тем же; иначе - мимо', () => {
+    const { watches, views } = desk()
+
+    watches.snapshot(AGENT, { ...snapshot(), hasEarlier: true })
+
+    expect(
+      watches.prepend(AGENT, 'c1', 'u1', { items: [item('e0'), item('u1')], hasEarlier: false }),
+    ).toBe(true)
+    expect(views.at(-1)?.items.map((one) => one.id)).toEqual(['e0', 'u1', 'a1'])
+    expect(views.at(-1)?.hasEarlier).toBe(false)
+
+    // Пока шла вторая страница, пришёл снимок с другим началом - страница не к нему.
+    watches.snapshot(AGENT, snapshot(9))
+    expect(watches.prepend(AGENT, 'c1', 'e0', { items: [item('x')], hasEarlier: false })).toBe(
+      false,
+    )
+    expect(watches.prepend(AGENT, 'other', 'u1', { items: [], hasEarlier: false })).toBe(false)
+  })
 })

@@ -2,6 +2,7 @@
 
 // Колонка во весь видимый экран: шапка и низ на месте, прокручивается только тело.
 .screen {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -47,15 +48,22 @@
   line-height: var(--line-height-tight);
 }
 
+// Ряд под заголовком: метка не сжимается, текст за ней обрезается многоточием сам (StatusLine).
 .subtitle {
-  @include truncate;
-
   display: flex;
   align-items: center;
   gap: var(--space-1-5);
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-fg-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
+}
+
+.subtitleText {
+  @include truncate;
+
+  min-width: 0;
 }
 
 .actions {
@@ -77,8 +85,9 @@
   overscroll-behavior: contain;
 }
 
-// Низ экрана: поле ввода или кнопка формы - над полосой «домой».
+// Низ экрана: поле ввода или кнопка формы - над полосой «домой». Уведомления встают над ним.
 .footer {
+  position: relative;
   display: flex;
   flex: none;
   flex-direction: column;
@@ -93,4 +102,12 @@
 .footer ~ .body,
 .body:has(~ .footer) {
   padding-bottom: var(--space-4);
+}
+
+// Экран без низа: уведомления встают у нижнего края над полосой «домой».
+.toastsAnchor {
+  position: absolute;
+  right: 0;
+  bottom: var(--offset-safe-bottom);
+  left: 0;
 }

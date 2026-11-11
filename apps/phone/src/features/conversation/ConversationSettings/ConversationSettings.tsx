@@ -52,10 +52,12 @@ export const ConversationSettings = ({
       title={t('conversation.settings.title')}
       description={conversation.title}
       closeLabel={t('common.close')}
+      closeSize="touch"
       onClose={onClose}>
       <div className={styles.settings}>
         <div className={styles.rename}>
           <TextField
+            size="touch"
             label={t('conversation.settings.name')}
             value={title}
             maxLength={100}

@@ -1,7 +1,5 @@
 import type {
-  QueueWire,
   ProviderCaps,
-  RunSummaryWire,
   ConversationSummary,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
@@ -32,16 +30,3 @@ const rank = (order: string[], id: string) => {
 
   return at === -1 ? order.length : at
 }
-
-/** Открытые очереди - сначала те, где что-то идёт; закрытые - история, на телефоне их нет. */
-export const openQueues = (queues: QueueWire[], live: RunSummaryWire[]): QueueWire[] => {
-  const busy = new Set(live.map((run) => run.queueId))
-
-  return queues
-    .filter((queue) => queue.closedAt === 0)
-    .sort((first, second) => Number(busy.has(second.id)) - Number(busy.has(first.id)))
-}
-
-/** Сколько ждущих в очереди. */
-export const waitingCount = (queue: QueueWire): number =>
-  queue.items.filter((item) => item.state === 'waiting').length

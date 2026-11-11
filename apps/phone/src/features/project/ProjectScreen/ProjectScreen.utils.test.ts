@@ -1,11 +1,8 @@
 import { it, expect, describe } from 'vitest'
 
-import type {
-  QueueWire,
-  ConversationSummary,
-} from '@agentic-workstation/remote-protocol/wire-types'
+import type { ConversationSummary } from '@agentic-workstation/remote-protocol/wire-types'
 
-import { openQueues, waitingCount, groupByProvider } from './ProjectScreen.utils'
+import { groupByProvider } from './ProjectScreen.utils'
 
 const conversation = (id: string, provider: string): ConversationSummary => ({
   id,
@@ -15,33 +12,6 @@ const conversation = (id: string, provider: string): ConversationSummary => ({
   outcome: 'none',
   since: 0,
   waiting: null,
-})
-
-const queue = (id: string, closedAt = 0): QueueWire => ({
-  id,
-  projectKey: 'p-x',
-  name: id,
-  createdAt: 0,
-  closedAt,
-  workdir: { kind: 'project' },
-  items: [
-    {
-      id: 'i',
-      scenarioId: 's',
-      scope: 'project',
-      scenarioName: 'S',
-      inputs: {},
-      provider: 'claude',
-      afterSuccess: false,
-      addedAt: 0,
-      runId: '',
-      state: 'waiting',
-      refusal: null,
-    },
-  ],
-  stopAfterItemId: '',
-  hold: null,
-  acknowledgedItemId: '',
 })
 
 describe('проект на телефоне', () => {
@@ -64,14 +34,5 @@ describe('проект на телефоне', () => {
       ['Claude Code', 2],
       ['other', 1],
     ])
-  })
-
-  it('очереди: только открытые, с идущим прогоном - первыми', () => {
-    const live = [{ queueId: 'busy' }] as Parameters<typeof openQueues>[1]
-
-    expect(
-      openQueues([queue('idle'), queue('closed', 5), queue('busy')], live).map((one) => one.id),
-    ).toEqual(['busy', 'idle'])
-    expect(waitingCount(queue('x'))).toBe(1)
   })
 })

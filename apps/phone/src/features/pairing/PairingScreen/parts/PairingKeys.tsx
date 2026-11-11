@@ -33,6 +33,7 @@ export const PairingKeys = ({
         )}
       </Section>
       <TextField
+        size="touch"
         label={t('pairing.phoneName')}
         value={label}
         maxLength={LABEL_MAX}

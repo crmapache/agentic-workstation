@@ -8,6 +8,8 @@ export type Route =
   | { name: 'machines' }
   | { name: 'pair' }
   | { name: 'project'; agentId: string; projectKey: string }
+  | { name: 'board'; agentId: string }
+  | { name: 'history'; agentId: string; projectKey: string }
   | { name: 'newConversation'; agentId: string; projectKey: string }
   | { name: 'startScenario'; agentId: string; projectKey: string }
   | { name: 'conversation'; agentId: string; projectKey: string; conversationId: string }
@@ -20,6 +22,11 @@ const SEGMENT = '([A-Za-z0-9_*-]{1,80})'
 const PATTERNS: [RegExp, (parts: string[]) => Route][] = [
   [/^\/$/, () => ({ name: 'machines' })],
   [/^\/pair$/, () => ({ name: 'pair' })],
+  [new RegExp(`^/m/${SEGMENT}/queues$`), ([agentId = '']) => ({ name: 'board', agentId })],
+  [
+    new RegExp(`^/m/${SEGMENT}/p/${SEGMENT}/history$`),
+    ([agentId = '', projectKey = '']) => ({ name: 'history', agentId, projectKey }),
+  ],
   [
     new RegExp(`^/m/${SEGMENT}/p/${SEGMENT}$`),
     ([agentId = '', projectKey = '']) => ({ name: 'project', agentId, projectKey }),
@@ -77,6 +84,10 @@ export const routePath = (route: Route): string => {
       return '/pair'
     case 'project':
       return `/m/${route.agentId}/p/${route.projectKey}`
+    case 'board':
+      return `/m/${route.agentId}/queues`
+    case 'history':
+      return `/m/${route.agentId}/p/${route.projectKey}/history`
     case 'newConversation':
       return `/m/${route.agentId}/p/${route.projectKey}/new`
     case 'startScenario':
@@ -97,6 +108,7 @@ export const parentOf = (route: Route): Route => {
     case 'pair':
     case 'notFound':
     case 'project':
+    case 'board':
       return { name: 'machines' }
     default:
       return { name: 'project', agentId: route.agentId, projectKey: route.projectKey }

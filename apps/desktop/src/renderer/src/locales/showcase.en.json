@@ -43,6 +43,10 @@
     "buttons": "Buttons",
     "buttonsSmall": "Small buttons",
     "buttonsTouch": "Touch-sized buttons (phone)",
+    "buttonsTouchWrap": "Touch-sized buttons: a long label wraps in a narrow column",
+    "textFieldTouch": "Touch-sized text field (phone): as tall as a touch button",
+    "cardFit": "Card that fits its place: the text scrolls, the buttons stay in view",
+    "modalTouch": "Modal with a touch-sized close button (phone)",
     "menuButtons": "Button with a menu",
     "iconButtons": "Icon buttons",
     "dropdowns": "Dropdown buttons",
@@ -271,6 +275,15 @@
     "freshInput": "Fresh input",
     "shareEmptyLabel": "Nothing yet",
     "chartTipHover": "Point here",
-    "chartTipTitle": "Tue, Nov 10, 14:00"
+    "chartTipTitle": "Tue, Nov 10, 14:00",
+    "keepGoing": "Keep going after this item",
+    "openRun": "Open the run",
+    "answerLabel": "Your words",
+    "answerPlaceholder": "Optional, sent with the answer",
+    "fitTitle": "Allow Bash?",
+    "fitBody": "rm -rf build && pnpm install && pnpm build && pnpm test -- --coverage && pnpm lint && pnpm typecheck && echo \"all good\" && git status && git diff --stat && git log --oneline -5 && du -sh node_modules && ls -la dist && cat dist/manifest.json",
+    "allowOnce": "Allow once",
+    "openReducedImage": "Open a reduced image (phone)",
+    "imageReduced": "Reduced to fit the phone. The original is in the IDE."
   }
 }

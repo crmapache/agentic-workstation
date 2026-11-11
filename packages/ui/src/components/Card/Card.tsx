@@ -7,8 +7,8 @@ import type { CardProps } from './Card.types'
 /**
  * Стеклянная карточка внутри панели: заголовок, строка состояния, справа действия и «?»
  * справки у самого края, содержимое. Для группы настроек, сводки, блока в GUI провайдера. Тон accent - то, что
- * ждёт ответа человека: оранжевая рамка и заголовок. Всплывающее поверх окна - Popover
- * или Dialog, не карточка.
+ * ждёт ответа человека: оранжевая рамка и заголовок. fit - не выше места, где стоит: тело
+ * сжимается, шапка на виду. Всплывающее поверх окна - Popover или Dialog, не карточка.
  */
 export const Card = ({
   title,
@@ -18,12 +18,15 @@ export const Card = ({
   tone = 'neutral',
   size = 'md',
   actions,
+  fit = false,
   children,
 }: CardProps) => {
   const hasHeader = Boolean(title || actions || help)
 
   return (
-    <section aria-label={title} className={clsx(styles.card, styles[tone], styles[size])}>
+    <section
+      aria-label={title}
+      className={clsx(styles.card, styles[tone], styles[size], fit && styles.fit)}>
       {hasHeader && (
         <>
           <div className={styles.header}>

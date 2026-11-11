@@ -6,6 +6,7 @@ import type { Scenario } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { BridgePorts } from '../bridge/bridge-ports'
+import { readsOf, picturesOf } from './fake-reads'
 
 /**
  * IDE для тестов Remote Control: проект с разговором Claude Code, очередь сценариев с идущим
@@ -212,6 +213,8 @@ export const fakeIde = () => {
     hasEarlier: false,
   }
   const queues: ScenarioQueuesView = { queues: [QUEUE], live: [LIVE] }
+  const earlier: FeedItem[] = []
+  const images = new Map<string, string>()
   const ports: BridgePorts = {
     workspace: { getState: () => workspace },
     conversations: {
@@ -242,7 +245,18 @@ export const fakeIde = () => {
         Promise.resolve([
           { id: 'claude', label: 'Claude Code', available: true, unavailable: null },
         ]),
+      ...readsOf({
+        record,
+        state,
+        feed,
+        earlier,
+        images,
+        projectPath: PROJECT_PATH,
+        conversationId: CONVERSATION_ID,
+        conversationOf,
+      }),
     },
+    pictures: picturesOf(record),
     scenarios: {
       queuesView: () => queues,
       start: (request) => {
@@ -283,5 +297,5 @@ export const fakeIde = () => {
     },
   }
 
-  return { ports, calls, state, feed, workspace, queues }
+  return { ports, calls, state, feed, workspace, queues, earlier, images }
 }

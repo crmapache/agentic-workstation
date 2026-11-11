@@ -1,5 +1,6 @@
 import type {
   ClaudeState,
+  HistoryEntry,
   ImageAttachment,
   RequestResponse,
   ConversationOptions,
@@ -48,6 +49,26 @@ export type ConversationsPort = {
   setOptions: (conversationId: string, options: ConversationOptions) => unknown
   rename: (conversationId: string, title: string) => Promise<unknown>
   providers: () => Promise<ProviderInfo[]>
+  /** Прошлые разговоры проекта (claude:listHistory). */
+  history: (projectPath: string) => Promise<HistoryEntry[]>
+  /**
+   * Открыть прошлый разговор вкладкой (claude:openHistory). Ответ - id вкладки; null - такого
+   * разговора у проекта нет (транскрипт пропал), а не исключение посреди команды.
+   */
+  openHistory: (projectPath: string, sessionId: string) => Promise<string | null>
+  /** Страница ранней истории в ленту IDE (claude:loadEarlier); ответ - лента целиком. */
+  loadEarlier: (conversationId: string) => Promise<ConversationFeed>
+  /** Картинка сообщения целиком, data URL (claude:getImage); null - её нет. */
+  image: (conversationId: string, messageId: string, index: number) => Promise<string | null>
+}
+
+/**
+ * Картинки для телефона: уменьшить, чтобы ответ влез в кадр. Это Electron (nativeImage), а мост
+ * его не знает - тест подставляет свою подделку.
+ */
+export type PicturesPort = {
+  /** JPEG не больше edge по длинной стороне, data URL; картинку не прочесть - null. */
+  shrink: (dataUrl: string, edge: number, quality: number) => string | null
 }
 
 /** Сценарии на уровне IDE (ScenarioService, ADR 0039). */
@@ -82,4 +103,5 @@ export type BridgePorts = {
   conversations: ConversationsPort
   scenarios: ScenariosPort
   workspace: WorkspacePort
+  pictures: PicturesPort
 }

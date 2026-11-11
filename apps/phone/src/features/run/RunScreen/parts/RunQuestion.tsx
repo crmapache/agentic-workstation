@@ -4,18 +4,19 @@ import { useTranslation } from 'react-i18next'
 
 import type { RunQuestionWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { Button } from '@agentic-workstation/ui/Button'
-import { Card } from '@agentic-workstation/ui/Card'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
 import styles from '../RunScreen.module.scss'
+import { Dock } from '../../../../shell/Dock/Dock'
+import { OptionList } from '../../../../shell/OptionList/OptionList'
 import { PathText } from '../../../../shell/PathText/PathText'
 import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
 /**
- * Вопрос головы сценария: варианты - кнопками, что предложили, то и нажимают; без вариантов это
- * разрешение - разрешить или отказать, со словами или без. Как в окне прогона IDE. Урезанный
- * (движком или дорогой до телефона) вслепую не одобряется: разрешение - только отказать,
- * вопрос с вариантами - решить за Mac.
+ * Вопрос головы сценария над полем, как вопрос хода в разговоре: варианты - списком, свои слова
+ * заменяют выбор; без вариантов это разрешение - разрешить или отказать, со словами или без. Как
+ * в окне прогона IDE. Урезанный (движком или дорогой до телефона) вслепую не одобряется:
+ * разрешение - только отказать, вопрос с вариантами - решить за Mac.
  */
 export const RunQuestion = ({
   question,
@@ -28,80 +29,78 @@ export const RunQuestion = ({
 }) => {
   const { t } = useTranslation()
   const [text, setText] = useState('')
+  const [picked, setPicked] = useState('')
   const isPermission = question.options.length === 0
   const blind = question.truncated
+  const answer = text.trim() || picked
 
-  const answer = (allow: boolean, words: string) => {
+  const handleAnswer = (allow: boolean, words: string) => {
     onAnswer(allow, words)
     setText('')
   }
 
   return (
-    <Card
-      tone="accent"
+    <Dock
       icon={MessageCircleQuestion}
       title={t('run.question.title')}
-      description={question.tool || undefined}>
-      <div className={styles.question}>
-        <p className={styles.questionTitle}>
-          <PathText text={question.title || question.tool} />
-        </p>
-        {isPermission && question.detail && (
-          <pre className={styles.detail}>
-            <PathText text={question.detail} />
-          </pre>
-        )}
-        {blind && <TooLongNote />}
-        {!isPermission && !blind && (
-          <div className={styles.options}>
-            {question.options.map((option) => (
-              <Button
-                key={option}
-                size="touch"
-                disabled={busy}
-                onClick={() => answer(true, option)}>
-                {option}
-              </Button>
-            ))}
-          </div>
-        )}
-        <TextField
-          label={t('run.question.words')}
-          placeholder={t('run.question.wordsPlaceholder')}
-          value={text}
-          onChange={setText}
-        />
-        <div className={styles.actions}>
-          {isPermission ? (
-            <>
-              <Button
-                size="touch"
-                variant="danger"
-                disabled={busy}
-                onClick={() => answer(false, text.trim())}>
-                {t('run.question.refuse')}
-              </Button>
-              {!blind && (
-                <Button
-                  size="touch"
-                  variant="primary"
-                  disabled={busy}
-                  onClick={() => answer(true, text.trim())}>
-                  {t('run.question.allow')}
-                </Button>
-              )}
-            </>
-          ) : (
+      description={question.tool || undefined}
+      actions={
+        isPermission ? (
+          <>
             <Button
               size="touch"
-              variant="primary"
-              disabled={busy || blind || !text.trim()}
-              onClick={() => answer(true, text.trim())}>
-              {t('run.question.send')}
+              variant="danger"
+              disabled={busy}
+              onClick={() => handleAnswer(false, text.trim())}>
+              {t('run.question.refuse')}
             </Button>
-          )}
-        </div>
-      </div>
-    </Card>
+            {!blind && (
+              <Button
+                size="touch"
+                variant="primary"
+                disabled={busy}
+                onClick={() => handleAnswer(true, text.trim())}>
+                {t('run.question.allow')}
+              </Button>
+            )}
+          </>
+        ) : (
+          <Button
+            size="touch"
+            variant="primary"
+            disabled={busy || blind || !answer}
+            onClick={() => handleAnswer(true, answer)}>
+            {t('run.question.send')}
+          </Button>
+        )
+      }>
+      {blind && <TooLongNote />}
+      <p className={styles.questionTitle}>
+        <PathText text={question.title || question.tool} />
+      </p>
+      {isPermission && question.detail && (
+        <pre className={styles.detail}>
+          <PathText text={question.detail} />
+        </pre>
+      )}
+      {!isPermission && !blind && (
+        <OptionList
+          label={question.title || question.tool}
+          options={question.options.map((option) => ({ value: option, label: option }))}
+          isSelected={(option) => option === picked}
+          disabled={busy}
+          onSelect={setPicked}
+        />
+      )}
+      <TextField
+        size="touch"
+        label={t('run.question.words')}
+        placeholder={t(
+          isPermission ? 'run.question.wordsPlaceholder' : 'run.question.ownPlaceholder',
+        )}
+        value={text}
+        onChange={setText}
+      />
+    </Dock>
   )
 }

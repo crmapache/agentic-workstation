@@ -1,5 +1,5 @@
 import type { FeedPatchMessage, FeedSnapshotMessage } from './agent-messages'
-import type { FeedItemWire, FeedTaskWire } from './wire-types'
+import type { FeedItemWire, FeedPageWire, FeedTaskWire } from './wire-types'
 
 /**
  * Лента разговора на телефоне: снимок и заплатки по номеру - те же правила, что у ленты окна
@@ -56,4 +56,24 @@ export const applyFeedPatch = (view: FeedView, patch: FeedPatchMessage): FeedVie
     tasks: patch.tasks ?? view.tasks,
     hasEarlier: patch.hasEarlier ?? view.hasEarlier,
   }
+}
+
+/**
+ * Страница выше (conversation.earlier) встаёт перед лентой, только если лента начинается тем же
+ * элементом, перед которым её просили: пока страница шла, мог прийти снимок, а он заменяет ленту
+ * целиком - тогда null, страница не к этой ленте. Номер журнала не меняется: страница - не
+ * заплатка, заплатки дальше меняют её элементы по id, как любые другие. Элемент, который уже
+ * есть (заплатка успела его вставить), второй раз не встаёт.
+ */
+export const prependFeedPage = (
+  view: FeedView,
+  before: string,
+  page: FeedPageWire,
+): FeedView | null => {
+  if (view.items[0]?.id !== before) return null
+
+  const known = new Set(view.items.map((item) => item.id))
+  const fresh = page.items.filter((item) => !known.has(item.id))
+
+  return { ...view, items: [...fresh, ...view.items], hasEarlier: page.hasEarlier }
 }

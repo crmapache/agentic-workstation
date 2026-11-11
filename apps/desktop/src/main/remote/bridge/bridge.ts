@@ -94,7 +94,7 @@ export class Bridge {
       machine: host.machine,
       epoch: host.epoch,
     })
-    this.commands = new CommandDesk(ports, keys)
+    this.commands = new CommandDesk(ports, keys, redact)
   }
 
   /** Открытое и проверенное слово спаренного телефона (предел частоты уже позади). */

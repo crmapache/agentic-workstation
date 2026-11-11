@@ -45,8 +45,17 @@
   gap: var(--space-1-5);
 }
 
+.thumbnailButton {
+  @include button-reset;
+
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
 .thumbnail,
 .thumbnailEmpty {
+  display: block;
   width: var(--size-image-tile);
   height: var(--size-image-tile);
   border-radius: var(--radius-md);
@@ -79,6 +88,13 @@
   flex: none;
   color: var(--color-fg);
   font-weight: var(--font-weight-medium);
+}
+
+.tokens {
+  flex: none;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
 }
 
 .toolSummary {
@@ -189,6 +205,12 @@
   flex-basis: 100%;
   color: var(--color-fg-subtle);
   font-size: var(--font-size-xs);
+}
+
+// Кнопка ранних сообщений - по центру над лентой, а не во всю ширину.
+.earlier {
+  display: flex;
+  justify-content: center;
 }
 
 .event,

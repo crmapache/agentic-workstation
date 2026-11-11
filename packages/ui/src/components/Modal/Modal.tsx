@@ -24,6 +24,7 @@ export const Modal = ({
   headerActions,
   footer,
   closeLabel,
+  closeSize = 'sm',
   onClose,
   children,
 }: ModalProps) => {
@@ -47,7 +48,7 @@ export const Modal = ({
           {description && <p className={styles.description}>{description}</p>}
         </div>
         {headerActions && <div className={styles.headerActions}>{headerActions}</div>}
-        <IconButton icon={X} size="sm" label={closeLabel} onClick={onClose} />
+        <IconButton icon={X} size={closeSize} label={closeLabel} onClick={onClose} />
       </header>
       <div className={styles.body}>{children}</div>
       {footer && <footer className={styles.footer}>{footer}</footer>}

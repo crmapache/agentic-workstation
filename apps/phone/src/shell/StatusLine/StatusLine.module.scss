@@ -1,0 +1,19 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.badge {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.text {
+  @include truncate;
+
+  flex: 1 1 auto;
+  min-width: 0;
+
+  // Разделитель - тот же « · », что между частями текста: метка и текст не сливаются.
+  &::before {
+    content: '· ';
+  }
+}

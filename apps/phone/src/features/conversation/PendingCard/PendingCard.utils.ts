@@ -46,3 +46,11 @@ export const questionAnswers = (
 /** Ответ есть на каждый вопрос - можно отправлять. */
 export const allAnswered = (answers: Record<string, string>): boolean =>
   Object.values(answers).every((answer) => answer !== '')
+
+/** Выбор варианта: один из многих - заменяет прежний, несколько - включает и выключает. */
+export const pickOption = (current: readonly string[], label: string, multi: boolean): string[] =>
+  multi
+    ? current.includes(label)
+      ? current.filter((one) => one !== label)
+      : [...current, label]
+    : [label]

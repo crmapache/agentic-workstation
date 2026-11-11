@@ -6,7 +6,9 @@ import type { QueuesMessage } from '@agentic-workstation/remote-protocol/agent-m
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import type {
   RunWire,
+  HistoryWire,
   ConversationWire,
+  MessageImageWire,
   ShelfScenarioWire,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
@@ -21,7 +23,8 @@ import type { MachineView, MirroredInventory } from './remote.types'
 /**
  * Данные IDE для экранов. Почти всё приходит само (зеркало в state/mirror.ts): запрос здесь
  * только наблюдает ключ (skipToken), а то, что смотреть, экран просит подпиской useWatch.
- * Спрашиваются по требованию только список пар (хранилище телефона) и полки сценариев.
+ * Спрашиваются по требованию список пар (хранилище телефона) и командой - полки сценариев,
+ * история проекта и картинка сообщения.
  */
 
 export const useMachines = () => {
@@ -101,5 +104,53 @@ export const useShelves = (agentId: string, projectKey: string) => {
       return (outcome.data as { scenarios: ShelfScenarioWire[] }).scenarios
     },
     staleTime: 30_000,
+  })
+}
+
+/** Прошлые разговоры проекта у провайдера - командой, по требованию экрана истории. */
+export const useHistory = (agentId: string, projectKey: string, provider: string) => {
+  const client = useClient()
+
+  return useQuery({
+    queryKey: queryKeys.history(agentId, projectKey, provider),
+    queryFn: async (): Promise<HistoryWire> => {
+      const outcome = await client.command(agentId, 'conversation.history', {
+        projectKey,
+        provider,
+      })
+
+      if (!outcome.ok) throw new CommandError(outcome)
+
+      return outcome.data as HistoryWire
+    },
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Картинка сообщения для просмотра - командой, когда её открыли. Картинка сообщения не
+ * меняется: однажды полученная лежит в кэше, пока страница жива.
+ */
+export const useMessageImage = (
+  agentId: string,
+  conversationId: string,
+  photo: { messageId: string; index: number } | null,
+) => {
+  const client = useClient()
+
+  return useQuery({
+    queryKey: queryKeys.image(agentId, conversationId, photo?.messageId ?? '', photo?.index ?? 0),
+    queryFn: photo
+      ? async (): Promise<MessageImageWire> => {
+          const outcome = await client.command(agentId, 'conversation.image', {
+            conversationId,
+            ...photo,
+          })
+
+          if (!outcome.ok) throw new CommandError(outcome)
+
+          return outcome.data as MessageImageWire
+        }
+      : skipToken,
   })
 }

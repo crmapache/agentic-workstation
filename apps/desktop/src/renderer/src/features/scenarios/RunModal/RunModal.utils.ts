@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import { answerLabel } from '@shared/scenario-rules'
-import type { RunState, ScenarioRun } from '@shared/scenario-runs'
+import type { RunStep, RunState, ScenarioRun } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
 
 import { formatCost, formatTokens, formatDuration } from '../scenarios-format.utils'
@@ -62,3 +62,10 @@ export const readingsOf = (t: TFunction, run: ScenarioRun, now: number): Scenari
  */
 export const runDescription = (queueName: string, inputs: Readonly<Record<string, string>>) =>
   [queueName, answerLabel(inputs, MARK_CHARS)].filter(Boolean).join(' · ')
+
+/**
+ * Шаг, на котором стоит вопрос прогона: его журнал - единственное место, где вызов виден
+ * целиком, когда подробности вопроса урезаны (truncated). Нет вопроса или шага - null.
+ */
+export const askingStep = (run: Pick<ScenarioRun, 'steps' | 'question'>): RunStep | null =>
+  run.question ? (run.steps.find((step) => step.key === run.question?.stepKey) ?? null) : null

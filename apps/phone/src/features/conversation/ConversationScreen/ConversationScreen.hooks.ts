@@ -10,30 +10,32 @@ import { useNow } from '../../../lib/now.hooks'
 import type { RouteOf } from '../../../lib/route.types'
 import { durationText } from '../../../lib/time.utils'
 import { useCommand } from '../../../state/commands.hooks'
-import {
-  useFeed,
-  useWatch,
-  useInventory,
-  useLinkStatus,
-  useConversation,
-} from '../../../state/remote.queries'
+import { useLoadEarlier } from '../../../state/feed.hooks'
+import { useFeed, useWatch, useInventory, useConversation } from '../../../state/remote.queries'
 import type { MirroredInventory } from '../../../state/remote.types'
 
 /**
- * Разговор: подписка у IDE (состояние и лента), команды хода и прилипание ленты к низу - пока
- * человек сам не пролистал вверх.
+ * Разговор: подписка у IDE (состояние и лента), команды хода, ранние сообщения по просьбе и
+ * прилипание ленты к низу - пока человек сам не пролистал вверх. Страница выше встаёт над лентой,
+ * а то, что человек читал, остаётся на месте: в iOS Safari якоря прокрутки нет, место держит
+ * расстояние до низа.
  */
 export const useConversationScreen = (route: RouteOf<'conversation'>) => {
   const { agentId, conversationId } = route
   const conversation = useConversation(agentId, conversationId).data
   const feed = useFeed(agentId, conversationId).data
   const inventory = useInventory(agentId).data
-  const link = useLinkStatus(agentId)
+  const earlier = useLoadEarlier(agentId, conversationId)
   const send = useCommand(agentId, 'conversation.send')
   const respond = useCommand(agentId, 'conversation.respond')
   const interrupt = useCommand(agentId, 'conversation.interrupt')
   const bodyRef = useRef<HTMLDivElement>(null)
   const isStuck = useRef(true)
+  /**
+   * Место перед страницей выше: расстояние до низа ленты и её первый элемент. Встала страница
+   * (первый элемент другой) - то же расстояние до низа; заплатка внизу место не трогает.
+   */
+  const held = useRef<{ fromBottom: number; firstId: string } | null>(null)
 
   useWatch(agentId, { kind: 'conversation', conversationId })
 
@@ -54,7 +56,16 @@ export const useConversationScreen = (route: RouteOf<'conversation'>) => {
   useLayoutEffect(() => {
     const body = bodyRef.current
 
-    if (body && isStuck.current) body.scrollTop = body.scrollHeight
+    if (!body) return
+
+    const place = held.current
+
+    if (place && feed?.items[0]?.id !== place.firstId) {
+      body.scrollTop = body.scrollHeight - place.fromBottom
+      held.current = null
+    } else if (isStuck.current) {
+      body.scrollTop = body.scrollHeight
+    }
   }, [feed, conversation?.status, conversation?.pending])
 
   const handleSend = async (text: string, images: PreparedImage[]): Promise<boolean> => {
@@ -79,17 +90,37 @@ export const useConversationScreen = (route: RouteOf<'conversation'>) => {
 
   const handleStop = () => interrupt.mutate({ conversationId })
 
+  const handleLoadEarlier = () => {
+    const body = bodyRef.current
+
+    if (earlier.isPending) return
+    if (body) {
+      held.current = {
+        fromBottom: body.scrollHeight - body.scrollTop,
+        firstId: feed?.items[0]?.id ?? '',
+      }
+    }
+
+    earlier.mutate(undefined, {
+      // Страница не пришла или не встала (ленту сменил снимок) - держать место нечему.
+      onSettled: (prepended) => {
+        if (!prepended) held.current = null
+      },
+    })
+  }
+
   return {
     conversation,
     feed,
     inventory,
-    link,
     bodyRef,
     isDeciding: respond.isPending,
     isStopping: interrupt.isPending,
+    isLoadingEarlier: earlier.isPending,
     handleSend,
     handleDecide,
     handleStop,
+    handleLoadEarlier,
   }
 }
 

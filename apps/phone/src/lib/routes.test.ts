@@ -21,6 +21,8 @@ const ROUTES: Route[] = [
   },
   { name: 'queue', agentId: AGENT, projectKey: PROJECT, queueId: 'q_1' },
   { name: 'run', agentId: AGENT, projectKey: PROJECT, runId: 'r-1' },
+  { name: 'board', agentId: AGENT },
+  { name: 'history', agentId: AGENT, projectKey: PROJECT },
 ]
 
 describe('адреса экранов', () => {
@@ -41,5 +43,12 @@ describe('адреса экранов', () => {
       projectKey: PROJECT,
     })
     expect(parentOf(ROUTES[2] as Route)).toEqual({ name: 'machines' })
+    // Доска всех очередей - экран машины; история - экран проекта.
+    expect(parentOf({ name: 'board', agentId: AGENT })).toEqual({ name: 'machines' })
+    expect(parentOf({ name: 'history', agentId: AGENT, projectKey: PROJECT })).toEqual({
+      name: 'project',
+      agentId: AGENT,
+      projectKey: PROJECT,
+    })
   })
 })

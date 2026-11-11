@@ -3,11 +3,11 @@ import { ListChecks } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
-import { Card } from '@agentic-workstation/ui/Card'
 import { TextArea } from '@agentic-workstation/ui/TextArea'
 
 import styles from '../PendingCard.module.scss'
 import type { PendingOf, PendingCardProps } from '../PendingCard.types'
+import { Dock } from '../../../../shell/Dock/Dock'
 import { Markdown } from '../../../../shell/Markdown/Markdown'
 import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
@@ -30,24 +30,14 @@ export const PlanCard = ({
     onDecide(pending.requestId, { kind: 'plan', approve: false, feedback: feedback.trim() })
   }
 
+  const handleApprove = () => onDecide(pending.requestId, { kind: 'plan', approve: true })
+
   return (
-    <Card tone="accent" icon={ListChecks} title={t('pending.plan.title')}>
-      <div className={styles.body}>
-        {pending.plan && (
-          <div className={styles.plan}>
-            <Markdown text={pending.plan} />
-          </div>
-        )}
-        {pending.truncated && <TooLongNote />}
-        {isRefining && (
-          <TextArea
-            label={t('pending.plan.feedback')}
-            placeholder={t('pending.plan.feedbackPlaceholder')}
-            value={feedback}
-            onChange={setFeedback}
-          />
-        )}
-        <div className={styles.actions}>
+    <Dock
+      icon={ListChecks}
+      title={t('pending.plan.title')}
+      actions={
+        <>
           <Button
             size="touch"
             variant="secondary"
@@ -56,16 +46,26 @@ export const PlanCard = ({
             {t(isRefining ? 'pending.plan.sendFeedback' : 'pending.plan.refine')}
           </Button>
           {!pending.truncated && (
-            <Button
-              size="touch"
-              variant="primary"
-              disabled={busy}
-              onClick={() => onDecide(pending.requestId, { kind: 'plan', approve: true })}>
+            <Button size="touch" variant="primary" disabled={busy} onClick={handleApprove}>
               {t('pending.plan.approve')}
             </Button>
           )}
+        </>
+      }>
+      {pending.truncated && <TooLongNote />}
+      {pending.plan && (
+        <div className={styles.plan}>
+          <Markdown text={pending.plan} />
         </div>
-      </div>
-    </Card>
+      )}
+      {isRefining && (
+        <TextArea
+          label={t('pending.plan.feedback')}
+          placeholder={t('pending.plan.feedbackPlaceholder')}
+          value={feedback}
+          onChange={setFeedback}
+        />
+      )}
+    </Dock>
   )
 }

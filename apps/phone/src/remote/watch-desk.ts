@@ -3,8 +3,13 @@ import type {
   FeedSnapshotMessage,
 } from '@agentic-workstation/remote-protocol/agent-messages'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
-import { applyFeedPatch, feedFromSnapshot } from '@agentic-workstation/remote-protocol/feed'
+import {
+  applyFeedPatch,
+  prependFeedPage,
+  feedFromSnapshot,
+} from '@agentic-workstation/remote-protocol/feed'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
+import type { FeedPageWire } from '@agentic-workstation/remote-protocol/wire-types'
 
 /** Что смотреть: разговор (лента и состояние), прогон или очереди проекта (`*` - все). */
 export type WatchTarget =
@@ -124,6 +129,21 @@ export class WatchDesk {
 
     this.resyncedAt.set(key, now)
     this.subscribe(agentId, { kind: 'conversation', conversationId: message.conversationId })
+  }
+
+  /**
+   * Страница выше от IDE: встаёт перед лентой, если та всё ещё начинается с before. false - ленты
+   * нет или её сменил снимок, пока страница шла: страница не к ней.
+   */
+  prepend(agentId: string, conversationId: string, before: string, page: FeedPageWire): boolean {
+    const view = this.feedOf(agentId, conversationId)
+    const next = view && prependFeedPage(view, before, page)
+
+    if (!next) return false
+
+    this.keep(agentId, next)
+
+    return true
   }
 
   /** Разговора больше нет: его лента не нужна. */

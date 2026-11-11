@@ -2,6 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import {
   modelWords,
+  pickOption,
   allAnswered,
   cannotReview,
   questionAnswers,
@@ -19,6 +20,12 @@ describe('ответы на вопрос хода', () => {
 
     expect(answers).toEqual({ 'Which?': 'my own', 'What else?': 'X, Y' })
     expect(allAnswered(answers)).toBe(true)
+  })
+
+  it('выбор варианта: один - заменяет прежний, несколько - включает и выключает', () => {
+    expect(pickOption(['A'], 'B', false)).toEqual(['B'])
+    expect(pickOption(['A'], 'B', true)).toEqual(['A', 'B'])
+    expect(pickOption(['A', 'B'], 'A', true)).toEqual(['B'])
   })
 
   it('без ответа на любой вопрос - отправить нельзя', () => {

@@ -6,7 +6,10 @@ import { Toast } from '@agentic-workstation/ui/Toast'
 import { useToastStore } from '../../state/toast.store'
 import styles from './Toasts.module.scss'
 
-/** Уведомления об отказах команд - над низом экрана, сами уходят через несколько секунд. */
+/**
+ * Уведомления об отказах команд - сразу над низом экрана (их ставит Screen), сами уходят через
+ * несколько секунд.
+ */
 export const Toasts = () => {
   const { t } = useTranslation()
   const toasts = useToastStore((state) => state.toasts)

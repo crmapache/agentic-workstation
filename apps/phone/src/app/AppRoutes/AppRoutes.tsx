@@ -1,5 +1,7 @@
 import { useRouter } from '../../lib/router.store'
+import { BoardScreen } from '../../features/board/BoardScreen/BoardScreen'
 import { ConversationScreen } from '../../features/conversation/ConversationScreen/ConversationScreen'
+import { HistoryScreen } from '../../features/history/HistoryScreen/HistoryScreen'
 import { MachinesScreen } from '../../features/machines/MachinesScreen/MachinesScreen'
 import { NewConversationScreen } from '../../features/new-conversation/NewConversationScreen/NewConversationScreen'
 import { PairingScreen } from '../../features/pairing/PairingScreen/PairingScreen'
@@ -17,6 +19,10 @@ export const AppRoutes = () => {
       return <PairingScreen />
     case 'project':
       return <ProjectScreen key={route.projectKey} route={route} />
+    case 'board':
+      return <BoardScreen key={route.agentId} route={route} />
+    case 'history':
+      return <HistoryScreen key={route.projectKey} route={route} />
     case 'newConversation':
       return <NewConversationScreen route={route} />
     case 'startScenario':

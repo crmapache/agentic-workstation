@@ -9,6 +9,8 @@ import { listProviders } from '../providers/provider-registry'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import { JsonFile } from '../storage/json-file'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import { findTranscript } from '../claude/history/transcript-paths'
+import { shrinkPicture } from '../claude/images/shrink-picture'
 import { relayUrlFor } from './relay-url'
 import { RemoteService } from './remote-service'
 import { REMOTE_FILE } from './remote.constants'
@@ -28,6 +30,21 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
   setOptions: (id, options) => claude.actions.setOptions(id, options),
   rename: (id, title) => claude.tabs.rename(id, title),
   providers: () => listProviders(claude),
+  history: (projectPath) => claude.listHistory(projectPath),
+  openHistory: async (projectPath, sessionId) => {
+    // Транскрипта нет - openHistory бросил бы; телефону это «не найдено», а не сбой.
+    if (!(await findTranscript(projectPath, sessionId))) return null
+
+    const state = await claude.openHistory(projectPath, sessionId)
+    const opened = state.conversations.find(
+      (conversation) =>
+        conversation.projectPath === projectPath && conversation.sessionId === sessionId,
+    )
+
+    return opened?.id ?? null
+  },
+  loadEarlier: (id) => claude.actions.loadEarlier(id),
+  image: (id, messageId, index) => claude.actions.getImage(id, messageId, index),
 })
 
 /** Сценарии для моста - методы ScenarioService, как у каналов окна (scenarios-handlers.ts). */
@@ -70,6 +87,7 @@ export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
       conversations: claudePort(setup.claude),
       scenarios: scenariosPort(setup.scenarios),
       workspace: setup.workspace,
+      pictures: { shrink: shrinkPicture },
     },
     relayUrl: relayUrlFor(process.env, app.isPackaged),
     machine: () => machine,

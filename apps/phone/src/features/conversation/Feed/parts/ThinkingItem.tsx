@@ -25,9 +25,7 @@ export const ThinkingItem = ({ item }: { item: FeedItemWire }) => {
         onClick={() => setIsOpen((open) => !open)}>
         <Brain size={ROW_ICON_SIZE} strokeWidth={ROW_ICON_STROKE} aria-hidden />
         <span className={styles.toolName}>{t('feed.thinking')}</span>
-        {tokens > 0 && (
-          <span className={styles.toolSummary}>{t('feed.tokens', { count: tokens })}</span>
-        )}
+        {tokens > 0 && <span className={styles.tokens}>{t('feed.tokens', { count: tokens })}</span>}
       </Disclosure>
       {isOpen && words && <p className={styles.thinking}>{words}</p>}
     </div>

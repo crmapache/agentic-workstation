@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { basename } from 'node:path'
 
 import type { WorkspaceState } from '@shared/workspace'
 
@@ -16,9 +17,12 @@ export const projectKey = (rootPath: string): string =>
 export class ProjectKeys {
   private readonly paths = new Map<string, string>()
   private readonly open = new Set<string>()
+  private readonly names = new Map<string, string>()
 
   constructor(workspace: WorkspaceState, extraPaths: readonly string[] = []) {
     for (const project of workspace.projects) this.open.add(project.rootPath)
+    for (const recent of workspace.recentProjects) this.names.set(recent.rootPath, recent.name)
+    for (const project of workspace.projects) this.names.set(project.rootPath, project.name)
 
     const known = [
       ...workspace.projects.map((project) => project.rootPath),
@@ -47,5 +51,13 @@ export class ProjectKeys {
 
   isOpen(rootPath: string): boolean {
     return this.open.has(rootPath)
+  }
+
+  /**
+   * Имя проекта - как его зовёт IDE (вкладка, недавние); проект, которого нет ни там, ни там
+   * (его очередь пережила и закрытие, и уход из недавних), - имя его папки, как на доске окна.
+   */
+  nameOf(rootPath: string): string {
+    return this.names.get(rootPath) ?? basename(rootPath)
   }
 }

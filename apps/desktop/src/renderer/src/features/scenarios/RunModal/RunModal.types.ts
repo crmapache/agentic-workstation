@@ -36,7 +36,16 @@ export type LimitStripProps = { limit: RunLimit }
 
 export type EndBannerProps = { run: ScenarioRun }
 
-export type RunQuestionCardProps = { place: RunPlace; runId: string; question: RunQuestion }
+export type RunQuestionCardProps = {
+  place: RunPlace
+  runId: string
+  question: RunQuestion
+  /**
+   * Открыть журнал шага, где спрошен вопрос: урезанные подробности там целиком. Нет - шага в
+   * записи прогона не нашлось, и кнопки нет.
+   */
+  onOpenLog?: (() => void) | undefined
+}
 
 /**
  * Где открывается таймлайн: present - на строке, где прогон сейчас; top - наверху то, что

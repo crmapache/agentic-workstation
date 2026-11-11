@@ -3,12 +3,12 @@ import { ShieldQuestion } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
-import { Card } from '@agentic-workstation/ui/Card'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
 import styles from '../PendingCard.module.scss'
 import type { PendingOf, PendingCardProps } from '../PendingCard.types'
 import { modelWords, cannotReview, permissionDetail } from '../PendingCard.utils'
+import { Dock } from '../../../../shell/Dock/Dock'
 import { PathText } from '../../../../shell/PathText/PathText'
 import { TooLongNote } from '../../../../shell/TooLongNote/TooLongNote'
 
@@ -36,51 +36,49 @@ export const PermissionCard = ({
       ...(message.trim() && { message: message.trim() }),
     })
 
+  const handleAllow = () => onDecide(pending.requestId, { kind: 'permission', allow: true })
+
   return (
-    <Card
-      tone="accent"
+    <Dock
       icon={ShieldQuestion}
       title={t('pending.permission.title', { tool: pending.toolName })}
-      description={pendingCount > 1 ? t('pending.more', { count: pendingCount - 1 }) : undefined}>
-      <div className={styles.body}>
-        {pending.description && pending.description !== detail && (
-          <p className={styles.lead}>
-            <PathText text={pending.description} />
-          </p>
-        )}
-        {detail && (
-          <pre className={styles.detail}>
-            <PathText text={detail} />
-          </pre>
-        )}
-        {said && (
-          <p className={styles.note}>
-            <span className={styles.header}>{t('pending.permission.modelSays')}</span> {said}
-          </p>
-        )}
-        {pending.reason && <p className={styles.note}>{pending.reason}</p>}
-        {blind && <TooLongNote />}
-        <TextField
-          label={t('pending.permission.instead')}
-          placeholder={t('pending.permission.insteadPlaceholder')}
-          value={message}
-          onChange={setMessage}
-        />
-        <div className={styles.actions}>
+      description={pendingCount > 1 ? t('pending.more', { count: pendingCount - 1 }) : undefined}
+      actions={
+        <>
           <Button size="touch" variant="danger" disabled={busy} onClick={handleDeny}>
             {t('pending.permission.deny')}
           </Button>
           {!blind && (
-            <Button
-              size="touch"
-              variant="primary"
-              disabled={busy}
-              onClick={() => onDecide(pending.requestId, { kind: 'permission', allow: true })}>
+            <Button size="touch" variant="primary" disabled={busy} onClick={handleAllow}>
               {t('pending.permission.allowOnce')}
             </Button>
           )}
-        </div>
-      </div>
-    </Card>
+        </>
+      }>
+      {blind && <TooLongNote />}
+      {pending.description && pending.description !== detail && (
+        <p className={styles.lead}>
+          <PathText text={pending.description} />
+        </p>
+      )}
+      {detail && (
+        <pre className={styles.detail}>
+          <PathText text={detail} />
+        </pre>
+      )}
+      {said && (
+        <p className={styles.note}>
+          <span className={styles.header}>{t('pending.permission.modelSays')}</span> {said}
+        </p>
+      )}
+      {pending.reason && <p className={styles.note}>{pending.reason}</p>}
+      <TextField
+        size="touch"
+        label={t('pending.permission.instead')}
+        placeholder={t('pending.permission.insteadPlaceholder')}
+        value={message}
+        onChange={setMessage}
+      />
+    </Dock>
   )
 }

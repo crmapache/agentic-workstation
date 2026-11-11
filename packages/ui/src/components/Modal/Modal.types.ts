@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 import type { BadgeTone } from '../Badge/Badge.types'
+import type { IconButtonSize } from '../IconButton/IconButton.types'
 
 /** md - форма в одну колонку, lg - подробности в две колонки. */
 export type ModalSize = 'md' | 'lg'
@@ -22,6 +23,8 @@ export type ModalProps = {
    */
   footer?: ReactNode | undefined
   closeLabel: string
+  /** Размер крестика: sm - окно IDE, touch - телефон (под палец). */
+  closeSize?: IconButtonSize | undefined
   /** Закрыли: крестик, Esc, щелчок мимо окна. */
   onClose: () => void
   /** Содержимое. Поле, которому фокус при открытии, - с data-autofocus (autoFocus не успеет). */

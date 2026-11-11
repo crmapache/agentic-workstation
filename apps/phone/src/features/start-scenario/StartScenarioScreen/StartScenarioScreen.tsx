@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
-import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import type { RouteOf } from '../../../lib/route.types'
 import { failureText } from '../../../state/commands.utils'
+import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import { Screen } from '../../../shell/Screen/Screen'
 import { useStartScenario } from './StartScenarioScreen.hooks'
 import styles from './StartScenarioScreen.module.scss'
@@ -24,6 +24,7 @@ export const StartScenarioScreen = ({ route }: { route: RouteOf<'startScenario'>
   return (
     <Screen
       title={t('start.title')}
+      agentId={route.agentId}
       help={{ title: t('start.help.title'), text: t('start.help.text') }}
       footer={
         <Button
@@ -34,7 +35,7 @@ export const StartScenarioScreen = ({ route }: { route: RouteOf<'startScenario'>
           {t('start.start')}
         </Button>
       }>
-      {shelves.isPending && <Spinner size="md" label={t('start.loading')} />}
+      {shelves.isPending && <LinkWait agentId={route.agentId} label={t('start.loading')} />}
       {shelves.isError && <p className={styles.error}>{failureText(t, shelves.error)}</p>}
       {shelves.data && <ScenarioPicker scenarios={shelves.data} start={start} />}
       {scenario && <ScenarioInputs scenario={scenario} start={start} />}

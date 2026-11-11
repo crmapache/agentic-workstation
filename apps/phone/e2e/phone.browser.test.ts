@@ -1,167 +1,88 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { Page, Browser } from 'playwright-core'
+import type { Page, Browser, BrowserContext } from 'playwright-core'
 import { chromium } from 'playwright-core'
 import { it, expect, afterAll, describe, beforeAll } from 'vitest'
 
 import type { FeedItem } from '@shared/claude-feed'
+import type { ScenarioQueue } from '@shared/scenario-queues'
 
-import { PROJECT_PATH, CONVERSATION_ID } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import {
+  QUEUE,
+  itemOf,
+  PROJECT_PATH,
+  CONVERSATION_ID,
+} from '../../desktop/src/main/remote/__fixtures__/fake-ide'
 import type { Harness } from './ide-harness'
 import { until, PERMISSION, startHarness } from './ide-harness'
+import {
+  boxOf,
+  SHOTS,
+  IPHONE,
+  shotOf,
+  richFeed,
+  VIEWPORT,
+  jpegWithExif,
+  screenshotPictures,
+} from './phone-page'
 
 /**
  * Телефон целиком в мобильном Chromium (390x844, касание): собранный клиент раздаёт настоящий
  * релей, по ту сторону - настоящий RemoteService с подделками сервисов IDE. Пара → Approve →
- * проекты → разговор → сообщение → живая заплатка → разрешение → запуск сценария → «остановить
- * после текущего» → прогон. Снимки каждого экрана - в .screenshots/phone-*.png.
+ * проекты → разговор (ранние сообщения, Stop в ряду поля, уведомление над низом, решение над
+ * полем) → запуск сценария → очередь → прогон; история, доска всех очередей, фото крупно; IDE
+ * не отвечает и отпустила телефон. Снимки каждого экрана - в .screenshots/phone-*.png, ровность
+ * рядов - замером рамок.
  */
 
 const DIST = join(import.meta.dirname, '..', 'dist')
-
-const SHOTS = join(import.meta.dirname, '..', '..', '..', '.screenshots')
-
-const IPHONE =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
-
-const richFeed: FeedItem[] = [
-  {
-    id: 't1',
-    kind: 'thinking',
-    text: 'The login form posts to the wrong endpoint.',
-    streaming: false,
-    tokens: 220,
-    parentToolUseId: null,
-  },
-  {
-    id: 'tool-1',
-    kind: 'tool',
-    name: 'Bash',
-    input: { command: 'pnpm test -- login', description: 'Run the login tests' },
-    status: 'done',
-    result: { text: '12 passed, 1 failed', isError: false, truncated: false },
-    startedAt: 1,
-    endedAt: 2,
-    closedReason: null,
-    parentToolUseId: null,
-  },
-  {
-    id: 'tool-2',
-    kind: 'tool',
-    name: 'Edit',
-    input: { file_path: '/Users/someone/Projects/secret-client/src/auth/login.ts' },
-    status: 'done',
-    result: {
-      text: 'ok',
-      isError: false,
-      truncated: false,
-      changeCounts: { added: 4, removed: 2 },
-    },
-    startedAt: 2,
-    endedAt: 3,
-    closedReason: null,
-    parentToolUseId: null,
-  },
-  {
-    id: 'a-rich',
-    kind: 'assistant',
-    text: 'Fixed the endpoint in `login.ts`:\n\n```ts\nconst url = `${api}/v2/login`\n```\n\n- tests pass\n- **no** other changes',
-    streaming: false,
-    parentToolUseId: null,
-  },
-  {
-    id: 'turn-1',
-    kind: 'turn',
-    durationMs: 81_000,
-    costUsd: 0.12,
-    isError: false,
-    interrupted: false,
-    changes: [
-      {
-        path: '/x/login.ts',
-        added: 4,
-        removed: 2,
-        created: false,
-        counted: true,
-        undoable: true,
-        reverted: false,
-        refusal: null,
-      },
-    ],
-    revertable: true,
-    parentToolUseId: null,
-  },
-]
-
-/**
- * Фото с камеры как оно есть: JPEG, нарисованный самим Chromium, и сегмент APP1 с EXIF сразу за
- * началом файла - там, где камера пишет место съёмки.
- */
-const jpegWithExif = async (): Promise<Buffer> => {
-  const dataUrl = await page.evaluate(() => {
-    const canvas = document.createElement('canvas')
-
-    canvas.width = 64
-    canvas.height = 48
-    canvas.getContext('2d')?.fillRect(8, 8, 32, 24)
-
-    return canvas.toDataURL('image/jpeg', 0.9)
-  })
-  const jpeg = Buffer.from(dataUrl.split(',')[1] ?? '', 'base64')
-  const exif = Buffer.concat([
-    Buffer.from('Exif\0\0MM\0*\0\0\0\x08', 'latin1'),
-    Buffer.from('GPSLatitude 9.9281 N, GPSLongitude 84.0907 W, SECRET-PLACE'),
-  ])
-  const segment = Buffer.alloc(4)
-
-  segment.writeUInt16BE(0xffe1, 0)
-  segment.writeUInt16BE(exif.length + 2, 2)
-
-  return Buffer.concat([jpeg.subarray(0, 2), segment, exif, jpeg.subarray(2)])
-}
 
 let ide: Harness
 
 let browser: Browser
 
+let context: BrowserContext
+
 let page: Page
+
+let shot: (name: string) => Promise<void>
 
 const errors: string[] = []
 
-const shot = async (name: string) => {
-  await page.waitForTimeout(150)
-  await page.screenshot({ path: join(SHOTS, `phone-${name}.png`) })
+/** Ряд под пальцем: у всех одна высота цели касания и одна середина. */
+const expectOneRow = async (...selectors: string[]) => {
+  const boxes = await Promise.all(selectors.map((selector) => boxOf(page, selector)))
+  const [first] = boxes
+
+  for (const box of boxes) {
+    expect(Math.abs(box.middle - (first?.middle ?? 0))).toBeLessThanOrEqual(1)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBe(first?.height)
+  }
 }
 
-/** Центр по вертикали - для сверки рядов (поле и кнопки, заголовок и кнопки шапки). */
-const middle = async (selector: string, parent = false) =>
-  page
-    .locator(selector)
-    .first()
-    .evaluate((element, up) => {
-      const box = ((up ? element.parentElement : element) ?? element).getBoundingClientRect()
-
-      return { middle: box.top + box.height / 2, height: box.height }
-    }, parent)
+const back = () => page.getByRole('button', { name: 'Back' }).click()
 
 beforeAll(async () => {
   mkdirSync(SHOTS, { recursive: true })
   ide = await startHarness({ staticDir: DIST })
   browser = await chromium.launch({ headless: true })
-
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
+  context = await browser.newContext({
+    viewport: VIEWPORT,
     deviceScaleFactor: 3,
     isMobile: true,
     hasTouch: true,
     userAgent: IPHONE,
   })
-
   page = await context.newPage()
+  shot = shotOf(page)
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text())
+    // Картинка, которую не дали, и сокет, оборванный при выключенной IDE, - ожидаемы.
+    if (message.type() === 'error' && !/WebSocket|ERR_/.test(message.text())) {
+      errors.push(message.text())
+    }
   })
 })
 
@@ -171,7 +92,7 @@ afterAll(async () => {
 })
 
 describe('телефон в мобильном Chromium против настоящей IDE', () => {
-  it('пара, проекты, разговор, разрешение, сценарий, остановка после текущего', async () => {
+  it('пара, проект, разговор: ранние сообщения, Stop у поля, решение над полем, сценарий, прогон', async () => {
     // Пара: код из QR, фрагмент стёрт из адреса, отпечатки на экране.
     await page.goto(ide.pairingUrl())
     expect(page.url()).toBe(`${ide.pageUrl}/pair`)
@@ -179,6 +100,7 @@ describe('телефон в мобильном Chromium против насто�
     await expect
       .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
       .toBe(true)
+    expect((await boxOf(page, 'input', true)).height).toBe(44)
     await shot('01-pairing')
 
     const phoneKey = await page.locator('code').nth(1).textContent()
@@ -192,21 +114,40 @@ describe('телефон в мобильном Chromium против насто�
     expect(pending.fingerprint).toBe(phoneKey)
     expect(pending.label).toBe('iPhone')
 
-    // Машины и проекты.
+    // Машины и проекты; доска всех очередей - строкой машины.
     await page.getByRole('heading', { name: 'My IDEs' }).waitFor()
     await page.getByRole('button', { name: /secret-client/ }).waitFor()
+    await page.getByRole('button', { name: /All queues/ }).waitFor()
     await page.getByText('Online').waitFor()
     await shot('03-machines')
 
-    // Проект: разговоры и очереди.
+    // Проект: разговоры, прошлые разговоры, очереди; главные действия - в низу, в одном ряду.
     await page.getByRole('button', { name: /secret-client/ }).click()
     await page.getByRole('button', { name: /Fix the login bug/ }).waitFor()
     await page.getByRole('button', { name: /Cleanup/ }).waitFor()
+    await page.getByRole('button', { name: /Past conversations/ }).waitFor()
+    expect(await page.locator('header').getByRole('button').count()).toBe(2)
+    await expectOneRow(
+      'footer button:has-text("New conversation")',
+      'footer button:has-text("Start a scenario")',
+    )
     await shot('04-project')
 
-    // Разговор: снимок ленты, сообщение, живая заплатка.
+    // Разговор: в транскрипте выше снимка есть ещё - страницей по кнопке.
+    ide.ide.feed.hasEarlier = true
+    ide.ide.earlier.push(
+      itemOf('e0', 'Earlier: the bug shows up only on the staging server.'),
+      itemOf('e1', 'Earlier: staging uses the v2 API.'),
+    )
     await page.getByRole('button', { name: /Fix the login bug/ }).click()
     await page.getByText('Hi! How can I help?').waitFor()
+    await shot('05a-load-earlier')
+    await page.getByRole('button', { name: 'Load earlier messages' }).click()
+    await page.getByText('Earlier: staging uses the v2 API.').waitFor()
+    await page.getByRole('button', { name: 'Load earlier messages' }).waitFor({ state: 'detached' })
+    await shot('05a-earlier-loaded')
+
+    // Сообщение и живая заплатка.
     await page.getByRole('textbox', { name: 'Message' }).fill('Run the tests please')
     await page.getByRole('button', { name: 'Send' }).click()
     await until(
@@ -235,28 +176,66 @@ describe('телефон в мобильном Chromium против насто�
     })
     await page.getByText('Fixed the endpoint in').waitFor()
     await page.getByText('+4', { exact: true }).waitFor()
-
-    const field = await middle('textarea')
-    const send = await middle('button[aria-label="Send"]')
-
-    expect(Math.abs(field.middle - send.middle)).toBeLessThanOrEqual(1)
-    expect(field.height).toBe(send.height)
     await page.getByText('Tasks 1 of 3').waitFor()
 
-    // Шапка: «назад», заголовок и кнопки справа - по одной линии.
-    const back = await middle('header button[aria-label="Back"]')
-    const titles = await middle('header h1', true)
-    const settings = await middle('header button[aria-label="Conversation settings"]')
+    // Счётчик токенов мысли - кеглем счётчика и тише текста.
+    const tokens = page.getByText('220 tokens')
 
-    expect(Math.abs(back.middle - settings.middle)).toBeLessThanOrEqual(1)
-    expect(back.height).toBe(44)
-    expect(Math.abs(titles.middle - back.middle)).toBeLessThanOrEqual(1)
+    expect(await tokens.evaluate((element) => getComputedStyle(element).fontSize)).toBe('13.75px')
+
+    // Шапка: «назад», заголовок и «настройки» по одной линии; Stop в шапке больше нет.
+    const backBox = await boxOf(page, 'header button[aria-label="Back"]')
+    const titles = await boxOf(page, 'header h1', true)
+    const settings = await boxOf(page, 'header button[aria-label="Conversation settings"]')
+
+    expect(Math.abs(backBox.middle - settings.middle)).toBeLessThanOrEqual(1)
+    expect(backBox.height).toBe(44)
+    expect(Math.abs(titles.middle - backBox.middle)).toBeLessThanOrEqual(1)
+    expect(await page.locator('header').getByRole('button', { name: 'Stop' }).count()).toBe(0)
+    await expectOneRow('textarea', 'button[aria-label="Send"]')
     await shot('05-conversation')
 
-    // Разрешение: «один раз», без «всегда».
+    // Ход идёт: Stop - в ряду поля, рядом с «отправить», той же высоты.
+    ide.update({ status: 'running', turnStartedAt: Date.now(), workStartedAt: Date.now() })
+    await page.getByRole('button', { name: 'Stop', exact: true }).waitFor()
+    await expectOneRow(
+      'button[aria-label="Add a photo"]',
+      'textarea',
+      'footer button:has-text("Stop")',
+      'button[aria-label="Send"]',
+    )
+    await shot('05b-running-stop')
+    await page.getByRole('button', { name: 'Stop', exact: true }).click()
+    await until(() => ide.ide.calls.find((call) => call.name === 'interrupt'), 'stop at the IDE')
+
+    // Отказ IDE - уведомлением сразу над низом экрана, а не поверх поля и кнопок.
+    const { interrupt } = ide.ide.ports.conversations
+
+    ide.ide.ports.conversations.interrupt = () => {
+      throw new Error('the CLI did not answer')
+    }
+    await page.getByRole('button', { name: 'Stop', exact: true }).click()
+    await page.getByText('Something went wrong in the IDE.').waitFor()
+
+    const toasts = await boxOf(page, 'footer [role="status"]')
+    const footer = await boxOf(page, 'footer')
+
+    expect(footer.top - toasts.bottom).toBeGreaterThanOrEqual(4)
+    expect(footer.top - toasts.bottom).toBeLessThanOrEqual(12)
+    await shot('05c-toast')
+    ide.ide.ports.conversations.interrupt = interrupt
+    await page.getByRole('button', { name: 'Dismiss' }).click()
+    ide.update({ status: 'idle', turnStartedAt: null, workStartedAt: null })
+    await page.getByRole('button', { name: 'Stop', exact: true }).waitFor({ state: 'detached' })
+
+    // Разрешение над полем: «один раз», без «всегда»; кнопки - на виду, внутри карточки.
     ide.ask()
     await page.getByText('Allow Bash?').waitFor()
     expect(await page.getByRole('button', { name: /always/i }).count()).toBe(0)
+    await expectOneRow('button:has-text("Deny")', 'button:has-text("Allow once")')
+    expect(
+      (await boxOf(page, 'input[placeholder="Optional, sent if you deny"]', true)).height,
+    ).toBe(44)
     await shot('06-permission')
     await page.getByRole('button', { name: 'Allow once' }).click()
     await until(
@@ -270,19 +249,21 @@ describe('телефон в мобильном Chromium против насто�
     ])
     await page.getByText('Allow Bash?').waitFor({ state: 'detached' })
 
-    // Настройки разговора: модель и усилие.
+    // Настройки разговора: модель; крестик окна - под палец.
     await page.getByRole('button', { name: 'Conversation settings' }).click()
     await page.getByRole('radio', { name: /Sonnet 5/ }).click()
     await until(
       () => ide.ide.calls.find((call) => call.name === 'setOptions'),
       'model change at the IDE',
     )
+    expect((await boxOf(page, 'dialog[open] button[aria-label="Close"]')).height).toBe(44)
+    expect((await boxOf(page, 'dialog[open] input', true)).height).toBe(44)
     await shot('07-conversation-settings')
-    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
 
     // Новый разговор: только разрешённые режимы.
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'New conversation' }).first().click()
+    await back()
+    await page.getByRole('button', { name: 'New conversation' }).click()
     await page.getByRole('radio', { name: /Plan first/ }).waitFor()
     expect(
       await page
@@ -295,7 +276,7 @@ describe('телефон в мобильном Chromium против насто�
       expect.stringContaining('Plan first'),
     ])
     await shot('08-new-conversation')
-    await page.getByRole('button', { name: 'Back' }).click()
+    await back()
 
     // Запуск сценария в новой очереди.
     await page.getByRole('button', { name: 'Start a scenario' }).click()
@@ -315,9 +296,23 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('heading', { name: 'Tidy src' }).waitFor()
     await shot('10-queue-new')
 
-    // Очередь с идущим прогоном: «остановить после текущего».
-    await page.getByRole('button', { name: 'Back' }).click()
+    // Очередь с идущим прогоном и ждущим элементом: прошедшие - строками, ждущий - карточкой.
+    const waiting = {
+      ...(QUEUE.items[0] as ScenarioQueue['items'][number]),
+      id: 'i9',
+      scenarioName: 'Write the changelog',
+      inputs: { since: 'v0.4.0' },
+      runId: '',
+      state: 'waiting' as const,
+    }
+
+    ide.ide.queues.queues = ide.ide.queues.queues.map((queue) =>
+      queue.id === 'q1' ? { ...queue, items: [...queue.items, waiting] } : queue,
+    )
+    ide.service.queuesChanged()
+    await back()
     await page.getByRole('button', { name: /Cleanup/ }).click()
+    await page.getByRole('region', { name: 'Write the changelog' }).waitFor()
     await page.getByRole('button', { name: 'Stop after this' }).click()
     await until(
       () =>
@@ -332,29 +327,67 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByText('Stops here').waitFor()
     await shot('11-queue-stop-after')
 
-    // Прогон: вопрос головы.
-    await page.getByRole('button', { name: 'Open the run' }).first().click()
+    // Прошедший или идущий элемент - строка целиком ведёт в его прогон.
+    await page
+      .getByRole('listitem')
+      .getByRole('button', { name: /Tidy up/ })
+      .click()
     await page.getByText('Delete old files?').waitFor()
+
+    // Прогон: вопрос головы над полем, пауза и стоп - рядом под пальцем, в шапке их нет.
+    await expectOneRow('footer button:has-text("Pause")', 'footer button:has-text("Stop")')
+    await expectOneRow('button:has-text("Refuse")', 'button:has-text("Allow")')
+    expect(await page.locator('header').getByRole('button').count()).toBe(2)
+
+    const stage = page.getByRole('heading', { name: 'Look around' })
+
+    expect(await stage.evaluate((element) => getComputedStyle(element).textTransform)).toBe('none')
     await shot('12-run')
 
     expect(errors).toEqual([])
   })
 
-  it('устаревший экран, длинный вызов, урезанный вопрос, карточка, метки папок, фото без EXIF, забыть IDE', async () => {
+  it('история, доска очередей, длинный вызов, урезанный вопрос, карточка, фото, забыть IDE', async () => {
     // Ответ голове прогона - с опознанием вопроса, что на экране: IDE кладёт его на этот вопрос.
-    await page.getByRole('button', { name: 'Allow' }).click()
+    await page.getByRole('button', { name: 'Allow', exact: true }).click()
     await until(
       () => ide.ide.calls.find((call) => call.name === 'scenarios.answer'),
       'run answer at the IDE',
     )
 
+    // Прошлые разговоры проекта: открыть - вкладка в IDE и обычный разговор на телефоне.
+    await back()
+    await back()
+    await page.getByRole('button', { name: /Past conversations/ }).click()
+    await page.getByRole('button', { name: /Refactor/ }).waitFor()
+    await page.getByText('{project}', { exact: true }).first().waitFor()
+    expect(await page.getByText(PROJECT_PATH).count()).toBe(0)
+    await shot('17-history')
+    await page.getByRole('button', { name: /Refactor/ }).click()
+    await until(() => ide.ide.calls.find((call) => call.name === 'openHistory'), 'history opened')
+    await page.getByText('Hi! How can I help?').waitFor()
+    await back()
+    await back()
+    await back()
+
+    // Доска всех очередей машины: по проектам, строка ведёт в очередь.
+    await page.getByRole('heading', { name: 'My IDEs' }).waitFor()
+    await page.getByRole('button', { name: /All queues/ }).click()
+    await page.getByRole('heading', { name: 'All queues' }).waitFor()
+    await page.getByRole('region', { name: 'secret-client' }).waitFor()
+    await page.getByText('1 needs you').waitFor()
+    await shot('18-board')
+    await page.getByRole('button', { name: /Cleanup/ }).click()
+    await page.getByRole('heading', { name: 'Cleanup' }).waitFor()
+    await back()
+    await back()
+
     // В разговор.
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'Back' }).click()
+    await page.getByRole('button', { name: /secret-client/ }).click()
     await page.getByRole('button', { name: /Fix the login bug/ }).click()
     await page.getByText('Hi! How can I help?').waitFor()
 
-    // Длинная команда - целиком: хвост за безобидным началом виден; слова модели - отдельно.
+    // Длинная команда - целиком в прокручиваемом теле карточки; кнопки решения не уходят за край.
     ide.ask({
       ...PERMISSION,
       requestId: 'perm-long',
@@ -367,6 +400,14 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByText('The model says').waitFor()
     await page.getByText('Print a long line').waitFor()
     expect(await page.getByRole('button', { name: 'Allow once' }).count()).toBe(1)
+
+    const allow = await boxOf(page, 'button:has-text("Allow once")')
+    const dock = await boxOf(page, 'footer section[aria-label="Allow Bash?"]')
+    const field = await boxOf(page, 'textarea')
+
+    expect(allow.bottom).toBeLessThanOrEqual(dock.bottom)
+    expect(dock.bottom).toBeLessThanOrEqual(field.top)
+    expect(dock.height).toBeLessThanOrEqual(VIEWPORT.height * 0.45 + 1)
     await shot('13-permission-long')
     await page.getByRole('button', { name: 'Deny' }).click()
     await until(
@@ -433,7 +474,7 @@ describe('телефон в мобильном Chromium против насто�
     await page.locator('input[type="file"]').setInputFiles({
       name: 'photo.jpg',
       mimeType: 'image/jpeg',
-      buffer: await jpegWithExif(),
+      buffer: await jpegWithExif(page),
     })
     await page.getByRole('textbox', { name: 'Message' }).fill('Here is the photo')
     await page.getByRole('button', { name: 'Send' }).click()
@@ -453,20 +494,98 @@ describe('телефон в мобильном Chromium против насто�
     expect(bytes.includes('Exif')).toBe(false)
     expect(bytes.includes('SECRET-PLACE')).toBe(false)
 
+    // Фото сообщения крупно: тяжелее кадра - IDE уменьшает его под экран и говорит об этом.
+    const pictures = await screenshotPictures(page)
+
+    ide.ide.images.set('u-shot:0', pictures.full)
+    ide.ide.ports.pictures = { shrink: () => pictures.reduced }
+    ide.push({
+      id: 'u-shot',
+      kind: 'user',
+      text: 'This is what I see',
+      time: Date.now(),
+      images: [{ thumbnail: pictures.thumbnail }],
+      steering: false,
+      parentToolUseId: null,
+    })
+    await page.getByRole('button', { name: 'Open photo 1' }).last().click()
+    await page.getByText('Reduced to fit the phone. The original is in the IDE.').waitFor()
+    expect(
+      await page.locator('dialog[open] img').evaluate((image) => (image as HTMLImageElement).src),
+    ).toBe(pictures.reduced)
+    // Окно ещё доигрывает появление (масштаб) - высота с точностью до долей пикселя.
+    expect((await boxOf(page, 'dialog[open] button[aria-label="Close"]')).height).toBeCloseTo(44, 0)
+    await shot('16-photo')
+    await page.locator('dialog[open]').getByRole('button', { name: 'Close' }).click()
+
     // Ход остановили - на телефоне это видно словом, а не просто «свободен».
     ide.update({ status: 'idle', pending: null, pendingCount: 0, outcome: 'interrupted' })
     await page.getByText('Stopped', { exact: true }).first().waitFor()
 
     // «Забыть IDE» на телефоне - IDE отзывает его у себя тоже.
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'Back' }).click()
+    await back()
+    await back()
     await page.getByRole('heading', { name: 'My IDEs' }).waitFor()
     await page.getByRole('button', { name: 'Forget' }).first().click()
     await page.getByRole('dialog').getByRole('button', { name: 'Forget' }).click()
     await until(() => ide.service.view().devices.length === 0, 'the IDE releasing the phone')
     await page.getByText('No IDE paired yet').waitFor()
-    await shot('16-forgotten')
+    await shot('19-forgotten')
 
     expect(errors).toEqual([])
   })
+
+  it('IDE не отвечает: пусто с «переподключить», потом устаревшее с полосой; отпустила - полоса', async () => {
+    await page.goto(ide.pairingUrl())
+    await expect
+      .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
+      .toBe(true)
+    await page.getByRole('button', { name: 'Pair' }).click()
+    await ide.approve()
+    await page.getByRole('button', { name: /secret-client/ }).click()
+    await page.getByRole('button', { name: /Fix the login bug/ }).waitFor()
+
+    const projectUrl = page.url()
+
+    // IDE ушла с релея, страница открыта заново: данных нет - не вечная крутилка, а «переподключить».
+    ide.service.setEnabled(false)
+    await page.goto(projectUrl)
+    await page.getByText('The IDE is not answering', { exact: true }).waitFor({ timeout: 30_000 })
+    await page.getByText('What you see may be out of date').waitFor()
+    expect((await boxOf(page, 'button:has-text("Reconnect")')).height).toBe(44)
+    await shot('20-offline-empty')
+
+    ide.service.setEnabled(true)
+    await until(() => ide.service.view().state === 'connected', 'IDE back on the relay', 15_000)
+    // Телефон и сам повторяет рукопожатие раз в 20 с: успел раньше нажатия - кнопки уже нет.
+    const reconnect = page.getByRole('button', { name: 'Reconnect' })
+
+    if (await reconnect.isVisible()) await reconnect.click()
+    await page.getByRole('button', { name: /Fix the login bug/ }).waitFor({ timeout: 20_000 })
+    await page.getByText('What you see may be out of date').waitFor({ state: 'detached' })
+
+    // IDE снова пропала, а экран с данными: данные остаются, полоса говорит, что они устарели.
+    ide.service.setEnabled(false)
+    await page.getByText('What you see may be out of date').waitFor({ timeout: 60_000 })
+    expect(await page.getByRole('button', { name: /Fix the login bug/ }).count()).toBe(1)
+    await shot('21-offline-stale')
+
+    // IDE отпустила телефон: полоса тоном сбоя на любом экране этой IDE. Сначала - снова на
+    // связи (переподключить с экрана машин, не дожидаясь часов): отзыв приходит запечатанным.
+    ide.service.setEnabled(true)
+    await until(() => ide.service.view().state === 'connected', 'IDE back again', 15_000)
+    await back()
+
+    const again = page.getByRole('button', { name: 'Reconnect' })
+
+    if (await again.isVisible()) await again.click()
+    await page.getByText('Online').waitFor({ timeout: 30_000 })
+    await page.getByRole('button', { name: /secret-client/ }).click()
+    await page.getByRole('button', { name: /Fix the login bug/ }).waitFor()
+    ide.service.revoke(ide.service.view().devices[0]?.id ?? '')
+    await page.getByText('The IDE released this phone. Pair again to control it.').waitFor()
+    await shot('22-revoked')
+
+    expect(errors).toEqual([])
+  }, 240_000)
 })

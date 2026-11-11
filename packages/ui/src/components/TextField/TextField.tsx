@@ -16,6 +16,7 @@ export const TextField = ({
   value,
   onChange,
   icon: Icon,
+  size = 'md',
   error,
   type = 'text',
   ref,
@@ -31,7 +32,7 @@ export const TextField = ({
       <label htmlFor={id} className={clsx(styles.label, hideLabel && styles.hidden)}>
         {label}
       </label>
-      <div className={clsx(styles.box, error && styles.invalid)}>
+      <div className={clsx(styles.box, styles[size], error && styles.invalid)}>
         {Icon && (
           <Icon
             className={styles.icon}

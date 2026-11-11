@@ -4,8 +4,9 @@ import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire
 import { Badge } from '@agentic-workstation/ui/Badge'
 
 import { conversationBadge } from '../../../../lib/status.constants'
+import { StatusLine } from '../../../../shell/StatusLine/StatusLine'
 
-/** Под заголовком разговора: состояние (или чем кончился ход) и модель с усилием. */
+/** Под заголовком разговора: состояние (или чем кончился ход), за ним модель с усилием. */
 export const ConversationSubtitle = ({
   conversation,
   model,
@@ -15,17 +16,13 @@ export const ConversationSubtitle = ({
 }) => {
   const { t } = useTranslation()
   const badge = conversationBadge(conversation)
+  const text = [
+    model,
+    conversation.effort &&
+      t(`effort.${conversation.effort}`, { defaultValue: conversation.effort }),
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
-  return (
-    <>
-      <Badge tone={badge.tone}>{t(badge.key)}</Badge>
-      {[
-        model,
-        conversation.effort &&
-          t(`effort.${conversation.effort}`, { defaultValue: conversation.effort }),
-      ]
-        .filter(Boolean)
-        .join(' · ')}
-    </>
-  )
+  return <StatusLine badge={<Badge tone={badge.tone}>{t(badge.key)}</Badge>} text={text} />
 }

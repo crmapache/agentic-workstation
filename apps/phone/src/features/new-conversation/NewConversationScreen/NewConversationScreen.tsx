@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next'
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
-import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { modeOptions, modelOptions, effortOptions } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { useRouter } from '../../../lib/router.store'
 import { useCommand } from '../../../state/commands.hooks'
 import { useInventory } from '../../../state/remote.queries'
+import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import { OptionList } from '../../../shell/OptionList/OptionList'
 import { Screen } from '../../../shell/Screen/Screen'
 import styles from './NewConversationScreen.module.scss'
@@ -60,6 +60,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
     <Screen
       title={t('newConversation.title')}
       subtitle={project?.name}
+      agentId={agentId}
       help={{ title: t('newConversation.help.title'), text: t('newConversation.help.text') }}
       footer={
         <Button
@@ -70,7 +71,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
           {t('newConversation.create')}
         </Button>
       }>
-      {!inventory && <Spinner size="md" label={t('project.loading')} />}
+      {!inventory && <LinkWait agentId={agentId} label={t('project.loading')} />}
       {inventory && !provider && <p className={styles.note}>{t('newConversation.noProvider')}</p>}
       {provider && (
         <>

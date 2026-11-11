@@ -1,41 +1,14 @@
-@use '@agentic-workstation/ui/mixins' as *;
-
 .items {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.item {
+// Ждущий элемент: «только после успеха» и кнопки под ним.
+.waiting {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-surface-panel);
-}
-
-.itemHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.itemName {
-  @include truncate;
-
-  flex: 1;
-  color: var(--color-fg);
-  font-size: var(--font-size-md);
-}
-
-.itemMeta {
-  margin: 0;
-  color: var(--color-fg-muted);
-  font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
 }
 
 .itemActions {
@@ -57,14 +30,9 @@
   font-size: var(--font-size-sm);
 }
 
-// Кнопки прогона: короткие (пауза, стоп) - поровну в ряд, длинные подписи - каждая во всю
-// ширину: в половину экрана телефона «Keep going after this» не влезает.
+// Кнопки прогона - по две в ряд поровну; длинная подпись переносится внутри своей кнопки.
 .runActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
-
-  > :nth-child(n + 3) {
-    grid-column: 1 / -1;
-  }
 }

@@ -6,16 +6,14 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { Card } from '@agentic-workstation/ui/Card'
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
-import { Section } from '@agentic-workstation/ui/Section'
-import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import type { RouteOf } from '../../../lib/route.types'
+import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import { Screen } from '../../../shell/Screen/Screen'
 import { TextDialog } from '../../../shell/TextDialog/TextDialog'
 import { useQueueScreen } from './QueueScreen.hooks'
-import styles from './QueueScreen.module.scss'
 import { CurrentRun } from './parts/CurrentRun'
-import { QueueItemCard } from './parts/QueueItemCard'
+import { QueueItems } from './parts/QueueItems'
 
 /**
  * Очередь сценариев: идущий прогон (пауза, продолжить, стоп, остановиться после него), элементы
@@ -31,11 +29,11 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
 
   if (!message || !queue) {
     return (
-      <Screen title={t('queue.title')} help={help}>
+      <Screen title={t('queue.title')} agentId={route.agentId} help={help}>
         {message ? (
           <EmptyState icon={ListX} title={t('queue.gone')} />
         ) : (
-          <Spinner size="md" label={t('project.loadingQueues')} />
+          <LinkWait agentId={route.agentId} label={t('project.loadingQueues')} />
         )}
       </Screen>
     )
@@ -43,12 +41,12 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
 
   const where =
     queue.workdir.kind === 'worktree' ? queue.workdir.gitBranch : t('queue.projectFolder')
-  const waiting = queue.items.filter((item) => item.state === 'waiting')
 
   return (
     <Screen
       title={queue.name}
       subtitle={where}
+      agentId={route.agentId}
       help={help}
       actions={
         <IconButton
@@ -72,21 +70,7 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
         </Card>
       )}
       {run && <CurrentRun route={route} queue={queue} run={run} screen={screen} />}
-      <Section size="sm" title={t('queue.items')} count={queue.items.length}>
-        <div className={styles.items}>
-          {queue.items.map((item) => (
-            <QueueItemCard
-              key={item.id}
-              route={route}
-              queue={queue}
-              item={item}
-              position={waiting.indexOf(item)}
-              waitingCount={waiting.length}
-              screen={screen}
-            />
-          ))}
-        </div>
-      </Section>
+      <QueueItems route={route} queue={queue} screen={screen} />
       <TextDialog
         key={isRenaming ? queue.name : 'closed'}
         open={isRenaming}
