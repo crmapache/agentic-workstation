@@ -33,7 +33,8 @@ export type PopupState = {
 }
 
 export type PopupRequest =
-  | { type: 'popup:state' }
+  /** retry - окно только что открыли: попробовать связи, которых не было (раз, а не на каждую перерисовку). */
+  | { type: 'popup:state'; retry?: boolean }
   | { type: 'popup:rename'; name: string }
   | { type: 'popup:stop'; channel: HostChannel; sessionId: string }
   | { type: 'popup:copy'; tabId: number }

@@ -37,6 +37,12 @@ const utf8Length = (text: string): number => {
 const RETRY_MIN_MS = 1000
 const RETRY_MAX_MS = 30_000
 
+/**
+ * Проба host, которого не было (окно значка открыли), - не чаще раза в пять секунд: проба меняет
+ * состояние связи, окно перерисовывается, и без паузы проба и перерисовка качали бы друг друга.
+ */
+export const PROBE_EVERY_MS = 5_000
+
 export type LinkDeps = {
   hello: () => Promise<HelloMessage>
   handle: (request: RequestMessage, link: HostLink) => Promise<unknown>
@@ -59,6 +65,7 @@ export class HostLink {
   private port: chrome.runtime.Port | null = null
   private retryMs = RETRY_MIN_MS
   private retryTimer: ReturnType<typeof setTimeout> | undefined
+  private probedAt = Number.NEGATIVE_INFINITY
 
   constructor(
     readonly channel: HostChannel,
@@ -78,7 +85,10 @@ export class HostLink {
     if (this.port) return
 
     clearTimeout(this.retryTimer)
-    this.setState('connecting')
+
+    // Проба отсутствующего host - тихая: строка такой связи в окне скрыта, и «Connecting» на
+    // мгновение показал бы её и снова спрятал. Нашёлся host - состояние скажут его сообщения.
+    if (this.state !== 'host-missing') this.setState('connecting')
 
     const port = chrome.runtime.connectNative(HOST_NAMES[this.channel])
 
@@ -90,8 +100,12 @@ export class HostLink {
   }
 
   /** Окно значка открыли: host, которого не было, мог появиться. */
-  retry(): void {
-    if (this.state === 'host-missing' || this.state === 'host-error') this.connect()
+  retry(now = Date.now()): void {
+    if (this.state !== 'host-missing' && this.state !== 'host-error') return
+    if (now - this.probedAt < PROBE_EVERY_MS) return
+
+    this.probedAt = now
+    this.connect()
   }
 
   send(message: ExtensionToIde): void {

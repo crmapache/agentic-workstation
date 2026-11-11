@@ -88,8 +88,10 @@ const links: HostLink[] = HOST_CHANNELS.map(
 const linkOf = (channel: HostChannel): HostLink | undefined =>
   links.find((link) => link.channel === channel)
 
-const popupState = async (): Promise<PopupState> => {
-  for (const link of links) link.retry()
+const popupState = async (retry: boolean): Promise<PopupState> => {
+  // Только при открытии окна: перерисовка по «изменилось» не пробует связи заново, иначе проба
+  // меняла бы состояние, окно перерисовывалось и пробовало снова - окно дёргалось без конца.
+  if (retry) for (const link of links) link.retry()
 
   const [profile, [active]] = await Promise.all([
     loadProfile(),
@@ -106,13 +108,13 @@ const popupState = async (): Promise<PopupState> => {
 const answerPopup = async (request: PopupRequest): Promise<unknown> => {
   switch (request.type) {
     case 'popup:state':
-      return popupState()
+      return popupState(request.retry === true)
     case 'popup:rename': {
       const profile = await renameProfile(request.name)
 
       broadcast({ type: 'event', name: 'profile-renamed', data: { name: profile.name } })
 
-      return popupState()
+      return popupState(false)
     }
     case 'popup:stop':
       linkOf(request.channel)?.send({

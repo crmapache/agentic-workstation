@@ -153,7 +153,8 @@ const render = (state: PopupState): void => {
   )
 }
 
-const refresh = () => void ask<PopupState>({ type: 'popup:state' }).then(render)
+/** retry - только при открытии окна: перерисовка по «изменилось» связи не пробует. */
+const refresh = (retry = false) => void ask<PopupState>({ type: 'popup:state', retry }).then(render)
 
 chrome.runtime.onMessage.addListener((message: { type?: string }) => {
   // Поле имени в фокусе - не перерисовывать: человек печатает.
@@ -162,4 +163,4 @@ chrome.runtime.onMessage.addListener((message: { type?: string }) => {
   }
 })
 
-refresh()
+refresh(true)
