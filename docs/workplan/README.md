@@ -212,3 +212,12 @@
   работают агенты: вид статистики с графиками, расширение Chrome, Remote Control (релей, сторона
   IDE, протокол `packages/remote-protocol`, окно пары). Дальше - телефонный клиент `apps/phone` и
   выкладка релея (сам, скилл `infra`).
+- ~23:00. Выкладка релея, подготовка (разрешено владельцем): DNS A
+  `agentic-workstation-relay.mzpizote.com` → 40.160.85.25, без проксирования - создано и отвечает.
+  Coolify: проект `aw-relay` (uuid `vwvgbxhzphqn3aipsgvwxxlp`), приложение `aw-relay` типа Docker
+  Image (uuid `ojppnmftlrocnhnua1xtmiaq`), образ `127.0.0.1:5000/aw-relay:local`, порт 4460, домен
+  https://agentic-workstation-relay.mzpizote.com, проверка `/healthz`; НЕ выкачено (образа нет).
+  Чистка логов 7 дней: uuid добавлен в `/etc/cron.d/relay-log-retention`. Дальше - скрипт
+  `apps/relay/scripts/relay-deploy.sh` по образцу `amazing-codex/scripts/relay-deploy.sh` (проверка,
+  что uuid ведёт на приложение с нашим доменом и образом `aw-relay`; каталог `/root/apps/aw-relay`),
+  клиент телефона собирается локально в `apps/relay/public`, потом запись в скилл `infra`.
