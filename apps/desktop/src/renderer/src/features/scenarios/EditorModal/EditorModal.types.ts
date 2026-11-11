@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
 
-import type { ModelInfo } from '@shared/claude'
 import type { ScenarioProblem } from '@shared/scenario-rules'
 import type {
   CardSlot,
@@ -175,9 +174,6 @@ export type RunsOnProps = {
   fallback: RunsOnFallback
   onChange: (patch: Partial<RunsOnValue>) => void
 }
-
-/** Модели провайдера: каталог CLI и свои, добавленные человеком в настройках панели. */
-export type ModelCatalog = { catalog: readonly ModelInfo[]; custom: readonly string[] }
 
 /** Меню MODEL по группам: основные сразу, старые версии - в свёрнутой группе, свои - следом. */
 export type ModelMenu = { main: PickerOption[]; older: PickerOption[]; custom: PickerOption[] }

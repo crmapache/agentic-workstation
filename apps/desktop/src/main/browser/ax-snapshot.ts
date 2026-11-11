@@ -2,7 +2,9 @@
  * Снимок страницы для модели (ADR 0040): дерево доступности Chrome
  * (`Accessibility.getFullAXTree`) текстом, как у Playwright MCP, - роль, имя, состояние и
  * короткая ссылка на элемент `[ref=e12]`. По ссылке инструменты кликают и печатают: она
- * указывает на узел DOM (backendDOMNodeId) этого снимка. Чистая функция - держит тест.
+ * указывает на узел DOM (backendDOMNodeId) этого снимка. Дерево доступности у каждого фрейма
+ * своё: содержимое iframe встаёт под его строкой `- iframe "…" [frame=f2]`, а ссылки его
+ * элементов несут фрейм - `f2e7`. Чистая функция - держит тест.
  */
 
 export type AxValue = { type?: string; value?: unknown }
@@ -19,11 +21,33 @@ export type AxNode = {
   backendDOMNodeId?: number
 }
 
+/**
+ * Дерево доступности одного документа. frames - деревья его iframe по backendDOMNodeId
+ * элемента iframe: null - фрейм не прочесть (ушёл, недоступен), записи нет - ещё не читали.
+ */
+export type AxTree = {
+  /** f1, f2… - приставка ссылок фрейма; у главного - пусто. */
+  id: string
+  nodes: readonly AxNode[]
+  frames: Map<number, AxTree | null>
+}
+
+/** Элемент снимка: фрейм (его id, у главного - пусто) и узел DOM. */
+export type AxRef = { frame: string; node: number }
+
+/** iframe, который встал в снимок, а его дерево ещё не прочитано: tree - где стоит элемент. */
+export type PendingFrame = { tree: AxTree; owner: number }
+
 export type AxSnapshot = {
   text: string
-  /** Ссылка `e12` → backendDOMNodeId. */
-  refs: Map<string, number>
+  /** Ссылка `e12` или `f2e12` → фрейм и backendDOMNodeId. */
+  refs: Map<string, AxRef>
   truncated: boolean
+  /**
+   * Фреймы, которые попали в снимок без содержимого, по порядку: их стоит прочесть и собрать
+   * снимок заново. Не попавшие в предел объёма сюда не идут - читать их незачем.
+   */
+  pending: PendingFrame[]
 }
 
 /** Обёртки без смысла: их дети встают на их место. */
@@ -33,6 +57,9 @@ const WRAPPERS = new Set(['generic', 'none', 'presentation', 'Section', 'group',
 const SKIPPED = new Set(['InlineTextBox', 'LineBreak'])
 
 const TEXT = 'StaticText'
+
+/** Роли элемента iframe в дереве Chrome: в снимке он - `iframe`, под ним - его документ. */
+const FRAME_ROLES = new Set(['Iframe', 'IframePresentational'])
 
 /** У этих ролей значение - то, что набрано: его модель должна видеть. */
 const VALUE_ROLES = new Set(['textbox', 'searchbox', 'combobox', 'spinbutton', 'slider'])
@@ -95,16 +122,35 @@ const attributesOf = (node: AxNode, role: string): string[] => {
   return attributes
 }
 
-type Walk = {
-  byId: Map<string, AxNode>
-  /** Уже разобранные узлы: битое дерево с циклом не уводит обход по кругу. */
-  visited: Set<string>
+/** Общее на весь снимок: строки, ссылки, объём - один предел на все фреймы. */
+type Output = {
   lines: string[]
-  refs: Map<string, number>
+  refs: Map<string, AxRef>
+  pending: PendingFrame[]
   chars: number
   truncated: boolean
   maxChars: number
 }
+
+/** Обход одного документа: его узлы и счёт его ссылок. */
+type Walk = {
+  tree: AxTree
+  byId: Map<string, AxNode>
+  /** Уже разобранные узлы: битое дерево с циклом не уводит обход по кругу. */
+  visited: Set<string>
+  count: number
+}
+
+const walkOf = (tree: AxTree): Walk => ({
+  tree,
+  byId: new Map(tree.nodes.map((node) => [node.nodeId, node])),
+  visited: new Set(),
+  count: 0,
+})
+
+/** Корень документа - узел без родителя в этом дереве. */
+const rootOf = (walk: Walk): AxNode | undefined =>
+  walk.tree.nodes.find((node) => !node.parentId || !walk.byId.has(node.parentId))
 
 /**
  * Узлы, которые показываются вместо детей узла: сам ребёнок или дети пустой обёртки - по
@@ -158,30 +204,52 @@ const textRuns = (children: AxNode[], parentName: string): (AxNode | string)[] =
   return runs.filter((run) => typeof run !== 'string' || run !== parentName)
 }
 
-const push = (walk: Walk, line: string): boolean => {
-  if (walk.chars + line.length + 1 > walk.maxChars) {
-    walk.truncated = true
+const push = (out: Output, line: string): boolean => {
+  if (out.chars + line.length + 1 > out.maxChars) {
+    out.truncated = true
 
     return false
   }
 
-  walk.lines.push(line)
-  walk.chars += line.length + 1
+  out.lines.push(line)
+  out.chars += line.length + 1
 
   return true
 }
 
-const printNode = (walk: Walk, node: AxNode, depth: number): void => {
-  if (walk.truncated) return
+/** Новая ссылка элемента документа: e12 в главном, f2e12 во фрейме f2. */
+const refFor = (out: Output, walk: Walk, node: number): string => {
+  walk.count += 1
+
+  const ref = `${walk.tree.id}e${walk.count}`
+
+  out.refs.set(ref, { frame: walk.tree.id, node })
+
+  return ref
+}
+
+/** Имя документа фрейма - его заголовок: iframe без title подписывается им. */
+const titleOf = (tree: AxTree): string => {
+  const walk = walkOf(tree)
+
+  return stringOf(rootOf(walk)?.name)
+}
+
+const printNode = (out: Output, walk: Walk, node: AxNode, depth: number): void => {
+  if (out.truncated) return
 
   if (depth > SNAPSHOT_MAX_DEPTH) {
-    walk.truncated = true
+    out.truncated = true
 
     return
   }
 
-  const role = stringOf(node.role) || 'generic'
-  const name = stringOf(node.name)
+  const backend = node.backendDOMNodeId
+  const isFrame = FRAME_ROLES.has(stringOf(node.role))
+  // undefined - фрейм ещё не читали, null - прочесть нельзя.
+  const frame = isFrame && backend !== undefined ? walk.tree.frames.get(backend) : null
+  const role = isFrame ? 'iframe' : stringOf(node.role) || 'generic'
+  const name = stringOf(node.name) || (frame ? titleOf(frame) : '')
   const runs = textRuns(visibleChildren(walk, node), name)
   const indent = '  '.repeat(depth)
   let line = `${indent}- ${role}`
@@ -190,65 +258,86 @@ const printNode = (walk: Walk, node: AxNode, depth: number): void => {
 
   for (const attribute of attributesOf(node, role)) line += ` [${attribute}]`
 
-  if (node.backendDOMNodeId !== undefined) {
-    const ref = `e${walk.refs.size + 1}`
+  if (backend !== undefined) line += ` [ref=${refFor(out, walk, backend)}]`
 
-    walk.refs.set(ref, node.backendDOMNodeId)
-    line += ` [ref=${ref}]`
-  }
+  if (frame) line += ` [frame=${frame.id}]`
 
   const value = VALUE_ROLES.has(role) ? stringOf(node.value) : ''
   const [onlyText] = runs
 
   if (value) {
     line += `: "${clip(value, VALUE_MAX)}"`
-  } else if (runs.length === 1 && typeof onlyText === 'string' && onlyText.length <= INLINE_MAX) {
-    push(walk, `${line}: ${onlyText}`)
+  } else if (
+    !isFrame &&
+    runs.length === 1 &&
+    typeof onlyText === 'string' &&
+    onlyText.length <= INLINE_MAX
+  ) {
+    push(out, `${line}: ${onlyText}`)
 
     return
   }
 
-  if (!push(walk, line)) return
+  if (!push(out, line)) return
+
+  if (isFrame && frame === undefined && backend !== undefined) {
+    out.pending.push({ tree: walk.tree, owner: backend })
+  }
 
   for (const run of runs) {
-    if (walk.truncated) return
+    if (out.truncated) return
 
     if (typeof run === 'string') {
-      if (!push(walk, `${indent}  - text: ${clip(run, VALUE_MAX * 2)}`)) return
+      if (!push(out, `${indent}  - text: ${clip(run, VALUE_MAX * 2)}`)) return
     } else {
-      printNode(walk, run, depth + 1)
+      printNode(out, walk, run, depth + 1)
     }
+  }
+
+  if (frame) printDocument(out, walkOf(frame), depth + 1)
+}
+
+/**
+ * Документ - его содержимое с отступом depth. Корень (документ) не печатается: у страницы его
+ * имя - заголовок, он и так в шапке ответа, у фрейма - имя строки iframe.
+ */
+const printDocument = (out: Output, walk: Walk, depth: number): void => {
+  const root = rootOf(walk)
+
+  if (!root) return
+
+  walk.visited.add(root.nodeId)
+
+  const indent = '  '.repeat(depth)
+
+  for (const run of textRuns(visibleChildren(walk, root), stringOf(root.name))) {
+    if (out.truncated) return
+
+    if (typeof run === 'string') push(out, `${indent}- text: ${clip(run, VALUE_MAX * 2)}`)
+    else printNode(out, walk, run, depth)
   }
 }
 
 /**
- * Дерево доступности - текстом. Корень (документ) не печатается: его имя - заголовок
- * страницы, он и так в шапке ответа. Длиннее предела - обрезается с пометкой.
+ * Дерево доступности - текстом, с прочитанными фреймами на местах их iframe. Длиннее предела
+ * (один на все фреймы) - обрезается с пометкой.
  */
-export const formatAxSnapshot = (
-  nodes: readonly AxNode[],
-  maxChars = SNAPSHOT_MAX_CHARS,
-): AxSnapshot => {
-  const byId = new Map(nodes.map((node) => [node.nodeId, node]))
-  const root = nodes.find((node) => !node.parentId || !byId.has(node.parentId))
-  const walk: Walk = {
-    byId,
-    visited: new Set(root ? [root.nodeId] : []),
+export const formatAxSnapshot = (tree: AxTree, maxChars = SNAPSHOT_MAX_CHARS): AxSnapshot => {
+  const out: Output = {
     lines: [],
     refs: new Map(),
+    pending: [],
     chars: 0,
     truncated: false,
     maxChars,
   }
 
-  if (root) {
-    for (const run of textRuns(visibleChildren(walk, root), stringOf(root.name))) {
-      if (walk.truncated) break
+  printDocument(out, walkOf(tree), 0)
 
-      if (typeof run === 'string') push(walk, `- text: ${clip(run, VALUE_MAX * 2)}`)
-      else printNode(walk, run, 0)
-    }
+  return {
+    text: out.lines.join('\n'),
+    refs: out.refs,
+    truncated: out.truncated,
+    pending: out.pending,
   }
-
-  return { text: walk.lines.join('\n'), refs: walk.refs, truncated: walk.truncated }
 }

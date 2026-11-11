@@ -24,6 +24,17 @@ const tabIdOf = (value: unknown): number => {
   return value
 }
 
+/** Фрейм другого процесса для команды: id фрейма строкой или ничего (сама вкладка). */
+const frameOf = (value: unknown): string | undefined => {
+  if (value === undefined || value === null) return undefined
+
+  if (typeof value !== 'string' || !value) {
+    throw new MethodError('bad-request', 'frame must be a frame id.')
+  }
+
+  return value
+}
+
 const tabIdsOf = (value: unknown): number[] => {
   if (!Array.isArray(value)) throw new MethodError('bad-request', 'tabIds must be a list.')
 
@@ -52,8 +63,13 @@ export const createMethods = (deps: MethodDeps) => {
     return deps.debuggers.detach(tabId)
   }
 
-  const cdp = async (tabId: number, method: string, params: Record<string, unknown>) => {
-    const result = await deps.debuggers.send(tabId, method, params)
+  const cdp = async (
+    tabId: number,
+    method: string,
+    params: Record<string, unknown>,
+    frame: string | undefined,
+  ) => {
+    const result = await deps.debuggers.send(tabId, method, params, frame)
 
     // Полное дерево длинной страницы - десятки мегабайт: IDE получает прореженное (ax-prune).
     if (method === 'Accessibility.getFullAXTree') {
@@ -103,11 +119,14 @@ export const createMethods = (deps: MethodDeps) => {
       }
       case 'debugger.detach':
         return detachFrom(tabIdOf(request.params.tabId), channel)
+      case 'debugger.frames':
+        return deps.debuggers.frames(tabIdOf(request.params.tabId))
       case 'cdp':
         return cdp(
           tabIdOf(request.params.tabId),
           String(request.params.method),
           request.params.params ?? {},
+          frameOf(request.params.frame),
         )
       case 'overlay.frame':
         return deps.overlay.frame(

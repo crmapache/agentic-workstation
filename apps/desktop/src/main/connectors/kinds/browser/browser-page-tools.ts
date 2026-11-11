@@ -168,7 +168,7 @@ export const BROWSER_PAGE_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'evaluate',
     description:
-      'Run JavaScript in the page and return the value as JSON (promises are awaited). Without ref - an expression, like document.title. With ref - a function that gets the element, like (el) => el.outerHTML.',
+      'Run JavaScript in the page and return the value as JSON (promises are awaited). Without ref - an expression in the main frame, like document.title. With ref - a function that gets the element and runs in its frame, like (el) => el.outerHTML.',
     access: 'write',
     inputSchema: schema({ ...TAB_PROPERTY, expression: { type: 'string' }, ...REF_PROPERTY }, [
       'expression',

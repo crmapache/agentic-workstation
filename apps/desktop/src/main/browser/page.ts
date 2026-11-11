@@ -1,13 +1,24 @@
-import type { TabInfo, CursorAction } from '@agentic-workstation/browser-protocol/protocol'
+import type {
+  TabInfo,
+  FrameTarget,
+  CursorAction,
+} from '@agentic-workstation/browser-protocol/protocol'
 
 import { BrowserError } from './browser-error'
 import type { HubPort } from './browser-hub'
 import type { HeldTab } from './browser-sessions'
+import type { ElementRef } from './frame-refs'
 
 /** Ожидание загрузки после перехода: по событию страницы или по состоянию вкладки. */
 export type LoadWaiters = {
   wait: (key: string, timeoutMs: number) => Promise<boolean>
 }
+
+/**
+ * Куда и сколько ждать: frame - id фрейма другого процесса (его сессия отладчика), без него -
+ * сама вкладка.
+ */
+export type CdpOptions = { timeoutMs?: number | undefined; frame?: string | undefined }
 
 /**
  * Одна вкладка агента для инструмента: команды CDP, курсор и ссылки последнего снимка. Живёт
@@ -26,30 +37,54 @@ export class Page {
   /**
    * Команда CDP. Расширение ответило «отладчик не подключён», хотя мы его подключали, - его
    * сняли без нас: вторая IDE отпустила ту же вкладку, сервис-воркер расширения перезапустился.
-   * Тогда один раз подключиться заново и повторить; второй отказ - уже ответ.
+   * Тогда один раз подключиться заново и повторить; второй отказ - уже ответ. Фреймы других
+   * процессов расширение подключает заново вместе с вкладкой, и их id не меняются.
    */
   async cdp<T = Record<string, unknown>>(
     method: string,
     params: Record<string, unknown> = {},
-    timeoutMs?: number,
+    options: CdpOptions = {},
   ): Promise<T> {
     try {
-      return await this.send<T>(method, params, timeoutMs)
+      return await this.send<T>(method, params, options)
     } catch (error) {
       if (!(error instanceof BrowserError) || error.code !== 'not-attached') throw error
 
       this.tab.attached = false
       await this.reattach()
 
-      return this.send<T>(method, params, timeoutMs)
+      return this.send<T>(method, params, options)
     }
   }
 
-  private send<T>(method: string, params: Record<string, unknown>, timeoutMs?: number) {
+  /**
+   * Фреймы вкладки, которые живут в своём процессе. Расширение старой сборки этого не умеет -
+   * тогда их нет: фреймы процесса страницы снимаются и без него.
+   */
+  async frameTargets(): Promise<FrameTarget[]> {
+    try {
+      return (
+        await this.hub.request(
+          this.tab.profileKey,
+          'debugger.frames',
+          { tabId: this.tab.tabId },
+          { signal: this.signal },
+        )
+      ).frames
+    } catch (error) {
+      if (error instanceof BrowserError && error.code === 'bad-request') return []
+
+      throw error
+    }
+  }
+
+  private send<T>(method: string, params: Record<string, unknown>, options: CdpOptions) {
+    const { timeoutMs, frame } = options
+
     return this.hub.request(
       this.tab.profileKey,
       'cdp',
-      { tabId: this.tab.tabId, method, params },
+      { tabId: this.tab.tabId, method, params, ...(frame ? { frame } : {}) },
       { signal: this.signal, ...(timeoutMs ? { timeoutMs } : {}) },
     ) as Promise<T>
   }
@@ -66,23 +101,24 @@ export class Page {
   }
 
   /**
-   * Узел DOM по ссылке снимка; ссылки нет - модель берёт свежий снимок. Ссылки сбрасываются и
-   * при смене адреса вкладки: узлы старой страницы указали бы на чужие элементы.
+   * Элемент по ссылке снимка: узел DOM и его фрейм; ссылки нет - модель берёт свежий снимок.
+   * Ссылки сбрасываются и при смене адреса вкладки: узлы старой страницы указали бы на чужие
+   * элементы.
    */
-  nodeOf(ref: string): number {
-    const node = this.tab.refs.get(ref)
+  elementOf(ref: string): ElementRef {
+    const element = this.tab.refs.get(ref)
 
-    if (node === undefined) {
+    if (element === undefined) {
       throw new BrowserError(
         'bad-request',
         `Element ${ref} is not in the latest snapshot of this tab (the page may have changed or navigated since). Take a new snapshot.`,
       )
     }
 
-    return node
+    return element
   }
 
-  setRefs(refs: Map<string, number>): void {
+  setRefs(refs: Map<string, ElementRef>): void {
     this.tab.refs = refs
   }
 

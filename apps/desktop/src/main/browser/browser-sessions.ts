@@ -1,6 +1,7 @@
 import type { SessionSummary } from '@agentic-workstation/browser-protocol/protocol'
 
 import type { ConsoleEntry } from './console-log'
+import type { ElementRef } from './frame-refs'
 
 /** Вкладка, которую держит сессия агента. */
 export type HeldTab = {
@@ -28,8 +29,8 @@ export type HeldTab = {
    * заново, и вкладка с прежней меткой - уже не наша, даже если такой id снова есть.
    */
   launch: string
-  /** Ссылки последнего снимка: e12 → backendDOMNodeId. */
-  refs: Map<string, number>
+  /** Ссылки последнего снимка: e12 и f2e7 → узел DOM и его фрейм. */
+  refs: Map<string, ElementRef>
   console: ConsoleEntry[]
   lastUsed: number
 }

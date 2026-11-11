@@ -10,8 +10,9 @@ import {
 import { ArgumentError } from '../native-tools'
 import type { NativeCall } from '../native-tools'
 import type { AgentCall, WantedTab } from '../../../browser/browser-agent'
+import { REF_PATTERN } from '../../../browser/frame-refs'
 import type { Page } from '../../../browser/page'
-import type { Target } from '../../../browser/page-actions'
+import type { Target } from '../../../browser/page-nodes'
 import { realPathInside } from '../../../browser/project-files'
 
 /** Вызов инструмента → вызов агента браузера: процесс, его разговор, проект и папка работы. */
@@ -54,17 +55,19 @@ export const tabArg = (args: Record<string, unknown>): WantedTab | undefined => 
   )
 }
 
-/** Ссылка на элемент из снимка: e12. */
+/** Ссылка на элемент из снимка: e12, во фрейме - f2e7. */
 export function refArg(args: Record<string, unknown>, required: true): string
 export function refArg(args: Record<string, unknown>, required?: false): string | undefined
 export function refArg(args: Record<string, unknown>, required = false): string | undefined {
   const value = args['ref']
 
-  if (typeof value === 'string' && /^e\d+$/.test(value.trim())) return value.trim()
+  if (typeof value === 'string' && REF_PATTERN.test(value.trim())) return value.trim()
 
   if ((value === undefined || value === null || value === '') && !required) return undefined
 
-  throw new ArgumentError('"ref" must be an element ref from the snapshot, like e12.')
+  throw new ArgumentError(
+    '"ref" must be an element ref from the snapshot, like e12 (or f2e7 inside a frame).',
+  )
 }
 
 /** Точка в CSS-пикселях окна страницы; задана только одна координата - ошибка. */
@@ -164,7 +167,10 @@ export const TAB_PROPERTY = {
 } as const
 
 export const REF_PROPERTY = {
-  ref: { type: 'string', description: 'Element ref from the latest snapshot, like e12.' },
+  ref: {
+    type: 'string',
+    description: 'Element ref from the latest snapshot, like e12 (f2e7 - inside frame f2).',
+  },
 } as const
 
 export const POINT_PROPERTIES = {

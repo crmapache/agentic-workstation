@@ -1,12 +1,11 @@
 import type { GitChanges } from '@shared/git'
-import type { ProviderInfo } from '@shared/providers'
 import type { ScenarioQueue, ScenarioStartOutcome } from '@shared/scenario-queues'
 import type { Scenario, ScenarioInput } from '@shared/scenarios'
 
 import type { LaunchWhere, ScenarioPick, LaunchFailure, LaunchRequest } from './LaunchModal.types'
 
 /**
- * Арифметика окна запуска: какой сценарий выбран, кто провайдер по умолчанию, куда ставить,
+ * Арифметика окна запуска: какой сценарий выбран, куда ставить,
  * что сказать про незакоммиченное и почему не вышло.
  */
 
@@ -43,10 +42,6 @@ export const shelvesOf = (
 /** Вопросы, которые задают: безымянный в промпт не вписать (так же считает missingInputs). */
 export const askedInputs = (scenario: Scenario): ScenarioInput[] =>
   scenario.inputs.filter((input) => input.name.trim())
-
-/** Провайдер по умолчанию: первый, что на месте, иначе первый - пусть скажет, почему его нет. */
-export const defaultProvider = (providers: readonly ProviderInfo[]): ProviderInfo | null =>
-  providers.find((one) => one.available) ?? providers[0] ?? null
 
 /** «Куда» на сейчас: выбранная очередь закрылась или ещё не пришла - новая очередь. */
 export const currentWhere = (where: LaunchWhere, queues: readonly ScenarioQueue[]): LaunchWhere =>

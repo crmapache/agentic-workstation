@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { Zap, FilePen, ShieldOff, ShieldCheck, ClipboardList } from 'lucide-react'
 
-import type { ModelInfo, PermissionMode } from '@shared/claude'
+import type { PermissionMode } from '@shared/claude'
 import { MAX_CARD_RETRIES, MAX_STAGE_REPEAT } from '@shared/scenarios'
 
 import type { ModeTone } from './EditorModal.types'
@@ -76,13 +76,6 @@ export const DEFAULT_MODEL_VALUE = 'default'
 
 /** Сколько моделей каталога показывать сразу; остальные (старые версии) - в свёрнутой группе. */
 export const MAIN_MODELS = 4
-
-/** Пока CLI не прислал каталог - семьи, которые он знает всегда. */
-export const FALLBACK_MODELS: readonly ModelInfo[] = [
-  { value: 'opus', displayName: 'Opus', description: '' },
-  { value: 'sonnet', displayName: 'Sonnet', description: '' },
-  { value: 'haiku', displayName: 'Haiku', description: '' },
-]
 
 /** Где редактор открывается: имя и полка - первое, что проверяют у нового. */
 export const FIRST_PLACE = { part: 'name' } as const

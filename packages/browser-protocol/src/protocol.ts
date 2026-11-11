@@ -47,6 +47,9 @@ export type GroupInfo = {
   collapsed: boolean
 }
 
+/** Фрейм другого процесса, к которому подключён отладчик вкладки: id фрейма и его адрес. */
+export type FrameTarget = { frameId: string; url: string }
+
 /** Что сделать курсором в точке: только подъехать или ещё и показать нажатие. */
 export type CursorAction = 'move' | 'click' | 'double' | 'right'
 
@@ -72,15 +75,26 @@ export type BrowserMethods = {
   'tabs.close': { params: { tabIds: number[] }; result: null }
   /** Вывести вкладки из группы - чужие вкладки, которые человек перетащил в группу агента. */
   'tabs.ungroup': { params: { tabIds: number[] }; result: null }
+  /**
+   * Подключить отладчик. Расширение сразу подключается и к фреймам других процессов вкладки
+   * (Target.setAutoAttach с flatten, вложенные - тоже): без этого их содержимое не увидеть и
+   * не нажать.
+   */
   'debugger.attach': { params: { tabId: number }; result: null }
   'debugger.detach': { params: { tabId: number }; result: null }
   /**
-   * Сырая команда CDP во вкладке с подключённым отладчиком. Accessibility.getFullAXTree
-   * расширение отдаёт прореженным и с пометкой truncated (AxTreeResult): полное дерево длинной
-   * страницы - десятки мегабайт, а модели нужно начало.
+   * Фреймы вкладки, которые живут в своём процессе (cross-origin iframe): к ним отладчик
+   * подключён отдельной сессией. id цели такого фрейма = id фрейма в CDP.
+   */
+  'debugger.frames': { params: { tabId: number }; result: { frames: FrameTarget[] } }
+  /**
+   * Сырая команда CDP во вкладке с подключённым отладчиком. frame - id фрейма другого процесса
+   * (из debugger.frames): команда уходит в его сессию; без него - в саму вкладку.
+   * Accessibility.getFullAXTree расширение отдаёт прореженным и с пометкой truncated
+   * (AxTreeResult): полное дерево длинной страницы - десятки мегабайт, а модели нужно начало.
    */
   cdp: {
-    params: { tabId: number; method: string; params: Record<string, unknown> }
+    params: { tabId: number; method: string; params: Record<string, unknown>; frame?: string }
     result: unknown
   }
   /** Рамка по краю страницы, пока агент держит вкладку. */
@@ -128,6 +142,8 @@ export type BrowserErrorCode =
   | 'no-window'
   | 'attach-failed'
   | 'not-attached'
+  /** Фрейма другого процесса больше нет (ушёл, удалён): его элементы - из нового снимка. */
+  | 'no-frame'
   | 'cdp'
   | 'overlay'
   | 'bad-request'

@@ -100,12 +100,39 @@ const BIG = `<!doctype html><title>Big</title>${Array.from(
   (_, index) => `<p>Paragraph ${index} with a few words of text in it</p>`,
 ).join('')}`
 
+/**
+ * Документ фрейма: кнопка, поле, список и кнопка наведения - всё, что инструменты делают по
+ * ссылке. nested - адрес фрейма внутри него.
+ */
+const frameDoc = (name: string, nested = '') => `<!doctype html><title>${name} doc</title>
+<body style="margin:0;padding:8px">
+<button onclick="document.getElementById('out').textContent = 'Pressed ${name}'">Press ${name}</button>
+<p id="out">Idle ${name}</p>
+<label>Field ${name} <input id="field"></label>
+<label>Size ${name} <select id="size"><option value="s">Small</option><option value="l">Large</option></select></label>
+<button onmouseover="this.textContent = 'Hovered ${name}'">Hover ${name}</button>
+${nested ? `<iframe title="Deep frame" src="${nested}" style="margin:12px 0 0 24px;width:380px;height:150px;border:2px solid #000"></iframe>` : ''}`
+
+/**
+ * Страница с фреймами: свой (тот же адрес) - в процессе страницы, с localhost - в своём
+ * процессе (127.0.0.1 и localhost - разные сайты), а в нём - фрейм с 127.0.0.1, снова свой
+ * процесс относительно родителя. Чужой фрейм - ниже первого экрана: до него надо прокрутить.
+ * Рамки и поля у iframe - чтобы место фрейма считалось от содержимого, а не от края.
+ */
+const framesPage = (cross: string) => `<!doctype html><title>Frames</title><body style="margin:0">
+<h1 style="margin:30px">Frames</h1>
+<iframe title="Same frame" src="/frame-same" style="margin-left:40px;width:420px;height:200px;border:6px solid #000;padding:9px"></iframe>
+<div style="height:900px"></div>
+<iframe title="Cross frame" src="${cross}/frame-cross" style="margin-left:15px;width:440px;height:360px;border:3px solid #000;padding:4px"></iframe>`
+
 const PAGES: Record<string, string> = {
   '/second': SECOND,
   '/blue': BLUE,
   '/modal': MODAL,
   '/tall': TALL,
   '/big': BIG,
+  '/frame-same': frameDoc('same'),
+  '/frame-deep': frameDoc('deep'),
 }
 
 const isBlue = ([r = 0, , b = 0]: number[]) => b > 150 && r < 100
@@ -141,10 +168,13 @@ const tabsOf = (result: CallToolResult) => {
     })
 }
 
+/** Ссылка в строке снимка: e3 или, во фрейме, f2e3. */
+const REF = /\[ref=((?:f\d+)?e\d+)\]/
+
 /** Ссылка элемента по началу строки снимка: «- button "Press me"» → e3. */
 const refOf = (snapshot: string, line: string): string => {
   const found = snapshot.split('\n').find((item) => item.trim().startsWith(line))
-  const ref = /\[ref=(e\d+)\]/.exec(found ?? '')?.[1]
+  const ref = REF.exec(found ?? '')?.[1]
 
   if (!ref) throw new Error(`No "${line}" in snapshot:\n${snapshot}`)
 
@@ -156,7 +186,7 @@ const refByName = (snapshot: string, name: string): string => {
   const found = snapshot
     .split('\n')
     .find((item) => item.includes(`"${name}"`) && item.includes('[ref='))
-  const ref = /\[ref=(e\d+)\]/.exec(found ?? '')?.[1]
+  const ref = REF.exec(found ?? '')?.[1]
 
   if (!ref) throw new Error(`No "${name}" in snapshot:\n${snapshot}`)
 
@@ -177,7 +207,9 @@ describe.skipIf(!ready)(
     let secondSource: NativeSource<BrowserAgent>
     let browser: ChildProcess
     let server: Server
+    let crossServer: Server
     let base = ''
+    let cross = ''
     let launch: SourceLaunch
     const call = (name: string, args: Record<string, unknown> = {}) =>
       source.callTool(name, args, undefined, launch)
@@ -202,10 +234,19 @@ describe.skipIf(!ready)(
       }
       server = createServer((request, response) => {
         response.writeHead(200, { 'Content-Type': 'text/html' })
-        response.end(PAGES[request.url ?? ''] ?? PAGE)
+        response.end(
+          request.url === '/frames' ? framesPage(cross) : (PAGES[request.url ?? ''] ?? PAGE),
+        )
+      })
+      // Второй сайт для фрейма другого процесса: тот же адрес машины, но под именем localhost.
+      crossServer = createServer((_request, response) => {
+        response.writeHead(200, { 'Content-Type': 'text/html' })
+        response.end(frameDoc('cross', `${base}/frame-deep`))
       })
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+      await new Promise<void>((resolve) => crossServer.listen(0, '127.0.0.1', resolve))
       base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+      cross = `http://localhost:${(crossServer.address() as AddressInfo).port}`
 
       const profile = join(dir, 'profile')
       const hostJs = await buildNativeHost(ROOT, join(dir, 'host-build'))
@@ -262,10 +303,11 @@ describe.skipIf(!ready)(
     afterAll(async () => {
       await source?.dispose()
       await secondSource?.dispose()
-      browser?.kill('SIGTERM')
+      await stopChromium(browser)
       await hub?.stop()
       await second?.stop()
       await new Promise((resolve) => server?.close(resolve))
+      await new Promise((resolve) => crossServer?.close(resolve))
       await rm(dir, { recursive: true, force: true })
       await rm(socketDir, { recursive: true, force: true })
     })
@@ -398,6 +440,96 @@ describe.skipIf(!ready)(
 
       expect(after.tabs.some((tab) => tab.tabId === tabId)).toBe(false)
       expect(after.groups.some((item) => item.groupId === group?.groupId)).toBe(false)
+    }, 120_000)
+
+    it('фреймы: снимок видит iframe своего и чужого процесса, клик, ввод и выбор по ссылкам внутри', async () => {
+      const opened = json<{ tab: string }>(await call('open', { url: `${base}/frames` }))
+      const tabId = tabIdOf(opened.tab)
+
+      // Фрейм с localhost и вложенный в него с 127.0.0.1 - в своих процессах: у отладчика на
+      // них свои сессии. Фрейм того же сайта - в процессе страницы, сессии у него нет.
+      await expect
+        .poll(async () =>
+          (await hub.request(profileKey(), 'debugger.frames', { tabId })).frames
+            .map((frame) => new URL(frame.url).pathname)
+            .sort(),
+        )
+        .toEqual(['/frame-cross', '/frame-deep'])
+
+      const before = text(await call('snapshot'))
+
+      expect(before).toMatch(/- iframe "Same frame" \[ref=e\d+\] \[frame=f1\]/)
+      expect(before).toMatch(/- iframe "Cross frame" \[ref=e\d+\] \[frame=f2\]/)
+      expect(before).toMatch(/- iframe "Deep frame" \[ref=f2e\d+\] \[frame=f3\]/)
+
+      for (const [name, frame] of [
+        ['same', 'f1'],
+        ['cross', 'f2'],
+        ['deep', 'f3'],
+      ] as const) {
+        const button = refOf(before, `- button "Press ${name}"`)
+
+        expect(button).toMatch(new RegExp(`^${frame}e\\d+$`))
+        json(await call('click', { ref: button }))
+        json(
+          await call('type', {
+            ref: refOf(before, `- textbox "Field ${name}"`),
+            text: `Ada ${name}`,
+          }),
+        )
+      }
+
+      json(
+        await call('select', { ref: refOf(before, '- combobox "Size cross"'), values: ['Large'] }),
+      )
+      json(
+        await call('fill', {
+          fields: [{ ref: refOf(before, '- textbox "Field deep"'), value: 'Grace' }],
+        }),
+      )
+      json(await call('hover', { ref: refOf(before, '- button "Hover deep"') }))
+
+      // Прокрутка к элементу во фрейме: к фрейму другого процесса - вместе с его iframe, который
+      // ниже первого экрана страницы.
+      const scrollY = async () =>
+        JSON.parse(text(await call('evaluate', { expression: 'window.scrollY' }))) as number
+
+      json(await call('scroll', { ref: refOf(before, '- button "Press same"') }))
+      expect(await scrollY()).toBeLessThan(100)
+      json(await call('scroll', { ref: refOf(before, '- button "Press deep"') }))
+      expect(await scrollY()).toBeGreaterThan(500)
+
+      const after = text(await call('snapshot'))
+
+      for (const done of ['Pressed same', 'Pressed cross', 'Pressed deep', 'Hovered deep']) {
+        expect(after).toContain(done)
+      }
+
+      // Функция с элементом исполняется в документе его фрейма.
+      const valueOf = async (line: string): Promise<unknown> =>
+        JSON.parse(
+          text(await call('evaluate', { ref: refOf(after, line), expression: '(el) => el.value' })),
+        )
+
+      expect(await valueOf('- textbox "Field same"')).toBe('Ada same')
+      expect(await valueOf('- textbox "Field cross"')).toBe('Ada cross')
+      expect(await valueOf('- textbox "Field deep"')).toBe('Grace')
+      expect(await valueOf('- combobox "Size cross"')).toBe('l')
+
+      // Отладчик сняли (минута простоя, вторая IDE): подключение заново ждёт и вложенные фреймы -
+      // снимок сразу после него их видит.
+      await hub.request(profileKey(), 'debugger.detach', { tabId })
+
+      const again = text(await call('snapshot'))
+
+      expect(again).toMatch(/- iframe "Deep frame" \[ref=f2e\d+\] \[frame=f3\]/)
+
+      // Ссылки снимка переживают отключение: сессии фреймов новые, а id фреймов те же.
+      await hub.request(profileKey(), 'debugger.detach', { tabId })
+      json(await call('click', { ref: refOf(again, '- textbox "Field deep"') }))
+      json(await call('type', { ref: refOf(again, '- textbox "Field deep"'), text: 'Again' }))
+      expect(await valueOf('- textbox "Field deep"')).toBe('Again')
+      json(await call('finish'))
     }, 120_000)
 
     it('берёт вкладку человека по ссылке и отпускает её, не закрывая', async () => {
@@ -686,6 +818,23 @@ describe.skipIf(!ready)(
 )
 
 const isGreen = ([r = 0, g = 0, b = 0]: number[]) => g > 120 && r < 80 && b < 100
+
+/**
+ * Погасить свой Chromium по его PID и дождаться выхода: папку профиля удалять можно только
+ * после - иначе он пишет в неё, пока её удаляют. Не вышел за 5 секунд - SIGKILL.
+ */
+const stopChromium = async (child: ChildProcess | undefined): Promise<void> => {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return
+
+  const exited = new Promise((resolve) => child.once('exit', resolve))
+
+  child.kill('SIGTERM')
+
+  const timer = setTimeout(() => child.kill('SIGKILL'), 5000)
+
+  await exited
+  clearTimeout(timer)
+}
 
 /** Точек акцентного цвета вправо-вниз от острия курсора (x, y в CSS-пикселях окна 900). */
 const accentNear = (pixels: Pixels, x: number, y: number): number => {

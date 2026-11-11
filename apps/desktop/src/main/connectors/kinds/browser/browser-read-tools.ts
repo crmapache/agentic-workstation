@@ -67,7 +67,7 @@ export const BROWSER_READ_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'snapshot',
     description:
-      'Accessibility snapshot of a tab as text: roles, names, states and element refs like [ref=e12]. Use the refs with click, type, fill, hover, select, upload. Refs stay valid until the next snapshot of that tab or until the page changes its address.',
+      'Accessibility snapshot of a tab as text: roles, names, states and element refs like [ref=e12]. Frames (iframes, including cross-origin ones: payment fields, embedded sign-ins, widgets) are shown under their iframe line marked [frame=f2], and their element refs carry the frame, like f2e7. Use the refs with click, type, fill, hover, scroll, select, upload, evaluate. Refs stay valid until the next snapshot of that tab or until the page changes its address.',
     access: 'read',
     inputSchema: schema({ ...TAB_PROPERTY }),
     run: async (args, agent, call) => {

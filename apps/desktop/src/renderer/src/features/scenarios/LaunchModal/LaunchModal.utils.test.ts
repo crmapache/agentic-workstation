@@ -1,6 +1,5 @@
 import { it, expect, describe } from 'vitest'
 
-import type { ProviderInfo } from '@shared/providers'
 import type { ScenarioQueue } from '@shared/scenario-queues'
 import type { Scenario, ScenarioScope } from '@shared/scenarios'
 
@@ -12,7 +11,6 @@ import {
   findScenario,
   initialWhere,
   launchFailure,
-  defaultProvider,
   uncommittedCount,
 } from './LaunchModal.utils'
 
@@ -34,13 +32,6 @@ const scenario = (id: string, scope: ScenarioScope, inputs: string[] = []): Scen
   },
   stages: [],
   scope,
-})
-
-const provider = (available: boolean): ProviderInfo => ({
-  id: 'claude',
-  label: 'Claude Code',
-  available,
-  unavailable: available ? null : 'noCli',
 })
 
 const queue = (id: string): ScenarioQueue => ({
@@ -78,14 +69,6 @@ describe('выбор сценария', () => {
     expect(
       askedInputs(scenario('a', 'project', ['task', ' ', 'notes'])).map((one) => one.name),
     ).toEqual(['task', 'notes'])
-  })
-})
-
-describe('провайдер по умолчанию', () => {
-  it('первый на месте, иначе первый, пусто - никого', () => {
-    expect(defaultProvider([provider(false), provider(true)])?.available).toBe(true)
-    expect(defaultProvider([provider(false)])?.available).toBe(false)
-    expect(defaultProvider([])).toBeNull()
   })
 })
 

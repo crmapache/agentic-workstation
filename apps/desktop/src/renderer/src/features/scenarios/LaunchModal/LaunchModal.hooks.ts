@@ -5,6 +5,7 @@ import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { Scenario } from '@shared/scenarios'
 import { useMutation } from '@tanstack/react-query'
 
+import { defaultProvider } from '../scenarios-providers.utils'
 import { folderNeighbours } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import type { ScenariosProject } from '../ScenariosView/ScenariosView.types'
@@ -22,7 +23,6 @@ import {
   findScenario,
   initialWhere,
   launchFailure,
-  defaultProvider,
   uncommittedCount,
 } from './LaunchModal.utils'
 

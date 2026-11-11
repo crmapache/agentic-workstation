@@ -5,6 +5,8 @@ import type { FeedPatch } from '@shared/claude-feed'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
+import { broadcast } from './ipc/broadcast'
+import { ProviderWatch } from './providers/provider-registry'
 import type { RemoteService } from './remote/remote-service'
 import { startRemote } from './remote/remote-setup'
 import type { ScenarioService } from './scenarios/scenario-service'
@@ -26,7 +28,7 @@ export type IdeFeatures = {
   scenarios: ScenarioService
   statistics: Statistics
   remote: RemoteService
-  /** Состояние панели Claude поменялось: статистике и Remote Control. */
+  /** Состояние панели Claude поменялось: статистике, Remote Control и списку провайдеров. */
   observeClaude: (state: ClaudeState) => void
   /** Живая заплатка ленты разговора: Remote Control (телефонам, которые смотрят разговор). */
   observeFeed: (patch: FeedPatch) => void
@@ -53,6 +55,8 @@ export const startIdeFeatures = async (setup: {
   const scenarios = await startScenarios({ ...setup, taps })
   const statistics = await startStatistics({ dataDir: setup.dataDir, scenarios, workspace })
   const remote = await startRemote({ ...setup, scenarios })
+  // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
+  const providers = new ProviderWatch((list) => broadcast('providers:changed', list))
 
   taps.onQueues = () => remote.queuesChanged()
   taps.onRun = (run) => remote.runChanged(run)
@@ -65,6 +69,7 @@ export const startIdeFeatures = async (setup: {
     observeClaude: (state) => {
       statistics.observeClaude(state)
       remote.claudeChanged(state)
+      providers.claudeChanged(state)
     },
     observeFeed: (patch) => remote.feedPatched(patch),
     projectsChanged: () => {

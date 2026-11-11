@@ -1,34 +1,26 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { ProviderModel } from '@shared/providers'
 import type { Scenario, ScenarioCode } from '@shared/scenarios'
-import { useQuery } from '@tanstack/react-query'
 
 import { blankStage, blankScenario } from '../scenarios-blank.utils'
 import type { EditorPlace } from '../scenarios-editor.utils'
 import { isDirty, livePlace, savedTwin, withoutStage } from '../scenarios-editor.utils'
+import { providerModels, defaultProvider } from '../scenarios-providers.utils'
 import { useScenariosStore } from '../scenarios.store'
 import { invoke } from '../../../lib/ipc'
-import { QUERY_KEYS } from '../../../state/query-keys'
-import { useScenarioShelves } from '../../../state/scenarios.queries'
+import { useProviders, useScenarioShelves } from '../../../state/scenarios.queries'
 import { FIRST_PLACE } from './EditorModal.constants'
-import type { ModelCatalog, EditorModalProps } from './EditorModal.types'
-
-const NO_CATALOG: ModelCatalog = { catalog: [], custom: [] }
+import type { EditorModalProps } from './EditorModal.types'
 
 /**
- * Каталог моделей Claude Code и свои модели человека - из того же кэша, что держит панель
- * Claude (ключ claudeState, свежим его держит событие главного процесса). Модель карточки -
- * строка провайдера, а провайдер сейчас один; когда их станет больше, каталог придёт с
- * провайдером (providers:list), и редактор возьмёт его оттуда.
+ * Модели для MODEL - из описания провайдера (providers:list; новый каталог и свои модели
+ * человека главный процесс присылает событием providers:changed). Провайдер - тот, кого окно
+ * запуска предложит первым: в файле сценария провайдера нет, модель карточки - его строка.
  */
-export const useModelCatalog = (): ModelCatalog =>
-  useQuery({
-    queryKey: QUERY_KEYS.claudeState,
-    queryFn: () => invoke('claude:getState'),
-    staleTime: Infinity,
-    select: (state) => ({ catalog: state.models, custom: state.prefs.customModels }),
-  }).data ?? NO_CATALOG
+export const useProviderModels = (): readonly ProviderModel[] =>
+  providerModels(defaultProvider(useProviders().data ?? []))
 
 /**
  * Черновик редактора живёт в сторе вида - в самом запросе окна: окно размонтируется от взгляда

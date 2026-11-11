@@ -1,16 +1,11 @@
-import type { AxTreeResult } from '@agentic-workstation/browser-protocol/protocol'
 import { formatTabReference } from '@agentic-workstation/browser-protocol/tab-reference'
 
-import { formatAxSnapshot } from './ax-snapshot'
-import type { AxNode } from './ax-snapshot'
 import { BrowserError } from './browser-error'
 import type { Page } from './page'
-import { callOn, exceptionText } from './page-actions'
+import { readSnapshot } from './page-frames'
+import { callOn, exceptionText } from './page-nodes'
 import { JPEG_QUALITIES, planScreenshot, SHOT_MAX_BASE64 } from './screenshot-plan'
 import type { Rect } from './screenshot-plan'
-
-/** Снимок большой страницы собирается секундами - с запасом. */
-const SNAPSHOT_TIMEOUT_MS = 30_000
 
 /**
  * Картинка вкладки, которую Chrome не рисует (фон, свёрнутое окно), может не прийти вовсе -
@@ -36,21 +31,19 @@ export const pageHeader = async (page: Page): Promise<string> => {
 }
 
 /**
- * Дерево доступности текстом со ссылками e12 - они действуют до следующего снимка. Дерево
- * длинной страницы расширение прореживает и обрезает само (ax-prune в расширении): модели
- * нужно начало, а не десятки мегабайт через native messaging.
+ * Дерево доступности текстом со ссылками e12 (во фреймах - f2e7) - они действуют до следующего
+ * снимка. Дерево длинной страницы расширение прореживает и обрезает само (ax-prune в
+ * расширении): модели нужно начало, а не десятки мегабайт через native messaging.
  */
 export const snapshot = async (page: Page): Promise<string> => {
-  const tree = await page.cdp<AxTreeResult>('Accessibility.getFullAXTree', {}, SNAPSHOT_TIMEOUT_MS)
-  const result = formatAxSnapshot(tree.nodes as AxNode[])
+  const result = await readSnapshot(page)
 
   page.setRefs(result.refs)
 
   const body = result.text || '(The page has no accessible content yet.)'
-  const cut =
-    result.truncated || tree.truncated
-      ? '\n… The snapshot is cut: scroll or use evaluate to read the rest of the page.'
-      : ''
+  const cut = result.truncated
+    ? '\n… The snapshot is cut: scroll or use evaluate to read the rest of the page.'
+    : ''
 
   return `${await pageHeader(page)}\n\n${body}${cut}`
 }
@@ -98,7 +91,7 @@ export const screenshot = async (page: Page, fullPage: boolean): Promise<Shot> =
         captureBeyondViewport: plan.captureBeyondViewport,
         clip: plan.clip,
       },
-      SCREENSHOT_TIMEOUT_MS,
+      { timeoutMs: SCREENSHOT_TIMEOUT_MS },
     )
   const note = plan.cut
     ? `The page is ${plan.cut.total} px tall; the picture shows the top ${plan.cut.shown} px. Scroll and take a screenshot of the visible part for the rest.`

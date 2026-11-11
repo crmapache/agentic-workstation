@@ -1,6 +1,7 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
 import { BrowserAgent } from './browser-agent'
+import { MAIN_FRAME } from './frame-refs'
 import { callOf, FakeHub } from './__fixtures__/fake-hub'
 
 const agents: BrowserAgent[] = []
@@ -84,7 +85,7 @@ describe('события расширения', () => {
     const { hub, agent } = setup()
     const page = await agent.open(callOf('p1'), 'https://example.com/a')
 
-    page.setRefs(new Map([['e1', 5]]))
+    page.setRefs(new Map([['e1', { node: 5, frame: MAIN_FRAME }]]))
     hub.emit('work', {
       type: 'event',
       name: 'tab-updated',
@@ -98,9 +99,9 @@ describe('события расширения', () => {
       data: { tab: { ...hub.tab('work', page.tab.tabId)!, url: 'https://example.com/b' } },
     })
     expect(page.tab.refs.size).toBe(0)
-    expect(() => page.nodeOf('e1')).toThrow(/Take a new snapshot/)
+    expect(() => page.elementOf('e1')).toThrow(/Take a new snapshot/)
 
-    page.setRefs(new Map([['e1', 5]]))
+    page.setRefs(new Map([['e1', { node: 5, frame: MAIN_FRAME }]]))
     hub.emit('work', {
       type: 'event',
       name: 'cdp-event',

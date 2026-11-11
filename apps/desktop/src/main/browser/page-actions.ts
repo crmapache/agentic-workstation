@@ -2,143 +2,19 @@ import { BrowserError } from './browser-error'
 import { SET_VALUE, setsValue, sameFieldValue, fieldValueRefused } from './field-values'
 import type { Page } from './page'
 import { keyEvents, charEvents } from './page-keys'
+import { callOn, nodeCdp, pointOf, revealElement } from './page-nodes'
+import type { Point, Target } from './page-nodes'
 
 /**
  * Действия во вкладке через CDP (ADR 0040): клики и ввод - `Input.*`, как от настоящей мыши и
- * клавиатуры; сайты их не отличают. Перед нажатием курсор агента подъезжает к точке.
+ * клавиатуры; сайты их не отличают. Перед нажатием курсор агента подъезжает к точке. Ввод
+ * всегда идёт в саму вкладку, и во фрейм другого процесса тоже: Chrome сам отдаёт его фрейму
+ * под точкой или в фокусе.
  */
-
-export type Point = { x: number; y: number }
-
-/** Куда нажать: элемент по ссылке снимка или точка в CSS-пикселях окна страницы. */
-export type Target = { ref: string } | Point
 
 export type MouseButton = 'left' | 'right' | 'middle'
 
 const BUTTON_MASK: Record<MouseButton, number> = { left: 1, right: 2, middle: 4 }
-
-type CallResult = {
-  result?: { value?: unknown }
-  exceptionDetails?: { text?: string; exception?: { description?: string } }
-}
-
-/** Текст исключения страницы: модель увидит, что сломалось в её выражении. */
-export const exceptionText = (details: NonNullable<CallResult['exceptionDetails']>): string =>
-  details.exception?.description ?? details.text ?? 'The page threw an exception.'
-
-const goneError = (ref: string) =>
-  new BrowserError('bad-request', `Element ${ref} is gone from the page. Take a new snapshot.`)
-
-/** Отказ CDP «узла нет»: страница перестроилась, элемент снимка удалён. */
-const isNoNode = (error: unknown): boolean =>
-  error instanceof BrowserError &&
-  error.code === 'cdp' &&
-  /no node|node with given id|backend ?id|could not find node/i.test(error.message)
-
-/**
- * Команда CDP над узлом снимка. Узла больше нет - модели понятное «элемент пропал, возьми новый
- * снимок», а не текст протокола.
- */
-export const nodeCdp = async <T = Record<string, unknown>>(
-  page: Page,
-  ref: string,
-  method: string,
-  params: Record<string, unknown> = {},
-): Promise<T> => {
-  try {
-    return await page.cdp<T>(method, { ...params, backendNodeId: page.nodeOf(ref) })
-  } catch (error) {
-    if (isNoNode(error)) throw goneError(ref)
-
-    throw error
-  }
-}
-
-/** Ответ обёртки callOn: элемент выпал из документа - знак, а не значение. */
-type Wrapped = { gone: true } | { gone: false; value: unknown }
-
-/**
- * Вызвать функцию страницы на элементе (this) и вернуть значение. Элемент, выпавший из
- * документа (isConnected), - тоже «пропал»: узел ещё жив в памяти страницы, и функция молча
- * отработала бы на невидимом обрывке старой разметки.
- */
-export const callOn = async <T>(
-  page: Page,
-  ref: string,
-  functionDeclaration: string,
-  args: unknown[] = [],
-): Promise<T> => {
-  const resolved = await nodeCdp<{ object: { objectId?: string } }>(
-    page,
-    ref,
-    'DOM.resolveNode',
-  ).catch((error: unknown) => {
-    if (error instanceof BrowserError && error.code !== 'cdp') throw error
-
-    return null
-  })
-  const objectId = resolved?.object.objectId
-
-  if (!objectId) throw goneError(ref)
-
-  const call = await page.cdp<CallResult>('Runtime.callFunctionOn', {
-    objectId,
-    functionDeclaration: `async function (...args) {
-      if (!this.isConnected) return { gone: true }
-      return { gone: false, value: await (${functionDeclaration}).apply(this, args) }
-    }`,
-    arguments: args.map((value) => ({ value })),
-    returnByValue: true,
-    awaitPromise: true,
-    userGesture: true,
-  })
-
-  if (call.exceptionDetails) throw new BrowserError('cdp', exceptionText(call.exceptionDetails))
-
-  const wrapped = call.result?.value as Wrapped | undefined
-
-  if (!wrapped || wrapped.gone) throw goneError(ref)
-
-  return wrapped.value as T
-}
-
-const quadArea = (quad: number[]): number => {
-  const [x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0] = quad
-
-  return Math.abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1))
-}
-
-/** Середина элемента в окне страницы; элемент прокручивается в видимую часть. */
-export const pointOf = async (page: Page, target: Target): Promise<Point> => {
-  if (!('ref' in target)) return target
-
-  const { ref } = target
-
-  await nodeCdp(page, ref, 'DOM.scrollIntoViewIfNeeded').catch((error: unknown) => {
-    if (error instanceof BrowserError && error.code === 'bad-request') throw error
-  })
-
-  const { quads } = await nodeCdp<{ quads: number[][] }>(page, ref, 'DOM.getContentQuads').catch(
-    (error: unknown) => {
-      if (error instanceof BrowserError && error.code === 'bad-request') throw error
-
-      return { quads: [] as number[][] }
-    },
-  )
-  const quad = quads.find((item) => quadArea(item) > 1)
-
-  if (!quad) {
-    throw new BrowserError('bad-request', `Element ${target.ref} is not visible on the page.`)
-  }
-
-  const xs = [quad[0], quad[2], quad[4], quad[6]].map(Number)
-  const ys = [quad[1], quad[3], quad[5], quad[7]].map(Number)
-
-  return {
-    x: Math.round(xs.reduce((sum, value) => sum + value, 0) / 4),
-    y: Math.round(ys.reduce((sum, value) => sum + value, 0) / 4),
-  }
-}
 
 const mouse = (
   page: Page,
@@ -316,7 +192,7 @@ export const scroll = async (
   { ref, point, dx, dy }: { ref?: string; point?: Point; dx: number; dy: number },
 ): Promise<void> => {
   if (ref && !dx && !dy) {
-    await nodeCdp(page, ref, 'DOM.scrollIntoViewIfNeeded')
+    await revealElement(page, ref)
 
     return
   }

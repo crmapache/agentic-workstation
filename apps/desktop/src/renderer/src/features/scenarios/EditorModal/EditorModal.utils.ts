@@ -1,7 +1,8 @@
 import type { TFunction } from 'i18next'
 
-import type { ModelInfo, PermissionMode } from '@shared/claude'
+import type { PermissionMode } from '@shared/claude'
 import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/claude'
+import type { ProviderModel } from '@shared/providers'
 import type { ScenarioProblem } from '@shared/scenario-rules'
 import { cardRuns, passesOf, SCENARIO_NAME } from '@shared/scenario-rules'
 import type { Scenario, ScenarioStage } from '@shared/scenarios'
@@ -14,17 +15,10 @@ import {
   MAIN_MODELS,
   RETRY_COUNTS,
   SCENARIO_MODES,
-  FALLBACK_MODELS,
   DEFAULT_MODEL_VALUE,
   LEGACY_DEFAULT_MODE,
 } from './EditorModal.constants'
-import type {
-  ModeTone,
-  ModelMenu,
-  ModelCatalog,
-  PickerOption,
-  RunsOnFallback,
-} from './EditorModal.types'
+import type { ModeTone, ModelMenu, PickerOption, RunsOnFallback } from './EditorModal.types'
 
 /** Как промпт пишет вопрос сценария: `{{name}}`. */
 export const inputMention = (name: string): string => `{{${name}}}`
@@ -178,26 +172,26 @@ export const modeOptions = (
 export const modeTone = (value: string): ModeTone | undefined =>
   isMode(value) ? MODE_TONES[value] : undefined
 
-const modelOption = (model: ModelInfo): PickerOption => ({
+const modelOption = (model: ProviderModel): PickerOption => ({
   id: model.value,
   label: model.displayName,
   description: model.description || undefined,
 })
 
 /**
- * MODEL: каталог CLI (пока его нет - семьи, которые CLI знает всегда), без «по умолчанию» -
- * в меню это пункт «как новый чат»; основные сразу, старые версии - группой, свои - следом.
- * Свободного поля нет: имя, которого через полгода не станет, - сценарий, который не стартует.
+ * MODEL: модели провайдера (каталог главный процесс отдаёт и до ответа CLI - семьи, которые он
+ * знает всегда), без «по умолчанию» - в меню это пункт «как новый чат»; основные сразу, старые
+ * версии - группой, свои - следом. Свободного поля нет: имя, которого через полгода не станет, -
+ * сценарий, который не стартует.
  */
-export const modelMenu = ({ catalog, custom }: ModelCatalog): ModelMenu => {
-  const known = (catalog.length > 0 ? catalog : FALLBACK_MODELS).filter(
-    (model) => model.value !== DEFAULT_MODEL_VALUE,
-  )
-  const values = new Set(known.map((model) => model.value))
+export const modelMenu = (models: readonly ProviderModel[]): ModelMenu => {
+  const known = models.filter((model) => !model.custom && model.value !== DEFAULT_MODEL_VALUE)
 
   return {
     main: known.slice(0, MAIN_MODELS).map(modelOption),
     older: known.slice(MAIN_MODELS).map(modelOption),
-    custom: custom.filter((name) => !values.has(name)).map((name) => ({ id: name, label: name })),
+    custom: models
+      .filter((model) => model.custom)
+      .map((model) => ({ id: model.value, label: model.displayName })),
   }
 }

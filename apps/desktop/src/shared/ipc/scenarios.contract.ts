@@ -37,7 +37,7 @@ type RunRequest = { place: RunPlace; runId: string }
  * прогоны, расписание. Правила - .claude/rules/ipc-contract.md.
  */
 export type ScenariosInvokeContract = {
-  /** Провайдеры ИИ и на месте ли они - для выбора при запуске. */
+  /** Провайдеры ИИ, на месте ли они и их модели - для выбора при запуске и в редакторе. */
   'providers:list': { request: void; response: ProviderInfo[] }
   'scenarios:shelves': { request: ProjectRequest; response: ScenarioShelvesView }
   'scenarios:fetch': { request: ShelfItem; response: Scenario | null }
@@ -117,6 +117,8 @@ export type ScenariosInvokeContract = {
 }
 
 export type ScenariosEventContract = {
+  /** Провайдеры стали другими: модели, свои модели человека, CLI нашёлся или пропал. */
+  'providers:changed': ProviderInfo[]
   'scenarios:queues': ScenarioQueuesView
   'scenarios:shelves': ScenarioShelvesChanged
   'scenarios:run': ScenarioRunChanged
@@ -151,6 +153,7 @@ export const SCENARIOS_CHANNELS = {
 } satisfies Record<keyof ScenariosInvokeContract, true>
 
 export const SCENARIOS_EVENTS = {
+  'providers:changed': true,
   'scenarios:queues': true,
   'scenarios:shelves': true,
   'scenarios:run': true,

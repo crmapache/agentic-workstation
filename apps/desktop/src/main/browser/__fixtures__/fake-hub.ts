@@ -1,6 +1,7 @@
 import type {
   TabInfo,
   GroupInfo,
+  FrameTarget,
   EventMessage,
   BrowserMethod,
   BrowserMethods,
@@ -14,6 +15,13 @@ type Request = { profileKey: string; method: BrowserMethod; params: Record<strin
 
 type Override = (params: Record<string, unknown>, profileKey: string) => unknown
 
+/** Ответ на команду CDP; frame - фрейм другого процесса, в чью сессию она ушла. */
+type CdpHandler = (
+  params: Record<string, unknown>,
+  profileKey: string,
+  frame: string | undefined,
+) => unknown
+
 /**
  * Chrome с расширением глазами IDE, без браузера: вкладки, группы, отладчик и рамка в памяти,
  * каждый запрос записан. Для тестов агента браузера (ADR 0040).
@@ -23,7 +31,9 @@ export class FakeHub implements HubPort {
   readonly attached = new Set<string>()
   readonly framed = new Set<string>()
   /** Команды CDP по имени: ответ или исключение. */
-  readonly cdp = new Map<string, Override>()
+  readonly cdp = new Map<string, CdpHandler>()
+  /** Фреймы других процессов, к которым «подключён» отладчик вкладки (debugger.frames). */
+  frameTargets: FrameTarget[] = []
   /** Подмена метода расширения целиком (например, tabs.open, который ждёт). */
   readonly overrides = new Map<BrowserMethod, Override>()
   private readonly connected = new Map<string, BrowserProfile>()
@@ -195,12 +205,17 @@ export class FakeHub implements HubPort {
         this.attached.delete(at)
 
         return null
+      case 'debugger.frames':
+        if (!this.attached.has(at)) throw new BrowserError('not-attached', 'Not attached.')
+
+        return { frames: this.frameTargets }
       case 'cdp': {
         if (!this.attached.has(at)) throw new BrowserError('not-attached', 'Not attached.')
 
         const handler = this.cdp.get(params['method'] as string)
+        const frame = params['frame'] as string | undefined
 
-        return handler ? handler(params['params'] as Record<string, unknown>, key) : {}
+        return handler ? handler(params['params'] as Record<string, unknown>, key, frame) : {}
       }
       case 'overlay.frame':
         if (params['on']) this.framed.add(at)

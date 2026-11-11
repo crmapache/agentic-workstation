@@ -8,7 +8,7 @@ import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
-import { useModelCatalog } from '../EditorModal.hooks'
+import { useProviderModels } from '../EditorModal.hooks'
 import styles from '../EditorModal.module.scss'
 import type { PickerOption, ModelChoiceProps } from '../EditorModal.types'
 import { modelMenu } from '../EditorModal.utils'
@@ -21,7 +21,7 @@ import { modelMenu } from '../EditorModal.utils'
 export const ModelChoice = ({ value, fallback, onPick }: ModelChoiceProps) => {
   const { t } = useTranslation()
   const popover = usePopover()
-  const menu = modelMenu(useModelCatalog())
+  const menu = modelMenu(useProviderModels())
   const known = [...menu.main, ...menu.older, ...menu.custom]
   const caption = t('scenarios.editor.runsOn.model')
   const label = value ? (known.find((one) => one.id === value)?.label ?? value) : fallback.label
