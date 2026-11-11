@@ -177,3 +177,6 @@ export const CALENDAR_SPARSE_DAYS: readonly CalendarHeatmapDay[] = calendarSampl
 
 /** Образец подсказки графика стоит на одной метке: стрелкам ходить некуда. */
 export const CHART_TIP_STEPS: MarkSteps = { across: 1, down: null }
+
+/** Варианты поля выбора в витрине - имена провайдеров, как в окне запуска сценария. */
+export const SELECT_SAMPLES = ['Claude Code', 'Codex', 'Gemini CLI'] as const

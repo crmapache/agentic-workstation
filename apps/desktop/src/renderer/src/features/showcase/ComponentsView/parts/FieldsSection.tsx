@@ -13,10 +13,11 @@ import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { SearchListSpecimen } from './SearchListSpecimen'
+import { SelectFieldSpecimen } from './SelectFieldSpecimen'
 
 /**
- * Раздел «Поля и прогресс»: поле с иконкой, поле с ошибкой, недоступное, многострочное,
- * список поиска под полем, строка кода с копией, полосы прогресса, знак работы без доли - и он же
+ * Раздел «Поля и прогресс»: поле с иконкой, поле с ошибкой, недоступное, многострочное, поле
+ * выбора, список поиска под полем, строка кода с копией, полосы прогресса, знак работы без доли - и он же
  * кольцом вокруг номера, как у текущей остановки дороги сценария.
  */
 export const FieldsSection = () => {
@@ -74,6 +75,8 @@ export const FieldsSection = () => {
           onChange={() => undefined}
         />
       </Specimen>
+
+      <SelectFieldSpecimen />
 
       <SearchListSpecimen />
 
