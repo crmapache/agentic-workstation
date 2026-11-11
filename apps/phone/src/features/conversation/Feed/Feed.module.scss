@@ -1,0 +1,216 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@include shimmer-keyframes;
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-feed-gap);
+  min-width: 0;
+}
+
+.userRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userBubble {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  max-width: 85%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-raised);
+}
+
+.userText {
+  margin: 0;
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.userMark {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+.thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.thumbnail,
+.thumbnailEmpty {
+  width: var(--size-image-tile);
+  height: var(--size-image-tile);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.thumbnailEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-sunken);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.toolItem {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Подряд идущие строки журнала (вызовы, мысли) - один список, а не блоки: стоят теснее.
+.toolItem + .toolItem {
+  margin-top: calc(var(--size-feed-gap) * -1);
+}
+
+.toolName {
+  flex: none;
+  color: var(--color-fg);
+  font-weight: var(--font-weight-medium);
+}
+
+.toolSummary {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+}
+
+.counts {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.added,
+.done {
+  color: var(--color-success);
+}
+
+.removed,
+.failed {
+  color: var(--color-danger);
+}
+
+.done,
+.failed {
+  flex: none;
+}
+
+.steps {
+  flex: none;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.toolBody {
+  @include disclosure-body;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.output,
+.errorOutput {
+  max-height: var(--size-code-compact-max);
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.output {
+  color: var(--color-syntax-fg);
+}
+
+.errorOutput {
+  color: var(--color-danger);
+}
+
+.toolState {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.thinking {
+  @include disclosure-body;
+
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  user-select: text;
+}
+
+.event,
+.notice {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.notice {
+  color: var(--color-warning);
+}
+
+.working {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.workingText {
+  @include shimmer;
+}
+
+.tasks {
+  @include disclosure-body;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: var(--space-1) 0 var(--space-2);
+  padding-top: 0;
+  padding-bottom: 0;
+  list-style: none;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}

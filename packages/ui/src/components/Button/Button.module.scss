@@ -37,6 +37,13 @@
   font-size: var(--font-size-md);
 }
 
+// Под палец: не ниже цели касания, но растёт со строкой текста, если та крупнее.
+.touch {
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-md);
+}
+
 .icon {
   flex-shrink: 0;
 }

@@ -1,0 +1,13 @@
+.fingerprint {
+  display: block;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-size: var(--font-size-lg);
+  letter-spacing: var(--letter-spacing-caps);
+  text-align: center;
+  user-select: all;
+}

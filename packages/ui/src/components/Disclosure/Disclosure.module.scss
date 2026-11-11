@@ -25,6 +25,13 @@
   border-radius: var(--radius-sm);
 }
 
+// Под палец: строка ленты телефона не ниже цели касания.
+.touch {
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
+}
+
 // Шапка карточки - радиус карточки; раскрытая продолжается телом, низ без скругления.
 .md {
   min-height: var(--size-control-md);

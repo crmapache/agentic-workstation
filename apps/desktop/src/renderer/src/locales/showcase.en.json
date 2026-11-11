@@ -42,6 +42,7 @@
   "specimens": {
     "buttons": "Buttons",
     "buttonsSmall": "Small buttons",
+    "buttonsTouch": "Touch-sized buttons (phone)",
     "menuButtons": "Button with a menu",
     "iconButtons": "Icon buttons",
     "dropdowns": "Dropdown buttons",
@@ -188,6 +189,7 @@
     "disclosureRow": "Read src/app.ts",
     "disclosureEmpty": "Nothing to expand",
     "disclosureCard": "Subagent card header",
+    "disclosureTouch": "Feed row on the phone",
     "close": "Close",
     "chatTitle": "Fix the login bug",
     "chatLong": "Refactor the authentication module and its tests",

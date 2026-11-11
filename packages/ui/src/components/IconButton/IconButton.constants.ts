@@ -6,6 +6,7 @@ export const ICON_SIZE: Record<IconButtonSize, number> = {
   xs: 12,
   sm: 14,
   md: 16,
+  touch: 18,
 }
 
 export const ICON_STROKE_WIDTH = 1.75

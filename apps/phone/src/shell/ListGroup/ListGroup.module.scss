@@ -1,0 +1,13 @@
+// Строки одной плиткой: общая рамка, между строками - линия, а не зазор.
+.group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-panel);
+
+  > * + * {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}

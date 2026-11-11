@@ -1,0 +1,12 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// Поле имени и кнопка в ряд: одна высота - цель касания.
+.rename {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

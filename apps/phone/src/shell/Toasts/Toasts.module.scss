@@ -1,0 +1,13 @@
+// Над полосой «домой» и над полем ввода: уведомление не закрывает то, что печатают.
+.toasts {
+  position: fixed;
+  right: max(var(--size-panel-gutter), var(--offset-safe-right));
+  bottom: calc(var(--offset-safe-bottom) + var(--space-10) * 2);
+  left: max(var(--size-panel-gutter), var(--offset-safe-left));
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: var(--size-phone-column);
+  margin: 0 auto;
+}

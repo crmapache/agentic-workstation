@@ -53,12 +53,58 @@ const ELEMENTS = [
     partialMatch: false,
   },
   { type: 'relay', pattern: 'apps/relay/src/**', partialMatch: false },
+  // Телефонный клиент Remote Control: своё приложение в браузере телефона. Из общего - только
+  // протокол и дизайн-система; IDE он знает лишь по протоколу. Сквозные проверки (e2e/)
+  // поднимают настоящий релей и RemoteService главного процесса с подделками сервисов IDE.
+  { type: 'phone', pattern: 'apps/phone/src/**', partialMatch: false },
+  { type: 'phone-e2e', pattern: 'apps/phone/e2e/**', partialMatch: false },
 ]
 
 /** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
 const FILE_CATEGORIES = [{ category: 'test', pattern: '**/*.test.ts' }]
 
 const allowTo = (...types) => ({ to: { element: { types: { anyOf: types } } } })
+
+const NO_BARREL = {
+  group: ['**/index', '**/index.ts', '**/index.tsx'],
+  message: 'Без barrel-файлов: импортируй файл компонента напрямую.',
+}
+
+const NO_REACT_FC = {
+  name: 'react',
+  importNames: ['FC', 'FunctionComponent'],
+  message: 'Без React.FC: тип props - на параметре функции.',
+}
+
+/**
+ * Разметка интерфейса - окна IDE, дизайн-системы и телефона: стили только в .module.scss, иконки -
+ * lucide, подсказка - Tooltip, текст - через i18n, без React.FC.
+ */
+const INTERFACE_SYNTAX = [
+  {
+    selector: "JSXAttribute[name.name='style']",
+    message:
+      'Inline style запрещён: стили в .module.scss. Исключение - по-настоящему динамическое значение (ширина при перетаскивании и т.п.) с eslint-disable и причиной.',
+  },
+  {
+    selector: "JSXOpeningElement[name.name='svg']",
+    message: 'Inline <svg> запрещён: иконки из lucide-react.',
+  },
+  {
+    // Только у элементов разметки: у компонентов (Dialog, Card, Toast) title - свой проп.
+    selector: "JSXOpeningElement[name.name=/^[a-z]/] > JSXAttribute[name.name='title']",
+    message:
+      'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@agentic-workstation/ui/Tooltip).',
+  },
+  {
+    selector: 'JSXText[value=/\\S/]',
+    message: 'Текст интерфейса - только через i18n (t(...)), без строк прямо в JSX.',
+  },
+  {
+    selector: "TSQualifiedName[left.name='React'][right.name=/^(FC|FunctionComponent)$/]",
+    message: 'Без React.FC: тип props - на параметре функции.',
+  },
+]
 
 export default defineConfig(
   {
@@ -133,6 +179,8 @@ export default defineConfig(
       'apps/browser-extension/src/**/*.ts',
       'packages/remote-protocol/src/**/*.ts',
       'apps/relay/src/**/*.ts',
+      'apps/phone/src/**/*.{ts,tsx}',
+      'apps/phone/e2e/**/*.ts',
     ],
     plugins: { boundaries },
     settings: {
@@ -145,6 +193,8 @@ export default defineConfig(
         'apps/browser-extension/src/**/*',
         'packages/remote-protocol/src/**/*',
         'apps/relay/src/**/*',
+        'apps/phone/src/**/*',
+        'apps/phone/e2e/**/*',
       ],
       'import/resolver': {
         typescript: {
@@ -157,6 +207,8 @@ export default defineConfig(
             'apps/browser-extension/tsconfig.app.json',
             'packages/remote-protocol/tsconfig.json',
             'apps/relay/tsconfig.json',
+            'apps/phone/tsconfig.app.json',
+            'apps/phone/tsconfig.node.json',
           ],
         },
       },
@@ -193,6 +245,17 @@ export default defineConfig(
             {
               from: { element: { type: 'main' }, file: { categories: 'test' } },
               allow: allowTo('relay'),
+            },
+            // Телефон не видит ни IDE, ни релея: только протокол и дизайн-систему.
+            {
+              from: { element: { type: 'phone' } },
+              allow: allowTo('phone', 'ui', 'remote-protocol'),
+            },
+            // Сквозная проверка телефона: настоящий релей, RemoteService главного процесса с
+            // подделками сервисов IDE (их общий контракт - shared) и ядро телефона.
+            {
+              from: { element: { type: 'phone-e2e' } },
+              allow: allowTo('phone-e2e', 'phone', 'main', 'shared', 'relay', 'remote-protocol'),
             },
             { from: { element: { type: 'browser-protocol' } }, allow: allowTo('browser-protocol') },
             {
@@ -386,46 +449,37 @@ export default defineConfig(
               group: ['electron', 'electron/*', 'node:*'],
               message: 'Окно ходит в главный процесс только через lib/ipc.ts.',
             },
-            {
-              group: ['**/index', '**/index.ts', '**/index.tsx'],
-              message: 'Без barrel-файлов: импортируй файл компонента напрямую.',
-            },
+            NO_BARREL,
           ],
-          paths: [
-            {
-              name: 'react',
-              importNames: ['FC', 'FunctionComponent'],
-              message: 'Без React.FC: тип props - на параметре функции.',
-            },
-          ],
+          paths: [NO_REACT_FC],
         },
       ],
-      'no-restricted-syntax': [
+      'no-restricted-syntax': ['error', ...INTERFACE_SYNTAX],
+    },
+  },
+
+  // Телефон - страница в браузере телефона: ни Node, ни Electron, к IDE - только по протоколу.
+  {
+    files: ['apps/phone/src/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'no-restricted-imports': [
         'error',
         {
-          selector: "JSXAttribute[name.name='style']",
-          message:
-            'Inline style запрещён: стили в .module.scss. Исключение - по-настоящему динамическое значение (ширина при перетаскивании и т.п.) с eslint-disable и причиной.',
-        },
-        {
-          selector: "JSXOpeningElement[name.name='svg']",
-          message: 'Inline <svg> запрещён: иконки из lucide-react.',
-        },
-        {
-          // Только у элементов разметки: у компонентов (Dialog, Card, Toast) title - свой проп.
-          selector: "JSXOpeningElement[name.name=/^[a-z]/] > JSXAttribute[name.name='title']",
-          message:
-            'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@agentic-workstation/ui/Tooltip).',
-        },
-        {
-          selector: 'JSXText[value=/\\S/]',
-          message: 'Текст интерфейса - только через i18n (t(...)), без строк прямо в JSX.',
-        },
-        {
-          selector: "TSQualifiedName[left.name='React'][right.name=/^(FC|FunctionComponent)$/]",
-          message: 'Без React.FC: тип props - на параметре функции.',
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*'],
+              message:
+                'Телефон - страница в браузере: без Node и Electron, к IDE - через протокол.',
+            },
+            NO_BARREL,
+          ],
+          paths: [NO_REACT_FC],
         },
       ],
+      'no-restricted-syntax': ['error', ...INTERFACE_SYNTAX],
     },
   },
 

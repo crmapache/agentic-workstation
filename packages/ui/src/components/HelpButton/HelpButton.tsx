@@ -12,12 +12,12 @@ import { helpParagraphs } from './HelpButton.utils'
  * лежит абзацем в интерфейсе. На виду остаются подписи, состояния и ошибки, а что это и
  * как работает - здесь. Окно справки встаёт и поверх другого окна.
  */
-export const HelpButton = ({ label, title, text, closeLabel }: HelpButtonProps) => {
+export const HelpButton = ({ label, title, text, closeLabel, size = 'sm' }: HelpButtonProps) => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
     <>
-      <IconButton icon={CircleHelp} size="sm" label={label} onClick={() => setIsOpen(true)} />
+      <IconButton icon={CircleHelp} size={size} label={label} onClick={() => setIsOpen(true)} />
       <Modal
         open={isOpen}
         icon={CircleHelp}

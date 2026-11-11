@@ -77,6 +77,10 @@ export const ChoicesSection = () => {
             {icon(Bot)}
             {t('samples.disclosureCard')}
           </Disclosure>
+          <Disclosure size="touch" expanded={false}>
+            {icon(FileText)}
+            {t('samples.disclosureTouch')}
+          </Disclosure>
         </div>
       </Specimen>
 

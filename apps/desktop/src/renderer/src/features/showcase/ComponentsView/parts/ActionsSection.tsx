@@ -75,6 +75,20 @@ export const ActionsSection = () => {
         </Button>
       </Specimen>
 
+      <Specimen label={t('specimens.buttonsTouch')}>
+        <Button variant="primary" size="touch" icon={Play}>
+          {t('samples.run')}
+        </Button>
+        <Button variant="secondary" size="touch">
+          {t('samples.secondary')}
+        </Button>
+        <Button variant="danger" size="touch" icon={Trash2}>
+          {t('samples.remove')}
+        </Button>
+        <IconButton icon={Search} size="touch" label={t('samples.search')} />
+        <IconButton icon={ArrowUp} size="touch" variant="primary" label={t('samples.send')} />
+      </Specimen>
+
       <Specimen label={t('specimens.menuButtons')}>
         <Button size="sm" icon={Bot} menu>
           {t('samples.setUpWithAi')}

@@ -1,0 +1,44 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Вопрос хода над полем не выше потолка: лента над ним остаётся видна.
+.dock {
+  max-height: var(--size-dock-max);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queued {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.queuedMark {
+  @include caps-label;
+
+  flex: none;
+  color: var(--color-fg-subtle);
+}
+
+.queuedText {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+}

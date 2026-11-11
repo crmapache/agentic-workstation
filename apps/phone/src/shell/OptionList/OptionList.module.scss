@@ -1,0 +1,55 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-panel);
+
+  > * + * {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}
+
+.option {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-fg);
+  text-align: left;
+
+  &[aria-checked='true'] {
+    background-color: var(--color-bg-selected);
+  }
+
+  &:disabled {
+    color: var(--color-fg-disabled);
+    cursor: not-allowed;
+  }
+}
+
+.texts {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+}
+
+.description {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
