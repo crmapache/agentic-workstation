@@ -8,6 +8,10 @@ import { BrowserError } from './browser-error'
 import type { HubPort } from './browser-hub'
 import type { HeldTab } from './browser-sessions'
 import type { ElementRef } from './frame-refs'
+import type { Motion } from './human-motion'
+
+/** Путь курсора на экране: точки [x, y, мс от начала] и время всего пути. */
+export type CursorWay = { path: [number, number, number][]; duration: number }
 
 /** Ожидание загрузки после перехода: по событию страницы или по состоянию вкладки. */
 export type LoadWaiters = {
@@ -18,7 +22,15 @@ export type LoadWaiters = {
  * Куда и сколько ждать: frame - id фрейма другого процесса (его сессия отладчика), без него -
  * сама вкладка.
  */
-export type CdpOptions = { timeoutMs?: number | undefined; frame?: string | undefined }
+export type CdpOptions = {
+  timeoutMs?: number | undefined
+  frame?: string | undefined
+  /**
+   * Без отмены вызова: отпускание кнопки и клавиши уходит и после Stop - иначе Chrome считал
+   * бы кнопку нажатой, и следующие движения агента тянули бы выделение.
+   */
+  unstoppable?: boolean | undefined
+}
 
 /**
  * Одна вкладка агента для инструмента: команды CDP, курсор и ссылки последнего снимка. Живёт
@@ -29,9 +41,14 @@ export class Page {
     private readonly hub: HubPort,
     readonly tab: HeldTab,
     private readonly loads: LoadWaiters,
-    private readonly signal: AbortSignal | undefined,
+    /** Отмена вызова инструмента: прерывает и паузы руки. */
+    readonly signal: AbortSignal | undefined,
     /** Подключить отладчик заново: его сняли без нас (вторая IDE отпустила ту же вкладку). */
     private readonly reattach: () => Promise<void>,
+    /** Время и случайность руки (human-motion.ts): живые, в тестах - мгновенные. */
+    readonly motion: Motion,
+    /** Вкладку трогают: долгий набор не должен выглядеть простоем и терять отладчик. */
+    private readonly touch: () => void = () => undefined,
   ) {}
 
   /**
@@ -45,6 +62,8 @@ export class Page {
     params: Record<string, unknown> = {},
     options: CdpOptions = {},
   ): Promise<T> {
+    this.touch()
+
     try {
       return await this.send<T>(method, params, options)
     } catch (error) {
@@ -79,20 +98,29 @@ export class Page {
   }
 
   private send<T>(method: string, params: Record<string, unknown>, options: CdpOptions) {
-    const { timeoutMs, frame } = options
+    const { timeoutMs, frame, unstoppable } = options
 
     return this.hub.request(
       this.tab.profileKey,
       'cdp',
       { tabId: this.tab.tabId, method, params, ...(frame ? { frame } : {}) },
-      { signal: this.signal, ...(timeoutMs ? { timeoutMs } : {}) },
+      { signal: unstoppable ? undefined : this.signal, ...(timeoutMs ? { timeoutMs } : {}) },
     ) as Promise<T>
   }
 
-  /** Курсор - украшение: страница, куда Chrome не пускает скрипты, работает и без него. */
-  async cursor(x: number, y: number, action: CursorAction): Promise<void> {
+  /**
+   * Курсор - украшение: страница, куда Chrome не пускает скрипты, работает и без него. С путём
+   * он идёт той же дорогой, что события мыши; расширение старше пути едет по прямой.
+   */
+  async cursor(x: number, y: number, action: CursorAction, way?: CursorWay): Promise<void> {
     await this.hub
-      .request(this.tab.profileKey, 'overlay.cursor', { tabId: this.tab.tabId, x, y, action })
+      .request(this.tab.profileKey, 'overlay.cursor', {
+        tabId: this.tab.tabId,
+        x,
+        y,
+        action,
+        ...way,
+      })
       .catch(() => undefined)
   }
 

@@ -1,58 +1,59 @@
 import { BrowserError } from './browser-error'
 import { SET_VALUE, setsValue, sameFieldValue, fieldValueRefused } from './field-values'
+import {
+  holdMs,
+  keyGapMs,
+  settleMs,
+  wheelTicks,
+  doubleGapMs,
+  TYPE_BY_KEYS_MAX,
+} from './human-motion'
 import type { Page } from './page'
 import { keyEvents, charEvents } from './page-keys'
-import { callOn, nodeCdp, pointOf, revealElement } from './page-nodes'
+import type { KeyEvent } from './page-keys'
+import { callOn, nodeCdp, revealElement } from './page-nodes'
 import type { Point, Target } from './page-nodes'
+import { aimOf, mouse, moveTo, viewportOf } from './page-pointer'
+import type { MouseButton } from './page-pointer'
 
 /**
- * Действия во вкладке через CDP (ADR 0040): клики и ввод - `Input.*`, как от настоящей мыши и
- * клавиатуры; сайты их не отличают. Перед нажатием курсор агента подъезжает к точке. Ввод
+ * Действия во вкладке через CDP (ADR 0040, 0044): клики и ввод - `Input.*`, как от настоящей
+ * мыши и клавиатуры. Рука - как у человека (human-motion.ts): мышь идёт к цели путём, жмёт
+ * не в центр и держит кнопку, текст печатается по клавише, колесо крутится толчками. Ввод
  * всегда идёт в саму вкладку, и во фрейм другого процесса тоже: Chrome сам отдаёт его фрейму
  * под точкой или в фокусе.
  */
 
-export type MouseButton = 'left' | 'right' | 'middle'
+export type { MouseButton } from './page-pointer'
 
-const BUTTON_MASK: Record<MouseButton, number> = { left: 1, right: 2, middle: 4 }
-
-const mouse = (
-  page: Page,
-  type: 'mouseMoved' | 'mousePressed' | 'mouseReleased',
-  { x, y }: Point,
-  button: MouseButton | 'none',
-  clickCount: number,
-) =>
-  page.cdp('Input.dispatchMouseEvent', {
-    type,
-    x,
-    y,
-    button,
-    clickCount,
-    buttons: type === 'mousePressed' && button !== 'none' ? BUTTON_MASK[button] : 0,
-  })
+const pause = (page: Page, ms: number) => page.motion.sleep(ms, page.signal)
 
 export const click = async (
   page: Page,
   target: Target,
   { button = 'left', double = false }: { button?: MouseButton; double?: boolean } = {},
 ): Promise<void> => {
-  const point = await pointOf(page, target)
+  const point = await aimOf(page, target)
+  const { random } = page.motion
 
-  await page.cursor(point.x, point.y, double ? 'double' : button === 'right' ? 'right' : 'click')
-  await mouse(page, 'mouseMoved', point, 'none', 0)
+  await moveTo(page, point, double ? 'double' : button === 'right' ? 'right' : 'click')
+  await pause(page, settleMs(random))
 
   for (const count of double ? [1, 2] : [1]) {
+    if (count > 1) await pause(page, doubleGapMs(random))
+
     await mouse(page, 'mousePressed', point, button, count)
-    await mouse(page, 'mouseReleased', point, button, count)
+
+    try {
+      await pause(page, holdMs(random))
+    } finally {
+      await mouse(page, 'mouseReleased', point, button, count)
+    }
   }
 }
 
 export const hover = async (page: Page, target: Target): Promise<void> => {
-  const point = await pointOf(page, target)
-
-  await page.cursor(point.x, point.y, 'move')
-  await mouse(page, 'mouseMoved', point, 'none', 0)
+  await moveTo(page, await aimOf(page, target), 'move')
 }
 
 /** Выделить содержимое поля: набранное заменит его, как у человека после ⌘A. */
@@ -68,9 +69,59 @@ const SELECT_CONTENTS = `function () {
   }
 }`
 
+/**
+ * События клавиш с человеческой выдержкой: клавиша держится, модификатор нажат раньше и
+ * отпущен позже неё.
+ */
+const keys = async (page: Page, events: readonly KeyEvent[]) => {
+  const held = new Map<string, KeyEvent>()
+
+  try {
+    for (const [index, event] of events.entries()) {
+      if (index > 0) await pause(page, Math.round(holdMs(page.motion.random) / 2))
+
+      await page.cdp('Input.dispatchKeyEvent', event)
+
+      const id = `${event.code}|${event.key}`
+
+      if (event.type === 'keyUp') held.delete(id)
+      else held.set(id, event)
+    }
+  } finally {
+    // Stop посреди сочетания: зажатые клавиши отпускаются, иначе Chrome держал бы ⌘ нажатым.
+    for (const { key, code, windowsVirtualKeyCode, modifiers } of [...held.values()].reverse()) {
+      await page
+        .cdp(
+          'Input.dispatchKeyEvent',
+          { type: 'keyUp', key, code, windowsVirtualKeyCode, modifiers },
+          { unstoppable: true },
+        )
+        .catch(() => undefined)
+    }
+  }
+}
+
 export const press = async (page: Page, combos: readonly string[]): Promise<void> => {
-  for (const combo of combos) {
-    for (const event of keyEvents(combo)) await page.cdp('Input.dispatchKeyEvent', event)
+  for (const [index, combo] of combos.entries()) {
+    if (index > 0) await pause(page, keyGapMs(combos[index - 1] ?? '', page.motion.random))
+
+    await keys(page, keyEvents(combo))
+  }
+}
+
+/**
+ * Набрать текст по клавише: короткий - неровным ритмом руки; длинный (slowly для подсказок
+ * на сотни знаков) - без пауз между знаками, иначе он печатался бы минутами.
+ */
+const typeByKeys = async (page: Page, text: string) => {
+  const paced = text.length <= TYPE_BY_KEYS_MAX
+  let previous = ''
+
+  for (const char of text) {
+    if (previous && paced) await pause(page, keyGapMs(previous, page.motion.random))
+
+    await keys(page, charEvents(char))
+    previous = char
   }
 }
 
@@ -106,9 +157,11 @@ const setFieldValue = async (page: Page, ref: string, type: string, value: strin
 }
 
 /**
- * Ввод: нажать в поле (курсор подъезжает), заменить содержимое (или дописать), набрать. Обычно
- * текст вставляется разом (`Input.insertText`); slowly - по клавише, для полей с подсказками.
- * Поле даты, времени, цвета или ползунка не печатает - ему значение ставится целиком.
+ * Ввод: нажать в поле (мышь подъезжает), заменить содержимое (или дописать), набрать. Короткий
+ * текст печатается по клавише - с нажатиями, которые видят сайт и его подсказки; длинный (или
+ * с переводами строк) вставляется разом, как человек вставил бы его из буфера. slowly - по
+ * клавише всегда. Поле даты, времени, цвета или ползунка не печатает - ему значение ставится
+ * целиком.
  */
 export const typeText = async (page: Page, options: TypeOptions): Promise<void> => {
   const field = options.ref ? await callOn<FieldInfo>(page, options.ref, DESCRIBE) : null
@@ -127,17 +180,22 @@ export const typeText = async (page: Page, options: TypeOptions): Promise<void> 
     if (!options.append) await callOn(page, options.ref, SELECT_CONTENTS)
   }
 
-  if (options.slowly) {
-    for (const char of options.text) {
-      for (const event of charEvents(char)) await page.cdp('Input.dispatchKeyEvent', event)
-    }
+  const byKeys =
+    options.slowly || (options.text.length <= TYPE_BY_KEYS_MAX && !options.text.includes('\n'))
+
+  if (options.text && byKeys) {
+    await typeByKeys(page, options.text)
   } else if (options.text) {
+    await pause(page, settleMs(page.motion.random))
     await page.cdp('Input.insertText', { text: options.text })
   } else if (options.ref && !options.append) {
     await press(page, ['Delete'])
   }
 
-  if (options.submit) await press(page, ['Enter'])
+  if (options.submit) {
+    await pause(page, keyGapMs(options.text.at(-1) ?? '', page.motion.random))
+    await press(page, ['Enter'])
+  }
 }
 
 /** Выбрать варианты в <select> по значению или подписи; ответ - выбранные значения. */
@@ -186,7 +244,11 @@ export const fillField = async (page: Page, ref: string, value: string): Promise
   await typeText(page, { ref, text: value })
 }
 
-/** Прокрутка колесом в точке (по умолчанию - середина окна) или до элемента. */
+/**
+ * Прокрутка колесом в точке (по умолчанию - там, где мышь, или середина окна) или до элемента.
+ * Мышь сначала приходит в точку, колесо крутится серией толчков, как трекпад, а не одним
+ * прыжком на всю высоту.
+ */
 export const scroll = async (
   page: Page,
   { ref, point, dx, dy }: { ref?: string; point?: Point; dx: number; dy: number },
@@ -197,25 +259,30 @@ export const scroll = async (
     return
   }
 
-  const at = ref ? await pointOf(page, { ref }) : (point ?? (await viewportCenter(page)))
+  const at = ref
+    ? await aimOf(page, { ref })
+    : (point ?? page.tab.pointer ?? (await viewportCenter(page)))
 
-  await page.cursor(at.x, at.y, 'move')
-  await page.cdp('Input.dispatchMouseEvent', {
-    type: 'mouseWheel',
-    x: at.x,
-    y: at.y,
-    deltaX: dx,
-    deltaY: dy,
-  })
+  await moveTo(page, at, 'move')
+
+  const started = performance.now()
+
+  for (const tick of wheelTicks(dx, dy)) {
+    await pause(page, tick.at - (performance.now() - started))
+    await page.cdp('Input.dispatchMouseEvent', {
+      type: 'mouseWheel',
+      x: at.x,
+      y: at.y,
+      deltaX: tick.dx,
+      deltaY: tick.dy,
+    })
+  }
 }
 
 const viewportCenter = async (page: Page): Promise<Point> => {
-  const metrics = await page.cdp<{
-    cssLayoutViewport?: { clientWidth: number; clientHeight: number }
-  }>('Page.getLayoutMetrics')
-  const viewport = metrics.cssLayoutViewport ?? { clientWidth: 800, clientHeight: 600 }
+  const { width, height } = await viewportOf(page)
 
-  return { x: Math.round(viewport.clientWidth / 2), y: Math.round(viewport.clientHeight / 2) }
+  return { x: Math.round(width / 2), y: Math.round(height / 2) }
 }
 
 const IS_FILE_INPUT = `function () {

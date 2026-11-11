@@ -53,6 +53,12 @@ export type FrameTarget = { frameId: string; url: string }
 /** Что сделать курсором в точке: только подъехать или ещё и показать нажатие. */
 export type CursorAction = 'move' | 'click' | 'double' | 'right'
 
+/** Путь курсора: точки [x, y, мс от начала пути] по порядку. */
+export type CursorPath = [number, number, number][]
+
+/** Больше точек пути курсору не нужно: остальное он не нарисует плавнее. */
+export const CURSOR_PATH_MAX = 64
+
 /** Сессия агента для окна расширения: имя группы и вкладки, которые она держит. */
 export type SessionSummary = { id: string; title: string; tabIds: number[] }
 
@@ -100,8 +106,20 @@ export type BrowserMethods = {
   /** Рамка по краю страницы, пока агент держит вкладку. */
   'overlay.frame': { params: { tabId: number; on: boolean }; result: null }
   /** Плавно подвести курсор к точке (CSS-пиксели окна страницы); ответ - когда доехал. */
+  /**
+   * Курсор агента к точке. path - путь, которым идёт мышь ([x, y, мс от начала]), duration -
+   * время всего пути: курсор идёт той же дорогой, что события мыши. Без пути - по прямой
+   * (IDE старше пути).
+   */
   'overlay.cursor': {
-    params: { tabId: number; x: number; y: number; action: CursorAction }
+    params: {
+      tabId: number
+      x: number
+      y: number
+      action: CursorAction
+      path?: CursorPath | undefined
+      duration?: number | undefined
+    }
     result: null
   }
   /** Сессии агентов этой IDE в профиле - для окна расширения (кнопка Stop). */

@@ -1,5 +1,6 @@
 import { BrowserError } from './browser-error'
 import { targetOf } from './frame-refs'
+import type { Box } from './human-motion'
 import type { Page } from './page'
 import { frameOffset, revealFrame } from './page-frames'
 
@@ -139,14 +140,11 @@ const quadArea = (quad: number[]): number => {
 }
 
 /**
- * Середина элемента в окне страницы; элемент прокручивается в видимую часть. Элемент во
- * фрейме другого процесса: сначала его iframe - в видимую часть страницы, точка - в
- * координатах его окна плюс место фрейма на странице.
+ * Где элемент в окне страницы: коробка его первого видимого куска; элемент прокручивается в
+ * видимую часть. Элемент во фрейме другого процесса: сначала его iframe - в видимую часть
+ * страницы, коробка - в координатах его окна плюс место фрейма на странице.
  */
-export const pointOf = async (page: Page, target: Target): Promise<Point> => {
-  if (!('ref' in target)) return target
-
-  const { ref } = target
+export const boxOf = async (page: Page, ref: string): Promise<Box> => {
   const { frame } = page.elementOf(ref)
 
   await revealElement(page, ref).catch((error: unknown) => {
@@ -163,7 +161,7 @@ export const pointOf = async (page: Page, target: Target): Promise<Point> => {
   const quad = quads.find((item) => quadArea(item) > 1)
 
   if (!quad) {
-    throw new BrowserError('bad-request', `Element ${target.ref} is not visible on the page.`)
+    throw new BrowserError('bad-request', `Element ${ref} is not visible on the page.`)
   }
 
   const offset = await frameOffset(page, frame).catch((error: unknown) => {
@@ -173,9 +171,22 @@ export const pointOf = async (page: Page, target: Target): Promise<Point> => {
   })
   const xs = [quad[0], quad[2], quad[4], quad[6]].map(Number)
   const ys = [quad[1], quad[3], quad[5], quad[7]].map(Number)
+  const left = Math.min(...xs)
+  const top = Math.min(...ys)
 
   return {
-    x: Math.round(offset.x + xs.reduce((sum, value) => sum + value, 0) / 4),
-    y: Math.round(offset.y + ys.reduce((sum, value) => sum + value, 0) / 4),
+    x: offset.x + left,
+    y: offset.y + top,
+    width: Math.max(...xs) - left,
+    height: Math.max(...ys) - top,
   }
+}
+
+/** Середина элемента в окне страницы (или сама точка); элемент - в видимую часть. */
+export const pointOf = async (page: Page, target: Target): Promise<Point> => {
+  if (!('ref' in target)) return target
+
+  const box = await boxOf(page, target.ref)
+
+  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) }
 }

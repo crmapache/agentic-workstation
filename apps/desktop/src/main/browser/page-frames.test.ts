@@ -91,7 +91,11 @@ const setup = () => {
   // Каждый узел - квадрат 10 на 10 в начале окна своего документа.
   hub.cdp.set('DOM.getContentQuads', () => ({ quads: [[0, 0, 10, 0, 10, 10, 0, 10]] }))
 
-  const agent = new BrowserAgent(hub)
+  // Рука без пауз и с серединой вместо разброса: путь и точка нажатия - предсказуемые.
+  const agent = new BrowserAgent(hub, Date.now, undefined, {
+    random: () => 0.5,
+    sleep: () => Promise.resolve(),
+  })
 
   agents.push(agent)
 
@@ -144,13 +148,17 @@ describe('фреймы в снимке и действиях', () => {
     await snapshot(page)
     await click(page, { ref: 'f3e1' })
 
-    // Окно Deep начинается в (30, 40) окна Cross, а оно - в (100, 200) страницы.
+    // Окно Deep начинается в (30, 40) окна Cross, а оно - в (100, 200) страницы. Мышь идёт
+    // к точке путём событий движения во вкладке, потом нажатие и отпускание там же.
     const moves = cdpCalls(hub, 'Input.dispatchMouseEvent')
+    const ends = moves.slice(-3)
 
-    expect(moves.map((move) => [move.frame, move.params['x'], move.params['y']])).toEqual([
-      [undefined, 135, 245],
-      [undefined, 135, 245],
-      [undefined, 135, 245],
+    expect(moves.every((move) => move.frame === undefined)).toBe(true)
+    expect(moves.length).toBeGreaterThan(4)
+    expect(ends.map((move) => [move.params['type'], move.params['x'], move.params['y']])).toEqual([
+      ['mouseMoved', 135, 245],
+      ['mousePressed', 135, 245],
+      ['mouseReleased', 135, 245],
     ])
     // Сначала iframe-ы - в видимую часть, от внешнего к внутреннему, потом сам элемент.
     expect(
@@ -178,16 +186,28 @@ describe('фреймы в снимке и действиях', () => {
     await click(page, { ref: 'f1e1' })
 
     expect(cdpCalls(hub, 'DOM.getBoxModel')).toEqual([])
-    expect(cdpCalls(hub, 'Input.dispatchMouseEvent')[0]?.params).toMatchObject({ x: 5, y: 5 })
+    expect(
+      cdpCalls(hub, 'Input.dispatchMouseEvent').find(
+        (move) => move.params['type'] === 'mousePressed',
+      )?.params,
+    ).toMatchObject({ x: 5, y: 5 })
 
     await typeText(page, { ref: 'f2e1', text: 'Ada' })
 
     expect(cdpCalls(hub, 'Runtime.callFunctionOn').every((call) => call.frame === 'CROSS')).toBe(
       true,
     )
-    expect(cdpCalls(hub, 'Input.insertText')).toEqual([
-      { frame: undefined, params: { text: 'Ada' } },
+    // Короткий текст - по клавише, как у человека: нажатия видят сайт и его подсказки.
+    expect(
+      cdpCalls(hub, 'Input.dispatchKeyEvent')
+        .filter((call) => call.params['type'] === 'keyDown')
+        .map((call) => [call.frame, call.params['text']]),
+    ).toEqual([
+      [undefined, 'A'],
+      [undefined, 'd'],
+      [undefined, 'a'],
     ])
+    expect(cdpCalls(hub, 'Input.insertText')).toEqual([])
   })
 
   it('фрейм ушёл - «возьми новый снимок»; фрейм не прочесть - строка iframe без содержимого', async () => {

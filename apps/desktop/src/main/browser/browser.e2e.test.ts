@@ -75,19 +75,39 @@ const PAGE = `<!doctype html><title>AW e2e</title>
 <label>Visit date <input type="date" id="day"></label>
 <label>Visit time <input type="time" id="hour"></label>
 <label>Attachment <input type="file" id="file"></label>
-<a href="/second">Second page</a>`
+<a href="/second">Second page</a>
+<script>
+  // Что видит сайт: события руки агента - для проверки, что она двигается как человек.
+  window.hand = { moves: [], downs: [], ups: [], keys: [], trusted: true }
+  const note = (list) => (event) => {
+    window.hand.trusted = window.hand.trusted && event.isTrusted
+    list.push([event.clientX, event.clientY, event.timeStamp, event.key])
+  }
+  addEventListener('mousemove', note(window.hand.moves), true)
+  addEventListener('mousedown', note(window.hand.downs), true)
+  addEventListener('mouseup', note(window.hand.ups), true)
+  addEventListener('keydown', note(window.hand.keys), true)
+</script>`
 
 const SECOND = '<!doctype html><title>Second</title><h1>Second page</h1><p>Welcome aboard</p>'
 
+/**
+ * Где страница увидела нажатие: рука жмёт не в середину кнопки, а рядом, - курсор ищут там,
+ * где нажали.
+ */
+const PRESSED_AT = `<script>addEventListener('mousedown', (event) => { window.pressedAt = [event.clientX, event.clientY] }, true)</script>`
+
 /** Синяя страница с кнопкой в известном месте: по пикселям видно содержимое, курсор и рамку. */
 const BLUE = `<!doctype html><title>Blue</title><style>body{margin:0;background:#2050d0;height:100vh}</style>
-<button style="position:absolute;left:300px;top:200px;width:120px;height:40px">Go</button>`
+<button style="position:absolute;left:300px;top:200px;width:120px;height:40px">Go</button>
+${PRESSED_AT}`
 
 /** Модальное окно сайта - в верхнем слое документа: курсор агента должен быть над ним. */
 const MODAL = `<!doctype html><title>Modal</title><style>body{margin:0;background:#2050d0;height:100vh}
 dialog{background:#2050d0;border:0;width:300px;height:200px}::backdrop{background:#2050d0}</style>
 <dialog id="d"><button id="inside" style="width:120px;height:40px">Inside</button></dialog>
-<script>document.getElementById('d').showModal()</script>`
+<script>document.getElementById('d').showModal()</script>
+${PRESSED_AT}`
 
 /** Полосы по 1000 CSS-пикселей: по цвету видно, какая часть страницы на картинке. */
 const BANDS = ['#d02020', '#20a040', '#2050d0', '#d0d020', '#a020a0', '#20d0d0']
@@ -218,6 +238,12 @@ describe.skipIf(!ready)(
     const profileKey = () => hub.profiles()[0]?.key ?? ''
     const cdp = (tabId: number, method: string, params: Record<string, unknown> = {}) =>
       hub.request(profileKey(), 'cdp', { tabId, method, params })
+    /** Где страница увидела последнее нажатие мыши (PRESSED_AT). */
+    const pressedAt = async () =>
+      JSON.parse(text(await call('evaluate', { expression: 'window.pressedAt' }))) as [
+        number,
+        number,
+      ]
 
     beforeAll(async () => {
       dir = await realpath(await mkdtemp(join(tmpdir(), 'aw-e2e-')))
@@ -354,6 +380,28 @@ describe.skipIf(!ready)(
       expect(form).not.toMatch(/- image \[ref=/)
 
       json(await call('type', { ref: refOf(form, '- textbox "Name"'), text: 'Ada Lovelace' }))
+
+      // Рука глазами сайта: к кнопке мышь шла путём, а не прыгнула; кнопку держали, а не
+      // щёлкнули за ноль; имя набрано по клавише с паузами (ADR 0044).
+      const hand = JSON.parse(text(await call('evaluate', { expression: 'window.hand' }))) as {
+        moves: [number, number, number][]
+        downs: [number, number, number][]
+        ups: [number, number, number][]
+        keys: [number, number, number, string][]
+        trusted: boolean
+      }
+      const firstDown = hand.downs[0]?.[2] ?? 0
+      const approach = hand.moves.filter((move) => move[2] < firstDown)
+      const typed = hand.keys.filter((key) => key[3].length === 1)
+      const gaps = typed.slice(1).map((key, index) => key[2] - (typed[index]?.[2] ?? 0))
+
+      expect(hand.trusted).toBe(true)
+      expect(approach.length).toBeGreaterThan(8)
+      expect(new Set(approach.map((move) => `${move[0]},${move[1]}`)).size).toBeGreaterThan(5)
+      expect((hand.ups[0]?.[2] ?? 0) - firstDown).toBeGreaterThan(40)
+      expect(typed.map((key) => key[3]).join('')).toBe('Ada Lovelace')
+      expect(Math.min(...gaps)).toBeGreaterThan(20)
+      expect(new Set(gaps.map(Math.round)).size).toBeGreaterThan(3)
       json(await call('select', { ref: refOf(form, '- combobox "Color"'), values: ['Green'] }))
       json(
         await call('fill', { fields: [{ ref: refOf(form, '- checkbox "Agree"'), value: 'true' }] }),
@@ -637,10 +685,14 @@ describe.skipIf(!ready)(
 
       json(await call('click', { ref: refOf(snapshot, '- button "Go"') }))
 
+      const pressed = await pressedAt()
       const clicked = pixelsOf(await call('screenshot'))
 
-      // Острие курсора - в середине кнопки (360, 220), стрелка уходит вправо-вниз.
-      expect(accentNear(clicked, 360, 220)).toBeGreaterThan(10)
+      // Острие курсора - там, где нажали (рядом с серединой кнопки 360, 220), стрелка уходит
+      // вправо-вниз.
+      expect(Math.abs(pressed[0] - 360)).toBeLessThanOrEqual(18)
+      expect(Math.abs(pressed[1] - 220)).toBeLessThanOrEqual(18)
+      expect(accentNear(clicked, pressed[0], pressed[1])).toBeGreaterThan(10)
       expect(isAccent(clicked.at(0, clicked.height >> 1))).toBe(true)
 
       if (headed) {
@@ -677,18 +729,14 @@ describe.skipIf(!ready)(
       json(await call('open', { url: `${base}/modal` }))
 
       const snapshot = text(await call('snapshot'))
-      const box = JSON.parse(
-        text(
-          await call('evaluate', {
-            expression:
-              "(() => { const r = document.getElementById('inside').getBoundingClientRect(); return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)] })()",
-          }),
-        ),
-      ) as [number, number]
 
       json(await call('click', { ref: refOf(snapshot, '- button "Inside"') }))
 
-      expect(accentNear(pixelsOf(await call('screenshot')), box[0], box[1])).toBeGreaterThan(10)
+      const pressed = await pressedAt()
+
+      expect(
+        accentNear(pixelsOf(await call('screenshot')), pressed[0], pressed[1]),
+      ).toBeGreaterThan(10)
       json(await call('finish'))
     }, 60_000)
 

@@ -10,6 +10,8 @@ import type { HubPort, BrowserProfile } from './browser-hub'
 import { sessionIdOf, SessionLaunches, SESSION_GRACE_MS } from './browser-launches'
 import { BrowserSessions } from './browser-sessions'
 import type { HeldTab, BrowserSession } from './browser-sessions'
+import type { Motion } from './human-motion'
+import { HUMAN_MOTION } from './human-motion'
 import { LoadWaitList } from './load-waits'
 import type { Page } from './page'
 
@@ -62,6 +64,7 @@ export class BrowserAgent {
     readonly hub: HubPort,
     private readonly now: () => number = Date.now,
     graceMs = SESSION_GRACE_MS,
+    motion: Motion = HUMAN_MOTION,
   ) {
     const pushSummaries = (profileKey: string) => this.pushSummaries(profileKey)
     const context: EventContext = {
@@ -80,6 +83,7 @@ export class BrowserAgent {
       loads: this.loads,
       now,
       pushSummaries,
+      motion,
     })
     this.launches = new SessionLaunches((sessionId) => this.expire(sessionId), graceMs)
     this.unsubscribe = [

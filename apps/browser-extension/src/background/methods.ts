@@ -1,5 +1,6 @@
 import type { HostChannel, RequestMessage } from '@agentic-workstation/browser-protocol/protocol'
 
+import { cursorPathOf, cursorDurationOf } from '../common/cursor-path'
 import type { AgentTabs } from './agent-state'
 import { pruneAxTree } from './ax-prune'
 import type { Debuggers } from './debugger'
@@ -140,6 +141,10 @@ export const createMethods = (deps: MethodDeps) => {
           Number(request.params.x),
           Number(request.params.y),
           request.params.action,
+          {
+            path: cursorPathOf(request.params.path),
+            duration: cursorDurationOf(request.params.duration),
+          },
         )
       case 'sessions.set':
         link.sessions = Array.isArray(request.params.sessions) ? request.params.sessions : []

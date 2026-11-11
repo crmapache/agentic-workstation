@@ -1,4 +1,4 @@
-import type { CursorAction } from '@agentic-workstation/browser-protocol/protocol'
+import type { CursorPath, CursorAction } from '@agentic-workstation/browser-protocol/protocol'
 
 import type { OverlayCommand } from '../common/messages'
 import styles from './overlay.css?inline'
@@ -34,11 +34,16 @@ const HOST_STYLE: Record<string, string> = {
   display: 'block',
 }
 
+type Point = { x: number; y: number }
+
+/** Путь мыши и его время от IDE (overlay.cursor); нет - курсор едет по прямой. */
+type CursorWay = { path?: CursorPath | undefined; duration?: number | undefined }
+
 class Overlay {
   private readonly host = document.createElement(HOST_TAG)
   private readonly frame = document.createElement('div')
   private readonly cursor = document.createElement('div')
-  private position: { x: number; y: number } | null = null
+  private position: Point | null = null
 
   constructor() {
     const root = this.host.attachShadow({ mode: 'closed' })
@@ -70,29 +75,62 @@ class Overlay {
     if (!on) this.cursor.classList.remove('cursorVisible')
   }
 
-  /** Плавно к точке; на нажатие - круг. Ответ - когда курсор доехал. */
-  async moveTo(x: number, y: number, action: CursorAction): Promise<void> {
+  /**
+   * К точке; на нажатие - круг. Ответ - когда курсор доехал. С путём (way) - той же дорогой,
+   * что идут события мыши: кривой, с разгоном и торможением; без пути - плавно по прямой.
+   */
+  async moveTo(x: number, y: number, action: CursorAction, way: CursorWay = {}): Promise<void> {
     this.mount()
     this.raise()
 
-    const from = this.position ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-    const duration = moveDuration(from, { x, y })
+    const path = way.path ?? []
+    const start = path[0]
+    const from = this.position ?? (start ? { x: start[0], y: start[1] } : centre())
+    const duration = path.length > 1 && way.duration ? way.duration : moveDuration(from, { x, y })
 
     if (!this.position) this.place(from, 0)
 
     this.cursor.classList.add('cursorVisible')
     // Кадр между исходной точкой и целью: иначе браузер склеит две записи и анимации не будет.
     await nextFrame()
-    this.place({ x, y }, duration)
-    await wait(duration)
+
+    if (path.length > 1 && way.duration) {
+      await this.follow(path, duration, { x, y })
+    } else {
+      this.place({ x, y }, duration)
+      await wait(duration)
+    }
 
     if (action !== 'move') this.ripple(action === 'double' ? 2 : 1)
   }
 
-  private place({ x, y }: { x: number; y: number }, duration: number): void {
+  /**
+   * По пути: ключевые кадры в те же моменты, что события мыши. Конечное место ставится сразу -
+   * вкладка в фоне кадров не рисует, и анимация не дошла бы; по часам ждём весь путь.
+   */
+  private async follow(path: CursorPath, duration: number, to: Point): Promise<void> {
+    const current =
+      this.cursor.style.transform || translate(path[0]?.[0] ?? to.x, path[0]?.[1] ?? to.y)
+    const animation = this.cursor.animate(
+      [
+        { transform: current, offset: 0 },
+        ...path.slice(1).map(([x, y, at]) => ({
+          transform: translate(x, y),
+          offset: Math.min(1, at / duration),
+        })),
+      ],
+      { duration, easing: 'linear', fill: 'forwards' },
+    )
+
+    this.place(to, 0)
+    await wait(duration)
+    animation.cancel()
+  }
+
+  private place({ x, y }: Point, duration: number): void {
     this.position = { x, y }
     this.cursor.style.transitionDuration = `${duration}ms`
-    this.cursor.style.transform = `translate(${x}px, ${y}px)`
+    this.cursor.style.transform = translate(x, y)
   }
 
   /** Двойное нажатие - второй круг с задержкой (класс rippleSecond в overlay.css). */
@@ -142,6 +180,10 @@ const arrow = (): SVGSVGElement => {
   return svg
 }
 
+const translate = (x: number, y: number) => `translate(${x}px, ${y}px)`
+
+const centre = (): Point => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
 /** Вкладка в фоне не рисует кадры - ждём по часам, а не по transitionend. */
@@ -161,7 +203,12 @@ if (!globalThis.agenticWorkstationOverlay) {
       return false
     }
 
-    void overlay.moveTo(message.x, message.y, message.action).then(() => respond(true))
+    void overlay
+      .moveTo(message.x, message.y, message.action, {
+        path: message.path,
+        duration: message.duration,
+      })
+      .then(() => respond(true))
 
     return true
   })

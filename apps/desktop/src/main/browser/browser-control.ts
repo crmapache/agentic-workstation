@@ -3,6 +3,7 @@ import type { BrowserMethod, BrowserMethods } from '@agentic-workstation/browser
 import { BrowserError } from './browser-error'
 import type { HubPort } from './browser-hub'
 import type { HeldTab, SessionEnd, BrowserSession, BrowserSessions } from './browser-sessions'
+import type { Motion } from './human-motion'
 import type { LoadWaitList } from './load-waits'
 import { Page } from './page'
 
@@ -12,6 +13,8 @@ export type ControlDeps = {
   loads: LoadWaitList
   now: () => number
   pushSummaries: (profileKey: string) => void
+  /** Время и случайность руки: живые у агента, мгновенные в тестах. */
+  motion: Motion
 }
 
 /** CDP-домены, без которых не работают снимок, консоль и ожидание загрузки. */
@@ -32,8 +35,16 @@ export class TabControl {
 
   /** Вкладка для вызова инструмента: отладчик подключается, если его ещё нет. */
   async attach(session: BrowserSession, tab: HeldTab, signal?: AbortSignal): Promise<Page> {
-    const page = new Page(this.deps.hub, tab, this.deps.loads, signal, () =>
-      this.connect(session, tab, signal),
+    const page = new Page(
+      this.deps.hub,
+      tab,
+      this.deps.loads,
+      signal,
+      () => this.connect(session, tab, signal),
+      this.deps.motion,
+      () => {
+        tab.lastUsed = this.deps.now()
+      },
     )
 
     tab.lastUsed = this.deps.now()

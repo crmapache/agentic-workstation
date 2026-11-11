@@ -1,5 +1,9 @@
 import { HOST_CHANNELS } from '@agentic-workstation/browser-protocol/protocol'
-import type { HostChannel, CursorAction } from '@agentic-workstation/browser-protocol/protocol'
+import type {
+  CursorPath,
+  HostChannel,
+  CursorAction,
+} from '@agentic-workstation/browser-protocol/protocol'
 
 import type { OverlayCommand } from '../common/messages'
 import { MethodError } from './method-error'
@@ -87,11 +91,21 @@ export class OverlayControl {
     await this.save()
   }
 
-  async cursor(tabId: number, x: number, y: number, action: CursorAction): Promise<null> {
+  /**
+   * Курсор к точке - тем путём, которым идёт мышь (way); ответ - когда дошёл. Страница занята
+   * или закрыта - не ждать дольше пути и запаса.
+   */
+  async cursor(
+    tabId: number,
+    x: number,
+    y: number,
+    action: CursorAction,
+    way: { path?: CursorPath | undefined; duration?: number | undefined } = {},
+  ): Promise<null> {
     try {
       await Promise.race([
-        this.send(tabId, { type: 'aw-overlay', op: 'cursor', x, y, action }),
-        new Promise((resolve) => setTimeout(resolve, CURSOR_TIMEOUT_MS)),
+        this.send(tabId, { type: 'aw-overlay', op: 'cursor', x, y, action, ...way }),
+        new Promise((resolve) => setTimeout(resolve, CURSOR_TIMEOUT_MS + (way.duration ?? 0))),
       ])
     } catch (error) {
       throw new MethodError('overlay', `Cursor is unavailable on this page: ${String(error)}`)

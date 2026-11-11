@@ -53,6 +53,9 @@ export type OverlayCommand =
       x: number
       y: number
       action: 'move' | 'click' | 'double' | 'right'
+      /** Путь мыши [x, y, мс от начала] и его время; нет - курсор едет по прямой. */
+      path?: [number, number, number][] | undefined
+      duration?: number | undefined
     }
 
 export const isPopupRequest = (value: unknown): value is PopupRequest =>

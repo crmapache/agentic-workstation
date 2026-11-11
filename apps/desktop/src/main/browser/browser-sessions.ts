@@ -2,6 +2,7 @@ import type { SessionSummary } from '@agentic-workstation/browser-protocol/proto
 
 import type { ConsoleEntry } from './console-log'
 import type { ElementRef } from './frame-refs'
+import type { Point } from './human-motion'
 
 /** Вкладка, которую держит сессия агента. */
 export type HeldTab = {
@@ -31,6 +32,8 @@ export type HeldTab = {
   launch: string
   /** Ссылки последнего снимка: e12 и f2e7 → узел DOM и его фрейм. */
   refs: Map<string, ElementRef>
+  /** Где мышь агента в окне вкладки; null - ещё не двигали: путь начнётся с середины окна. */
+  pointer: Point | null
   console: ConsoleEntry[]
   lastUsed: number
 }
@@ -130,6 +133,7 @@ export class BrowserSessions {
       url: '',
       launch: '',
       refs: new Map(),
+      pointer: null,
       console: [],
       lastUsed: now,
     }
