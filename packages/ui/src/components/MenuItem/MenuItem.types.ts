@@ -33,5 +33,10 @@ export type MenuItemProps = {
   selection?: 'single' | 'multiple' | undefined
   /** Отмечен ли вариант выбора. */
   checked?: boolean | undefined
+  /**
+   * Выбор не закрывает панель: за ним в той же панели следующий шаг (выбрали модель - дальше
+   * её усилие). Панель закроет последний шаг или человек.
+   */
+  keepOpen?: boolean | undefined
   onSelect: () => void
 }

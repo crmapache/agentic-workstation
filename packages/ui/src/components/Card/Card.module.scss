@@ -69,6 +69,14 @@
   min-height: var(--size-control-sm);
 }
 
+// Сколько в карточке: моноширинным, тише подписи - цифры не прыгают, когда растут.
+.count {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
 .divider {
   margin: var(--space-3) var(--space-4) 0;
   border-top: var(--border-width) solid var(--color-border);

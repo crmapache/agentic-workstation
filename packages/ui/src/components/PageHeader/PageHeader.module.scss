@@ -54,3 +54,17 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
+
+// Шапка вида боковой панели: та же полоса (линия вровень с вкладками редактора), заголовок -
+// подписью панели, кнопки действий тесно, как ряд инструментов окна в WebStorm.
+.sm {
+  .title {
+    color: var(--color-fg);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .actions {
+    gap: var(--space-0-5);
+  }
+}

@@ -5,13 +5,14 @@ import styles from './Card.module.scss'
 import type { CardProps } from './Card.types'
 
 /**
- * Стеклянная карточка внутри панели: заголовок, строка состояния, справа действия и «?»
+ * Стеклянная карточка внутри панели: заголовок, строка состояния, справа число, действия и «?»
  * справки у самого края, содержимое. Для группы настроек, сводки, блока в GUI провайдера. Тон accent - то, что
  * ждёт ответа человека: оранжевая рамка и заголовок. fit - не выше места, где стоит: тело
  * сжимается, шапка на виду. Всплывающее поверх окна - Popover или Dialog, не карточка.
  */
 export const Card = ({
   title,
+  count,
   description,
   icon: Icon,
   help,
@@ -21,7 +22,7 @@ export const Card = ({
   fit = false,
   children,
 }: CardProps) => {
-  const hasHeader = Boolean(title || actions || help)
+  const hasHeader = Boolean(title || actions || help || count !== undefined)
 
   return (
     <section
@@ -46,8 +47,9 @@ export const Card = ({
               )}
               {description && <div className={styles.description}>{description}</div>}
             </div>
-            {(actions || help) && (
+            {(actions || help || count !== undefined) && (
               <div className={styles.actions}>
+                {count !== undefined && <span className={styles.count}>{count}</span>}
                 {actions}
                 {help}
               </div>

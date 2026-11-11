@@ -13,6 +13,8 @@ export type CardSize = 'md' | 'sm'
 export type CardProps = {
   /** Заголовок карточки. Нет - карточка без шапки, просто стеклянный лист. */
   title?: string | undefined
+  /** Сколько всего в карточке - число справа в шапке, моноширинным: телефоны, токены. */
+  count?: number | string | undefined
   /** Мелкая строка под заголовком - короткое состояние. Пояснение - в help. */
   description?: string | undefined
   /** У правого края шапки, после действий: кнопка справки (HelpButton). */
