@@ -2,6 +2,7 @@ import {
   Mail,
   Plug,
   Drama,
+  Globe,
   ListTodo,
   CalendarDays,
   NotebookText,
@@ -29,6 +30,7 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   atlassian: SquareKanban,
   todoist: ListTodo,
   playwright: Drama,
+  browser: Globe,
   mcp: Plug,
   command: SquareTerminal,
   http: WandSparkles,
@@ -43,6 +45,7 @@ export const APP_KINDS: readonly ConnectorKind[] = [
   'atlassian',
   'todoist',
   'playwright',
+  'browser',
 ]
 
 /**
@@ -60,6 +63,7 @@ export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   atlassian: 'info',
   todoist: 'danger',
   playwright: 'success',
+  browser: 'accent',
   mcp: 'accent',
   command: 'neutral',
   http: 'success',
@@ -91,6 +95,9 @@ export const GOOGLE_STEPS = ['one', 'two', 'three', 'four'] as const
 export const GOOGLE_CONSOLE_URL = 'https://console.cloud.google.com/auth/clients'
 
 export const SLACK_APPS_URL = 'https://api.slack.com/apps'
+
+/** Шаги установки расширения браузера для ИИ: режим разработчика, Load unpacked, закрепить. */
+export const BROWSER_STEPS = ['one', 'two', 'three'] as const
 
 /** Шаги своего Slack app: создать по готовому описанию, включить MCP, взять ключи. */
 export const SLACK_STEPS = ['one', 'two', 'three'] as const

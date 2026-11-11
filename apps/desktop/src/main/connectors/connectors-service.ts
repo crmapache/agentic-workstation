@@ -29,6 +29,7 @@ import { LiveConnectors } from './live-connectors'
 import type { McpLaunch } from './gateway/launches'
 import { ImportDesk } from './import/import-desk'
 import { signsInWithBrowser } from './kinds/sources'
+import { BrowserDesk } from './kinds/browser/browser-desk'
 
 /**
  * Коннекторы к приложениям (ADR 0028, 0029): реестр, живые коннекторы и локальный
@@ -44,6 +45,7 @@ export class ConnectorsService {
   readonly ai: AiConnectorDesk
   /** Перенос MCP-серверов из конфига Claude Code. */
   readonly imports: ImportDesk
+  private readonly browser: BrowserDesk
 
   private constructor(
     private readonly registry: ConnectorRegistry,
@@ -70,7 +72,7 @@ export class ConnectorsService {
       (id) => this.live.get(id),
       places.mcpConfigDir,
       places.version,
-      (launchId) => this.live.release(launchId),
+      this.live,
     )
 
     this.ai = new AiConnectorDesk(places.ask, () => this.broadcast())
@@ -81,6 +83,8 @@ export class ConnectorsService {
       isTrusted: places.isTrusted,
       shellEnv: places.shellEnv,
     })
+
+    this.browser = new BrowserDesk(places.browser, registry)
 
     for (const connector of registry.connectors) this.live.attach(connector)
   }
@@ -118,17 +122,22 @@ export class ConnectorsService {
     }
 
     for (const live of this.live.all()) void live.refresh()
+
+    this.browser.sync()
   }
 
+  /** Сессии браузера закрываются раньше моста: им ещё отпускать вкладки в Chrome. */
   async stop(): Promise<void> {
     this.ai.dismiss()
     await this.live.disposeAll()
     await this.gateway.stop()
+    await this.browser.stop()
   }
 
   /**
    * Конфиг `--mcp-config` для нового процесса разговора в этом проекте (gateway-host.ts);
-   * release - процесс кончился. Не записался - ошибка: разговор поднимется без коннекторов.
+   * own - чей это разговор, release - процесс кончился, end - разговор закрыт. Не записался -
+   * ошибка: разговор поднимется без коннекторов.
    */
   mcpConfigFor(projectPath: string): Promise<McpLaunch | null> {
     return this.gateway.open(projectPath)
@@ -148,6 +157,7 @@ export class ConnectorsService {
       vault: this.places.vault.available,
       vaultReset: this.places.vault.wasReset,
       generation: this.ai.state,
+      browser: this.browser.state(),
     }
   }
 
@@ -257,6 +267,7 @@ export class ConnectorsService {
     const live = this.live.attach(connector)
 
     this.events.onServersChanged((path) => isAvailableIn(connector.availability, path))
+    this.browser.sync()
 
     if (!signsInWithBrowser(connector)) void live.refresh()
     else if (signIn) this.access.signIn(connector)
@@ -281,6 +292,7 @@ export class ConnectorsService {
     await this.places.vault.forgetPrefix(secretsKey(id)).catch(() => undefined)
     await removing
     this.events.onServersChanged((path) => isAvailableIn(connector.availability, path))
+    this.browser.sync()
 
     // Свой тип «один раз» живёт, пока живёт его подключение; «несколько раз» - в каталоге.
     const type = this.registry.findType(connector.typeId)
@@ -348,6 +360,8 @@ export class ConnectorsService {
 
     if (enabled) await this.live.get(id)?.refresh()
     else await this.live.get(id)?.suspend()
+
+    this.browser.sync()
 
     return this.changedServer(id)
   }

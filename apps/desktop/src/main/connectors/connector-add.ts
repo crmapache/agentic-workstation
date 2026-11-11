@@ -1,3 +1,4 @@
+import { BROWSER_SERVER_NAME } from '@shared/connectors'
 import type { AddToTypeRequest, AddConnectorError, AddConnectorRequest } from '@shared/connectors'
 
 import { parseEnvLine, splitCommandLine } from './command-line'
@@ -44,6 +45,21 @@ export const newConnector = (
   // Разбор по полю kind, а не isCustomKind: так TypeScript сужает и саму просьбу.
   if (request.kind === 'mcp' || request.kind === 'command' || request.kind === 'http') {
     return customType(request, ids, taken, env)
+  }
+
+  // Браузер для ИИ (ADR 0040) один на IDE: мост в Chrome у неё один, имя сервера постоянное.
+  if (request.kind === 'browser') {
+    if (taken.servers.has(BROWSER_SERVER_NAME)) return 'name-taken'
+
+    return {
+      connector: blankConnector({
+        id: ids.connector,
+        kind: 'browser',
+        label: 'Chrome',
+        serverName: BROWSER_SERVER_NAME,
+      }),
+      secrets: {},
+    }
   }
 
   const label = capitalized(request.label)

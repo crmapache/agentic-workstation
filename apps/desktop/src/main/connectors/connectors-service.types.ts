@@ -1,5 +1,6 @@
 import type { ConnectorsState } from '@shared/connectors'
 
+import type { BrowserRuntime } from '../browser/browser-runtime'
 import type { JsonFile } from '../storage/json-file'
 import type { AskStructured } from './ai-connector'
 import type { StoredConnectors } from './connector-store'
@@ -19,6 +20,8 @@ export type ConnectorsPlaces = {
   /** Разовый вопрос к ИИ по схеме - для коннекторов, которые описывает ИИ. */
   ask: AskStructured
   version: string
+  /** Мост в Chrome для коннектора Browser (ADR 0040). */
+  browser: BrowserRuntime
 }
 
 export type ConnectorsEvents = {

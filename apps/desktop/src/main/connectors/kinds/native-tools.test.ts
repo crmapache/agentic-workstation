@@ -5,9 +5,12 @@ import {
   mapLimit,
   numberArg,
   stringArg,
+  ToolOutput,
+  NativeSource,
   ArgumentError,
   stringListArg,
 } from './native-tools'
+import type { NativeCall, NativeTool } from './native-tools'
 
 describe('mapLimit', () => {
   it('не больше limit разом, порядок как у входа', async () => {
@@ -41,5 +44,81 @@ describe('pathId', () => {
     expect(pathId('a/b', 'id')).toBe('a%2Fb')
     expect(() => pathId('..', 'event_id')).toThrow(ArgumentError)
     expect(() => pathId('.', 'event_id')).toThrow(ArgumentError)
+  })
+})
+
+describe('NativeSource', () => {
+  const calls: NativeCall[] = []
+  const tools: NativeTool<null>[] = [
+    {
+      name: 'who',
+      description: '',
+      access: 'read',
+      inputSchema: { type: 'object' },
+      run: (_args, _api, call) => {
+        calls.push(call)
+
+        return Promise.resolve({ ok: true })
+      },
+    },
+    {
+      name: 'picture',
+      description: '',
+      access: 'read',
+      inputSchema: { type: 'object' },
+      run: () =>
+        Promise.resolve(
+          new ToolOutput({ content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }] }),
+        ),
+    },
+  ]
+
+  it('передаёт инструменту процесс разговора; без него - null', async () => {
+    const source = new NativeSource(tools, null, [])
+    const signal = new AbortController().signal
+
+    const launch = { id: 'l1', projectPath: '/p', workDir: '/p', conversationId: 'c1' }
+
+    await source.callTool('who', {}, signal, launch)
+    await source.callTool('who', {})
+
+    expect(calls).toEqual([
+      { launch, signal },
+      { launch: null, signal: undefined },
+    ])
+  })
+
+  it('ToolOutput уходит как есть, остальное - JSON', async () => {
+    const source = new NativeSource(tools, null, [])
+
+    expect(await source.callTool('picture', {})).toEqual({
+      content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+    })
+    expect(await source.callTool('who', {})).toEqual({
+      content: [{ type: 'text', text: JSON.stringify({ ok: true }, null, 2) }],
+    })
+  })
+
+  it('конец процесса, конец разговора и dispose - в хуки источника', async () => {
+    const released: string[] = []
+    const ended: string[] = []
+    let disposed = false
+    const source = new NativeSource(tools, null, [], {
+      release: (launch) => released.push(launch.id),
+      endConversation: (conversationId) => ended.push(conversationId),
+      dispose: () => {
+        disposed = true
+
+        return Promise.resolve()
+      },
+    })
+
+    source.release({ id: 'l1', projectPath: '/p', workDir: '/p', conversationId: 'c1' })
+    source.endConversation('c1')
+    await source.dispose()
+
+    expect(released).toEqual(['l1'])
+    expect(ended).toEqual(['c1'])
+    expect(disposed).toBe(true)
   })
 })

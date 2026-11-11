@@ -31,6 +31,7 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   atlassian: 'atlassian',
   todoist: 'todoist',
   playwright: 'playwright',
+  browser: 'browser',
   mcp: '',
   command: '',
   http: '',

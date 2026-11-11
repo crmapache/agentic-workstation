@@ -30,9 +30,16 @@ import { spawnConversationProcess } from './spawn'
 
 /**
  * Конфиг коннекторов IDE для одного процесса разговора (ADR 0029): файл для
- * `--mcp-config` и «процесс кончился» - ключ шлюза и процессы команд этого процесса гаснут.
+ * `--mcp-config`; own - чей это процесс (разговор и его папка), release - процесс кончился
+ * (ключ шлюза и процессы команд гаснут, сессия браузера ждёт следующий процесс разговора),
+ * end - разговор закрыт насовсем (вкладки браузера закрываются сразу).
  */
-export type ConnectorsLaunch = { path: string; release: () => void }
+export type ConnectorsLaunch = {
+  path: string
+  own: (owner: { conversationId: string; workDir: string }) => void
+  release: () => void
+  end: () => void
+}
 
 /** Что разговору нужно от сервиса: CLI, доверие к папке и куда сообщать об изменениях. */
 export type ConversationHost = CliTap & {
@@ -106,6 +113,11 @@ export class ConversationRuntime {
   readonly outbox: ConversationOutbox
   /** Команды «!»; их вывод уезжает модели с ближайшим сообщением (user-message.ts). */
   readonly shells: ShellRuns
+  /**
+   * Коннекторы последнего процесса. Процесс кончается раньше разговора (сон, перезапуск), а
+   * закрытие вкладки должно сказать коннекторам, что разговора больше нет (end).
+   */
+  connectors: ConnectorsLaunch | null = null
   private spawning: Promise<CliProcess | null> | null = null
   /** Конфиг MCP или аккаунт поменялся: процесс перезапустится, как только освободится. */
   private restartPending = false
@@ -249,12 +261,16 @@ export class ConversationRuntime {
     if (this.process?.isStopping) await this.process.stop()
   }
 
-  /** Закрыть вкладку: процесс гасится, начатый запуск не доведётся. */
+  /**
+   * Закрыть вкладку: процесс гасится, начатый запуск не доведётся. Коннекторы узнают, что
+   * разговора больше нет: его вкладки браузера закрываются сразу, а не ждут новый процесс.
+   */
   dispose(): Promise<void> {
     this.disposed = true
     this.shells.stopAll()
     this.clearIdleTimer()
     this.feed.dispose()
+    this.connectors?.end()
 
     const process = this.process
 

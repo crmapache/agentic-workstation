@@ -33,6 +33,19 @@ const ELEMENTS = [
   { type: 'state', pattern: `${RENDERER}/state/**`, partialMatch: false },
   { type: 'lib', pattern: `${RENDERER}/lib/**`, partialMatch: false },
   { type: 'locales', pattern: `${RENDERER}/locales/**`, partialMatch: false },
+  // Браузер для ИИ (ADR 0040): протокол - общий пакет, расширение Chrome и native host -
+  // свои части. Host исполняется бинарником IDE как чистый Node и в главный процесс не ходит.
+  {
+    type: 'browser-protocol',
+    pattern: 'packages/browser-protocol/src/**',
+    partialMatch: false,
+  },
+  {
+    type: 'browser-extension',
+    pattern: 'apps/browser-extension/src/**',
+    partialMatch: false,
+  },
+  { type: 'native-host', pattern: 'apps/desktop/src/native-host/**', partialMatch: false },
 ]
 
 const allowTo = (...types) => ({ to: { element: { types: { anyOf: types } } } })
@@ -103,11 +116,21 @@ export default defineConfig(
 
   // Границы между частями приложения (см. ELEMENTS выше).
   {
-    files: ['apps/desktop/src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
+    files: [
+      'apps/desktop/src/**/*.{ts,tsx}',
+      'packages/ui/src/**/*.{ts,tsx}',
+      'packages/browser-protocol/src/**/*.ts',
+      'apps/browser-extension/src/**/*.ts',
+    ],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': ELEMENTS,
-      'boundaries/include': ['apps/desktop/src/**/*', 'packages/ui/src/**/*'],
+      'boundaries/include': [
+        'apps/desktop/src/**/*',
+        'packages/ui/src/**/*',
+        'packages/browser-protocol/src/**/*',
+        'apps/browser-extension/src/**/*',
+      ],
       'import/resolver': {
         typescript: {
           noWarnOnMultipleProjects: true,
@@ -115,6 +138,8 @@ export default defineConfig(
             'apps/desktop/tsconfig.node.json',
             'apps/desktop/tsconfig.web.json',
             'packages/ui/tsconfig.json',
+            'packages/browser-protocol/tsconfig.json',
+            'apps/browser-extension/tsconfig.app.json',
           ],
         },
       },
@@ -136,7 +161,19 @@ export default defineConfig(
             { from: { element: { type: 'ui' } }, allow: allowTo('ui') },
             { from: { element: { type: 'locales' } }, allow: allowTo('locales') },
             { from: { element: { type: 'shared' } }, allow: allowTo('shared') },
-            { from: { element: { type: 'main' } }, allow: allowTo('main', 'shared') },
+            {
+              from: { element: { type: 'main' } },
+              allow: allowTo('main', 'shared', 'browser-protocol'),
+            },
+            { from: { element: { type: 'browser-protocol' } }, allow: allowTo('browser-protocol') },
+            {
+              from: { element: { type: 'browser-extension' } },
+              allow: allowTo('browser-extension', 'browser-protocol'),
+            },
+            {
+              from: { element: { type: 'native-host' } },
+              allow: allowTo('native-host', 'browser-protocol'),
+            },
             { from: { element: { type: 'preload' } }, allow: allowTo('preload', 'shared') },
             { from: { element: { type: 'lib' } }, allow: allowTo('lib', 'shared') },
             {
@@ -226,6 +263,41 @@ export default defineConfig(
     },
   },
 
+  // Native host исполняет бинарник IDE с ELECTRON_RUN_AS_NODE=1 - это чистый Node, Electron
+  // в нём нет. Протокол едет и в расширение: без Node и Electron.
+  {
+    files: ['apps/desktop/src/native-host/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*'],
+              message: 'Native host - чистый Node (ELECTRON_RUN_AS_NODE=1), Electron в нём нет.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/browser-protocol/src/**/*.ts', 'apps/browser-extension/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*'],
+              message: 'Протокол и расширение работают в браузере: без Node и Electron.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Окно не трогает Node и Electron напрямую: всё через мост preload (lib/ipc.ts).
   {
     files: RENDERER_FILES,

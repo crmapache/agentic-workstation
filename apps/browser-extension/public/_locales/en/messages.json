@@ -1,0 +1,76 @@
+{
+  "extName": {
+    "message": "Agentic Workstation Browser"
+  },
+  "extDescription": {
+    "message": "Lets the AI in Agentic Workstation work in your Chrome: its own tab group, a visible cursor, any tab you share with it."
+  },
+  "actionTitle": {
+    "message": "Agentic Workstation"
+  },
+  "copyReference": {
+    "message": "Copy tab reference for AI"
+  },
+  "cursorLabel": {
+    "message": "Agentic Workstation"
+  },
+  "popupTitle": {
+    "message": "Agentic Workstation"
+  },
+  "popupProfile": {
+    "message": "Name shown to the AI"
+  },
+  "popupConnection": {
+    "message": "Connection"
+  },
+  "channelInstalled": {
+    "message": "Agentic Workstation"
+  },
+  "channelDev": {
+    "message": "Agentic Workstation Dev"
+  },
+  "linkConnecting": {
+    "message": "Connecting"
+  },
+  "linkConnected": {
+    "message": "Connected"
+  },
+  "linkIdeOffline": {
+    "message": "IDE is not running"
+  },
+  "linkHostMissing": {
+    "message": "Not set up"
+  },
+  "linkHostError": {
+    "message": "Reconnecting"
+  },
+  "hostMissingHint": {
+    "message": "Add the Browser connector in Agentic Workstation → Connectors, then open this window again."
+  },
+  "popupSessions": {
+    "message": "AI at work"
+  },
+  "popupNoSessions": {
+    "message": "No AI is working in this profile."
+  },
+  "sessionOneTab": {
+    "message": "1 tab"
+  },
+  "sessionTabs": {
+    "message": "$COUNT$ tabs",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Stop"
+  },
+  "copyThisTab": {
+    "message": "Copy this tab's reference"
+  },
+  "copied": {
+    "message": "Copied"
+  }
+}

@@ -1,0 +1,89 @@
+/*
+ * Курсор и рамка агента поверх чужой страницы (ADR 0040). Живут в закрытом shadow DOM: стили
+ * страницы сюда не достают, а токены приходят при сборке блоком :host. Ничего не ловит мышь.
+ */
+
+:host {
+  all: initial;
+}
+
+.frame {
+  position: fixed;
+  inset: 0;
+  border: var(--focus-ring-width) solid var(--color-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition-property: opacity;
+  transition-duration: var(--duration-slow);
+  transition-timing-function: var(--easing-standard);
+}
+
+.frameOn {
+  opacity: 1;
+}
+
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition-property: transform, opacity;
+  transition-timing-function: var(--easing-out);
+}
+
+.cursorVisible {
+  opacity: 1;
+}
+
+.arrow {
+  display: block;
+  fill: var(--color-accent);
+  stroke: var(--color-fg-strong);
+  stroke-linejoin: round;
+}
+
+.label {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-4);
+  padding: var(--space-0-5) var(--space-2);
+  border: var(--border-width) solid var(--color-accent-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-overlay);
+  color: var(--color-fg-accent);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+.ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border: var(--focus-ring-width) solid var(--color-accent);
+  border-radius: var(--radius-full);
+  translate: -50% -50%;
+  animation: ripple var(--duration-reveal) var(--easing-out) both;
+}
+
+/* Второй круг двойного нажатия - чуть позже первого. */
+.rippleSecond {
+  animation-delay: var(--duration-fast);
+}
+
+@keyframes ripple {
+  from {
+    opacity: 1;
+    scale: 0.3;
+  }
+
+  to {
+    opacity: 0;
+    scale: 1.3;
+  }
+}

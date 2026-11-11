@@ -13,7 +13,9 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
+    "src/native-host/**/*",
     "electron.vite.config.ts",
+    "native-host.vite.ts",
     "vitest.config.mts"
   ]
 }

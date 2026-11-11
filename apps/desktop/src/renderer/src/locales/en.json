@@ -57,6 +57,11 @@
         "hint": "A browser the AI drives: pages, clicks, forms, screenshots",
         "short": "Playwright"
       },
+      "browser": {
+        "name": "Browser",
+        "hint": "Your own Chrome for the AI: its own tab group, a cursor you can see, tabs you share",
+        "short": "Browser"
+      },
       "mcp": {
         "name": "MCP server by URL",
         "hint": "Any remote MCP server: Linear, Sentry, your own",
@@ -394,7 +399,8 @@
         "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this Mac.",
         "command": "An MCP server this Mac starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
         "http": "Describe a service: the AI reads its API docs and builds the connector as a list of HTTP requests, not code. It takes a few minutes, and you can close this window meanwhile: the result waits in the catalog.\n\nCheck what the AI built before adding it. Your API key is stored encrypted in the IDE; the AI that built the connector never sees it.",
-        "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are."
+        "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
+        "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own."
       },
       "type": {
         "title": "Custom connector",
@@ -403,6 +409,36 @@
       "google": {
         "title": "Google sign-in",
         "text": "Google has no shared sign-in app for desktop IDEs, so Gmail and Calendar sign in through your own Google app. You create it once, and it serves every Gmail and Calendar connector.\n\nThe JSON file is that app's ID card: Google gives it to you when you create an OAuth client. It holds the app's ID and secret, not your password or mail. The IDE keeps it encrypted and uses it only to open Google's sign-in page.\n\nSet up with AI opens Claude or Codex with the setup prompt ready. Send it there: the AI clicks through Google Cloud Console in your browser and downloads the file, then you choose it here. For another AI, copy the prompt.\n\nTo let any of your Google accounts sign in, the app has to be published, and Google publishes only apps with a home page and privacy policy on a domain you own. The AI makes the pages and verifies the domain with you. Without a domain the app stays in testing: only accounts added as test users can sign in, and Google asks them to sign in again every 7 days.\n\nWhen you sign in, Google warns that the app isn't verified. It's your own app: continue."
+      },
+      "browser": {
+        "title": "Browser for the AI",
+        "text": "The extension connects Chrome to Agentic Workstation through a small helper that Chrome starts itself; nothing listens on a network port.\n\nEach conversation gets its own orange tab group. When the AI finishes, it closes its tabs and the group, and lets go of the tabs you shared. Stop in the extension window ends it at any time; so does Cancel on Chrome's \"started debugging\" bar.\n\nCopy tab reference for AI (right-click on a page or on the extension icon) copies a reference the AI understands: paste it into the chat to point it at that tab. A reference works until Chrome restarts. The AI tells profiles apart by the name you give each one in the extension window.\n\nThe AI can see and use every tab of a connected profile. Uploading files to a site is off until you turn it on in the connector's tools, and even then the AI uploads and opens only files inside the conversation's project. Turn the connector off or limit it to some projects to keep it out."
+      }
+    },
+    "browser": {
+      "profiles": {
+        "title": "Chrome profiles",
+        "empty": "No Chrome profile is connected yet. Install the extension and keep Chrome open.",
+        "detail": "{{browser}} · extension {{version}}"
+      },
+      "setup": {
+        "title": "Install in Chrome",
+        "steps": {
+          "one": "Open Chrome extensions and turn on Developer mode, top right.",
+          "two": "Click Load unpacked and choose the extension folder.",
+          "three": "Pin the extension: its window shows the connection and stops the AI."
+        },
+        "openExtensions": "Open Chrome extensions",
+        "addressCopied": "Chrome did not open. The address is copied: paste it into the address bar.",
+        "showFolder": "Show extension folder",
+        "folder": "Extension folder",
+        "folderMissing": "The folder is not there. Turn the connector off and on again."
+      },
+      "failure": {
+        "install-failed": "The IDE couldn't set up the Chrome helper. Turn the connector off and on to try again.",
+        "extension-missing": "This build of the IDE has no browser extension inside.",
+        "socket-failed": "The IDE couldn't open its connection for Chrome. Restart the IDE.",
+        "socket-path": "The path to your home folder is too long for the IDE's connection to Chrome, and so is the path to the temporary folder. Set TMPDIR to a short folder and restart the IDE."
       }
     }
   },

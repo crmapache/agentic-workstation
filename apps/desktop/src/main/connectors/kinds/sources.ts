@@ -6,9 +6,11 @@ import type { ConnectorSource } from '../connector-source'
 import type { StoredConnector } from '../connector-store'
 import { isRemoteKind, REMOTE_MCP_URL } from '../connectors.constants'
 import type { GoogleClient } from '../oauth/google-oauth'
+import type { BrowserHub } from '../../browser/browser-hub'
 import { NativeSource } from './native-tools'
 import { RemoteMcpSource } from './remote-mcp'
 import { StdioMcpSource } from './stdio-mcp'
+import { createBrowserSource } from './browser/browser-tools'
 import { CALENDAR_TOOLS } from './google/calendar-tools'
 import { GMAIL_TOOLS } from './google/gmail-tools'
 import { GoogleSession, GoogleApiError } from './google/google-session'
@@ -19,6 +21,8 @@ export type SourceDeps = {
   /** Окружение оболочки входа - для MCP-команд (PATH до npx, node, uvx). */
   shellEnv: () => Promise<Record<string, string>>
   version: string
+  /** Связь с расширениями Chrome - для коннектора Browser (ADR 0040); в тестах - null. */
+  browser: BrowserHub | null
 }
 
 /**
@@ -57,6 +61,11 @@ export const createSource = (
     return new NativeSource(tools, session, GOOGLE_EXPLAINABLE)
   }
 
+  // Браузер для ИИ: свои инструменты поверх расширения, сессии - по процессам разговоров.
+  if (connector.kind === 'browser') {
+    return deps.browser ? createBrowserSource(deps.browser) : new NativeSource([], null, [])
+  }
+
   if (runsCommand(connector.kind) && connector.command) {
     return new StdioMcpSource({
       command: () => launchCommand(connector, secrets.read()),
@@ -90,7 +99,7 @@ export const createSource = (
 export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets): boolean => {
   if (connector.kind === 'gmail' || connector.kind === 'calendar') return Boolean(secrets.google)
 
-  if (runsCommand(connector.kind)) return true
+  if (runsCommand(connector.kind) || connector.kind === 'browser') return true
 
   if (connector.kind === 'http')
     return connector.spec?.auth.type === 'none' || Boolean(secrets.apiKey)
@@ -103,11 +112,13 @@ export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets)
 }
 
 /**
- * Входить в браузере надо готовым сервисам и своему MCP с OAuth; команде, Playwright и ИИ -
- * нет.
+ * Входить в браузере надо готовым сервисам и своему MCP с OAuth; команде, Playwright, ИИ и
+ * браузеру для ИИ - нет.
  */
 export const signsInWithBrowser = (connector: StoredConnector): boolean => {
-  if (runsCommand(connector.kind) || connector.kind === 'http') return false
+  if (runsCommand(connector.kind) || connector.kind === 'http' || connector.kind === 'browser') {
+    return false
+  }
 
   // Свой MCP и Todoist - по способу входа, остальные встроенные входят в браузере.
   return connector.auth === null || connector.auth === 'oauth'

@@ -23,6 +23,10 @@ files:
   - out/**/*
   - package.json
   - '!**/*.map'
+  # Браузер для ИИ (ADR 0040): host и расширение едут ресурсами (ниже), не внутрь app.asar -
+  # IDE копирует их в ~/.agentic-workstation, а из архива их не скопировать обычным fs.
+  - '!out/native-host/**'
+  - '!out/chrome-extension/**'
   # Терминал (ADR 0037): node-pty везёт готовые бинарники всех платформ (одни отладочные
   # символы Windows - десятки мегабайт) и исходники для node-gyp. В сборку - только свои.
   - '!**/node_modules/node-pty/prebuilds/win32-*/**'
@@ -30,6 +34,15 @@ files:
   - '!**/node_modules/node-pty/prebuilds/darwin-x64/**'
   - '!**/node_modules/node-pty/{src,third_party,scripts}/**'
   - '!**/node_modules/node-pty/binding.gyp'
+
+# Браузер для ИИ (ADR 0040): native host (исполняет сам бинарник IDE как Node) и собранное
+# расширение Chrome - в Contents/Resources. Их собирает electron-vite build (плагин
+# browserBridgePlugin), расширение - скрипт build до неё.
+extraResources:
+  - from: out/native-host
+    to: native-host
+  - from: out/chrome-extension
+    to: chrome-extension
 
 # Нативный модуль терминала и его spawn-helper - вне app.asar: процесс из архива не
 # запустить, а node-pty сам ищет помощника в app.asar.unpacked.

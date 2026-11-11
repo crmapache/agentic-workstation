@@ -54,6 +54,27 @@ importers:
         specifier: 8.71.2
         version: 8.71.2(eslint@10.12.0(jiti@2.7.0))(typescript@6.0.3)
 
+  apps/browser-extension:
+    devDependencies:
+      '@agentic-workstation/browser-protocol':
+        specifier: workspace:*
+        version: link:../../packages/browser-protocol
+      '@types/chrome':
+        specifier: 0.3.7
+        version: 0.3.7
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: 8.3.4
+        version: 8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2)
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
+
   apps/desktop:
     dependencies:
       koffi:
@@ -66,6 +87,9 @@ importers:
         specifier: 7.8.5
         version: 7.8.5
     devDependencies:
+      '@agentic-workstation/browser-protocol':
+        specifier: workspace:*
+        version: link:../../packages/browser-protocol
       '@agentic-workstation/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -165,6 +189,18 @@ importers:
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.1)(use-sync-external-store@1.7.0(react@19.3.1))
+
+  packages/browser-protocol:
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
 
   packages/ui:
     dependencies:
@@ -882,6 +918,9 @@ packages:
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
+  '@types/chrome@0.3.7':
+    resolution: {integrity: sha512-jWZgbHqWbTL1a5+PoyN0OJutNyejWgyZ5MdcvKo6iJE1TNRtXR3FxsC4WzNl52yZWPidfWC8NV/VUNZf+OFKcA==}
+
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
 
@@ -896,6 +935,9 @@ packages:
 
   '@types/fs-extra@9.0.13':
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
+
+  '@types/har-format@1.2.16':
+    resolution: {integrity: sha512-fluxdy7ryD3MV6h8pTfTYpy/xQzCFC7m89nOH9y94cNqJ1mDIDPut7MnRHI3F6qRmh/cT2fUjG1MLdCNb4hE9A==}
 
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
@@ -4478,6 +4520,10 @@ snapshots:
       '@types/deep-eql': 4.0.2
       assertion-error: 2.0.1
 
+  '@types/chrome@0.3.7':
+    dependencies:
+      '@types/har-format': 1.2.16
+
   '@types/debug@4.1.13':
     dependencies:
       '@types/ms': 2.1.0
@@ -4491,6 +4537,8 @@ snapshots:
   '@types/fs-extra@9.0.13':
     dependencies:
       '@types/node': 24.13.3
+
+  '@types/har-format@1.2.16': {}
 
   '@types/hast@3.0.5':
     dependencies:

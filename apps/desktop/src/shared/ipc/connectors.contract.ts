@@ -88,6 +88,16 @@ export type ConnectorsInvokeContract = {
    * Slack MCP уже вписаны. Браузер не открылся - false.
    */
   'connectors:createSlackApp': { request: void; response: boolean }
+  /**
+   * Показать в Finder папку расширения браузера для ИИ (ADR 0040) - её человек выбирает в
+   * «Load unpacked». Моста ещё нет - false.
+   */
+  'connectors:revealBrowserExtension': { request: void; response: boolean }
+  /**
+   * Открыть chrome://extensions в Google Chrome. Chrome нет или macOS не открыла - false:
+   * окно копирует адрес, человек вставляет его сам.
+   */
+  'connectors:openBrowserExtensions': { request: void; response: boolean }
 }
 
 export type ConnectorsEventContract = {
@@ -121,6 +131,8 @@ export const CONNECTORS_CHANNELS = {
   'connectors:agentApps': true,
   'connectors:openInAgentApp': true,
   'connectors:createSlackApp': true,
+  'connectors:revealBrowserExtension': true,
+  'connectors:openBrowserExtensions': true,
 } satisfies Record<keyof ConnectorsInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

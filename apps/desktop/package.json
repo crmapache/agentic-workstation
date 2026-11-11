@@ -11,8 +11,8 @@
   },
   "scripts": {
     "postinstall": "node scripts/install-electron.mjs",
-    "dev": "electron-vite dev --watch",
-    "build": "electron-vite build",
+    "dev": "pnpm --filter @agentic-workstation/browser-extension build && electron-vite dev --watch",
+    "build": "pnpm --filter @agentic-workstation/browser-extension build && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
@@ -27,6 +27,7 @@
     "semver": "7.8.5"
   },
   "devDependencies": {
+    "@agentic-workstation/browser-protocol": "workspace:*",
     "@agentic-workstation/ui": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@tanstack/react-query": "5.104.3",

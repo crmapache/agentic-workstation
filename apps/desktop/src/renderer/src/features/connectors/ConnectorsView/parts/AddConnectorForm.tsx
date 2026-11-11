@@ -34,9 +34,10 @@ export const AddConnectorForm = ({
 
   return (
     <div className={styles.form}>
-      {isCustom ? (
+      {isCustom && (
         <TypeNameFields values={form.fields} onChange={form.patch} onKeyDown={form.handleKeyDown} />
-      ) : (
+      )}
+      {!isCustom && kind !== 'browser' && (
         <TextField
           label={`${t(`connectors.kinds.${kind}.name`)} · ${t('connectors.add.label')}`}
           placeholder={t('connectors.add.labelPlaceholder')}

@@ -4,7 +4,7 @@ import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 
 import type { SecretsOf } from './connector-secrets'
 import { toolError, SignedOutError } from './connector-source'
-import type { SourceTool, ConnectorSource } from './connector-source'
+import type { SourceTool, SourceLaunch, ConnectorSource } from './connector-source'
 import type { StoredTool, StoredConnector } from './connector-store'
 import { enabledTools, instructionsFor, disabledToolText } from './connector-view'
 import type { LiveFacts } from './connector-view'
@@ -26,9 +26,19 @@ export type LiveHost = {
   /** Сервис отдал инструменты: реестр запоминает их для окна. */
   toolsListed: (tools: StoredTool[]) => void
   changed: () => void
+  /** Чей коннектор сейчас, если это знает только живая IDE (профили Chrome у Browser). */
+  account?: () => string | null
 }
 
 const toMcpTool = ({ access: _access, ...tool }: SourceTool): Tool => tool
+
+/** Процесс разговора для источника: без служебной пометки шлюза. */
+const sourceLaunch = ({ id, projectPath, workDir, conversationId }: Launch): SourceLaunch => ({
+  id,
+  projectPath,
+  workDir,
+  conversationId,
+})
 
 const SIGN_IN_TEXT =
   'Sign-in expired. Ask the user to sign in again in Agentic Workstation → Connectors.'
@@ -86,6 +96,7 @@ export class LiveConnector {
       signedIn: !this.lostSignIn && hasSignIn(connector, this.secrets.read()),
       signingIn: this.host.signingIn(),
       failure: this.failure,
+      ...(this.host.account ? { account: this.host.account() } : {}),
     }
   }
 
@@ -156,12 +167,22 @@ export class LiveConnector {
     return Promise.allSettled(sources.map((source) => source.dispose())).then(() => undefined)
   }
 
-  /** Процесс разговора кончился: его процесс команды больше не нужен. */
-  release(launchId: string): void {
-    const source = this.launchSources.get(launchId)
+  /**
+   * Процесс разговора кончился: его процесс команды больше не нужен, а общий источник
+   * отпускает то, что держал на этот процесс (вкладки браузера ждут следующий процесс того же
+   * разговора).
+   */
+  release(launch: Launch): void {
+    const source = this.launchSources.get(launch.id)
 
-    this.launchSources.delete(launchId)
+    this.launchSources.delete(launch.id)
     void source?.dispose()
+    this.source.release?.(sourceLaunch(launch))
+  }
+
+  /** Разговор закрыт насовсем: общий источник отпускает то, что держал на него. */
+  endConversation(conversationId: string): void {
+    this.source.endConversation?.(conversationId)
   }
 
   /** Сервер этого коннектора на шлюзе для процесса разговора launch. */
@@ -259,7 +280,7 @@ export class LiveConnector {
     if (!source) return toolError('This conversation has ended.')
 
     try {
-      const result = await source.callTool(name, args, signal)
+      const result = await source.callTool(name, args, signal, sourceLaunch(launch))
 
       // Вызов прошёл - клиент Google снова в порядке, пометка с карточки снимается.
       if (isGoogleAppFailure(this.failure)) {

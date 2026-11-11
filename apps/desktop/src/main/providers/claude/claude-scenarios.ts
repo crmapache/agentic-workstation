@@ -76,6 +76,10 @@ export const claudeScenarioProvider = (
       return new DeferredProcess(async (wanted) => {
         const connectors = await claude.connectors.configFor(place.projectPath).catch(() => null)
 
+        // Сессия сценария - свой разговор: процессы одной сессии делят вкладки браузера, а
+        // файлы с диска инструменты берут только из её папки (worktree очереди).
+        connectors?.own({ conversationId: spec.sessionId, workDir: place.cwd })
+
         // Сессию остановили, пока писался конфиг шлюза: CLI с хуками проекта не нужен вовсе.
         if (!wanted()) {
           connectors?.release()

@@ -88,6 +88,10 @@ export const assertGenerate = (value: unknown): GenerateConnectorRequest => {
 export const assertAddRequest = (value: unknown): AddConnectorRequest => {
   const request = recordOf(value)
   const kind = assertOneOf(request['kind'], CONNECTOR_KINDS, 'kind')
+
+  // Браузеру для ИИ подпись не нужна: он один, имя сервера постоянное.
+  if (kind === 'browser') return { kind }
+
   const label = field(request['label'], 'label')
 
   if (kind === 'slack') {

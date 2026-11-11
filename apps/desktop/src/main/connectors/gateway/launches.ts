@@ -9,12 +9,36 @@ import type { GatewayEntry } from './mcp-config'
 /**
  * Процесс провайдера со своим ключом: проект, в котором он работает, и id для его процессов
  * команд. released - процесс кончился: вызов, который успел пройти проверку ключа раньше,
- * не должен поднять ему новый процесс команды - гасить его было бы уже некому.
+ * не должен поднять ему новый процесс команды - гасить его было бы уже некому. workDir и
+ * conversationId - чей это процесс (LaunchOwner); пока не названы - проект и null.
  */
-export type Launch = { id: string; projectPath: string; released: boolean }
+export type Launch = {
+  id: string
+  projectPath: string
+  workDir: string
+  conversationId: string | null
+  released: boolean
+}
 
-/** Конфиг шлюза одного процесса: файл для `--mcp-config` и «процесс кончился». */
-export type McpLaunch = { path: string; release: () => void }
+/**
+ * Чей процесс: разговор (id вкладки панели, сессия сценария) и папка, где он работает
+ * (проект, у сценария - его worktree). По разговору источник держит своё между процессами
+ * одного разговора, по папке - решает, какие файлы с диска можно отдать (браузер).
+ */
+export type LaunchOwner = { conversationId: string; workDir: string }
+
+/**
+ * Конфиг шлюза одного процесса: файл для `--mcp-config`. own - назвать разговор процесса;
+ * зовётся сразу после выдачи ключа, до подъёма CLI, - вызовов по ключу ещё нет. release -
+ * процесс кончился (разговор может поднять следующий), end - кончился сам разговор: его
+ * вкладку закрыли. end можно звать и после release - разговор переживает свои процессы.
+ */
+export type McpLaunch = {
+  path: string
+  own: (owner: LaunchOwner) => void
+  release: () => void
+  end: () => void
+}
 
 const digest = (token: string): string => createHash('sha256').update(token).digest('hex')
 
@@ -31,7 +55,9 @@ export class GatewayLaunches {
   constructor(
     private readonly dir: string,
     /** Процесс кончился: его процессы команд больше не нужны. */
-    private readonly released: (launchId: string) => void,
+    private readonly released: (launch: Launch) => void,
+    /** Разговор закрыт насовсем: держать для него больше нечего. */
+    private readonly ended: (conversationId: string) => void,
   ) {}
 
   /** Файлы прошлых запусков IDE: их ключи шлюз уже не примет, а лежать им незачем. */
@@ -45,8 +71,16 @@ export class GatewayLaunches {
     const key = digest(token)
     const id = randomUUID()
     const file = join(this.dir, `${id}.json`)
+    const launch = {
+      id,
+      projectPath,
+      workDir: projectPath,
+      conversationId: null as string | null,
+      released: false,
+      file,
+    }
 
-    this.launches.set(key, { id, projectPath, released: false, file })
+    this.launches.set(key, launch)
 
     try {
       await writeMcpConfig(file, claudeMcpConfig(entries, token))
@@ -55,7 +89,17 @@ export class GatewayLaunches {
       throw error
     }
 
-    return { path: file, release: () => this.release(key) }
+    return {
+      path: file,
+      own: ({ conversationId, workDir }) => {
+        launch.conversationId = conversationId
+        launch.workDir = workDir
+      },
+      release: () => this.release(key),
+      end: () => {
+        if (launch.conversationId) this.ended(launch.conversationId)
+      },
+    }
   }
 
   find(token: string): Launch | null {
@@ -70,6 +114,6 @@ export class GatewayLaunches {
     this.launches.delete(key)
     launch.released = true
     void unlink(launch.file).catch(() => undefined)
-    this.released(launch.id)
+    this.released(launch)
   }
 }

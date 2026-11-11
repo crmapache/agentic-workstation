@@ -17,7 +17,7 @@ import type { AiGeneration, HttpConnectorSpec } from './connector-spec'
 /**
  * Тип коннектора. atlassian - Jira и Confluence в облаке Atlassian, todoist - Todoist по
  * личному токену, оба через официальные MCP (ADR 0036); playwright - браузер Playwright MCP
- * на этой машине (ADR 0035); mcp - любой
+ * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); mcp - любой
  * MCP-сервер по адресу (Linear, Sentry, свой); command - MCP-сервер командой на этой машине
  * (npx, node); http - описанный ИИ по документации сервиса (ADR 0029).
  */
@@ -29,6 +29,7 @@ export type ConnectorKind =
   | 'atlassian'
   | 'todoist'
   | 'playwright'
+  | 'browser'
   | 'mcp'
   | 'command'
   | 'http'
@@ -41,6 +42,7 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'atlassian',
   'todoist',
   'playwright',
+  'browser',
   'mcp',
   'command',
   'http',
@@ -193,6 +195,39 @@ export type GoogleAppState = {
   clientHint: string | null
 }
 
+/** Подключённый профиль Chrome с расширением IDE (ADR 0040). */
+export type BrowserProfileView = {
+  key: string
+  name: string
+  browser: string
+  version: string
+}
+
+/**
+ * Почему мост в Chrome не готов: не установился (папки, манифесты), сборки расширения нет
+ * рядом с IDE, сокет для расширения не открылся, путь сокета длиннее предела macOS и в
+ * домашней, и во временной папке.
+ */
+export type BrowserSetupFailure =
+  'install-failed' | 'extension-missing' | 'socket-failed' | 'socket-path'
+
+/**
+ * Браузер для ИИ: установлен ли мост (native host в Chrome и копия расширения), папка, из
+ * которой человек ставит расширение, и профили Chrome, которые сейчас на связи.
+ */
+export type BrowserState = {
+  installed: boolean
+  extensionDir: string | null
+  profiles: BrowserProfileView[]
+  failure: BrowserSetupFailure | null
+}
+
+/** Имя сервера браузера для ИИ: тип в начале - правило коннекторов (ADR 0028). */
+export const BROWSER_SERVER_NAME = 'browser-chrome'
+
+/** Адрес страницы расширений Chrome: открыть её или скопировать, если Chrome не открылся. */
+export const CHROME_EXTENSIONS_URL = 'chrome://extensions'
+
 export type ConnectorsState = {
   connectors: Connector[]
   /** Свои типы коннекторов - и те, что подключают один раз. */
@@ -204,6 +239,7 @@ export type ConnectorsState = {
   vaultReset: boolean
   /** Коннектор, который сейчас описывает ИИ (ADR 0029). */
   generation: AiGeneration
+  browser: BrowserState
 }
 
 /**
@@ -215,6 +251,8 @@ export type NewTypeFields = { name: string; multiple: boolean; label: string }
 
 export type AddConnectorRequest =
   | { kind: 'gmail' | 'calendar' | 'notion' | 'atlassian'; label: string }
+  /** Браузер для ИИ (ADR 0040): один на IDE, подпись и имя сервера постоянные. */
+  | { kind: 'browser' }
   /** Личный токен API Todoist: с ним официальный MCP Todoist пускает без входа в браузере. */
   | { kind: 'todoist'; label: string; token: string }
   | { kind: 'slack'; label: string; clientId: string; clientSecret: string }

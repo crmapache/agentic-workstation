@@ -2,9 +2,10 @@ import { it, vi, expect, describe, beforeEach } from 'vitest'
 
 import { LiveConnector } from './connector-live'
 import type { SecretsOf } from './connector-secrets'
-import type { ConnectorSource } from './connector-source'
+import type { SourceLaunch, ConnectorSource } from './connector-source'
 import { blankConnector } from './connector-store'
 import type { StoredConnector } from './connector-store'
+import type { Launch } from './gateway/launches'
 import { createSource } from './kinds/sources'
 import type * as Sources from './kinds/sources'
 
@@ -13,7 +14,20 @@ vi.mock('./kinds/sources', async (importOriginal) => ({
   createSource: vi.fn(),
 }))
 
-type FakeSource = ConnectorSource & { cwd: string | null }
+type FakeSource = ConnectorSource & {
+  cwd: string | null
+  release: (launch: SourceLaunch) => void
+  endConversation: (conversationId: string) => void
+}
+
+/** Процесс разговора шлюза: id, проект, папка работы, разговор. */
+const launchOf = (id: string, released = false, conversationId: string | null = null): Launch => ({
+  id,
+  projectPath: `/p/${id}`,
+  workDir: `/p/${id}`,
+  conversationId,
+  released,
+})
 
 const made: FakeSource[] = []
 
@@ -28,7 +42,7 @@ const liveOf = (connector: StoredConnector) =>
   new LiveConnector(
     connector,
     { read: () => ({}) } as unknown as SecretsOf,
-    { googleClient: () => null, shellEnv: () => Promise.resolve({}), version: '0' },
+    { googleClient: () => null, shellEnv: () => Promise.resolve({}), version: '0', browser: null },
     {
       stored: () => connector,
       typeName: () => null,
@@ -47,6 +61,8 @@ beforeEach(() => {
       cwd,
       listTools: vi.fn(() => Promise.resolve([])),
       callTool: vi.fn(() => Promise.resolve({ content: [] })),
+      release: vi.fn(),
+      endConversation: vi.fn(),
       dispose: vi.fn(() => Promise.resolve()),
     }
 
@@ -59,8 +75,8 @@ beforeEach(() => {
 describe('LiveConnector', () => {
   it('команда: у каждого процесса разговора свой, в папке его проекта', async () => {
     const live = liveOf(command())
-    const a = live.gatewayServer({ id: 'a', projectPath: '/p/a', released: false })
-    const b = live.gatewayServer({ id: 'b', projectPath: '/p/b', released: false })
+    const a = live.gatewayServer(launchOf('a'))
+    const b = live.gatewayServer(launchOf('b'))
 
     await a.call('browser_navigate', {}, signal)
     await a.call('browser_navigate', {}, signal)
@@ -72,10 +88,59 @@ describe('LiveConnector', () => {
     expect(first?.callTool).toHaveBeenCalledTimes(2)
     expect(second?.callTool).toHaveBeenCalledOnce()
 
-    live.release('a')
+    live.release(launchOf('a'))
 
     expect(first?.dispose).toHaveBeenCalledOnce()
     expect(second?.dispose).not.toHaveBeenCalled()
+  })
+
+  it('общий источник видит процесс, его разговор и папку и узнаёт о конце процесса и разговора', async () => {
+    const browser: StoredConnector = {
+      ...blankConnector({
+        id: 'b',
+        kind: 'browser',
+        label: 'Chrome',
+        serverName: 'browser-chrome',
+      }),
+      tools: [{ name: 'open', description: '', access: 'write' }],
+    }
+    const live = liveOf(browser)
+    const shared = made[0]
+
+    const launch = launchOf('a')
+
+    await live.gatewayServer(launch).call('open', { url: 'x' }, signal)
+
+    // Разговор назван после выдачи ключа (McpLaunch.own) - вызов видит его уже названным.
+    launch.conversationId = 'tab-1'
+    launch.workDir = '/worktrees/a'
+    await live.gatewayServer(launch).call('open', { url: 'y' }, signal)
+
+    expect(made).toHaveLength(1)
+    expect(shared?.callTool).toHaveBeenNthCalledWith(1, 'open', { url: 'x' }, signal, {
+      id: 'a',
+      projectPath: '/p/a',
+      workDir: '/p/a',
+      conversationId: null,
+    })
+    expect(shared?.callTool).toHaveBeenNthCalledWith(2, 'open', { url: 'y' }, signal, {
+      id: 'a',
+      projectPath: '/p/a',
+      workDir: '/worktrees/a',
+      conversationId: 'tab-1',
+    })
+
+    live.release(launch)
+    live.endConversation('tab-1')
+
+    expect(shared?.release).toHaveBeenCalledWith({
+      id: 'a',
+      projectPath: '/p/a',
+      workDir: '/worktrees/a',
+      conversationId: 'tab-1',
+    })
+    expect(shared?.endConversation).toHaveBeenCalledWith('tab-1')
+    expect(shared?.dispose).not.toHaveBeenCalled()
   })
 
   it('выключенная команда не запускается даже для списка инструментов', async () => {
@@ -98,9 +163,7 @@ describe('LiveConnector', () => {
     const live = liveOf(command())
 
     await live.dispose()
-    await live
-      .gatewayServer({ id: 'a', projectPath: '/p/a', released: false })
-      .call('browser_navigate', {}, signal)
+    await live.gatewayServer(launchOf('a')).call('browser_navigate', {}, signal)
 
     expect(made).toHaveLength(1)
   })
@@ -108,7 +171,7 @@ describe('LiveConnector', () => {
   it('вызов, пришедший после конца процесса разговора, не поднимает ему процесс команды', async () => {
     const live = liveOf(command())
     const result = await live
-      .gatewayServer({ id: 'a', projectPath: '/p/a', released: true })
+      .gatewayServer(launchOf('a', true))
       .call('browser_navigate', {}, signal)
 
     expect(result.isError).toBe(true)
@@ -117,8 +180,8 @@ describe('LiveConnector', () => {
 
   it('список для шлюза: разовый процесс в папке проекта, одновременные запросы - один процесс', async () => {
     const live = liveOf(command())
-    const a = live.gatewayServer({ id: 'a', projectPath: '/p/a', released: false })
-    const b = live.gatewayServer({ id: 'b', projectPath: '/p/b', released: false })
+    const a = live.gatewayServer(launchOf('a'))
+    const b = live.gatewayServer(launchOf('b'))
 
     await Promise.all([a.tools(), b.tools(), a.tools()])
 

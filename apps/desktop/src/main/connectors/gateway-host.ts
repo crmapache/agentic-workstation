@@ -6,6 +6,12 @@ import { ConnectorGateway } from './gateway/gateway'
 import { GatewayLaunches } from './gateway/launches'
 import type { Launch, McpLaunch } from './gateway/launches'
 
+/** Что шлюз сообщает живым коннекторам о конце процессов и разговоров (LiveConnectors). */
+export type LaunchEnds = {
+  release: (launch: Launch) => void
+  endConversation: (conversationId: string) => void
+}
+
 /**
  * Шлюз коннекторов и конфиги `--mcp-config` по процессам разговоров (ADR 0029). Процесс
  * получает только коннекторы своего проекта, а шлюз по ключу процесса не пускает к
@@ -20,9 +26,14 @@ export class GatewayHost {
     live: (id: string) => LiveConnector | null,
     configDir: string,
     version: string,
-    released: (launchId: string) => void,
+    /** Кому сказать, что процесс разговора кончился и что кончился сам разговор. */
+    ends: LaunchEnds,
   ) {
-    this.launches = new GatewayLaunches(configDir, released)
+    this.launches = new GatewayLaunches(
+      configDir,
+      (launch) => ends.release(launch),
+      (conversationId) => ends.endConversation(conversationId),
+    )
     this.gateway = new ConnectorGateway<Launch>(
       {
         authorize: (token) => this.launches.find(token),

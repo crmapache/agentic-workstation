@@ -129,5 +129,9 @@ export const useConnectorActions = () => {
       invoke('connectors:openInAgentApp', { app, prompt }),
     /** Slack app с готовым описанием - в браузере; false - браузер не открылся. */
     createSlackApp: () => invoke('connectors:createSlackApp'),
+    /** Папка расширения браузера для ИИ в Finder; её нет - false. */
+    revealBrowserExtension: () => invoke('connectors:revealBrowserExtension'),
+    /** chrome://extensions в Chrome; Chrome не открылся - false. */
+    openBrowserExtensions: () => invoke('connectors:openBrowserExtensions'),
   }
 }

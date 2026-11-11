@@ -4,11 +4,16 @@ import { defineConfig } from 'electron-vite'
 
 import react from '@vitejs/plugin-react'
 
+import { browserBridgePlugin } from './native-host.vite'
+
 const shared = resolve(__dirname, 'src/shared')
 
 export default defineConfig({
   main: {
     resolve: { alias: { '@shared': shared } },
+    // Браузер для ИИ (ADR 0040): native host и расширение - рядом с main, в out/native-host
+    // и out/chrome-extension.
+    plugins: [browserBridgePlugin(__dirname)],
   },
   preload: {
     resolve: { alias: { '@shared': shared } },

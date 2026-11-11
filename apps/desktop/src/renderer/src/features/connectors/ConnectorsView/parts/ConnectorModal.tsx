@@ -10,6 +10,7 @@ import type { ConnectorModalProps } from '../ConnectorsView.types'
 import { connectorNames } from '../ConnectorsView.utils'
 import { useConnectorsStore } from '../../connectors.store'
 import { useConnectorActions } from '../../../../state/connectors.queries'
+import { BrowserSetup } from './BrowserSetup'
 import { ConnectorConnection } from './ConnectorConnection'
 import { ConnectorDescription } from './ConnectorDescription'
 import { ConnectorSignIn } from './ConnectorSignIn'
@@ -28,6 +29,7 @@ export const ConnectorModal = ({
   projects,
   google,
   customType,
+  browser,
 }: ConnectorModalProps) => {
   const { t } = useTranslation()
   const actions = useConnectorActions()
@@ -80,7 +82,11 @@ export const ConnectorModal = ({
               />
             )}
             <ConnectorDescription key={id} connector={connector} />
-            <ConnectorConnection connector={connector} google={google} />
+            {kind === 'browser' ? (
+              <BrowserSetup browser={browser} />
+            ) : (
+              <ConnectorConnection connector={connector} google={google} />
+            )}
             <ProjectsPicker connector={connector} projects={projects} />
           </div>
           <div className={styles.toolsColumn}>
