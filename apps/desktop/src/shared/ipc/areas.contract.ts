@@ -23,6 +23,8 @@ import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './proj
 import { PROJECT_SYNC_EVENTS, PROJECT_SYNC_CHANNELS } from './project-sync.contract'
 import type { ScenariosEventContract, ScenariosInvokeContract } from './scenarios.contract'
 import { SCENARIOS_EVENTS, SCENARIOS_CHANNELS } from './scenarios.contract'
+import type { StatisticsEventContract, StatisticsInvokeContract } from './statistics.contract'
+import { STATISTICS_EVENTS, STATISTICS_CHANNELS } from './statistics.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
@@ -45,7 +47,8 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   WindowInvokeContract &
   ConnectorsInvokeContract &
   TerminalInvokeContract &
-  ScenariosInvokeContract
+  ScenariosInvokeContract &
+  StatisticsInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
@@ -56,7 +59,8 @@ export type AreaEventContract = ClaudeTabsEventContract &
   WindowEventContract &
   ConnectorsEventContract &
   TerminalEventContract &
-  ScenariosEventContract
+  ScenariosEventContract &
+  StatisticsEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -73,6 +77,7 @@ export const AREA_CHANNELS = {
   ...CONNECTORS_CHANNELS,
   ...TERMINAL_CHANNELS,
   ...SCENARIOS_CHANNELS,
+  ...STATISTICS_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -87,4 +92,5 @@ export const AREA_EVENTS = {
   ...CONNECTORS_EVENTS,
   ...TERMINAL_EVENTS,
   ...SCENARIOS_EVENTS,
+  ...STATISTICS_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

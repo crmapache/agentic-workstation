@@ -63,6 +63,8 @@ export class ScenarioService {
   private readonly desks = new Map<string, RunDesk>()
   private readonly providers: ReadonlyMap<ProviderId, ScenarioProvider>
   private readonly logs = new StepLogs()
+  /** Прогон кончился - для статистики: ставит связка статистики. */
+  onRunFinished: (run: ScenarioRun) => void = () => undefined
   readonly runner: QueueRunner
   readonly shelves: ScenarioShelves
   private readonly clock: NodeJS.Timeout
@@ -119,6 +121,7 @@ export class ScenarioService {
         onFinished: (run) => {
           void this.runner.finished(run)
           this.sendShelves(projectPath)
+          this.onRunFinished(run)
         },
         notify: this.options.events.notify,
       })
@@ -133,6 +136,19 @@ export class ScenarioService {
     this.open = paths
 
     for (const path of paths) void this.desk(path).sweep()
+  }
+
+  /** Исходный проект папки worktree какой-нибудь очереди; null - это не worktree очереди. */
+  originOf(path: string): string | null {
+    const owner = this.book
+      .all()
+      .find(
+        (queue) =>
+          queue.workdir.kind === 'worktree' &&
+          (path === queue.workdir.path || path.startsWith(`${queue.workdir.path}/`)),
+      )
+
+    return owner?.projectPath ?? null
   }
 
   queuesView(): ScenarioQueuesView {

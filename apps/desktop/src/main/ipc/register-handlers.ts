@@ -6,6 +6,7 @@ import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
+import type { StatsService } from '../statistics/stats-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
@@ -26,6 +27,7 @@ import type { InvokeHandlers } from './handle'
 import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
+import { createStatisticsHandlers } from './statistics-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createWindowHandlers } from './window-handlers'
 import { createWorkspaceHandlers } from './workspace-handlers'
@@ -47,6 +49,8 @@ type Services = HandlerContext & {
   terminals: TerminalService
   /** Сценарии на уровне IDE: полки, очереди, прогоны (ADR 0039). */
   scenarios: ScenarioService
+  /** Статистика IDE и провайдеров: база, транскрипты, живые события. */
+  stats: StatsService
 }
 
 /**
@@ -75,6 +79,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createConnectorsHandlers(services.connectors),
     ...createTerminalHandlers(workspace, services.terminals),
     ...createScenariosHandlers(workspace, claude, services.scenarios),
+    ...createStatisticsHandlers(workspace, services.stats),
 
     'updates:getStatus': () => updates.getStatus(),
     'updates:install': () => updates.install(),

@@ -8,6 +8,7 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { useClaudePanelKey, useClaudePanelToggle } from '../actions/claude-panel'
 import { useFileViewOnSelect } from '../actions/file-view'
 import { useOpenFile } from '../actions/open-file'
+import { usePresence } from '../actions/presence'
 import { useTerminalKey, useTerminalToggle } from '../actions/terminal-dock'
 import { useWindowCommands } from '../actions/window-commands'
 import { ActivityBar } from '../ActivityBar/ActivityBar'
@@ -68,6 +69,7 @@ export const Workbench = () => {
   useFileViewOnSelect()
   // Settings… (⌘,) и размер текста (⌘+, ⌘-, ⌘0) из меню приложения.
   useWindowCommands()
+  usePresence()
 
   return (
     <OpenFileContext value={openFile}>

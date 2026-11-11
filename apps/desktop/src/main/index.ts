@@ -2,9 +2,11 @@ import { join } from 'node:path'
 
 import { app, shell, BrowserWindow } from 'electron'
 
+import type { ClaudeState } from '@shared/claude'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
+import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { claudeAsk } from './claude/claude-ask'
 import { ClaudeService } from './claude/claude-service'
@@ -17,7 +19,6 @@ import { GitStatusService } from './git/git-status-service'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
-import { startScenarios } from './scenarios/scenarios-setup'
 import { SearchService } from './search/search-service'
 import { JsonFile } from './storage/json-file'
 import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
@@ -63,6 +64,8 @@ const bootstrap = async () => {
   // Поиску по разговорам - что проекты открыли и закрыли: он поднимается позже, после
   // разговоров.
   let onWorkspace = (): void => undefined
+  // Статистике - состояние панели Claude: она поднимается позже панели.
+  let observeClaude = (_state: ClaudeState): void => undefined
   const workspace = await WorkspaceService.load(
     new JsonFile<WorkspaceState>(join(app.getPath('userData'), 'workspace.json')),
     (state) => {
@@ -85,7 +88,10 @@ const bootstrap = async () => {
   const claude = await ClaudeService.load(
     new JsonFile<StoredClaude>(join(app.getPath('userData'), 'claude.json')),
     {
-      onState: (state) => broadcast('claude:state', state),
+      onState: (state) => {
+        broadcast('claude:state', state)
+        observeClaude(state)
+      },
       onFeed: (patch) => broadcast('claude:feed', patch),
       onCall: (call) => broadcast('claude:call', call),
       openPath: (path) => shell.openPath(path),
@@ -167,21 +173,22 @@ const bootstrap = async () => {
     },
   )
 
-  // Сценарии на уровне IDE (ADR 0039): очереди всех проектов, провайдеры-исполнители.
-  const scenarios = await startScenarios({
+  // Сценарии (ADR 0039) и статистика - возможности всей IDE поверх провайдеров.
+  const features = await startIdeFeatures({
     claude,
     workspace,
     dataDir: app.getPath('userData'),
     getWindow: () => mainWindow,
   })
 
+  observeClaude = features.statistics.observeClaude
   searchProjects()
   watchProjects()
   onWorkspace = () => {
+    features.projectsChanged()
     searchProjects()
     watchProjects()
     terminals.keepProjects(workspace.getState().projects.map((project) => project.id))
-    scenarios.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
   }
 
   const services = {
@@ -194,7 +201,8 @@ const bootstrap = async () => {
     conversationSearch,
     connectors,
     terminals,
-    scenarios,
+    scenarios: features.scenarios,
+    stats: features.statistics.stats,
     getWindow: () => mainWindow,
   }
 
@@ -220,7 +228,7 @@ const bootstrap = async () => {
     watchers.dispose()
     outsideWatchers.dispose()
     // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
-    await scenarios.shutdown()
+    await features.shutdown()
     await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
     // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
     await connectors.stop()
