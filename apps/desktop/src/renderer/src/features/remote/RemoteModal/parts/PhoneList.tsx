@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { Button } from '@agentic-workstation/ui/Button'
-import { Section } from '@agentic-workstation/ui/Section'
+import { Card } from '@agentic-workstation/ui/Card'
 
 import styles from '../RemoteModal.module.scss'
 import type { PhoneListProps } from '../RemoteModal.types'
@@ -11,19 +11,17 @@ import { useRemoteActions } from '../../remote.queries'
 
 /**
  * Спаренные телефоны: имя (его назвал сам телефон), отпечаток, на связи ли, включены ли на нём
- * уведомления (прислал подписку на пуши), и отзыв.
+ * уведомления (прислал подписку на пуши), и отзыв - по центру строки, у правого края карточки.
  */
 export const PhoneList = ({ devices }: PhoneListProps) => {
   const { t, i18n } = useTranslation()
   const { revoke } = useRemoteActions()
 
   return (
-    <Section
-      size="sm"
-      title={t('remote.phones.title')}
-      count={devices.length}
-      description={devices.length === 0 ? t('remote.phones.empty') : undefined}>
-      {devices.length > 0 && (
+    <Card title={t('remote.phones.title')} count={devices.length > 0 ? devices.length : undefined}>
+      {devices.length === 0 ? (
+        <p className={styles.hint}>{t('remote.phones.empty')}</p>
+      ) : (
         <ul className={styles.phones}>
           {devices.map((device) => (
             <li key={device.id} className={styles.phone}>
@@ -53,6 +51,6 @@ export const PhoneList = ({ devices }: PhoneListProps) => {
           ))}
         </ul>
       )}
-    </Section>
+    </Card>
   )
 }

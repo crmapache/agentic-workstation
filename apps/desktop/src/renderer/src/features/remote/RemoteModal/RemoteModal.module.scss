@@ -1,10 +1,10 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
-// Разделы окна - столбиком, на одном ритме.
+// Разделы окна - карточками столбиком, с тем же зазором, что между карточками статистики.
 .layout {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
 }
 
 // Пара не переживёт перезапуск: предупреждение тоном, а не абзацем пояснения.
@@ -26,6 +26,23 @@
   font-size: var(--font-size-md);
 }
 
+// Отпечаток крупно, под ним - через какой релей идёт связь.
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.relay {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.relayHost {
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+}
+
 .hint {
   margin: 0;
   color: var(--color-fg-muted);
@@ -40,26 +57,29 @@
   gap: var(--space-3);
 }
 
-// Код пары: QR слева, отсчёт и действия справа.
+// Код пары: QR посередине карточки, под ним подсказка, отсчёт и «Stop» - одной осью.
 .offer {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
 }
 
 // QR - белая картинка с тихой зоной внутри; размер - свой у картинки (клетка в 4 точки), с
-// текстом не растёт.
+// текстом не растёт. Блок, а не строчный: строчная картинка садится на базовую линию и
+// получает хвост снизу.
 .qr {
+  display: block;
   flex-shrink: 0;
   border-radius: var(--radius-md);
 }
 
-.offerSide {
+// Отсчёт и «Stop» в ряд, по центру строки.
+.offerFoot {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .countdown {
@@ -87,10 +107,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) 0;
+  padding: var(--space-3) 0;
   border-bottom: var(--border-width) solid var(--color-border);
 
+  // Крайние строки - без поля к краю карточки: у неё своё.
+  &:first-child {
+    padding-top: 0;
+  }
+
   &:last-child {
+    padding-bottom: 0;
     border-bottom: 0;
   }
 }

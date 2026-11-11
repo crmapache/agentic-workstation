@@ -2,9 +2,9 @@ import { Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@agentic-workstation/ui/Badge'
+import { Card } from '@agentic-workstation/ui/Card'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
-import { Section } from '@agentic-workstation/ui/Section'
 import { Switch } from '@agentic-workstation/ui/Switch'
 
 import { useRemote, useRemoteActions } from '../remote.queries'
@@ -18,7 +18,8 @@ import { PhoneList } from './parts/PhoneList'
  * Окно Remote Control (ADR 0041): в шапке - состояние связи, переключатель и «?» с тем, что
  * может телефон; ниже - почему связи нет, если это решает человек (адрес занят другим Mac),
  * отпечаток этой IDE, пара по QR (код, ждущий телефон с Approve и Refuse) и спаренные телефоны
- * с отзывом. Открывают кнопка в строке состояния и поиск везде.
+ * с отзывом - каждое своей карточкой: подписи разделов над голым текстом сливались в одно.
+ * Открывают кнопка в строке состояния и поиск везде.
  */
 export const RemoteModal = () => {
   const { t } = useTranslation()
@@ -35,7 +36,7 @@ export const RemoteModal = () => {
       icon={Smartphone}
       iconTone={LINK_TONES[view.state]}
       title={t('remote.title')}
-      description={view.enabled ? t('remote.relay', { host: view.relayHost }) : t('remote.offHint')}
+      description={view.enabled ? t('remote.relay') : t('remote.offHint')}
       headerActions={
         <>
           <Badge tone={LINK_TONES[view.state]}>{t(`remote.state.${view.state}`)}</Badge>
@@ -61,9 +62,15 @@ export const RemoteModal = () => {
         )}
         {!view.keysKept && <p className={styles.warning}>{t('remote.keysNotKept')}</p>}
         {view.fingerprint && (
-          <Section size="sm" title={t('remote.thisIde')} description={t('remote.fingerprintNote')}>
-            <code className={styles.fingerprint}>{view.fingerprint}</code>
-          </Section>
+          <Card title={t('remote.thisIde')} description={t('remote.fingerprintNote')}>
+            <div className={styles.identity}>
+              <code className={styles.fingerprint}>{view.fingerprint}</code>
+              {/* Адрес релея - здесь, а не в шапке: там он резался многоточием. */}
+              <span className={styles.relay}>
+                {t('remote.relayLabel')} <span className={styles.relayHost}>{view.relayHost}</span>
+              </span>
+            </div>
+          </Card>
         )}
         <PairingPanel view={view} />
         <PhoneList devices={view.devices} />

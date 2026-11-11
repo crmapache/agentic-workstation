@@ -10,7 +10,10 @@ import type { PairingOfferProps } from '../RemoteModal.types'
 import { countdown, qrDataUrl } from '../RemoteModal.utils'
 import { useRemoteActions } from '../../remote.queries'
 
-/** Код пары: одноразовый, три минуты; секрет - в части адреса после #, релею её не шлют. */
+/**
+ * Код пары: одноразовый, три минуты; секрет - в части адреса после #, релею её не шлют. QR -
+ * посередине карточки, под ним что сделать, отсчёт и «Stop»: всё одной осью.
+ */
 export const PairingOffer = ({ pairing }: PairingOfferProps) => {
   const { t } = useTranslation()
   const { refuse } = useRemoteActions()
@@ -20,8 +23,8 @@ export const PairingOffer = ({ pairing }: PairingOfferProps) => {
   return (
     <div className={styles.offer}>
       <img className={styles.qr} src={image} alt={t('remote.pair.qrLabel')} />
-      <div className={styles.offerSide}>
-        <p className={styles.hint}>{t('remote.pair.scan')}</p>
+      <p className={styles.hint}>{t('remote.pair.scan')}</p>
+      <div className={styles.offerFoot}>
         <span className={styles.countdown}>{countdown(pairing.expiresAt, now)}</span>
         <Button variant="secondary" size="sm" onClick={refuse}>
           {t('remote.pair.stop')}
