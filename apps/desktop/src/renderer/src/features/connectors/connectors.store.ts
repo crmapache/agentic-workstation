@@ -7,6 +7,7 @@ type ConnectorsStore = {
   openConnector: (id: string) => void
   openAdd: (target: AddTarget) => void
   openType: (id: string) => void
+  openAiJob: (id: string) => void
   close: () => void
 }
 
@@ -19,5 +20,6 @@ export const useConnectorsStore = create<ConnectorsStore>()((set) => ({
   openConnector: (id) => set({ panel: { kind: 'connector', id } }),
   openAdd: (target) => set({ panel: { kind: 'add', target } }),
   openType: (id) => set({ panel: { kind: 'type', id } }),
+  openAiJob: (id) => set({ panel: { kind: 'aiJob', id } }),
   close: () => set({ panel: null }),
 }))

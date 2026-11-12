@@ -4,6 +4,7 @@ import { BrowserError } from './browser-error'
 import type { Page } from './page'
 import { readSnapshot } from './page-frames'
 import { callOn, exceptionText } from './page-nodes'
+import { watchScripted } from './page-scripted'
 import { JPEG_QUALITIES, planScreenshot, SHOT_MAX_BASE64 } from './screenshot-plan'
 import type { Rect } from './screenshot-plan'
 
@@ -120,11 +121,31 @@ const valueText = (value: unknown): string => {
   return text.length > EVALUATE_MAX ? `${text.slice(0, EVALUATE_MAX)}… (cut)` : text
 }
 
+/** Ответ выражения: значение JSON и сколько действий на странице сделал сам скрипт. */
+export type Evaluated = { text: string; scripted: number }
+
 /**
  * Выражение JS в странице; с элементом - функция `(element) => …`, ей передаётся элемент по
- * ссылке. Промис дожидается. Ответ - значение JSON.
+ * ссылке. Промис дожидается. Заодно считается, нажимал ли и вводил ли что-то сам скрипт
+ * (page-scripted.ts): так модель узнаёт, что действовала мимо руки.
  */
-export const evaluate = async (page: Page, expression: string, ref?: string): Promise<string> => {
+export const evaluate = async (
+  page: Page,
+  expression: string,
+  ref?: string,
+): Promise<Evaluated> => {
+  const scripted = await watchScripted(page, ref)
+
+  try {
+    return { text: await evaluateText(page, expression, ref), scripted: await scripted() }
+  } catch (error) {
+    await scripted()
+
+    throw error
+  }
+}
+
+const evaluateText = async (page: Page, expression: string, ref?: string): Promise<string> => {
   if (ref) {
     const value = await callOn<unknown>(page, ref, `function () { return (${expression})(this) }`)
 

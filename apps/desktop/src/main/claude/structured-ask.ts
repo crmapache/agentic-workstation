@@ -36,17 +36,16 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /**
- * Аргументы вопроса. Инструменты - белым списком (`--tools`), а не запретом лишних: запрет
- * пропустил бы любой инструмент, которого нет в списке, а модель читает чужие страницы и
- * может получить из них что угодно. Сверху - без настроек, хуков, CLAUDE.md и MCP человека
- * (`--safe-mode`, `--restricted`, `--strict-mcp-config`): вопросу они не нужны, а личные
- * заметки из CLAUDE.md незачем держать рядом с чужими страницами. Всё не разрешённое -
- * отказ без вопроса (`dontAsk`): спросить тут некого.
+ * Ограда служебного процесса ИИ: ответ по схеме и только разрешённые инструменты.
+ * Инструменты - белым списком (`--tools`), а не запретом лишних: запрет пропустил бы любой
+ * инструмент, которого нет в списке, а модель читает чужие страницы и может получить из них
+ * что угодно. Сверху - без настроек, хуков, CLAUDE.md и MCP человека (`--safe-mode`,
+ * `--restricted`, `--strict-mcp-config`): вопросу они не нужны, а личные заметки из
+ * CLAUDE.md незачем держать рядом с чужими страницами. Всё не разрешённое - отказ без
+ * вопроса (`dontAsk`): спросить тут некого. Общая у разового вопроса и у разговора о
+ * коннекторе (connector-chat).
  */
-export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
-  '-p',
-  '--output-format',
-  'json',
+export const fenceArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
   '--json-schema',
   JSON.stringify(request.schema),
   '--safe-mode',
@@ -59,6 +58,14 @@ export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>)
     ? ['--tools', ...request.tools, '--allowedTools', ...request.tools]
     : ['--tools', '']),
   ...(request.model ? ['--model', request.model] : []),
+]
+
+/** Аргументы разового вопроса: один JSON на выходе и ограда (fenceArgs). */
+export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
+  '-p',
+  '--output-format',
+  'json',
+  ...fenceArgs(request),
 ]
 
 /**

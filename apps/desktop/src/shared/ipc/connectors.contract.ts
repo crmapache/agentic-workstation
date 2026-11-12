@@ -1,3 +1,4 @@
+import type { FeedPatch, ConversationFeed } from '../claude-feed'
 import type { ConnectorAvailability } from '../connector-availability'
 import type { GenerateConnectorRequest } from '../connector-spec'
 import type {
@@ -13,6 +14,8 @@ import type {
 } from '../connectors'
 
 type ConnectorRequest = { id: string }
+
+type AiJobRequest = { id: string }
 
 /**
  * Часть контракта (contract.ts) про коннекторы к приложениям (ADR 0028). Состояние целиком
@@ -66,13 +69,24 @@ export type ConnectorsInvokeContract = {
   'connectors:importCandidates': { request: void; response: ImportCandidate[] }
   'connectors:import': { request: { keys: string[] }; response: ImportOutcome }
   /**
-   * ИИ читает документацию сервиса и описывает коннектор (минуты); ключа он не видит. Ответ -
-   * сразу, с работой в generation; итог - событием состояния.
+   * Новая работа ИИ над коннектором (ADR 0050): разговор с ИИ, который ищет, чем подключить
+   * сервис (минуты). Ответ - сразу, с работой в aiJobs; ход работы - событиями.
    */
-  'connectors:generate': { request: GenerateConnectorRequest; response: ConnectorsState }
-  'connectors:cancelGenerate': { request: void; response: ConnectorsState }
-  /** Забыть итог работы ИИ (человек ушёл назад): generation снова пуст. */
-  'connectors:dismissGeneration': { request: void; response: ConnectorsState }
+  'connectors:startAiJob': { request: GenerateConnectorRequest; response: ConnectorsState }
+  /** Слова человека ИИ: посреди хода ИИ подхватит их, после - начнёт новый ход. */
+  'connectors:tellAiJob': { request: AiJobRequest & { text: string }; response: ConnectorsState }
+  /** Остановить идущий ход; разговор остаётся, ему можно написать снова. */
+  'connectors:stopAiJob': { request: AiJobRequest; response: ConnectorsState }
+  /** Забыть работу: коннектор добавлен или больше не нужен. Идущий ход гасится. */
+  'connectors:removeAiJob': { request: AiJobRequest; response: ConnectorsState }
+  /**
+   * Лента разговора работы - последние сообщения; earlier - ещё страница выше. Работы нет -
+   * null. Дальше лента меняется событием connectors:aiJobPatch.
+   */
+  'connectors:aiJobFeed': {
+    request: AiJobRequest & { earlier: boolean }
+    response: ConversationFeed | null
+  }
   /** Системный выбор файла клиента OAuth, скачанного из Google Cloud Console. */
   'connectors:importGoogleApp': { request: void; response: GoogleAppOutcome }
   'connectors:forgetGoogleApp': { request: void; response: ConnectorsState }
@@ -102,6 +116,8 @@ export type ConnectorsInvokeContract = {
 
 export type ConnectorsEventContract = {
   'connectors:state': ConnectorsState
+  /** Изменения ленты разговора работы ИИ - пачкой, как у панели Claude Code. */
+  'connectors:aiJobPatch': { jobId: string; patch: FeedPatch }
 }
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
@@ -123,9 +139,11 @@ export const CONNECTORS_CHANNELS = {
   'connectors:setAvailability': true,
   'connectors:importCandidates': true,
   'connectors:import': true,
-  'connectors:generate': true,
-  'connectors:cancelGenerate': true,
-  'connectors:dismissGeneration': true,
+  'connectors:startAiJob': true,
+  'connectors:tellAiJob': true,
+  'connectors:stopAiJob': true,
+  'connectors:removeAiJob': true,
+  'connectors:aiJobFeed': true,
   'connectors:importGoogleApp': true,
   'connectors:forgetGoogleApp': true,
   'connectors:agentApps': true,
@@ -138,4 +156,5 @@ export const CONNECTORS_CHANNELS = {
 /** События этой части: их разворачивает EVENT_CHANNELS. */
 export const CONNECTORS_EVENTS = {
   'connectors:state': true,
+  'connectors:aiJobPatch': true,
 } satisfies Record<keyof ConnectorsEventContract, true>

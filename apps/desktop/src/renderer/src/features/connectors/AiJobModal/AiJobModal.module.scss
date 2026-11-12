@@ -1,0 +1,135 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Окно работы во всю высоту тела: разговор слева и результат справа листаются каждый сам -
+// длинный разговор не уводит из виду форму с ключом. Узкое окно - одна колонка, результат под
+// разговором, листается всё тело окна.
+.frame {
+  container-type: inline-size;
+  height: 100%;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  height: 100%;
+
+  @container (width < 640px) {
+    display: block;
+    height: auto;
+  }
+}
+
+.logColumn,
+.sideColumn {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+
+  @container (width < 640px) {
+    overflow: visible;
+  }
+}
+
+.logColumn {
+  padding-right: var(--space-5);
+
+  @container (width < 640px) {
+    padding-right: 0;
+  }
+}
+
+// Справа колонка заходит в поле тела на space-2: строка Switch формы выносит подсветку
+// наружу на столько же (formSwitch) - без запаса колонка листалась бы вбок, а край полей
+// всё равно стоит по краю тела.
+.sideColumn {
+  margin-right: calc(-1 * var(--space-2));
+  padding-right: var(--space-2);
+  padding-left: var(--space-5);
+  border-left: var(--border-width) solid var(--color-border);
+
+  @container (width < 640px) {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    padding-left: 0;
+    border-top: var(--border-width) solid var(--color-border);
+    border-left: none;
+  }
+}
+
+// Разговор и строка состояния под ним: строка - с воздухом, как следующий шаг ленты.
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// Что ИИ делает сейчас: знак работы и шаг одной строкой, длинный адрес режется.
+.state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.activity {
+  @include truncate;
+
+  min-width: 0;
+}
+
+.failure,
+.note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.failure {
+  color: var(--color-danger);
+}
+
+.note {
+  color: var(--color-fg-muted);
+}
+
+// Слова CLI под ошибкой: как есть, тише и кодом - их копируют в вопрос, а не читают.
+.detail {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+// Просьба человека: как написана, с переводами строк; длинная ссылка переносится.
+.factValue {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Поле во всю ширину подвала, кнопка справа - у первой строки поля, а не посреди выросшего.
+.tell {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.tellField {
+  flex: 1;
+  min-width: 0;
+}

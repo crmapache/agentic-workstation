@@ -12,10 +12,10 @@ import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
 import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
-import { claudeAsk } from './claude/claude-ask'
 import { ClaudeService } from './claude/claude-service'
 import type { StoredClaude } from './claude/claude-state'
 import { startConnectors } from './connectors/connectors-setup'
+import { AI_CHATS_DIR } from './connectors/connectors.constants'
 import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
@@ -45,6 +45,7 @@ import { watchAgentEdits } from './claude/changes/agent-edits-tap'
 import { locateClaudeCli } from './claude/cli/cli-locator'
 import { ProcessGroup } from './claude/cli/process-group'
 import { loginShellEnv } from './claude/cli/shell-env'
+import { connectorChats } from './claude/connector-chat/connector-chats'
 import { SearchDesk } from './claude/search/search-desk'
 import { SEARCH_DIR_NAME } from './claude/search/search.constants'
 
@@ -151,7 +152,7 @@ const bootstrap = async () => {
     shellEnv: loginShellEnv,
     projectPaths: () => workspace.getState().projects.map((project) => project.rootPath),
     isTrusted: (projectPath) => claude.isTrusted(projectPath),
-    ask: claudeAsk(claude, join(app.getPath('userData'), 'ai-connector')),
+    chats: connectorChats(claude, join(app.getPath('userData'), AI_CHATS_DIR)),
   })
 
   claude.connectors.configFor = (projectPath) => connectors.mcpConfigFor(projectPath)

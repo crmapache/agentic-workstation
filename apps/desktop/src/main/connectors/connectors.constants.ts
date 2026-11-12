@@ -58,6 +58,10 @@ export const isRemoteKind = (kind: ConnectorKind): kind is keyof typeof REMOTE_M
 /** Файлы в userData. */
 export const CONNECTORS_FILE = 'connectors.json'
 export const VAULT_FILE = 'connectors-vault.bin'
+/** Работы ИИ над новыми коннекторами: ключей в них нет, но права 600 - как у реестра. */
+export const AI_JOBS_FILE = 'connectors-ai-jobs.json'
+/** Папка разговоров ИИ о коннекторах: пустая, без хуков и CLAUDE.md проекта. */
+export const AI_CHATS_DIR = 'ai-connector'
 /** Папка файлов `--mcp-config` по проектам. */
 export const MCP_CONFIG_DIR = 'connectors-mcp'
 

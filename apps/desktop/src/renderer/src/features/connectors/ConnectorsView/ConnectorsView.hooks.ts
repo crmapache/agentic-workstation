@@ -1,11 +1,7 @@
 import { useState, useEffect, useEffectEvent } from 'react'
 import type { KeyboardEvent } from 'react'
 
-import type {
-  AiGeneration,
-  HttpConnectorSpec,
-  GenerateConnectorRequest,
-} from '@shared/connector-spec'
+import type { HttpConnectorSpec, GenerateConnectorRequest } from '@shared/connector-spec'
 import type { Connector, ImportOutcome, AddConnectorError } from '@shared/connectors'
 
 import { useImportCandidates } from '../connectors.queries'
@@ -15,16 +11,17 @@ import type { FormKind, AddFormState, AddFormFields, TypeNameValues } from './Co
 import { addRequest, defaultImportChoice } from './ConnectorsView.utils'
 
 /**
- * Форма нового коннектора: поля, отправка и причина отказа. Удалось - onAdded с id нового:
- * лист показывает его (вход в браузере идёт сам). Повторное нажатие, пока главный процесс
- * отвечает, ничего не делает.
+ * Форма нового коннектора: поля (initial - заполненные заранее), отправка и причина отказа.
+ * Удалось - onAdded с id нового: лист показывает его (вход в браузере идёт сам). Повторное
+ * нажатие, пока главный процесс отвечает, ничего не делает.
  */
 export const useAddConnectorForm = (
   kind: FormKind,
   onAdded: (id: string | null) => void,
+  initial: Partial<AddFormFields> = {},
 ): AddFormState => {
   const actions = useConnectorActions()
-  const [fields, setFields] = useState<AddFormFields>(EMPTY_ADD_FIELDS)
+  const [fields, setFields] = useState<AddFormFields>(() => ({ ...EMPTY_ADD_FIELDS, ...initial }))
   const [error, setError] = useState<AddConnectorError | null>(null)
   const [isBusy, setIsBusy] = useState(false)
 
@@ -64,38 +61,32 @@ export const useAddConnectorForm = (
 }
 
 /**
- * Коннектор с ИИ: просьба (сервис, что делать, документация). Сама работа ИИ живёт в
- * главном процессе (generation): уход на другой вид её не прерывает. Просьба - из прошлой
- * работы, если она была: после отказа человек правит её, а не набирает заново.
+ * Просьба к ИИ (сервис, что делать, документация): уходит в очередь работ на виде, и форма
+ * закрывается - работа идёт в главном процессе сама (ADR 0050). Enter в однострочном поле
+ * отправляет просьбу.
  */
-export const useAiConnector = (generation: AiGeneration) => {
+export const useAiConnector = (onStarted: () => void) => {
   const actions = useConnectorActions()
-  const [request, setRequest] = useState<GenerateConnectorRequest>(() =>
-    generation.status === 'idle' ? EMPTY_AI_REQUEST : generation.request,
-  )
+  const [request, setRequest] = useState<GenerateConnectorRequest>(EMPTY_AI_REQUEST)
 
   const setField = (key: keyof GenerateConnectorRequest) => (value: string) =>
     setRequest((previous) => ({ ...previous, [key]: value }))
 
-  const generate = () => {
-    if (request.service.trim()) actions.generate(request)
+  const start = () => {
+    if (!request.service.trim()) return
+
+    actions.startAiJob(request)
+    onStarted()
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter') return
 
     event.preventDefault()
-    generate()
+    start()
   }
 
-  return {
-    request,
-    setField,
-    generate,
-    handleKeyDown,
-    cancel: actions.cancelGenerate,
-    again: actions.dismissGeneration,
-  }
+  return { request, setField, start, handleKeyDown }
 }
 
 /**

@@ -95,6 +95,7 @@ const setup = () => {
   const agent = new BrowserAgent(hub, Date.now, undefined, {
     random: () => 0.5,
     sleep: () => Promise.resolve(),
+    now: () => 0,
   })
 
   agents.push(agent)
@@ -194,9 +195,20 @@ describe('фреймы в снимке и действиях', () => {
 
     await typeText(page, { ref: 'f2e1', text: 'Ada' })
 
-    expect(cdpCalls(hub, 'Runtime.callFunctionOn').every((call) => call.frame === 'CROSS')).toBe(
-      true,
-    )
+    // Функции поля - в документе его фрейма; в главном документе - только план прокрутки
+    // колесом к iframe фрейма (page-reveal.ts).
+    const functions = cdpCalls(hub, 'Runtime.callFunctionOn')
+
+    expect(functions.some((call) => call.frame === 'CROSS')).toBe(true)
+    expect(
+      functions
+        .filter((call) => call.frame !== 'CROSS')
+        .every(
+          (call) =>
+            call.frame === undefined &&
+            String(call.params['functionDeclaration']).includes('screens'),
+        ),
+    ).toBe(true)
     // Короткий текст - по клавише, как у человека: нажатия видят сайт и его подсказки.
     expect(
       cdpCalls(hub, 'Input.dispatchKeyEvent')

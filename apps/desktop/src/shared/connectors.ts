@@ -12,7 +12,7 @@
 export const CONNECTOR_REDIRECT_URL = 'http://localhost:5319/callback'
 
 import type { ConnectorAvailability } from './connector-availability'
-import type { AiGeneration, HttpConnectorSpec } from './connector-spec'
+import type { AiJob, HttpConnectorSpec } from './connector-spec'
 
 /**
  * Тип коннектора. atlassian - Jira и Confluence в облаке Atlassian, todoist - Todoist по
@@ -237,8 +237,8 @@ export type ConnectorsState = {
   vault: boolean
   /** Прежнее хранилище не расшифровалось и отложено рядом: входы надо сделать заново. */
   vaultReset: boolean
-  /** Коннектор, который сейчас описывает ИИ (ADR 0029). */
-  generation: AiGeneration
+  /** Работы ИИ над новыми коннекторами (ADR 0050), новые - первыми. */
+  aiJobs: AiJob[]
   browser: BrowserState
 }
 

@@ -9,6 +9,7 @@ import { maskArgs } from '../claude/tools/secret-mask'
 import type { StoredTool, StoredType, StoredConnector } from './connector-store'
 import { isToolEnabled } from './tool-access'
 import { signsInWithBrowser } from './kinds/sources'
+import { BROWSER_GUIDE } from './kinds/browser/browser-guide'
 
 /** Что о коннекторе знает только живая IDE: идёт ли вход и чем кончилась последняя попытка. */
 export type LiveFacts = {
@@ -137,21 +138,25 @@ const stateFor = (connector: StoredConnector, live: LiveFacts, name: string | nu
     : head
 }
 
+/** Как работать с коннектором, когда это не видно из самих инструментов. */
+const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = { browser: BROWSER_GUIDE }
+
 /**
  * Пояснение для модели при подключении к серверу: что это за коннектор, чей он, что
- * человек запретил и как сам его описал. Модель видит его у каждого сервера - по нему она
- * отличает рабочую почту от своей, выбирает нужный из похожих и не пытается обойти
- * выключенную отправку.
+ * человек запретил, как с ним работать и как человек сам его описал. Модель видит его у
+ * каждого сервера - по нему она отличает рабочую почту от своей, выбирает нужный из похожих
+ * и не пытается обойти выключенную отправку.
  */
 export const instructionsFor = (
   connector: StoredConnector,
   live: LiveFacts,
   name: string | null,
 ): string => {
+  const guide = connector.enabled && live.signedIn ? KIND_GUIDE[connector.kind] : undefined
   const note = connector.description.trim()
   const about = note ? `\nThe user describes this connector: ${note}` : ''
 
-  return `${stateFor(connector, live, name)}${about}`
+  return `${stateFor(connector, live, name)}${guide ? `\n${guide}` : ''}${about}`
 }
 
 /** Ответ модели на выключенный инструмент - чтобы она не искала обход. */

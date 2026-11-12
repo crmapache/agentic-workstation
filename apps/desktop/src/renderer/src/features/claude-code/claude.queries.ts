@@ -13,9 +13,10 @@ import { useQuery, queryOptions, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
 import { useIpcEvent } from '../../lib/ipc.hooks'
+import { applyFeedPatch } from '../../state/feed-patch.utils'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useActiveProject } from '../../state/workspace.queries'
-import { touchesFiles, applyFeedPatch, finishedTurnProjects } from './claude.utils'
+import { touchesFiles, finishedTurnProjects } from './claude.utils'
 import { useCallSounds } from './sounds.hooks'
 import { useTabCallsSync } from './tab-calls.hooks'
 

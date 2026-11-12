@@ -46,7 +46,16 @@ export type OffscreenCopy = { target: 'offscreen'; type: 'copy'; text: string }
 
 /** Сервис-воркер → курсор и рамка в странице. */
 export type OverlayCommand =
-  | { type: 'aw-overlay'; op: 'frame'; on: boolean }
+  | {
+      type: 'aw-overlay'
+      op: 'frame'
+      on: boolean
+      /**
+       * Где мышь агента во вкладке: новая страница после перехода показывает курсор сразу там,
+       * а не прячет его до следующего движения - настоящая мышь с переходом не исчезает.
+       */
+      cursor?: { x: number; y: number } | undefined
+    }
   | {
       type: 'aw-overlay'
       op: 'cursor'

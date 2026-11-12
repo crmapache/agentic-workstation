@@ -1,3 +1,4 @@
+import type { ConversationFeed } from '@shared/claude-feed'
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
@@ -11,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'
 import { useIpcEvent } from '../lib/ipc.hooks'
+import { applyFeedPatch } from './feed-patch.utils'
 import { QUERY_KEYS } from './query-keys'
 
 /** Коннекторы к приложениям (ADR 0028). Владелец - главный процесс, здесь зеркало. */
@@ -31,12 +33,22 @@ export const useAgentApps = () =>
     queryFn: () => invoke('connectors:agentApps'),
   })
 
-/** Вход кончился в браузере, сервис ответил - главный процесс шлёт состояние целиком. */
+/**
+ * Вход кончился в браузере, сервис ответил - главный процесс шлёт состояние целиком. Лента
+ * работы ИИ - патчами поверх снимка в кэше; ленту, которую окно не запрашивало, патч не заводит.
+ */
 export const useConnectorsSync = () => {
   const queryClient = useQueryClient()
 
   useIpcEvent('connectors:state', (state) => {
     queryClient.setQueryData(QUERY_KEYS.connectors, state)
+  })
+
+  useIpcEvent('connectors:aiJobPatch', ({ jobId, patch }) => {
+    queryClient.setQueryData<ConversationFeed | null>(
+      QUERY_KEYS.connectorAiJobFeed(jobId),
+      (feed) => (feed ? applyFeedPatch(feed, patch) : feed),
+    )
   })
 }
 
@@ -119,11 +131,15 @@ export const useConnectorActions = () => {
 
       return outcome
     },
-    /** Описание коннектора от ИИ - минуты: работа идёт в главном процессе, итог - событием. */
-    generate: (request: GenerateConnectorRequest) =>
-      run(() => invoke('connectors:generate', request)),
-    cancelGenerate: () => run(() => invoke('connectors:cancelGenerate')),
-    dismissGeneration: () => run(() => invoke('connectors:dismissGeneration')),
+    /** Новая работа ИИ - минуты: идёт в главном процессе, ход - событиями (ADR 0050). */
+    startAiJob: (request: GenerateConnectorRequest) =>
+      run(() => invoke('connectors:startAiJob', request)),
+    /** Слова человека ИИ: посреди хода он подхватит их, после - начнёт новый ход. */
+    tellAiJob: (id: string, text: string) =>
+      run(() => invoke('connectors:tellAiJob', { id, text })),
+    stopAiJob: (id: string) => run(() => invoke('connectors:stopAiJob', { id })),
+    /** Забыть работу: коннектор добавлен или больше не нужен. */
+    removeAiJob: (id: string) => run(() => invoke('connectors:removeAiJob', { id })),
     /** Промпт - в новый разговор приложения ИИ; false - приложение не открылось. */
     openInAgentApp: (app: AgentApp, prompt: string) =>
       invoke('connectors:openInAgentApp', { app, prompt }),

@@ -4,29 +4,26 @@ import { useTranslation } from 'react-i18next'
 import { CUSTOM_KINDS } from '@shared/connectors'
 import type { ConnectorKind } from '@shared/connectors'
 
-import { Badge } from '@agentic-workstation/ui/Badge'
 import { Section } from '@agentic-workstation/ui/Section'
 import { Tile } from '@agentic-workstation/ui/Tile'
 
-import { APP_KINDS, KIND_ICONS, KIND_TONES, GENERATION_TONES } from '../ConnectorsView.constants'
+import { APP_KINDS, KIND_ICONS, KIND_TONES } from '../ConnectorsView.constants'
 import styles from '../ConnectorsView.module.scss'
 import type { AddCatalogProps } from '../ConnectorsView.types'
-import { generationBadge } from '../ConnectorsView.utils'
 import { useConnectorsStore } from '../../connectors.store'
 import type { AddTarget } from '../../connectors.types'
 
 /**
  * Каталог нового коннектора под подключёнными, двумя группами плиток с пунктирной рамкой:
  * приложения (Gmail, Notion… и свои типы «несколько раз» с меткой Custom, ADR 0034) и свои
- * способы добавить - сервер по адресу, команда, коннектор от ИИ, перенос из Claude Code. Нажатие открывает форму окном по центру. Плитка
- * ИИ говорит, что с его работой: идёт, ждёт проверки, не вышла.
+ * способы добавить - сервер по адресу, команда, коннектор от ИИ, перенос из Claude Code.
+ * Нажатие открывает форму окном по центру. Работы ИИ - своей очередью над подключёнными.
  */
-export const AddCatalog = ({ generation, types }: AddCatalogProps) => {
+export const AddCatalog = ({ types }: AddCatalogProps) => {
   const { t } = useTranslation()
   const panel = useConnectorsStore((store) => store.panel)
   const openAdd = useConnectorsStore((store) => store.openAdd)
   const openType = useConnectorsStore((store) => store.openType)
-  const badge = generationBadge(generation)
   const isOpen = (target: AddTarget) => panel?.kind === 'add' && panel.target === target
 
   const kindTile = (kind: ConnectorKind) => (
@@ -38,10 +35,6 @@ export const AddCatalog = ({ generation, types }: AddCatalogProps) => {
       title={t(`connectors.kinds.${kind}.name`)}
       description={t(`connectors.kinds.${kind}.hint`)}
       wrapDescription
-      status={
-        kind === 'http' &&
-        badge && <Badge tone={GENERATION_TONES[badge]}>{t(`connectors.ai.state.${badge}`)}</Badge>
-      }
       selected={isOpen(kind)}
       onClick={() => openAdd(kind)}
     />

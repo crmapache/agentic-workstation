@@ -1,6 +1,5 @@
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import { projectsIn } from '@shared/connector-availability'
-import type { AiGeneration } from '@shared/connector-spec'
 import type {
   Connector,
   ToolAccess,
@@ -15,7 +14,7 @@ import type { ProjectRef, WorkspaceState } from '@shared/workspace'
 
 import { baseName } from '../../../lib/path.utils'
 import { ACCESS_ORDER, TOOL_DESCRIPTION_MAX } from './ConnectorsView.constants'
-import type { FormKind, AddFormFields, GenerationBadge } from './ConnectorsView.types'
+import type { FormKind, AddFormFields } from './ConnectorsView.types'
 
 /** Инструменты по ступеням доступа, пустые группы не показываются. */
 export const toolGroups = (
@@ -237,12 +236,3 @@ export const defaultImportChoice = (candidates: readonly ImportCandidate[]): Set
   new Set(
     candidates.filter((item) => !item.blocked && item.scope !== 'project').map((item) => item.key),
   )
-
-/** Метка работы ИИ на плитке: идёт, ждёт проверки, не вышла; остановленная - без метки. */
-export const generationBadge = (generation: AiGeneration): GenerationBadge | null => {
-  if (generation.status === 'idle') return null
-
-  if (generation.status === 'failed') return generation.error === 'cancelled' ? null : 'failed'
-
-  return generation.status
-}

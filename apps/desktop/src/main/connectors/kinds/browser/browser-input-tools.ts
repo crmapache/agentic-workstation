@@ -116,7 +116,7 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'click',
     description:
-      'Click an element by ref (from the snapshot) or at x,y. double for a double click, button "right" for the context menu.',
+      'Click an element by ref (from the snapshot) or at x,y: your pointer moves there like a hand and clicks. double for a double click, button "right" for the context menu.',
     access: 'write',
     inputSchema: schema({
       ...TAB_PROPERTY,
@@ -172,7 +172,7 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'fill',
     description:
-      'Fill several form fields at once: fields = [{ ref, value }]. Text fields take the text, checkboxes and radios take true or false, selects take an option value or label.',
+      'Fill several form fields in one call, the way a person does: your pointer goes to each field in turn, types text, ticks checkboxes and radios, picks options. fields = [{ ref, value }]. Text fields take the text, checkboxes and radios take true or false, selects take an option value or label.',
     access: 'write',
     inputSchema: schema(
       {
@@ -254,7 +254,7 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'select',
     description:
-      'Choose options in a <select> element (ref) by value or visible label. For custom dropdowns click them instead.',
+      'Choose options in a <select> element (ref) by value or visible label: your pointer goes to it and picks. For custom dropdowns click them instead.',
     access: 'write',
     inputSchema: schema(
       { ...TAB_PROPERTY, ...REF_PROPERTY, values: { type: 'array', items: { type: 'string' } } },

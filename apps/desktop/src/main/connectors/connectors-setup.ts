@@ -7,13 +7,14 @@ import { createBrowserRuntime } from '../browser/browser-setup'
 import { broadcast } from '../ipc/broadcast'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
-import type { AskStructured } from './ai-connector'
 import { pickGoogleClientFile } from './connector-dialogs'
 import type { StoredConnectors } from './connector-store'
 import { ConnectorsService } from './connectors-service'
-import { VAULT_FILE, MCP_CONFIG_DIR, CONNECTORS_FILE } from './connectors.constants'
+import { VAULT_FILE, AI_JOBS_FILE, MCP_CONFIG_DIR, CONNECTORS_FILE } from './connectors.constants'
 import { Vault } from './vault'
 import type { VaultCipher } from './vault'
+import type { OpenAiChat } from './ai/ai-chat'
+import type { StoredAiJobs } from './ai/ai-jobs-file'
 
 /** Шифр хранилища - safeStorage Electron: ключ в Keychain самой IDE, не провайдера. */
 const ELECTRON_CIPHER: VaultCipher = {
@@ -33,8 +34,8 @@ export type ProviderLinks = {
   projectPaths: () => string[]
   /** Доверился ли человек папке проекта (как для разговоров Claude Code). */
   isTrusted: (projectPath: string) => Promise<boolean>
-  /** Разовый вопрос к ИИ по схеме: коннектор, который описывает ИИ. */
-  ask: AskStructured
+  /** Разговор с ИИ о новом коннекторе (ADR 0050). */
+  chats: OpenAiChat
 }
 
 /**
@@ -59,12 +60,14 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       shellEnv: links.shellEnv,
       projectPaths: links.projectPaths,
       isTrusted: links.isTrusted,
-      ask: links.ask,
+      chats: links.chats,
+      aiJobsFile: new JsonFile<StoredAiJobs>(join(userData, AI_JOBS_FILE), { mode: 0o600 }),
       version: app.getVersion(),
       browser,
     },
     {
       onState: (state) => broadcast('connectors:state', state),
+      onAiJobFeed: (jobId, patch) => broadcast('connectors:aiJobPatch', { jobId, patch }),
       onServersChanged: links.serversChanged,
       onServerChanged: links.serverChanged,
       openExternal: openExternalWeb,

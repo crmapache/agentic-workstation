@@ -67,12 +67,21 @@ class Overlay {
     root.append(style, this.frame, this.cursor)
   }
 
-  setFrame(on: boolean): void {
+  /**
+   * Рамка; с ней - курсор там, где мышь агента (cursor), если в этом документе его ещё не было:
+   * страница после перехода показывает его сразу, а не с первым движением.
+   */
+  setFrame(on: boolean, cursor?: Point): void {
     this.mount()
     this.raise()
     this.frame.classList.toggle('frameOn', on)
 
-    if (!on) this.cursor.classList.remove('cursorVisible')
+    if (!on) {
+      this.cursor.classList.remove('cursorVisible')
+    } else if (cursor && !this.position) {
+      this.place(cursor, 0)
+      this.cursor.classList.add('cursorVisible')
+    }
   }
 
   /**
@@ -197,7 +206,7 @@ if (!globalThis.agenticWorkstationOverlay) {
     if (message?.type !== 'aw-overlay') return false
 
     if (message.op === 'frame') {
-      overlay.setFrame(message.on)
+      overlay.setFrame(message.on, message.cursor)
       respond(true)
 
       return false

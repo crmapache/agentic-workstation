@@ -15,11 +15,12 @@ import { TypeNameFields } from './TypeNameFields'
 /**
  * Проверка описания от ИИ до добавления: на какой хост ходит (крупно - туда уйдёт ключ),
  * как входит и какие инструменты с какой ступенью доступа. Здесь же имя своего типа (по
- * умолчанию - сервис), «несколько раз» и ключ: ключа ИИ не видит.
+ * умолчанию - сервис), «несколько раз» и ключ: ключа ИИ не видит. Поправить описание -
+ * словами ИИ в разговоре рядом.
  */
-export const AiSpecReview = ({ generation, onAdded, onAgain }: AiSpecReviewProps) => {
+export const AiSpecReview = ({ proposal, request, onAdded }: AiSpecReviewProps) => {
   const { t } = useTranslation()
-  const { spec, request, dropped } = generation
+  const { spec, dropped } = proposal
   const form = useAiSpecAdd(spec, onAdded)
   const { auth } = spec
   const name = auth.type === 'header' || auth.type === 'query' ? auth.name : ''
@@ -59,7 +60,12 @@ export const AiSpecReview = ({ generation, onAdded, onAgain }: AiSpecReviewProps
           })}
         </p>
       )}
-      <TypeNameFields values={form.type} onChange={form.setType} onKeyDown={form.handleKeyDown} />
+      <TypeNameFields
+        values={form.type}
+        autoFocus={false}
+        onChange={form.setType}
+        onKeyDown={form.handleKeyDown}
+      />
       {auth.type === 'basic' && (
         <TextField
           label={t('connectors.ai.username')}
@@ -82,9 +88,6 @@ export const AiSpecReview = ({ generation, onAdded, onAgain }: AiSpecReviewProps
       )}
       {form.error && <p className={styles.failure}>{t(`connectors.add.errors.${form.error}`)}</p>}
       <div className={styles.formActions}>
-        <Button size="sm" variant="ghost" onClick={onAgain}>
-          {t('connectors.ai.again')}
-        </Button>
         <Button size="sm" variant="primary" icon={Plus} disabled={form.isBusy} onClick={form.add}>
           {t('connectors.ai.add')}
         </Button>

@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import type { ClaudeState } from '@shared/claude'
-import type { FeedItem, FeedPatch, ToolInput, ConversationFeed } from '@shared/claude-feed'
+import type { FeedPatch, ToolInput } from '@shared/claude-feed'
 import type { ToolsFailure } from '@shared/claude-tools'
 import { MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
@@ -12,35 +12,6 @@ import {
   CONTEXT_DANGER_SHARE,
   CONTEXT_WARNING_SHARE,
 } from './claude.constants'
-
-/**
- * Патч главного процесса поверх ленты из кэша: убранные откатом уходят, новые элементы
- * встают в конец, тронутые - на своё место. Список задач приходит целиком, когда
- * поменялся.
- */
-export const applyFeedPatch = (feed: ConversationFeed, patch: FeedPatch): ConversationFeed => {
-  const removed = new Set(patch.removes ?? [])
-  const items: FeedItem[] = feed.items.filter((item) => !removed.has(item.id))
-  const positions = new Map(items.map((item, index) => [item.id, index]))
-
-  for (const item of patch.upserts) {
-    const position = positions.get(item.id)
-
-    if (position === undefined) {
-      positions.set(item.id, items.length)
-      items.push(item)
-    } else {
-      items[position] = item
-    }
-  }
-
-  return {
-    ...feed,
-    items,
-    tasks: patch.tasks ?? feed.tasks,
-    hasEarlier: patch.hasEarlier ?? feed.hasEarlier,
-  }
-}
 
 /**
  * Длительность для людей, как в ACC: «0.4s», «12s», «3m 05s», «1h 02m 05s». Секунды

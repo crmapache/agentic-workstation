@@ -5,9 +5,10 @@ import type { ConversationFeed } from '@shared/claude-feed'
 
 /**
  * Кто в этой ленте стоит на месте человека: main - главный поток прогона (журнал шага: карточке
- * пишет он), scenario - сам движок сценария (разговор главного потока: ему пишет прогон).
+ * пишет он), scenario - сам движок сценария (разговор главного потока: ему пишет прогон),
+ * person - сам человек (разговор с ИИ о коннекторе).
  */
-export type ConversationSpeaker = 'main' | 'scenario'
+export type ConversationSpeaker = 'main' | 'scenario' | 'person'
 
 export type ConversationLogProps = {
   feed: ConversationFeed
@@ -31,9 +32,10 @@ export type ConversationLog = {
 }
 
 /**
- * Журнал шага сценария - разговор провайдера той же лентой, что в его панели (ADR 0039). Фича
- * сценариев панель провайдера не видит: workbench кладёт сюда её компоненты, фича берёт их
- * через useConversationLog - как действие «открыть файл» (open-file.context.ts).
+ * Журнал шага сценария и разговор ИИ о коннекторе - разговор провайдера той же лентой, что в
+ * его панели (ADR 0039, 0050). Фичи панель провайдера не видят: workbench кладёт сюда её
+ * компоненты, фича берёт их через useConversationLog - как действие «открыть файл»
+ * (open-file.context.ts).
  */
 export const ConversationLogContext = createContext<ConversationLog | null>(null)
 

@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from 'react'
 
 import type { SelectedProjects } from '@shared/connector-availability'
-import type { AiGeneration } from '@shared/connector-spec'
+import type { AiJob, AiProposal, GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
   McpAuth,
   AgentApp,
@@ -60,6 +60,11 @@ export type TypeNameFieldsProps = {
   values: TypeNameValues
   onChange: (patch: Partial<TypeNameValues>) => void
   onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
+  /**
+   * Фокус на имени при появлении (по умолчанию - да). Нет - в окне работы ИИ: предложение
+   * приходит, пока человек пишет ИИ, и фокус из его поля уводить нельзя.
+   */
+  autoFocus?: boolean | undefined
 }
 
 /** Свой тип и сколько у него подключений: окно типа из каталога и его части. */
@@ -71,31 +76,35 @@ export type AddToTypeFormProps = { type: CustomType; onAdded: OnAdded; onCancel:
 /** Тип коннектора с обычной формой; коннектор от ИИ добавляет свой поток (AiConnectorFlow). */
 export type FormKind = Exclude<ConnectorKind, 'http'>
 
-/** Что сказать о работе ИИ на плитке каталога; остановленная человеком - ничего. */
-export type GenerationBadge = 'running' | 'ready' | 'failed'
-
 /** Добавлен - id нового (окно покажет его); null - добавлено несколько или ничего. */
 export type OnAdded = (id: string | null) => void
 
-/** Поток коннектора с ИИ: работа из главного процесса, итог и выход из формы. */
-export type AiConnectorFlowProps = {
-  generation: AiGeneration
+/** Просьба к ИИ: ушла в очередь - форма закрывается (onStarted). */
+export type AiConnectorFlowProps = { onStarted: () => void; onCancel: () => void }
+
+/**
+ * Готовое описание от ИИ на проверке: просьба - ради адреса документации (чужой хост),
+ * onAdded - коннектор добавлен.
+ */
+export type AiSpecReviewProps = {
+  proposal: Extract<AiProposal, { kind: 'http' }>
+  request: GenerateConnectorRequest
   onAdded: OnAdded
-  onCancel: () => void
 }
 
-/** Готовое описание от ИИ на проверке. onAgain - забыть его и править просьбу. */
-export type AiSpecReviewProps = {
-  generation: Extract<AiGeneration, { status: 'ready' }>
-  onAdded: OnAdded
-  onAgain: () => void
-}
+/** Очередь работ ИИ на виде: новые - первыми. */
+export type AiJobsProps = { jobs: AiJob[] }
 
 export type AddConnectorFormProps = {
   kind: FormKind
   googleReady: boolean
+  /** Поля, заполненные заранее: MCP-сервер, который нашёл ИИ (ADR 0050). */
+  initial?: Partial<AddFormFields> | undefined
+  /** Фокус на первом поле при появлении (по умолчанию - да); см. TypeNameFieldsProps. */
+  autoFocus?: boolean | undefined
   onAdded: OnAdded
-  onCancel: () => void
+  /** Нет - кнопки Cancel нет: форма стоит в окне, которое закрывают крестиком. */
+  onCancel?: (() => void) | undefined
 }
 
 export type ImportPanelProps = { onDone: () => void }
@@ -110,8 +119,8 @@ export type ForgottenProjectsProps = {
 /** Сетка подключённых: коннекторы и известные проекты - для подписи «где виден». */
 export type ConnectorGridProps = { connectors: Connector[]; projects: ProjectRef[] }
 
-/** Каталог: работа ИИ - для плитки ИИ, свои типы - рядом с Gmail. */
-export type AddCatalogProps = { generation: AiGeneration; types: CustomType[] }
+/** Каталог: свои типы - рядом с Gmail. */
+export type AddCatalogProps = { types: CustomType[] }
 
 /** Состояние коннекторов целиком и известные проекты - окну, какое бы ни было открыто. */
 export type ConnectorsModalsProps = { state: ConnectorsState; projects: ProjectRef[] }
@@ -132,15 +141,20 @@ export type BrowserSetupProps = { browser: BrowserState }
 /** Подключение коннектора: клиент Google - на случай его сбоя. */
 export type ConnectorConnectionProps = { connector: Connector; google: GoogleAppState }
 
-export type AddModalProps = {
-  target: AddTarget
-  google: GoogleAppState
-  generation: AiGeneration
-}
+export type AddModalProps = { target: AddTarget; google: GoogleAppState }
 
 /** О чём справка у заголовка: вид целиком или его раздел. */
 export type ConnectorsHelpProps = {
-  topic: 'page' | 'description' | 'type' | 'projects' | 'tools' | 'forgotten' | 'google' | 'browser'
+  topic:
+    | 'page'
+    | 'description'
+    | 'type'
+    | 'projects'
+    | 'tools'
+    | 'forgotten'
+    | 'google'
+    | 'browser'
+    | 'aiJobs'
 }
 
 /** Часть окна одного коннектора. */

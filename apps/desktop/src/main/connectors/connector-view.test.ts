@@ -95,6 +95,16 @@ describe('instructionsFor', () => {
     )
   })
 
+  it('Browser: действовать на странице рукой, evaluate - только читать; выключенному - не надо', () => {
+    const browser = { ...connector, kind: 'browser' as const, label: '', account: null, tools: [] }
+    const text = instructionsFor(browser, live, null)
+
+    expect(text).toMatch(/^the user's Chrome, connected through Agentic Workstation\.\n/)
+    expect(text).toContain('Use evaluate only to read or compute')
+    expect(instructionsFor({ ...browser, enabled: false }, live, null)).not.toContain('evaluate')
+    expect(instructionsFor(connector, live, null)).not.toContain('evaluate')
+  })
+
   it('описание человека - отдельной строкой, пустое не добавляет ничего', () => {
     const described = { ...connector, description: '  Client mail: invoices only  ' }
 

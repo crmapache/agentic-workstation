@@ -1,4 +1,4 @@
-import type { ToolAccess } from './connectors'
+import type { McpAuth, ToolAccess, ImportCandidate } from './connectors'
 
 /**
  * Как сервис пускает по ключу: Bearer в Authorization, свой заголовок, параметр адреса,
@@ -57,31 +57,56 @@ export type GenerateConnectorRequest = {
 }
 
 /**
- * Почему описание не вышло. unsupported - у сервиса нет входа по ключу (только OAuth),
- * cli-missing - нет Claude Code, cancelled - человек остановил, timeout - ИИ не уложился в
- * отведённое время, invalid - ИИ вернул то, что не прошло проверку, failed - прочее.
+ * Где работа ИИ над коннектором (ADR 0050). working - идёт ход; ready - последний ответ
+ * предлагает коннектор; asking - ответ без коннектора (вопрос, «не выйдет», пояснение), ИИ
+ * ждёт человека; stopped - ход остановили (человек или выход из IDE); failed - ход сломался.
+ * В любом из них человек может написать ИИ - разговор продолжится.
  */
-export type GenerateConnectorError =
-  'unsupported' | 'cli-missing' | 'cancelled' | 'timeout' | 'invalid' | 'failed'
+export type AiJobStatus = 'working' | 'ready' | 'asking' | 'stopped' | 'failed'
 
 /**
- * Работа ИИ над описанием (минуты). Её держит главный процесс: уход с вида Connectors или
- * перезагрузка окна её не прерывают, готовое описание ждёт человека.
+ * Почему ход сломался: нет Claude Code, ход не уложился в отведённое время, ответ не прошёл
+ * проверку (описание, адрес, имя сервера), прочее (процесс упал, CLI сказал ошибку).
  */
-export type AiGeneration =
-  | { status: 'idle' }
-  | { status: 'running'; request: GenerateConnectorRequest }
+export type AiJobError = 'cli-missing' | 'timeout' | 'invalid' | 'failed'
+
+/** Что ИИ делает прямо сейчас: ищет в сети (слова), читает страницу (адрес), пишет ответ. */
+export type AiJobActivity = { kind: 'search' | 'read' | 'answer'; subject: string }
+
+/**
+ * Что ИИ предлагает добавить: описание HTTP-запросов (ADR 0029), официальный MCP-сервер по
+ * адресу или сервер, который у человека уже настроен в Claude Code, - его перенос берёт и
+ * сохранённый вход, которого ИИ не видит.
+ */
+export type AiProposal =
   | {
-      status: 'ready'
-      request: GenerateConnectorRequest
+      kind: 'http'
       spec: HttpConnectorSpec
       /** Инструменты, которые не прошли проверку и выброшены: их имена видит человек. */
       dropped: string[]
     }
-  | {
-      status: 'failed'
-      request: GenerateConnectorRequest
-      error: GenerateConnectorError
-      /** Пояснение: причина от ИИ (unsupported) или что не прошло проверку (invalid). */
-      detail: string
-    }
+  | { kind: 'mcp'; url: string; auth: McpAuth }
+  | { kind: 'existing'; candidate: ImportCandidate }
+
+/**
+ * Работа ИИ над одним коннектором - разговор с ним (ADR 0050). Работ несколько, идут
+ * параллельно и живут в главном процессе: окно их только показывает. Лента разговора
+ * приходит отдельно (`connectors:aiJobFeed`), здесь - то, что видно на плитке.
+ */
+export type AiJob = {
+  id: string
+  request: GenerateConnectorRequest
+  /** Когда начата (мс): новые - первыми. */
+  createdAt: number
+  status: AiJobStatus
+  /** Шаг идущего хода; вне хода - null. */
+  activity: AiJobActivity | null
+  /** Последние слова ИИ человеку: что предлагает, о чём спрашивает, почему не выйдет. */
+  message: string
+  /** Последнее, что ИИ предложил: остаётся, пока он не предложит другое. */
+  proposal: AiProposal | null
+  /** У failed - почему; иначе null. */
+  error: AiJobError | null
+  /** Пояснение к ошибке: что не прошло проверку, последняя строка CLI. */
+  detail: string
+}

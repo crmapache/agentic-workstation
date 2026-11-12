@@ -1,5 +1,6 @@
 import { BrowserError } from './browser-error'
 import { targetOf } from './frame-refs'
+import type { ElementRef } from './frame-refs'
 import type { Box } from './human-motion'
 import type { Page } from './page'
 import { frameOffset, revealFrame } from './page-frames'
@@ -37,33 +38,33 @@ const isNoNode = (error: unknown): boolean =>
     (error.code === 'cdp' &&
       /no node|node with given id|backend ?id|could not find node/i.test(error.message)))
 
-/** Сессия, где живёт элемент: фрейм другого процесса - своя, иначе - сама вкладка. */
-const frameOf = (page: Page, ref: string) => targetOf(page.elementOf(ref).frame)
-
 /**
- * Команда CDP над узлом снимка - в сессии его фрейма. Узла больше нет - модели понятное
- * «элемент пропал, возьми новый снимок», а не текст протокола.
+ * Команда CDP над узлом - в сессии его фрейма. Узла больше нет - модели понятное «элемент ref
+ * пропал, возьми новый снимок», а не текст протокола.
  */
-export const nodeCdp = async <T = Record<string, unknown>>(
+const elementCdp = async <T>(
   page: Page,
+  { node, frame }: ElementRef,
   ref: string,
   method: string,
   params: Record<string, unknown> = {},
 ): Promise<T> => {
-  const { node } = page.elementOf(ref)
-
   try {
-    return await page.cdp<T>(
-      method,
-      { ...params, backendNodeId: node },
-      { frame: frameOf(page, ref) },
-    )
+    return await page.cdp<T>(method, { ...params, backendNodeId: node }, { frame: targetOf(frame) })
   } catch (error) {
     if (isNoNode(error)) throw goneError(ref)
 
     throw error
   }
 }
+
+/** Команда CDP над узлом снимка - в сессии его фрейма. */
+export const nodeCdp = <T = Record<string, unknown>>(
+  page: Page,
+  ref: string,
+  method: string,
+  params: Record<string, unknown> = {},
+): Promise<T> => elementCdp<T>(page, page.elementOf(ref), ref, method, params)
 
 /** Ответ обёртки callOn: элемент выпал из документа - знак, а не значение. */
 type Wrapped = { gone: true } | { gone: false; value: unknown }
@@ -72,16 +73,19 @@ type Wrapped = { gone: true } | { gone: false; value: unknown }
  * Вызвать функцию страницы на элементе (this) и вернуть значение. Элемент, выпавший из
  * документа (isConnected), - тоже «пропал»: узел ещё жив в памяти страницы, и функция молча
  * отработала бы на невидимом обрывке старой разметки. Функция исполняется в документе фрейма
- * элемента - там, где он стоит.
+ * элемента - там, где он стоит. element - узел снимка или iframe на пути к нему; ref - чья
+ * ссылка пропадёт в отказе.
  */
-export const callOn = async <T>(
+export const callOnElement = async <T>(
   page: Page,
+  element: ElementRef,
   ref: string,
   functionDeclaration: string,
   args: unknown[] = [],
 ): Promise<T> => {
-  const resolved = await nodeCdp<{ object: { objectId?: string } }>(
+  const resolved = await elementCdp<{ object: { objectId?: string } }>(
     page,
+    element,
     ref,
     'DOM.resolveNode',
   ).catch((error: unknown) => {
@@ -107,7 +111,7 @@ export const callOn = async <T>(
         awaitPromise: true,
         userGesture: true,
       },
-      { frame: frameOf(page, ref) },
+      { frame: targetOf(element.frame) },
     )
     .catch((error: unknown) => {
       if (isNoNode(error)) throw goneError(ref)
@@ -123,6 +127,14 @@ export const callOn = async <T>(
 
   return wrapped.value as T
 }
+
+/** Функция страницы на элементе снимка по ссылке. */
+export const callOn = <T>(
+  page: Page,
+  ref: string,
+  functionDeclaration: string,
+  args: unknown[] = [],
+): Promise<T> => callOnElement<T>(page, page.elementOf(ref), ref, functionDeclaration, args)
 
 /**
  * Элемент - в видимую часть: сначала iframe фреймов другого процесса на пути к нему (прокрутка
@@ -140,17 +152,12 @@ const quadArea = (quad: number[]): number => {
 }
 
 /**
- * Где элемент в окне страницы: коробка его первого видимого куска; элемент прокручивается в
- * видимую часть. Элемент во фрейме другого процесса: сначала его iframe - в видимую часть
- * страницы, коробка - в координатах его окна плюс место фрейма на странице.
+ * Где элемент в окне страницы: коробка его первого видимого куска. Прокрутка к нему - до этого
+ * (page-reveal.ts). Элемент во фрейме другого процесса: коробка - в координатах его окна плюс
+ * место фрейма на странице.
  */
 export const boxOf = async (page: Page, ref: string): Promise<Box> => {
   const { frame } = page.elementOf(ref)
-
-  await revealElement(page, ref).catch((error: unknown) => {
-    if (error instanceof BrowserError && error.code === 'bad-request') throw error
-  })
-
   const { quads } = await nodeCdp<{ quads: number[][] }>(page, ref, 'DOM.getContentQuads').catch(
     (error: unknown) => {
       if (error instanceof BrowserError && error.code === 'bad-request') throw error
@@ -180,13 +187,4 @@ export const boxOf = async (page: Page, ref: string): Promise<Box> => {
     width: Math.max(...xs) - left,
     height: Math.max(...ys) - top,
   }
-}
-
-/** Середина элемента в окне страницы (или сама точка); элемент - в видимую часть. */
-export const pointOf = async (page: Page, target: Target): Promise<Point> => {
-  if (!('ref' in target)) return target
-
-  const box = await boxOf(page, target.ref)
-
-  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) }
 }

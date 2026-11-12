@@ -11,7 +11,12 @@ import type { TypeNameFieldsProps } from '../ConnectorsView.types'
  * Playwright. Несколько подключений - тогда и подпись первого (1, Work), а тип встанет в
  * каталог рядом с Gmail.
  */
-export const TypeNameFields = ({ values, onChange, onKeyDown }: TypeNameFieldsProps) => {
+export const TypeNameFields = ({
+  values,
+  onChange,
+  onKeyDown,
+  autoFocus = true,
+}: TypeNameFieldsProps) => {
   const { t } = useTranslation()
 
   return (
@@ -20,8 +25,8 @@ export const TypeNameFields = ({ values, onChange, onKeyDown }: TypeNameFieldsPr
         label={t('connectors.add.name')}
         placeholder={t('connectors.add.namePlaceholder')}
         value={values.name}
-        autoFocus
-        data-autofocus
+        autoFocus={autoFocus}
+        data-autofocus={autoFocus || undefined}
         onChange={(name) => onChange({ name })}
         onKeyDown={onKeyDown}
       />

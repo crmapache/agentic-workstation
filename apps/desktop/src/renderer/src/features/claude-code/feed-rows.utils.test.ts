@@ -2,13 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { FeedItem, ToolFeedItem } from '@shared/claude-feed'
 
-import {
-  formatTokens,
-  relativePath,
-  touchesFiles,
-  applyFeedPatch,
-  formatDuration,
-} from './claude.utils'
+import { formatTokens, relativePath, touchesFiles, formatDuration } from './claude.utils'
 import { diffStats, rowsFromPatch, patchFromInput } from './diff.utils'
 import { sameRow, buildFeedRows } from './feed-rows.utils'
 
@@ -104,25 +98,6 @@ describe('та же строка', () => {
     expect(before.every((row, index) => same[index] && sameRow(row, same[index]))).toBe(true)
     expect(before[0] && changed[0] && sameRow(before[0], changed[0])).toBe(false)
     expect(before[1] && changed[1] && sameRow(before[1], changed[1])).toBe(true)
-  })
-})
-
-describe('патч ленты', () => {
-  it('тронутое меняется на месте, новое встаёт в конец', () => {
-    const feed = {
-      conversationId: 'c',
-      items: [text('a'), text('b')],
-      tasks: [],
-      hasEarlier: false,
-    }
-    const next = applyFeedPatch(feed, {
-      conversationId: 'c',
-      upserts: [{ ...text('a'), text: 'changed' } as FeedItem, text('c')],
-    })
-
-    expect(next.items.map((item) => item.id)).toEqual(['a', 'b', 'c'])
-    expect(next.items[0]).toMatchObject({ text: 'changed' })
-    expect(next.items[1]).toBe(feed.items[1])
   })
 })
 

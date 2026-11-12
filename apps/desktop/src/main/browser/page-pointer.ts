@@ -1,10 +1,8 @@
 import type { CursorAction } from '@agentic-workstation/browser-protocol/protocol'
 
 import type { Point, MoveStep } from './human-motion'
-import { aimInside, humanPath } from './human-motion'
+import { humanPath, wheelTicks } from './human-motion'
 import type { Page } from './page'
-import { boxOf } from './page-nodes'
-import type { Target } from './page-nodes'
 
 /**
  * Мышь агента во вкладке (ADR 0044): где она сейчас, путь до цели живыми событиями движения и
@@ -81,6 +79,11 @@ const overlayPath = (from: Point, steps: readonly MoveStep[]): [number, number, 
  * путём - параллельно, конец - когда дошли оба. Курсор - украшение: страница без него не ждёт.
  */
 export const moveTo = async (page: Page, to: Point, action: CursorAction): Promise<void> => {
+  const at = page.tab.pointer
+
+  // Мышь уже здесь: настоящая мышь без движения событий не шлёт, а курсору ехать некуда.
+  if (action === 'move' && at && Math.hypot(at.x - to.x, at.y - to.y) < 1) return
+
   const view = await viewportOf(page)
   const { width, height } = view
   const from = startOf(page, view)
@@ -93,10 +96,17 @@ export const moveTo = async (page: Page, to: Point, action: CursorAction): Promi
   }))
   const duration = steps.at(-1)?.at ?? 0
   const cursor = page.cursor(to.x, to.y, action, { path: overlayPath(from, steps), duration })
-  const started = performance.now()
+  const { now, sleep } = page.motion
+  const started = now()
 
-  for (const step of steps) {
-    await page.motion.sleep(step.at - (performance.now() - started), page.signal)
+  for (const [index, step] of steps.entries()) {
+    const next = steps[index + 1]
+
+    // События опаздывают (машина занята, связь медленная): шаги, чьё время уже прошло,
+    // пропускаются - путь тот же, а рука не замедляется. Последний шаг - всегда.
+    if (next && next.at <= now() - started) continue
+
+    await sleep(step.at - (now() - started), page.signal)
     await mouse(page, 'mouseMoved', step, 'none', 0)
     page.tab.pointer = { x: step.x, y: step.y }
   }
@@ -104,6 +114,24 @@ export const moveTo = async (page: Page, to: Point, action: CursorAction): Promi
   await cursor
 }
 
-/** Куда нажать: точка модели - как есть, элемент - рядом с серединой, как человек. */
-export const aimOf = async (page: Page, target: Target): Promise<Point> =>
-  'ref' in target ? aimInside(await boxOf(page, target.ref), page.motion.random) : target
+/**
+ * Колесо в точке: серия убывающих толчков кадр за кадром, как трекпад, а не один прыжок на всю
+ * высоту. Мышь уже должна быть в точке (moveTo).
+ */
+export const wheel = async (page: Page, at: Point, dx: number, dy: number): Promise<void> => {
+  const { now, sleep } = page.motion
+  const started = now()
+
+  // Толчок за толчком, даже опоздавшие: Chrome применяет колесо отладчика сразу, без своей
+  // анимации, и плавность прокрутки - это число толчков. Склеенные, они дали бы рывок.
+  for (const tick of wheelTicks(dx, dy)) {
+    await sleep(tick.at - (now() - started), page.signal)
+    await page.cdp('Input.dispatchMouseEvent', {
+      type: 'mouseWheel',
+      x: at.x,
+      y: at.y,
+      deltaX: tick.dx,
+      deltaY: tick.dy,
+    })
+  }
+}

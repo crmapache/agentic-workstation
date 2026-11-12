@@ -23,11 +23,13 @@ import { TypeNameFields } from './TypeNameFields'
 export const AddConnectorForm = ({
   kind,
   googleReady,
+  initial,
+  autoFocus = true,
   onAdded,
   onCancel,
 }: AddConnectorFormProps) => {
   const { t } = useTranslation()
-  const form = useAddConnectorForm(kind, onAdded)
+  const form = useAddConnectorForm(kind, onAdded, initial)
   const needsGoogle = (kind === 'gmail' || kind === 'calendar') && !googleReady
   const viaBrowser = signsInWithBrowser(kind, form.fields)
   const isCustom = kind === 'mcp' || kind === 'command'
@@ -35,15 +37,20 @@ export const AddConnectorForm = ({
   return (
     <div className={styles.form}>
       {isCustom && (
-        <TypeNameFields values={form.fields} onChange={form.patch} onKeyDown={form.handleKeyDown} />
+        <TypeNameFields
+          values={form.fields}
+          autoFocus={autoFocus}
+          onChange={form.patch}
+          onKeyDown={form.handleKeyDown}
+        />
       )}
       {!isCustom && kind !== 'browser' && (
         <TextField
           label={`${t(`connectors.kinds.${kind}.name`)} · ${t('connectors.add.label')}`}
           placeholder={t('connectors.add.labelPlaceholder')}
           value={form.fields.label}
-          autoFocus
-          data-autofocus
+          autoFocus={autoFocus}
+          data-autofocus={autoFocus || undefined}
           onChange={form.set('label')}
           onKeyDown={form.handleKeyDown}
         />
@@ -64,9 +71,11 @@ export const AddConnectorForm = ({
       {needsGoogle && <p className={styles.warning}>{t('connectors.add.googleFirst')}</p>}
       {form.error && <p className={styles.failure}>{t(`connectors.add.errors.${form.error}`)}</p>}
       <div className={styles.formActions}>
-        <Button size="sm" variant="ghost" onClick={onCancel}>
-          {t('connectors.add.cancel')}
-        </Button>
+        {onCancel && (
+          <Button size="sm" variant="ghost" onClick={onCancel}>
+            {t('connectors.add.cancel')}
+          </Button>
+        )}
         <Button
           size="sm"
           variant="primary"

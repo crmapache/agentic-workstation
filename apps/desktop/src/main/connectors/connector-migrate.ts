@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import { isCustomKind } from '@shared/connectors'
 
 import { commandForStore } from './connector-command'
@@ -113,4 +115,21 @@ export const adoptPlaywright = async (registry: ConnectorRegistry, vault: Vault)
   for (const typeId of dropTypes) {
     await vault.forgetPrefix(typeSecretsKey(typeId)).catch(() => undefined)
   }
+}
+
+/**
+ * Все переносы прежнего реестра при загрузке, по порядку: ключи - в хранилище, своя команда
+ * Playwright - встроенным Playwright (ADR 0035), остальные свои коннекторы - своими типами
+ * (ADR 0034). Сбой одного переноса не мешает следующим и загрузке.
+ */
+export const migrateRegistry = async (registry: ConnectorRegistry, vault: Vault) => {
+  await moveSecretsToVault(registry, vault).catch((error: unknown) => {
+    console.warn('[connectors] ключи из реестра не перенесены в хранилище', error)
+  })
+  await adoptPlaywright(registry, vault).catch((error: unknown) => {
+    console.warn('[connectors] команды Playwright не перенесены', error)
+  })
+  await assignCustomTypes(registry, vault, randomUUID).catch((error: unknown) => {
+    console.warn('[connectors] свои коннекторы не получили типы', error)
+  })
 }

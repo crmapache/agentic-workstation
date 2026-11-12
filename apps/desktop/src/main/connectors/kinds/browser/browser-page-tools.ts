@@ -6,6 +6,7 @@ import type { BrowserAgent } from '../../../browser/browser-agent'
 import { BrowserError } from '../../../browser/browser-error'
 import type { Page } from '../../../browser/page'
 import { waitFor, evaluate } from '../../../browser/page-read'
+import { SCRIPTED_NOTE } from '../../../browser/page-scripted'
 import {
   refArg,
   schema,
@@ -168,16 +169,25 @@ export const BROWSER_PAGE_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'evaluate',
     description:
-      'Run JavaScript in the page and return the value as JSON (promises are awaited). Without ref - an expression in the main frame, like document.title. With ref - a function that gets the element and runs in its frame, like (el) => el.outerHTML.',
+      'Run JavaScript in the page to read or compute something and return the value as JSON (promises are awaited). Not for acting on the page: the user watches your pointer, and a script clicks, types and picks invisibly and instantly - use click, type, fill, select and press for that. Without ref - an expression in the main frame, like document.title. With ref - a function that gets the element and runs in its frame, like (el) => el.outerHTML.',
     access: 'write',
     inputSchema: schema({ ...TAB_PROPERTY, expression: { type: 'string' }, ...REF_PROPERTY }, [
       'expression',
     ]),
     run: async (args, agent, call) => {
       const page = await agent.page(agentCall(call), tabArg(args))
-      const value = await evaluate(page, stringArg(args, 'expression', true), refArg(args))
+      const { text, scripted } = await evaluate(
+        page,
+        stringArg(args, 'expression', true),
+        refArg(args),
+      )
 
-      return new ToolOutput({ content: [{ type: 'text', text: value }] })
+      return new ToolOutput({
+        content: [
+          { type: 'text', text },
+          ...(scripted ? [{ type: 'text' as const, text: SCRIPTED_NOTE }] : []),
+        ],
+      })
     },
   },
   {

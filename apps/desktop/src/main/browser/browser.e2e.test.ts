@@ -87,6 +87,8 @@ const PAGE = `<!doctype html><title>AW e2e</title>
   addEventListener('mousedown', note(window.hand.downs), true)
   addEventListener('mouseup', note(window.hand.ups), true)
   addEventListener('keydown', note(window.hand.keys), true)
+  window.hand.changes = []
+  addEventListener('change', (event) => window.hand.changes.push([event.target.id, event.timeStamp]), true)
 </script>`
 
 const SECOND = '<!doctype html><title>Second</title><h1>Second page</h1><p>Welcome aboard</p>'
@@ -113,6 +115,31 @@ ${PRESSED_AT}`
 const BANDS = ['#d02020', '#20a040', '#2050d0', '#d0d020', '#a020a0', '#20d0d0']
 const TALL = `<!doctype html><title>Tall</title><style>body{margin:0}div{height:1000px}</style>
 ${BANDS.map((color) => `<div style="background:${color}"></div>`).join('')}`
+
+/**
+ * Кнопка далеко внизу и кнопка внутри своего прокручиваемого блока ниже первого экрана. Страница
+ * пишет, как она ехала: колесо (и чьё оно), каждое место прокрутки страницы и блока.
+ */
+const FAR = `<!doctype html><title>Far</title><style>body{margin:0}</style>
+<div style="height:2600px"></div>
+<button id="far" onclick="this.textContent = 'Far clicked'">Far button</button>
+<div style="height:1200px"></div>
+<div id="box" style="height:300px;overflow:auto;border:1px solid #000">
+  <div style="height:1400px"></div>
+  <button id="inner" onclick="this.textContent = 'Inner clicked'">Inner button</button>
+  <div style="height:600px"></div>
+</div>
+<div style="height:1500px"></div>
+<script>
+  window.trail = { wheels: 0, trusted: true, pageY: [], boxY: [] }
+  addEventListener('wheel', (event) => {
+    window.trail.wheels += 1
+    window.trail.trusted = window.trail.trusted && event.isTrusted
+  }, { capture: true, passive: true })
+  document.addEventListener('scroll', () => window.trail.pageY.push(scrollY))
+  const box = document.getElementById('box')
+  box.addEventListener('scroll', () => window.trail.boxY.push(box.scrollTop))
+</script>`
 
 /** Длинная страница: дерево доступности - мегабайты, снимок должен обрезаться, а не падать. */
 const BIG = `<!doctype html><title>Big</title>${Array.from(
@@ -150,6 +177,7 @@ const PAGES: Record<string, string> = {
   '/blue': BLUE,
   '/modal': MODAL,
   '/tall': TALL,
+  '/far': FAR,
   '/big': BIG,
   '/frame-same': frameDoc('same'),
   '/frame-deep': frameDoc('deep'),
@@ -414,6 +442,23 @@ describe.skipIf(!ready)(
       json(await call('fill', { fields: [{ ref: day, value: '2026-11-10' }] }))
       json(await call('type', { ref: hour, text: '13:45' }))
 
+      // Список, дата и время меняются не из ниоткуда: перед изменением мышь пришла в само поле
+      // (ADR 0049).
+      const reached = JSON.parse(
+        text(
+          await call('evaluate', {
+            expression: `['color', 'day', 'hour'].map((id) => {
+              const box = document.getElementById(id).getBoundingClientRect()
+              const change = window.hand.changes.find((item) => item[0] === id)
+              const move = window.hand.moves.filter((item) => item[2] < change[1]).at(-1)
+              return move[0] >= box.left - 1 && move[0] <= box.right + 1 && move[1] >= box.top - 1 && move[1] <= box.bottom + 1
+            })`,
+          }),
+        ),
+      ) as boolean[]
+
+      expect(reached).toEqual([true, true, true])
+
       const wrongDay = await call('fill', { fields: [{ ref: day, value: '10/11/2026' }] })
 
       expect(wrongDay.isError).toBe(true)
@@ -427,6 +472,17 @@ describe.skipIf(!ready)(
       )
 
       expect(JSON.parse(values)).toEqual(['Ada Lovelace', 'g', true, true, '', '13:45'])
+
+      // Выражение, которое само нажало, узнаёт об этом: человек его не видел (ADR 0049).
+      const agree = refOf(form, '- checkbox "Agree"')
+
+      expect(
+        text(await call('evaluate', { expression: "document.getElementById('agree').click()" })),
+      ).toContain('saw none of it')
+      expect(
+        text(await call('evaluate', { ref: agree, expression: '(el) => el.click()' })),
+      ).toContain('saw none of it')
+      expect(text(await call('evaluate', { expression: 'document.title' }))).toBe('"AW e2e"')
 
       // Неверная дата очистила поле - поставить снова и убедиться, что событие change дошло.
       json(await call('fill', { fields: [{ ref: day, value: '2026-11-10' }] }))
@@ -722,6 +778,70 @@ describe.skipIf(!ready)(
         browserCdp.close()
       }
 
+      json(await call('finish'))
+    }, 60_000)
+
+    it('кнопка ниже экрана: страница и блок едут колесом рукой, а не прыгают', async () => {
+      json(await call('open', { url: `${base}/far` }))
+
+      const snapshot = text(await call('snapshot'))
+      const started = Date.now()
+
+      json(await call('click', { ref: refOf(snapshot, '- button "Far button"') }))
+
+      const farMs = Date.now() - started
+
+      json(await call('click', { ref: refOf(snapshot, '- button "Inner button"') }))
+
+      const innerMs = Date.now() - started - farMs
+      const trail = JSON.parse(
+        text(
+          await call('evaluate', {
+            expression:
+              "({ ...window.trail, far: document.getElementById('far').textContent, inner: document.getElementById('inner').textContent })",
+          }),
+        ),
+      ) as {
+        wheels: number
+        trusted: boolean
+        pageY: number[]
+        boxY: number[]
+        far: string
+        inner: string
+      }
+
+      console.info(
+        `колесо: ${trail.wheels} толчков, страница - ${new Set(trail.pageY).size} мест, блок - ${new Set(trail.boxY).size}; клик вниз ${farMs} мс, в блок ${innerMs} мс`,
+      )
+      expect(trail.far).toBe('Far clicked')
+      expect(trail.inner).toBe('Inner clicked')
+      expect(trail.trusted).toBe(true)
+      expect(trail.wheels).toBeGreaterThan(5)
+      // Плавно: страница и блок прошли через много промежуточных мест, а прыжок дал бы одно-два.
+      expect(new Set(trail.pageY).size).toBeGreaterThan(5)
+      expect(new Set(trail.boxY).size).toBeGreaterThan(3)
+      json(await call('finish'))
+    }, 60_000)
+
+    it('курсор не пропадает с переходом: новая страница показывает его там, где мышь', async () => {
+      json(await call('open', { url: `${base}/blue` }))
+      json(await call('click', { ref: refOf(text(await call('snapshot')), '- button "Go"') }))
+
+      const pressed = await pressedAt()
+
+      json(await call('navigate', { url: `${base}/blue` }))
+
+      // Курсор ставит расширение, когда страница загрузилась, - без движения мыши.
+      let seen = 0
+
+      for (const deadline = Date.now() + 5000; seen <= 10 && Date.now() < deadline;) {
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        seen = accentNear(pixelsOf(await call('screenshot')), pressed[0], pressed[1])
+      }
+
+      expect(seen).toBeGreaterThan(10)
+      // На новой странице мышь ещё не нажимала: курсор поставлен, а не приехал кликом.
+      expect(text(await call('evaluate', { expression: 'window.pressedAt' }))).toBe('undefined')
       json(await call('finish'))
     }, 60_000)
 

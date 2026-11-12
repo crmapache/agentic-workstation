@@ -16,10 +16,14 @@ export type MoveStep = Point & { at: number }
 /** Источник случайности от 0 до 1 (Math.random; в тесте - своя последовательность). */
 export type Random = () => number
 
-/** Время и случайность действий: живые - у человека, мгновенные - в тестах. */
+/**
+ * Время и случайность действий: живые - у человека, мгновенные - в тестах. now - часы руки:
+ * по ним опоздавшие шаги пропускаются; в тестах они стоят, и шаги идут все.
+ */
 export type Motion = {
   random: Random
   sleep: (ms: number, signal?: AbortSignal) => Promise<void>
+  now: () => number
 }
 
 /** Шаг событий движения: столько у мыши примерно и выходит - 60 событий в секунду. */
@@ -167,6 +171,9 @@ export const holdMs = (random: Random) => Math.round(between(random, 55, 120))
 /** Между двумя нажатиями двойного клика. */
 export const doubleGapMs = (random: Random) => Math.round(between(random, 70, 130))
 
+/** Список раскрыт: глаз находит вариант, рука его выбирает. */
+export const pickMs = (random: Random) => Math.round(between(random, 150, 350))
+
 /**
  * Пауза перед следующим знаком при наборе: обычный - 35-110 мс, после пробела и знака
  * препинания рука задерживается дольше, иногда - заметно (подумал).
@@ -185,9 +192,13 @@ export const TYPE_BY_KEYS_MAX = 80
 /** Толчок колеса: сколько пикселей прокрутки и через сколько мс после начала. */
 export type WheelTick = { dx: number; dy: number; at: number }
 
-const WHEEL_STEP_PX = 70
+/**
+ * Средний толчок - как щелчок колеса мыши в Chrome (около 120 px), толчков не больше 18: мах
+ * на несколько экранов укладывается в треть секунды, как у быстрого человека.
+ */
+const WHEEL_STEP_PX = 120
 const WHEEL_MIN_TICKS = 3
-const WHEEL_MAX_TICKS = 30
+const WHEEL_MAX_TICKS = 18
 
 /**
  * Прокрутка серией толчков, как трекпад: сначала крупные, к концу мельче (инерция), сумма -
@@ -222,6 +233,7 @@ const cancelled = () => new BrowserError('aborted', 'The call was cancelled.')
 /** Живое время: паузы настоящие, отмена вызова инструмента их прерывает. */
 export const HUMAN_MOTION: Motion = {
   random: Math.random,
+  now: () => performance.now(),
   sleep: (ms, signal) =>
     new Promise((resolve, reject) => {
       if (ms <= 0) return resolve()

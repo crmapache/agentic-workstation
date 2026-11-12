@@ -13,6 +13,8 @@ const CURSOR_TIMEOUT_MS = 2000
 
 const FRAMED_KEY = 'framedTabs'
 
+type Point = { x: number; y: number }
+
 const isChannel = (value: unknown): value is HostChannel =>
   HOST_CHANNELS.includes(value as HostChannel)
 
@@ -24,9 +26,14 @@ const isChannel = (value: unknown): value is HostChannel =>
  * Рамка помнит, какие IDE её поставили (dev и установленная могут держать одну вкладку), и
  * хранится в storage.local: IDE упала, сервис-воркер перезапустился - рамку всё равно снимет
  * release этой IDE, а не оставит на вкладке человека навсегда.
+ *
+ * Где мышь агента во вкладке, помнится до конца рамки: новая страница после перехода
+ * показывает курсор там же сразу. В памяти, а не в storage: сервис-воркер перезапустился -
+ * курсор вернётся со следующим движением.
  */
 export class OverlayControl {
   private framed = new Map<number, Set<HostChannel>>()
+  private readonly pointers = new Map<number, Point>()
   private readonly ready: Promise<void>
   private writing: Promise<void> = Promise.resolve()
 
@@ -43,10 +50,17 @@ export class OverlayControl {
 
     chrome.tabs.onUpdated.addListener((tabId, change) => {
       if (change.status === 'complete' && this.framed.get(tabId)?.size) {
-        void this.send(tabId, { type: 'aw-overlay', op: 'frame', on: true }).catch(() => undefined)
+        void this.send(tabId, {
+          type: 'aw-overlay',
+          op: 'frame',
+          on: true,
+          cursor: this.pointers.get(tabId),
+        }).catch(() => undefined)
       }
     })
     chrome.tabs.onRemoved.addListener((tabId) => {
+      this.pointers.delete(tabId)
+
       if (this.framed.delete(tabId)) void this.save()
     })
   }
@@ -60,15 +74,22 @@ export class OverlayControl {
     if (on) channels.add(channel)
     else channels.delete(channel)
 
-    if (channels.size) this.framed.set(tabId, channels)
-    else this.framed.delete(tabId)
+    if (channels.size) {
+      this.framed.set(tabId, channels)
+    } else {
+      this.framed.delete(tabId)
+      this.pointers.delete(tabId)
+    }
 
     await this.save()
     // Страница, куда Chrome не пускает скрипты (chrome://, магазин расширений), остаётся без
     // рамки - работе это не мешает.
-    await this.send(tabId, { type: 'aw-overlay', op: 'frame', on: channels.size > 0 }).catch(
-      () => undefined,
-    )
+    await this.send(tabId, {
+      type: 'aw-overlay',
+      op: 'frame',
+      on: channels.size > 0,
+      cursor: this.pointers.get(tabId),
+    }).catch(() => undefined)
 
     return null
   }
@@ -88,6 +109,7 @@ export class OverlayControl {
   async browserStarted(): Promise<void> {
     await this.ready
     this.framed.clear()
+    this.pointers.clear()
     await this.save()
   }
 
@@ -102,6 +124,8 @@ export class OverlayControl {
     action: CursorAction,
     way: { path?: CursorPath | undefined; duration?: number | undefined } = {},
   ): Promise<null> {
+    this.pointers.set(tabId, { x, y })
+
     try {
       await Promise.race([
         this.send(tabId, { type: 'aw-overlay', op: 'cursor', x, y, action, ...way }),

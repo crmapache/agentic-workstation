@@ -6,4 +6,5 @@ import type { ConversationSpeaker } from '../../../state/conversation-log.contex
 export const SPEAKER_KEYS: Record<ConversationSpeaker, ParseKeys> = {
   main: 'claudeCode.conversationLog.speakers.main',
   scenario: 'claudeCode.conversationLog.speakers.scenario',
+  person: 'claudeCode.message.you',
 }

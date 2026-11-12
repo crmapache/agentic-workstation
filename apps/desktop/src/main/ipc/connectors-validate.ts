@@ -22,6 +22,9 @@ const MAX_FIELD = 2048
 /** Ключи бывают длинными (JWT, ключи с подписью): им свой потолок, тоже с запасом. */
 export const MAX_SECRET = 16_384
 
+/** Сообщение ИИ о коннекторе: просьба словами, ссылки, кусок документации. */
+const MAX_TELL = 20_000
+
 /** Проектов в списке доступности больше не бывает: столько их не открывают. */
 const MAX_PROJECTS = 500
 
@@ -82,6 +85,15 @@ export const assertGenerate = (value: unknown): GenerateConnectorRequest => {
     goal: field(record['goal'], 'goal', 4000),
     docsUrl,
   }
+}
+
+/** Слова человека ИИ: не пустые и не книга. */
+export const assertTell = (value: unknown): string => {
+  const text = field(value, 'text', MAX_TELL).trim()
+
+  if (!text) throw new Error('Пустое сообщение')
+
+  return text
 }
 
 /** Просьба добавить коннектор: тип из списка, поля - строки своей длины. */

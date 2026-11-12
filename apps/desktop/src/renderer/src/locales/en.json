@@ -122,7 +122,7 @@
       },
       "http": {
         "name": "Create with AI",
-        "hint": "Describe a service: the AI reads its API docs and builds the connector",
+        "hint": "Describe a service: the AI finds how to connect it",
         "short": "API"
       }
     },
@@ -358,9 +358,6 @@
       "docs": "API docs URL (optional)",
       "docsPlaceholder": "https://developer.todoist.com",
       "generate": "Build connector",
-      "generating": "Reading the {{service}} API docs and building the connector. It takes a few minutes.",
-      "cancel": "Stop",
-      "again": "Start over",
       "auth": {
         "bearer": "API key (Bearer)",
         "header": "API key in the {{name}} header",
@@ -373,21 +370,64 @@
       "password": "Password",
       "add": "Add connector",
       "errors": {
-        "unsupported": "This service doesn't offer a personal API key, so the AI can't build a key-based connector. Use an MCP server for it if there is one.",
-        "cli-missing": "Claude Code is not installed, and it builds the connector.",
-        "cancelled": "Stopped.",
-        "timeout": "The AI didn't finish in 10 minutes. Try again, maybe with a link to the API docs.",
-        "invalid": "The AI's description didn't pass the check. Try again, maybe with a link to the API docs.",
-        "failed": "The AI couldn't build the connector. Try again."
+        "cli-missing": "Claude Code is not installed, and it does this work.",
+        "timeout": "The AI didn't finish this step in 10 minutes. Write to it to go on, maybe with a link to the API docs.",
+        "invalid": "What the AI proposed didn't pass the check. Write to it to fix that.",
+        "failed": "The AI stopped with an error. Write to it to try again."
       },
       "host": "Calls only",
       "foreignHost": "This address is not on the docs site ({{docs}}). Make sure it's the official API of the service before adding your key.",
       "dropped_one": "Left out {{count}} tool that didn't pass the check: {{names}}.",
       "dropped_other": "Left out {{count}} tools that didn't pass the check: {{names}}.",
-      "state": {
-        "running": "Building",
-        "ready": "Ready to review",
-        "failed": "Didn't work out"
+      "jobs": {
+        "title": "Building with AI"
+      },
+      "status": {
+        "working": "Working",
+        "ready": "Ready",
+        "asking": "Waiting for you",
+        "stopped": "Stopped",
+        "failed": "Failed"
+      },
+      "activity": {
+        "thinking": "Thinking",
+        "search": "Searching the web: {{subject}}",
+        "read": "Reading {{subject}}",
+        "answer": "Writing the answer"
+      },
+      "proposal": {
+        "existing": "Your Claude Code server {{name}}",
+        "mcp": "MCP server at {{host}}",
+        "http_one": "{{host}} · {{count}} tool",
+        "http_other": "{{host}} · {{count}} tools"
+      },
+      "stopped": "Stopped. Write to the AI to go on.",
+      "loading": "Loading the conversation…",
+      "stop": "Stop",
+      "remove": "Remove",
+      "tell": {
+        "label": "Message to the AI",
+        "placeholder": "Answer, share a docs link or ask for other tools. Enter sends",
+        "placeholderWorking": "Write to the AI: it picks this up while it works",
+        "send": "Send"
+      },
+      "side": {
+        "result": "Result",
+        "request": "Your request",
+        "pending": "The AI is still looking.",
+        "none": "Nothing to add yet. Answer the AI or give it a hint below.",
+        "facts": {
+          "service": "Service",
+          "goal": "What it should do",
+          "docs": "API docs"
+        }
+      },
+      "mcpHost": "MCP server",
+      "existing": {
+        "server": "From Claude Code",
+        "hint": "Moves it over with its saved sign-in. The AI never sees the key.",
+        "gone": "This server is no longer in your Claude Code settings.",
+        "add": "Add from Claude Code"
       }
     },
     "tile": {
@@ -418,6 +458,10 @@
         "title": "About connectors",
         "text": "Connectors belong to the IDE, not to an AI account. Every AI panel sees them, and switching the Claude account keeps them signed in.\n\nAdd as many of one kind as you need: work and personal mail side by side.\n\nEach connector chooses its projects: all of them or only the ones you pick. Open a connector to change its sign-in, projects and tools."
       },
+      "aiJobs": {
+        "title": "Building with AI",
+        "text": "Each item is a conversation with the AI about one new connector. It goes on when you close the window or switch views, and stays after an IDE restart.\n\nOpen an item to see what the AI searches and reads. Write to it at any time: point it to the docs, answer its question, ask for other tools. It picks up your words while it works.\n\nWhen it proposes a connector, check it on the right and add it: the item then leaves the list. Stop ends the current step, and you can go on by writing again. The trash icon removes the whole conversation."
+      },
       "description": {
         "title": "Description",
         "text": "Your own words about this connector: what it is and when to use it.\n\nThe AI gets the description together with the connector, so it can tell similar connectors apart and pick the right one - say, which Playwright server is for which project.\n\nIt saves as you type."
@@ -446,7 +490,7 @@
         "playwright": "A browser the AI drives through the Playwright MCP server on this computer. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
         "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this computer.",
         "command": "An MCP server this computer starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
-        "http": "Describe a service: the AI reads its API docs and builds the connector as a list of HTTP requests, not code. It takes a few minutes, and you can close this window meanwhile: the result waits in the catalog.\n\nCheck what the AI built before adding it. Your API key is stored encrypted in the IDE; the AI that built the connector never sees it.",
+        "http": "Describe a service, and the AI finds how to connect it: first among your MCP servers from Claude Code (that's how your own products connect), then the service's official MCP server, then its REST API with a personal key, described as a list of HTTP requests, not code.\n\nThe work goes on by itself in Building with AI on this page, so this window closes right away. Open the item there to watch the AI and to write to it.\n\nCheck what the AI proposes before adding it. Keys are stored encrypted in the IDE; the AI never sees them.",
         "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
         "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own."
       },

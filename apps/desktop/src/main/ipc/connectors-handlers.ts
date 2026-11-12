@@ -6,6 +6,7 @@ import { openSlackAppCreation } from '../connectors/slack-app'
 import {
   field,
   assertKeys,
+  assertTell,
   MAX_SECRET,
   assertBoolean,
   assertAgentApp,
@@ -57,21 +58,28 @@ export const createConnectorsHandlers = (
 
     return { state: connectors.getState(), imported, skipped }
   },
-  'connectors:generate': (request) => {
-    connectors.ai.generate(assertGenerate(request))
+  'connectors:startAiJob': (request) => {
+    connectors.ai.start(assertGenerate(request))
 
     return connectors.getState()
   },
-  'connectors:cancelGenerate': () => {
-    connectors.ai.cancel()
+  'connectors:tellAiJob': ({ id, text }) => {
+    connectors.ai.tell(field(id, 'id'), assertTell(text))
 
     return connectors.getState()
   },
-  'connectors:dismissGeneration': () => {
-    connectors.ai.dismiss()
+  'connectors:stopAiJob': ({ id }) => {
+    connectors.ai.stop(field(id, 'id'))
 
     return connectors.getState()
   },
+  'connectors:removeAiJob': ({ id }) => {
+    connectors.ai.remove(field(id, 'id'))
+
+    return connectors.getState()
+  },
+  'connectors:aiJobFeed': ({ id, earlier }) =>
+    connectors.ai.feed(field(id, 'id'), assertBoolean(earlier, 'earlier')),
   'connectors:importGoogleApp': () => connectors.importGoogleApp(),
   'connectors:forgetGoogleApp': () => connectors.forgetGoogleApp(),
   'connectors:agentApps': () => installedAgentApps(),

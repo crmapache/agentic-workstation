@@ -1,20 +1,14 @@
 import { BrowserError } from './browser-error'
 import { SET_VALUE, setsValue, sameFieldValue, fieldValueRefused } from './field-values'
-import {
-  holdMs,
-  keyGapMs,
-  settleMs,
-  wheelTicks,
-  doubleGapMs,
-  TYPE_BY_KEYS_MAX,
-} from './human-motion'
+import { holdMs, pickMs, keyGapMs, settleMs, doubleGapMs, TYPE_BY_KEYS_MAX } from './human-motion'
 import type { Page } from './page'
 import { keyEvents, charEvents } from './page-keys'
 import type { KeyEvent } from './page-keys'
-import { callOn, nodeCdp, revealElement } from './page-nodes'
+import { callOn, nodeCdp } from './page-nodes'
 import type { Point, Target } from './page-nodes'
-import { aimOf, mouse, moveTo, viewportOf } from './page-pointer'
+import { mouse, wheel, moveTo, viewportOf } from './page-pointer'
 import type { MouseButton } from './page-pointer'
+import { aimOf, revealByHand } from './page-reveal'
 
 /**
  * Действия во вкладке через CDP (ADR 0040, 0044): клики и ввод - `Input.*`, как от настоящей
@@ -54,6 +48,16 @@ export const click = async (
 
 export const hover = async (page: Page, target: Target): Promise<void> => {
   await moveTo(page, await aimOf(page, target), 'move')
+}
+
+/**
+ * Рука подходит к полю и нажимает в нём только курсором на экране: список, дата, цвет и
+ * ползунок получают значение напрямую. Настоящее нажатие открыло бы родное окно Chrome (список
+ * вариантов, палитру), которого не видят ни страница, ни отладчик, - оно повисло бы у человека.
+ */
+const reach = async (page: Page, ref: string) => {
+  await moveTo(page, await aimOf(page, { ref }), 'click')
+  await pause(page, settleMs(page.motion.random))
 }
 
 /** Выделить содержимое поля: набранное заменит его, как у человека после ⌘A. */
@@ -144,6 +148,8 @@ type FieldInfo = { tag: string; type: string; checked: boolean }
  * не взяло - отказ с форматом, который ждёт поле.
  */
 const setFieldValue = async (page: Page, ref: string, type: string, value: string) => {
+  await reach(page, ref)
+
   const result = await callOn<{ value: string; min: string; max: string; step: string }>(
     page,
     ref,
@@ -201,6 +207,7 @@ export const typeText = async (page: Page, options: TypeOptions): Promise<void> 
 /** Выбрать варианты в <select> по значению или подписи; ответ - выбранные значения. */
 const SELECT_OPTIONS = `function (values) {
   if (!(this instanceof HTMLSelectElement)) throw new Error('The element is not a <select>: click it and pick the option instead.')
+  this.focus()
   const wanted = new Set(values)
   const options = [...this.options]
   const matched = options.filter((option) => wanted.has(option.value) || wanted.has(option.label) || wanted.has(option.text.trim()))
@@ -211,8 +218,16 @@ const SELECT_OPTIONS = `function (values) {
   return matched.map((option) => option.value)
 }`
 
-export const selectOptions = (page: Page, ref: string, values: readonly string[]) =>
-  callOn<string[]>(page, ref, SELECT_OPTIONS, [values])
+/**
+ * Выбор в списке рукой: курсор подходит и нажимает, пауза - человек смотрит на раскрытый
+ * список, - и вариант выбран. Ответ - выбранные значения.
+ */
+export const selectOptions = async (page: Page, ref: string, values: readonly string[]) => {
+  await reach(page, ref)
+  await pause(page, pickMs(page.motion.random))
+
+  return callOn<string[]>(page, ref, SELECT_OPTIONS, [values])
+}
 
 /**
  * Значение поля формы словами модели: флажок - true/false, список - вариант, дата, время, цвет
@@ -245,16 +260,16 @@ export const fillField = async (page: Page, ref: string, value: string): Promise
 }
 
 /**
- * Прокрутка колесом в точке (по умолчанию - там, где мышь, или середина окна) или до элемента.
- * Мышь сначала приходит в точку, колесо крутится серией толчков, как трекпад, а не одним
- * прыжком на всю высоту.
+ * Прокрутка колесом в точке (по умолчанию - там, где мышь, или середина окна) или до элемента
+ * (page-reveal.ts). Мышь сначала приходит в точку, колесо крутится серией толчков, как
+ * трекпад, а не одним прыжком на всю высоту.
  */
 export const scroll = async (
   page: Page,
   { ref, point, dx, dy }: { ref?: string; point?: Point; dx: number; dy: number },
 ): Promise<void> => {
   if (ref && !dx && !dy) {
-    await revealElement(page, ref)
+    await revealByHand(page, ref)
 
     return
   }
@@ -264,19 +279,7 @@ export const scroll = async (
     : (point ?? page.tab.pointer ?? (await viewportCenter(page)))
 
   await moveTo(page, at, 'move')
-
-  const started = performance.now()
-
-  for (const tick of wheelTicks(dx, dy)) {
-    await pause(page, tick.at - (performance.now() - started))
-    await page.cdp('Input.dispatchMouseEvent', {
-      type: 'mouseWheel',
-      x: at.x,
-      y: at.y,
-      deltaX: tick.dx,
-      deltaY: tick.dy,
-    })
-  }
+  await wheel(page, at, dx, dy)
 }
 
 const viewportCenter = async (page: Page): Promise<Point> => {

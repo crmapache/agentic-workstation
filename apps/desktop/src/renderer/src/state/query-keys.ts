@@ -98,6 +98,8 @@ export const QUERY_KEYS = {
   connectorImportCandidates: ['connectors-import', 'candidates'],
   /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */
   connectorAgentApps: ['connectors-agent-apps'],
+  /** Лента разговора работы ИИ о коннекторе: снимок - запросом, дальше - патчами события. */
+  connectorAiJobFeed: (jobId: string) => ['connectors-ai-job', 'feed', jobId],
   /** Разговоры с Claude Code и лента каждого (ADR 0009). */
   claudeState: ['claude', 'state'],
   /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */

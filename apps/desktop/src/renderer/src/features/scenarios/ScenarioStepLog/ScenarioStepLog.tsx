@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@agentic-workstation/ui/Spinner'
 
+import { useLogScroll } from '../../../lib/log-scroll.hooks'
 import { useConversationLog } from '../../../state/conversation-log.context'
-import { useStepLog, useLogScroll } from './ScenarioStepLog.hooks'
+import { useStepLog } from './ScenarioStepLog.hooks'
 import styles from './ScenarioStepLog.module.scss'
 import type { ScenarioStepLogProps } from './ScenarioStepLog.types'
 import { speakerOf } from './ScenarioStepLog.utils'

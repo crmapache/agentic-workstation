@@ -20,7 +20,7 @@ import { MCP_AUTHS } from '@shared/connectors'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
-import type { AddFormFields, GenerationBadge } from './ConnectorsView.types'
+import type { AddFormFields } from './ConnectorsView.types'
 
 export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   gmail: Mail,
@@ -128,13 +128,6 @@ export const EMPTY_AI_REQUEST: GenerateConnectorRequest = { service: '', goal: '
 
 /** Режимы доступности по порядку вкладок: во всех проектах или только в отмеченных. */
 export const AVAILABILITY_MODES: readonly ConnectorAvailability['mode'][] = ['all', 'only']
-
-/** Тон метки работы ИИ на плитке каталога: идёт, ждёт проверки, не вышла. */
-export const GENERATION_TONES: Record<GenerationBadge, BadgeTone> = {
-  running: 'info',
-  ready: 'success',
-  failed: 'danger',
-}
 
 /** Сведения, которые копируют: адрес и команда - строкой кода с кнопкой копии. */
 export const CODE_FACTS: ReadonlySet<string> = new Set(['address', 'command'])

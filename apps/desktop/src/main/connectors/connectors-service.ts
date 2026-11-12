@@ -13,11 +13,10 @@ import type {
   AddConnectorRequest,
 } from '@shared/connectors'
 
-import { AiConnectorDesk } from './ai-connector'
 import { ConnectorAccess } from './connector-access'
 import { newConnector, newConnection } from './connector-add'
 import type { NewConnector } from './connector-add'
-import { adoptPlaywright, assignCustomTypes, moveSecretsToVault } from './connector-migrate'
+import { migrateRegistry } from './connector-migrate'
 import { ConnectorRegistry } from './connector-registry'
 import { SecretsOf, secretsKey, typeSecretsKey } from './connector-secrets'
 import { parseStoredConnectors } from './connector-store'
@@ -26,6 +25,7 @@ import { connectorView, NO_LIVE_FACTS } from './connector-view'
 import type { ConnectorsEvents, ConnectorsPlaces } from './connectors-service.types'
 import { GatewayHost } from './gateway-host'
 import { LiveConnectors } from './live-connectors'
+import { AiConnectorDesk } from './ai/ai-connector-desk'
 import type { McpLaunch } from './gateway/launches'
 import { ImportDesk } from './import/import-desk'
 import { signsInWithBrowser } from './kinds/sources'
@@ -41,7 +41,7 @@ export class ConnectorsService {
   private readonly live: LiveConnectors
   private readonly access: ConnectorAccess
   private readonly gateway: GatewayHost
-  /** Коннектор, который описывает ИИ по документации сервиса. */
+  /** Работы ИИ над новыми коннекторами (ADR 0050). */
   readonly ai: AiConnectorDesk
   /** Перенос MCP-серверов из конфига Claude Code. */
   readonly imports: ImportDesk
@@ -75,7 +75,6 @@ export class ConnectorsService {
       this.live,
     )
 
-    this.ai = new AiConnectorDesk(places.ask, () => this.broadcast())
     this.imports = new ImportDesk({
       serverNames: () => registry.serverNames(),
       add: (prepared) => this.addPrepared(prepared, { signIn: false }),
@@ -84,6 +83,13 @@ export class ConnectorsService {
       shellEnv: places.shellEnv,
     })
 
+    this.ai = new AiConnectorDesk({
+      open: places.chats,
+      file: places.aiJobsFile,
+      candidates: () => this.imports.candidates(),
+      changed: () => this.broadcast(),
+      onFeed: events.onAiJobFeed,
+    })
     this.browser = new BrowserDesk(places.browser, registry)
 
     for (const connector of registry.connectors) this.live.attach(connector)
@@ -98,23 +104,17 @@ export class ConnectorsService {
       places.file,
     )
 
-    await moveSecretsToVault(registry, places.vault).catch((error: unknown) => {
-      console.warn('[connectors] ключи из реестра не перенесены в хранилище', error)
-    })
-    // Своя команда Playwright - встроенным Playwright (ADR 0035), остальные свои коннекторы
-    // прежнего реестра получают свои типы (ADR 0034).
-    await adoptPlaywright(registry, places.vault).catch((error: unknown) => {
-      console.warn('[connectors] команды Playwright не перенесены', error)
-    })
-    await assignCustomTypes(registry, places.vault, randomUUID).catch((error: unknown) => {
-      console.warn('[connectors] свои коннекторы не получили типы', error)
-    })
+    await migrateRegistry(registry, places.vault)
 
     return new ConnectorsService(registry, places, events)
   }
 
-  /** Поднять шлюз до первого процесса провайдера. Сбой - разговоры без коннекторов. */
+  /**
+   * Поднять шлюз до первого процесса провайдера (сбой - разговоры без коннекторов) и вернуть
+   * работы ИИ с диска.
+   */
   async start(): Promise<void> {
+    await this.ai.load()
     try {
       await this.gateway.start()
     } catch (error) {
@@ -128,7 +128,7 @@ export class ConnectorsService {
 
   /** Сессии браузера закрываются раньше моста: им ещё отпускать вкладки в Chrome. */
   async stop(): Promise<void> {
-    this.ai.dismiss()
+    this.ai.dispose()
     await this.live.disposeAll()
     await this.gateway.stop()
     await this.browser.stop()
@@ -156,7 +156,7 @@ export class ConnectorsService {
       google: this.access.googleState(),
       vault: this.places.vault.available,
       vaultReset: this.places.vault.wasReset,
-      generation: this.ai.state,
+      aiJobs: this.ai.list,
       browser: this.browser.state(),
     }
   }
@@ -166,12 +166,7 @@ export class ConnectorsService {
     const env = runsCommand(request.kind) ? await this.places.shellEnv() : {}
     const taken = { servers: this.registry.serverNames(), bases: this.registry.serverBases() }
     const ids = { connector: randomUUID(), type: randomUUID() }
-    const outcome = await this.addOutcome(newConnector(request, ids, taken, env))
-
-    // Описание от ИИ ушло в коннектор - его работа больше не ждёт человека.
-    if (request.kind === 'http' && !outcome.error) this.ai.dismiss()
-
-    return outcome
+    return this.addOutcome(newConnector(request, ids, taken, env))
   }
 
   /** Ещё одно подключение своего типа «несколько раз» (ADR 0034): копия образца, свой вход. */
