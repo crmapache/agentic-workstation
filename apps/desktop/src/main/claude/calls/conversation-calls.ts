@@ -1,13 +1,14 @@
-import type { SoundEvent, ConversationCall } from '@shared/claude-prefs'
+import type { ConversationCall } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 import { strongestCall } from './call-reasons'
 import { CALL_SETTLE_MS } from './calls.constants'
 
 /**
  * Поводы позвать человека по вкладкам: за короткий такт собираются, и вкладка зовёт
- * одним, самым важным (SOUND_PRIORITY). Выключенный в Settings → Sound alerts повод не
- * зовёт вовсе - ни звуком, ни свечением вкладки: светится только то, что прозвучало бы.
- * Звук играет окно, оно же решает, слышен ли он подряд за другим.
+ * одним, самым важным (SOUND_PRIORITY). Зовёт каждым поводом: глушить выключенные в
+ * Settings → Sounds - дело IDE (main/sounds), а телефон (Remote Control) слышит и их - ему
+ * звонят не звуком стола. Звук играет окно, оно же решает, слышен ли он подряд за другим.
  */
 export class ConversationCalls {
   private readonly gathered = new Map<string, Set<SoundEvent>>()
@@ -15,10 +16,7 @@ export class ConversationCalls {
   private readonly lastKeys = new Map<string, string>()
   private timer: NodeJS.Timeout | null = null
 
-  constructor(
-    private readonly mutedSounds: () => readonly SoundEvent[],
-    private readonly emit: (call: ConversationCall) => void,
-  ) {}
+  constructor(private readonly emit: (call: ConversationCall) => void) {}
 
   add(conversationId: string, reason: SoundEvent, key?: string): void {
     if (key !== undefined) {
@@ -35,14 +33,12 @@ export class ConversationCalls {
   }
 
   private flush() {
-    const muted = this.mutedSounds()
-
     this.timer = null
 
     for (const [conversationId, reasons] of this.gathered) {
       const reason = strongestCall(reasons)
 
-      if (reason && !muted.includes(reason)) this.emit({ conversationId, reason })
+      if (reason) this.emit({ conversationId, reason })
     }
 
     this.gathered.clear()

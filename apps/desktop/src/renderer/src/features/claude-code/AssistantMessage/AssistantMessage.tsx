@@ -31,7 +31,7 @@ import { replyClipboard } from './AssistantMessage.utils'
  */
 export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
   const { t } = useTranslation()
-  const { conversationId } = useFeedScope()
+  const { conversationId, readOnly } = useFeedScope()
   const { isCopied, copy } = useCopy()
   const { isPinned } = usePin(conversationId, item.id)
   // Волна - только у ответа, который печатается на глазах: готовому из истории нечего проявлять.
@@ -50,16 +50,19 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
   return (
     <div className={clsx(styles.assistantMessage, isPinned && styles.pinned)}>
       <div className={styles.actions}>
-        <PinButton conversationId={conversationId} itemId={item.id} />
+        {/* В журнале чужого разговора закреплять некуда: полки закреплённых там нет. */}
+        {!readOnly && <PinButton conversationId={conversationId} itemId={item.id} />}
         <IconButton
           icon={isCopied ? Check : Copy}
           size="sm"
           label={isCopied ? t('claudeCode.message.copied') : t('claudeCode.message.copyReply')}
           onClick={handleCopy}
         />
-        <MessageMenu>
-          <PinItem conversationId={conversationId} itemId={item.id} />
-        </MessageMenu>
+        {!readOnly && (
+          <MessageMenu>
+            <PinItem conversationId={conversationId} itemId={item.id} />
+          </MessageMenu>
+        )}
       </div>
       {review ? (
         <>

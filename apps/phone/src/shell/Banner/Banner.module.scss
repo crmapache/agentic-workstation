@@ -1,0 +1,24 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Полоса во всю ширину под шапкой: поля - как у тела экрана, справа и слева - не под вырезом.
+.banner {
+  flex: none;
+  margin: 0;
+  padding: var(--space-2) max(var(--size-panel-gutter), var(--offset-safe-right)) var(--space-2)
+    max(var(--size-panel-gutter), var(--offset-safe-left));
+  border-width: 0 0 var(--border-width);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.warning {
+  @include tinted-plaque(var(--color-warning));
+
+  border-width: 0 0 var(--border-width);
+}
+
+.danger {
+  @include tinted-plaque(var(--color-danger));
+
+  border-width: 0 0 var(--border-width);
+}

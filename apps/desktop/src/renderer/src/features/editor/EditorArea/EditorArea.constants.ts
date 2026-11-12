@@ -12,3 +12,10 @@ export const CodeEditor = lazy(() =>
 export const DiffEditor = lazy(() =>
   import('../DiffEditor/DiffEditor').then((module) => ({ default: module.DiffEditor })),
 )
+
+/** Локальная история (ADR 0045) - тоже на Monaco, своим куском к первой истории. */
+export const LocalHistoryView = lazy(() =>
+  import('../LocalHistoryView/LocalHistoryView').then((module) => ({
+    default: module.LocalHistoryView,
+  })),
+)

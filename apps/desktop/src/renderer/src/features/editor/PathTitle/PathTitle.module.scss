@@ -1,0 +1,56 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.pathTitle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.name {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+}
+
+// Длинный путь теряет папки с начала, а не ближнюю к файлу, как в списке изменений.
+.folder {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--color-fg-subtle);
+  direction: rtl;
+  text-align: left;
+}
+
+.folderText {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+// Имя - цветом вида изменения, как в дереве и в списке изменений (ADR 0017).
+.modified,
+.renamed {
+  color: var(--color-vcs-modified);
+}
+
+.added {
+  color: var(--color-vcs-added);
+}
+
+.untracked {
+  color: var(--color-vcs-untracked);
+}
+
+.conflict {
+  color: var(--color-vcs-conflict);
+}
+
+.deleted {
+  color: var(--color-vcs-deleted);
+}

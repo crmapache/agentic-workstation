@@ -4,11 +4,13 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { Terminal } from '@xterm/xterm'
 
+import { windowsClipboardKeys } from '../terminal-clipboard'
 import { unseenPart, listenOutput } from '../terminal-output'
 import { terminalTheme, terminalTypography } from '../terminal-theme'
 import { ACK_BATCH, SCROLLBACK_LINES } from '../terminal.constants'
 import { useTerminalStore } from '../terminal.store'
 import { invoke } from '../../../lib/ipc'
+import { IS_MAC } from '../../../lib/platform'
 import { onTextSizeApplied } from '../../../state/text-size.store'
 
 /** Ссылка из вывода - в браузер: обработчик окна открывает только http и https. */
@@ -75,6 +77,7 @@ export const useXterm = (sessionId: string, isActive: boolean) => {
 
     term.loadAddon(fit)
     term.loadAddon(new WebLinksAddon(openLink))
+    if (!IS_MAC) term.attachCustomKeyEventHandler(windowsClipboardKeys(term))
     term.onData((data) => void invoke('terminal:write', { sessionId, data }))
     term.onResize(({ cols, rows }) => void invoke('terminal:resize', { sessionId, cols, rows }))
     termRef.current = term

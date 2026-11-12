@@ -30,4 +30,11 @@ export type TabsProps<TabId extends string> = {
    * любой ряд - и растянутый раскладкой без этого флага.
    */
   fill?: boolean | undefined
+  /**
+   * vertical - меню разделов столбцом сбоку (окно настроек): во всю ширину колонки, подпись
+   * от левого края, стрелки вверх и вниз. По умолчанию - ряд.
+   */
+  orientation?: TabsOrientation | undefined
 }
+
+export type TabsOrientation = 'horizontal' | 'vertical'

@@ -1,13 +1,9 @@
 import type { ParseKeys } from 'i18next'
 
 import type { ToolsFailure } from '@shared/claude-tools'
+import { SECOND_MS } from '@shared/time-units'
 
 import type { MenuScreen } from './claude.types'
-
-export const SECOND_MS = 1000
-export const MINUTE_MS = 60 * SECOND_MS
-export const HOUR_MS = 60 * MINUTE_MS
-export const DAY_MS = 24 * HOUR_MS
 
 /**
  * Ступени шкалы контекста, как в ACC: до половины - зелёная, до 70% - жёлтая, до 85% -
@@ -60,8 +56,8 @@ export const MENU_PARENT: Record<MenuScreen, MenuScreen> = {
   plugins: 'menu',
   accounts: 'menu',
   settings: 'menu',
-  sounds: 'settings',
   calmColors: 'settings',
+  meters: 'settings',
   newChat: 'settings',
   newChatModel: 'newChat',
   newChatEffort: 'newChat',

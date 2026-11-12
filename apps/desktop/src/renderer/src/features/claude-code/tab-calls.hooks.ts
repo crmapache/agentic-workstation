@@ -33,9 +33,11 @@ export const useTabCallsSync = () => {
 
     if (isWatched(call, view)) return
 
-    useClaudeCodeStore
-      .getState()
-      .addCall(call.conversationId, { tone: callTone(call.reason), at: Date.now() })
+    useClaudeCodeStore.getState().addCall(call.conversationId, {
+      reason: call.reason,
+      tone: callTone(call.reason),
+      at: Date.now(),
+    })
   })
 
   useIpcEvent('claude:state', (state) => {

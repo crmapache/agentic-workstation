@@ -44,6 +44,16 @@ describe('настройки панели', () => {
     expect(prefs.customModels).toEqual(['gpt-proxy/opus'])
   })
 
+  it('спрятанные показания - строки одной строкой, без повторов', () => {
+    const prefs = parsePanelPrefs({
+      hiddenMeters: ['session', 'weekly:Fable', 'session', 7, 'a\nb', ''],
+    })
+
+    expect(prefs.hiddenMeters).toEqual(['session', 'weekly:Fable'])
+    expect(parsePanelPrefs({ hiddenMeters: 'session' }).hiddenMeters).toEqual([])
+    expect(applyPrefsPatch(prefs, { hiddenMeters: [] }).hiddenMeters).toEqual([])
+  })
+
   it('путь к CLI - пусто или абсолютный путь одной строкой', () => {
     expect(parsePanelPrefs({ cliPath: ' /opt/claude/bin/claude ' }).cliPath).toBe(
       '/opt/claude/bin/claude',

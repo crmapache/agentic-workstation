@@ -1,0 +1,96 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.text {
+  color: var(--color-fg);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.factLabel {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+.inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.inputLabel {
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cardTitle {
+  @include truncate;
+
+  flex: 1;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.cardBody {
+  @include disclosure-body;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.prompt {
+  max-height: var(--size-code-compact-max);
+  margin: 0;
+  padding: var(--space-2);
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-syntax-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

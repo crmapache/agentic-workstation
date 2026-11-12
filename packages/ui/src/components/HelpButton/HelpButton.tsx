@@ -10,20 +10,22 @@ import { helpParagraphs } from './HelpButton.utils'
 /**
  * Кнопка «?» у правого края шапки вида, раздела, карточки или окна: пояснение открывается окном, а не
  * лежит абзацем в интерфейсе. На виду остаются подписи, состояния и ошибки, а что это и
- * как работает - здесь. Окно справки встаёт и поверх другого окна.
+ * как работает - здесь. Окно справки встаёт и поверх другого окна. Крестик окна - того же
+ * размера, что сама кнопка: на телефоне под палец и он.
  */
-export const HelpButton = ({ label, title, text, closeLabel }: HelpButtonProps) => {
+export const HelpButton = ({ label, title, text, closeLabel, size = 'sm' }: HelpButtonProps) => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
     <>
-      <IconButton icon={CircleHelp} size="sm" label={label} onClick={() => setIsOpen(true)} />
+      <IconButton icon={CircleHelp} size={size} label={label} onClick={() => setIsOpen(true)} />
       <Modal
         open={isOpen}
         icon={CircleHelp}
         iconTone="info"
         title={title}
         closeLabel={closeLabel}
+        closeSize={size}
         onClose={() => setIsOpen(false)}>
         <div className={styles.text}>
           {helpParagraphs(text).map((paragraph, index) => (

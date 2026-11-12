@@ -1,0 +1,77 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Поле и кнопки - одной высоты (цель касания); выросшее поле кнопки держат у нижней строки.
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1-5);
+}
+
+.file {
+  display: none;
+}
+
+.field {
+  @include field-frame;
+
+  flex: 1;
+  min-width: 0;
+  min-height: var(--size-touch-target);
+  max-height: var(--size-code-compact-max);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  resize: none;
+  user-select: text;
+
+  &::placeholder {
+    color: var(--color-fg-subtle);
+  }
+}
+
+.strip {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+}
+
+.tile {
+  @include button-reset;
+
+  position: relative;
+  flex: none;
+  width: var(--size-image-tile);
+  height: var(--size-image-tile);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove {
+  position: absolute;
+  top: var(--space-0-5);
+  right: var(--space-0-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border-radius: var(--radius-full);
+  background-color: var(--color-backdrop);
+  color: var(--color-fg-strong);
+}

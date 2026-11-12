@@ -3,8 +3,25 @@ import { extname } from 'node:path'
 
 import { shell } from 'electron'
 
-import { RUNNABLE_EXTENSIONS, EXECUTABLE_MODE_BITS } from './outside-open.constants'
+import { IS_WINDOWS } from '../platform'
+import {
+  RUNNABLE_EXTENSIONS,
+  EXECUTABLE_MODE_BITS,
+  WINDOWS_OPENABLE_EXTENSIONS,
+} from './outside-open.constants'
 import { outsidePath } from './path-location'
+
+/**
+ * Имя запускаемого: программа, скрипт, установщик, ярлык. На Windows - всё, что не документ
+ * из белого списка (WINDOWS_OPENABLE_EXTENSIONS).
+ */
+const isRunnableName = (name: string) => {
+  const extension = extname(name).toLowerCase()
+
+  return IS_WINDOWS
+    ? !WINDOWS_OPENABLE_EXTENSIONS.has(extension)
+    : RUNNABLE_EXTENSIONS.has(extension)
+}
 
 /**
  * Можно ли отдать файл системе «открыть»: не программа, не скрипт, не установщик, не
@@ -12,8 +29,7 @@ import { outsidePath } from './path-location'
  * `run.command` откроется как `run.command`.
  */
 export const opensSafely = (names: readonly string[], mode: number): boolean =>
-  (mode & EXECUTABLE_MODE_BITS) === 0 &&
-  names.every((name) => !RUNNABLE_EXTENSIONS.has(extname(name).toLowerCase()))
+  (mode & EXECUTABLE_MODE_BITS) === 0 && names.every((name) => !isRunnableName(name))
 
 /**
  * Файл или папка вне проекта - системой. Папка и всё, что система запустила бы, а не

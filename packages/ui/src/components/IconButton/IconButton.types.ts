@@ -3,8 +3,11 @@ import type { LucideIcon } from 'lucide-react'
 
 import type { TooltipPlacement } from '../Tooltip/Tooltip.types'
 
-/** xs - знак внутри плотной плашки (крестик на чипе), sm - строка и поле, md - полосы окна. */
-export type IconButtonSize = 'xs' | 'sm' | 'md'
+/**
+ * xs - знак внутри плотной плашки (крестик на чипе), sm - строка и поле, md - полосы окна,
+ * touch - под палец (телефон): квадрат --size-touch-target.
+ */
+export type IconButtonSize = 'xs' | 'sm' | 'md' | 'touch'
 
 /** ghost - тихая кнопка в полосе или строке; primary - главное действие (отправить). */
 export type IconButtonVariant = 'ghost' | 'primary'

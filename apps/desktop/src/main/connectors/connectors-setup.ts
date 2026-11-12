@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { app, safeStorage } from 'electron'
 import type { BrowserWindow } from 'electron'
 
+import { createBrowserRuntime } from '../browser/browser-setup'
 import { broadcast } from '../ipc/broadcast'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
@@ -43,6 +44,12 @@ export type ProviderLinks = {
  */
 export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsService> => {
   const userData = app.getPath('userData')
+  // Профили Chrome подключились или отключились - окну новое состояние; до загрузки сервиса
+  // рассылать нечего.
+  let service: ConnectorsService | null = null
+  const browser = createBrowserRuntime(() => {
+    if (service) broadcast('connectors:state', service.getState())
+  })
   const connectors = await ConnectorsService.load(
     {
       // Права 600: ключей в реестре нет, но адреса, команды и почты - тоже не для чужих глаз.
@@ -54,6 +61,7 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       isTrusted: links.isTrusted,
       ask: links.ask,
       version: app.getVersion(),
+      browser,
     },
     {
       onState: (state) => broadcast('connectors:state', state),
@@ -64,6 +72,7 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
     },
   )
 
+  service = connectors
   await connectors.start()
 
   return connectors

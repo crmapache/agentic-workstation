@@ -1,0 +1,63 @@
+// Поля один под другим, каждое со своей подписью - как в окне запуска сценария.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+// Одно поле с подписью над ним: подпись над полем, а не сбоку - ответ (задача, ветка) длинный.
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.hint {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+// Подпись над полем - как у TextField и SelectField, обычным регистром: час, ритм, вопрос
+// сценария его словами (с пометкой «обязательно» рядом).
+.caption {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Без ответа час не ставится - это и есть «обрати внимание».
+.mustFill {
+  color: var(--color-fg-accent);
+  font-size: var(--font-size-xs);
+}
+
+.timeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Вкладки ритма и дня - по своей ширине, а не на всю строку формы.
+.picker {
+  display: flex;
+}
+
+.timeColon {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+}
+
+.due {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

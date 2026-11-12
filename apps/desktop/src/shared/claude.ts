@@ -169,11 +169,11 @@ export const TITLE_SOURCES: readonly TitleSource[] = ['default', 'heuristic', 'l
 export const OWN_TITLE_MAX = 100
 
 /**
- * Чем кончился последний ход. none - ходов ещё не было; error - ошибкой API или
- * лимитом; crashed - процесс умер посреди хода или не поднялся. Новый ход снимает
- * error и crashed.
+ * Чем кончился последний ход. none - ходов ещё не было; interrupted - человек остановил;
+ * error - ошибкой API или лимитом; crashed - процесс умер посреди хода или не поднялся.
+ * Новый ход снимает interrupted, error и crashed. На диск уходит только «был ход или нет».
  */
-export type TurnOutcome = 'none' | 'done' | 'error' | 'crashed'
+export type TurnOutcome = 'none' | 'done' | 'interrupted' | 'error' | 'crashed'
 
 /** Вкладка разговора в правой панели. */
 export type Conversation = {

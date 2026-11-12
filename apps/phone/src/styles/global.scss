@@ -1,0 +1,17 @@
+// База телефона поверх базы дизайн-системы (base.css): страница во весь экран телефона.
+
+:root {
+  // Размер текста телефона - тот же множитель, что у IDE (ADR 0024): основной текст 16 px.
+  // Меньше 16 px поле ввода на iPhone при фокусе увеличивает всю страницу.
+  --font-scale: 1.25;
+}
+
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  height: 100dvh;
+}

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { EditorRef } from '@shared/claude-draft'
 
 import type { CliProcess } from '../cli/cli-process'
+import { takeReleasedFrame } from '../history/released-heads'
 import { parseCarryOn } from '../panel/carry-on-words'
 import { sealOwnText } from '../shell/shell-text'
 import { rankOf } from '../tabs/tab-names'
@@ -73,7 +74,9 @@ export const writeUserMessage = (
 
   const own = sealOwnText(text)
   const shell = isSlashCommand(text) ? '' : runtime.shells.takeContext()
-  const said = [shell, own].filter(Boolean).join('\n\n')
+  // Голова прогона, открытая чатом: рамка о снятой роли - перед первым словом человека.
+  const frame = isSlashCommand(text) ? '' : takeReleasedFrame(runtime.meta.sessionId)
+  const said = [frame, shell, own].filter(Boolean).join('\n\n')
   const content = userContent({ text: said, images }, editor)
 
   process.write({ type: 'user', uuid, message: { role: 'user', content } })

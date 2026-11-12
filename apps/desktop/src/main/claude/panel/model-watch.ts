@@ -1,3 +1,9 @@
+import {
+  bareModelId,
+  modelFamilyOf,
+  modelVersionOf,
+  PANEL_MODEL_FAMILIES,
+} from '@shared/claude-models'
 import type { ModelNote } from '@shared/claude-panel'
 
 /**
@@ -37,29 +43,16 @@ export const NO_WATCH: ModelWatchState = {
   note: undefined,
 }
 
-/** Семьи от длинного имени к короткому: opusplan раньше opus. */
-const FAMILIES = ['fable', 'opusplan', 'opus', 'sonnet', 'haiku']
-
-const bare = (model: string) => model.toLowerCase().replace(/\[.*\]$/, '')
-
 /** Семья из любого имени модели; пусто - семья не наша (default, своя модель шлюза). */
-const modelFamily = (model: string): string =>
-  FAMILIES.find((family) => bare(model).includes(family)) ?? ''
-
-/** Поколение: «claude-opus-4-8» - 4.8, у даты сборки на конце номера нет (длинное число). */
-const modelVersion = (model: string): string =>
-  bare(model)
-    .split('-')
-    .filter((part) => /^\d+$/.test(part) && part.length < 5)
-    .join('.')
+const modelFamily = (model: string): string => modelFamilyOf(model, PANEL_MODEL_FAMILIES) ?? ''
 
 /**
  * Ключ модели для сравнения: семья и поколение, без метки окна и даты сборки (ModelNames.key
  * в ACC). Им же каталог аккаунта решает, умеет ли он модель (accounts/model-catalog.ts).
  */
 export const modelKey = (model: string): string => {
-  const family = modelFamily(model) || bare(model).replace(/^claude-/, '')
-  const version = modelVersion(model)
+  const family = modelFamily(model) || bareModelId(model).replace(/^claude-/, '')
+  const version = modelVersionOf(model)
 
   return version ? `${family}-${version}` : family
 }
@@ -80,7 +73,7 @@ export const carriesPick = (pick: string, signature: string, resolved = ''): boo
 
   if (!family) return null
 
-  return modelVersion(measure) ? sameModel(measure, signature) : family === modelFamily(signature)
+  return modelVersionOf(measure) ? sameModel(measure, signature) : family === modelFamily(signature)
 }
 
 /**

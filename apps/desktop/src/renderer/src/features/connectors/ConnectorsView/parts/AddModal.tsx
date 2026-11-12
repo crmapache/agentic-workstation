@@ -38,7 +38,11 @@ export const AddModal = ({ target, google, generation }: AddModalProps) => {
   // «несколько раз» (ADR 0034).
   const nameHelp =
     !isImport && isCustomKind(target) ? 'connectors.help.add.custom' : 'connectors.help.add.name'
-  const helpText = [t(`connectors.help.add.${target}`), isImport ? '' : t(nameHelp)]
+  // У браузера для ИИ подписи нет: он один на IDE.
+  const helpText = [
+    t(`connectors.help.add.${target}`),
+    isImport || target === 'browser' ? '' : t(nameHelp),
+  ]
     .filter(Boolean)
     .join('\n\n')
 

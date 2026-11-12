@@ -1,0 +1,187 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
+
+// Рамка-контейнер таблицы: по её ширине колонки уходят одна за другой в узкой середине окна.
+.frame {
+  container-type: inline-size;
+}
+
+// Таблица на сетке: колонки общие для всех строк (subgrid), ширина - по самому длинному.
+.table {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(7, max-content);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-raised);
+}
+
+.tableRow {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: var(--border-width) solid var(--color-border);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.tableLine {
+  @include scenario-row-press;
+}
+
+.tableHead {
+  @include caps-label;
+
+  min-height: var(--size-control-md);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-fg-subtle);
+}
+
+.colRun {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.runOpen {
+  @include button-reset;
+
+  color: inherit;
+  text-align: left;
+}
+
+.runName {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+// Ответы уступают имени: ответ - свободный текст, ссылка бывает длинной.
+.answers {
+  display: flex;
+  flex: 0 2 auto;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+}
+
+// Время, длительность и цена - показания: консольный шрифт, ровные цифры.
+.colStarted,
+.colFinished,
+.colTook,
+.colCost {
+  @include truncate;
+
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.tableHead > .colStarted,
+.tableHead > .colFinished,
+.tableHead > .colTook,
+.tableHead > .colCost {
+  font-family: inherit;
+}
+
+.colTook,
+.colCost {
+  text-align: right;
+}
+
+.colState,
+.colStar,
+.colDrop {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tableFoot {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-1);
+}
+
+@container (width < 680px) {
+  .table {
+    grid-template-columns: minmax(0, 1fr) repeat(6, max-content);
+  }
+
+  .colCost {
+    display: none;
+  }
+}
+
+@container (width < 560px) {
+  .table {
+    grid-template-columns: minmax(0, 1fr) repeat(5, max-content);
+  }
+
+  .colTook {
+    display: none;
+  }
+}
+
+// Ещё уже строка перестаёт быть таблицей: имя и чем кончился, под ними «начат → кончился».
+// Шапка уходит - колонок, которые она называла, больше нет.
+@container (width < 420px) {
+  .table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tableHead {
+    display: none;
+  }
+
+  .tableRow {
+    grid-template-columns: max-content minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      'run run state star drop'
+      'started finished finished star drop';
+    row-gap: var(--space-0-5);
+  }
+
+  .colRun {
+    grid-area: run;
+  }
+
+  .colStarted {
+    grid-area: started;
+  }
+
+  .colFinished {
+    grid-area: finished;
+
+    &:not(:empty)::before {
+      content: '→ ';
+    }
+  }
+
+  .colState {
+    grid-area: state;
+  }
+
+  .colStar {
+    grid-area: star;
+  }
+
+  .colDrop {
+    grid-area: drop;
+  }
+}

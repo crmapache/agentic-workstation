@@ -12,5 +12,10 @@ export type ActivityBarProps<ViewId extends string> = {
   label: string
   /** Кнопки у нижнего края полосы, отдельно от видов: терминал под панелью. */
   footer?: ReactNode | undefined
+  /**
+   * Число на иконке вида - то, что ждёт человека (прогоны сценариев с вопросом). Ноль и
+   * отсутствие - без значка: иконка не должна мигать пустым кругом.
+   */
+  badges?: Partial<Record<ViewId, number>> | undefined
   onSelect: (viewId: ViewId) => void
 }

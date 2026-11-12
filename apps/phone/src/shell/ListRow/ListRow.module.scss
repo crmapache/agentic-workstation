@@ -1,0 +1,89 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-fg);
+  text-align: left;
+}
+
+// Нажимаемая строка со своими кнопками справа: строка тянется, кнопки - сколько им нужно.
+.item {
+  display: flex;
+  align-items: center;
+}
+
+.pressable {
+  @include button-reset;
+  @include interactive-surface;
+
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.aside {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: var(--space-1);
+}
+
+.row .aside {
+  margin-right: calc(var(--space-3) * -1);
+}
+
+.leading,
+.trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.texts {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.title {
+  @include truncate;
+
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+}
+
+.description {
+  @include truncate;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.detail {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-fg-subtle);
+}
+
+.muted .title {
+  color: var(--color-fg-muted);
+}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import clsx from 'clsx'
-import { Copy, Check, Sparkles, ChevronUp, ArrowRight, ChevronDown } from 'lucide-react'
+import { Copy, Check, ChevronUp, ArrowRight, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
@@ -12,6 +12,7 @@ import { useCopy } from '../../clipboard.hooks'
 import { useNow } from '../../clock.hooks'
 import { AI_CLOCK_MS, SEARCH_ICON_SIZE, SEARCH_ICON_STROKE } from '../../search.constants'
 import { describeWhen, snippetPieces } from '../../search.utils'
+import { AI_ICON } from '../../../../lib/ai-icon.constants'
 
 /**
  * Одна находка: кто сказал, найденные слова закрашены там, где стоят, и путь в разговор.
@@ -61,7 +62,7 @@ export const HitRow = ({
         )}
         {hit.reason && (
           <span className={styles.reason}>
-            <Sparkles size={SEARCH_ICON_SIZE} strokeWidth={SEARCH_ICON_STROKE} aria-hidden />
+            <AI_ICON size={SEARCH_ICON_SIZE} strokeWidth={SEARCH_ICON_STROKE} aria-hidden />
             {hit.reason}
           </span>
         )}

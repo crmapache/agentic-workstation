@@ -11,8 +11,13 @@ export type AskRequest = {
   prompt: string
   /** JSON Schema ответа: CLI вернёт готовый объект (structured_output). */
   schema: object
-  /** Единственные инструменты вопроса (WebFetch, WebSearch): других у модели нет вовсе. */
+  /**
+   * Единственные инструменты вопроса (WebFetch, WebSearch): других у модели нет вовсе.
+   * Пусто - без инструментов совсем (имя по описанию, ответ из головы).
+   */
   tools: string[]
+  /** Модель вопроса; нет - та, что CLI берёт по умолчанию. */
+  model?: string
   /** Пустая своя папка: без хуков и CLAUDE.md чужого проекта. */
   cwd: string
   timeoutMs: number
@@ -38,7 +43,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * заметки из CLAUDE.md незачем держать рядом с чужими страницами. Всё не разрешённое -
  * отказ без вопроса (`dontAsk`): спросить тут некого.
  */
-export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools'>): string[] => [
+export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
   '-p',
   '--output-format',
   'json',
@@ -49,10 +54,11 @@ export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools'>): string[]
   '--strict-mcp-config',
   '--permission-mode',
   'dontAsk',
-  '--tools',
-  ...request.tools,
-  '--allowedTools',
-  ...request.tools,
+  // Пустой список `--tools` CLI понимает как «никаких инструментов» только пустой строкой.
+  ...(request.tools.length > 0
+    ? ['--tools', ...request.tools, '--allowedTools', ...request.tools]
+    : ['--tools', '']),
+  ...(request.model ? ['--model', request.model] : []),
 ]
 
 /**

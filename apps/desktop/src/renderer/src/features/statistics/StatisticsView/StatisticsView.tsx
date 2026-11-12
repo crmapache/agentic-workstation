@@ -2,19 +2,42 @@ import { ChartColumn } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
+import { PageHeader } from '@agentic-workstation/ui/PageHeader'
+
+import { useStatisticsData } from './StatisticsView.hooks'
+import styles from './StatisticsView.module.scss'
+import { StatisticsFilters } from './parts/StatisticsFilters'
+import { StatisticsHelp } from './parts/StatisticsHelp'
+import { StatisticsPage } from './parts/StatisticsPage'
 
 /**
- * Статистика в середине окна. Пока заглушка: статистика будет своей у IDE, по всем
- * провайдерам LLM, а не частью GUI одного из них (ADR 0010).
+ * Статистика IDE в середине окна (docs/workplan/20-statistics.md, ADR 0030): шапка вида с
+ * фильтрами нижним рядом, под ней разделы - сводка, код, время, привычки, токены, сценарии,
+ * инструменты. Агенты - вся машина (транскрипты Claude Code), человек - только окно IDE.
+ * Числа считает главный процесс, здесь только вид.
  */
 export const StatisticsView = () => {
   const { t } = useTranslation()
+  const { data, failed } = useStatisticsData()
 
   return (
-    <EmptyState
-      icon={ChartColumn}
-      title={t('statistics.title')}
-      description={t('statistics.stub')}
-    />
+    <div className={styles.view}>
+      <PageHeader
+        icon={ChartColumn}
+        title={t('statistics.title')}
+        help={<StatisticsHelp topic="page" />}
+        toolbar={<StatisticsFilters />}
+      />
+      <div className={styles.scroller}>
+        {data && <StatisticsPage data={data} />}
+        {failed && (
+          <EmptyState
+            icon={ChartColumn}
+            title={t('statistics.title')}
+            description={t('statistics.error')}
+          />
+        )}
+      </div>
+    </div>
   )
 }

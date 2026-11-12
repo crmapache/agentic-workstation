@@ -117,9 +117,7 @@ export const createComposerHandlers = (
         throw new Error('Недопустимое место в очереди')
       }
 
-      target.outbox.move(target.queuedId, toIndex)
-
-      return claude.getState()
+      return claude.actions.moveQueued(conversationId, target.queuedId, toIndex)
     },
     'claude:listCommands': ({ projectId }) => claude.composer.commands(root(projectId)),
     'claude:pickAttachments': ({ projectId }) => claude.composer.pick(getWindow(), root(projectId)),

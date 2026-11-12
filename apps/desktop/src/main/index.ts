@@ -2,10 +2,16 @@ import { join } from 'node:path'
 
 import { app, shell, BrowserWindow } from 'electron'
 
+import type { ClaudeState } from '@shared/claude'
+import type { FeedPatch } from '@shared/claude-feed'
+import type { ConversationCall } from '@shared/claude-prefs'
+import type { SoundPrefs } from '@shared/sounds'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
+import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
+import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
 import { claudeAsk } from './claude/claude-ask'
 import { ClaudeService } from './claude/claude-service'
 import type { StoredClaude } from './claude/claude-state'
@@ -14,10 +20,12 @@ import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
 import { GitStatusService } from './git/git-status-service'
+import { LocalHistory } from './history/local-history'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
 import { SearchService } from './search/search-service'
+import { SoundsService } from './sounds/sounds-service'
 import { JsonFile } from './storage/json-file'
 import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
 import { terminalEnv } from './terminal/terminal-env'
@@ -29,9 +37,11 @@ import { UPDATE_FEED_URL, UPDATE_FEED_OVERRIDE_ENV } from './updates/update.cons
 import { saveEditorBeforeQuit } from './window/editor-save'
 import { EDITOR_SAVE_TIMEOUT_MS } from './window/editor-save.constants'
 import { createMainWindow } from './window/main-window'
+import { hideConsoleWindows } from './windows/console-hide'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import type { StoredAccounts } from './claude/accounts/account-store'
+import { watchAgentEdits } from './claude/changes/agent-edits-tap'
 import { locateClaudeCli } from './claude/cli/cli-locator'
 import { ProcessGroup } from './claude/cli/process-group'
 import { loginShellEnv } from './claude/cli/shell-env'
@@ -51,17 +61,36 @@ if (!app.isPackaged && CDP_PORT) app.commandLine.appendSwitch('remote-debugging-
 
 let mainWindow: BrowserWindow | null = null
 
+/** Выход дошёл до конца (всё сохранено и погашено): окну можно закрываться. */
+let quitDone = false
+
 const openMainWindow = () => {
   mainWindow = createMainWindow(RENDERER_URL)
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+  // На Windows крестик окна - это выход (ADR 0048). Закрой окно сразу, страница умерла бы до
+  // сохранения редактора и вопроса о файлах в конфликте: закрытие идёт тем же выходом, что ⌘Q,
+  // а окно закрывается, когда выход дошёл до конца. Выход отменили - окно остаётся.
+  if (!IS_MAC) {
+    mainWindow.on('close', (event) => {
+      if (quitDone) return
+
+      event.preventDefault()
+      app.quit()
+    })
+  }
 }
 
 const bootstrap = async () => {
   // Поиску по разговорам - что проекты открыли и закрыли: он поднимается позже, после
   // разговоров.
   let onWorkspace = (): void => undefined
+  // Статистике и Remote Control - состояние панели Claude и заплатки лент: они поднимаются
+  // позже панели.
+  let observeClaude = (_state: ClaudeState): void => undefined
+  let observeFeed = (_patch: FeedPatch): void => undefined
+  let observeCall = (_call: ConversationCall): void => undefined
   const workspace = await WorkspaceService.load(
     new JsonFile<WorkspaceState>(join(app.getPath('userData'), 'workspace.json')),
     (state) => {
@@ -81,12 +110,29 @@ const bootstrap = async () => {
     quit: () => app.quit(),
   })
   const search = new SearchService()
+  // Звуки IDE (ADR 0046): до сервиса разговоров - он зовёт ими с первой вкладки. Своего
+  // файла ещё нет - звуки переезжают из настроек панели Claude Code (claude.json).
+  const sounds = await SoundsService.load(
+    new JsonFile<SoundPrefs>(join(app.getPath('userData'), 'sounds.json')),
+    new JsonFile<unknown>(join(app.getPath('userData'), 'claude.json')),
+    (prefs) => broadcast('sounds:changed', prefs),
+  )
   const claude = await ClaudeService.load(
     new JsonFile<StoredClaude>(join(app.getPath('userData'), 'claude.json')),
     {
-      onState: (state) => broadcast('claude:state', state),
-      onFeed: (patch) => broadcast('claude:feed', patch),
-      onCall: (call) => broadcast('claude:call', call),
+      onState: (state) => {
+        broadcast('claude:state', state)
+        observeClaude(state)
+      },
+      onFeed: (patch) => {
+        broadcast('claude:feed', patch)
+        observeFeed(patch)
+      },
+      // Телефону - каждый повод, окну - только не выключенный в Settings → Sounds.
+      onCall: (call) => {
+        observeCall(call)
+        if (!sounds.isMuted(call.reason)) broadcast('claude:call', call)
+      },
       openPath: (path) => shell.openPath(path),
     },
     {
@@ -125,9 +171,25 @@ const bootstrap = async () => {
       workspace.getState().projects.map((project) => project.rootPath),
     )
 
+  const rootOf = (projectId: string) =>
+    workspace.getState().projects.find((project) => project.id === projectId)?.rootPath
+  // Локальная история файлов (ADR 0045): события - из слежения за диском, записи IDE и ленты
+  // агента; окну - у каких файлов история пополнилась.
+  const history = await LocalHistory.open({
+    dataDir: app.getPath('userData'),
+    listFiles: (root) => search.listFiles(root),
+    onChange: (root, paths) => {
+      for (const project of workspace.getState().projects) {
+        if (project.rootPath === root)
+          broadcast('history:changed', { projectId: project.id, paths })
+      }
+    },
+  })
+  // Точные правки агентов из потоков CLI - «до» правки, если снимок истории опоздал.
+  watchAgentEdits((edit) => history.agentEdited(edit))
   // Слежение за диском открытых проектов: окну - что перечитать в дереве и в редакторе и
   // что .git поменялся (ветка), статусу git и списку изменений - повод перечитаться и
-  // разослать себя, если стали другими.
+  // разослать себя, если стали другими; истории - что сверить.
   const gitStatus = new GitStatusService({
     status: (projectId, status) => broadcast('git:status', { projectId, status }),
     changes: (projectId, changes) => broadcast('git:changes', { projectId, changes }),
@@ -138,6 +200,10 @@ const bootstrap = async () => {
     }
 
     gitStatus.changed(projectId, { git, paths })
+
+    const root = rootOf(projectId)
+
+    if (root && (paths === null || paths.length > 0)) history.diskChanged(root, paths)
   })
   // Файлы вне проекта, открытые вкладками, - тем же событием проекта вкладки: редактор
   // узнаёт их по абсолютному пути.
@@ -148,6 +214,8 @@ const bootstrap = async () => {
     for (const projectId of watchers.sync(workspace.getState().projects)) {
       gitStatus.forget(projectId)
     }
+
+    history.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
   }
 
   // Терминалы под панелью Claude Code (ADR 0037): оболочка в корне проекта, закрытый проект
@@ -166,9 +234,28 @@ const bootstrap = async () => {
     },
   )
 
+  // Сценарии (ADR 0039), статистика и Remote Control (ADR 0041) - возможности всей IDE поверх
+  // провайдеров.
+  const features = await startIdeFeatures({
+    claude,
+    workspace,
+    search: conversationSearch,
+    connectors,
+    dataDir: app.getPath('userData'),
+    version: app.getVersion(),
+    getWindow: () => mainWindow,
+  })
+
+  observeClaude = features.observeClaude
+  observeFeed = (patch) => {
+    features.observeFeed(patch)
+    history.agentFeed(patch)
+  }
+  observeCall = features.observeCall
   searchProjects()
   watchProjects()
   onWorkspace = () => {
+    features.projectsChanged()
     searchProjects()
     watchProjects()
     terminals.keepProjects(workspace.getState().projects.map((project) => project.id))
@@ -184,6 +271,11 @@ const bootstrap = async () => {
     conversationSearch,
     connectors,
     terminals,
+    scenarios: features.scenarios,
+    stats: features.statistics.stats,
+    remote: features.remote,
+    history,
+    sounds,
     getWindow: () => mainWindow,
   }
 
@@ -205,14 +297,23 @@ const bootstrap = async () => {
       return
     }
 
-    conversationSearch.dispose()
-    watchers.dispose()
-    outsideWatchers.dispose()
-    await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
-    // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
-    await connectors.stop()
-    quitting = 'ready'
-    app.quit()
+    try {
+      conversationSearch.dispose()
+      watchers.dispose()
+      outsideWatchers.dispose()
+      // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
+      await features.shutdown()
+      await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
+      // История - после записей: возврат версии, идущий в эту секунду, ещё сверяется.
+      await history.close()
+      // Шлюз - после процессов разговоров: они ходят в него до последнего хода.
+      await connectors.stop()
+    } finally {
+      // Что бы ни упало выше, IDE закрывается: иначе следующий ⌘Q гасился бы молча.
+      quitting = 'ready'
+      quitDone = true
+      app.quit()
+    }
   }
 
   app.on('before-quit', (event) => {
@@ -237,6 +338,13 @@ const bootstrap = async () => {
   updates.start()
 }
 
+// На Windows - без окна консоли у каждого процесса, который IDE запускает (ADR 0048): раньше
+// первого запуска, до bootstrap. И своё имя приложения - то же, что у ярлыка установщика.
+if (IS_WINDOWS) {
+  hideConsoleWindows()
+  app.setAppUserModelId(WINDOWS_APP_ID)
+}
+
 // Второй экземпляр IDE не запускается, а поднимает окно первого: два процесса
 // писали бы одно и то же состояние в userData наперегонки.
 if (!app.requestSingleInstanceLock()) {
@@ -247,8 +355,11 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow?.focus()
   })
 
-  // На macOS приложение живёт без окон, пока его не закроют через Cmd+Q.
-  app.on('window-all-closed', () => undefined)
+  // На маке приложение живёт без окон, пока его не закроют через ⌘Q; на Windows закрытое
+  // окно - это выход, как у всех программ там.
+  app.on('window-all-closed', () => {
+    if (!IS_MAC) app.quit()
+  })
 
   // Сертификат клиента IDE не нужен никому. Без отказа Electron сам предъявил бы первый
   // из связки ключей любому https-серверу, который его попросит, - например, сайту

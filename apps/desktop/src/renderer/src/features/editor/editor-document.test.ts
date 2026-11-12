@@ -108,6 +108,8 @@ vi.mock('./monaco-setup', () => ({
 }))
 
 vi.mock('../../lib/highlighter', () => ({ preloadLanguage: () => Promise.resolve() }))
+// Подсчёт правок для статистики - своя забота со своим тестом; здесь он только мешал бы DOM.
+vi.mock('./manual-edits', () => ({ watchPastes: () => undefined, noteEditorEdit: () => undefined }))
 
 vi.mock('../../lib/ipc', () => ({
   invoke: async (

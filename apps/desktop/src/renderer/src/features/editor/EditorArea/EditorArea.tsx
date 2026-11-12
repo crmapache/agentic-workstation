@@ -14,14 +14,15 @@ import {
   useSelectedPlace,
 } from '../../../state/selection.store'
 import { useActiveProject, useWorkspaceActions } from '../../../state/workspace.queries'
-import { CodeEditor, DiffEditor } from './EditorArea.constants'
+import { CodeEditor, DiffEditor, LocalHistoryView } from './EditorArea.constants'
 import styles from './EditorArea.module.scss'
 
 /**
- * Зона 6, вид «файл»: вкладки проекта, под ними - редактор файла или разница файла с
- * последним коммитом, смотря какая вкладка активна. Оба, раз показанные, остаются на
- * месте и прячутся: переход между файлом и разницей не создаёт Monaco заново и не теряет
- * прокрутку. Без проекта - приглашение открыть, без вкладок - выбрать файл в дереве.
+ * Зона 6, вид «файл»: вкладки проекта, под ними - редактор файла, разница файла с последним
+ * коммитом или локальная история, смотря какая вкладка активна. Все, раз показанные, остаются
+ * на месте и прячутся: переход между ними не создаёт Monaco заново и не теряет прокрутку.
+ * История другого файла или проекта - заново: выбранная версия от прежнего не подходит. Без проекта -
+ * приглашение открыть, без вкладок - выбрать файл в дереве.
  */
 export const EditorArea = () => {
   const { t } = useTranslation()
@@ -30,6 +31,7 @@ export const EditorArea = () => {
   const activeKey = useActiveTab(project?.id)
   const file = useRecentTab(project?.id, 'file')
   const diff = useRecentTab(project?.id, 'diff')
+  const history = useRecentTab(project?.id, 'history')
   const place = useSelectedPlace(project?.id)
   const { openProject } = useWorkspaceActions()
 
@@ -62,7 +64,12 @@ export const EditorArea = () => {
 
   return (
     <div className={styles.editorArea}>
-      <EditorTabs projectId={project.id} keys={tabs} active={activeKey} />
+      <EditorTabs
+        projectId={project.id}
+        projectName={project.name}
+        keys={tabs}
+        active={activeKey}
+      />
       {file !== undefined && (
         <div className={styles.view} hidden={shown !== 'file'}>
           <Suspense fallback={null}>
@@ -79,6 +86,19 @@ export const EditorArea = () => {
         <div className={styles.view} hidden={shown !== 'diff'}>
           <Suspense fallback={null}>
             <DiffEditor projectId={project.id} path={diff} isActive={shown === 'diff'} />
+          </Suspense>
+        </div>
+      )}
+      {history !== undefined && (
+        <div className={styles.view} hidden={shown !== 'history'}>
+          <Suspense fallback={null}>
+            <LocalHistoryView
+              key={`${project.id}\u0000${history}`}
+              projectId={project.id}
+              projectName={project.name}
+              path={history}
+              isActive={shown === 'history'}
+            />
           </Suspense>
         </div>
       )}

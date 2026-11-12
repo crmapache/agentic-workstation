@@ -2,6 +2,7 @@ import {
   Bot,
   Zap,
   Play,
+  Plus,
   Search,
   Trash2,
   ArrowUp,
@@ -24,6 +25,7 @@ import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.co
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { TouchSpecimens } from './TouchSpecimens'
 
 /**
  * Раздел «Действия»: кнопки всех вариантов и размеров, кнопки-иконки, переключатели,
@@ -45,6 +47,9 @@ export const ActionsSection = () => {
         <Button variant="danger" icon={Trash2}>
           {t('samples.remove')}
         </Button>
+        <Button variant="dashed" icon={Plus}>
+          {t('samples.addStage')}
+        </Button>
         <Button variant="primary" disabled>
           {t('samples.disabled')}
         </Button>
@@ -63,10 +68,15 @@ export const ActionsSection = () => {
         <Button variant="danger" size="sm">
           {t('samples.remove')}
         </Button>
+        <Button variant="dashed" size="sm" icon={Plus}>
+          {t('samples.addStage')}
+        </Button>
         <Button variant="secondary" size="sm" disabled>
           {t('samples.disabled')}
         </Button>
       </Specimen>
+
+      <TouchSpecimens />
 
       <Specimen label={t('specimens.menuButtons')}>
         <Button size="sm" icon={Bot} menu>

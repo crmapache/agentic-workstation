@@ -1,0 +1,32 @@
+{
+  "name": "@agentic-workstation/relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Релей Remote Control: знакомит IDE с телефоном и передаёт запечатанные кадры по адресу, содержимого не видит. Раздаёт телефонный клиент.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./config": "./src/config.ts"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "PORT=4460 node --watch src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "web-push": "4.0.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@agentic-workstation/remote-protocol": "workspace:*",
+    "@types/node": "24.13.3",
+    "@types/web-push": "3.6.4",
+    "@types/ws": "8.18.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -9,13 +9,16 @@ import { TextArea } from '@agentic-workstation/ui/TextArea'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { PROGRESS_SAMPLES } from '../ComponentsView.constants'
+import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { SearchListSpecimen } from './SearchListSpecimen'
+import { SelectFieldSpecimen } from './SelectFieldSpecimen'
 
 /**
- * Раздел «Поля и прогресс»: поле с иконкой, поле с ошибкой, недоступное, многострочное,
- * список поиска под полем, строка кода с копией, полосы прогресса, знак работы без доли.
+ * Раздел «Поля и прогресс»: поле с иконкой, поле с ошибкой, недоступное, многострочное, поле
+ * выбора, список поиска под полем, строка кода с копией, полосы прогресса, знак работы без доли - и он же
+ * кольцом вокруг номера, как у текущей остановки дороги сценария.
  */
 export const FieldsSection = () => {
   const { t } = useTranslation('showcase')
@@ -73,6 +76,8 @@ export const FieldsSection = () => {
         />
       </Specimen>
 
+      <SelectFieldSpecimen />
+
       <SearchListSpecimen />
 
       <Specimen label={t('specimens.codeSnippet')} layout="column">
@@ -100,6 +105,14 @@ export const FieldsSection = () => {
         <Spinner size="md" label={t('samples.spinnerLabel')} />
         <Spinner tone="neutral" label={t('samples.spinnerLabel')} />
         <Spinner size="md" tone="neutral" label={t('samples.spinnerLabel')} />
+        <Spinner tone="warning" label={t('samples.spinnerLabel')} />
+        <Spinner size="md" tone="warning" label={t('samples.spinnerLabel')} />
+        <span className={styles.spinnerSign}>
+          {t('samples.spinnerStop')}
+          <span className={styles.spinnerAround}>
+            <Spinner size="around" tone="warning" label={t('samples.spinnerLabel')} />
+          </span>
+        </span>
       </Specimen>
     </ShowcaseSection>
   )

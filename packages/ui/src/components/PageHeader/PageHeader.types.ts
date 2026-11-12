@@ -3,6 +3,13 @@ import type { LucideIcon } from 'lucide-react'
 
 import type { BadgeTone } from '../Badge/Badge.types'
 
+/**
+ * md - шапка вида в середине окна: плитка иконки и крупный заголовок. sm - шапка вида боковой
+ * панели (дерево файлов, как «Project» в WebStorm): заголовок мельче, без плитки, кнопки рядом
+ * плотнее. Полоса - той же высоты: линия под ней идёт вровень с вкладками редактора.
+ */
+export type PageHeaderSize = 'md' | 'sm'
+
 export type PageHeaderProps = {
   /** Иконка вида - та же, что у него в полосе видов. */
   icon?: LucideIcon | undefined
@@ -12,4 +19,10 @@ export type PageHeaderProps = {
   help?: ReactNode | undefined
   /** Справа: главное действие вида. */
   actions?: ReactNode | undefined
+  /**
+   * Нижний ряд под линией шапки: вкладки или фильтры, которые меняют весь вид. Части ряда
+   * расходятся по краям: одна - слева, две - слева и справа.
+   */
+  toolbar?: ReactNode | undefined
+  size?: PageHeaderSize | undefined
 }

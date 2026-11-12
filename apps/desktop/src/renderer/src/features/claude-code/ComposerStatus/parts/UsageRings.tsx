@@ -5,7 +5,7 @@ import { RingMeter } from '@agentic-workstation/ui/RingMeter'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../ComposerStatus.module.scss'
-import { useClaudeState } from '../../claude.queries'
+import { usePanelPrefs, useClaudeState } from '../../claude.queries'
 import { useNow } from '../../clock.hooks'
 import { USAGE_TICK_MS, PANEL_USAGE_REFRESH_MS } from '../../usage.constants'
 import { useUsageRefresh } from '../../usage.hooks'
@@ -15,11 +15,13 @@ import { usageRings } from '../../usage.utils'
  * Лимиты аккаунта разговоров справа под полем, как в ACC: все окна в ряд (пять часов,
  * неделя, неделя модели) - кольцо и процент цветом темпа, без подписи. Что за окно и когда
  * сбросится - в подсказке своего кольца. Горящее (идёт доплата) - без процента: он застрял
- * на ста. Пока цифр нет - ничего: пустые кольца только отвлекали бы.
+ * на ста. Пока цифр нет - ничего: пустые кольца только отвлекали бы. Кольцо, спрятанное в
+ * Settings → Under the field, не рисуется.
  */
 export const UsageRings = () => {
   const { t } = useTranslation()
   const { data: state } = useClaudeState()
+  const { hiddenMeters } = usePanelPrefs()
   const now = useNow(true, USAGE_TICK_MS)
   const current = state?.accounts.current ?? ''
 
@@ -29,7 +31,9 @@ export const UsageRings = () => {
 
   if (!usage) return null
 
-  return usageRings(usage, now, t).map((ring) => (
+  const rings = usageRings(usage, now, t).filter((ring) => !hiddenMeters.includes(ring.key))
+
+  return rings.map((ring) => (
     <Tooltip key={ring.key} label={ring.hint} placement="top">
       <span className={styles.meter} role="img" tabIndex={0} aria-label={ring.hint}>
         <RingMeter

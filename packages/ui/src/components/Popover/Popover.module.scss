@@ -49,3 +49,10 @@
 .xl {
   width: var(--size-popover-xl);
 }
+
+// Список поля выбора - ровно под полем, его ширины (якорь - кнопка поля), но не уже md:
+// узкое поле (час) не должно сжать пункты меню с пояснениями.
+.field {
+  width: anchor-size(width);
+  min-width: var(--size-popover-md);
+}

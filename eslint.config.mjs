@@ -33,9 +33,78 @@ const ELEMENTS = [
   { type: 'state', pattern: `${RENDERER}/state/**`, partialMatch: false },
   { type: 'lib', pattern: `${RENDERER}/lib/**`, partialMatch: false },
   { type: 'locales', pattern: `${RENDERER}/locales/**`, partialMatch: false },
+  // Браузер для ИИ (ADR 0040): протокол - общий пакет, расширение Chrome и native host -
+  // свои части. Host исполняется бинарником IDE как чистый Node и в главный процесс не ходит.
+  {
+    type: 'browser-protocol',
+    pattern: 'packages/browser-protocol/src/**',
+    partialMatch: false,
+  },
+  {
+    type: 'browser-extension',
+    pattern: 'apps/browser-extension/src/**',
+    partialMatch: false,
+  },
+  { type: 'native-host', pattern: 'apps/desktop/src/native-host/**', partialMatch: false },
+  // Remote Control (ADR 0041): протокол - общий пакет IDE и телефона, релей - свой сервер.
+  {
+    type: 'remote-protocol',
+    pattern: 'packages/remote-protocol/src/**',
+    partialMatch: false,
+  },
+  { type: 'relay', pattern: 'apps/relay/src/**', partialMatch: false },
+  // Телефонный клиент Remote Control: своё приложение в браузере телефона. Из общего - только
+  // протокол и дизайн-система; IDE он знает лишь по протоколу. Сквозные проверки (e2e/)
+  // поднимают настоящий релей и RemoteService главного процесса с подделками сервисов IDE.
+  { type: 'phone', pattern: 'apps/phone/src/**', partialMatch: false },
+  { type: 'phone-e2e', pattern: 'apps/phone/e2e/**', partialMatch: false },
 ]
 
+/** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
+const FILE_CATEGORIES = [{ category: 'test', pattern: '**/*.test.ts' }]
+
 const allowTo = (...types) => ({ to: { element: { types: { anyOf: types } } } })
+
+const NO_BARREL = {
+  group: ['**/index', '**/index.ts', '**/index.tsx'],
+  message: 'Без barrel-файлов: импортируй файл компонента напрямую.',
+}
+
+const NO_REACT_FC = {
+  name: 'react',
+  importNames: ['FC', 'FunctionComponent'],
+  message: 'Без React.FC: тип props - на параметре функции.',
+}
+
+/**
+ * Разметка интерфейса - окна IDE, дизайн-системы и телефона: стили только в .module.scss, иконки -
+ * lucide, подсказка - Tooltip, текст - через i18n, без React.FC.
+ */
+const INTERFACE_SYNTAX = [
+  {
+    selector: "JSXAttribute[name.name='style']",
+    message:
+      'Inline style запрещён: стили в .module.scss. Исключение - по-настоящему динамическое значение (ширина при перетаскивании и т.п.) с eslint-disable и причиной.',
+  },
+  {
+    selector: "JSXOpeningElement[name.name='svg']",
+    message: 'Inline <svg> запрещён: иконки из lucide-react.',
+  },
+  {
+    // Только у элементов разметки: у компонентов (Dialog, Card, Toast) title - свой проп.
+    selector: "JSXOpeningElement[name.name=/^[a-z]/] > JSXAttribute[name.name='title']",
+    message:
+      'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@agentic-workstation/ui/Tooltip).',
+  },
+  {
+    selector: 'JSXText[value=/\\S/]',
+    message: 'Текст интерфейса - только через i18n (t(...)), без строк прямо в JSX.',
+  },
+  {
+    selector: "TSQualifiedName[left.name='React'][right.name=/^(FC|FunctionComponent)$/]",
+    message: 'Без React.FC: тип props - на параметре функции.',
+  },
+]
 
 export default defineConfig(
   {
@@ -103,11 +172,30 @@ export default defineConfig(
 
   // Границы между частями приложения (см. ELEMENTS выше).
   {
-    files: ['apps/desktop/src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
+    files: [
+      'apps/desktop/src/**/*.{ts,tsx}',
+      'packages/ui/src/**/*.{ts,tsx}',
+      'packages/browser-protocol/src/**/*.ts',
+      'apps/browser-extension/src/**/*.ts',
+      'packages/remote-protocol/src/**/*.ts',
+      'apps/relay/src/**/*.ts',
+      'apps/phone/src/**/*.{ts,tsx}',
+      'apps/phone/e2e/**/*.ts',
+    ],
     plugins: { boundaries },
     settings: {
       'boundaries/elements': ELEMENTS,
-      'boundaries/include': ['apps/desktop/src/**/*', 'packages/ui/src/**/*'],
+      'boundaries/files': FILE_CATEGORIES,
+      'boundaries/include': [
+        'apps/desktop/src/**/*',
+        'packages/ui/src/**/*',
+        'packages/browser-protocol/src/**/*',
+        'apps/browser-extension/src/**/*',
+        'packages/remote-protocol/src/**/*',
+        'apps/relay/src/**/*',
+        'apps/phone/src/**/*',
+        'apps/phone/e2e/**/*',
+      ],
       'import/resolver': {
         typescript: {
           noWarnOnMultipleProjects: true,
@@ -115,6 +203,12 @@ export default defineConfig(
             'apps/desktop/tsconfig.node.json',
             'apps/desktop/tsconfig.web.json',
             'packages/ui/tsconfig.json',
+            'packages/browser-protocol/tsconfig.json',
+            'apps/browser-extension/tsconfig.app.json',
+            'packages/remote-protocol/tsconfig.json',
+            'apps/relay/tsconfig.json',
+            'apps/phone/tsconfig.app.json',
+            'apps/phone/tsconfig.node.json',
           ],
         },
       },
@@ -136,7 +230,42 @@ export default defineConfig(
             { from: { element: { type: 'ui' } }, allow: allowTo('ui') },
             { from: { element: { type: 'locales' } }, allow: allowTo('locales') },
             { from: { element: { type: 'shared' } }, allow: allowTo('shared') },
-            { from: { element: { type: 'main' } }, allow: allowTo('main', 'shared') },
+            {
+              from: { element: { type: 'main' } },
+              allow: allowTo('main', 'shared', 'browser-protocol', 'remote-protocol'),
+            },
+            { from: { element: { type: 'remote-protocol' } }, allow: allowTo('remote-protocol') },
+            { from: { element: { type: 'relay' } }, allow: allowTo('relay') },
+            // Релей своё содержимое не читает и протокола не знает; тесты сверяют его конверт с
+            // протоколом, а сквозная проверка IDE поднимает его настоящим.
+            {
+              from: { element: { type: 'relay' }, file: { categories: 'test' } },
+              allow: allowTo('remote-protocol'),
+            },
+            {
+              from: { element: { type: 'main' }, file: { categories: 'test' } },
+              allow: allowTo('relay'),
+            },
+            // Телефон не видит ни IDE, ни релея: только протокол и дизайн-систему.
+            {
+              from: { element: { type: 'phone' } },
+              allow: allowTo('phone', 'ui', 'remote-protocol'),
+            },
+            // Сквозная проверка телефона: настоящий релей, RemoteService главного процесса с
+            // подделками сервисов IDE (их общий контракт - shared) и ядро телефона.
+            {
+              from: { element: { type: 'phone-e2e' } },
+              allow: allowTo('phone-e2e', 'phone', 'main', 'shared', 'relay', 'remote-protocol'),
+            },
+            { from: { element: { type: 'browser-protocol' } }, allow: allowTo('browser-protocol') },
+            {
+              from: { element: { type: 'browser-extension' } },
+              allow: allowTo('browser-extension', 'browser-protocol'),
+            },
+            {
+              from: { element: { type: 'native-host' } },
+              allow: allowTo('native-host', 'browser-protocol'),
+            },
             { from: { element: { type: 'preload' } }, allow: allowTo('preload', 'shared') },
             { from: { element: { type: 'lib' } }, allow: allowTo('lib', 'shared') },
             {
@@ -226,6 +355,85 @@ export default defineConfig(
     },
   },
 
+  // Native host исполняет бинарник IDE с ELECTRON_RUN_AS_NODE=1 - это чистый Node, Electron
+  // в нём нет. Протокол едет и в расширение: без Node и Electron.
+  {
+    files: ['apps/desktop/src/native-host/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*'],
+              message: 'Native host - чистый Node (ELECTRON_RUN_AS_NODE=1), Electron в нём нет.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/browser-protocol/src/**/*.ts', 'apps/browser-extension/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*'],
+              message: 'Протокол и расширение работают в браузере: без Node и Electron.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Протокол Remote Control едет и в главный процесс, и в телефон: общий только язык (ES,
+  // TextEncoder, DataView). Ни Node, ни DOM, ни Electron.
+  {
+    files: ['packages/remote-protocol/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*', 'react', 'react/*'],
+              message: 'Протокол Remote Control - чистый TypeScript для IDE и телефона.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-globals': [
+        'error',
+        ...['Buffer', 'process', 'window', 'document', 'atob', 'btoa'].map((name) => ({
+          name,
+          message: 'Протокол Remote Control - чистый TypeScript: без Node и DOM.',
+        })),
+      ],
+    },
+  },
+  // Релей - Node и ws, к IDE отношения не имеет.
+  {
+    files: ['apps/relay/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'react', 'react/*', '@agentic-workstation/ui/*'],
+              message: 'Релей - отдельный сервер на Node: без Electron и интерфейса.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Окно не трогает Node и Electron напрямую: всё через мост preload (lib/ipc.ts).
   {
     files: RENDERER_FILES,
@@ -241,46 +449,37 @@ export default defineConfig(
               group: ['electron', 'electron/*', 'node:*'],
               message: 'Окно ходит в главный процесс только через lib/ipc.ts.',
             },
-            {
-              group: ['**/index', '**/index.ts', '**/index.tsx'],
-              message: 'Без barrel-файлов: импортируй файл компонента напрямую.',
-            },
+            NO_BARREL,
           ],
-          paths: [
-            {
-              name: 'react',
-              importNames: ['FC', 'FunctionComponent'],
-              message: 'Без React.FC: тип props - на параметре функции.',
-            },
-          ],
+          paths: [NO_REACT_FC],
         },
       ],
-      'no-restricted-syntax': [
+      'no-restricted-syntax': ['error', ...INTERFACE_SYNTAX],
+    },
+  },
+
+  // Телефон - страница в браузере телефона: ни Node, ни Electron, к IDE - только по протоколу.
+  {
+    files: ['apps/phone/src/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'no-restricted-imports': [
         'error',
         {
-          selector: "JSXAttribute[name.name='style']",
-          message:
-            'Inline style запрещён: стили в .module.scss. Исключение - по-настоящему динамическое значение (ширина при перетаскивании и т.п.) с eslint-disable и причиной.',
-        },
-        {
-          selector: "JSXOpeningElement[name.name='svg']",
-          message: 'Inline <svg> запрещён: иконки из lucide-react.',
-        },
-        {
-          // Только у элементов разметки: у компонентов (Dialog, Card, Toast) title - свой проп.
-          selector: "JSXOpeningElement[name.name=/^[a-z]/] > JSXAttribute[name.name='title']",
-          message:
-            'Системный title выглядит чужим: подсказка - Tooltip из дизайн-системы (@agentic-workstation/ui/Tooltip).',
-        },
-        {
-          selector: 'JSXText[value=/\\S/]',
-          message: 'Текст интерфейса - только через i18n (t(...)), без строк прямо в JSX.',
-        },
-        {
-          selector: "TSQualifiedName[left.name='React'][right.name=/^(FC|FunctionComponent)$/]",
-          message: 'Без React.FC: тип props - на параметре функции.',
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'node:*'],
+              message:
+                'Телефон - страница в браузере: без Node и Electron, к IDE - через протокол.',
+            },
+            NO_BARREL,
+          ],
+          paths: [NO_REACT_FC],
         },
       ],
+      'no-restricted-syntax': ['error', ...INTERFACE_SYNTAX],
     },
   },
 

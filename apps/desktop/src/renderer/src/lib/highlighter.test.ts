@@ -8,6 +8,10 @@ describe('createLineHighlighter', () => {
 
     expect(lines).not.toBeNull()
 
+    // Первая строка собирает выражения грамматики: под нагрузкой полного прогона она не
+    // успевает за предел строки и остаётся недокрашенной. Тест - про роли, а не про время.
+    lines!.tokenizeLine('const warm = 1', lines!.initial)
+
     const first = lines!.tokenizeLine('const answer = 42 // ok', lines!.initial)
     const roles = first.tokens.map((token) => token.role)
 

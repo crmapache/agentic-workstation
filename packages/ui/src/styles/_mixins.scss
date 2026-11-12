@@ -15,6 +15,17 @@
   text-overflow: ellipsis;
 }
 
+// Не видно глазу, но читает скринридер: таблица чисел под графиком, где сам график -
+// картинка. display: none и visibility спрятали бы и от него.
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 // Прозрачный интерактивный элемент: hover и active на одном свойстве фона.
 // hover обёрнут в @media (hover: hover), active идёт после него - иначе при
 // зажатой кнопке hover перекроет active.
@@ -120,6 +131,31 @@
   border-left: var(--border-width) solid $line;
 }
 
+// Классы тона ряда графика (ChartTone): .chart1….chart4 и .other ставят --tone, метки
+// графика красятся им. Подключается в корне модуля: классы CSS Modules локальные, у
+// каждого графика свои, а тоны - одни на все.
+@mixin chart-tones {
+  .chart1 {
+    --tone: var(--color-chart-1);
+  }
+
+  .chart2 {
+    --tone: var(--color-chart-2);
+  }
+
+  .chart3 {
+    --tone: var(--color-chart-3);
+  }
+
+  .chart4 {
+    --tone: var(--color-chart-4);
+  }
+
+  .other {
+    --tone: var(--color-chart-other);
+  }
+}
+
 // Подпись раздела или статуса капсом с разрядкой: «SELECTED», «RECENT».
 @mixin caps-label {
   font-size: var(--font-size-xs);
@@ -142,9 +178,10 @@
 }
 
 // Рамка поля ввода: тёмная плоская подложка с тонкой рамкой, в фокусе - оранжевая
-// рамка и мягкое кольцо. Одна на TextField и на поле разговора, чтобы фокус везде
-// выглядел одинаково. Радиус и раскладку задаёт тот, кто подключил.
-@mixin field-frame {
+// рамка и мягкое кольцо. Одна на TextField, SelectField и поле разговора, чтобы фокус
+// везде выглядел одинаково. Радиус и раскладку задаёт тот, кто подключил. $focus - когда
+// поле «в фокусе»: у поля выбора это открытый список и фокус с клавиатуры, а не любой.
+@mixin field-frame($focus: ':focus-within') {
   border: var(--border-width) solid var(--color-border-strong);
   background-color: var(--color-surface-sunken);
   transition:
@@ -152,12 +189,12 @@
     box-shadow var(--duration-normal) var(--easing-standard);
 
   @media (hover: hover) {
-    &:hover:not(:focus-within) {
+    &:hover:not(#{$focus}, :disabled) {
       border-color: var(--color-fg-disabled);
     }
   }
 
-  &:focus-within {
+  &#{$focus} {
     border-color: var(--color-accent-border);
     box-shadow: var(--shadow-focus);
   }
@@ -173,6 +210,26 @@
   @keyframes breathing {
     50% {
       opacity: var(--opacity-breathe);
+    }
+  }
+}
+
+// Перелив подписи «работа идёт» (ADR 0025): тёплый свет течёт по буквам слева направо. Градиент
+// вдвое шире подписи и повторяется, за период сдвигается ровно на свою ширину - шва нет. Цвет
+// букв - сам градиент, поэтому текст прозрачный поверх него. Кадры, как у breathing, - отдельно:
+// shimmer-keyframes в корне модуля.
+@mixin shimmer {
+  background-image: var(--gradient-shimmer);
+  background-size: 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer var(--duration-shimmer) linear infinite;
+}
+
+@mixin shimmer-keyframes {
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
     }
   }
 }

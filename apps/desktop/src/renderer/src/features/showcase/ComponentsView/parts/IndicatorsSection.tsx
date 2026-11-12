@@ -124,6 +124,18 @@ export const IndicatorsSection = () => {
       <Specimen label={t('specimens.tabsFill')} layout="column">
         <Tabs label={t('samples.tabsLabel')} items={tabs} value={tab} onChange={setTab} fill />
       </Specimen>
+
+      <Specimen label={t('specimens.tabsVertical')}>
+        <div className={styles.tabColumn}>
+          <Tabs
+            label={t('samples.tabsLabel')}
+            items={tabs}
+            value={tab}
+            orientation="vertical"
+            onChange={setTab}
+          />
+        </div>
+      </Specimen>
     </ShowcaseSection>
   )
 }

@@ -1,3 +1,5 @@
+import { IS_WINDOWS } from '../platform'
+
 /** Локальные команды git: дольше этого - что-то не так, а шапка ждёт. */
 export const GIT_LOCAL_TIMEOUT_MS = 5_000
 
@@ -23,8 +25,10 @@ export const GIT_ENV_OVERRIDES = { GIT_TERMINAL_PROMPT: '0', LC_ALL: 'C' }
 /** Сколько ждать `gh pr view`: он ходит в сеть, а шапка панели ждёт ответа. */
 export const GH_TIMEOUT_MS = 5_000
 
-/** Где gh лежит у Homebrew, если в PATH оболочки его нет. */
-export const GH_FALLBACK_DIRS: readonly string[] = ['/opt/homebrew/bin', '/usr/local/bin']
+/** Где gh лежит у Homebrew, если в PATH оболочки его нет. На Windows установщик gh пишет PATH сам. */
+export const GH_FALLBACK_DIRS: readonly string[] = IS_WINDOWS
+  ? []
+  : ['/opt/homebrew/bin', '/usr/local/bin']
 
 /**
  * Больше записей статуса окну не отдаём: они едут через IPC целиком на каждое

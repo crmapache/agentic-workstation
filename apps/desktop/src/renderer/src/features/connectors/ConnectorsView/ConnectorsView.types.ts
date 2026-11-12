@@ -7,6 +7,7 @@ import type {
   AgentApp,
   Connector,
   CustomType,
+  BrowserState,
   ConnectorKind,
   GoogleAppState,
   ConnectorsState,
@@ -121,7 +122,12 @@ export type ConnectorModalProps = {
   google: GoogleAppState
   /** Свой тип подключения и сколько у него подключений; у встроенных - null. */
   customType: TypePartProps | null
+  /** Мост в Chrome - окну коннектора Browser (ADR 0040). */
+  browser: BrowserState
 }
+
+/** Установка расширения браузера и профили Chrome на связи. */
+export type BrowserSetupProps = { browser: BrowserState }
 
 /** Подключение коннектора: клиент Google - на случай его сбоя. */
 export type ConnectorConnectionProps = { connector: Connector; google: GoogleAppState }
@@ -134,7 +140,7 @@ export type AddModalProps = {
 
 /** О чём справка у заголовка: вид целиком или его раздел. */
 export type ConnectorsHelpProps = {
-  topic: 'page' | 'description' | 'type' | 'projects' | 'tools' | 'forgotten' | 'google'
+  topic: 'page' | 'description' | 'type' | 'projects' | 'tools' | 'forgotten' | 'google' | 'browser'
 }
 
 /** Часть окна одного коннектора. */

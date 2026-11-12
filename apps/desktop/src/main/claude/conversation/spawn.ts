@@ -6,6 +6,7 @@ import { CliProcess } from '../cli/cli-process'
 import { CLI_ENV_OVERRIDES, CHECKPOINTS_VARIABLE } from '../cli/cli.constants'
 import type { Environment } from '../cli/shell-env'
 import { fileCheckpointing } from '../config/config-files'
+import { releasedBriefing } from '../history/released-heads'
 import { findTranscript } from '../history/transcript-paths'
 import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
@@ -25,15 +26,25 @@ const conversationEnv = (env: Environment, checkpoints: boolean): Environment =>
 
 /**
  * Коннекторы IDE для нового процесса. Конфиг не записался (диск полон, нет прав) - процесс
- * поднимается без них, а лента говорит об этом строкой: разговор важнее коннекторов.
+ * поднимается без них, а лента говорит об этом строкой: разговор важнее коннекторов. Процесс
+ * сразу назван разговором (id вкладки): сессия браузера переживает смену процессов разговора.
  */
-export const connectorsLaunch = (runtime: ConversationRuntime): Promise<ConnectorsLaunch | null> =>
-  runtime.host.mcpConfig(runtime.meta.projectPath).catch((error: unknown) => {
+export const connectorsLaunch = async (
+  runtime: ConversationRuntime,
+): Promise<ConnectorsLaunch | null> => {
+  const launch = await runtime.host.mcpConfig(runtime.meta.projectPath).catch((error: unknown) => {
     console.warn('[claude] конфиг коннекторов не записан', error)
     runtime.feed.builder.addNotice('connectors-missing', '')
 
     return null
   })
+
+  launch?.own({ conversationId: runtime.meta.id, workDir: runtime.meta.projectPath })
+
+  if (launch) runtime.connectors = launch
+
+  return launch
+}
 
 /**
  * Процесс CLI для разговора; null - папки проекта больше нет. Транскрипт сессии уже
@@ -75,6 +86,7 @@ export const spawnConversationProcess = async (
         permissionMode: meta.permissionMode,
         fork: meta.fork,
         mcpConfig: connectors?.path ?? null,
+        extraBriefing: releasedBriefing(meta.sessionId),
       },
       cli.features,
     )

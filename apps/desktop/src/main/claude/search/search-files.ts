@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import type { SearchHit } from '@shared/claude-search'
 
+import { hiddenConversations } from '../history/hidden-conversations'
 import { projectSlug, transcriptDirs } from '../history/transcript-paths'
 import type { SearchIndex, TranscriptFile } from './search-index'
 import { HIT_TEXT_CHARS } from './search.constants'
@@ -29,7 +30,8 @@ export const indexDirFor = (base: string, rootPath: string): string =>
  */
 export const transcriptsOf = async (rootPath: string): Promise<TranscriptFile[]> => {
   const files: TranscriptFile[] = []
-  const seen = new Set<string>()
+  // Разговоры прогонов сценариев - служебные: их не ищут, как и не видят в истории.
+  const seen = new Set<string>(await hiddenConversations(rootPath))
 
   for (const dir of await transcriptDirs(rootPath)) {
     for (const entry of await readdir(dir, { withFileTypes: true }).catch(() => [])) {

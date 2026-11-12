@@ -1,0 +1,228 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../scenarios' as *;
+
+// Полки библиотеки: два раздела вида один под другим. Контейнер - для узкой середины окна:
+// там часы и кнопки строки уходят под имя.
+.shelves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  container-type: inline-size;
+}
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+// Строка - плитка, как час расписания; нажимается вся - открывает редактор.
+.row {
+  @include scenario-row;
+  @include scenario-row-press;
+}
+
+// Несомая строка спрятана: её место показывает рамка, уезжающая туда, куда она ляжет.
+.carried {
+  display: none;
+}
+
+// Копия несомой строки за рукой - всплывающим слоем поверх всего окна, с рамкой акцента:
+// это то, что сейчас держат.
+.lifted {
+  position: fixed;
+  z-index: var(--z-overlay);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  pointer-events: none;
+
+  .row {
+    border-color: var(--color-accent-border);
+  }
+}
+
+// Пустое место ростом с несомую строку: куда она ляжет - рамкой акцента; пустая полка в жесте -
+// обычной пунктирной.
+.slot {
+  flex-shrink: 0;
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.slotTarget {
+  border-color: var(--color-accent-border);
+}
+
+// Ручка тихая, пока к ней не потянулись: столбик ярких ручек спорил бы с именами.
+.grip {
+  @include interactive-surface;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-sm);
+  border-radius: var(--radius-xs);
+  color: var(--color-fg-disabled);
+  cursor: grab;
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-fg);
+    }
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.gripSpace {
+  flex-shrink: 0;
+  width: var(--size-control-xs);
+}
+
+// Кнопка, чтобы левая половина открывала редактор и с клавиатуры; текст - влево.
+.rowText {
+  @include button-reset;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  color: inherit;
+  text-align: left;
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.rowName {
+  @include truncate;
+
+  min-width: 0;
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-1-5);
+  max-width: 100%;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Точка между фактами тусклее их самих: это пунктуация, а не факт.
+.fact + .fact::before,
+.broken + .broken::before {
+  content: '·';
+  margin-right: var(--space-1-5);
+  color: var(--color-fg-disabled);
+}
+
+.chip {
+  @include scenario-chip;
+  @include truncate;
+}
+
+.broken {
+  color: var(--color-danger);
+}
+
+// Часы - справка, поэтому мятным; пропущенный - жёлтым: о нём стоит знать, но это не ошибка.
+.hours {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  gap: var(--space-0-5);
+  max-width: 40%;
+  text-align: right;
+}
+
+.hoursTop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-info);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.hoursMissed {
+  color: var(--color-warning);
+}
+
+.hoursNext {
+  @include truncate;
+
+  max-width: 100%;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Наводящие порядок отделены от того, что запускает ночь работы: «запустить» и «удалить»
+// в двух точках друг от друга - не промежуток, в который целятся.
+.icons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding-left: var(--space-2);
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+// Пустая полка ростом примерно со строку: опустевшая полка не двигает то, что под ней.
+.empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: calc(var(--size-control-lg) + var(--space-4));
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.emptyTitle {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Узко: часы и кнопки уходят под имя, часы - влево.
+@container (width < 560px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .hours {
+    align-items: flex-start;
+    max-width: 100%;
+    text-align: left;
+  }
+}

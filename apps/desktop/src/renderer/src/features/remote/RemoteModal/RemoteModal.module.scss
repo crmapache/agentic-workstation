@@ -1,0 +1,145 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Разделы окна - карточками столбиком, с тем же зазором, что между карточками статистики.
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+// Пара не переживёт перезапуск: предупреждение тоном, а не абзацем пояснения.
+.warning {
+  @include tinted-plaque(var(--color-warning));
+
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// Отпечаток сверяют глазами с экраном телефона: моноширинный, крупнее подписи.
+.fingerprint {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-md);
+}
+
+// Отпечаток крупно, под ним - через какой релей идёт связь.
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.relay {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.relayHost {
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Ждущий телефон: что сверить, отпечаток и ответ - столбиком, кнопки отступают от отпечатка.
+.pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+// Код пары: QR посередине карточки, под ним подсказка, отсчёт и «Stop» - одной осью.
+.offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+// QR - белая картинка с тихой зоной внутри; размер - свой у картинки (клетка в 4 точки), с
+// текстом не растёт. Блок, а не строчный: строчная картинка садится на базовую линию и
+// получает хвост снизу.
+.qr {
+  display: block;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+}
+
+// Отсчёт и «Stop» в ряд, по центру строки.
+.offerFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.countdown {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+// Спаренные телефоны - строки: имя и отпечаток слева, состояние и отзыв справа.
+.phones {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+
+  // Крайние строки - без поля к краю карточки: у неё своё.
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.phoneText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.phoneName {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.phoneMeta {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}

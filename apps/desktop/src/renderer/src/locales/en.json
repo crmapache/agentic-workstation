@@ -6,18 +6,66 @@
   },
   "settings": {
     "title": "Settings",
-    "done": "Done",
-    "appearance": "Appearance",
+    "open": "Settings ({{key}})",
+    "sectionsLabel": "Settings sections",
+    "sections": {
+      "appearance": "Appearance",
+      "sounds": "Sounds"
+    },
+    "appearanceDescription": "How the IDE looks",
     "textSize": {
       "label": "Text size",
       "value": "{{percent}}%",
-      "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. ⌘+, ⌘− and ⌘0 work from anywhere.",
-      "reset": "Reset to 100%"
+      "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. {{bigger}}, {{smaller}} and {{reset}} work from anywhere.",
+      "reset": "Reset",
+      "helpLabel": "About text size",
+      "description": "Every font in the IDE at once: panels, editor and chats"
+    },
+    "sounds": {
+      "description": "How an agent calls you when it finishes or needs you",
+      "help": {
+        "label": "About sounds",
+        "text": "An agent in any project calls you with a sound: when it finishes, asks for something, hits a limit or breaks. Its chat tab glows in the colour of the reason, and the project tab gets a dot of the same colour, until you open that chat.\n\nA muted sound doesn't call at all: no glow and no dot. While you look right at a chat, it stays quiet. Of sounds that come at once, only the more important one plays."
+      },
+      "events": {
+        "turnDone": {
+          "label": "Turn finished",
+          "hint": "The agent answered and is waiting for you"
+        },
+        "permission": {
+          "label": "Permission asked",
+          "hint": "A tool call needs your approval"
+        },
+        "question": {
+          "label": "Question asked",
+          "hint": "The agent asked you to pick an answer"
+        },
+        "plan": {
+          "label": "Plan ready",
+          "hint": "A plan is waiting for your approval"
+        },
+        "limit": {
+          "label": "Limit reached",
+          "hint": "The subscription limit stopped the turn"
+        },
+        "extraUsage": {
+          "label": "Extra usage started",
+          "hint": "The plan is used up - the work is now billed on top"
+        },
+        "error": {
+          "label": "Something broke",
+          "hint": "An error, a dead process or a signed-out session"
+        }
+      },
+      "play": "Play {{sound}}",
+      "volume": "{{sound}} volume",
+      "percent": "{{value}}%",
+      "muted": "Muted"
     }
   },
   "connectors": {
     "title": "Connectors",
-    "vaultMissing": "Keychain encryption is unavailable, so the IDE can't save sign-ins. Connectors that need a sign-in won't work until it is back.",
+    "vaultMissing": "The system's encryption is unavailable, so the IDE can't save sign-ins. Connectors that need a sign-in won't work until it is back.",
     "vaultReset": "Saved sign-ins couldn't be read, most likely the keychain key changed. Sign in to your connectors again; the old file is kept next to the new one.",
     "listTitle": "Your connectors",
     "empty": "No connectors yet. Add the first one below.",
@@ -57,6 +105,11 @@
         "hint": "A browser the AI drives: pages, clicks, forms, screenshots",
         "short": "Playwright"
       },
+      "browser": {
+        "name": "Browser",
+        "hint": "Your own Chrome for the AI: its own tab group, a cursor you can see, tabs you share",
+        "short": "Browser"
+      },
       "mcp": {
         "name": "MCP server by URL",
         "hint": "Any remote MCP server: Linear, Sentry, your own",
@@ -64,7 +117,7 @@
       },
       "command": {
         "name": "MCP server command",
-        "hint": "An MCP server this Mac runs: npx, node, a script",
+        "hint": "An MCP server this computer runs: npx, node, a script",
         "short": "MCP"
       },
       "http": {
@@ -86,7 +139,7 @@
       "sign-in-denied": "Access was denied in the browser.",
       "callback-busy": "Port 5319 is busy: another copy of the IDE is signing in. Finish there and try again.",
       "unreachable": "The service didn't answer. Refresh to try again.",
-      "vault-unavailable": "Keychain encryption is unavailable, so the sign-in can't be saved.",
+      "vault-unavailable": "The system's encryption is unavailable, so the sign-in can't be saved.",
       "google-app-missing": "Set up Google sign-in first.",
       "google-app-rejected": "Google rejected the IDE's Google app: its secret was reset or the client was deleted. Import a fresh client file above.",
       "google-api-disabled": "The API is turned off in your Google Cloud project. Enable Gmail API and Google Calendar API there, then sign in again.",
@@ -140,13 +193,13 @@
         "bad-name": "Use Latin letters or digits in the name.",
         "bad-label": "Use Latin letters or digits in the label.",
         "name-taken": "A connector with this name already exists.",
-        "bad-url": "Enter an https address. Plain http works only for this Mac (localhost).",
+        "bad-url": "Enter an https address. Plain http works only for this computer (localhost).",
         "missing-secret": "Fill in every field.",
-        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the sign-in.",
+        "vault-unavailable": "The system's encryption is unavailable, so the IDE can't save the sign-in.",
         "google-app-missing": "Set up Google sign-in first.",
         "failed": "The IDE couldn't add this connector. Check the fields and try again.",
         "bad-command": "Check the command and variables: an unclosed quote, a variable without \"=\", or a $NAME that your shell doesn't set.",
-        "bad-profile": "Enter the profile folder: a path from / or ~.",
+        "bad-profile": "Enter the profile folder: a full path or one from ~.",
         "bad-version": "Use latest or a version number like 0.0.78.",
         "bad-spec": "The connector description didn't pass the check. Generate it again."
       },
@@ -232,14 +285,14 @@
       "errors": {
         "bad-file": "This is not a Google OAuth client file.",
         "not-desktop-client": "This client is a Web application. Create a Desktop app client instead.",
-        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the client."
+        "vault-unavailable": "The system's encryption is unavailable, so the IDE can't save the client."
       },
       "setUpWithAi": "Set up with AI",
       "openIn": "Open in {{app}}",
       "copyPrompt": "Copy prompt",
       "promptCopied": "Prompt copied",
       "agentFailed": "{{app}} didn't open. Copy the prompt and paste it there.",
-      "agentPrompt": "Set up a Google OAuth client for Agentic Workstation, a desktop app, in my Google account, working in my browser. I'm already signed in to Google. If a site asks for a sign-in, a 2-step code, a payment method or accepting terms, stop and ask me.\n\nThe goal: any Google account I choose can sign in to Gmail and Calendar in Agentic Workstation. For that the app has to be published (\"In production\"). Google publishes only apps with a home page and a privacy policy on a domain I own and have verified in Google Search Console. Free shared addresses (github.io, web.app, blogspot.com, Google Sites) don't count.\n\n1. Open https://console.cloud.google.com/ and create a new project named \"Agentic Workstation\". If a project with this name already exists, use it. Don't change any other project.\n2. In that project, open APIs & Services > Library and enable \"Gmail API\" and \"Google Calendar API\".\n3. Open Google Auth Platform (https://console.cloud.google.com/auth/overview). If it asks to get started: app name \"Agentic Workstation\", user support email and developer contact email - my email, audience - External. Don't add scopes under Data Access: the app asks for them at sign-in.\n4. In Google Auth Platform > Clients, create a client: application type \"Desktop app\", name \"Agentic Workstation\". Download its JSON file right in the dialog that appears after creating it: Google shows the client secret only once. If the dialog closed without the download, create one more client the same way. The file is named like client_secret_....json and goes to Downloads. Tell me its name: I can already choose it in the IDE.\n5. Ask me whether I have my own domain and where its DNS is managed. Don't guess it.\nIf I have one:\na. Put two public pages on it: a home page and a privacy policy, on the same domain (for example https://example.com/agentic-workstation and https://example.com/agentic-workstation/privacy, or a subdomain). Use the hosting I already have for this domain. If I have none, offer a free hosting that serves my own domain (Cloudflare Pages, GitHub Pages) and ask before creating accounts or projects there.\nThe home page: Agentic Workstation is a desktop IDE for macOS; it connects my own Gmail and Google Calendar to the AI assistants inside the IDE, so they can search and read mail, manage drafts and labels, and read and change calendar events; sending mail and invitations stays off until I turn it on. Link to the privacy policy from it.\nThe privacy policy: the app reads and changes Gmail messages, drafts and labels and Calendar events and calendars only to do what I ask in the IDE; sign-in tokens are stored encrypted on my Mac and never sent to the app developer; mail and events the AI reads are sent to the AI provider I use in the IDE (for example Anthropic for Claude) as part of the conversation; the data is not sold or used for advertising; access can be revoked at https://myaccount.google.com/permissions; a contact email - mine. Add this sentence: \"Agentic Workstation's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.\"\nb. Verify the domain in Google Search Console (https://search.google.com/search-console) with this same Google account: a Domain property, confirmed by a DNS TXT record. Only add new DNS records, never change or delete existing ones, and ask me before adding.\nc. In Google Auth Platform > Branding, fill in the app home page and privacy policy links and add the domain under Authorized domains. Don't upload a logo: it needs a separate review by Google. Save.\nd. In Google Auth Platform > Audience, press \"Publish app\" and confirm. If Google says the app needs verification, skip it: the app is for my own use.\nIf I have no domain, or \"Publish app\" stays unavailable, tell me why and offer two ways: buy a domain and continue from step a, or leave the app in \"Testing\" and add the Google accounts I name under Audience > Test users. In testing mode only test users can sign in, and Google asks them to sign in again every 7 days.\n\nDon't copy the client secret anywhere and don't paste it into any chat or form. At the end, tell me whether the app is published or which test users you added."
+      "agentPrompt": "Set up a Google OAuth client for Agentic Workstation, a desktop app, in my Google account, working in my browser. I'm already signed in to Google. If a site asks for a sign-in, a 2-step code, a payment method or accepting terms, stop and ask me.\n\nThe goal: any Google account I choose can sign in to Gmail and Calendar in Agentic Workstation. For that the app has to be published (\"In production\"). Google publishes only apps with a home page and a privacy policy on a domain I own and have verified in Google Search Console. Free shared addresses (github.io, web.app, blogspot.com, Google Sites) don't count.\n\n1. Open https://console.cloud.google.com/ and create a new project named \"Agentic Workstation\". If a project with this name already exists, use it. Don't change any other project.\n2. In that project, open APIs & Services > Library and enable \"Gmail API\" and \"Google Calendar API\".\n3. Open Google Auth Platform (https://console.cloud.google.com/auth/overview). If it asks to get started: app name \"Agentic Workstation\", user support email and developer contact email - my email, audience - External. Don't add scopes under Data Access: the app asks for them at sign-in.\n4. In Google Auth Platform > Clients, create a client: application type \"Desktop app\", name \"Agentic Workstation\". Download its JSON file right in the dialog that appears after creating it: Google shows the client secret only once. If the dialog closed without the download, create one more client the same way. The file is named like client_secret_....json and goes to Downloads. Tell me its name: I can already choose it in the IDE.\n5. Ask me whether I have my own domain and where its DNS is managed. Don't guess it.\nIf I have one:\na. Put two public pages on it: a home page and a privacy policy, on the same domain (for example https://example.com/agentic-workstation and https://example.com/agentic-workstation/privacy, or a subdomain). Use the hosting I already have for this domain. If I have none, offer a free hosting that serves my own domain (Cloudflare Pages, GitHub Pages) and ask before creating accounts or projects there.\nThe home page: Agentic Workstation is a desktop IDE for macOS and Windows; it connects my own Gmail and Google Calendar to the AI assistants inside the IDE, so they can search and read mail, manage drafts and labels, and read and change calendar events; sending mail and invitations stays off until I turn it on. Link to the privacy policy from it.\nThe privacy policy: the app reads and changes Gmail messages, drafts and labels and Calendar events and calendars only to do what I ask in the IDE; sign-in tokens are stored encrypted on my computer and never sent to the app developer; mail and events the AI reads are sent to the AI provider I use in the IDE (for example Anthropic for Claude) as part of the conversation; the data is not sold or used for advertising; access can be revoked at https://myaccount.google.com/permissions; a contact email - mine. Add this sentence: \"Agentic Workstation's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.\"\nb. Verify the domain in Google Search Console (https://search.google.com/search-console) with this same Google account: a Domain property, confirmed by a DNS TXT record. Only add new DNS records, never change or delete existing ones, and ask me before adding.\nc. In Google Auth Platform > Branding, fill in the app home page and privacy policy links and add the domain under Authorized domains. Don't upload a logo: it needs a separate review by Google. Save.\nd. In Google Auth Platform > Audience, press \"Publish app\" and confirm. If Google says the app needs verification, skip it: the app is for my own use.\nIf I have no domain, or \"Publish app\" stays unavailable, tell me why and offer two ways: buy a domain and continue from step a, or leave the app in \"Testing\" and add the Google accounts I name under Audience > Test users. In testing mode only test users can sign in, and Google asks them to sign in again every 7 days.\n\nDon't copy the client secret anywhere and don't paste it into any chat or form. At the end, tell me whether the app is published or which test users you added."
     },
     "agentApps": {
       "claude": "Claude",
@@ -390,11 +443,12 @@
         "slack": "Slack lets only apps made inside a workspace, or published in the Slack Marketplace, use its MCP. So each workspace gets its own small Slack app, and each app gets its own connector: add another connector for another workspace.\n\nCreate Slack app opens Slack with the app ready: the redirect URL and the permissions the Slack MCP asks for are filled in. Model Context Protocol is the one switch Slack doesn't let set in advance.\n\nIf the workspace needs an admin to approve apps, Slack asks the admin first.\n\nUsing an app you already have? Add http://localhost:5319/callback as a redirect URL under OAuth & Permissions.",
         "atlassian": "Jira and Confluence on Atlassian Cloud - sites like yourteam.atlassian.net - through Atlassian's official MCP server. You sign in in your browser and allow access to your sites there.\n\nJira and Confluence on a company's own server (Data Center) don't work through it.",
         "todoist": "Todoist through its official MCP server, signed in with your API token: Todoist → Settings → Integrations → Developer → API token.\n\nThe token doesn't expire. If you reset it in Todoist, replace it in the connector.",
-        "playwright": "A browser the AI drives through the Playwright MCP server on this Mac. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
-        "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this Mac.",
-        "command": "An MCP server this Mac starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
+        "playwright": "A browser the AI drives through the Playwright MCP server on this computer. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
+        "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this computer.",
+        "command": "An MCP server this computer starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
         "http": "Describe a service: the AI reads its API docs and builds the connector as a list of HTTP requests, not code. It takes a few minutes, and you can close this window meanwhile: the result waits in the catalog.\n\nCheck what the AI built before adding it. Your API key is stored encrypted in the IDE; the AI that built the connector never sees it.",
-        "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are."
+        "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
+        "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own."
       },
       "type": {
         "title": "Custom connector",
@@ -403,6 +457,36 @@
       "google": {
         "title": "Google sign-in",
         "text": "Google has no shared sign-in app for desktop IDEs, so Gmail and Calendar sign in through your own Google app. You create it once, and it serves every Gmail and Calendar connector.\n\nThe JSON file is that app's ID card: Google gives it to you when you create an OAuth client. It holds the app's ID and secret, not your password or mail. The IDE keeps it encrypted and uses it only to open Google's sign-in page.\n\nSet up with AI opens Claude or Codex with the setup prompt ready. Send it there: the AI clicks through Google Cloud Console in your browser and downloads the file, then you choose it here. For another AI, copy the prompt.\n\nTo let any of your Google accounts sign in, the app has to be published, and Google publishes only apps with a home page and privacy policy on a domain you own. The AI makes the pages and verifies the domain with you. Without a domain the app stays in testing: only accounts added as test users can sign in, and Google asks them to sign in again every 7 days.\n\nWhen you sign in, Google warns that the app isn't verified. It's your own app: continue."
+      },
+      "browser": {
+        "title": "Browser for the AI",
+        "text": "The extension connects Chrome to Agentic Workstation through a small helper that Chrome starts itself; nothing listens on a network port.\n\nEach conversation gets its own orange tab group. When the AI finishes, it closes its tabs and the group, and lets go of the tabs you shared. Stop in the extension window ends it at any time; so does Cancel on Chrome's \"started debugging\" bar.\n\nCopy tab reference for AI (right-click on a page or on the extension icon) copies a reference the AI understands: paste it into the chat to point it at that tab. A reference works until Chrome restarts. The AI tells profiles apart by the name you give each one in the extension window.\n\nThe AI can see and use every tab of a connected profile. Uploading files to a site is off until you turn it on in the connector's tools, and even then the AI uploads and opens only files inside the conversation's project. Turn the connector off or limit it to some projects to keep it out."
+      }
+    },
+    "browser": {
+      "profiles": {
+        "title": "Chrome profiles",
+        "empty": "No Chrome profile is connected yet. Install the extension and keep Chrome open.",
+        "detail": "{{browser}} · extension {{version}}"
+      },
+      "setup": {
+        "title": "Install in Chrome",
+        "steps": {
+          "one": "Open Chrome extensions and turn on Developer mode, top right.",
+          "two": "Click Load unpacked and choose the extension folder: in your home folder, Agentic Workstation › Chrome Extension.",
+          "three": "Pin the extension: its window shows the connection and stops the AI."
+        },
+        "openExtensions": "Open Chrome extensions",
+        "addressCopied": "Chrome did not open. The address is copied: paste it into the address bar.",
+        "showFolder": "Show extension folder",
+        "folder": "Extension folder",
+        "folderMissing": "The folder is not there. Turn the connector off and on again."
+      },
+      "failure": {
+        "install-failed": "The IDE couldn't set up the Chrome helper. Turn the connector off and on to try again.",
+        "extension-missing": "This build of the IDE has no browser extension inside.",
+        "socket-failed": "The IDE couldn't open its connection for Chrome. Restart the IDE.",
+        "socket-path": "The path to your home folder is too long for the IDE's connection to Chrome, and so is the path to the temporary folder. Set TMPDIR to a short folder and restart the IDE."
       }
     }
   },
@@ -410,6 +494,8 @@
     "open": "Open project",
     "close": "Close {{name}}",
     "tabsLabel": "Open projects",
+    "moreCalls": "+{{count}}",
+    "call": "{{chat}} · {{reason}}",
     "openEllipsis": "Open Project…",
     "noProject": "No project",
     "switcherLabel": "Switch project",
@@ -457,7 +543,79 @@
     "readError": "Could not read this folder",
     "emptyProjectTitle": "Nothing here yet",
     "emptyProjectText": "This project folder is empty. Files you add to it show up here.",
-    "rootErrorTitle": "Can't read the project"
+    "rootErrorTitle": "Can't read the project",
+    "header": {
+      "selectOpened": "Select Opened File",
+      "collapseAll": "Collapse All"
+    },
+    "menu": {
+      "label": "File actions",
+      "newFile": "New File…",
+      "newFolder": "New Folder…",
+      "cut": "Cut",
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyPath": "Copy Path",
+      "rename": "Rename…",
+      "delete": "Move to Trash…",
+      "deleteWindows": "Move to Recycle Bin…",
+      "history": "Local History"
+    },
+    "create": {
+      "fileTitle": "New File",
+      "folderTitle": "New Folder",
+      "nameLabel": "Name",
+      "fileHint": "Use / to create it inside new folders: ui/Button.tsx",
+      "submit": "Create"
+    },
+    "rename": {
+      "title": "Rename",
+      "nameLabel": "New name",
+      "submit": "Rename"
+    },
+    "move": {
+      "title": "Move {{name}}",
+      "into": "Into {{folder}}",
+      "submit": "Move"
+    },
+    "references": {
+      "label": "Update references",
+      "searching": "Looking for imports and links…",
+      "none": "No imports or links point here",
+      "found_one": "{{count}} reference in {{files}} file",
+      "found_other": "{{count}} references in {{files}} files",
+      "truncated": "The project is larger than the search covers: some files were not checked."
+    },
+    "trash": {
+      "title": "Move to Trash?",
+      "titleWindows": "Move to Recycle Bin?",
+      "fileNote": "You can put it back from the Trash in Finder.",
+      "fileNoteWindows": "You can put it back from the Recycle Bin.",
+      "folderNote": "Everything inside goes too. You can put it back from the Trash in Finder.",
+      "folderNoteWindows": "Everything inside goes too. You can put it back from the Recycle Bin.",
+      "submit": "Move to Trash",
+      "submitWindows": "Move to Recycle Bin"
+    },
+    "notices": {
+      "renamed": "Renamed to {{name}}",
+      "moved": "Moved to {{folder}}",
+      "copied": "Copied as {{name}}",
+      "trashed": "{{name}} is in the Trash",
+      "trashedWindows": "{{name}} is in the Recycle Bin",
+      "pathCopied": "Path copied",
+      "references_one": "Updated {{count}} reference in {{files}} file",
+      "references_other": "Updated {{count}} references in {{files}} files",
+      "skipped_one": "{{count}} file changed meanwhile and was left as is",
+      "skipped_other": "{{count}} files changed meanwhile and were left as is"
+    },
+    "errors": {
+      "exists": "Something with this name is already there.",
+      "invalidName": "This name can't be used.",
+      "missing": "It is no longer on disk.",
+      "intoItself": "A folder can't go inside itself.",
+      "failed": "The file system refused. Check the folder's permissions.",
+      "unsaved": "This file has unsaved changes that conflict with the disk. Resolve them in the editor first."
+    }
   },
   "changes": {
     "noProjectTitle": "No project open",
@@ -490,6 +648,59 @@
       "showDiff": "Show Diff",
       "openFile": "Open File",
       "copyPath": "Copy Path"
+    }
+  },
+  "localHistory": {
+    "toolbar": "Local history",
+    "list": "Versions",
+    "truncated": "Showing the latest {{count}} changes",
+    "emptyTitle": "No local history yet",
+    "emptyFileText": "Every change to this file is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames and deletions.",
+    "emptyFolderText": "Every change to files here is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames and deletions.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "rowLabel": "{{cause}}, {{when}}",
+    "causes": {
+      "edit": "Edited in the IDE",
+      "outside": "Changed outside the IDE",
+      "agent": "Changed by Claude Code",
+      "agentCreated": "Created by Claude Code",
+      "refactor": "References updated on rename",
+      "created": "Created",
+      "deleted": "Deleted",
+      "moved": "Moved from {{path}}",
+      "renamed": "Renamed from {{name}}",
+      "restored": "Restored from local history",
+      "earliest": "Earliest saved version"
+    },
+    "compare": {
+      "label": "What to compare",
+      "current": "With Current",
+      "change": "This Change"
+    },
+    "placeholders": {
+      "binary": "Not a text file: there is nothing to compare. You can still restore this version.",
+      "lost": "This version is no longer stored.",
+      "lostTitle": "Version not available"
+    },
+    "restore": {
+      "action": "Restore",
+      "hint": "Put this version back into the file. What is there now stays in local history.",
+      "done": "Restored {{name}}",
+      "doneDetails": "Version from {{when}}. What was there before is kept in local history.",
+      "failed": "Couldn't restore {{name}}",
+      "codes": {
+        "lost": "This version is no longer stored.",
+        "occupied": "There is a folder where the file was.",
+        "denied": "No permission to write the file.",
+        "failed": "Something went wrong. Details are in the IDE log.",
+        "tooLarge": "The file is too large to keep in local history before overwriting it."
+      }
+    },
+    "help": {
+      "label": "About local history",
+      "title": "Local history",
+      "text": "Every change to the project's files is kept for {{days}} days: saves in the editor, edits by AI agents and other programs, renames, moves and deletions. Files that git ignores are kept too once you open them in the editor or an agent edits them.\n\nWith Current puts the selected version on the left and the file as it is now on the right. The right side is the file itself: edit it, or bring back a single change with the arrow between the sides. This Change shows what the selected event did to the file.\n\nRestore puts the whole version back into the file, and brings a deleted file back. Nothing is lost: what was in the file before stays in local history as its own version."
     }
   },
   "editor": {
@@ -536,13 +747,18 @@
         "closeOthers": "Close Other Tabs",
         "closeRight": "Close Tabs to the Right",
         "closeAll": "Close All Tabs",
-        "copyPath": "Copy Path"
+        "copyPath": "Copy Path",
+        "history": "Show Local History"
       },
       "diffHint": "Changes in {{path}} since the last commit",
-      "outsideHint": "{{path}} · outside the project"
+      "outsideHint": "{{path}} · outside the project",
+      "historyHint": "Local history: {{path}}",
+      "projectHistoryHint": "Local history of the whole project"
     },
     "contextMenu": {
       "label": "Code actions",
+      "sendToChat": "Send to Chat",
+      "history": "Show Local History",
       "show": "Show Editor Context Menu",
       "changeAll": "Change All Occurrences",
       "cut": "Cut",
@@ -630,14 +846,953 @@
   },
   "scenarios": {
     "title": "Scenarios",
-    "stub": "Scenarios are not built yet. This area will hold the project's scenarios and their runs."
+    "noProject": "Open a project to see its scenarios and queues.",
+    "help": {
+      "label": "About scenarios",
+      "title": "Scenarios",
+      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. Queues run side by side, so start a new one for unrelated work.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
+    },
+    "actions": {
+      "new": "New scenario",
+      "run": "Run scenario"
+    },
+    "tabs": {
+      "label": "Scenario sections",
+      "queues": "Queues",
+      "board": "All queues",
+      "library": "Library",
+      "schedule": "Schedule",
+      "history": "History"
+    },
+    "codes": {
+      "unknown": "Something went wrong.",
+      "scenarioGone": "This scenario is no longer on its shelf.",
+      "scenarioBroken": "This scenario has problems to fix before it can run.",
+      "scenarioMissingInput": "Answer every required question first.",
+      "scenarioNotWritten": "The scenario could not be saved.",
+      "scenarioNotDeleted": "The scenario could not be deleted.",
+      "scenarioOnBothShelves": "A scenario with this id is already on the other shelf.",
+      "scenarioNotMoved": "The scenario could not be moved.",
+      "orderNotWritten": "The order of the shelf could not be saved.",
+      "schedulesNotWritten": "The schedule could not be saved.",
+      "queueGone": "This queue no longer exists.",
+      "queueBusy": "Stop the running scenario first.",
+      "queueClosed": "This queue is closed. Start a new one.",
+      "itemGone": "This scenario is no longer in the queue.",
+      "notARepo": "A worktree needs a git repository, and this project is not one.",
+      "noCommits": "A worktree needs at least one commit in the repository.",
+      "worktreeFailed": "The worktree could not be created or used.",
+      "worktreeDirty": "The worktree has changes that are not committed.",
+      "providerMissing": "This AI provider is not available.",
+      "noClaude": "Claude Code is not installed or not found.",
+      "untrusted": "Trust this project folder in the Claude Code panel first.",
+      "runBusy": "This run is still going.",
+      "runGone": "This run is gone.",
+      "runNotResumable": "This run cannot be continued from where it stopped.",
+      "runOver": "This run has already ended.",
+      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed."
+    },
+    "queues": {
+      "emptyTitle": "No queues in this project",
+      "emptyText": "Run a scenario: it starts a queue of its own.",
+      "run": "Run scenario",
+      "listLabel": "Queues of this project",
+      "name": {
+        "label": "Queue name",
+        "hint": "Double-click to rename. Leave it empty to let the AI name it."
+      },
+      "status": {
+        "running": "Running",
+        "paused": "Paused",
+        "asking": "Waiting for you",
+        "idle": "Idle",
+        "held": {
+          "stopAfter": "Stopped as asked",
+          "failed": "Stopped: not done",
+          "refused": "Stopped: would not start",
+          "interrupted": "Stopped: IDE closed"
+        },
+        "closed": "Closed, worktree kept"
+      },
+      "workdir": {
+        "worktree": "worktree · {{branch}}",
+        "removed": "worktree removed",
+        "project": "project folder"
+      },
+      "items": {
+        "label": "Scenarios in this queue",
+        "open": "Open this run",
+        "stopMark": "The queue stops after this one",
+        "afterSuccess": "after success",
+        "afterAny": "after any end",
+        "refused": "Would not start: {{why}}",
+        "dot": "{{number}}. {{name}} · {{state}}",
+        "dotStop": "{{number}}. {{name}} · {{state}} · the queue stops after it"
+      },
+      "itemMenu": {
+        "label": "Actions for {{name}}",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "stopAfter": "Stop after this",
+        "keepGoing": "Don't stop after this",
+        "afterSuccess": "Start only after success",
+        "remove": "Remove from queue"
+      },
+      "running": {
+        "worked": "active",
+        "tokens": "tokens",
+        "cost": "cost",
+        "progress": "Cards done",
+        "cards": "{{done}}/{{total}} cards",
+        "asking": "It is asking",
+        "askingBlank": "It stopped to ask you something.",
+        "answer": "Answer"
+      },
+      "hold": {
+        "stopAfter": "Stopped after {{name}}, as you asked.",
+        "failed": "{{name}} did not finish. Nothing after it starts until you resume.",
+        "refused": "{{name}} would not start: {{why}}",
+        "interrupted": "The IDE closed while {{name}} was running.",
+        "someone": "A scenario",
+        "resume": "Resume",
+        "dismiss": "Dismiss",
+        "openRun": "Open run"
+      },
+      "controls": {
+        "label": "Queue controls",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stopAfterCurrent": "Stop after current",
+        "keepGoing": "Don't stop after current",
+        "stop": "Stop",
+        "add": "Add scenario"
+      },
+      "stopDialog": {
+        "title": "Stop {{name}}?",
+        "text": "It stops now. You can continue it later from its run.",
+        "hold": "Hold the queue after it",
+        "holdNote": "Nothing after it starts until you resume.",
+        "confirm": "Stop"
+      },
+      "menu": {
+        "label": "Queue actions",
+        "rename": "Rename",
+        "openWorktree": "Open worktree as project",
+        "removeWorktree": "Remove worktree…",
+        "close": "Close queue",
+        "busy": "Wait until the running scenario ends."
+      },
+      "closeDialog": {
+        "title": "Close {{name}}?",
+        "text": "A closed queue runs nothing more. Its past runs stay in History.",
+        "waiting_one": "1 scenario waiting in it will not run.",
+        "waiting_other": "{{count}} scenarios waiting in it will not run.",
+        "checking": "Checking its worktree…",
+        "worktreeKept": "Its worktree has work in it and stays, on branch {{branch}}. The queue stays in the list until you remove the worktree.",
+        "worktreeDropped": "Its worktree has nothing new and is removed with it.",
+        "confirm": "Close queue"
+      }
+    },
+    "board": {
+      "emptyTitle": "No queues in any open project",
+      "emptyText": "Queues of every open project show up here.",
+      "run": "Run scenario",
+      "summary": "Queues at a glance",
+      "running": "{{count}} running",
+      "waiting": "{{count}} waiting for you",
+      "quiet": "Nothing running",
+      "current": "This project",
+      "open": "Go to project",
+      "openQueue": "Go to this queue in its project"
+    },
+    "library": {
+      "project": "In this project",
+      "user": "In every project",
+      "help": {
+        "label": "About this shelf",
+        "project": "A scenario on this shelf is a file in the project's .claude/scenarios folder. It travels with the repository: everyone working here has it, next to the project's own commands and skills.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, {{up}} and {{down}} do the same.",
+        "user": "A scenario on this shelf is yours alone: it lives in your home folder and follows you from project to project.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, {{up}} and {{down}} do the same."
+      },
+      "projectEmpty": "No shared scenario yet",
+      "userEmpty": "Nothing of your own yet",
+      "create": "New scenario",
+      "loading": "Reading the scenarios…",
+      "stages_one": "{{count}} stage",
+      "stages_other": "{{count}} stages",
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards",
+      "hasLoop": "has a loop",
+      "perItem": "per item",
+      "asksFor": "asks: {{names}}",
+      "broken": "needs fixing before it can run",
+      "problems_one": "{{count}} problem",
+      "problems_other": "{{count}} problems",
+      "running_one": "Running",
+      "running_other": "{{count}} running",
+      "queued_one": "Queued",
+      "queued_other": "{{count}} queued",
+      "run": "Run",
+      "fix": "Fix it",
+      "edit": "Edit",
+      "schedule": "Schedule a run",
+      "scheduleNext": "Schedule a run · next {{when}}",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "scheduled_one": "{{count}} scheduled",
+      "scheduled_other": "{{count}} scheduled",
+      "missed": "missed {{when}}",
+      "next": "next {{when}}",
+      "then": "then {{when}}",
+      "move": "Drag to another place or onto the other shelf ({{up}} {{down}})",
+      "confirmDelete": {
+        "title": "Delete this scenario?",
+        "note": "Its file goes from the shelf. Runs it already made stay in the history.",
+        "submit": "Delete"
+      }
+    },
+    "launch": {
+      "title": "Run scenario",
+      "scenario": "Scenario",
+      "choose": "Choose a scenario",
+      "inProject": "In this project",
+      "inEvery": "In every project",
+      "broken": "Has problems to fix first. Open it in Library to see them.",
+      "loading": "Reading the scenarios…",
+      "emptyTitle": "No scenarios yet",
+      "emptyText": "Write one first, by hand or with AI.",
+      "newScenario": "New scenario",
+      "required": "{{label}} · required",
+      "provider": "Provider",
+      "unavailable": {
+        "noCli": "Not installed or not found"
+      },
+      "where": "Where",
+      "newQueue": "New queue",
+      "addTo": "Add to a queue",
+      "worktree": "Run in a separate worktree",
+      "worktreeNote": "A copy of the repository on its own branch, made from the current commit. Uncommitted changes are not carried over.",
+      "notGit": "Needs a git repository.",
+      "uncommitted_one": "1 uncommitted file stays in the project folder: the worktree will not have it.",
+      "uncommitted_other": "{{count}} uncommitted files stay in the project folder: the worktree will not have them.",
+      "sharedFolder": "{{name}} already works in the project folder: both queues would change the same files.",
+      "afterSuccess": "Start only after the previous one succeeds",
+      "afterSuccessNote": "If it fails or is stopped, the queue stops here and waits for you.",
+      "queueFacts": "{{place}} · {{state}}",
+      "run": "Run",
+      "add": "Add to queue"
+    },
+    "run": {
+      "loading": "Reading the run…",
+      "missing": "This run is gone",
+      "missingHint": "Its record is no longer on this machine.",
+      "help": {
+        "label": "About this run",
+        "title": "A run",
+        "text": "A run is one pass of a scenario. Cards do the work, each in its own conversation, and the main thread reads what every card did and decides what comes next: send it back, move on or stop.\n\nLog on a card opens that card's conversation as it is. Main thread opens the main thread's own conversation: how it read each card and why it decided what it did.\n\nWrite to the main thread at the bottom. It reads your words between cards and answers in the timeline.\n\nPause keeps everything alive and goes on from the same place. Stop cuts the current card short. A stopped or failed run can be continued: the same main thread picks up where it stood."
+      },
+      "mainThread": "Main thread",
+      "mainThreadHint": "The main thread's conversation: how it read each card and why it decided what it did",
+      "back": "Back to the run",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "stopTitle": "Stop the run?",
+      "stopNote": "Whatever a card is doing right now is cut short, and the stages after it never happen.",
+      "carryOn": "Continue the run",
+      "carryOnHint": "Picks up where it stood: the same main thread with everything it remembers, and the card that was cut short is told to carry on",
+      "active": "active",
+      "took": "took",
+      "tokens": "tokens",
+      "cost": "cost",
+      "started": "started",
+      "limit": {
+        "label": "Limit",
+        "named": "The {{window}} limit",
+        "plain": "The usage limit",
+        "defaultAccount": "Claude Code sign-in",
+        "resting": "{{limit}} of {{account}} ran out - the run goes on by itself at {{clock}}",
+        "unfitResting": "{{account}} could not take the run, and no other account has room - the run goes on by itself at {{clock}}",
+        "windows": {
+          "fiveHour": "5-hour",
+          "weekly": "weekly",
+          "weeklyOpus": "weekly Opus",
+          "weeklySonnet": "weekly Sonnet"
+        }
+      },
+      "moves": {
+        "choice": "Moved the run to {{to}} - the account you chose.",
+        "limitMoved": "{{limit}} of {{from}} ran out. Moved the run to {{to}}.",
+        "limitWait": "{{limit}} of {{from}} ran out, and no other account has room. The run waits.",
+        "unfitMoved": "{{from}} could not take the run. Moved the run to {{to}}.",
+        "unfitWait": "{{from}} could not take the run, and no other account has room. The run waits.",
+        "goesOnAt": "It goes on by itself at {{clock}}."
+      },
+      "question": {
+        "title": "It is asking",
+        "nothingSpent": "nothing is being spent while this stands",
+        "placeholder": "What to tell it…",
+        "send": "Send",
+        "allow": "Allow",
+        "refuse": "Refuse",
+        "copy": "Copy the arguments",
+        "copied": "Copied",
+        "trimmed": "Only the start of the call is shown here. The full call is in the step log.",
+        "openLog": "Open the step log"
+      },
+      "stage": {
+        "titled": "Stage {{index}} · {{title}}",
+        "untitled": "Stage {{index}}",
+        "done": "done · {{took}}",
+        "here": "here now",
+        "notReached": "not reached",
+        "rounds": "×{{count}}",
+        "roundsUntil": "×{{count}}, until done",
+        "items_one": "{{count}} item",
+        "items_other": "{{count}} items",
+        "listAhead": "list not given yet",
+        "listEmpty": "empty list"
+      },
+      "step": {
+        "passOf": "pass {{pass}} of {{passes}}",
+        "passOfUpTo": "pass {{pass}} of up to {{passes}}",
+        "itemOf": "item {{index}} of {{count}}",
+        "secondGo": "second go",
+        "listPending": "waiting for the list",
+        "listEmpty": "nothing on the list",
+        "notYet": "not yet",
+        "log": "Log",
+        "openLog": "Open the log of {{title}}",
+        "meetsDone": "Meets its definition of done.",
+        "later": "comes back after the rest",
+        "sentBack": "Sent back: {{reason}}",
+        "takenOver": "The main thread took it over: {{reason}}",
+        "finishing": "the main thread is finishing it",
+        "handoff": "Passed on to the next card"
+      },
+      "notes": {
+        "head": "Main thread",
+        "you": "You",
+        "panel": "IDE",
+        "waiting": "waiting for the main thread to be free",
+        "passedOn": "Passed on to the card",
+        "answering": "The main thread is writing a reply…"
+      },
+      "end": {
+        "done": "Every card is done.",
+        "stopped": "You stopped it at {{card}}. Nothing after that card was started.",
+        "stoppedEarly": "You stopped it before the first card began.",
+        "failed": "It stopped on a failure at {{card}}.",
+        "failedEarly": "It stopped on a failure before the first card began."
+      },
+      "failures": {
+        "noHead": "The main thread could not start: {{error}}",
+        "noStart": "A card's session could not start: {{error}}",
+        "tooLong": "A card ran past its time (3 hours).",
+        "headSilent": "The main thread stopped answering.",
+        "crashed": "A process went away.",
+        "refused": "The main thread's turn failed: {{error}}",
+        "noVerdict": "The main thread never answered with a decision.",
+        "retries": "Sent back as many times as allowed, still not done.",
+        "stopped": "Cut short by you.",
+        "undone": "The main thread judged a card not done.",
+        "headGaveUp": "The main thread could not finish a card either.",
+        "longList": "The list was longer than a stage takes."
+      },
+      "tell": {
+        "label": "Write to the main thread",
+        "placeholder": "Write to the main thread…",
+        "over": "The run is over",
+        "send": "Send",
+        "sendHint": "Send to the main thread ({{key}})"
+      },
+      "log": {
+        "step": "Step · {{title}}",
+        "head": "Main thread",
+        "loading": "Reading…",
+        "missing": "There is no record of this conversation on this machine",
+        "earlier": "Load earlier messages",
+        "scenario": "Scenario",
+        "card": "Card"
+      },
+      "chat": "Continue in a chat",
+      "chatHint": "Open the main thread as an ordinary chat in the Claude Code panel. It stops being the main thread and can change files again."
+    },
+    "editor": {
+      "save": "Save",
+      "saving": "Saving…",
+      "discard": "Discard",
+      "untitled": "New scenario",
+      "unsaved": "Not saved yet",
+      "inRepository": "This project",
+      "everyProject": "Every project",
+      "stages_one": "{{count}} stage",
+      "stages_other": "{{count}} stages",
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards",
+      "issues_one": "{{count}} issue",
+      "issues_other": "{{count}} issues",
+      "issuesHint": "Listed under the outline. Red ones keep it from running.",
+      "untitledStage": "An untitled stage",
+      "untitledCard": "An untitled card",
+      "badName": "Letters, digits, - and _ only",
+      "pickerHint": "{{caption}}: {{value}}",
+      "help": {
+        "label": "How a scenario works",
+        "title": "Scenario editor",
+        "text": "A scenario is stages with cards. Each card is a job for its own AI session; the main thread reads what the card did, judges it by your briefing and decides what comes next.\n\nA prompt writes {{name}} where an answer to a question asked before the run goes, and [[name]] where the main thread fills in what the cards above found out. Both are lit up as you type.\n\nProblems are listed under the outline: red ones keep the scenario from running, yellow ones are worth tidying. Choosing the other shelf moves the file when you save."
+      },
+      "confirmDiscard": {
+        "title": "Discard your changes?",
+        "titleNew": "Discard this scenario?",
+        "note": "What you changed since it was last saved is lost.",
+        "noteNew": "It has not been saved yet, so nothing of it is kept.",
+        "submit": "Discard"
+      },
+      "outline": {
+        "label": "Outline of the scenario",
+        "scenario": "The scenario",
+        "nameAndShelf": "Name and shelf",
+        "head": "Main thread",
+        "inputs": "Asks for",
+        "stages": "Stages",
+        "addStage": "Add a stage",
+        "perItem": "per item",
+        "rounds": "×{{count}}",
+        "roundsUntil": "×{{count}}, until done",
+        "problems": "Cannot run until fixed",
+        "warnings": "Worth tidying"
+      },
+      "name": {
+        "label": "Name",
+        "keptIn": "Kept in",
+        "noRepository": "This project has no folder to keep it in"
+      },
+      "head": {
+        "title": "Main thread",
+        "note": "it reads this and judges every card by it",
+        "briefingHint": "What this round of work is for, in your own words. The main thread reads this and judges every card by it.",
+        "asNewTab": "As a new chat would",
+        "asNewTabHint": "Whatever a new chat tab starts with",
+        "onQuestion": "On a question",
+        "questionHead": "It answers",
+        "questionHeadHint": "The main thread answers a card's question itself",
+        "questionStop": "Stop and wait for me",
+        "questionStopHint": "The run stands still until you answer",
+        "onGiveUp": "When a card cannot finish",
+        "giveUpStop": "Stop the run",
+        "giveUpStopHint": "A card its session could not finish ends the run",
+        "giveUpHead": "The main thread finishes it",
+        "giveUpHeadHint": "The main thread takes the card over and does it itself",
+        "retries": "Send back",
+        "never": "Never",
+        "once": "Once",
+        "twice": "Twice",
+        "times": "{{count}} times"
+      },
+      "runsOn": {
+        "model": "Model",
+        "effort": "Effort",
+        "mode": "Mode",
+        "otherModels": "Other models",
+        "efforts": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "xhigh": "Extra high",
+          "max": "Max"
+        },
+        "effortHints": {
+          "low": "Quick answers, little thinking",
+          "medium": "Balanced speed and depth",
+          "high": "Thinks things through",
+          "xhigh": "Deep work on hard problems",
+          "max": "Everything it has, slowest"
+        },
+        "modes": {
+          "default": "Ask before edits",
+          "acceptEdits": "Accept edits",
+          "plan": "Plan mode",
+          "auto": "Auto",
+          "bypassPermissions": "Bypass permissions"
+        },
+        "modeHints": {
+          "default": "Asks before editing files or running commands",
+          "acceptEdits": "File edits go through, commands still ask",
+          "plan": "Explores and plans, changes nothing",
+          "auto": "Decides what is safe to run on its own",
+          "bypassPermissions": "Nothing asks. Only where mistakes are cheap"
+        }
+      },
+      "inputs": {
+        "title": "Asked before it starts",
+        "add": "Add a question",
+        "none": "Nothing is asked before this scenario starts.",
+        "name": "Name in prompts",
+        "namePlaceholder": "name",
+        "label": "On the form",
+        "labelPlaceholder": "What to call it on the form",
+        "placeholder": "Hint in the empty field",
+        "placeholderPlaceholder": "An example of an answer",
+        "required": "Must be filled",
+        "requiredHint": "The run does not start with this left empty",
+        "remove": "Remove this question"
+      },
+      "stage": {
+        "head": "Stage {{number}} · {{title}}",
+        "newTitle": "Stage {{number}}",
+        "title": "Stage title",
+        "goesRound": "goes round ×{{count}}",
+        "goesRoundUntil": "goes round ×{{count}}, until done",
+        "perItem": "once per item of a list",
+        "moveUp": "Move the stage up",
+        "moveDown": "Move the stage down",
+        "remove": "Remove this stage",
+        "lastStage": "A scenario keeps at least one stage",
+        "runs": "Runs",
+        "runsMenu": "How many times the stage runs",
+        "times_one": "{{count}} time",
+        "times_other": "{{count}} times",
+        "untilDone": "Or fewer, if the main thread says it is done",
+        "untilDoneHint": "The number stays a ceiling, so a run cannot go round all night",
+        "list": "The list",
+        "itemName": "Item name",
+        "listLabel": "What the list is",
+        "listHint": "What the list is and what one item of it looks like. The main thread gives the whole list as the stage begins, and the stage runs once for each item.",
+        "itemNote": "Each pass gets its own item wherever a prompt says {{slot}} - it needs no slot.",
+        "addCard": "Add a card to this stage"
+      },
+      "card": {
+        "title": "Card title",
+        "titleHint": "What this card is called",
+        "sameAsHead": "Same as the main thread",
+        "sameAsHeadHint": "Runs on what the main thread runs on",
+        "moveUp": "Move the card up",
+        "moveDown": "Move the card down",
+        "duplicate": "Duplicate the card",
+        "remove": "Remove this card",
+        "prompt": "What its session is told",
+        "promptHint": "What this card's own session is told. {{input}} is answered before the run; {{slot}} is filled by the main thread from what the cards above found out.",
+        "dod": "Done when",
+        "dodHint": "How the main thread is to tell this card is finished. Empty means the turn ending is enough.",
+        "after": "Hand on",
+        "afterHint": "What the main thread should do once this card is done - check something, note something down.",
+        "slots": "Slots it fills",
+        "noSlots": "None. Write {{slot}} in the prompt and describe it here.",
+        "slotName": "Slot name",
+        "slotPlaceholder": "name",
+        "slotDescription": "What the main thread is to put here",
+        "addSlot": "Add a slot",
+        "removeSlot": "Remove this slot",
+        "runsOn": "It runs on"
+      },
+      "problems": {
+        "noStages": "There are no stages in it.",
+        "emptyStage": "{{stage}}: there are no cards in it.",
+        "noPrompt": "{{card}}: nothing is written for its session to do.",
+        "unknownInput": "{{card}}: {{input}} is not something this scenario asks for.",
+        "undeclaredSlot": "{{card}}: {{slot}} is in the prompt but nobody is asked to fill it.",
+        "unusedSlot": "{{card}}: the slot {{name}} is described but never used in the prompt.",
+        "duplicateInput": "Two questions are both called {{name}}.",
+        "duplicateSlot": "{{card}}: two slots are both called {{name}}.",
+        "badInputName": "\"{{name}}\" is not a name - use letters, digits, - and _.",
+        "badSlotName": "{{card}}: \"{{name}}\" is not a name - use letters, digits, - and _.",
+        "badItemName": "{{stage}}: \"{{name}}\" is not a name for the item - use letters, digits, - and _.",
+        "noItemList": "{{stage}}: nothing says what the list is.",
+        "itemSlotClash": "{{card}}: the slot {{name}} has the name of the stage's item, which the IDE fills itself.",
+        "unusedItem": "{{stage}}: no prompt writes {{slot}}, so every pass is told the same.",
+        "unnamedInput": "A question has no name yet.",
+        "unnamedSlot": "{{card}}: a slot has no name yet.",
+        "unnamedItem": "{{stage}}: the item of the list has no name."
+      }
+    },
+    "author": {
+      "title": "New scenario",
+      "description": "Say what the work is - Claude writes it down",
+      "reading": "Claude is reading the project",
+      "what": "What the work is",
+      "placeholder": "Describe the round of work: what to do, in what order, and what has to be true at the end.",
+      "keptIn": "Kept in",
+      "inRepository": "This project",
+      "inRepositoryNote": "It travels with the repository: everyone working here has it.",
+      "everyProject": "Every project",
+      "everyProjectNote": "Yours alone: it follows you from project to project.",
+      "noRepository": "This project has no folder to keep a shared scenario in.",
+      "byHand": "Build it myself",
+      "write": "Write it for me",
+      "writing": "Claude is writing it…",
+      "writingLabel": "Claude is writing the scenario",
+      "failed": "Claude could not write it: {{error}}",
+      "help": {
+        "label": "About writing a scenario",
+        "text": "Say in your own words what the round of work is, and Claude writes it down as stages and cards. It reads the project and your skills first; at a high effort this can take a few minutes.\n\nWhat it writes is not saved: it opens in the editor, you look it over and press Save. Build it myself opens an empty scenario instead."
+      },
+      "errors": {
+        "noClaude": "Claude Code is not installed or could not be found.",
+        "untrusted": "Trust this folder in a chat first: Claude reads the project to write the scenario.",
+        "outdated": "This Claude Code is too old to write a scenario. Update it and try again.",
+        "timeout": "No answer in ten minutes. Try a shorter description, or build it yourself.",
+        "empty": "Say what the work is first.",
+        "unreadable": "Claude answered, but not with a scenario. Try again, or build it yourself.",
+        "failed": "The draft could not be written. Try again, or build it yourself."
+      }
+    },
+    "schedule": {
+      "title": "Scheduled runs",
+      "add": "Schedule a run",
+      "help": {
+        "label": "About the schedule",
+        "text": "At its hour a scheduled run starts the scenario in a new queue, with the answers given when it was set - at that hour there is nobody at the keyboard to answer.\n\nHours start only while this IDE is open. One that passes with it closed is not run late: its row says it was missed, and Run now starts it by hand."
+      },
+      "unreadTitle": "The schedule could not be read.",
+      "unreadNote": "The file on this machine may be damaged. Nothing is written over a list that could not be read.",
+      "emptyTitle": "Nothing is scheduled.",
+      "emptyNote": "Set an hour for a scenario and it starts on its own.",
+      "missedGroup": "Missed",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "missed": "missed",
+      "missedAt": "missed {{when}}",
+      "inTime": "in {{time}}",
+      "todayAt": "today {{clock}}",
+      "yesterdayAt": "yesterday {{clock}}",
+      "repeats": {
+        "once": "once",
+        "daily": "every day",
+        "weekdays": "weekdays",
+        "weekly": "every {{day}}"
+      },
+      "orphan": "Its scenario is not on either shelf",
+      "noAnswers": "no answers needed",
+      "worktree": "Worktree",
+      "worktreeHint": "Starts in a separate git worktree",
+      "runNow": "Run now",
+      "edit": "Change this scheduled run",
+      "remove": "Delete this scheduled run",
+      "confirmDelete": {
+        "title": "Delete this scheduled run?",
+        "note": "The scenario stays; only this hour goes.",
+        "submit": "Delete"
+      },
+      "form": {
+        "title": "Schedule a run",
+        "adding": "{{name}} · adding one",
+        "changing": "{{name}} · changing it",
+        "choose": "Choose a scenario",
+        "scenario": "Scenario",
+        "noScenarios": "There is no scenario that can run yet.",
+        "at": "Time",
+        "hour": "Hour",
+        "minute": "Minute",
+        "due": "next {{when}}, in {{time}}",
+        "repeat": "Repeat",
+        "repeats": {
+          "once": "Once",
+          "daily": "Every day",
+          "weekdays": "Weekdays",
+          "weekly": "Weekly"
+        },
+        "onDay": "Day of the week",
+        "mustFill": "must be filled",
+        "worktree": "Start in a separate worktree",
+        "worktreeHint": "Each start makes a new queue in its own git worktree, so your files stay as they are",
+        "provider": "Provider",
+        "unavailable": "Not available",
+        "submit": "Set the time",
+        "help": {
+          "label": "About scheduled runs",
+          "text": "Answers to the scenario's questions are given now, because at that hour there is nobody at the keyboard to answer.\n\nEach start makes a new queue. With a separate worktree it works in its own copy of the repository on its own branch, and your files stay as they are.\n\nIt starts only while this IDE is open. An hour that passes with it closed is not run late - the row says it was missed."
+        }
+      }
+    },
+    "history": {
+      "title": "Past runs",
+      "help": {
+        "label": "About past runs",
+        "text": "Every run of a scenario in this project, newest first. A run that is still going is on the Queues tab.\n\nRuns marked ACC were made by the Amazing Claude Code plugin in JetBrains. They are here to look at: their queue, stars and deletion stay with the plugin.\n\nTook counts only the work: pauses and time spent waiting for your answer are left out. A star is your own mark - it does not sort the list or keep a run from being deleted."
+      },
+      "emptyTitle": "Nothing has been run yet.",
+      "loading": "Reading the runs…",
+      "table": {
+        "run": "Run",
+        "started": "Started",
+        "finished": "Finished",
+        "took": "Took",
+        "cost": "Cost",
+        "state": "State"
+      },
+      "todayAt": "today {{clock}}",
+      "yesterdayAt": "yesterday {{clock}}",
+      "more_one": "Show {{count}} more",
+      "more_other": "Show {{count}} more",
+      "fewer": "Show fewer",
+      "star": "Star this run",
+      "unstar": "Remove the star",
+      "delete": "Delete this run",
+      "acc": "ACC",
+      "accHint": "Made by the Amazing Claude Code plugin in JetBrains. View only: the plugin runs it.",
+      "confirmDelete": {
+        "title": "Delete this run?",
+        "note": "Its record goes from this machine.",
+        "submit": "Delete"
+      },
+      "failures": {
+        "noHead": "The main thread could not start.",
+        "noStart": "A card's session could not start.",
+        "tooLong": "A card ran past its time (3 hours).",
+        "headSilent": "The main thread stopped answering.",
+        "crashed": "A process went away.",
+        "refused": "The main thread's turn failed.",
+        "noVerdict": "The main thread never answered with a decision.",
+        "retries": "Sent back as many times as allowed, still not done.",
+        "stopped": "Cut short by you.",
+        "undone": "The main thread judged a card not done.",
+        "headGaveUp": "The main thread could not finish a card either.",
+        "longList": "The list was longer than a stage takes."
+      }
+    },
+    "worktree": {
+      "title": "Remove worktree?",
+      "checking": "Checking the worktree…",
+      "gone": "This queue or its worktree is gone.",
+      "missing": "The folder is already gone. Removing cleans up what git still remembers of it.",
+      "ahead_one": "1 commit is not merged anywhere. Its branch keeps it, only the folder goes.",
+      "ahead_other": "{{count}} commits are not merged anywhere. Their branch keeps them, only the folder goes.",
+      "dirty": "It has uncommitted changes. They are lost with the folder.",
+      "clean": "Nothing to lose: no new commits and no changes.",
+      "remove": "Remove",
+      "removeAnyway": "Remove anyway"
+    },
+    "common": {
+      "states": {
+        "starting": "Starting",
+        "running": "Running",
+        "paused": "Paused",
+        "blocked": "Waiting for you",
+        "done": "Done",
+        "failed": "Not done",
+        "stopped": "Stopped",
+        "limit": "Waiting out a limit"
+      },
+      "stepStates": {
+        "waiting": "Not yet",
+        "running": "Running",
+        "asking": "Asking",
+        "judging": "Main thread",
+        "paused": "Paused",
+        "done": "Done",
+        "failed": "Not done",
+        "skipped": "Skipped"
+      },
+      "more": "+{{count}}"
+    }
   },
   "statistics": {
     "title": "Statistics",
-    "stub": "Statistics are not built yet. This area will show usage across all LLM providers."
+    "error": "Statistics could not be read right now. They come back when the IDE reads Claude Code transcripts again.",
+    "empty": {
+      "title": "No statistics yet",
+      "text": "Numbers appear after the first agent turn on this computer or the first minute of work in the IDE."
+    },
+    "filters": {
+      "period": "Period",
+      "source": "Whose agents",
+      "scope": "Projects"
+    },
+    "periods": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "30 days",
+      "all": "All time"
+    },
+    "sources": {
+      "all": "All",
+      "ide": "In IDE",
+      "outside": "Outside IDE"
+    },
+    "scopes": {
+      "all": "All projects",
+      "project": "This project"
+    },
+    "scan": {
+      "label": "Reading Claude Code transcripts",
+      "progress": "Reading Claude Code transcripts: {{files}} of {{filesTotal}} files, {{bytes}} of {{bytesTotal}}. The numbers below are still growing."
+    },
+    "delta": {
+      "new": "new",
+      "flat": "same",
+      "previous": {
+        "today": "Yesterday by this time: {{value}}",
+        "week": "Previous 7 days at this point: {{value}}",
+        "month": "Previous 30 days at this point: {{value}}",
+        "all": "Previous period: {{value}}"
+      }
+    },
+    "humanSince": "Code by hand and presence are counted from {{date}}.",
+    "humanNotYet": "Code by hand and presence are counted from now on.",
+    "week": "Week of {{date}}",
+    "nothing": "Nothing in this period",
+    "you": "You",
+    "agents": "Agents",
+    "changes": "+{{added}} -{{removed}}",
+    "overview": {
+      "title": "Overview",
+      "code": "Code",
+      "linesUnit": "lines changed",
+      "codeFoot": "{{changes}} lines, {{files}} files by agents",
+      "codeShare": "You {{you}}, agents {{agents}}",
+      "agentTime": "Agent time",
+      "agentTimeUnit": "summed",
+      "wall": "Wall-clock {{value}}",
+      "measured": "Measured live",
+      "estimated": "Estimated",
+      "estimateShare": "Measured live {{measured}}, estimated {{estimated}}",
+      "presence": "Your presence",
+      "sessions_one": "{{count}} work session, longest {{longest}}",
+      "sessions_other": "{{count}} work sessions, longest {{longest}}",
+      "tokens": "Tokens & cost",
+      "tokensUnit": "tokens",
+      "cost": "{{cost}} at API prices, cache {{cache}}"
+    },
+    "code": {
+      "title": "Code",
+      "chart": "Lines changed by you and by agents",
+      "chartTitle": "Lines changed",
+      "empty": "No code changes in this period",
+      "yourLines": "Your lines",
+      "agentLines": "Agent lines",
+      "typed": "Typed characters",
+      "pasted": "Pasted characters",
+      "files": "Files by agents",
+      "agentShare": "Agents' share",
+      "languages": "Languages",
+      "noExtension": "no extension"
+    },
+    "time": {
+      "title": "Time",
+      "chart": "Your presence and agent work",
+      "chartTitle": "Presence and agent work",
+      "empty": "No activity in this period",
+      "present": "You present",
+      "working": "Agents working",
+      "withoutYou": "Agents worked without you",
+      "summed": "Agent turns, summed",
+      "wall": "Agents, wall-clock",
+      "estimated": "Estimated from transcripts",
+      "presence": "Your presence"
+    },
+    "habits": {
+      "title": "When you work",
+      "metric": "What the calendar shows",
+      "calendar": "Last 12 months",
+      "rhythm": "Rhythm",
+      "presence": "Presence",
+      "tokens": "Tokens",
+      "less": "Less",
+      "more": "More",
+      "calendarLabel": "Activity over the last year: {{active}} active days, current streak {{current}} days, best {{best}}",
+      "currentStreak": "Current streak",
+      "bestStreak": "Best streak",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "peakPresence": "You work most {{when}}",
+      "peakTokens": "Agents are busiest {{when}}",
+      "noPeak": "Not enough activity in this period to see a pattern",
+      "workSessions": "Work sessions",
+      "averageSession": "Average session",
+      "longestSession": "Longest session"
+    },
+    "tokens": {
+      "title": "Tokens & cost",
+      "chart": "Tokens used by agents",
+      "chartTitle": "Tokens used",
+      "empty": "No tokens in this period",
+      "series": "Tokens",
+      "costNote": "{{cost}} at API prices",
+      "total": "Total tokens",
+      "output": "Output",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write",
+      "fresh": "Fresh input",
+      "cost": "Cost at API prices",
+      "conversations": "Conversations",
+      "prompts": "Your messages",
+      "answers": "Model replies",
+      "cache": "Model input",
+      "cacheLabel": "Cache read {{read}}, cache write {{write}}, fresh input {{fresh}}",
+      "models": "By model",
+      "projects": "By project",
+      "otherFolders": "Other folders",
+      "rowValue": "{{tokens}} · {{cost}}"
+    },
+    "scenarios": {
+      "title": "Scenarios",
+      "empty": "No scenario runs in this period",
+      "outside": "Scenarios run only in the IDE",
+      "runs": "Runs",
+      "done": "Finished successfully",
+      "averageTime": "Average active time",
+      "averageCost": "Average cost",
+      "top": "Most run",
+      "runCount_one": "{{count}} run",
+      "runCount_other": "{{count}} runs"
+    },
+    "tools": {
+      "title": "Tools",
+      "top": "Most used tools",
+      "servers": "Connectors (MCP)",
+      "permissions": "Permission questions",
+      "asked": "Asked",
+      "allowed": "Allowed",
+      "denied": "Denied",
+      "permissionsLabel": "Allowed {{allowed}}, denied {{denied}}",
+      "calls_one": "{{count}} call",
+      "calls_other": "{{count}} calls"
+    },
+    "help": {
+      "label": "About these numbers",
+      "page": {
+        "title": "Statistics",
+        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nToday is the current day; 7 days and 30 days end today. Each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. There is no comparison when the previous period starts before the data does.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
+      },
+      "overview": {
+        "title": "Overview",
+        "text": "Code: lines added and removed, by you in the IDE editor and by agents through successful file edits. The bar shows whose lines they are.\n\nAgent time: how long agent turns ran, added up, so two agents working for an hour make two hours. Wall-clock is the time when at least one agent was working. Part of the time outside the IDE is an estimate from transcripts, and the bar shows how much.\n\nYour presence: minutes when the IDE window was focused and you typed, clicked or scrolled within the last 3 minutes.\n\nTokens and cost: everything the models read and wrote. Cost is at public API prices, not what a subscription charges you."
+      },
+      "code": {
+        "title": "Code",
+        "text": "Code by hand is what you typed in the IDE editor. Each save is compared with the previous save, and only your own changes count: files reloaded from disk, undo and redo do not. Typed and pasted characters are counted separately.\n\nCode by agents comes from successful file edits in Claude Code transcripts, including edits made with shell commands. Failed edits do not count. Each file is counted once. Languages are grouped by file extension."
+      },
+      "time": {
+        "title": "Time",
+        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from transcripts: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
+      },
+      "habits": {
+        "title": "When you work",
+        "text": "The calendar always covers the last year, whatever the period above. Each square is a day: the brighter it is, the busier the day compared with your other active days. A day is active when you were present in the IDE or sent a message to an agent. The current streak does not break until today is over.\n\nThe busiest days and hours are three days in a row and three hours in a row with the most presence, or with the most tokens while there is no presence yet. A work session is a stretch of presence; a break longer than 30 minutes starts a new one."
+      },
+      "tokens": {
+        "title": "Tokens & cost",
+        "text": "Tokens from every answer of every model, subagents included, each counted once. Cost is calculated at public API prices for each model, with cache reads and writes at their own rates. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
+      },
+      "scenarios": {
+        "title": "Scenarios",
+        "text": "Scenario runs that started in the period. Finished successfully is the share of done runs among runs that ended: done, failed or stopped by you. Active time is the time the agent actually worked, without waiting for you. Scenarios run only in the IDE, so Outside IDE never has any."
+      },
+      "tools": {
+        "title": "Tools",
+        "text": "Tool calls by agents, from transcripts. Connector tools (MCP) are grouped by their server. Permission questions are the ones you answered in the IDE panel: how many were asked, allowed and denied."
+      }
+    }
   },
   "claudeCode": {
     "title": "Claude Code",
+    "conversationLog": {
+      "label": "Conversation",
+      "speakers": {
+        "main": "MAIN THREAD",
+        "scenario": "SCENARIO"
+      }
+    },
     "agents": {
       "chipAgent": "AGENT",
       "chipWorkflow": "WORKFLOW",
@@ -853,7 +2008,7 @@
       "forceStopHint": "Claude isn’t confirming the stop"
     },
     "modes": {
-      "menu": "Permission mode (⇧ Tab)",
+      "menu": "Permission mode ({{key}})",
       "labels": {
         "default": "Ask before edits",
         "acceptEdits": "Accept edits",
@@ -1194,7 +2349,7 @@
     },
     "blocked": {
       "trustTitle": "Trust this folder?",
-      "trustText": "Claude Code will load this project's settings, hooks and CLAUDE.md. Hooks can run any command on your Mac, so trust only folders you know.",
+      "trustText": "Claude Code will load this project's settings, hooks and CLAUDE.md. Hooks can run any command on your computer, so trust only folders you know.",
       "trust": "Trust and send",
       "trustOnly": "Trust folder",
       "missingTitle": "Project folder not found",
@@ -1408,7 +2563,7 @@
       "twin": "This account is already here.",
       "cancelled": "Sign-in cancelled.",
       "forgetTitle": "Forget {{name}}?",
-      "forgetText": "Its sign-in is removed from this Mac. Chats on it switch to the default sign-in.",
+      "forgetText": "Its sign-in is removed from this computer. Chats on it switch to the default sign-in.",
       "forgetExternalText": "It goes off this list. Amazing Claude Code keeps it as it is.",
       "logoutTitle": "Log out of the default sign-in?",
       "logoutText": "This signs Claude Code out on every machine that uses this sign-in.",
@@ -1463,11 +2618,11 @@
         "settings": {
           "title": "Settings"
         },
-        "sounds": {
-          "title": "Sound alerts"
-        },
         "calmColors": {
           "title": "No-stress colors"
+        },
+        "meters": {
+          "title": "Under the field"
         },
         "newChat": {
           "title": "New chats"
@@ -1509,19 +2664,19 @@
         },
         "settings": {
           "label": "Settings",
-          "sub": "Sounds, colours, new chats"
+          "sub": "Colours, new chats, the field"
         }
       }
     },
     "settings": {
       "rows": {
-        "sounds": {
-          "label": "Sound alerts",
-          "sub": "When the panel calls you"
-        },
         "calmColors": {
           "label": "No-stress colors",
           "sub": "How much colour the gauges keep"
+        },
+        "meters": {
+          "label": "Under the field",
+          "sub": "Which limits and counters show"
         },
         "newChat": {
           "label": "New chats",
@@ -1548,8 +2703,10 @@
         "on": "On",
         "off": "Off",
         "none": "None",
+        "all": "All",
+        "hidden_one": "{{count}} hidden",
+        "hidden_other": "{{count}} hidden",
         "never": "Never",
-        "countOn": "{{count}} on",
         "fullColor": "Full colour",
         "calm": "One tone",
         "percent": "{{value}}%",
@@ -1557,48 +2714,20 @@
         "fromLines_other": "From {{count}} lines"
       }
     },
-    "sounds": {
-      "events": {
-        "turnDone": {
-          "label": "Turn finished",
-          "hint": "Claude answered and is waiting for you"
-        },
-        "permission": {
-          "label": "Permission asked",
-          "hint": "A tool call needs your approval"
-        },
-        "question": {
-          "label": "Question asked",
-          "hint": "Claude asked you to pick an answer"
-        },
-        "plan": {
-          "label": "Plan ready",
-          "hint": "A plan is waiting for your approval"
-        },
-        "limit": {
-          "label": "Limit reached",
-          "hint": "The subscription limit stopped the turn"
-        },
-        "extraUsage": {
-          "label": "Extra usage started",
-          "hint": "The plan is used up - the work is now billed on top"
-        },
-        "error": {
-          "label": "Something broke",
-          "hint": "An error, a dead process or a signed-out session"
-        }
-      },
-      "play": "Play {{sound}}",
-      "volume": "{{sound}} volume",
-      "percent": "{{value}}%",
-      "muted": "Muted"
-    },
     "calmColors": {
       "sample": "A gauge at every level",
       "label": "Colour in the gauges",
       "hint": "The whole ladder at 100%, one calm tone at 0%",
       "percent": "{{value}}%",
       "help": "Nothing else changes: an error stays red, a permission stays what it is. Those are things that happened, not a mood."
+    },
+    "meters": {
+      "ring": "Limit ring and its percent",
+      "tokens": {
+        "label": "Tokens today",
+        "sub": "Across all projects on this machine"
+      },
+      "noLimits": "Limit rings show up here once Claude Code reports the limits of this account."
     },
     "newChats": {
       "rows": {
@@ -1968,8 +3097,69 @@
       "openSettings": "Settings…",
       "textSizeUp": "Increase Text Size",
       "textSizeDown": "Decrease Text Size",
-      "textSizeReset": "Reset Text Size"
+      "textSizeReset": "Reset Text Size",
+      "remoteControl": "Remote Control…",
+      "fileHistory": "Show Local History: {{name}}",
+      "projectHistory": "Local History: Recent Changes in {{name}}"
     },
     "longQuery": "The text is too long: search takes up to {{count}} characters."
+  },
+  "activityBar": {
+    "waiting": "{{label}} - {{count}} waiting for you"
+  },
+  "remote": {
+    "title": "Remote Control",
+    "close": "Close",
+    "enabled": "Remote Control on",
+    "relay": "On your own relay",
+    "offHint": "Off: the IDE is not on the relay",
+    "state": {
+      "off": "Off",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "reconnecting": "Reconnecting",
+      "relayDown": "Relay unavailable",
+      "displaced": "Address in use",
+      "refused": "Refused"
+    },
+    "displacedHint": "Another computer is using this IDE's Remote Control address. Turn Remote Control off there; this IDE tries again every few minutes.",
+    "button": {
+      "off": "Remote Control is off",
+      "on_one": "Remote Control: {{count}} phone on the line",
+      "on_other": "Remote Control: {{count}} phones on the line",
+      "pending": "Remote Control: {{label}} waits for your approval"
+    },
+    "keysNotKept": "This computer has no system encryption for the IDE: paired phones work until the IDE restarts, then pair them again.",
+    "thisIde": "This IDE",
+    "fingerprintNote": "The phone shows this code when it pairs",
+    "relayLabel": "Relay",
+    "pair": {
+      "title": "Pair a phone",
+      "start": "Show pairing code",
+      "turnOn": "Turn on Remote Control to pair a phone.",
+      "scan": "Scan with the phone camera. The code works once.",
+      "qrLabel": "Pairing QR code",
+      "stop": "Stop offering"
+    },
+    "pending": {
+      "title": "{{label}} wants to connect",
+      "check": "Approve only if the phone shows this code:",
+      "approve": "Approve",
+      "refuse": "Refuse"
+    },
+    "phones": {
+      "title": "Paired phones",
+      "empty": "No phones yet",
+      "online": "On the line",
+      "notifications": "Notifications",
+      "seen": "{{fingerprint}} · seen {{when}}",
+      "revoke": "Revoke",
+      "revokeLabel": "Revoke {{label}}"
+    },
+    "help": {
+      "label": "What the phone can do",
+      "title": "What the phone can do",
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Email addresses reach it masked.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort or fast mode.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
+    }
   }
 }

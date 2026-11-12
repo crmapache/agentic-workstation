@@ -1,4 +1,5 @@
 import type { SearchFindRequest } from '@shared/claude-search'
+import type { StatsSource } from '@shared/statistics'
 
 /**
  * Ключи кэша React Query для данных главного процесса. Одна сущность - один ключ:
@@ -25,6 +26,14 @@ export const QUERY_KEYS = {
     relativePath,
   ],
   projectImages: (projectId: string) => ['fs', 'image', projectId],
+  /** Ссылки на то, что переименовывают или переносят в дереве: где и сколько. */
+  fileReferences: (projectId: string, from: string, to: string) => [
+    'fs',
+    'references',
+    projectId,
+    from,
+    to,
+  ],
   /** Картинка с сайта в просмотре Markdown - одна на окно, по адресу. */
   webImage: (url: string) => ['web', 'image', url],
   /** Файлы проекта и найденный текст - для поиска везде. */
@@ -35,6 +44,12 @@ export const QUERY_KEYS = {
   gitStatus: (projectId: string) => ['git', 'status', projectId],
   /** Список изменений относительно HEAD (вид Changes); свежий присылает главный процесс. */
   gitChanges: (projectId: string) => ['git', 'changes', projectId],
+  /** Локальная история файла или папки ('' - проект): события, новые сверху (ADR 0045). */
+  localHistory: (projectId: string, path: string) => ['history', 'list', projectId, path],
+  /** Все истории проекта разом: сбросить, когда главный процесс сказал history:changed. */
+  localHistories: (projectId: string) => ['history', 'list', projectId],
+  /** Содержимое версии по ключу: ключ - отпечаток, версия под ним не меняется никогда. */
+  historyContent: (projectId: string, key: string) => ['history', 'content', projectId, key],
   /** Файл, каким он лежит в последнем коммите, - левая сторона разницы. */
   gitHeadFile: (projectId: string, path: string) => ['git', 'head-file', projectId, path],
   /** Все файлы проекта из HEAD разом: сбросить после коммита или смены ветки. */
@@ -49,12 +64,44 @@ export const QUERY_KEYS = {
   connectors: ['connectors'],
   /** Живые оболочки терминала всех проектов (ADR 0037); вышедшие убирает главный процесс. */
   terminalSessions: ['terminal', 'sessions'],
+  /** Очереди сценариев всех проектов и идущие прогоны (ADR 0039). */
+  scenarioQueues: ['scenarios', 'queues'],
+  /** Полки, история и расписание сценариев проекта. */
+  scenarioShelves: (projectId: string) => ['scenarios', 'shelves', projectId],
+  /** Прогон сценария целиком - только открытый. */
+  scenarioRun: (runId: string) => ['scenarios', 'run', runId],
+  /** Журнал шага прогона - разговор провайдера той же лентой, что в его панели. */
+  scenarioStepLog: (runId: string, key: string) => ['scenarios', 'step-log', runId, key],
+  /**
+   * Что сейчас в worktree очереди - для вопроса перед удалением. Событий о нём нет: за минуту
+   * в worktree могли закоммитить, поэтому читается на каждое открытие вопроса.
+   */
+  scenarioWorktreeFacts: (queueId: string) => ['scenarios', 'worktree-facts', queueId],
+  /** Провайдеры ИИ и на месте ли они. */
+  providers: ['providers'],
+  /** Remote Control (ADR 0041): связь, пара и телефоны; свежий вид присылает главный процесс. */
+  remote: ['remote'],
+  /** Как идёт чтение транскриптов статистики - одно на окно; свежее приносит stats:changed. */
+  statsScan: ['stats', 'scan'],
+  /** Все отчёты статистики разом: сбросить, когда главный процесс сказал stats:changed. */
+  statsReports: ['stats', 'report'],
+  /** Отчёт статистики: период в мс, чьи агенты и проект - всё, что меняет ответ. */
+  statsReport: (from: number, to: number, source: StatsSource, projectId: string | null) => [
+    'stats',
+    'report',
+    from,
+    to,
+    source,
+    projectId,
+  ],
   /** MCP-серверы из конфига Claude Code для переноса: свежие на каждое открытие. */
   connectorImportCandidates: ['connectors-import', 'candidates'],
   /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */
   connectorAgentApps: ['connectors-agent-apps'],
   /** Разговоры с Claude Code и лента каждого (ADR 0009). */
   claudeState: ['claude', 'state'],
+  /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
+  soundPrefs: ['sounds', 'prefs'],
   claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],
   claudeHistory: (projectId: string) => ['claude', 'history', projectId],
   claudeTodayTokens: ['claude', 'todayTokens'],

@@ -1,9 +1,10 @@
-import { X, History, Palette, Sparkles, ArrowRightLeft, SquareTerminal } from 'lucide-react'
+import { X, History, Palette, Smartphone, ArrowRightLeft, SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { MAIN_VIEWS } from '../views/main-views'
 import { toggleShowcase } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
+import { AI_ICON } from '../../lib/ai-icon.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { useWorkspace, useActiveProject, useWorkspaceActions } from '../../state/workspace.queries'
 import { OPEN_PANEL_KEY } from '../../features/claude-code/panel-keys.constants'
@@ -16,8 +17,10 @@ import { availableActions } from '../../features/git/git-actions.utils'
 import { useGitHead } from '../../features/git/git.queries'
 import { PROJECT_ACTIONS } from '../../features/projects/project-actions.constants'
 import { useProjectActionRunner } from '../../features/projects/project-actions.hooks'
+import { useRemoteStore } from '../../features/remote/remote.store'
 import type { SearchAction } from '../../features/search-everywhere/search-everywhere.types'
 import { useClaudePanelToggle } from './claude-panel'
+import { useHistoryActions } from './history-actions'
 import { useSettingsActions } from './settings-actions'
 import { useTerminalToggle } from './terminal-dock'
 import { TERMINAL_KEY } from './terminal-dock.constants'
@@ -42,6 +45,8 @@ export const useIdeActions = (): SearchAction[] => {
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
   const settingsActions = useSettingsActions()
+  const openRemote = useRemoteStore((state) => state.open)
+  const historyActions = useHistoryActions()
 
   const projectActions: SearchAction[] = PROJECT_ACTIONS.map((entry) => ({
     id: `project.${entry.id}`,
@@ -104,10 +109,17 @@ export const useIdeActions = (): SearchAction[] => {
     {
       id: 'view.claudeCode',
       label: t('searchEverywhere.actions.toggleClaudeCode'),
-      icon: Sparkles,
+      icon: AI_ICON,
       // Та же дверь, что у клавиши: показать с клавиатурой в поле или спрятать из панели.
       shortcut: OPEN_PANEL_KEY.join(''),
       run: toggleClaudePanel,
+    },
+    {
+      id: 'ide.remoteControl',
+      label: t('searchEverywhere.actions.remoteControl'),
+      icon: Smartphone,
+      keywords: ['phone', 'mobile', 'relay', 'pair', 'qr'],
+      run: openRemote,
     },
     {
       id: 'view.terminal',
@@ -143,6 +155,7 @@ export const useIdeActions = (): SearchAction[] => {
     ...workspaceActions,
     ...gitActions,
     ...viewActions,
+    ...historyActions,
     ...settingsActions,
     ...recentActions,
   ]

@@ -15,11 +15,13 @@ import { StatusDot } from '../../StatusDot/StatusDot'
  */
 export const FleetAgentLine = ({ agent, itemId, live, now }: FleetAgentLineProps) => {
   const { t } = useTranslation()
-  const { conversationId } = useFeedScope()
+  const { conversationId, readOnly } = useFeedScope()
   const openFleetAgent = useStreamsStore((state) => state.openFleetAgent)
   const dropped = isDropped(agent, live)
   // В очереди открывать нечего: ни задания, ни ответа - окно в пустоту хуже строки, которая не открывается.
-  const canOpen = Boolean(conversationId) && Boolean(agent.prompt || agent.result || agent.agentId)
+  // В журнале (readOnly) окна агента нет вовсе: оно живёт в ленте панели.
+  const canOpen =
+    !readOnly && Boolean(conversationId) && Boolean(agent.prompt || agent.result || agent.agentId)
   const isQuiet = dropped || agent.state === 'queued' || agent.state === 'skipped'
 
   const handleOpen = () => openFleetAgent(conversationId, { itemId, index: agent.index })

@@ -1,23 +1,68 @@
-@use '@agentic-workstation/ui/mixins' as *;
-
-// Раздел настроек: подпись капсом, под ней настройка и пояснение.
-.section {
+// Строки настроек в карточке раздела: каждая отделена линией, поля строки - в самой строке,
+// чтобы линия шла во всю ширину карточки, а крайние строки не прибавляли к её полям своих.
+.rows {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
 }
 
-.sectionTitle {
-  @include caps-label;
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--size-control-lg);
+  padding: var(--space-3) 0;
 
-  margin: 0;
-  color: var(--color-fg-subtle);
+  & + & {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
 }
 
-// На стекле диалога subtle не дотягивает до 4.5:1 - пояснение muted.
-.hint {
-  margin: 0;
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.rowLabel {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+  transition: color var(--duration-normal) var(--easing-standard);
+}
+
+.rowDescription {
   color: var(--color-fg-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
+}
+
+// Выключенная настройка: подпись и ползунок тише, но живые - ползунком её и включают.
+.dimmed .rowLabel {
+  color: var(--color-fg-subtle);
+}
+
+.dimmed .control {
+  opacity: var(--opacity-muted);
+}
+
+.rowControl {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Ползунок строки - одной ширины во всех строках раздела: столбцом, а не лесенкой.
+.control {
+  width: var(--size-setting-control);
+  transition: opacity var(--duration-normal) var(--easing-standard);
 }

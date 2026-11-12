@@ -22,7 +22,9 @@ import { ModalSpecimen } from './ModalSpecimen'
 
 /**
  * Раздел «Оверлеи»: уведомления трёх видов, живая всплывающая панель с меню,
- * модальный диалог - с затемнением окна и без - и окно с содержимым двух ширин. Всё настоящее - открывается, закрывается по Esc и клику мимо.
+ * модальный диалог - с затемнением окна и без, окно с содержимым двух ширин и просмотр картинки
+ * (со строкой под ней и крестиком под палец - как на телефоне). Всё настоящее - открывается,
+ * закрывается по Esc и клику мимо.
  */
 export const OverlaysSection = () => {
   const { t } = useTranslation('showcase')
@@ -30,6 +32,7 @@ export const OverlaysSection = () => {
   const [dialogBackdrop, setDialogBackdrop] = useState<DialogBackdrop | null>(null)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [isMissingOpen, setIsMissingOpen] = useState(false)
+  const [isReducedOpen, setIsReducedOpen] = useState(false)
   const [branch, setBranch] = useState('')
 
   const closeDialog = () => setDialogBackdrop(null)
@@ -147,6 +150,19 @@ export const OverlaysSection = () => {
           error={t('samples.imageMissing')}
           closeLabel={t('samples.close')}
           onClose={() => setIsMissingOpen(false)}
+        />
+        <Button variant="secondary" onClick={() => setIsReducedOpen(true)}>
+          {t('samples.openReducedImage')}
+        </Button>
+        <Lightbox
+          open={isReducedOpen}
+          src={lightboxSample}
+          alt={t('samples.imageAlt')}
+          loadingLabel={t('samples.imageLoading')}
+          caption={t('samples.imageReduced')}
+          closeLabel={t('samples.close')}
+          closeSize="touch"
+          onClose={() => setIsReducedOpen(false)}
         />
       </Specimen>
     </ShowcaseSection>

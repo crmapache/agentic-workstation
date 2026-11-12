@@ -1,0 +1,38 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Форма - поля один под другим, каждое со своей подписью (как TextField): подпись сверху и
+// рамка поля отделяют выбор от выбора лучше, чем заголовки разделов над тихими кнопками.
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.reading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+}
+
+// Ответы на вопросы - теми же полями формы, тем же шагом.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// Поле и то, что к нему относится (предупреждение, переключатель worktree), - плотнее, чем
+// поля между собой.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Подвал: обе кнопки справа (одна часть подвала встаёт справа своим margin-left).
+.footer {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}

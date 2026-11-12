@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS } from './claude.constants'
+import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 /** С какого процента окно предупреждает и тревожит, если сервер не назвал уровень сам. */
 export const USAGE_WARNING_PERCENT = 70

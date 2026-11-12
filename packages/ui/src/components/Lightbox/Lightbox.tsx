@@ -9,7 +9,8 @@ import type { LightboxProps } from './Lightbox.types'
 /**
  * Картинка крупно поверх окна: скриншот из сообщения, вложение. Не вопрос, как Dialog,
  * а просмотр - закрывается крестиком, Esc и щелчком мимо картинки. Большая картинка
- * вписывается в окно, маленькая остаётся своего размера. Не нашлась - error словами.
+ * вписывается в окно, маленькая остаётся своего размера. Не нашлась - error словами; показана
+ * не та, что в оригинале (уменьшена, миниатюра), - caption под ней.
  */
 export const Lightbox = ({
   open,
@@ -17,7 +18,9 @@ export const Lightbox = ({
   alt,
   loadingLabel,
   error,
+  caption,
   closeLabel,
+  closeSize = 'md',
   onClose,
 }: LightboxProps) => {
   const ref = useModalDialog(open)
@@ -35,7 +38,10 @@ export const Lightbox = ({
       onClose={onClose}
       onClick={handleClick}>
       {src ? (
-        <img className={styles.image} src={src} alt={alt} />
+        <figure className={styles.figure}>
+          <img className={styles.image} src={src} alt={alt} />
+          {caption && <figcaption className={styles.caption}>{caption}</figcaption>}
+        </figure>
       ) : error ? (
         <div role="alert" className={styles.error}>
           {error}
@@ -44,7 +50,7 @@ export const Lightbox = ({
         <div className={styles.loading}>{loadingLabel}</div>
       )}
       <div className={styles.close}>
-        <IconButton icon={X} label={closeLabel} onClick={onClose} />
+        <IconButton icon={X} size={closeSize} label={closeLabel} onClick={onClose} />
       </div>
     </dialog>
   )

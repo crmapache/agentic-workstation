@@ -1,0 +1,75 @@
+// Маячок - плоские круги тона друг на друге (ADR 0006, без теней и бликов): снизу ореол, потом
+// волна, сверху ядро. Ореол дышит прозрачностью, волна расходится от ядра и тает. При «меньше
+// движения» длительности - ноль: ореол стоит ровно, волны нет.
+.callBeacon {
+  --beacon-tone: var(--color-success);
+
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: var(--size-call-beacon-halo);
+  height: var(--size-call-beacon-halo);
+
+  &::before,
+  &::after {
+    content: '';
+    grid-area: 1 / 1;
+    border-radius: var(--radius-full);
+  }
+
+  &::before {
+    width: 100%;
+    height: 100%;
+    background-color: color-mix(in srgb, var(--beacon-tone) var(--tint-soft), transparent);
+    opacity: 0.7;
+    animation: beacon-breathe var(--duration-call-breathe) var(--easing-standard)
+      var(--beacon-phase, 0ms) infinite;
+  }
+
+  &::after {
+    width: var(--size-call-beacon);
+    height: var(--size-call-beacon);
+    background-color: var(--beacon-tone);
+  }
+}
+
+.ripple {
+  grid-area: 1 / 1;
+  width: var(--size-call-beacon);
+  height: var(--size-call-beacon);
+  border: var(--border-width) solid var(--beacon-tone);
+  border-radius: var(--radius-full);
+  opacity: 0;
+  animation: beacon-ripple var(--duration-call-ripple) var(--easing-out) var(--beacon-phase, 0ms)
+    infinite;
+}
+
+.success {
+  --beacon-tone: var(--color-success);
+}
+
+.attention {
+  --beacon-tone: var(--color-accent);
+}
+
+.danger {
+  --beacon-tone: var(--color-danger);
+}
+
+@keyframes beacon-breathe {
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes beacon-ripple {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}

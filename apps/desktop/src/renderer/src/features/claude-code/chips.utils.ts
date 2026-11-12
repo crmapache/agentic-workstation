@@ -1,5 +1,6 @@
 import type { ChipKind, DraftChip } from '@shared/claude-draft'
 
+import { baseName } from '../../lib/path.utils'
 import {
   TITLE_LINES,
   CHIP_PATH_KINDS,
@@ -50,7 +51,7 @@ export const chipLabel = (chip: DraftChip): string => {
   if (chip.kind === 'paste') return pastePreview(chip.text ?? '')
   if (chip.kind === 'cmd') return `/${chip.value}`
 
-  const name = truncateMiddle(chip.value.split('/').filter(Boolean).at(-1) ?? chip.value)
+  const name = truncateMiddle(baseName(chip.value))
 
   return chip.range ? `${name} ${chip.range}` : name
 }
@@ -92,6 +93,9 @@ export const chipTitle = (chip: DraftChip): string => {
   if (chip.kind === 'paste') return hintPreview(chip.text ?? '')
 
   const title = chip.range ? `${chip.value} ${chip.range}` : chip.value
+
+  // Кусок файла с текстом: под курсором - что именно уехало, а не только откуда.
+  if (chip.kind === 'ref' && chip.text !== undefined) return `${title}\n${hintPreview(chip.text)}`
 
   return chipLabel(chip).includes('…') ? title : ''
 }

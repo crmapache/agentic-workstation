@@ -1,5 +1,5 @@
 // Хук electron-builder: после того как dmg и zip собраны, сносит распакованные
-// каталоги сборки (mac-arm64 и подобные).
+// каталоги сборки (mac-arm64, win-unpacked и подобные).
 //
 // Дело не в месте на диске: распакованный Agentic Workstation.app внутри проекта для
 // Spotlight такое же приложение, как установленное, и запустить можно не то.
@@ -10,7 +10,7 @@
 const fs = require('node:fs/promises')
 const path = require('node:path')
 
-const UNPACKED_DIR = /^mac(-.+)?$/
+const UNPACKED_DIR = /^(mac|win)(-.+)?$/
 
 module.exports = async function afterAllArtifactBuild({ outDir }) {
   if (process.env.AGENTIC_WORKSTATION_KEEP_UNPACKED === '1') {

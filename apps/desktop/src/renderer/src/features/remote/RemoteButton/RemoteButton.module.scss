@@ -1,0 +1,5 @@
+// Число телефонов меняется на месте: цифры равной ширины не двигают строку состояния.
+.count {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent } from 'react'
 
+import { withMacKeys } from '../../lib/keys'
 import { useLayoutStore } from '../../state/layout.store'
 import { useClaudeCodeStore } from '../../features/claude-code/claude-code.store'
 import { isOpenPanelKey } from '../../features/claude-code/panel-keys.utils'
@@ -57,7 +58,7 @@ export const useClaudePanelKey = (onToggle: () => void) => {
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (!isOpenPanelKey(event) || document.querySelector('dialog:modal')) return
+      if (!isOpenPanelKey(withMacKeys(event)) || document.querySelector('dialog:modal')) return
 
       event.preventDefault()
       event.stopImmediatePropagation()

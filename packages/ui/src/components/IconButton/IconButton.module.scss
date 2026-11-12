@@ -41,6 +41,11 @@
   height: var(--size-control-md);
 }
 
+.touch {
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+}
+
 // Главное действие без текста (отправить сообщение) - тонированное, как главная
 // кнопка Button: оранжевая иконка и рамка на тёмно-оранжевой подложке.
 .primary {

@@ -1,0 +1,40 @@
+{
+  "name": "@agentic-workstation/phone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Телефонный клиент Remote Control (ADR 0041): PWA, которую раздаёт релей. Пара по QR, проекты, разговоры и очереди сценариев IDE, шифрование на WebCrypto.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "e2e": "vite build && vitest run -c vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "@agentic-workstation/remote-protocol": "workspace:*",
+    "@agentic-workstation/ui": "workspace:*",
+    "@tanstack/react-query": "5.104.3",
+    "clsx": "2.1.1",
+    "i18next": "26.4.6",
+    "lucide-react": "1.57.0",
+    "marked": "18.1.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-i18next": "17.0.18",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@agentic-workstation/relay": "workspace:*",
+    "@types/node": "24.13.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "playwright-core": "1.65.0",
+    "sass": "1.105.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

@@ -13,16 +13,19 @@ import { CallLight } from './parts/CallLight'
 /**
  * Вкладка, которую можно закрыть: открытый проект, разговор. Выбранная залита
  * графитом (tinted - тоном вкладок, плоско, и знаки на ней тем же тоном), крестик виден
- * на ней и при наведении, средняя кнопка мыши закрывает. В полосе разговоров (width grow)
+ * на ней и при наведении, средняя кнопка мыши закрывает; закрывать нечего (closable) - нет и
+ * крестика. В полосе разговоров (width grow)
  * растёт в свободное место и режет подпись посередине; несёт отступ форка и свет
- * позвавшей (CallLight). Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
+ * позвавшей (CallLight), справа у крестика - свои знаки (trailing). Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
  */
 export const ClosableTab = ({
   label,
   hint,
   active,
   closeLabel,
+  closable = true,
   leading,
+  trailing,
   width = 'fill',
   tinted = false,
   indent = 0,
@@ -48,7 +51,7 @@ export const ClosableTab = ({
   } as CSSProperties
 
   const handleAuxClick = (event: MouseEvent) => {
-    if (event.button === MIDDLE_MOUSE_BUTTON) onClose()
+    if (closable && event.button === MIDDLE_MOUSE_BUTTON) onClose()
   }
 
   return (
@@ -61,6 +64,7 @@ export const ClosableTab = ({
         tinted && styles.tinted,
         groupEnd && styles.groupEnd,
         lifted && styles.lifted,
+        !closable && styles.fixed,
         calm && styles.calm,
         call && [styles.calling, styles[call]],
       )}
@@ -97,12 +101,15 @@ export const ClosableTab = ({
             ) : (
               <span className={styles.text}>{label}</span>
             )}
+            {trailing && <span className={styles.trailing}>{trailing}</span>}
           </button>
         </Tooltip>
       )}
-      <span className={styles.close}>
-        <IconButton icon={X} size="sm" label={closeLabel} onClick={onClose} />
-      </span>
+      {closable && (
+        <span className={styles.close}>
+          <IconButton icon={X} size="sm" label={closeLabel} onClick={onClose} />
+        </span>
+      )}
     </div>
   )
 }

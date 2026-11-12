@@ -2,9 +2,15 @@ import { shell } from 'electron'
 
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
+import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
+import type { LocalHistory } from '../history/local-history'
+import type { RemoteService } from '../remote/remote-service'
+import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
+import type { SoundsService } from '../sounds/sounds-service'
+import type { StatsService } from '../statistics/stats-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
@@ -18,12 +24,18 @@ import { createClaudeToolsHandlers } from './claude-tools-handlers'
 import { createComposerHandlers } from './composer-handlers'
 import { createConnectorsHandlers } from './connectors-handlers'
 import { createEditorHandlers } from './editor-handlers'
+import { createFileOpsHandlers } from './file-ops-handlers'
 import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
+import { createLocalHistoryHandlers } from './local-history-handlers'
 import { createProjectSyncHandlers } from './project-sync-handlers'
+import { createRemoteHandlers } from './remote-handlers'
+import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
+import { createSoundsHandlers } from './sounds-handlers'
+import { createStatisticsHandlers } from './statistics-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createWindowHandlers } from './window-handlers'
 import { createWorkspaceHandlers } from './workspace-handlers'
@@ -43,6 +55,16 @@ type Services = HandlerContext & {
   connectors: ConnectorsService
   /** Оболочки терминала под панелью Claude Code (ADR 0037). */
   terminals: TerminalService
+  /** Сценарии на уровне IDE: полки, очереди, прогоны (ADR 0039). */
+  scenarios: ScenarioService
+  /** Статистика IDE и провайдеров: база, транскрипты, живые события. */
+  stats: StatsService
+  /** Remote Control: связь с телефонами через свой релей (ADR 0041). */
+  remote: RemoteService
+  /** Локальная история файлов (ADR 0045): версии за месяц, возврат любой. */
+  history: LocalHistory
+  /** Звуки IDE (ADR 0046): чем и как громко зовут разговоры. */
+  sounds: SoundsService
 }
 
 /**
@@ -50,14 +72,24 @@ type Services = HandlerContext & {
  * запрос и зовёт сервис: логика живёт в сервисах и модулях, не здесь.
  */
 export const createInvokeHandlers = (services: Services): InvokeHandlers => {
-  const { workspace, updates, search, claude } = services
+  const { workspace, updates, search, claude, history } = services
 
   return {
     ...createWorkspaceHandlers(services),
     ...createGitHandlers(workspace),
     ...createSearchHandlers(workspace, search),
     ...createFsHandlers(workspace, search),
-    ...createEditorHandlers(workspace),
+    ...createFileOpsHandlers(
+      workspace,
+      new FileOpsService({
+        listFiles: (root) => search.listFiles(root),
+        trash: (absolute) => shell.trashItem(absolute),
+        history,
+      }),
+    ),
+    ...createLocalHistoryHandlers(workspace, history),
+    ...createSoundsHandlers(services.sounds),
+    ...createEditorHandlers(workspace, history),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
     ...createClaudeHandlers(workspace, claude),
@@ -70,6 +102,9 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createWindowHandlers(services.getWindow),
     ...createConnectorsHandlers(services.connectors),
     ...createTerminalHandlers(workspace, services.terminals),
+    ...createScenariosHandlers(workspace, claude, services.scenarios),
+    ...createStatisticsHandlers(workspace, services.stats),
+    ...createRemoteHandlers(services.remote),
 
     'updates:getStatus': () => updates.getStatus(),
     'updates:install': () => updates.install(),

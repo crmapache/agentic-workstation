@@ -68,6 +68,12 @@
   background-color: var(--color-surface-panel);
 }
 
+// Знаки справа на вкладке проекта (trailing): маячки позвавших разговоров, тонами повода.
+.tabBeacons {
+  display: flex;
+  gap: var(--space-0-5);
+}
+
 // Полоса разговоров переносится в несколько рядов - узкая, чтобы перенос был виден.
 .tabStripWrap {
   display: flex;
@@ -141,4 +147,76 @@
   margin: 0;
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
+}
+
+// Знак с кольцом работы вокруг (Spinner around): номер в кружке ростом с маленький контрол, как
+// текущая остановка дороги сценария. Кольцо - на месте рамки кружка, коробку ему даёт обёртка.
+.spinnerSign {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+}
+
+.spinnerAround {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+// Образец подсказки графика: метка, на которую наводят, - пунктирная рамка, как у пустого места.
+.tipFrame {
+  display: inline-flex;
+}
+
+.tipMark {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Две кнопки под палец поровну в колонке шириной с узкий телефон: длинная подпись переносится.
+.touchPair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  max-width: var(--size-popover-md);
+}
+
+// Место карточки fit - не выше короткого блока ленты, как вопрос над полем ввода телефона.
+.fitBox {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--size-popover-md);
+  max-height: var(--size-scroll-compact-max);
+}
+
+.fitLayout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.fitScroll {
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+// Вертикальные вкладки - в колонке ширины меню разделов окна настроек.
+.tabColumn {
+  width: var(--size-modal-aside);
 }

@@ -1,6 +1,6 @@
 import { lazy } from 'react'
-import { Sparkles } from 'lucide-react'
 
+import { AI_ICON } from '../../lib/ai-icon.constants'
 import type { ProviderViewId } from '../../state/layout.types'
 import type { ViewDescriptor } from './views.types'
 
@@ -12,7 +12,7 @@ import type { ViewDescriptor } from './views.types'
 export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
   {
     id: 'claude-code',
-    icon: Sparkles,
+    icon: AI_ICON,
     labelKey: 'providerViews.claudeCode',
     // Панель за границей ошибок: упавшая отрисовка - экран «Reload the panel», а не пустота.
     Component: lazy(() =>

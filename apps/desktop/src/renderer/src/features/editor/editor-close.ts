@@ -1,7 +1,7 @@
 import { guardDiscard } from '../../state/discard-guard.store'
+import { editorDocuments } from '../../state/editor-documents'
 import { NO_TABS, pathsLeaving } from '../../state/editor-tabs.utils'
 import { useSelectionStore } from '../../state/selection.store'
-import { editorDocuments } from './editor-bus'
 
 /**
  * Закрыть вкладки (файлы и разницу): обычные закрываются сразу (несохранённое дописывается

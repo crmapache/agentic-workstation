@@ -2,6 +2,8 @@ import type { RefObject } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
+import type { ChatOwner } from '../editor-chat'
+
 /** Где открыть меню: точка от левого верхнего угла редактора, в CSS-пикселях. */
 export type MenuPoint = { x: number; y: number }
 
@@ -22,5 +24,12 @@ export type EditorContextMenuProps = {
   /** Точка, где открыли меню; null - меню закрыто. */
   at: MenuPoint | null
   readOnly: boolean
+  /**
+   * Файл в редакторе: с ним в меню «Send to Chat», а у файла проекта - ещё и его локальная
+   * история. Нет - пунктов нет (разница).
+   */
+  chatOwner?: ChatOwner | undefined
+  /** Было ли выделение, когда меню открыли: без него отправлять нечего. */
+  hasSelection?: boolean | undefined
   onClose: () => void
 }

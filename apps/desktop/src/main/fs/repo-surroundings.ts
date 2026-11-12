@@ -1,5 +1,6 @@
-import { dirname, relative, isAbsolute } from 'node:path'
+import { sep, dirname, resolve, relative, isAbsolute } from 'node:path'
 
+import { IS_WINDOWS } from '../platform'
 import { git } from '../git/git-runner'
 
 /**
@@ -14,8 +15,15 @@ const NONE: RepoSurroundings = { gitDir: null, ignoreDirs: [] }
 const isOutside = (rootPath: string, path: string): boolean => {
   const fromRoot = relative(rootPath, path)
 
-  return fromRoot === '..' || fromRoot.startsWith('../') || isAbsolute(fromRoot)
+  return fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)
 }
+
+/**
+ * Одна ли это папка. git на Windows печатает `C:/x`, а путь проекта - `C:\x`, и диск бывает
+ * в любом регистре: сравнивается путь, приведённый системой, без учёта регистра.
+ */
+const isSameFolder = (a: string, b: string): boolean =>
+  IS_WINDOWS ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : a === b
 
 /** Папки от верха репозитория до родителя проекта, сверху вниз. Проект - корень: пусто. */
 export const foldersAbove = (topLevel: string, rootPath: string): string[] => {
@@ -24,10 +32,10 @@ export const foldersAbove = (topLevel: string, rootPath: string): string[] => {
   for (let folder = dirname(rootPath); !isOutside(topLevel, folder); folder = dirname(folder)) {
     folders.unshift(folder)
 
-    if (folder === topLevel) break
+    if (isSameFolder(folder, topLevel)) break
   }
 
-  return rootPath === topLevel ? [] : folders
+  return isSameFolder(rootPath, topLevel) ? [] : folders
 }
 
 /** Спросить git, где .git и верх репозитория. Не репозиторий или git нет - слушать нечего. */

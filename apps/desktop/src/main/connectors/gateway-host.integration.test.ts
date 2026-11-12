@@ -55,7 +55,8 @@ describe('GatewayHost', () => {
   let dir = ''
   let host: GatewayHost
   let registry: ConnectorRegistry
-  const released = vi.fn<(launchId: string) => void>()
+  const released = vi.fn<(launch: Launch) => void>()
+  const ended = vi.fn<(conversationId: string) => void>()
   const asked: Launch[] = []
 
   beforeEach(async () => {
@@ -80,7 +81,10 @@ describe('GatewayHost', () => {
       },
     } as unknown as LiveConnector
 
-    host = new GatewayHost(registry, () => live, join(dir, 'configs'), '0', released)
+    host = new GatewayHost(registry, () => live, join(dir, 'configs'), '0', {
+      release: released,
+      endConversation: ended,
+    })
     await host.start()
   })
 
@@ -88,6 +92,7 @@ describe('GatewayHost', () => {
     await host.stop()
     await rm(dir, { recursive: true, force: true })
     released.mockClear()
+    ended.mockClear()
     asked.length = 0
   })
 
@@ -138,5 +143,34 @@ describe('GatewayHost', () => {
     expect(await status(servers['everywhere']!)).toBe(401)
     expect(released).toHaveBeenCalledOnce()
     await vi.waitFor(async () => expect(await stat(launch.path).catch(() => null)).toBeNull())
+  })
+
+  it('процесс назван разговором: шлюз видит разговор и папку, конец разговора - после процесса', async () => {
+    const launch = (await host.open('/p/a'))!
+    const servers = await serversIn(launch.path)
+
+    launch.own({ conversationId: 'tab-7', workDir: '/worktrees/a' })
+    expect(await status(servers['everywhere']!)).not.toBe(404)
+    expect(asked.at(-1)).toMatchObject({
+      projectPath: '/p/a',
+      workDir: '/worktrees/a',
+      conversationId: 'tab-7',
+    })
+
+    launch.release()
+    expect(released).toHaveBeenCalledWith(
+      expect.objectContaining({ conversationId: 'tab-7', released: true }),
+    )
+    expect(ended).not.toHaveBeenCalled()
+
+    launch.end()
+    expect(ended).toHaveBeenCalledWith('tab-7')
+  })
+
+  it('конец разговора без названного разговора - ничего', async () => {
+    const launch = (await host.open('/p/a'))!
+
+    launch.end()
+    expect(ended).not.toHaveBeenCalled()
   })
 })

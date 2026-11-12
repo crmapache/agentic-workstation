@@ -4,7 +4,7 @@ import { it, expect, describe } from 'vitest'
 import type { Conversation } from '@shared/claude'
 
 import { MODEL_ICONS, OTHER_MODEL_ICON } from './ComposerStatus.constants'
-import { modelIcon, setupValue, nextSection } from './ComposerStatus.utils'
+import { modelIcon, setupValue, nextSection, stepAfterPick } from './ComposerStatus.utils'
 
 /** Переводчик-эхо: ключ и параметры - по ним и проверяем. */
 const t = ((key: string, values?: Record<string, unknown>) =>
@@ -20,6 +20,17 @@ describe('индикатор модели, усилия и режима', () => 
     expect(nextSection('model', 1)).toBe('effort')
     expect(nextSection('mode', 1)).toBe('model')
     expect(nextSection('model', -1)).toBe('mode')
+  })
+
+  it('шагами от открытия выбор ведёт дальше: модель, усилие, режим - и закрыть', () => {
+    expect(stepAfterPick({ section: 'model', guided: true })).toBe('effort')
+    expect(stepAfterPick({ section: 'effort', guided: true })).toBe('mode')
+    expect(stepAfterPick({ section: 'mode', guided: true })).toBeNull()
+  })
+
+  it('раздел, открытый вкладкой или стрелкой, закрывается первым же выбором', () => {
+    expect(stepAfterPick({ section: 'model', guided: false })).toBeNull()
+    expect(stepAfterPick({ section: 'effort', guided: false })).toBeNull()
   })
 
   it('«по умолчанию» называется с тем, что по умолчанию', () => {

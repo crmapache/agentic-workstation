@@ -1,0 +1,237 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Ширина вида - по месту в середине окна: рядом с панелью Claude Code она узкая.
+.view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+// Шапка вида, как панель над разницей с коммитом: чья история слева, возврат версии справа.
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.subjectIcon {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-fg-subtle);
+}
+
+// Под шапкой - список версий слева и разница справа; в узкой середине - список над разницей,
+// иначе разнице не осталось бы места.
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+
+  @container (width < 720px) {
+    flex-direction: column;
+  }
+}
+
+// Список - колонка узкого текста, прокручивается сам; линия отделяет его от разницы.
+.list {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(var(--size-text-narrow), 36%);
+  padding: var(--space-2) var(--space-1-5) var(--space-4);
+  overflow: auto;
+  border-right: var(--border-width) solid var(--color-border);
+
+  @container (width < 720px) {
+    width: auto;
+    max-height: 40%;
+    border-right: none;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+}
+
+.day {
+  @include caps-label;
+
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-2);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Строка версии: знак события, что случилось (у папки - ещё и файл), время справа.
+.row {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--size-tree-row);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-md);
+  text-align: left;
+}
+
+.selected {
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg);
+}
+
+.causeIcon {
+  flex-shrink: 0;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-fg-subtle);
+}
+
+// Знак говорит цветом то же, что дерево и список изменений: появился, удалён, правка ИИ.
+.created {
+  color: var(--color-vcs-added);
+}
+
+.deleted {
+  color: var(--color-vcs-deleted);
+}
+
+.agent {
+  color: var(--color-fg-accent);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cause {
+  @include truncate;
+}
+
+// У папки: файл первой строкой, событие - второй, мельче.
+.file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  color: var(--color-fg);
+}
+
+.fileName {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.fileFolder {
+  @include truncate;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+  direction: rtl;
+  text-align: left;
+}
+
+.detail {
+  @include truncate;
+
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.time {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.note {
+  margin: 0;
+  padding: 0 var(--space-2);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+// Справа: полоса сравнения и сама разница.
+.pane {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-1-5) var(--space-2) var(--space-1-5) var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+// Счёт различий занимает остаток ряда; в узкой разнице его не видно - ряд держат кнопки,
+// а различий нет - стрелки и так погашены.
+.count {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-subtle);
+
+  @container (width < 520px) {
+    visibility: hidden;
+  }
+}
+
+// Рамка разницы: от её угла меряется точка меню правой кнопки (якорь меню внутри).
+.frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Код выделяется мышью; пока Monaco сравнивает новую пару - прозрачна (diff-reveal.ts).
+.host {
+  flex: 1;
+  min-width: 0;
+  user-select: text;
+
+  &[data-comparing] {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

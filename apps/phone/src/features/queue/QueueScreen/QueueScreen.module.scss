@@ -1,0 +1,38 @@
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Ждущий элемент: «только после успеха» и кнопки под ним.
+.waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.itemActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.runFacts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.asking {
+  margin: 0;
+  color: var(--color-fg-accent);
+  font-size: var(--font-size-sm);
+}
+
+// Кнопки прогона - по две в ряд поровну; длинная подпись переносится внутри своей кнопки.
+.runActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}

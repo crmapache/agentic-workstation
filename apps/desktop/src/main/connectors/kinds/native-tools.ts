@@ -2,21 +2,43 @@ import type { ToolAccess } from '@shared/connectors'
 import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 
 import { toolJson, toolError, SignedOutError } from '../connector-source'
-import type { SourceTool, ConnectorSource } from '../connector-source'
+import type { SourceTool, SourceLaunch, ConnectorSource } from '../connector-source'
 
 /** Аргументы вызова не те: модель увидит текст и поправит вызов. */
 export class ArgumentError extends Error {}
 
 /**
+ * Чей вызов: процесс разговора (вызов не через шлюз - null) и отмена провайдером. Нужен
+ * инструментам, которые держат что-то на разговор, - сессии браузера.
+ */
+export type NativeCall = { launch: SourceLaunch | null; signal: AbortSignal | undefined }
+
+/**
+ * Ответ инструмента как есть, а не JSON: картинка (снимок экрана браузера) или длинный текст,
+ * который в строке JSON модель читала бы с экранированными переводами строк.
+ */
+export class ToolOutput {
+  constructor(readonly result: CallToolResult) {}
+}
+
+/**
  * Свой инструмент коннектора: описание для модели, ступень доступа и работа. Возвращает
- * данные - шлюз отдаст их модели JSON. Ошибку, понятную модели, бросает текстом.
+ * данные - шлюз отдаст их модели JSON (или ToolOutput как есть). Ошибку, понятную модели,
+ * бросает текстом.
  */
 export type NativeTool<Api> = {
   name: string
   description: string
   access: ToolAccess
   inputSchema: Tool['inputSchema']
-  run: (args: Record<string, unknown>, api: Api) => Promise<unknown>
+  run: (args: Record<string, unknown>, api: Api, call: NativeCall) => Promise<unknown>
+}
+
+/** Что источник делает, когда кончился процесс разговора, сам разговор и когда гаснет сам. */
+export type NativeHooks = {
+  release?: (launch: SourceLaunch) => void
+  endConversation?: (conversationId: string) => void
+  dispose?: () => Promise<void>
 }
 
 /** Ошибки, текст которых модели полезен: неверные аргументы и отказ сервиса. */
@@ -32,6 +54,7 @@ export class NativeSource<Api> implements ConnectorSource {
     private readonly tools: readonly NativeTool<Api>[],
     private readonly api: Api,
     private readonly explainable: readonly ExplainableError[],
+    private readonly hooks: NativeHooks = {},
   ) {}
 
   listTools(): Promise<SourceTool[]> {
@@ -46,13 +69,20 @@ export class NativeSource<Api> implements ConnectorSource {
     )
   }
 
-  async callTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
+  async callTool(
+    name: string,
+    args: Record<string, unknown>,
+    signal?: AbortSignal,
+    launch?: SourceLaunch,
+  ): Promise<CallToolResult> {
     const tool = this.tools.find((candidate) => candidate.name === name)
 
     if (!tool) return toolError(`Unknown tool ${name}`)
 
     try {
-      return toolJson(await tool.run(args, this.api))
+      const value = await tool.run(args, this.api, { launch: launch ?? null, signal })
+
+      return value instanceof ToolOutput ? value.result : toolJson(value)
     } catch (error) {
       if (error instanceof SignedOutError) throw error
 
@@ -67,8 +97,16 @@ export class NativeSource<Api> implements ConnectorSource {
     }
   }
 
+  release(launch: SourceLaunch): void {
+    this.hooks.release?.(launch)
+  }
+
+  endConversation(conversationId: string): void {
+    this.hooks.endConversation?.(conversationId)
+  }
+
   dispose(): Promise<void> {
-    return Promise.resolve()
+    return this.hooks.dispose?.() ?? Promise.resolve()
   }
 }
 

@@ -35,7 +35,13 @@ describe('чип MODEL', () => {
     expect(modelCaption('claude-opus-4-8', [])).toBe('Opus 4.8')
     expect(modelCaption('claude-haiku-4-5-20251001', [])).toBe('Haiku 4.5')
     expect(modelCaption('claude-opus-5[1m]', [])).toBe('Opus 5 1M')
+    expect(modelCaption('claude-3-5-haiku-20241022', [])).toBe('Haiku 3.5')
     expect(modelCaption('gpt-proxy/x', [])).toBe('gpt-proxy/x')
+  })
+
+  it('семья, которой нет в панели, называется полным идентификатором', () => {
+    expect(modelFamily('claude-mythos-5')).toBeUndefined()
+    expect(modelCaption('claude-mythos-5', [])).toBe('claude-mythos-5')
   })
 
   it('держит выбор «1M», пока ничего не случилось', () => {

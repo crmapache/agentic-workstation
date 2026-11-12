@@ -6,11 +6,14 @@ import {
   openTab,
   activeTab,
   closeTabs,
+  movedTabs,
+  tabsUnder,
   tabTarget,
   diffTabKey,
-  openDiffTab,
   restoreTabs,
   pathsLeaving,
+  historyTabKey,
+  openSingleTab,
 } from './editor-tabs.utils'
 
 const NONE = new Set<string>()
@@ -57,12 +60,16 @@ describe('openTab', () => {
   })
 })
 
-describe('openDiffTab', () => {
+describe('openSingleTab', () => {
   const options = { limit: 30, held: NONE }
 
   it('разница другого файла встаёт на место прежней и становится активной', () => {
-    const first = openDiffTab(openAll(['a.ts', 'b.ts']), 'a.ts', options)
-    const tabs = openDiffTab(openTab(first, 'c.ts', options), 'b.ts', options)
+    const first = openSingleTab(openAll(['a.ts', 'b.ts']), { kind: 'diff', path: 'a.ts' }, options)
+    const tabs = openSingleTab(
+      openTab(first, 'c.ts', options),
+      { kind: 'diff', path: 'b.ts' },
+      options,
+    )
 
     expect(tabs.keys).toEqual(['a.ts', 'b.ts', diffTabKey('b.ts'), 'c.ts'])
     expect(activeTab(tabs)).toBe(diffTabKey('b.ts'))
@@ -71,7 +78,7 @@ describe('openDiffTab', () => {
 
   it('разницу с несохранённым файлом переполнение тоже пропускает', () => {
     const held = new Set(['a.ts'])
-    const withDiff = openDiffTab(NO_TABS, 'a.ts', options)
+    const withDiff = openSingleTab(NO_TABS, { kind: 'diff', path: 'a.ts' }, options)
     const tabs = openAll(['b.ts', 'c.ts']).keys.reduce(
       (open, key) => openTab(open, key, { limit: 2, held }),
       withDiff,
@@ -83,6 +90,23 @@ describe('openDiffTab', () => {
   it('ключ разницы не путается с файлом, путь из него достаётся целиком', () => {
     expect(tabTarget(diffTabKey('src/diff'))).toEqual({ kind: 'diff', path: 'src/diff' })
     expect(tabTarget('src/diff')).toEqual({ kind: 'file', path: 'src/diff' })
+  })
+
+  it('история одна на проект, как разница, и не путается ни с файлом, ни с разницей', () => {
+    const first = openSingleTab(openAll(['a.ts']), { kind: 'history', path: 'a.ts' }, options)
+    const withDiff = openSingleTab(first, { kind: 'diff', path: 'a.ts' }, options)
+    const tabs = openSingleTab(withDiff, { kind: 'history', path: '' }, options)
+
+    expect(tabs.keys).toEqual(['a.ts', historyTabKey(''), diffTabKey('a.ts')])
+    expect(tabTarget(historyTabKey(''))).toEqual({ kind: 'history', path: '' })
+    expect(tabTarget(historyTabKey('src'))).toEqual({ kind: 'history', path: 'src' })
+  })
+
+  it('история папки едет с переносом и остаётся, когда папку убрали в корзину', () => {
+    const tabs = openSingleTab(openAll(['src/a.ts']), { kind: 'history', path: 'src' }, options)
+
+    expect(movedTabs(tabs, 'src', 'lib').keys).toEqual(['lib/a.ts', historyTabKey('lib')])
+    expect(tabsUnder(tabs, 'src')).toEqual(['src/a.ts'])
   })
 })
 
@@ -104,7 +128,11 @@ describe('closeTabs', () => {
 
 describe('pathsLeaving', () => {
   it('файл уходит, только если не остаётся ни его вкладки, ни разницы с ним', () => {
-    const tabs = openDiffTab(openAll(['a.ts', 'b.ts']), 'a.ts', { limit: 30, held: NONE })
+    const tabs = openSingleTab(
+      openAll(['a.ts', 'b.ts']),
+      { kind: 'diff', path: 'a.ts' },
+      { limit: 30, held: NONE },
+    )
 
     expect(pathsLeaving(tabs, ['a.ts'])).toEqual([])
     expect(pathsLeaving(tabs, ['a.ts', diffTabKey('a.ts'), 'b.ts'])).toEqual(['a.ts', 'b.ts'])
@@ -117,5 +145,20 @@ describe('restoreTabs', () => {
     expect(restoreTabs({ keys: ['a.ts', 'b.ts', 'b.ts', 3], recent: ['b.ts', 'gone.ts'] })).toEqual(
       { keys: ['a.ts', 'b.ts'], recent: ['a.ts', 'b.ts'] },
     )
+  })
+})
+
+describe('перенос в дереве', () => {
+  it('вкладки файла, разницы и всего внутри папки едут на новое место, выбор прежний', () => {
+    const tabs = {
+      keys: ['src/a.ts', diffTabKey('src/b.ts'), 'srcx/c.ts', 'README.md'],
+      recent: ['README.md', 'src/a.ts'],
+    }
+
+    expect(movedTabs(tabs, 'src', 'lib')).toEqual({
+      keys: ['lib/a.ts', diffTabKey('lib/b.ts'), 'srcx/c.ts', 'README.md'],
+      recent: ['README.md', 'lib/a.ts'],
+    })
+    expect(tabsUnder(tabs, 'src')).toEqual(['src/a.ts', diffTabKey('src/b.ts')])
   })
 })

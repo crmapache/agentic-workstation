@@ -9,7 +9,7 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { useClaudeActions } from '../claude-actions.hooks'
 import { useClaudeCodeStore } from '../claude-code.store'
 import { useComposerStore } from '../composer.store'
-import { quotesOf, appendChip, EMPTY_DRAFT } from '../draft.utils'
+import { quotesOf, EMPTY_DRAFT } from '../draft.utils'
 import { MENU_GAP_PX } from './SelectionMenu.constants'
 import { useFeedSelection } from './SelectionMenu.hooks'
 import styles from './SelectionMenu.module.scss'
@@ -27,7 +27,7 @@ const keepSelection = (event: MouseEvent) => event.preventDefault()
 export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuProps) => {
   const { t } = useTranslation()
   const { fork } = useClaudeActions()
-  const fillDraft = useClaudeCodeStore((store) => store.fillDraft)
+  const appendChip = useClaudeCodeStore((store) => store.appendChip)
   const { selection, clear } = useFeedSelection(areaRef)
   const menuRef = useRef<HTMLDivElement>(null)
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
@@ -52,14 +52,7 @@ export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuPro
       draft.tokens.filter((token) => token.kind === 'chip' && token.chip.kind === 'quote').length +
       1
 
-    fillDraft(conversation.id, {
-      tokens: appendChip(draft.tokens, {
-        kind: 'quote',
-        value: `ref${number}`,
-        text: selection.text,
-      }),
-      quotes: draft.quotes,
-    })
+    appendChip(conversation.id, { kind: 'quote', value: `ref${number}`, text: selection.text })
     window.getSelection()?.removeAllRanges()
     clear()
   }

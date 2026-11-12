@@ -1,5 +1,4 @@
-const SECOND_MS = 1000
-const DAY_MS = 24 * 60 * 60 * SECOND_MS
+import { DAY_MS } from '@shared/time-units'
 
 /** Папка в userData, куда пишутся вставленные из буфера скриншоты и документы. */
 export const PASTED_DIR_NAME = 'pasted'

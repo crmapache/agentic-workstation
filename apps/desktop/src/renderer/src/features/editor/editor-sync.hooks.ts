@@ -4,13 +4,15 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
 import { useIpcEvent } from '../../lib/ipc.hooks'
+import { withMacKeys } from '../../lib/keys'
+import { IS_MAC } from '../../lib/platform'
 import { heldPaths, guardDiscard, useDiscardGuard } from '../../state/discard-guard.store'
+import { editorDocuments } from '../../state/editor-documents'
 import { activeTab } from '../../state/editor-tabs.utils'
 import { isMainShown, useLayoutStore } from '../../state/layout.store'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useSelectionStore } from '../../state/selection.store'
 import { useActiveProject } from '../../state/workspace.queries'
-import { editorDocuments } from './editor-bus'
 import { requestCloseTabs } from './editor-close'
 import { useEditorStore } from './editor.store'
 import { usePreviewImageSync } from './markdown-preview.queries'
@@ -60,7 +62,11 @@ const OWN_HISTORY = 'input, textarea, select, [contenteditable], dialog, [popove
  * клавиши гасит сам, поэтому сюда доходят только нажатия мимо него.
  */
 const historyKeyHandler = (projectId: string) => (event: KeyboardEvent) => {
-  const isHistoryKey = event.metaKey && !event.altKey && !event.ctrlKey && event.code === 'KeyZ'
+  const stroke = withMacKeys(event)
+  // ⌘Z и ⇧⌘Z, на Windows ещё и Ctrl+Y - повтор, как во всех программах там.
+  const isRedoY = !IS_MAC && stroke.metaKey && !stroke.shiftKey && event.code === 'KeyY'
+  const isHistoryKey =
+    stroke.metaKey && !stroke.altKey && !stroke.ctrlKey && (event.code === 'KeyZ' || isRedoY)
   const target = event.target instanceof Element ? event.target : null
 
   if (!isHistoryKey || event.defaultPrevented || target?.closest(OWN_HISTORY)) return
@@ -71,7 +77,7 @@ const historyKeyHandler = (projectId: string) => (event: KeyboardEvent) => {
   if (!active || !isMainShown(layout) || layout.main.activeViewId !== 'file') return
 
   event.preventDefault()
-  useEditorStore.getState().requestFocus(event.shiftKey ? 'redo' : 'undo')
+  useEditorStore.getState().requestFocus(event.shiftKey || isRedoY ? 'redo' : 'undo')
 }
 
 /**

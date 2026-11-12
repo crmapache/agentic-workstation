@@ -1,3 +1,4 @@
+import { openChromeExtensions, revealExtensionFolder } from '../browser/browser-open'
 import { openInAgentApp, installedAgentApps } from '../connectors/agent-apps'
 import { MAX_AGENT_PROMPT } from '../connectors/agent-links'
 import type { ConnectorsService } from '../connectors/connectors-service'
@@ -77,4 +78,7 @@ export const createConnectorsHandlers = (
   'connectors:openInAgentApp': ({ app, prompt }) =>
     openInAgentApp(assertAgentApp(app), field(prompt, 'prompt', MAX_AGENT_PROMPT)),
   'connectors:createSlackApp': () => openSlackAppCreation(),
+  'connectors:revealBrowserExtension': () =>
+    revealExtensionFolder(connectors.getState().browser.extensionDir),
+  'connectors:openBrowserExtensions': () => openChromeExtensions(),
 })

@@ -14,6 +14,7 @@ import type {
   ModelSwitchFeedItem,
 } from '@shared/claude-feed'
 import type { ToolsResult } from '@shared/claude-tools'
+import type { SoundEvent } from '@shared/sounds'
 import type { Project } from '@shared/workspace'
 
 import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
@@ -42,8 +43,8 @@ export type FeedRow =
 
 /** Экран из списка Settings бокового меню. */
 export type SettingsScreen =
-  | 'sounds'
   | 'calmColors'
+  | 'meters'
   | 'newChat'
   | 'newChatModel'
   | 'newChatEffort'
@@ -66,10 +67,10 @@ export type MenuScreenProps = { project: Project; conversation: Conversation | n
 export type MenuState = { open: boolean; screen: MenuScreen; back: boolean }
 
 /**
- * Вкладка позвала человека: каким цветом светиться и когда (новый зов той же вкладки -
- * тоже новость: полоса просыпается).
+ * Вкладка позвала человека: чем, каким цветом светиться и когда (новый зов той же вкладки -
+ * тоже новость: полоса просыпается). Повод - для слов в подсказке вкладки проекта.
  */
-export type TabCall = { tone: ClosableTabCall; at: number }
+export type TabCall = { reason: SoundEvent; tone: ClosableTabCall; at: number }
 
 /** Сообщение, к которому откатываются: разговор и имя строки. */
 export type RewindTarget = { conversationId: string; messageId: string }

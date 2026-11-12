@@ -12,6 +12,7 @@ import {
   imageAttachments,
   trimTrailingSpace,
 } from './draft.utils'
+import { replayedDraft } from './message-replay.utils'
 
 const PNG = 'data:image/png;base64,AAAA'
 
@@ -52,6 +53,18 @@ describe('черновик для модели', () => {
   it('байты картинок - вложением, в куски для ленты не едут', () => {
     expect(imageAttachments(tokens)).toEqual([{ mediaType: 'image/png', data: 'AAAA' }])
     expect(JSON.stringify(messageDraftOf({ tokens, quotes: [] }))).not.toContain('AAAA')
+  })
+
+  it('кусок файла из редактора - строки и ровно выделенный текст блоком кода', () => {
+    const snippet: DraftToken[] = [
+      { kind: 'text', value: 'why ' },
+      { kind: 'chip', chip: { kind: 'ref', value: 'a.md', range: 'L3', text: 'say "hi" ```x```' } },
+      { kind: 'text', value: ' here' },
+    ]
+    const sent = tokensText(snippet, 0)
+
+    expect(sent).toBe('why @a.md (L3):\n````\nsay "hi" ```x```\n````\n here')
+    expect(replayedDraft(sent).tokens).toEqual(snippet)
   })
 
   it('чип в конец - с пробелами, чтобы не слипся со словом', () => {

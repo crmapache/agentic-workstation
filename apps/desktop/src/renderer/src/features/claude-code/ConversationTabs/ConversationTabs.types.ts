@@ -70,6 +70,8 @@ export type ConversationTabProps = {
   endsGroup: boolean
   /** Сколько вкладок в группе: в группе из двух форк тащит всю группу. */
   groupSize: number
+  /** Сколько вкладок у проекта: последнюю пустую не закрывают. */
+  tabCount: number
   /** Зов вкладки: повод красит свет, момент задаёт его фазу. */
   call: TabCall | null
   calm: boolean

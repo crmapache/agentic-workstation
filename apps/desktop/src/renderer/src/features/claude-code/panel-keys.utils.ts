@@ -1,9 +1,11 @@
+import { shortcutLabel } from '../../lib/keys'
+import { IS_MAC } from '../../lib/platform'
 import type { MenuScreen } from './claude.types'
 import type { PanelKey } from './panel-keys.constants'
 import { PANEL_KEYS } from './panel-keys.constants'
 
-/** Клавиша одной строкой - для подсказки («⇧⌘T»); плашками её рисует Kbd. */
-export const keyLine = (key: PanelKey): string => PANEL_KEYS[key].join('')
+/** Клавиша одной строкой - для подсказки («⇧⌘T», на Windows «Ctrl+Shift+T»); плашками - Kbd. */
+export const keyLine = (key: PanelKey): string => shortcutLabel(PANEL_KEYS[key].join(''))
 
 /** Что из нажатия нужно, чтобы узнать клавишу панели; знак - запасной путь для ⌘F. */
 type Stroke = Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'> & {
@@ -31,13 +33,17 @@ export const panelKeyOf = (stroke: Stroke): Exclude<PanelKey, 'closeTab'> | null
 
 /** Нажата ли «открыть панель» (⌘Esc): ровно ⌘ и Esc, автоповтор не в счёт. */
 export const isOpenPanelKey = (
-  stroke: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'repeat'>,
+  stroke: Pick<
+    KeyboardEvent,
+    'key' | 'code' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'repeat'
+  >,
 ): boolean =>
-  stroke.key === 'Escape' &&
+  (IS_MAC
+    ? stroke.key === 'Escape' && !stroke.shiftKey
+    : stroke.code === 'Space' && stroke.shiftKey) &&
   stroke.metaKey &&
   !stroke.ctrlKey &&
   !stroke.altKey &&
-  !stroke.shiftKey &&
   !stroke.repeat
 
 /**

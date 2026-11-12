@@ -99,14 +99,17 @@ export class AnswerSet {
 /** Транскрипт и сколько в нём байт. */
 export type TranscriptFile = { path: string; size: number }
 
-/** Транскрипты папки projects/, изменённые не раньше since (мс). */
+/**
+ * Транскрипты папки projects/, изменённые не раньше since (мс). Папки проектов читаются вглубь:
+ * субагенты пишут свои транскрипты в `<сессия>/subagents/`, и их токены - тоже расход дня.
+ */
 export const transcriptFiles = async (root: string, since: number): Promise<TranscriptFile[]> => {
   const dirs = await readdir(root, { withFileTypes: true }).catch(() => [])
   const paths = await Promise.all(
     dirs
       .filter((dir) => dir.isDirectory())
       .map(async (dir) => {
-        const names = await readdir(join(root, dir.name)).catch(() => [])
+        const names = await readdir(join(root, dir.name), { recursive: true }).catch(() => [])
 
         return names
           .filter((name) => name.endsWith('.jsonl'))

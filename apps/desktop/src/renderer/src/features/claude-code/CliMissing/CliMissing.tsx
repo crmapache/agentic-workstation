@@ -9,7 +9,7 @@ import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { CodeBlock } from '../CodeBlock/CodeBlock'
-import { INSTALL_COMMAND, PATH_PLACEHOLDER } from './CliMissing.constants'
+import { INSTALL_COMMAND, INSTALL_LANGUAGE, PATH_PLACEHOLDER } from './CliMissing.constants'
 import { useCliPath } from './CliMissing.hooks'
 import styles from './CliMissing.module.scss'
 
@@ -40,7 +40,7 @@ export const CliMissing = () => {
       description={t('claudeCode.cliPath.text')}
       action={
         <div className={styles.action}>
-          <CodeBlock compact code={INSTALL_COMMAND} language="bash" />
+          <CodeBlock compact code={INSTALL_COMMAND} language={INSTALL_LANGUAGE} />
           <form className={styles.pathRow} onSubmit={handleSubmit}>
             <TextField
               label={t('claudeCode.cliPath.label')}

@@ -41,6 +41,24 @@
   }
 }
 
+// Столбец - меню разделов сбоку: без своей подложки (её даёт колонка), во всю ширину, вкладка
+// ростом с пункт меню и подписью от левого края, выбранная залита так же, как в ряду.
+.vertical {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+
+  .tab {
+    flex: none;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    height: var(--size-menu-item);
+    padding: 0 var(--space-2);
+  }
+}
+
 // На всю ширину родителя, даже там, где раскладка ряд не растягивает (строка с соседями).
 .fill {
   display: flex;

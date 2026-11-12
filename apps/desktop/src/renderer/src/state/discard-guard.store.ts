@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 
+import { baseName } from '../lib/path.utils'
 import { useSelectionStore } from './selection.store'
 
 /** Что закрывают, теряя несохранённое: от этого - слова вопроса и кнопка согласия. */
@@ -67,7 +68,7 @@ export const guardDiscard = (
 ) => {
   if (held.length === 0) return onConfirm()
 
-  const name = held[0]?.split('/').at(-1) ?? ''
+  const name = held[0] === undefined ? '' : baseName(held[0])
 
   useDiscardGuard.getState().ask({ kind, count: held.length, name, onConfirm, onCancel })
 }

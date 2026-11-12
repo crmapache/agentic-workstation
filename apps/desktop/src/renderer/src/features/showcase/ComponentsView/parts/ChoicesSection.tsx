@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
 import { Button } from '@agentic-workstation/ui/Button'
+import { CallBeacon } from '@agentic-workstation/ui/CallBeacon'
 import { Card } from '@agentic-workstation/ui/Card'
 import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
@@ -77,6 +78,10 @@ export const ChoicesSection = () => {
             {icon(Bot)}
             {t('samples.disclosureCard')}
           </Disclosure>
+          <Disclosure size="touch" expanded={false}>
+            {icon(FileText)}
+            {t('samples.disclosureTouch')}
+          </Disclosure>
         </div>
       </Specimen>
 
@@ -94,6 +99,13 @@ export const ChoicesSection = () => {
             label={t('samples.otherItem')}
             hint={t('samples.otherPath')}
             active={false}
+            trailing={
+              <span className={styles.tabBeacons} aria-hidden>
+                <CallBeacon tone="success" since={0} />
+                <CallBeacon tone="attention" since={1600} />
+                <CallBeacon tone="danger" since={3200} />
+              </span>
+            }
             closeLabel={t('samples.close')}
             onActivate={() => undefined}
             onClose={() => undefined}

@@ -1,0 +1,82 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Вопрос хода над полем не выше потолка: лента над ним остаётся видна.
+.dock {
+  max-height: var(--size-dock-max);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.queueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.queueHold {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Сообщение очереди одной строкой: текст обрезается, четыре кнопки под палец стоят теснее.
+.queued {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.queuedMark {
+  @include caps-label;
+
+  flex: none;
+  margin-right: var(--space-1);
+  color: var(--color-fg-subtle);
+}
+
+.queuedText {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-muted);
+}
+
+// Панель продолжит разговор после лимита: строка над полем, «не продолжать» - справа.
+.carryOn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.carryOnIcon {
+  flex: none;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-fg-subtle);
+}
+
+.carryOnText {
+  flex: 1;
+  min-width: 0;
+}

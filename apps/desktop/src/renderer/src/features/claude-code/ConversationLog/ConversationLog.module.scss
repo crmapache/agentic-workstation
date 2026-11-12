@@ -1,0 +1,29 @@
+// Журнал разговора - тот же ритм строк, что у ленты панели (Feed.module.scss): поля соседних
+// строк схлопываются в обычном потоке, блоки стоят на `--size-feed-gap`, строки журнала
+// вызовов - теснее. Бокового поля и отступа от краёв нет: их даёт окно, в котором журнал стоит.
+.log {
+  > * {
+    margin-block: var(--space-0-5);
+  }
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Строки вне экрана браузер не раскладывает: журнал шага, прочитавшего пол-репозитория, -
+// страницы текста.
+.row {
+  position: relative;
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--size-feed-row-estimate);
+
+  &[data-rhythm='block'] {
+    margin-block: var(--size-feed-gap);
+  }
+}

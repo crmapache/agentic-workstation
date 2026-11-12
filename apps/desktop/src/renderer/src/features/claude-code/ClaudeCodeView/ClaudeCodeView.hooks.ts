@@ -11,10 +11,12 @@ import { panelKeyOf, reachesPastMenu } from '../panel-keys.utils'
 import { useSearchStore } from '../search.store'
 import { searchTabBeside } from '../search.utils'
 import { useCloseTab } from '../tab-close.hooks'
+import { isClosableTab } from '../tab-close.utils'
 import { tabBeside } from '../ConversationTabs/ConversationTabs.utils'
 import { isWorking } from '../StatusDot/StatusDot.utils'
 import { invoke } from '../../../lib/ipc'
 import { useIpcEvent } from '../../../lib/ipc.hooks'
+import { withMacKeys } from '../../../lib/keys'
 import { LONE_MODIFIERS } from './ClaudeCodeView.constants'
 
 /**
@@ -130,7 +132,8 @@ export const usePanelKeys = (
       if (next) void activateConversation(next).then(requestFocus)
     }
 
-    if (key === 'closeTab' && active) {
+    // Последнюю пустую вкладку ⌘W не закрывает, как и крестика у неё нет.
+    if (key === 'closeTab' && active && isClosableTab(active, conversations.length)) {
       if (isWorking(active)) setConfirming(active)
       else void closeTab(active)
     }
@@ -143,7 +146,7 @@ export const usePanelKeys = (
   })
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const key = panelKeyOf(event)
+    const key = panelKeyOf(withMacKeys(event))
 
     if (key && run(key)) event.preventDefault()
   }

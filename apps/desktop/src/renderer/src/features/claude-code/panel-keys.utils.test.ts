@@ -37,7 +37,14 @@ describe('клавиши панели', () => {
   })
 
   it('«открыть панель» - ровно ⌘Esc: голый Esc останавливает ход, автоповтор не в счёт', () => {
-    const esc = { key: 'Escape', metaKey: true, ctrlKey: false, altKey: false, shiftKey: false }
+    const esc = {
+      key: 'Escape',
+      code: 'Escape',
+      metaKey: true,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: false,
+    }
 
     expect(isOpenPanelKey({ ...esc, repeat: false })).toBe(true)
     expect(isOpenPanelKey({ ...esc, repeat: true })).toBe(false)

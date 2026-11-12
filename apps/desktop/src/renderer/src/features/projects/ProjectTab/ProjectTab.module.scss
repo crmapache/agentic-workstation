@@ -1,0 +1,14 @@
+// Маячки зова (CallBeacon) в ряд. Цвет повода - тот же, что у света вкладки разговора: один
+// язык цвета на всё окно.
+.callDots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+}
+
+.moreCalls {
+  margin-right: var(--space-0-5);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}

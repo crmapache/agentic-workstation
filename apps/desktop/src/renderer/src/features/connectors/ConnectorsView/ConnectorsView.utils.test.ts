@@ -2,8 +2,9 @@ import { it, expect, describe } from 'vitest'
 
 import { CUSTOM_KINDS, CONNECTOR_KINDS } from '@shared/connectors'
 
-import { APP_KINDS } from './ConnectorsView.constants'
+import { APP_KINDS, EMPTY_ADD_FIELDS } from './ConnectorsView.constants'
 import {
+  addRequest,
   toolGroups,
   connectionsOf,
   isForeignHost,
@@ -12,6 +13,7 @@ import {
   connectorDetail,
   shortDescription,
   forgottenProjects,
+  signsInWithBrowser,
   availabilitySummary,
 } from './ConnectorsView.utils'
 
@@ -127,5 +129,14 @@ describe('connectionsOf', () => {
 describe('группы каталога', () => {
   it('каждый тип - ровно в одной группе', () => {
     expect([...APP_KINDS, ...CUSTOM_KINDS].toSorted()).toEqual([...CONNECTOR_KINDS].toSorted())
+  })
+})
+
+describe('браузер для ИИ', () => {
+  it('добавляется без подписи и без входа в браузере', () => {
+    expect(addRequest('browser', { ...EMPTY_ADD_FIELDS, label: 'ignored' })).toEqual({
+      kind: 'browser',
+    })
+    expect(signsInWithBrowser('browser', EMPTY_ADD_FIELDS)).toBe(false)
   })
 })

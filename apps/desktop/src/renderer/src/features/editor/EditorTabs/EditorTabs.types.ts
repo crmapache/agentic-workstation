@@ -2,6 +2,8 @@ import type { TabTarget } from '../../../state/editor-tabs.types'
 
 export type EditorTabsProps = {
   projectId: string
+  /** Подпись вкладки истории всего проекта: пути у неё нет. */
+  projectName: string
   /** Ключи вкладок в порядке на полосе: путь файла или ключ разницы. */
   keys: readonly string[]
   /** Ключ активной вкладки. */

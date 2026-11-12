@@ -1,0 +1,105 @@
+@use '../../styles/mixins' as *;
+
+// Как подсказка Tooltip - стекло над меткой, - но сразу: рука идёт по столбцам, и задержка
+// на каждом прятала бы числа. Не помещается сверху - перевернётся вниз.
+.chartTip {
+  @include glass-overlay;
+
+  inset: auto;
+  margin: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-2);
+  overflow: visible;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+  pointer-events: none;
+  position-area: block-start;
+  position-try-fallbacks: flip-block, flip-inline;
+
+  &:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-0-5);
+  }
+}
+
+.title {
+  color: var(--color-fg-subtle);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+// Ключ ряда - короткая черта тона, а не квадрат: в подсказке заливка весила бы как данные.
+.key {
+  --tone: var(--color-chart-other);
+
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-0-5);
+  border-radius: var(--radius-full);
+  background-color: var(--tone);
+}
+
+// Число впереди и ярче: ряд человек уже знает по черте, ему нужна цифра.
+.value {
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-weight: var(--font-weight-medium);
+}
+
+.label {
+  color: var(--color-fg-muted);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+}
+
+// Легенда рядов - общая у графиков (parts/ChartLegend): у столбцов и у полосы долей одна и та же.
+// Подписи - тише данных и шрифтом интерфейса, даже внутри графика с моноширинными цифрами.
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--color-fg-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  list-style: none;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+// Квадратик ряда повторяет метку: тон ряда, скругление метки.
+.swatch {
+  --tone: var(--color-chart-other);
+
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-xs);
+  background-color: var(--tone);
+}
+
+// Число куска - моноширинным и ярче имени: его ищут глазами.
+.legendValue {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+}
+
+// Тоны рядов - после ключа и квадратика: класс тона на том же элементе перекрывает тон по
+// умолчанию.
+@include chart-tones;

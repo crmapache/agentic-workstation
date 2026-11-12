@@ -1,0 +1,14 @@
+// Ростом со строку текста, а не с полосу: во всю высоту черты резали бы лист на ячейки.
+.statusDivider {
+  flex: none;
+  width: var(--border-width);
+  height: 1em;
+  margin: 0 var(--space-1);
+  background-color: var(--color-border);
+
+  &:first-child,
+  &:last-child,
+  & + & {
+    display: none;
+  }
+}

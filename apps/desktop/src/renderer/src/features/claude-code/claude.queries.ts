@@ -130,7 +130,7 @@ export const useConversationHistory = (projectId: string | undefined, enabled: b
 export const useClaudeSync = () => {
   const queryClient = useQueryClient()
 
-  // Разговор позвал человека - звук (Settings → Sound alerts).
+  // Разговор позвал человека - звук (настройки IDE, Settings → Sounds).
   useCallSounds()
   // И свет позвавшей вкладки цветом повода - пока её не откроют.
   useTabCallsSync()

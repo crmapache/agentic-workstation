@@ -87,12 +87,9 @@ describe('поводы по вкладкам', () => {
     vi.useRealTimers()
   })
 
-  const collect = (muted: string[] = []) => {
+  const collect = () => {
     const calls: ConversationCall[] = []
-    const tracker = new ConversationCalls(
-      () => muted as ConversationCall['reason'][],
-      (call) => calls.push(call),
-    )
+    const tracker = new ConversationCalls((call) => calls.push(call))
 
     return { calls, tracker }
   }
@@ -111,17 +108,6 @@ describe('поводы по вкладкам', () => {
       { conversationId: 'a', reason: 'error' },
       { conversationId: 'b', reason: 'question' },
     ])
-  })
-
-  it('выключенный повод не зовёт - ни звуком, ни свечением', () => {
-    vi.useFakeTimers()
-
-    const { calls, tracker } = collect(['turnDone'])
-
-    tracker.add('a', 'turnDone')
-    vi.advanceTimersByTime(CALL_SETTLE_MS)
-
-    expect(calls).toEqual([])
   })
 
   it('повторный лимит того же окна зовёт один раз', () => {

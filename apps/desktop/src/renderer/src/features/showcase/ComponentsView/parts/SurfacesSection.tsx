@@ -27,10 +27,12 @@ import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { PageSpecimen } from './PageSpecimen'
+import { PageToolbarSpecimen } from './PageToolbarSpecimen'
+import { PanelHeaderSpecimen } from './PanelHeaderSpecimen'
 
 /**
- * Раздел «Поверхности»: вид с шапкой и разделами, карточка, плитки сеткой, пустое состояние
- * и меню вне всплывающей панели.
+ * Раздел «Поверхности»: вид с шапкой и разделами, шапка с нижним рядом вкладок, карточка,
+ * плитки сеткой, пустое состояние и меню вне всплывающей панели.
  */
 export const SurfacesSection = () => {
   const { t } = useTranslation('showcase')
@@ -38,6 +40,8 @@ export const SurfacesSection = () => {
   return (
     <ShowcaseSection title={t('sections.surfaces')}>
       <PageSpecimen />
+      <PageToolbarSpecimen />
+      <PanelHeaderSpecimen />
 
       <Specimen label={t('specimens.card')} layout="column">
         <Card
@@ -51,7 +55,7 @@ export const SurfacesSection = () => {
             <Kbd keys={KBD_SAMPLES[0] ?? []} />
           </div>
         </Card>
-        <Card size="sm" title={t('samples.cardCompactTitle')}>
+        <Card size="sm" title={t('samples.cardCompactTitle')} count={3}>
           {t('samples.cardCompactBody')}
         </Card>
       </Specimen>

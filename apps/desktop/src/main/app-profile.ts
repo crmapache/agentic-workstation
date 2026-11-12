@@ -23,6 +23,12 @@ export const applyAppProfile = (): string | undefined => {
   if (profileDir) {
     app.setPath('userData', join(profileDir, 'user-data'))
     app.setAppLogsPath(join(profileDir, 'logs'))
+    // Отдельный профиль - копия для проверки (окно агента, update-e2e), и связку ключей
+    // человека она не трогает: safeStorage берёт ключ «<имя> Safe Storage» из login keychain,
+    // а запись установленной IDE с другой подписью macOS отдаёт только после окна «разрешить»,
+    // которое некому нажать, - главный процесс стоял бы на нём. Ключ копии живёт в памяти, её
+    // секреты не переживают перезапуск - для проверки это то, что нужно.
+    app.commandLine.appendSwitch('use-mock-keychain')
 
     return profileDir
   }

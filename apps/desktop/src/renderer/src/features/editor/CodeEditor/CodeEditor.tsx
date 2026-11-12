@@ -56,6 +56,8 @@ export const CodeEditor = ({ projectId, path, place, isActive }: CodeEditorProps
             editorRef={editorRef}
             at={menu.at}
             readOnly={isText && status.readOnly}
+            chatOwner={isText ? { projectId, path } : undefined}
+            hasSelection={menu.hasSelection}
             onClose={menu.close}
           />
           {isSplit && (

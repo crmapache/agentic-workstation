@@ -22,6 +22,11 @@ export type LaunchOptions = {
    * ни коннекторов claude.ai.
    */
   mcpConfig: string | null
+  /**
+   * Добавка к пояснению панели: у головы прогона сценария, открытой чатом, - что роль
+   * главного потока снята (history/released-heads.ts). Пусто - ничего.
+   */
+  extraBriefing?: string
 }
 
 /** С чего начать сессию: продолжить, ответвить от источника или начать с нашим id. */
@@ -67,7 +72,7 @@ export const buildLaunchArgs = (options: LaunchOptions, features: CliFeatures): 
   '--permission-prompt-tool',
   'stdio',
   '--append-system-prompt',
-  PANEL_BRIEFING,
+  options.extraBriefing ? `${PANEL_BRIEFING} ${options.extraBriefing}` : PANEL_BRIEFING,
   ...sessionArgs(options),
   '--permission-mode',
   cliPermissionMode(options.permissionMode, features),

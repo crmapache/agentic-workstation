@@ -1,10 +1,10 @@
 import type { TFunction } from 'i18next'
 
 import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 
-import { DAY_MS, HOUR_MS, MINUTE_MS } from './claude.constants'
 import type { UsageRing } from './claude.types'
 import {
   WEEK_MS,
@@ -34,6 +34,14 @@ export const usageTone = (percent: number, severity: string): 'success' | 'warni
 
   return 'success'
 }
+
+/**
+ * Ключ показания окна под полем ввода - по нему окно прячут в настройках (hiddenMeters):
+ * группа и модель, «session», «weekly», «weekly:Fable». Одно окно у каждого аккаунта
+ * называется одинаково, так что спрятанное остаётся спрятанным и после смены аккаунта.
+ */
+export const meterKey = (window: UsageWindow): string =>
+  window.model ? `${window.group}:${window.model}` : window.group
 
 /** Окно всего тарифа (пять часов, неделя), а не одной модели: оно останавливает работу целиком. */
 const isPlanWide = (window: UsageWindow) =>
@@ -148,7 +156,7 @@ export const usageRings = (usage: AccountUsage, now: number, t: TFunction): Usag
     ]
 
     return {
-      key: `${window.group}:${window.model}`,
+      key: meterKey(window),
       label,
       value,
       pace,

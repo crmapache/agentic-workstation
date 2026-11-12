@@ -5,6 +5,8 @@ import { promisify } from 'node:util'
 
 import type { ManualUpdateReason } from '@shared/updates'
 
+import { IS_WINDOWS } from '../platform'
+
 const run = promisify(execFile)
 
 /** Путь к бандлу по пути исполняемого файла: …/Agentic Workstation.app/Contents/MacOS/Agentic Workstation. */
@@ -49,6 +51,8 @@ export const getManualUpdateReason = async (
   executablePath: string,
 ): Promise<ManualUpdateReason | null> => {
   if (!isPackaged) return 'development'
+  // Windows (ADR 0048): установщик ставит себя сам туда, где IDE уже стоит, - в папку человека.
+  if (IS_WINDOWS) return null
 
   const bundlePath = findAppBundle(executablePath)
 

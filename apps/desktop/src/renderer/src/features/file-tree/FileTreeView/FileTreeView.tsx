@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
-import { DirectoryChildren } from '../FileTreeNode/parts/DirectoryChildren'
 import { useActiveProject } from '../../../state/workspace.queries'
-import styles from './FileTreeView.module.scss'
+import { ProjectTree } from './parts/ProjectTree'
 
-/** Вид «Файлы» левой панели: дерево активного проекта, раскрывается по уровню. */
+/**
+ * Вид «Файлы» левой панели: шапка с действиями (найти открытый файл, свернуть всё) и дерево
+ * активного проекта с меню правой кнопки, как окно Project в WebStorm.
+ */
 export const FileTreeView = () => {
   const { t } = useTranslation()
   const project = useActiveProject()
@@ -22,9 +24,5 @@ export const FileTreeView = () => {
     )
   }
 
-  return (
-    <div className={styles.tree}>
-      <DirectoryChildren key={project.id} projectId={project.id} relativePath="" depth={0} />
-    </div>
-  )
+  return <ProjectTree key={project.id} project={project} />
 }

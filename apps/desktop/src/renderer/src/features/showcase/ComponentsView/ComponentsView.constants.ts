@@ -1,4 +1,7 @@
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
+import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
+import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
+import type { MarkSteps } from '@agentic-workstation/ui/ChartTip.types'
 
 import type {
   ChipSample,
@@ -9,6 +12,7 @@ import type {
   FileIconSample,
   ProgressSample,
 } from './ComponentsView.types'
+import { calendarSample } from './ComponentsView.utils'
 
 // Инициалы - данные, как у настоящих проектов (projectInitials), а не текст интерфейса.
 export const AVATAR_SAMPLES: readonly AvatarSample[] = [
@@ -121,3 +125,58 @@ export const CHIP_SAMPLES: readonly ChipSample[] = [
   { name: 'roas-radar', initials: 'RR', tone: 1 },
   { name: 'web-tanks', initials: 'WT', tone: 3 },
 ]
+
+/** Числа образцов графиков - коротко, как на настоящей оси: «312K», «1.2K». */
+export const SAMPLE_NUMBERS = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+/** Токены по часам дня - образец одного ряда: тихая ночь, утро, пик после обеда. */
+const HOUR_TOKENS: readonly number[] = [
+  0, 0, 0, 0, 0, 0, 0, 12_400, 48_000, 132_000, 210_000, 186_000, 64_000, 98_000, 254_000, 312_000,
+  280_000, 140_000, 36_000, 0, 22_000, 61_000, 18_000, 0,
+]
+
+// Часы и даты образцов - данные, как подписи шагов настоящего графика, а не текст интерфейса.
+export const BAR_HOUR_SAMPLES: readonly BarChartPoint[] = HOUR_TOKENS.map((tokens, hour) => {
+  const clock = `${String(hour).padStart(2, '0')}:00`
+
+  return { key: clock, label: clock, axisLabel: hour % 4 === 0 ? clock : '', values: [tokens] }
+})
+
+/** Неделя строк руками и агентами: человек пишет мало, агенты - много, в выходные тише. */
+export const BAR_DAY_SAMPLES: readonly BarChartPoint[] = [
+  { key: 'mon', label: 'Mon, Nov 4', axisLabel: 'Nov 4', values: [42, 1240] },
+  { key: 'tue', label: 'Tue, Nov 5', axisLabel: '', values: [118, 860] },
+  { key: 'wed', label: 'Wed, Nov 6', axisLabel: 'Nov 6', values: [64, 2110] },
+  { key: 'thu', label: 'Thu, Nov 7', axisLabel: '', values: [205, 1730] },
+  { key: 'fri', label: 'Fri, Nov 8', axisLabel: 'Nov 8', values: [12, 940] },
+  { key: 'sat', label: 'Sat, Nov 9', axisLabel: '', values: [0, 310] },
+  { key: 'sun', label: 'Sun, Nov 10', axisLabel: 'Nov 10', values: [8, 0] },
+]
+
+/** Пустой период: все шаги на месте, чисел нет. */
+export const BAR_EMPTY_SAMPLES: readonly BarChartPoint[] = BAR_DAY_SAMPLES.map((point) => ({
+  ...point,
+  values: [0, 0],
+}))
+
+/** Подписи строк календаря: через одну, как у GitHub. */
+export const CALENDAR_WEEKDAYS: readonly string[] = ['Mon', '', 'Wed', '', 'Fri', '', '']
+
+/** Год работы: будни плотнее выходных, узор без случайности - образец один и тот же. */
+export const CALENDAR_SAMPLE_DAYS: readonly CalendarHeatmapDay[] = calendarSample((index) =>
+  index % 7 >= 5 ? (index % 3) * 20 : ((index * 37) % 11) * 30,
+)
+
+/** Редкие дни: тот же год, активен каждый семнадцатый. */
+export const CALENDAR_SPARSE_DAYS: readonly CalendarHeatmapDay[] = calendarSample((index) =>
+  index % 17 === 0 ? (index % 5) * 60 + 30 : 0,
+)
+
+/** Образец подсказки графика стоит на одной метке: стрелкам ходить некуда. */
+export const CHART_TIP_STEPS: MarkSteps = { across: 1, down: null }
+
+/** Варианты поля выбора в витрине - имена провайдеров, как в окне запуска сценария. */
+export const SELECT_SAMPLES = ['Claude Code', 'Codex', 'Gemini CLI'] as const

@@ -555,6 +555,27 @@ describe('конец хода', () => {
     expect(runtime.meta.status).toBe('idle')
   })
 
+  it('остановленный ход кончается исходом interrupted, следующий ход его снимает', async () => {
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+
+    nextProcess(fake)
+    await runtime.send(msg('hello'))
+    runtime.interrupt()
+    receive(runtime, fake, { type: 'result', num_turns: 1, result: '', total_cost_usd: 0 })
+
+    expect(runtime.meta.status).toBe('idle')
+    expect(runtime.meta.outcome).toBe('interrupted')
+
+    await runtime.send(msg('again'))
+
+    expect(runtime.meta.outcome).toBe('done')
+
+    receive(runtime, fake, { type: 'result', num_turns: 1, result: 'hi', total_cost_usd: 0 })
+
+    expect(runtime.meta.outcome).toBe('done')
+  })
+
   it('пустой итог свежего процесса без нашего сообщения - рукопожатие, ход идёт', async () => {
     const runtime = makeRuntime({ value: true })
     const fake = fakeProcess()

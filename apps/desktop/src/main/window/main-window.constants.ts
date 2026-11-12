@@ -15,6 +15,15 @@ export const MIN_WINDOW_SIZE = { width: 968, height: 600 }
 export const WINDOW_BACKGROUND = '#050505'
 
 /**
+ * Кнопки окна Windows (свернуть, развернуть, закрыть) рисует система поверх шапки справа
+ * (titleBarOverlay): подложка - цвет шапки (--color-surface-chrome), знаки - --color-fg-muted.
+ * Значения - те же, что у токенов в packages/ui/src/styles/tokens.css: окно рисует кнопки до
+ * страницы и токенов не видит.
+ */
+export const WINDOW_CONTROLS_COLOR = '#040405'
+export const WINDOW_CONTROLS_SYMBOL_COLOR = '#abadb2'
+
+/**
  * «Светофор» macOS - по центру шапки окна (trafficLightPosition): отступ слева и высота
  * кнопок, около 14px. Место под них слева - --size-traffic-lights.
  */

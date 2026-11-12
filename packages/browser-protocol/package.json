@@ -1,0 +1,19 @@
+{
+  "name": "@agentic-workstation/browser-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Протокол между расширением Chrome «браузер для ИИ», native host и IDE: сообщения, имена host, id расширения, ссылки на вкладки.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

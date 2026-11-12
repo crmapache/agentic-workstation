@@ -60,10 +60,9 @@ export class SignInFlow {
 
       const draft = await makeDraft()
       const drawer = draft ? draft.drawer : this.host.drawerOf(id)
-      const script = join(this.host.dir, 'sign-in.command')
-
       await mkdir(this.host.dir, { recursive: true, mode: 0o700 })
-      await writeSignInScript(script, cli.binary, drawer, this.pidFile)
+
+      const script = await writeSignInScript(this.host.dir, cli.binary, drawer, this.pidFile)
 
       this.signIn = {
         id,

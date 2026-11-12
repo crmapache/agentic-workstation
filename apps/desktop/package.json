@@ -11,13 +11,14 @@
   },
   "scripts": {
     "postinstall": "node scripts/install-electron.mjs",
-    "dev": "electron-vite dev --watch",
-    "build": "electron-vite build",
+    "dev": "pnpm --filter @agentic-workstation/browser-extension build && electron-vite dev --watch",
+    "build": "pnpm --filter @agentic-workstation/browser-extension build && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "dist": "pnpm run build && AGENTIC_WORKSTATION_SIGN=required electron-builder --mac --arm64 --publish never",
     "dist:local": "pnpm run build && electron-builder --mac --arm64 --publish never",
+    "dist:win": "pnpm run build && electron-builder --win --x64 --publish never",
     "cdp": "node scripts/cdp.mjs",
     "update:e2e": "bash scripts/update-e2e.sh"
   },
@@ -27,6 +28,9 @@
     "semver": "7.8.5"
   },
   "devDependencies": {
+    "@agentic-workstation/browser-protocol": "workspace:*",
+    "@agentic-workstation/relay": "workspace:*",
+    "@agentic-workstation/remote-protocol": "workspace:*",
     "@agentic-workstation/ui": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@tanstack/react-query": "5.104.3",
@@ -49,6 +53,7 @@
     "lucide-react": "1.57.0",
     "marked": "18.1.1",
     "monaco-editor": "0.57.0",
+    "qrcode-generator": "2.0.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-i18next": "17.0.18",

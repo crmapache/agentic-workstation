@@ -1,0 +1,25 @@
+// Строка предупреждения или отказа: знак и слова, цвет - смыслом.
+.scenarioAlert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1-5);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+}
+
+// Знак - по центру первой строки текста, а не по центру выросшего абзаца.
+.icon {
+  display: block;
+  flex: none;
+  height: calc(var(--font-size-xs) * var(--line-height-snug));
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.danger {
+  color: var(--color-danger);
+}

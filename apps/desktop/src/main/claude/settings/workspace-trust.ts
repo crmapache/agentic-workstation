@@ -23,7 +23,10 @@ export const withParents = (path: string): string[] => {
   return chain
 }
 
-/** Принял ли человек вопрос о доверии к папке в терминальном Claude Code. */
+/**
+ * Принял ли человек вопрос о доверии к папке в терминальном Claude Code. На Windows CLI
+ * пишет путь папки и с обратными, и с прямыми чертами (по версии) - сверяются оба.
+ */
 export const trustedInConfig = (config: unknown, path: string): boolean => {
   if (typeof config !== 'object' || config === null || !('projects' in config)) return false
 
@@ -31,13 +34,15 @@ export const trustedInConfig = (config: unknown, path: string): boolean => {
 
   if (typeof projects !== 'object' || projects === null) return false
 
-  return withParents(path).some((dir) => {
-    const entry: unknown = (projects as Record<string, unknown>)[dir]
+  return withParents(path)
+    .flatMap((dir) => [dir, dir.replaceAll('\\', '/')])
+    .some((dir) => {
+      const entry: unknown = (projects as Record<string, unknown>)[dir]
 
-    return typeof entry === 'object' && entry !== null && 'hasTrustDialogAccepted' in entry
-      ? entry.hasTrustDialogAccepted === true
-      : false
-  })
+      return typeof entry === 'object' && entry !== null && 'hasTrustDialogAccepted' in entry
+        ? entry.hasTrustDialogAccepted === true
+        : false
+    })
 }
 
 /**

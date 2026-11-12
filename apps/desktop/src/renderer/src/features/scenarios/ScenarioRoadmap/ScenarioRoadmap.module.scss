@@ -1,0 +1,148 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Дорога карточек: кружки ростом с маленький контрол, связка - короткая черта одной длины
+// везде, складка «+N» - в две остановки. Размеры частей - здесь, и только здесь: ряд складывается
+// по образцу (.probe), нарисованному этими же классами, и растёт вместе с размером текста IDE.
+.scenarioRoadmap {
+  --road-stop: var(--size-control-xs);
+  --road-link: var(--space-2);
+  --road-fold: calc(var(--size-control-xs) * 2);
+
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// Дорога ровно своей ширины, а не на всё место (строка цифр окна прогона): показания встают
+// сразу за ней, а теснота её сжимает и складывает. Число остановок ставит окно (--road-stops).
+.ownWidth {
+  flex: 0 1
+    calc(var(--road-stops, 0) * var(--road-stop) + (var(--road-stops, 0) - 1) * var(--road-link));
+  max-width: 100%;
+}
+
+// Образец частей для обмера: невидим и места не занимает, но раскладывается теми же классами.
+.probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.road {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.place {
+  display: inline-flex;
+  border-radius: var(--radius-full);
+}
+
+// Этап, где стоит прогон, подложен полосой тона того, что прогон делает.
+.bandworking {
+  @include tinted-plaque(var(--color-warning));
+
+  border-color: transparent;
+}
+
+.bandasking {
+  @include tinted-plaque(var(--color-accent));
+
+  border-color: transparent;
+}
+
+.bandpaused {
+  @include tinted-plaque(var(--color-fg-subtle));
+
+  border-color: transparent;
+}
+
+.link {
+  flex-shrink: 0;
+  width: var(--road-link);
+  height: var(--border-width);
+  background-color: var(--color-border-strong);
+}
+
+// Пройденный отрезок между двумя галочками - того же цвета, что их кружки.
+.passed {
+  background-color: var(--color-success);
+}
+
+.stop {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--road-stop);
+  height: var(--road-stop);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+}
+
+.done {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.failed {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.skipped {
+  border-style: dashed;
+  color: var(--color-fg-disabled);
+}
+
+.ahead {
+  color: var(--color-fg-subtle);
+}
+
+.here {
+  color: var(--color-fg-strong);
+}
+
+.working {
+  border-color: var(--color-warning);
+  background-color: var(--color-bg-selected);
+}
+
+.asking {
+  border-color: var(--color-accent);
+  background-color: var(--color-bg-selected);
+}
+
+.paused {
+  border-color: var(--color-fg-subtle);
+}
+
+// Пока прогон работает или ждёт человека, кольцом текущей остановки становится Spinner: его
+// бледная дорожка ложится на место рамки, дуга бежит по ней, номер внутри остаётся виден.
+.spinning {
+  border-color: transparent;
+}
+
+.ring {
+  position: absolute;
+  inset: calc(var(--border-width) * -1);
+  display: flex;
+}
+
+.fold {
+  flex-shrink: 0;
+  width: var(--road-fold);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}

@@ -10,14 +10,22 @@
   height: var(--size-title-bar);
 }
 
-// Место под «светофор» macOS: кнопки рисует система, а за пустоту вокруг них окно
-// таскают, как за обычный заголовок.
-.trafficLights {
+// Место под кнопки окна: их рисует система, а за пустоту вокруг них окно таскают, как за
+// обычный заголовок. Где они стоят, говорит сама система: env(titlebar-area-*) есть, когда
+// кнопки окна лежат поверх страницы (Windows, справа); на маке их нет - слева «светофор».
+.windowStart {
   @include window-drag-region;
 
   flex-shrink: 0;
   align-self: stretch;
-  width: var(--size-traffic-lights);
+  width: max(env(titlebar-area-x, var(--size-traffic-lights)), var(--space-2));
+}
+
+// Справа - то, что кнопки окна Windows занимают от правого края; на маке - ноль.
+.windowEnd {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
 }
 
 // Пустое место от проекта и ветки до правого края - главная ручка окна.

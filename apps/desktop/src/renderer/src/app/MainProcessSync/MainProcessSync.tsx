@@ -1,14 +1,19 @@
 import { useConnectorsSync } from '../../state/connectors.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
+import { useScenariosSync } from '../../state/scenarios.queries'
+import { useSoundsSync } from '../../state/sounds.queries'
+import { useStatisticsSync } from '../../state/statistics.queries'
 import { useUpdateStatusSync } from '../../state/updates.queries'
 import { useWorkspaceSync } from '../../state/workspace.queries'
 import { useAsideSync } from '../../features/claude-code/aside.queries'
 import { useClaudeSync } from '../../features/claude-code/claude.queries'
 import { useClaudeSearchSync } from '../../features/claude-code/search.queries'
 import { useEditorSync } from '../../features/editor/editor-sync.hooks'
+import { useLocalHistorySync } from '../../features/editor/local-history.queries'
 import { useDirectorySync } from '../../features/file-tree/file-tree.queries'
 import { useGitStatusSync } from '../../features/file-tree/git-status.queries'
 import { useGitHeadSync } from '../../features/git/git.queries'
+import { useRemoteSync } from '../../features/remote/remote.queries'
 import { useTerminalSync } from '../../features/terminal/terminal.queries'
 
 /**
@@ -27,8 +32,13 @@ export const MainProcessSync = () => {
   useGitChangesSync()
   useGitHeadSync()
   useEditorSync()
+  useLocalHistorySync()
   useConnectorsSync()
   useTerminalSync()
+  useScenariosSync()
+  useRemoteSync()
+  useStatisticsSync()
+  useSoundsSync()
 
   return null
 }

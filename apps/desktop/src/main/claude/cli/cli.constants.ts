@@ -1,10 +1,15 @@
+import { IS_WINDOWS } from '../../platform'
+
 /** Сколько ждать оболочку, у которой спрашиваем окружение. Тяжёлый .zshrc бывает медленным. */
 export const SHELL_ENV_TIMEOUT_MS = 10_000
 
 /** Метка перед окружением в выводе оболочки: профиль может напечатать что-то своё. */
 export const SHELL_ENV_MARKER = '__AGENTIC_WORKSTATION_ENV__'
 
-/** Папки от домашней, куда CLI ставят установщики, даже если их нет в PATH. */
+/**
+ * Папки от домашней, куда CLI ставят установщики, даже если их нет в PATH. Установщик
+ * Claude Code на Windows кладёт claude.exe туда же, в .local/bin.
+ */
 export const EXTRA_BIN_DIRS = [
   '.local/bin',
   '.claude/local',
@@ -13,11 +18,15 @@ export const EXTRA_BIN_DIRS = [
   '.npm-global/bin',
 ]
 
-/** Системные папки, где бывает CLI из Homebrew и npm. */
+/** Системные папки мака, где бывает CLI из Homebrew и npm. */
 export const SYSTEM_BIN_DIRS = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']
 
-/** Имя исполняемого файла Claude Code. */
-export const CLAUDE_BINARY = 'claude'
+/**
+ * Имя исполняемого файла Claude Code. На Windows - только claude.exe родного установщика:
+ * обёртку npm (claude.cmd) без оболочки не запустить, а через cmd.exe слова человека в
+ * аргументах ломались бы на кавычках и процентах (ADR 0048).
+ */
+export const CLAUDE_BINARY = IS_WINDOWS ? 'claude.exe' : 'claude'
 
 /** Сколько ждать `command -v` и `--help` у CLI. */
 export const CLI_PROBE_TIMEOUT_MS = 5_000

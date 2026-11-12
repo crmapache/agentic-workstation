@@ -1,0 +1,22 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид середины окна: шапка с вкладками прибита сверху, прокручивается только страница под ней.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// Страница на всю ширину середины, поля по бокам - общее поле зоны окна.
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--size-panel-gutter);
+}

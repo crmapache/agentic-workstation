@@ -9,7 +9,7 @@ import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 import { FOLDER_ICON_SIZE } from '../ConnectorsView.constants'
 import styles from '../ConnectorsView.module.scss'
 import type { ProjectChipsProps } from '../ConnectorsView.types'
-import { folderName } from '../ConnectorsView.utils'
+import { baseName } from '../../../../lib/path.utils'
 import { useConnectorActions } from '../../../../state/connectors.queries'
 import { projectTone, projectInitials } from '../../../../state/project-avatar.utils'
 
@@ -48,7 +48,7 @@ export const ProjectChips = ({ connector, selected, projects }: ProjectChipsProp
       {others.map((path) => (
         <ToggleChip
           key={path}
-          label={folderName(path)}
+          label={baseName(path)}
           leading={<FolderX size={FOLDER_ICON_SIZE} aria-hidden />}
           hint={t('connectors.projects.otherFolder', { path })}
           pressed

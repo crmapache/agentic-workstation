@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import type { ForkOrigin, ClaudeState, Conversation, HistoryEntry } from '@shared/claude'
+import type {
+  ForkOrigin,
+  ClaudeState,
+  Conversation,
+  HistoryEntry,
+  ConversationOptions,
+} from '@shared/claude'
 import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
 import type { ConversationCall } from '@shared/claude-prefs'
 
@@ -44,7 +50,10 @@ export type ClaudeEvents = {
   onFeed: (patch: FeedPatch) => void
   /** Открыть файл программой по умолчанию (скрипт входа в аккаунт - в Терминале). */
   openPath: (path: string) => Promise<string>
-  /** Разговор позвал человека: окно играет звук и подсвечивает вкладку. */
+  /**
+   * Разговор позвал человека - любым поводом, и выключенным в звуках: что из этого дойдёт до
+   * окна (звук, свет вкладки), решают звуки IDE, телефону - все.
+   */
   onCall: (call: ConversationCall) => void
 }
 
@@ -87,11 +96,8 @@ export class ClaudeService {
   readonly settings = new PanelSettings(this.toolsHost(), () => this.persist.changed())
   /** Счётчик «tok» у поля: токены за сегодня по всем проектам машины. */
   readonly todayTokens = new TodayTokens(async () => join(await claudeHome(), 'projects'))
-  /** Поводы позвать человека: звук и свечение вкладки (calls/). */
-  private readonly calls = new ConversationCalls(
-    () => this.settings.prefs.mutedSounds,
-    (call) => this.events.onCall(call),
-  )
+  /** Поводы позвать человека: звук, свечение вкладки, телефон (calls/). */
+  private readonly calls = new ConversationCalls((call) => this.events.onCall(call))
   private readonly trust: WorkspaceTrust
   private activeByProject: Record<string, string>
   private readonly persist: ClaudePersistence
@@ -197,6 +203,19 @@ export class ClaudeService {
     await this.addRuntime(projectPath, randomUUID(), null)
 
     return this.getState()
+  }
+
+  /**
+   * Новая вкладка с выбором сразу (Remote Control): модель, усилие и режим ставятся до того,
+   * как поднимется процесс. Ответ - id созданной вкладки, а не состояние, в котором её надо
+   * искать.
+   */
+  async openConversation(projectPath: string, options: ConversationOptions): Promise<string> {
+    const id = await this.addRuntime(projectPath, randomUUID(), null)
+
+    this.actions.setOptions(id, options)
+
+    return id
   }
 
   activateConversation(conversationId: string): ClaudeState {
@@ -354,6 +373,8 @@ export class ClaudeService {
     const conversation = await newTabConversation(tab)
 
     this.tabs.add(conversation)
+
+    return conversation.id
   }
 
   /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры, доверие. */

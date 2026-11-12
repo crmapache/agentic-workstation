@@ -10,7 +10,7 @@ import type { MenuItemProps } from './MenuItem.types'
 /**
  * Пункт меню: иконка или значок, подпись, по желанию вторая строка и подсказка
  * справа (объяснение во второй строке - с переносом, wrapDescription). Выбор закрывает
- * всплывающую панель, в которой пункт стоит. С selection -
+ * всплывающую панель, в которой пункт стоит (с keepOpen - нет: дальше следующий шаг). С selection -
  * вариант выбора с отметкой (вопрос с вариантами ответа). С iconTone и chevron -
  * строка бокового меню: иконка в плитке, значение справа, стрелка на следующий экран.
  */
@@ -28,10 +28,11 @@ export const MenuItem = ({
   chevron = false,
   selection,
   checked = false,
+  keepOpen = false,
   onSelect,
 }: MenuItemProps) => {
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (selection !== 'multiple')
+    if (selection !== 'multiple' && !keepOpen)
       event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover()
     onSelect()
   }

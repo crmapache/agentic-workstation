@@ -7,6 +7,8 @@ import type {
   TerminalSession,
 } from '@shared/terminal'
 
+import { IS_WINDOWS } from '../platform'
+import { shellArgs } from './node-pty-spawn'
 import { OutputLog } from './output-log'
 import { nextOrdinal } from './session-ordinal'
 import { FLOW_LOW, FLUSH_MS, FLOW_HIGH, REPLAY_LIMIT, KILL_GRACE_MS } from './terminal.constants'
@@ -18,10 +20,13 @@ export type TerminalHooks = {
   sessions: (sessions: TerminalSession[]) => void
 }
 
-/** Сигнал оболочке; вышедшая уже не ответит, и это не ошибка. */
+/**
+ * Сигнал оболочке; вышедшая уже не ответит, и это не ошибка. На Windows сигналов нет: node-pty
+ * бросает на любом имени сигнала, а у ещё не готового терминала - позже, мимо этого try.
+ */
 const signal = (live: LiveSession, name: 'SIGHUP' | 'SIGKILL') => {
   try {
-    live.pty.kill(name)
+    live.pty.kill(IS_WINDOWS ? undefined : name)
   } catch {
     // Процесс уже вышел.
   }
@@ -54,7 +59,7 @@ export class TerminalService {
     try {
       const shell = this.setup.shell()
 
-      pty = await this.setup.spawn(shell, ['-l'], {
+      pty = await this.setup.spawn(shell, shellArgs(shell), {
         cwd: rootPath,
         cols,
         rows,

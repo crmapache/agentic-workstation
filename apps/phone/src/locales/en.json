@@ -1,0 +1,949 @@
+{
+  "app": {
+    "name": "Agentic Workstation",
+    "shortName": "Workstation"
+  },
+  "push": {
+    "title": "Agentic Workstation",
+    "body": "Your IDE needs you.",
+    "providers": {
+      "claude": "Claude"
+    },
+    "scenario": "Scenario",
+    "titles": {
+      "trouble": "{{who}} in {{project}} stopped",
+      "limit": "{{who}} in {{project}} hit a usage limit",
+      "extraUsage": "{{who}} in {{project}} uses extra usage",
+      "permission": "{{who}} in {{project}} needs you",
+      "question": "{{who}} in {{project}} needs you",
+      "plan": "{{who}} in {{project}} needs you",
+      "held": "Queue stopped in {{project}}"
+    },
+    "bodies": {
+      "trouble": "{{title}}: the turn ended with an error",
+      "limit": "{{title}}: waits until {{time}}",
+      "limitUnknown": "{{title}}: waits for the limit to reset",
+      "extraUsage": "{{title}}: the account now pays for extra usage",
+      "permission": "{{title}}: allow {{tool}}?",
+      "question": "{{title}}: a question for you",
+      "plan": "{{title}}: a plan to review",
+      "held": {
+        "stopAfter": "{{title}}: stopped where you asked",
+        "failed": "{{title}}: a scenario failed",
+        "refused": "{{title}}: a scenario could not start"
+      }
+    }
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "help": "Help",
+    "save": "Save"
+  },
+  "link": {
+    "online": "Online",
+    "connecting": "Connecting",
+    "offline": "Not answering",
+    "revoked": "Released",
+    "banner": {
+      "offline": "The IDE is not answering. What you see may be out of date.",
+      "revoked": "The IDE released this phone. Pair again to control it."
+    },
+    "wait": {
+      "offlineTitle": "The IDE is not answering",
+      "offlineText": "The computer may be asleep, the IDE closed, or Remote Control turned off.",
+      "revokedTitle": "The IDE released this phone"
+    }
+  },
+  "status": {
+    "running": "Working",
+    "waiting-for-you": "Needs you",
+    "idle": "Idle"
+  },
+  "outcome": {
+    "interrupted": "Stopped",
+    "failed": "Ended with an error",
+    "crashed": "Crashed"
+  },
+  "effort": {
+    "low": "Low effort",
+    "medium": "Medium effort",
+    "high": "High effort",
+    "xhigh": "Extra high effort",
+    "max": "Max effort"
+  },
+  "options": {
+    "defaultModel": "Default (as in the IDE settings)",
+    "defaultEffort": "Default (as in the IDE settings)"
+  },
+  "modes": {
+    "default": {
+      "label": "Ask before changes",
+      "description": "Claude asks before editing files or running commands."
+    },
+    "acceptEdits": {
+      "label": "Accept edits",
+      "description": "File edits go through, commands still ask."
+    },
+    "plan": {
+      "label": "Plan first",
+      "description": "Claude plans and asks you to approve before working."
+    }
+  },
+  "time": {
+    "justNow": "just now",
+    "seconds": "{{count}}s",
+    "minutes": "{{count}}m",
+    "minutesSeconds": "{{minutes}}m {{seconds}}s",
+    "hoursMinutes": "{{hours}}h {{minutes}}m",
+    "daysHours": "{{days}}d {{hours}}h"
+  },
+  "errors": {
+    "title": "The IDE did not do it",
+    "offline": "The IDE is not answering right now.",
+    "timeout": "The IDE did not answer in time.",
+    "tooBig": "This is too big to send from the phone.",
+    "gone": "This IDE was removed from the phone.",
+    "unknownCommand": "The IDE does not take this from a phone.",
+    "badArgs": "The IDE could not read this request.",
+    "rateLimited": "Too many requests. Wait a moment.",
+    "notFound": "The IDE no longer has this.",
+    "notOpen": "Open this project in the IDE first.",
+    "refused": "The IDE refused.",
+    "failed": "Something went wrong in the IDE.",
+    "refusedBecause": {
+      "scenarioGone": "This scenario is gone from the shelf.",
+      "scenarioBroken": "This scenario has problems. Fix it in the IDE.",
+      "scenarioMissingInput": "Answer every required question first.",
+      "queueGone": "This queue is gone.",
+      "queueBusy": "The queue is busy. Try again in a moment.",
+      "queueClosed": "This queue is closed.",
+      "itemGone": "This item is no longer in the queue.",
+      "notARepo": "The project is not a git repository, so it cannot have a worktree.",
+      "noCommits": "The repository has no commits yet, so it cannot have a worktree.",
+      "worktreeFailed": "The worktree could not be made.",
+      "worktreeDirty": "The worktree has changes that are not committed.",
+      "providerMissing": "This provider is not available on the computer.",
+      "noClaude": "Claude Code is not found on the computer.",
+      "untrusted": "The project is not trusted yet. Trust it in the IDE.",
+      "runBusy": "The run is busy. Try again in a moment.",
+      "runGone": "This run is gone.",
+      "runNotResumable": "This run cannot be continued.",
+      "runOver": "This run is over.",
+      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed.",
+      "permissionMode": "The new conversation did not start in a mode the phone may choose. Start it at the computer.",
+      "imageTooBig": "This photo is too big to send to the phone.",
+      "askTaken": "This side question is already asked. Ask again.",
+      "notRecent": "The IDE no longer lists this project among its recent ones.",
+      "notSignedIn": "This account is not signed in. Sign in at the computer first.",
+      "draftGone": "This draft is gone. Write it again.",
+      "scenarioNotWritten": "The scenario could not be saved.",
+      "scenarioNotDeleted": "The scenario could not be deleted.",
+      "scenarioOnBothShelves": "A scenario with this id is already on the other shelf.",
+      "scenarioNotMoved": "The scenario could not be moved.",
+      "orderNotWritten": "The order of the shelf could not be saved.",
+      "schedulesNotWritten": "The schedule could not be saved."
+    },
+    "questionGone": "This question was already answered.",
+    "runMoved": "The run changed since this screen was drawn. Check it and try again.",
+    "partsRefused": "The IDE could not put the message together. Send it again."
+  },
+  "pairing": {
+    "title": "Pair with your IDE",
+    "help": {
+      "title": "Pairing",
+      "text": "The QR code in the IDE's Remote Control window opens this page with a one-time code. The code never leaves the phone: it is removed from the address at once.\n\nCompare the keys before you pair. The IDE key here must match the key in the Remote Control window. When the IDE asks you to approve this phone, it shows the phone key - it must match the one here.\n\nAfter you approve, the phone and the IDE talk end-to-end encrypted through the relay, which only passes frames and cannot read them. Several IDEs can be paired with one phone.\n\nAn app added to the Home Screen keeps its own pairings, apart from Safari. To pair it, press and hold the link of the QR code in the camera, choose Copy Link and paste it on this screen."
+    },
+    "ideKey": "IDE key",
+    "ideKeyHint": "Must match the key in the IDE's Remote Control window",
+    "phoneKey": "This phone",
+    "phoneKeyHint": "The IDE shows this key when it asks you to approve",
+    "phoneName": "Phone name in the IDE",
+    "preparing": "Making the phone key",
+    "pair": "Pair",
+    "waiting": "Approve this phone in the IDE",
+    "toMachines": "Go to my IDEs",
+    "deviceNames": {
+      "iphone": "iPhone",
+      "ipad": "iPad",
+      "android": "Android phone",
+      "other": "Phone"
+    },
+    "noCode": {
+      "title": "Scan the code in your IDE",
+      "description": "Open Remote Control in Agentic Workstation and point the phone camera at the QR code."
+    },
+    "invalid": {
+      "title": "This code does not work",
+      "description": "It is not from Agentic Workstation or it is damaged. Show a new code in the IDE and scan it again."
+    },
+    "link": {
+      "label": "Pairing link",
+      "hint": "In the camera, press and hold the link of the QR code, choose Copy Link and paste it here.",
+      "submit": "Pair with this link"
+    },
+    "failed": {
+      "proof": "The answer did not match the code. Show a new code in the IDE and scan it again.",
+      "fingerprint": "The IDE key is not the one in the code. Pairing stopped for safety.",
+      "keys": "The IDE answered with a key the phone cannot use.",
+      "timeout": "No approval came from the IDE. Show a new code and scan it again.",
+      "cancelled": "Pairing was cancelled. Show a new code in the IDE to try again.",
+      "offline": "The relay could not be reached. Check the connection and try again.",
+      "refused": "The pairing was refused in the IDE.",
+      "expired": "The code expired or was used by another phone. Show a new code in the IDE and scan it again."
+    }
+  },
+  "machines": {
+    "title": "My IDEs",
+    "help": {
+      "title": "Remote Control",
+      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nAll queues, Accounts and Connectors belong to the whole IDE, not to one project.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
+    },
+    "empty": {
+      "title": "No IDE paired yet",
+      "description": "Open Remote Control in Agentic Workstation and scan the QR code with the phone camera."
+    },
+    "pairIde": "Pair an IDE",
+    "notPersistent": "This browser does not keep data: pairings last until the page is closed.",
+    "version": "IDE {{version}}",
+    "loading": "Getting the projects",
+    "reconnect": "Reconnect",
+    "forget": "Forget",
+    "forgetDialog": {
+      "title": "Forget {{label}}?",
+      "text": "The pairing keys are removed from this phone, and the IDE is told to release it if the IDE is reachable now. To pair again, scan a new code in the IDE."
+    },
+    "revoked": "The IDE released this phone. Scan a new code to pair again.",
+    "openProjects": "Open projects",
+    "noOpenProjects": "No projects are open in the IDE.",
+    "recent": "Recent",
+    "needsYou": "Needs you",
+    "counts": {
+      "running_one": "{{count}} working",
+      "running_other": "{{count}} working",
+      "waiting_one": "{{count}} needs you",
+      "waiting_other": "{{count}} need you",
+      "conversations_one": "{{count}} conversation",
+      "conversations_other": "{{count}} conversations",
+      "queues_one": "{{count}} queue",
+      "queues_other": "{{count}} queues"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "help": {
+        "title": "Notifications",
+        "text": "When this phone is not looking, a paired IDE can wake it: a conversation asks for a permission, a question or a plan, stops with an error or hits a usage limit, a scenario asks a question or a queue stops. Tapping the notification opens that conversation, queue or run. A finished turn does not notify.\n\nThe text is encrypted on the computer for this phone only. The relay and the push service of your phone see that a notification was sent, not what it says.\n\nTurn off stops notifications from every IDE paired with this phone."
+      },
+      "on": "On. Your IDEs wake this phone when they need you.",
+      "off": "Get a notification when an IDE needs you.",
+      "turnOn": "Turn on notifications",
+      "turnOff": "Turn off",
+      "install": "Add to Home Screen to get notifications.",
+      "denied": "Notifications are blocked. Allow them for this app in the phone settings.",
+      "unsupported": "This browser does not show notifications.",
+      "failed": "Notifications could not be turned on."
+    },
+    "screens": "This IDE"
+  },
+  "project": {
+    "title": "Project",
+    "help": {
+      "title": "Project",
+      "text": "Conversations are grouped by provider. Each shows what it is doing now and since when: working, needs you (a permission, a question or a plan) or idle. Past conversations can be opened and continued, and Search conversations finds a message by its words or by asking Claude.\n\nScenarios shows the shelves, the schedule and past runs. Scenario queues run scenarios one after another, in their own worktree or in the project folder.\n\nA recent project that is not open in the IDE shows its past conversations and its queues. Open in the IDE opens it as a tab, and then its conversations show up here."
+    },
+    "loading": "Waiting for the IDE",
+    "loadingQueues": "Getting the queues",
+    "gone": {
+      "title": "This project is not in the IDE",
+      "description": "It was closed or removed from the recent list."
+    },
+    "recentNote": "Not open in the IDE. Open it to see and start its conversations.",
+    "conversations": "Conversations",
+    "noConversations": "No conversations yet",
+    "newConversation": "New conversation",
+    "queues": "Scenario queues",
+    "noQueues": "No open queues",
+    "startScenario": "Start a scenario",
+    "waitingItems_one": "{{count}} waiting",
+    "waitingItems_other": "{{count}} waiting",
+    "waiting": {
+      "permission": "Permission",
+      "question": "Question",
+      "plan": "Plan"
+    },
+    "more": "More in this project",
+    "openInIde": "Open in the IDE"
+  },
+  "conversation": {
+    "title": "Conversation",
+    "help": {
+      "title": "Conversation",
+      "text": "The feed shows the end of the conversation as the IDE sees it, and updates live. Load earlier brings older messages from the IDE, a page at a time.\n\nWhile Claude works, a new message waits in the IDE's queue and goes after the current turn. Send now gives a queued message to Claude right away: it reads it at its next step. Move up, Move down and Remove change the queue.\n\nStop next to the message field ends the turn. If Claude Code does not stop, Force stop ends its process; the unfinished work of the turn is lost. A running agent or background command can be stopped on its own from its line in the feed.\n\nAsk aside asks Claude a side question about this conversation without stopping its work. The answer stays out of the chat and shows only on this phone.\n\nRewind next to your message takes the conversation back to it, and can put the code back too. The message text returns to the field.\n\nA permission can be allowed once or denied. Allowing a tool always, bypass and auto modes, the terminal and ! commands are only available at the computer.\n\nTap a photo to see it large. A big photo comes reduced to fit the phone; the original stays in the IDE."
+    },
+    "loading": "Getting the conversation",
+    "empty": "Nothing here yet",
+    "gone": {
+      "title": "This conversation is closed",
+      "description": "It was closed in the IDE, or its project was closed."
+    },
+    "errors": {
+      "cli-not-found": "Claude Code is not found on the computer.",
+      "untrusted": "The project is not trusted yet. Trust it in the IDE.",
+      "project-missing": "The project folder is gone.",
+      "start-failed": "Claude Code did not start.",
+      "other": "Claude Code cannot run: {{code}}"
+    },
+    "working": "Working · {{time}}",
+    "stop": "Stop",
+    "send": "Send",
+    "placeholder": "Message",
+    "placeholderQueued": "Queue a message",
+    "queued": "Waiting in the IDE",
+    "queuedMark": "Next",
+    "queuedPhotos_one": "{{count}} photo",
+    "queuedPhotos_other": "{{count}} photos",
+    "settings": {
+      "title": "Conversation settings",
+      "name": "Name",
+      "rename": "Rename",
+      "model": "Model",
+      "effort": "Effort"
+    },
+    "sendNow": "Send now",
+    "unqueue": "Remove from queue",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "queueHold": {
+      "paused": "Waits for your next message",
+      "reopened": "Waits for your next message: the turn it waited for was stopped",
+      "blocked": "Waits until the conversation can run"
+    },
+    "carryOn": {
+      "planned": "Continues after the usage limit at {{time}}",
+      "guessed": "Continues after the usage limit around {{time}}",
+      "cancel": "Don't continue"
+    },
+    "forceStop": {
+      "button": "Force stop",
+      "title": "Force stop Claude Code?",
+      "text": "Claude Code did not stop, so its process is ended. The unfinished work of this turn is lost."
+    },
+    "fast": {
+      "label": "Fast mode",
+      "states": {
+        "on": "On",
+        "off": "Off",
+        "cooldown": "Paused after a rate limit",
+        "waiting": "Turns on with the next message"
+      }
+    }
+  },
+  "composer": {
+    "addPhoto": "Add a photo",
+    "removePhoto": "Remove photo {{number}}",
+    "photoUnreadable": "A photo could not be read.",
+    "photosTooBig": "These photos are too big for one message. Send fewer."
+  },
+  "feed": {
+    "earlier": "Load earlier messages",
+    "tasks": "Tasks {{done}} of {{total}}",
+    "tool": "Tool",
+    "thinking": "Thinking",
+    "tokens_one": "{{count}} token",
+    "tokens_other": "{{count}} tokens",
+    "added": "+{{count}}",
+    "removed": "-{{count}}",
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} steps",
+    "photo": "Photo",
+    "steering": "During the turn",
+    "auto": "From the IDE",
+    "compacting": "Compacting the context",
+    "compacted": "Context compacted",
+    "retry": "Retrying, attempt {{attempt}} of {{max}}",
+    "modelSwitch": "Model switched from {{from}} to {{to}}",
+    "limit": "Usage limit reached",
+    "limitUntil": "Usage limit reached, resets at {{at}}",
+    "turn": {
+      "done": "Done",
+      "stopped": "Stopped",
+      "error": "Ended with an error",
+      "files_one": "{{count}} file +{{added}} -{{removed}}",
+      "files_other": "{{count}} files +{{added}} -{{removed}}"
+    },
+    "toolStatus": {
+      "error": "Failed",
+      "denied": "Not allowed",
+      "interrupted": "Interrupted"
+    },
+    "shellStatus": {
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    },
+    "notice": {
+      "interrupted": "Stopped",
+      "start-failed": "Claude Code did not start",
+      "process-exited": "Claude Code exited",
+      "cli-error": "Error",
+      "not-logged-in": "Not logged in",
+      "rate-limited": "Rate limited",
+      "rewound": "Conversation rewound",
+      "forked": "Forked",
+      "fork-whole": "Forked as a whole",
+      "cleared": "Context cleared",
+      "session": "Session",
+      "fast": "Fast mode is off",
+      "outranked": "Repository settings pick the account",
+      "mod": "Mod",
+      "model-stuck": "The chosen model did not apply",
+      "connectors-missing": "Connectors are not available",
+      "model-swap": "Model changed"
+    },
+    "tooBig": "Too large to show on the phone. It is in full in the IDE.",
+    "kinds": {
+      "assistant": "Answer",
+      "user": "Message",
+      "thinking": "Thinking",
+      "tool": "Tool",
+      "shell": "Command",
+      "turn": "Turn",
+      "notice": "Notice"
+    },
+    "loadingEarlier": "Loading earlier messages",
+    "rewind": "Rewind",
+    "stopTask": "Stop task",
+    "stopTaskConfirm": {
+      "agent": "Stop this agent?",
+      "workflow": "Stop this workflow?",
+      "command": "Stop this command?"
+    }
+  },
+  "pending": {
+    "more_one": "{{count}} more after this",
+    "more_other": "{{count}} more after this",
+    "permission": {
+      "title": "Allow {{tool}}?",
+      "instead": "What to do instead",
+      "insteadPlaceholder": "Optional, sent if you deny",
+      "allowOnce": "Allow once",
+      "deny": "Deny",
+      "modelSays": "The model says"
+    },
+    "question": {
+      "title": "Claude asks",
+      "own": "Your own answer",
+      "ownPlaceholder": "Optional, replaces the choice",
+      "send": "Answer",
+      "dismiss": "Dismiss"
+    },
+    "plan": {
+      "title": "Plan to approve",
+      "approve": "Approve",
+      "refine": "Keep planning",
+      "feedback": "What to change",
+      "feedbackPlaceholder": "Tell Claude what to change in the plan",
+      "sendFeedback": "Send"
+    },
+    "tooLong": "Too long to review on the phone - decide at the Mac. You can still deny it here."
+  },
+  "newConversation": {
+    "title": "New conversation",
+    "help": {
+      "title": "New conversation",
+      "text": "The conversation opens in the IDE as a new tab of this project. Model and effort default to the IDE settings.\n\nBypass and auto modes are only available at the computer."
+    },
+    "provider": "Provider",
+    "mode": "Mode",
+    "create": "Start conversation",
+    "noProvider": "No provider is available on the computer."
+  },
+  "queue": {
+    "title": "Queue",
+    "help": {
+      "title": "Scenario queue",
+      "text": "A queue runs its scenarios one after another, in its own worktree or in the project folder.\n\nStop after current lets the running scenario finish, then the queue waits. A waiting item can stop the queue after itself, run only if the one before it succeeded, move up or down, or be removed. Clear waiting removes every waiting item at once; the running scenario and the finished ones stay.\n\nClosing a queue and removing its worktree are only available at the computer."
+    },
+    "gone": "This queue is not in the IDE",
+    "projectFolder": "Project folder",
+    "held": "Waiting",
+    "heldTitle": "The queue is waiting",
+    "holdReason": {
+      "stopAfter": "It stopped where you asked.",
+      "failed": "The item before failed.",
+      "refused": "The IDE could not start the next item.",
+      "interrupted": "The IDE was closed during a run."
+    },
+    "resume": "Resume the queue",
+    "items": "Items",
+    "rename": "Rename the queue",
+    "name": "Queue name",
+    "progress": "Steps done",
+    "stepsDone": "{{done}} of {{total}} steps",
+    "openRun": "Open the run",
+    "stopAfterCurrent": "Stop after this",
+    "stopAfterThis": "Stop the queue after this item",
+    "keepGoing": "Keep going after this",
+    "stopsHere": "Stops here",
+    "afterSuccess": "Run only if the one before succeeded",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Remove",
+    "removeConfirm": "Remove {{name}} from the queue?",
+    "refused": "Not started: {{code}}",
+    "clear": "Clear waiting",
+    "clearConfirm_one": "Remove {{count}} waiting scenario?",
+    "clearConfirm_other": "Remove {{count}} waiting scenarios?",
+    "clearText": "The running scenario and the finished ones stay. The queue stays open."
+  },
+  "itemState": {
+    "waiting": "Waiting",
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+    "stopped": "Stopped"
+  },
+  "runState": {
+    "starting": "Starting",
+    "running": "Running",
+    "paused": "Paused",
+    "blocked": "Needs you",
+    "done": "Done",
+    "failed": "Failed",
+    "stopped": "Stopped"
+  },
+  "stepState": {
+    "waiting": "Waiting",
+    "running": "Running",
+    "asking": "Asking",
+    "judging": "Judging",
+    "paused": "Paused",
+    "done": "Done",
+    "failed": "Failed",
+    "skipped": "Skipped"
+  },
+  "run": {
+    "title": "Run",
+    "help": {
+      "title": "Scenario run",
+      "text": "A run is one pass of a scenario. Cards do the work, and the main thread (the head) reads what each card did and decides what comes next.\n\nWhen the head asks you, answer here. Write to the head at the bottom: it reads your words between cards.\n\nPause keeps everything alive. Stop cuts the current card short. A stopped or failed run, or one waiting for a usage limit, can be continued."
+    },
+    "loading": "Getting the run",
+    "gone": "The IDE does not have this run",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "stopConfirm": "Stop {{name}}?",
+    "carryOn": "Continue",
+    "limitTitle": "Waiting for a usage limit",
+    "limitUntil": "Until {{at}}",
+    "stoppedTitle": "The run stopped",
+    "failure": {
+      "noHead": "The head could not start.",
+      "noStart": "The run could not start.",
+      "tooLong": "The run took too long.",
+      "headSilent": "The head stopped answering.",
+      "crashed": "The run crashed.",
+      "refused": "A card was refused.",
+      "noVerdict": "The head gave no verdict.",
+      "retries": "Out of retries.",
+      "stopped": "Stopped by you.",
+      "undone": "The work was undone.",
+      "headGaveUp": "The head gave up.",
+      "longList": "The list was too long."
+    },
+    "question": {
+      "title": "The head asks",
+      "words": "Your words",
+      "wordsPlaceholder": "Optional for allow or refuse",
+      "allow": "Allow",
+      "refuse": "Refuse",
+      "send": "Answer",
+      "ownPlaceholder": "Optional, replaces the choice"
+    },
+    "roadmap": "Roadmap",
+    "noSteps": "No steps yet",
+    "stageWaiting": "Not started",
+    "pass": "{{title}}, pass {{pass}}",
+    "notes": "Talk with the head",
+    "noteHead": "{{who}} · {{at}}",
+    "who": {
+      "head": "Head",
+      "person": "You",
+      "panel": "IDE"
+    },
+    "tell": "Tell the head",
+    "tellPlaceholder": "Tell the head",
+    "openLog": "Open log",
+    "headLog": "Head log"
+  },
+  "start": {
+    "title": "Start a scenario",
+    "help": {
+      "title": "Start a scenario",
+      "text": "Pick a scenario from the project shelf or your personal shelf and answer its questions.\n\nA new queue in its own worktree works on a separate branch, and the project files stay as they are. Without a worktree it works in the project folder. An existing queue runs the scenario after what is already in it."
+    },
+    "loading": "Getting the scenarios",
+    "noScenarios": "No scenarios on the shelves yet. Make one in the IDE.",
+    "shelf": {
+      "project": "Project scenarios",
+      "user": "My scenarios"
+    },
+    "questions": "Questions",
+    "required": "{{label}} (required)",
+    "where": "Where",
+    "newQueue": "New queue",
+    "options": "Options",
+    "worktree": "In its own worktree",
+    "worktreeHint": "A separate branch; the project files stay as they are",
+    "start": "Start"
+  },
+  "photo": {
+    "open": "Open photo {{number}}",
+    "loading": "Getting the full photo",
+    "reduced": "Reduced to fit the phone. The original is in the IDE.",
+    "missing": "The IDE no longer has this photo.",
+    "tooBig": "This photo is too big to send to the phone.",
+    "failed": "The full photo did not come.",
+    "previewShown": "This is the preview; the original is in the IDE."
+  },
+  "history": {
+    "title": "Past conversations",
+    "help": {
+      "title": "Past conversations",
+      "text": "Earlier conversations of this project, newest first, for each provider. Opening one opens it in the IDE as a tab of this project, and you can go on with it here.\n\nA conversation that is already open as a tab opens without changing what the IDE shows. For a recent project the list can be read, and Open in the IDE opens the project so its conversations can be opened too."
+    },
+    "loading": "Getting past conversations",
+    "empty": "No past conversations yet",
+    "more": "Older conversations are in the IDE.",
+    "open": "Open",
+    "untitled": "Untitled conversation",
+    "retry": "Try again",
+    "notOpen": "The project is not open in the IDE. Open it to continue one of these."
+  },
+  "board": {
+    "title": "All queues",
+    "help": {
+      "title": "All queues",
+      "text": "Open scenario queues of every project on this IDE, grouped by project, like All queues in the IDE. A queue stays here even when its project is closed: scenarios run at the IDE level.\n\nTap a queue to manage it and its running scenario."
+    },
+    "summary": "Queues at a glance",
+    "running_one": "{{count}} running",
+    "running_other": "{{count}} running",
+    "waiting_one": "{{count}} needs you",
+    "waiting_other": "{{count}} need you",
+    "quiet": "Nothing running",
+    "none": "No open queues",
+    "empty": {
+      "title": "No open queues",
+      "description": "Start a scenario from a project to see it here."
+    }
+  },
+  "rewind": {
+    "title": "Rewind to this message",
+    "lead": "This message and everything after it leave the conversation. Its text comes back into the field.",
+    "what": "What goes back",
+    "scopes": {
+      "both": "Conversation and code",
+      "conversation": "Conversation only",
+      "code": "Code only"
+    },
+    "checking": "Checking what Claude changed since",
+    "files_one": "{{count}} file changed since",
+    "files_other": "{{count}} files changed since",
+    "more_one": "and {{count}} more",
+    "more_other": "and {{count}} more",
+    "none": "Claude changed no files since this message.",
+    "off": "Code is not kept: Rewind code (checkpoints) is off in the Claude Code settings.",
+    "notTracked": "Code is not kept for this conversation yet: its Claude Code was started without keeping copies of files.",
+    "noCheckpoint": "No copy of the code was kept when this message was sent.",
+    "unavailable": "Claude Code cannot restore the code here: {{detail}}",
+    "running": "The turn that is running stops.",
+    "queued_one": "The queued message is dropped too.",
+    "queued_other": "The {{count}} queued messages are dropped too.",
+    "go": "Rewind",
+    "done": "Rewound",
+    "notDone": "The conversation was not rewound",
+    "filesFailed": "The conversation was rewound, but the files did not come back",
+    "refused": {
+      "busy": "Claude is busy with something that cannot be stopped from here. Try again in a moment.",
+      "gone": "Claude no longer holds this message: a compaction folded it away.",
+      "moved": "The conversation moved on while this was open. Look again and retry.",
+      "midCall": "This message sits inside a tool call and its answer, so the conversation cannot be cut there.",
+      "notSaved": "Claude Code could not record the rewind, so it did not make it.",
+      "code": "Stop the turn before restoring the code alone.",
+      "unsupported": "This version of Claude Code cannot rewind. Update it at the computer.",
+      "noProcess": "Claude Code could not be started for this conversation.",
+      "ended": "Claude Code stopped during the rewind, so it is not known whether the cut was made.",
+      "other": "Claude Code refused: {{detail}}"
+    }
+  },
+  "aside": {
+    "open": "Ask aside",
+    "title": "Side questions",
+    "help": {
+      "title": "Side questions",
+      "text": "Claude answers a side question from this conversation without stopping its work. It does not read files or run tools, and neither the question nor the answer goes into the chat.\n\nThe answer comes only to this phone and stays here until the page is closed. An answer can take a few minutes."
+    },
+    "none": "No side questions yet.",
+    "question": "Side question",
+    "placeholder": "What do you want to know about this conversation?",
+    "ask": "Ask",
+    "thinking": "Thinking aside · {{time}}",
+    "cancelled": "Cancelled",
+    "empty": "No answer came back.",
+    "truncated": "Shortened to fit the phone. The whole answer is in the IDE.",
+    "failed": {
+      "ended": "The conversation stopped before answering",
+      "timeout": "No answer in ten minutes",
+      "refused": "Claude Code turned it down",
+      "other": "The question did not go through"
+    }
+  },
+  "stepLog": {
+    "title": "Step log",
+    "help": {
+      "title": "Step log",
+      "text": "The conversation of one card of the run, or of the head that leads it, as the IDE recorded it. Load earlier brings older messages a page at a time.\n\nThe log does not update by itself. Refresh shows its end again."
+    },
+    "loading": "Getting the log",
+    "none": "This step has no log yet",
+    "refresh": "Refresh"
+  },
+  "search": {
+    "title": "Search conversations",
+    "help": {
+      "title": "Search conversations",
+      "text": "Find looks for the words you type in this project's conversations, the way the IDE search does. Put a phrase in quotes to find it as a whole.\n\nAsk Claude reads the conversations and points at the places that fit a description, like what it was about or roughly when. It runs on its own and counts against your usage; Cancel stops it.\n\nTap a result to open that conversation. Search works only in a project that is open in the IDE."
+    },
+    "field": "Search",
+    "placeholder": "Words, or describe what you look for",
+    "find": "Find",
+    "ask": "Ask Claude",
+    "reading": "Claude is reading the conversations · {{time}}",
+    "empty": "Results show up here.",
+    "nothing": "Nothing found.",
+    "failed": "The search failed in the IDE.",
+    "aiNothing": "Claude found nothing that fits.",
+    "cancelled": "Cancelled",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "showing": "showing {{shown}}",
+    "places_one": "{{count}} place Claude points at",
+    "places_other": "{{count}} places Claude points at",
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "untitled": "Untitled conversation",
+    "speaker": {
+      "you": "You",
+      "claude": "Claude"
+    },
+    "notOpen": "Open this project in the IDE to search its conversations",
+    "aiFailures": {
+      "cli-not-found": "Claude Code is not installed.",
+      "outdated": "This needs a newer Claude Code. Update it at the computer.",
+      "corpus": "The conversations could not be prepared for the search.",
+      "timeout": "The search took too long and was stopped.",
+      "failed": "Claude Code could not finish the search.",
+      "answer": "Claude answered with something that is not a list of places."
+    },
+    "inConversations_one": "in {{count}} conversation",
+    "inConversations_other": "in {{count}} conversations"
+  },
+  "scenarios": {
+    "title": "Scenarios",
+    "help": {
+      "title": "Scenarios",
+      "text": "The project shelf and your personal shelf, the scheduled runs and the past runs of this project.\n\nTap a scenario to read it, start it, schedule it, copy it or delete it. Write with AI describes a new scenario in words; Claude writes it and you save it to a shelf. Editing a scenario by hand is only available at the computer.\n\nA scheduled run starts at its hour by the Mac's clock, while the IDE is open. Star a run to keep it easy to find; delete removes its record from the computer."
+    },
+    "noScenarios": "No scenarios on the shelves yet. Write one with AI.",
+    "questions_one": "{{count}} question",
+    "questions_other": "{{count}} questions",
+    "schedule": "Schedule",
+    "noSchedules": "Nothing is scheduled",
+    "schedulesUnread": "The schedule could not be read",
+    "unreadNote": "The schedule file on the computer may be damaged. Nothing is written over it from here.",
+    "orphan": "Scenario not on a shelf",
+    "next": "next {{when}}",
+    "missed": "missed {{when}}",
+    "unschedule": "Remove",
+    "unscheduleConfirm": "Remove this scheduled run?",
+    "unscheduleText": "The scenario stays; only this hour goes.",
+    "history": "Past runs",
+    "noRuns": "Nothing has been run yet",
+    "moreRuns": "Older runs are in the IDE.",
+    "star": "Star this run",
+    "unstar": "Remove the star",
+    "deleteRun": "Delete this run",
+    "deleteRunConfirm": "Delete this run?",
+    "deleteRunText": "Its record goes from the computer.",
+    "delete": "Delete",
+    "write": "Write with AI",
+    "accRun": "ACC"
+  },
+  "scenario": {
+    "title": "Scenario",
+    "help": {
+      "title": "Scenario",
+      "text": "The whole scenario as it is on the shelf: the questions it asks before it starts, the head that leads the run, and its stages with their cards. Tap a card to read its prompt.\n\nStart runs it now; Schedule sets an hour for it. Duplicate puts a copy on the same shelf. Editing is only available at the computer, or write a new one with AI."
+    },
+    "loading": "Getting the scenario",
+    "schedule": "Schedule",
+    "duplicate": "Duplicate",
+    "duplicated": "A copy is on the shelf",
+    "deleteConfirm": "Delete {{name}}?",
+    "deleteText": "It goes from the shelf on the computer. Its past runs stay.",
+    "untitledCard": "Untitled card",
+    "noPrompt": "No prompt",
+    "card": {
+      "dod": "Done when",
+      "after": "After it"
+    },
+    "head": {
+      "title": "Head",
+      "noBriefing": "No briefing",
+      "onQuestion": {
+        "head": "The head answers the cards' questions",
+        "stop": "The run waits for you on a card's question"
+      },
+      "retries_one": "Sends a card back up to {{count}} time",
+      "retries_other": "Sends a card back up to {{count}} times"
+    },
+    "stage": {
+      "untitled": "Stage {{number}}",
+      "each": "Once for each {{name}}",
+      "untilDone_one": "Until done, up to {{count}} pass",
+      "untilDone_other": "Until done, up to {{count}} passes",
+      "repeat_one": "{{count}} pass",
+      "repeat_other": "{{count}} passes"
+    }
+  },
+  "schedule": {
+    "title": "Schedule a run",
+    "help": {
+      "title": "Schedule a run",
+      "text": "At its hour the scenario starts in a new queue, with the answers you give now: at that hour there is nobody to answer.\n\nThe hour is by the Mac's clock, not this phone's. A run starts only while the IDE is open; an hour that passed while it was closed shows as missed.\n\nIn its own worktree the run works on a separate branch, and the project files stay as they are."
+    },
+    "when": "When",
+    "at": "At",
+    "repeat": "Repeat",
+    "weekday": "On",
+    "submit": "Set the time",
+    "repeats": {
+      "once": "Once",
+      "daily": "Every day",
+      "weekdays": "Weekdays",
+      "weekly": "Weekly"
+    },
+    "repeatAt": {
+      "once": "Once at {{time}}",
+      "daily": "Daily at {{time}}",
+      "weekdays": "Weekdays at {{time}}"
+    },
+    "weeklyAt": {
+      "1": "Mondays at {{time}}",
+      "2": "Tuesdays at {{time}}",
+      "3": "Wednesdays at {{time}}",
+      "4": "Thursdays at {{time}}",
+      "5": "Fridays at {{time}}",
+      "6": "Saturdays at {{time}}",
+      "7": "Sundays at {{time}}"
+    },
+    "weekdays": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    }
+  },
+  "draft": {
+    "title": "Write with AI",
+    "help": {
+      "title": "Write with AI",
+      "text": "Describe what the scenario should do: the work, the steps, when it is done. Claude writes the whole scenario in a few minutes, and you read it before saving.\n\nSave to shelf saves exactly what Claude wrote. To change it, discard it and describe it again, or edit it at the computer. Leaving this screen while Claude writes cancels the draft."
+    },
+    "description": "What should the scenario do?",
+    "placeholder": "For example: review the open pull request, fix what the review finds, run the tests",
+    "shelf": "Shelf",
+    "write": "Write",
+    "writing": "Claude is writing the scenario · {{time}}",
+    "progress": "Claude is writing the scenario",
+    "save": "Save to shelf",
+    "discard": "Discard",
+    "cancelled": "Cancelled.",
+    "failed": "Claude could not write it: {{error}}"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "help": {
+      "title": "Accounts",
+      "text": "The Claude accounts signed in on the computer, and how much of each usage window is spent. Refresh brings fresh numbers.\n\nUse this account switches the conversations to it: each one restarts on it as soon as it is free.\n\nForget removes an added account's sign-in from the Mac. Sign out signs Claude Code out of the default sign-in on every machine. Adding an account and signing in again need a browser at the Mac."
+    },
+    "loading": "Getting the accounts",
+    "none": "No accounts on the computer",
+    "refresh": "Refresh",
+    "default": "Default sign-in",
+    "untitled": "Account",
+    "current": "In use",
+    "signedIn": "Signed in",
+    "signedOut": "Signed out",
+    "windows": {
+      "session": "5-hour",
+      "weekly": "Week",
+      "weeklyModel": "Week · {{model}}"
+    },
+    "resets": "resets {{when}}",
+    "extra": "Extra usage is on: {{percent}} of the monthly cap spent",
+    "refusedUntil": "The limit refused it until {{when}}",
+    "use": "Use this account",
+    "useTitle": "Use {{name}}?",
+    "useText": "Conversations restart on this account as they become free.",
+    "rename": "Rename",
+    "renameTitle": "Rename account",
+    "alias": "Name",
+    "forget": "Forget",
+    "forgetTitle": "Forget {{name}}?",
+    "forgetText": "Its sign-in is removed from the Mac, and its conversations switch to the default sign-in. To bring it back, sign in again with a browser at the Mac.",
+    "logout": "Sign out",
+    "logoutTitle": "Sign out of the default sign-in?",
+    "logoutText": "This signs Claude Code out on every machine that uses this sign-in. Signing in again needs a browser at the Mac."
+  },
+  "connectors": {
+    "title": "Connectors",
+    "help": {
+      "title": "Connectors",
+      "text": "The apps the IDE connects to for Claude: mail, calendar, Notion, Slack and any MCP server. Each shows its state and how many of its tools are on.\n\nReconnect asks the service for its tools again and clears a lost sign-in if the key works again.\n\nAdding, removing and signing in to a connector are only available at the computer: signing in needs a browser at the Mac."
+    },
+    "loading": "Getting the connectors",
+    "none": "No connectors in the IDE",
+    "reconnect": "Reconnect",
+    "tools_one": "{{on}} of {{count}} tool on",
+    "tools_other": "{{on}} of {{count}} tools on",
+    "kinds": {
+      "gmail": "Gmail",
+      "calendar": "Google Calendar",
+      "notion": "Notion",
+      "slack": "Slack",
+      "atlassian": "Jira & Confluence",
+      "todoist": "Todoist",
+      "playwright": "Playwright",
+      "browser": "Browser",
+      "mcp": "MCP server",
+      "command": "MCP server command",
+      "http": "API connector"
+    },
+    "status": {
+      "connected": "Connected",
+      "signed-out": "Sign-in needed",
+      "signing-in": "Signing in",
+      "failed": "Not responding",
+      "disabled": "Off"
+    }
+  }
+}

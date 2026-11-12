@@ -15,12 +15,27 @@ import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connec
 import { CONNECTORS_EVENTS, CONNECTORS_CHANNELS } from './connectors.contract'
 import type { EditorEventContract, EditorInvokeContract } from './editor.contract'
 import { EDITOR_EVENTS, EDITOR_CHANNELS } from './editor.contract'
+import type { FileOpsInvokeContract } from './file-ops.contract'
+import { FILE_OPS_CHANNELS } from './file-ops.contract'
 import type { FsPathsInvokeContract } from './fs-paths.contract'
 import { FS_PATHS_CHANNELS } from './fs-paths.contract'
 import type { GitChangesEventContract, GitChangesInvokeContract } from './git-changes.contract'
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
+import type {
+  LocalHistoryEventContract,
+  LocalHistoryInvokeContract,
+} from './local-history.contract'
+import { LOCAL_HISTORY_EVENTS, LOCAL_HISTORY_CHANNELS } from './local-history.contract'
 import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './project-sync.contract'
 import { PROJECT_SYNC_EVENTS, PROJECT_SYNC_CHANNELS } from './project-sync.contract'
+import type { RemoteEventContract, RemoteInvokeContract } from './remote.contract'
+import { REMOTE_EVENTS, REMOTE_CHANNELS } from './remote.contract'
+import type { ScenariosEventContract, ScenariosInvokeContract } from './scenarios.contract'
+import { SCENARIOS_EVENTS, SCENARIOS_CHANNELS } from './scenarios.contract'
+import type { SoundsEventContract, SoundsInvokeContract } from './sounds.contract'
+import { SOUNDS_EVENTS, SOUNDS_CHANNELS } from './sounds.contract'
+import type { StatisticsEventContract, StatisticsInvokeContract } from './statistics.contract'
+import { STATISTICS_EVENTS, STATISTICS_CHANNELS } from './statistics.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
@@ -37,22 +52,33 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   ClaudePanelInvokeContract &
   ClaudeSearchInvokeContract &
   FsPathsInvokeContract &
+  FileOpsInvokeContract &
+  LocalHistoryInvokeContract &
   ProjectSyncInvokeContract &
   GitChangesInvokeContract &
   EditorInvokeContract &
   WindowInvokeContract &
   ConnectorsInvokeContract &
-  TerminalInvokeContract
+  TerminalInvokeContract &
+  ScenariosInvokeContract &
+  StatisticsInvokeContract &
+  RemoteInvokeContract &
+  SoundsInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
   ClaudeSearchEventContract &
   ProjectSyncEventContract &
+  LocalHistoryEventContract &
   GitChangesEventContract &
   EditorEventContract &
   WindowEventContract &
   ConnectorsEventContract &
-  TerminalEventContract
+  TerminalEventContract &
+  ScenariosEventContract &
+  StatisticsEventContract &
+  RemoteEventContract &
+  SoundsEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -62,12 +88,18 @@ export const AREA_CHANNELS = {
   ...CLAUDE_PANEL_CHANNELS,
   ...CLAUDE_SEARCH_CHANNELS,
   ...FS_PATHS_CHANNELS,
+  ...FILE_OPS_CHANNELS,
+  ...LOCAL_HISTORY_CHANNELS,
   ...PROJECT_SYNC_CHANNELS,
   ...GIT_CHANGES_CHANNELS,
   ...EDITOR_CHANNELS,
   ...WINDOW_CHANNELS,
   ...CONNECTORS_CHANNELS,
   ...TERMINAL_CHANNELS,
+  ...SCENARIOS_CHANNELS,
+  ...STATISTICS_CHANNELS,
+  ...REMOTE_CHANNELS,
+  ...SOUNDS_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -76,9 +108,14 @@ export const AREA_EVENTS = {
   ...CLAUDE_PANEL_EVENTS,
   ...CLAUDE_SEARCH_EVENTS,
   ...PROJECT_SYNC_EVENTS,
+  ...LOCAL_HISTORY_EVENTS,
   ...GIT_CHANGES_EVENTS,
   ...EDITOR_EVENTS,
   ...WINDOW_EVENTS,
   ...CONNECTORS_EVENTS,
   ...TERMINAL_EVENTS,
+  ...SCENARIOS_EVENTS,
+  ...STATISTICS_EVENTS,
+  ...REMOTE_EVENTS,
+  ...SOUNDS_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

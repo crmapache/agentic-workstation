@@ -1,7 +1,54 @@
-// Строки стоят с отступом от краёв листа: выбранная - плашка внутри панели, а не
-// полоса от края до края. Подписи с именем проекта над деревом нет: оно уже в шапке окна.
-.tree {
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Шапка прибита сверху, прокручиваются только строки.
+.view {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+}
+
+// Строки стоят с отступом от краёв листа: выбранная - плашка внутри панели, а не
+// полоса от края до края. Относительное - для якоря меню у точки нажатия.
+.tree {
+  position: relative;
+  flex: 1;
+  min-height: 0;
   padding: var(--space-1-5) var(--space-1-5) var(--space-4);
   overflow: auto;
+}
+
+// Якорь меню корня: точка без размера, место ставит обработчик правого клика.
+.anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+// Поле имени и переключатель ссылок - столбиком, с воздухом между ними.
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dialogSubject {
+  @include truncate;
+
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+}
+
+.dialogNote {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.dialogError {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
 }

@@ -62,3 +62,18 @@ export const MONACO_FIND_COMMANDS: ReadonlySet<string> = new Set([
   'editor.action.replaceAll',
   'editor.action.selectAllMatches',
 ])
+
+/**
+ * Действия разницы (с коммитом и в локальной истории) на клавишах WebStorm: F7 и Shift+F7 - к
+ * следующей и предыдущей правке, F4 - сам файл в редакторе (Jump to Source, у разницы с
+ * коммитом). Ставятся обеим сторонам разницы: клавиша работает, с какой стороны ни стоял
+ * курсор. Отмена и повтор - только левой: в ней правок нет, её ⌘Z и ⇧⌘Z - отмена и повтор
+ * правой стороны.
+ */
+export const DIFF_ACTIONS = {
+  nextChange: 'agenticWorkstation.diff.nextChange',
+  previousChange: 'agenticWorkstation.diff.previousChange',
+  openFile: 'agenticWorkstation.diff.openFile',
+  undo: 'agenticWorkstation.diff.undo',
+  redo: 'agenticWorkstation.diff.redo',
+} as const

@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { isInsideAny, ancestorPaths, symlinkedFolders } from './file-tree.utils'
+import { ancestorPaths, symlinkedFolders } from './file-tree.utils'
 
 describe('ancestorPaths', () => {
   it('все папки над файлом, от корня вглубь', () => {
@@ -13,15 +13,6 @@ describe('ancestorPaths', () => {
 
   it('у файла в корне папок нет', () => {
     expect(ancestorPaths('package.json')).toEqual([])
-  })
-})
-
-describe('isInsideAny', () => {
-  it('сам путь и всё под ним, но не соседи с тем же началом имени', () => {
-    expect(isInsideAny('src', ['src'])).toBe(true)
-    expect(isInsideAny('src/app/deep', ['docs', 'src'])).toBe(true)
-    expect(isInsideAny('srcx/app', ['src'])).toBe(false)
-    expect(isInsideAny('src', [])).toBe(false)
   })
 })
 

@@ -1,39 +1,11 @@
 import type { EffortLevel, PermissionMode } from './claude'
+import type { SoundEvent } from './sounds'
 
 /**
  * Настройки панели Claude Code (экран Settings в боковом меню, ADR 0009). Все - на
  * машину: это привычки человека, а не свойства репозитория. Владелец - главный процесс,
  * окно получает их в ClaudeState и меняет патчем.
  */
-
-/** Поводы звука: ход закончен, вопросы к человеку, лимит, доплата, поломка. */
-export type SoundEvent =
-  'turnDone' | 'permission' | 'question' | 'plan' | 'limit' | 'extraUsage' | 'error'
-
-export const SOUND_EVENTS: readonly SoundEvent[] = [
-  'turnDone',
-  'permission',
-  'question',
-  'plan',
-  'limit',
-  'extraUsage',
-  'error',
-]
-
-/**
- * Поводы от самого тревожного к будничному (как в ACC). Из нескольких поводов одной
- * вкладки зовёт первый по списку; из звуков подряд слышен следующий, только если он
- * важнее предыдущего.
- */
-export const SOUND_PRIORITY: readonly SoundEvent[] = [
-  'error',
-  'limit',
-  'extraUsage',
-  'permission',
-  'question',
-  'plan',
-  'turnDone',
-]
 
 /**
  * Вкладка позвала человека: повод - тот же, что у звука. Его слушают и звук, и
@@ -48,15 +20,18 @@ export type ConversationCall = { conversationId: string; reason: SoundEvent }
  */
 export const MODEL_NAME_PATTERN = /^[\w.:[\]/@-]{1,120}$/
 
-/** Громкость звука по умолчанию, проценты. */
-export const DEFAULT_SOUND_VOLUME = 70
-
 /** Сколько цвета у шкал: 100 - лестница от зелёного к красному, 0 - один спокойный тон. */
 export const GAUGE_VIVID_FULL = 100
 export const GAUGE_VIVID_CALM = 0
 
 /** С какого числа строк вставка сворачивается в чип; 0 - никогда. */
 export const DEFAULT_PASTE_COLLAPSE = 2
+
+/**
+ * Показание под полем ввода - токены за день. Остальные показания - окна лимитов, их ключ -
+ * группа окна и модель (meterKey в окне).
+ */
+export const TODAY_TOKENS_METER = 'todayTokens'
 
 export type PanelPrefs = {
   /** Модель новой вкладки; null - как в последней выбранной вкладке. */
@@ -67,11 +42,13 @@ export type PanelPrefs = {
   gaugeVivid: number
   /** Каждое сообщение несёт открытый файл и выделенные строки. */
   shareEditor: boolean
+  /**
+   * Показания под полем ввода, которые человек спрятал: окна лимитов и токены за день.
+   * Хранится спрятанное, а не показанное: окно, о котором сервер скажет завтра, видно сразу.
+   */
+  hiddenMeters: string[]
   /** Модели, которых нет в каталоге CLI (прокси, шлюз), - добавлены руками. */
   customModels: string[]
-  mutedSounds: SoundEvent[]
-  /** Громкость по поводу; нет записи - DEFAULT_SOUND_VOLUME. */
-  soundVolumes: Partial<Record<SoundEvent, number>>
   /**
    * Путь к CLI, названный руками (экран «Claude Code not found»): IDE видит не тот PATH,
    * что терминал. Пусто - искать самой; путь, который не отвечает как Claude Code, не берётся.
@@ -86,9 +63,8 @@ export const DEFAULT_PANEL_PREFS: PanelPrefs = {
   pasteCollapse: DEFAULT_PASTE_COLLAPSE,
   gaugeVivid: GAUGE_VIVID_FULL,
   shareEditor: true,
+  hiddenMeters: [],
   customModels: [],
-  mutedSounds: [],
-  soundVolumes: {},
   cliPath: '',
 }
 

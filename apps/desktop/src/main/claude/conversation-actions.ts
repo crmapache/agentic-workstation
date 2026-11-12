@@ -42,6 +42,13 @@ export class ConversationActions {
     return this.service.getState()
   }
 
+  /** Переставить отложенное на место toIndex: окно - перетаскиванием, телефон - кнопками. */
+  moveQueued(conversationId: string, queuedId: string, toIndex: number): ClaudeState {
+    this.service.runtime(conversationId).outbox.move(queuedId, toIndex)
+
+    return this.service.getState()
+  }
+
   async sendQueued(conversationId: string, queuedId: string): Promise<ClaudeState> {
     await this.service.runtime(conversationId).sendQueued(queuedId)
 

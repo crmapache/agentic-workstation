@@ -18,4 +18,18 @@ describe('команда CLI в Терминале (Claude Design, выход)',
     expect(script).toContain(`exec '/bin/claude' /logout`)
     expect(script).not.toContain('ANTHROPIC_API_KEY')
   })
+
+  it('на Windows - PowerShell: переменная хранилища, ключи убраны, CLI с кавычками PowerShell', () => {
+    const script = terminalCommandScript(
+      'C:\\Users\\me\\claude.exe',
+      "C:\\d\\s-1'x",
+      'logout',
+      true,
+    )
+
+    expect(script).toContain(`$env:CLAUDE_SECURESTORAGE_CONFIG_DIR = 'C:\\d\\s-1''x'`)
+    expect(script).toContain('Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue')
+    expect(script).toContain(`& 'C:\\Users\\me\\claude.exe' /logout`)
+    expect(script).not.toContain('#!/bin/zsh')
+  })
 })

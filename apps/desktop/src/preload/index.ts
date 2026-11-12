@@ -42,6 +42,8 @@ const bridge = {
 
   // Путь перетащенного файла знает только preload: окну в песочнице он не виден.
   pathForFile: (file: File) => webUtils.getPathForFile(file),
+
+  platform: process.platform,
 } as IdeBridge
 
 contextBridge.exposeInMainWorld('ide', bridge)

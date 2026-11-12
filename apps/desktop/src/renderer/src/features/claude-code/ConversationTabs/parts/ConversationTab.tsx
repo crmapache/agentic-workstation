@@ -13,13 +13,14 @@ import { useClaudeActions } from '../../claude-actions.hooks'
 import { useClaudeCodeStore } from '../../claude-code.store'
 import { keyLine } from '../../panel-keys.utils'
 import { useCloseTab } from '../../tab-close.hooks'
+import { isClosableTab } from '../../tab-close.utils'
 import { StatusDot } from '../../StatusDot/StatusDot'
 import { dotState } from '../../StatusDot/StatusDot.utils'
 import { TabNameField } from './TabNameField'
 
 /**
  * Вкладка разговора: точка состояния с подсказкой словами, знак ⑂ и отступ у форка,
- * имя (режется посередине), крестик. Выбранная - тоном вкладок (tinted), свет со звёздочками -
+ * имя (режется посередине), крестик - кроме последней пустой вкладки. Выбранная - тоном вкладок (tinted), свет со звёздочками -
  * если позвала. Двойной клик - поле имени, правый клик - меню (ID разговора, переименовать),
  * нажатие с движением - перетаскивание (голова несёт группу, форк - себя внутри группы).
  */
@@ -29,6 +30,7 @@ export const ConversationTab = ({
   startsGroup,
   endsGroup,
   groupSize,
+  tabCount,
   call,
   calm,
   dragView,
@@ -112,6 +114,7 @@ export const ConversationTab = ({
       hint={name}
       active={isActive}
       closeLabel={closeLabel}
+      closable={isClosableTab(conversation, tabCount)}
       tinted
       indent={conversation.depth}
       groupEnd={endsGroup}

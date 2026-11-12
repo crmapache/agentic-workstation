@@ -1,0 +1,191 @@
+@use '../../styles/mixins' as *;
+
+// Подписи графика - тише данных: моноширинные цифры шкалы и шагов цветом вторичного
+// текста. Вбок график не вылезает: подписи у краёв прижаты внутрь, остальное обрезается, а
+// не даёт странице прокрутку вбок.
+.barChart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  overflow-x: clip;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+}
+
+// Слева - числа шкалы, справа - поле, под полем - подписи шагов. Сверху - место под число
+// над самым высоким столбцом (строка подписи и зазор под ней, как у .peakValue): шкала
+// круглая, и он может достать до верхней линии.
+.frame {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-1-5);
+  padding-top: calc(var(--font-size-xs) * var(--line-height-tight) + var(--space-0-5));
+}
+
+// Числа шкалы - в строках нулевой высоты на уровне линий: подпись встаёт серединой ровно на
+// свою линию, а колонка остаётся шириной с самое длинное число.
+.ticks {
+  display: grid;
+  grid-template-rows: 0 1fr 0 1fr 0;
+  height: var(--size-chart-plot);
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 0;
+  white-space: nowrap;
+}
+
+.tickTop {
+  grid-row: 1;
+}
+
+.tickHalf {
+  grid-row: 3;
+}
+
+.tickZero {
+  grid-row: 5;
+}
+
+// Кольца фокуса нет (ADR 0023): где фокус, говорит подсвеченная колонка с подсказкой.
+.plot {
+  position: relative;
+  height: var(--size-chart-plot);
+}
+
+// Сетка - волосяные сплошные линии на шаг светлее поля, ноль - чуть заметнее.
+.line {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.lineTop {
+  top: 0;
+}
+
+.lineHalf {
+  top: 50%;
+}
+
+.lineZero {
+  bottom: 0;
+  border-top-color: var(--color-border-strong);
+}
+
+// Колонки шагов поля и подписи под ним - одной раскладки: подпись стоит под своим шагом.
+.bars,
+.axis {
+  display: flex;
+  gap: var(--space-0-5);
+}
+
+.bars {
+  position: absolute;
+  inset: 0;
+}
+
+.slot {
+  display: flex;
+  flex: 1 1 0;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  transition: background-color var(--duration-fast) var(--easing-standard);
+}
+
+// Шаг под рукой: колонка проступает, столбцы в ней - полным тоном.
+.active {
+  background-color: var(--color-bg-hover);
+}
+
+// Столбцы рядов рядом - с зазором фона, а не обводкой; вместе не толще меры.
+.group {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-0-5);
+  width: 100%;
+  max-width: var(--size-chart-bar);
+  height: 100%;
+}
+
+// Метка - тон ряда чуть тише полного; скругление только у вершины, у нуля - прямо.
+.bar {
+  --tone: var(--color-chart-other);
+
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background-color: color-mix(in srgb, var(--tone) var(--tint-chart-3), transparent);
+  transition: background-color var(--duration-fast) var(--easing-standard);
+}
+
+.filled {
+  min-height: var(--space-0-5);
+}
+
+// Рекорд ряда и шаг под рукой - полным тоном: самое большое видно без чтения цифр.
+.bar.peak,
+.active .bar {
+  background-color: var(--tone);
+}
+
+// Число над самым высоким столбцом - цветом текста, не ряда.
+.peakValue {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  padding-bottom: var(--space-0-5);
+  color: var(--color-fg);
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-ui);
+}
+
+.axis {
+  grid-column: 2;
+}
+
+// Подпись шага по его середине; за свою колонку может выходить - их ставят через несколько.
+.axisSlot {
+  display: flex;
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.start {
+  justify-content: flex-start;
+}
+
+.end {
+  justify-content: flex-end;
+}
+
+.table {
+  @include visually-hidden;
+}
+
+// Тоны рядов - в конце: класс тона на метке перекрывает тон по умолчанию.
+@include chart-tones;

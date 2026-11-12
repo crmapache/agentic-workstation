@@ -5,6 +5,7 @@ import type { ButtonSize } from './Button.types'
 export const BUTTON_ICON_SIZE: Record<ButtonSize, number> = {
   sm: 12,
   md: 14,
+  touch: 16,
 }
 
 export const BUTTON_ICON_STROKE_WIDTH = 1.75
@@ -13,6 +14,7 @@ export const BUTTON_ICON_STROKE_WIDTH = 1.75
 export const BUTTON_CHEVRON_SIZE: Record<ButtonSize, number> = {
   sm: 10,
   md: 12,
+  touch: 12,
 }
 
 export const BUTTON_CHEVRON_STROKE_WIDTH = 2

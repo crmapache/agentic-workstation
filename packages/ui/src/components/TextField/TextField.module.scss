@@ -29,9 +29,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.md {
   height: var(--size-control-md);
   padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
+}
+
+// Под палец: высота цели касания - как у кнопок touch и поля сообщения рядом. Цель касания -
+// размер пальца, а не строки текста: с размером текста не растёт.
+.touch {
+  height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-lg);
 }
 
 .invalid,

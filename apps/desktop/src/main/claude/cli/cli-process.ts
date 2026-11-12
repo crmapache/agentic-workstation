@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createInterface } from 'node:readline'
 
+import { SPAWN_DETACHED } from '../../platform'
 import type { CliMessage, ControlRequest } from './cli-messages'
 import { parseCliLine, isControlRequest } from './cli-messages'
 import { STDERR_TAIL_CHARS } from './cli.constants'
@@ -49,7 +50,7 @@ export class CliProcess {
     this.child = spawn(options.binary, options.args, {
       cwd: options.cwd,
       env: options.env,
-      detached: true,
+      detached: SPAWN_DETACHED,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
     this.group = new ProcessGroup(this.child)

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { rm, readdir } from 'node:fs/promises'
 import { join, relative, isAbsolute } from 'node:path'
 
+import { IS_MAC } from '../../platform'
 import { KEYCHAIN_NOT_FOUND } from './accounts.constants'
 
 /** Имя записи Keychain хранилища: так её называет CLI (замер ACC). */
@@ -16,8 +17,18 @@ export const isInside = (dir: string, path: string): boolean => {
   return rest !== '' && !rest.startsWith('..') && !isAbsolute(rest)
 }
 
+/**
+ * Запись Keychain с токеном хранилища - только на маке. На Windows CLI держит вход файлом в
+ * папке хранилища, и он уходит вместе с папкой.
+ */
 const deleteKeychainEntry = (drawer: string) =>
   new Promise<void>((done) => {
+    if (!IS_MAC) {
+      done()
+
+      return
+    }
+
     execFile('security', ['delete-generic-password', '-s', keychainService(drawer)], (error) => {
       const code = error && typeof error.code === 'number' ? error.code : 0
 

@@ -4,6 +4,8 @@ import type { ConnectorRegistry } from './connector-registry'
 import { SecretsOf } from './connector-secrets'
 import type { StoredConnector } from './connector-store'
 import type { ConnectorsPlaces } from './connectors-service.types'
+import type { Launch } from './gateway/launches'
+import { browserAccount } from './kinds/browser/browser-desk'
 
 /**
  * Живые коннекторы по id: собрать из реестра, отдать шлюзу, отпустить процессы команд
@@ -35,6 +37,7 @@ export class LiveConnectors {
         googleClient: () => this.access().googleClient(),
         shellEnv: this.places.shellEnv,
         version: this.places.version,
+        browser: this.places.browser.hub,
       },
       {
         stored: () => this.registry.find(connector.id),
@@ -47,6 +50,9 @@ export class LiveConnectors {
           })
         },
         changed: this.changed,
+        ...(connector.kind === 'browser'
+          ? { account: () => browserAccount(this.places.browser.state()) }
+          : {}),
       },
     )
 
@@ -64,8 +70,13 @@ export class LiveConnectors {
   }
 
   /** Процесс разговора кончился: его процессы команд у всех коннекторов - погасить. */
-  release(launchId: string): void {
-    for (const live of this.live.values()) live.release(launchId)
+  release(launch: Launch): void {
+    for (const live of this.live.values()) live.release(launch)
+  }
+
+  /** Разговор закрыт: то, что коннекторы держали на него (вкладки браузера), - отпустить. */
+  endConversation(conversationId: string): void {
+    for (const live of this.live.values()) live.endConversation(conversationId)
   }
 
   async disposeAll(): Promise<void> {

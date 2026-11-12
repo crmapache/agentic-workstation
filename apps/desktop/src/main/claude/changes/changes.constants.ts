@@ -1,4 +1,15 @@
 /**
+ * Инструменты правки CLI и где у них путь файла. Остальные (Read) файл только смотрят. Им же
+ * локальная история узнаёт правку агента (ADR 0045).
+ */
+export const EDIT_TOOL_PATH_FIELD: Readonly<Record<string, string>> = {
+  Edit: 'file_path',
+  MultiEdit: 'file_path',
+  Write: 'file_path',
+  NotebookEdit: 'notebook_path',
+}
+
+/**
  * Файл больше этого не читается ни для сверки, ни для отката: копия CLI, дифф и
  * текст такого размера в памяти главного процесса - дороже, чем точность строки.
  */

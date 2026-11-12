@@ -11,6 +11,7 @@
     "build": "pnpm --filter @agentic-workstation/desktop build",
     "dist": "pnpm --filter @agentic-workstation/desktop dist",
     "dist:local": "pnpm --filter @agentic-workstation/desktop dist:local",
+    "dist:win": "pnpm --filter @agentic-workstation/desktop dist:win",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "lint": "eslint .",

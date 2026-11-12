@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { homedir, userInfo } from 'node:os'
 import { join, delimiter } from 'node:path'
 
+import { IS_MAC, IS_WINDOWS } from '../../platform'
 import {
   EXTRA_BIN_DIRS,
   SYSTEM_BIN_DIRS,
@@ -45,7 +46,29 @@ export const mergePaths = (...paths: (string | undefined)[]): string => {
   return [...seen].join(delimiter)
 }
 
-const readLoginShellEnv = () =>
+/**
+ * PATH одним ключом «PATH». На Windows имена переменных без регистра, и окружение процесса
+ * несёт «Path»: копия объекта с добавленным «PATH» отдала бы дочернему процессу два ключа, и
+ * какой из них он прочтёт, - как повезёт. Значения всех написаний склеиваются.
+ */
+export const withSinglePath = (environment: Environment): Environment => {
+  const names = Object.keys(environment).filter((name) => name.toUpperCase() === 'PATH')
+  const rest = Object.fromEntries(
+    Object.entries(environment).filter(([name]) => name.toUpperCase() !== 'PATH'),
+  )
+
+  return names.length === 0
+    ? rest
+    : { ...rest, PATH: mergePaths(...names.map((name) => environment[name])) }
+}
+
+/**
+ * Окружение оболочки входа. На Windows его спрашивать не у кого и незачем: программа из меню
+ * «Пуск» получает тот же PATH, что терминал.
+ */
+const readLoginShellEnv = () => (IS_WINDOWS ? Promise.resolve<Environment>({}) : readUnixShellEnv())
+
+const readUnixShellEnv = () =>
   new Promise<Environment>((resolve) => {
     const shell = process.env['SHELL'] || '/bin/zsh'
     const child = execFile(
@@ -79,15 +102,15 @@ const withIdentity = (environment: Environment): Environment => {
  */
 export const loginShellEnv = (): Promise<Environment> => {
   shellEnv ??= readLoginShellEnv().then((fromShell) => {
-    const base = { ...(process.env as Environment), ...fromShell }
+    const base = withSinglePath({ ...(process.env as Environment), ...fromShell })
 
     return withIdentity({
       ...base,
       PATH: mergePaths(
         fromShell['PATH'],
-        process.env['PATH'],
+        withSinglePath(process.env as Environment)['PATH'],
         ...EXTRA_BIN_DIRS.map((dir) => join(homedir(), dir)),
-        ...SYSTEM_BIN_DIRS,
+        ...(IS_MAC ? SYSTEM_BIN_DIRS : []),
       ),
     })
   })

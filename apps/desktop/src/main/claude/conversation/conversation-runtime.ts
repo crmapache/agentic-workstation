@@ -8,7 +8,7 @@ import type {
   ConversationOptions,
 } from '@shared/claude'
 import type { FeedPatch, StopReason, ConversationFeed } from '@shared/claude-feed'
-import type { SoundEvent } from '@shared/claude-prefs'
+import type { SoundEvent } from '@shared/sounds'
 
 import { TurnRevert } from '../changes/turn-revert'
 import type { ClaudeCli } from '../cli/cli-locator'
@@ -30,9 +30,16 @@ import { spawnConversationProcess } from './spawn'
 
 /**
  * Конфиг коннекторов IDE для одного процесса разговора (ADR 0029): файл для
- * `--mcp-config` и «процесс кончился» - ключ шлюза и процессы команд этого процесса гаснут.
+ * `--mcp-config`; own - чей это процесс (разговор и его папка), release - процесс кончился
+ * (ключ шлюза и процессы команд гаснут, сессия браузера ждёт следующий процесс разговора),
+ * end - разговор закрыт насовсем (вкладки браузера закрываются сразу).
  */
-export type ConnectorsLaunch = { path: string; release: () => void }
+export type ConnectorsLaunch = {
+  path: string
+  own: (owner: { conversationId: string; workDir: string }) => void
+  release: () => void
+  end: () => void
+}
 
 /** Что разговору нужно от сервиса: CLI, доверие к папке и куда сообщать об изменениях. */
 export type ConversationHost = CliTap & {
@@ -106,6 +113,11 @@ export class ConversationRuntime {
   readonly outbox: ConversationOutbox
   /** Команды «!»; их вывод уезжает модели с ближайшим сообщением (user-message.ts). */
   readonly shells: ShellRuns
+  /**
+   * Коннекторы последнего процесса. Процесс кончается раньше разговора (сон, перезапуск), а
+   * закрытие вкладки должно сказать коннекторам, что разговора больше нет (end).
+   */
+  connectors: ConnectorsLaunch | null = null
   private spawning: Promise<CliProcess | null> | null = null
   /** Конфиг MCP или аккаунт поменялся: процесс перезапустится, как только освободится. */
   private restartPending = false
@@ -249,12 +261,16 @@ export class ConversationRuntime {
     if (this.process?.isStopping) await this.process.stop()
   }
 
-  /** Закрыть вкладку: процесс гасится, начатый запуск не доведётся. */
+  /**
+   * Закрыть вкладку: процесс гасится, начатый запуск не доведётся. Коннекторы узнают, что
+   * разговора больше нет: его вкладки браузера закрываются сразу, а не ждут новый процесс.
+   */
   dispose(): Promise<void> {
     this.disposed = true
     this.shells.stopAll()
     this.clearIdleTimer()
     this.feed.dispose()
+    this.connectors?.end()
 
     const process = this.process
 
@@ -271,19 +287,20 @@ export class ConversationRuntime {
 
   /**
    * Статус из двух вещей: ждут ли ответа вопросы и идёт ли основной ход. Новый ход
-   * снимает прошлую ошибку и поломку: точка вкладки говорит о том, что идёт сейчас.
+   * снимает прошлую остановку, ошибку и поломку: точка вкладки говорит о том, что идёт сейчас.
    */
   syncStatus(): void {
     const [first] = this.held
     const status = first ? 'waiting' : this.turnActive ? 'running' : 'idle'
-    const failed = this.meta.outcome === 'error' || this.meta.outcome === 'crashed'
+    const { outcome } = this.meta
+    const settled = outcome === 'error' || outcome === 'crashed' || outcome === 'interrupted'
     const { builder } = this.feed
 
     this.update({
       pending: first?.pending ?? null,
       pendingCount: this.held.length,
       status,
-      outcome: this.turnActive && failed ? 'done' : this.meta.outcome,
+      outcome: this.turnActive && settled ? 'done' : outcome,
       backgroundWork: builder.hasBackgroundWork,
       // Счётчик работы для строки статуса: паузы на вопросах, конец, когда всё встало.
       ...syncWork(builder.work, status, builder.hasBackgroundWork, Date.now()),
@@ -320,6 +337,7 @@ export class ConversationRuntime {
       turnStartedAt: null,
       stopRequestedAt: null,
       ...(crashed && { outcome: 'crashed' }),
+      ...(notice?.code === 'interrupted' && { outcome: 'interrupted' }),
     })
     this.syncStatus()
 

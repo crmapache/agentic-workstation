@@ -15,6 +15,11 @@ export type LiveFacts = {
   signedIn: boolean
   signingIn: boolean
   failure: ConnectorFailure | null
+  /**
+   * Чей коннектор сейчас, когда это знает только живая IDE: у Browser - профили Chrome на
+   * связи (ADR 0040). Нет - из реестра.
+   */
+  account?: string | null
 }
 
 /** Живого коннектора нет (только что удалён): ни входа, ни сбоя. */
@@ -59,7 +64,7 @@ export const connectorView = (
     label: connector.label,
     description: connector.description,
     serverName: connector.serverName,
-    account: connector.account,
+    account: live.account ?? connector.account,
     url: connector.spec?.baseUrl ?? connector.url,
     command: commandView(connector),
     service: connector.spec?.service ?? null,
@@ -91,6 +96,7 @@ const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   atlassian: 'Jira and Confluence (Atlassian Cloud)',
   todoist: 'Todoist account',
   playwright: 'Playwright browser',
+  browser: "the user's Chrome",
   mcp: 'MCP server',
   command: 'MCP server',
   http: 'API',

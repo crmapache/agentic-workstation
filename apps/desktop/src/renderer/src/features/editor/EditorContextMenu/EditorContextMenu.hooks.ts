@@ -5,6 +5,7 @@ import type { editor } from 'monaco-editor/editor/editor.api.js'
 
 import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
+import { hasChatSelection } from '../editor-chat'
 import { monaco } from '../monaco-setup'
 import { MENU_TARGETS, WIDGET_LAYERS, SHOW_MENU_ACTION } from './EditorContextMenu.constants'
 import type { MenuPoint } from './EditorContextMenu.types'
@@ -47,6 +48,8 @@ export const useEditorContextMenu = (
 ) => {
   const { t } = useTranslation()
   const [at, setAt] = useState<MenuPoint | null>(null)
+  // Было ли выделение, когда меню открыли: от него зависит «Send to Chat».
+  const [hasSelection, setHasSelection] = useState(false)
 
   useEffect(() => {
     const instance = editorRef.current
@@ -55,6 +58,10 @@ export const useEditorContextMenu = (
 
     const host = instance.getContainerDomNode()
     const frame = frameRef?.current ?? host
+    const open = (point: MenuPoint) => {
+      setHasSelection(hasChatSelection(instance))
+      setAt(point)
+    }
 
     // Каретка могла уехать за край прокруткой - сначала показать её, как делает Monaco: иначе
     // меню встало бы за краем, невидимое, но с фокусом на пункте.
@@ -69,7 +76,7 @@ export const useEditorContextMenu = (
       const caret = pointUnderCaret(instance.getScrolledVisiblePosition(position))
       const offset = pointInEditor(host.getBoundingClientRect(), frame.getBoundingClientRect())
 
-      if (caret) setAt({ x: caret.x + offset.x, y: caret.y + offset.y })
+      if (caret) open({ x: caret.x + offset.x, y: caret.y + offset.y })
     }
 
     const handleContextMenu = (event: MouseEvent) => {
@@ -88,7 +95,7 @@ export const useEditorContextMenu = (
 
       const point = pointedMenu(instance, frame, event)
 
-      if (point) openWhenReleased(event, () => setAt(point))
+      if (point) openWhenReleased(event, () => open(point))
     }
 
     host.addEventListener('contextmenu', handleContextMenu, { capture: true })
@@ -114,5 +121,5 @@ export const useEditorContextMenu = (
 
   const close = () => setAt(null)
 
-  return { at, close }
+  return { at, hasSelection, close }
 }

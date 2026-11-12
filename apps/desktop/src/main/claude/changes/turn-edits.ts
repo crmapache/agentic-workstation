@@ -84,8 +84,11 @@ export class TurnEdits {
   /** Текст каждого Write до его результата: созданный файл считается по вызову. */
   private readonly writes = new Map<string, string>()
 
-  /** Строка CLI: вызовы Write запоминаются, результаты правок ложатся по id вызова. */
-  observe(message: CliMessage): void {
+  /**
+   * Строка CLI: вызовы Write запоминаются, результаты правок ложатся по id вызова. Ответ -
+   * правка, которую принесла эта строка (её видит и локальная история), или null.
+   */
+  observe(message: CliMessage): EditEntry | null {
     const content = recordsField(recordField(message, 'message'), 'content')
 
     if (message.type === 'assistant') {
@@ -98,13 +101,13 @@ export class TurnEdits {
       }
     }
 
-    if (message.type !== 'user') return
+    if (message.type !== 'user') return null
 
     const results = content.filter((block) => block['type'] === 'tool_result')
     const [result] = results
 
     // Структурная половина - у сообщения, а не у блока: верим ей, только когда результат один.
-    if (!result || results.length !== 1 || result['is_error'] === true) return
+    if (!result || results.length !== 1 || result['is_error'] === true) return null
 
     const id = stringField(result, 'tool_use_id')
     const entry = entryOf(
@@ -114,6 +117,8 @@ export class TurnEdits {
 
     this.writes.delete(id)
     if (entry) this.entries.set(id, entry)
+
+    return entry
   }
 
   /** Что известно о правках этих вызовов - по id вызова. */

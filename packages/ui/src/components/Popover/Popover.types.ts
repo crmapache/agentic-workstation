@@ -1,6 +1,7 @@
 import type { Ref, ReactNode, ToggleEventHandler } from 'react'
 
-export type PopoverWidth = 'md' | 'lg' | 'xl'
+/** md, lg, xl - своей ширины; field - шириной с поле, которое её открыло (SelectField). */
+export type PopoverWidth = 'md' | 'lg' | 'xl' | 'field'
 
 /**
  * Где встаёт панель: под кнопкой, которая её открыла (меню проекта, ветки), или сверху
