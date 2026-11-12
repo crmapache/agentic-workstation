@@ -2,8 +2,10 @@ import { spawn } from 'node:child_process'
 
 import type { ShellStatus } from '@shared/claude-feed'
 
+import { SPAWN_DETACHED } from '../../platform'
 import { ProcessGroup } from '../cli/process-group'
 import type { Environment } from '../cli/shell-env'
+import { commandShell } from './shell-launch'
 import { SHELL_TIMEOUT_MS, SHELL_OUTPUT_MAX_CHARS } from './shell.constants'
 
 /** Что вышло у команды: статус, вывод (конец, если длинный) и код выхода. */
@@ -19,8 +21,8 @@ export type ShellOutcome = {
 export type ShellOutput = Omit<ShellOutcome, 'status' | 'exitCode'>
 
 /**
- * Одна команда «!»: оболочка человека (`$SHELL -c`) в папке проекта, с окружением
- * login shell - те же PATH и переменные, что в его терминале. Своя группа процессов:
+ * Одна команда «!»: оболочка человека (`$SHELL -c`, на Windows - PowerShell) в папке проекта,
+ * с окружением login shell - те же PATH и переменные, что в его терминале. Своя группа процессов:
  * остановка гасит и всё, что команда запустила. Ввода нет - stdin закрыт.
  */
 export class ShellCommand {
@@ -37,10 +39,11 @@ export class ShellCommand {
     env: Environment,
     onOutput: (output: ShellOutput) => void,
   ) {
-    const child = spawn(env['SHELL'] || '/bin/zsh', ['-c', command], {
+    const shell = commandShell(command, env)
+    const child = spawn(shell.file, shell.args, {
       cwd,
       env,
-      detached: true,
+      detached: SPAWN_DETACHED,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const timer = setTimeout(() => this.stop(), SHELL_TIMEOUT_MS)

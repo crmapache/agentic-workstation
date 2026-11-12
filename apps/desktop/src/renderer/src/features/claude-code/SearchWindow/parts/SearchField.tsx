@@ -9,6 +9,7 @@ import styles from '../SearchWindow.module.scss'
 import type { SearchFieldProps } from '../SearchWindow.types'
 import { keepFocus } from '../SearchWindow.utils'
 import { SEARCH_KEYS, SEARCH_ICON_SIZE, SEARCH_ICON_STROKE } from '../../search.constants'
+import { shortcutLabel } from '../../../../lib/keys'
 
 /**
  * Поле набранного запроса: лупа, текст, кольцо запроса в пути, крестик (пока есть что
@@ -65,7 +66,7 @@ export const SearchField = ({
           size="sm"
           label={t('claudeCode.search.withKey', {
             label: t('claudeCode.search.matchCase'),
-            keys: SEARCH_KEYS.matchCase.join(''),
+            keys: shortcutLabel(SEARCH_KEYS.matchCase.join('')),
           })}
           active={matchCase}
           onMouseDown={keepFocus}
@@ -76,7 +77,7 @@ export const SearchField = ({
           size="sm"
           label={t('claudeCode.search.withKey', {
             label: t('claudeCode.search.wholeWords'),
-            keys: SEARCH_KEYS.wholeWords.join(''),
+            keys: shortcutLabel(SEARCH_KEYS.wholeWords.join('')),
           })}
           active={wholeWords}
           onMouseDown={keepFocus}

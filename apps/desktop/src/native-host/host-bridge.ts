@@ -1,6 +1,14 @@
 import type { Socket } from 'node:net'
 
 import {
+  AUTH_OK,
+  proofOf,
+  AUTH_HUB,
+  newNonce,
+  AUTH_HOST,
+  sameProof,
+} from '@agentic-workstation/browser-protocol/bridge-auth'
+import {
   encodeFrame,
   FrameDecoder,
   encodeFrameJson,
@@ -18,6 +26,11 @@ export type BridgeIo = {
   connect: () => Socket
   log: (text: string) => void
   exit: (code: number) => void
+  /**
+   * Ключ моста (ADR 0048, Windows): есть - до первого кадра IDE и host доказывают друг другу,
+   * что знают его (bridge-auth.ts). Нет - сокет закрыт правами файла (мак), проверки нет.
+   */
+  key?: string | undefined
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -76,6 +89,11 @@ export class HostBridge {
     }
   }
 
+  private markConnected(): void {
+    this.connected = true
+    this.report('connected')
+  }
+
   /** Chrome закрыл порт (stdin кончился): host больше не нужен. */
   close(code = 0): void {
     if (this.closed) return
@@ -93,17 +111,45 @@ export class HostBridge {
 
     const socket = this.io.connect()
     const lines = new LineSplitter()
+    const { key } = this.io
+    // Ждём ли проверку IDE: пока она не пройдена, строки - проверка, а не сообщения. Шаги
+    // проверки асинхронные (WebCrypto) и идут строго по очереди.
+    let checking = key !== undefined
+    let hubProof = ''
+    let handshake: Promise<void> = Promise.resolve()
+    const step = async (kind: string | undefined, value: string | undefined) => {
+      if (kind === AUTH_HUB && value && key && !hubProof) {
+        const nonce = newNonce()
+
+        hubProof = await proofOf(key, 'hub', nonce)
+        socket.write(`${AUTH_HOST} ${await proofOf(key, 'host', value)} ${nonce}\n`)
+      } else if (kind === AUTH_OK && value && hubProof && sameProof(value, hubProof)) {
+        checking = false
+        this.markConnected()
+      } else {
+        this.io.log('the IDE did not prove the bridge key')
+        socket.destroy()
+      }
+    }
 
     this.socket = socket
     this.forwarded = new Set()
     socket.setEncoding('utf8')
     socket.on('connect', () => {
-      this.connected = true
-      this.report('connected')
+      if (!checking) this.markConnected()
     })
     socket.on('data', (chunk: string) => {
       try {
-        for (const line of lines.push(chunk)) this.toChrome(line)
+        for (const line of lines.push(chunk)) {
+          if (!checking) {
+            this.toChrome(line)
+            continue
+          }
+
+          const [kind, value] = line.split(' ')
+
+          handshake = handshake.then(() => step(kind, value))
+        }
       } catch (error) {
         this.io.log(`bad line from the IDE: ${String(error)}`)
         socket.destroy()

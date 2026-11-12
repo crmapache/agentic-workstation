@@ -4,6 +4,7 @@ import { FileIcon } from '@agentic-workstation/ui/FileIcon'
 import { ListBoxOption } from '@agentic-workstation/ui/ListBoxOption'
 
 import type { SearchResultOptionProps } from '../SearchPanel.types'
+import { shortcutLabel } from '../../../../lib/keys'
 import { splitPath } from '../../../../lib/path.utils'
 
 /**
@@ -33,7 +34,7 @@ export const SearchResultOption = ({ result, ...option }: SearchResultOptionProp
         icon={result.action.icon}
         label={result.action.label}
         highlight={result.match.ranges}
-        hint={result.action.shortcut}
+        hint={result.action.shortcut && shortcutLabel(result.action.shortcut)}
       />
     )
   }

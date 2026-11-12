@@ -1,6 +1,6 @@
 import type { TextMatch, TextSearchResult } from '@shared/search'
 
-import { toWindowPath } from '../fs/project-paths'
+import { toWindowRelative } from '../fs/project-paths'
 import { TEXT_MATCHES_LIMIT, TEXT_MATCHES_PER_FILE_LIMIT } from './search.constants'
 import { buildPreview } from './text-match'
 
@@ -25,7 +25,7 @@ export class MatchCollector {
   add(path: string, line: number, text: string, clipped = false): boolean {
     if (this.full) return false
 
-    const relativePath = toWindowPath(path)
+    const relativePath = toWindowRelative(path)
     const count = this.perFile.get(relativePath) ?? 0
 
     if (count >= TEXT_MATCHES_PER_FILE_LIMIT) return true

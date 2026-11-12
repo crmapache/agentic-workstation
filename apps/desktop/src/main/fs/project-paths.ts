@@ -10,6 +10,14 @@ import { sep, resolve, relative, isAbsolute } from 'node:path'
 export const toWindowPath = (path: string): string => path.normalize('NFC')
 
 /**
+ * Путь от корня проекта - для окна: NFC и через «/» (shared/fs.ts). На Windows relative() и
+ * fs.watch отдают путь с обратными чертами, а окно режет пути по «/» (ADR 0048). Абсолютные
+ * пути так не приводятся: они остаются путями системы.
+ */
+export const toWindowRelative = (path: string): string =>
+  toWindowPath(sep === '/' ? path : path.split(sep).join('/'))
+
+/**
  * Абсолютный путь к элементу проекта или null, если путь выходит за корень.
  *
  * Окно присылает путь от корня проекта, и главный процесс не верит ему на слово:

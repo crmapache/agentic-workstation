@@ -7,6 +7,7 @@ import { SHELF_WORDS } from '../LibraryTab.constants'
 import styles from '../LibraryTab.module.scss'
 import type { ShelfProps } from '../LibraryTab.types'
 import { shelfEntries } from '../../scenarios-shelves.utils'
+import { shortcutLabel } from '../../../../lib/keys'
 import { EmptyShelf } from './EmptyShelf'
 import { ShelfRow } from './ShelfRow'
 import { ShelfSlot } from './ShelfSlot'
@@ -33,7 +34,7 @@ export const Shelf = ({ scope, keys, byKey, carried, slot, kit }: ShelfProps) =>
           <HelpButton
             label={t('scenarios.library.help.label')}
             title={title}
-            text={t(words.help)}
+            text={t(words.help, { up: shortcutLabel('⌥↑'), down: shortcutLabel('⌥↓') })}
             closeLabel={t('common.close')}
           />
         }>

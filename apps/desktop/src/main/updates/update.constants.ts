@@ -1,9 +1,10 @@
+import { IS_WINDOWS } from '../platform'
 import packageJson from '../../../package.json'
 
 /**
- * Публичный репозиторий, куда /release выкладывает сборки. Отдельный от кода:
+ * Публичный репозиторий, куда /build выкладывает сборки. Отдельный от кода:
  * качать обновления приложение должно без токена. Задаётся в package.json, оттуда
- * же его читают скилл /release и скрипт манифеста.
+ * же его читают скилл /build и скрипт манифеста.
  */
 const RELEASES_REPO = packageJson.agenticWorkstation.releasesRepo
 
@@ -18,8 +19,35 @@ export const RELEASE_PAGE_URL = `https://github.com/${RELEASES_REPO}/releases/la
  */
 export const UPDATE_FEED_OVERRIDE_ENV = 'AGENTIC_WORKSTATION_UPDATE_FEED'
 
-/** Ключ сборки в манифесте: платформа и архитектура. Пока собираем только эту. */
-export const UPDATE_ASSET_KEY = 'mac-arm64'
+/** Ключ сборки в манифесте: платформа и архитектура - мак на Apple Silicon или Windows x64. */
+export const UPDATE_ASSET_KEY = IS_WINDOWS ? 'win-x64' : 'mac-arm64'
+
+/** Ключ сборки Windows в манифесте - он же входит в подписанную строку (win-update.ts). */
+export const WINDOWS_ASSET_KEY = 'win-x64'
+
+/**
+ * Открытый ключ подписи обновлений Windows (Ed25519, ADR 0048). Сертификата подписи кода для
+ * Windows у проекта нет, а контрольную сумму подменил бы тот же, кто подменил релиз: поэтому
+ * сумму установщика подписывает закрытый ключ с машины выпуска
+ * (agentic-workstation-update-signing.pem, docs/code-signing.md), и установщик без этой подписи
+ * не запускается. Новый ключ - только новым ADR: старые копии его не примут.
+ */
+export const WINDOWS_UPDATE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAX7BOxUJVe3olCQa7XL0pHaQ0f+xNpwtBfFRPHb4ra8Q=
+-----END PUBLIC KEY-----
+`
+
+/**
+ * Ключи тихой установки обновления Windows: установщик NSIS без окон, о повторной установке
+ * знает, после себя запускает IDE.
+ */
+export const WINDOWS_INSTALLER_ARGS = ['/S', '--updated', '--force-run']
+
+/**
+ * Сколько сторож установки на Windows ждёт выхода IDE: сохранение редактора, сценарии и
+ * процессы Claude укладываются в секунды, минута - с запасом.
+ */
+export const INSTALLER_WAIT_MS = 60_000
 
 /** Первая проверка не мешает старту окна. */
 export const FIRST_CHECK_DELAY_MS = 10_000

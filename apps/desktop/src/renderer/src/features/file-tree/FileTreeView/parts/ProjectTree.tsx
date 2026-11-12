@@ -9,6 +9,7 @@ import styles from '../FileTreeView.module.scss'
 import type { ProjectTreeProps } from '../FileTreeView.types'
 import { allows, itemOf, treeShortcut } from '../FileTreeView.utils'
 import { DirectoryChildren } from '../../FileTreeNode/parts/DirectoryChildren'
+import { withMacKeys } from '../../../../lib/keys'
 import { CreateDialog } from './CreateDialog'
 import { MoveDialog } from './MoveDialog'
 import { RenameDialog } from './RenameDialog'
@@ -49,7 +50,7 @@ export const ProjectTree = ({ project }: ProjectTreeProps) => {
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const command = treeShortcut(event)
+    const command = treeShortcut(withMacKeys(event))
     const item = itemOf(document.activeElement)?.item ?? ROOT_ITEM
 
     if (!command || !allows(command, item)) return

@@ -4,6 +4,7 @@ import { posix, dirname } from 'node:path'
 
 import type { EntryKind, FileOpCode, FileOpFailure, FileOpOutcome } from '@shared/file-ops'
 
+import { IS_WINDOWS } from '../platform'
 import { resolveInsideRoot } from './project-paths'
 
 /** Самое длинное имя, которое примет APFS, - в байтах UTF-8. */
@@ -25,10 +26,18 @@ export const placeOf = (root: string, path: string, rootAllowed = false): string
     path !== '.' &&
     !path.startsWith('../') &&
     !path.startsWith('/') &&
-    !path.endsWith('/')
+    !path.endsWith('/') &&
+    // На Windows «\» - тоже черта, а «:» - поток файла или диск: путь от окна - только через «/».
+    !(IS_WINDOWS && /[\\:]/.test(path))
 
   return canonical ? resolveInsideRoot(root, path) : null
 }
+
+/**
+ * Имя, которое Windows не даст создать: знаки `\ : * ? " < > |`, точка или пробел на конце
+ * (система их молча срежет) и имена устройств - CON, NUL, COM1 и подобные, с любым расширением.
+ */
+const WINDOWS_BAD_NAME = /[\\:*?"<>|]|[. ]$|^(?:con|prn|aux|nul|com\d|lpt\d)(?:\..*)?$/i
 
 /** Имя одной части пути: не пустое, не «.» и «..», без нулевого символа и не длиннее предела. */
 const isEntryName = (name: string): boolean =>
@@ -36,6 +45,7 @@ const isEntryName = (name: string): boolean =>
   name !== '.' &&
   name !== '..' &&
   !name.includes('\0') &&
+  !(IS_WINDOWS && WINDOWS_BAD_NAME.test(name)) &&
   Buffer.byteLength(name, 'utf8') <= NAME_BYTES
 
 /**

@@ -5,6 +5,7 @@ import { gt } from 'semver'
 
 import type { UpdateStatus, ManualUpdateReason } from '@shared/updates'
 
+import { IS_WINDOWS } from '../platform'
 import { findAppBundle, getManualUpdateReason, readDesignatedRequirement } from './app-bundle'
 import { downloadAsset, fetchUpdateManifest } from './update-download'
 import { UpdateError } from './update-error'
@@ -16,6 +17,7 @@ import {
   CHECK_INTERVAL_MS,
   FIRST_CHECK_DELAY_MS,
 } from './update.constants'
+import { watchInstaller, verifyInstaller } from './win-update'
 
 export type UpdateServiceOptions = {
   feedUrl: string
@@ -47,7 +49,8 @@ const describeError = (error: unknown) => (error instanceof Error ? error.messag
  * Обновление приложения. Раз в несколько часов смотрит манифест последнего
  * релиза; нашлась версия новее - сообщает окну. По команде из окна качает zip,
  * проверяет подпись, подменяет себя и перезапускается. Почему так, а не через
- * electron-updater, - docs/adr/0004-self-update.md.
+ * electron-updater, - docs/adr/0004-self-update.md. На Windows - установщик целиком с подписью
+ * ключа выпуска, он ставит себя сам (ADR 0048).
  */
 export class UpdateService {
   private status: UpdateStatus = { kind: 'idle' }
@@ -103,6 +106,7 @@ export class UpdateService {
     const isOfferShown = this.status.kind === 'available' || this.status.kind === 'failed'
 
     if (offer === null || !isOfferShown || offer.manualReason !== null) return
+    if (IS_WINDOWS) return this.installOnWindows(offer)
 
     const { version } = offer.manifest
     const installedBundle = findAppBundle(this.options.executablePath)
@@ -143,6 +147,34 @@ export class UpdateService {
     } catch (error) {
       // Уборка - по возможности: её сбой не должен заслонить настоящую причину.
       await Promise.allSettled([removeBundleDir(stagingDir), rm(zipPath, { force: true })])
+      console.warn(`[updates] ${version} не встала:`, describeError(error))
+      this.setStatus({
+        kind: 'failed',
+        version,
+        reason: error instanceof UpdateError ? error.reason : 'install',
+      })
+    }
+  }
+
+  /**
+   * Windows (ADR 0048): подпись ключа выпуска - до загрузки (без неё качать незачем), установщик
+   * целиком, сторож, который запустит его после выхода IDE, и выход. Остальное - установщик:
+   * поставит новую версию поверх и запустит её.
+   */
+  private async installOnWindows({ manifest, asset }: Offer): Promise<void> {
+    const { version } = manifest
+    const installer = join(this.options.downloadsDir, `agentic-workstation-${version}-setup.exe`)
+
+    try {
+      this.lastProgressPercent = -1
+      this.setStatus({ kind: 'downloading', version, progress: 0 })
+      verifyInstaller(asset, version)
+      await downloadAsset(asset, installer, (fraction) => this.reportProgress(version, fraction))
+      await watchInstaller(installer, process.pid)
+      this.setStatus({ kind: 'installing', version })
+      this.options.quit()
+    } catch (error) {
+      await rm(installer, { force: true }).catch(() => undefined)
       console.warn(`[updates] ${version} не встала:`, describeError(error))
       this.setStatus({
         kind: 'failed',

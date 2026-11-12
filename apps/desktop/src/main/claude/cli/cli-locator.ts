@@ -3,6 +3,7 @@ import { constants } from 'node:fs'
 import { stat, access } from 'node:fs/promises'
 import { join, delimiter } from 'node:path'
 
+import { IS_WINDOWS } from '../../platform'
 import type { CliFeatures } from './cli-features'
 import { parseCliFeatures } from './cli-features'
 import { checkCliPath } from './cli-path'
@@ -41,8 +42,13 @@ export const findInPath = async (path: string): Promise<string | null> => {
   return null
 }
 
-/** Последний шанс: оболочка сама знает, где CLI (nvm и прочие нестандартные установки). */
+/**
+ * Последний шанс: оболочка сама знает, где CLI (nvm и прочие нестандартные установки). На
+ * Windows спрашивать некого: PATH программы и есть PATH терминала, его уже прошли.
+ */
 const askShell = async (env: Environment) => {
+  if (IS_WINDOWS) return null
+
   const answer = (await run('/bin/sh', ['-lc', `command -v ${CLAUDE_BINARY}`], env)).trim()
 
   return answer.startsWith('/') && (await isExecutableFile(answer)) ? answer : null

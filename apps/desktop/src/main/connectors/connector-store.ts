@@ -1,3 +1,5 @@
+import { isAbsolute } from 'node:path'
+
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import { EVERYWHERE } from '@shared/connector-availability'
 import type { HttpConnectorSpec } from '@shared/connector-spec'
@@ -165,7 +167,7 @@ const parseCommand = (value: unknown): StoredCommand | null =>
     ? {
         command: value['command'],
         args: stringList(value['args']),
-        cwd: typeof value['cwd'] === 'string' && value['cwd'].startsWith('/') ? value['cwd'] : null,
+        cwd: typeof value['cwd'] === 'string' && isAbsolute(value['cwd']) ? value['cwd'] : null,
       }
     : null
 

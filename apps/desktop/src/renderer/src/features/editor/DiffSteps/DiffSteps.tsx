@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
+import { shortcutLabel } from '../../../lib/keys'
 import styles from './DiffSteps.module.scss'
 import type { DiffStepsProps } from './DiffSteps.types'
 
@@ -15,7 +16,7 @@ export const DiffSteps = ({ hasChanges, onPrevious, onNext }: DiffStepsProps) =>
       <IconButton
         icon={ArrowUp}
         size="sm"
-        label={`${t('editor.diff.previousChange')} (⇧F7)`}
+        label={`${t('editor.diff.previousChange')} (${shortcutLabel('⇧F7')})`}
         disabled={!hasChanges}
         onClick={onPrevious}
       />

@@ -1,4 +1,4 @@
-import { isOutsidePath } from '../../../lib/path.utils'
+import { pathParts, isOutsidePath } from '../../../lib/path.utils'
 import type { TabTarget } from '../../../state/editor-tabs.types'
 
 /**
@@ -9,7 +9,7 @@ import type { TabTarget } from '../../../state/editor-tabs.types'
 export const tabLabels = (tabPaths: readonly string[]): Map<string, string> => {
   // Файл и разница с ним - один путь: подпись у них общая, различает их иконка.
   const paths = [...new Set(tabPaths)]
-  const parts = new Map(paths.map((path) => [path, path.split('/')]))
+  const parts = new Map(paths.map((path) => [path, pathParts(path)]))
   const labels = new Map<string, string>()
   const suffix = (path: string, depth: number) => (parts.get(path) ?? []).slice(-depth).join('/')
 

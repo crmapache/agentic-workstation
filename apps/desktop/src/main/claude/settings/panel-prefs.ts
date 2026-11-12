@@ -1,3 +1,5 @@
+import { isAbsolute } from 'node:path'
+
 import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/claude'
 import type { PanelPrefs, PanelPrefsPatch } from '@shared/claude-prefs'
 import {
@@ -42,15 +44,16 @@ export const usableModel = (value: unknown): string | undefined => {
 }
 
 /**
- * Путь к CLI: пусто или абсолютный путь без переводов строк. Что это правда Claude Code,
- * проверяет поиск CLI на каждом запуске (cli/cli-path.ts), а не разбор настроек.
+ * Путь к CLI: пусто или абсолютный путь без переводов строк (на Windows - с диском,
+ * `C:\…`). Что это правда Claude Code, проверяет поиск CLI на каждом запуске
+ * (cli/cli-path.ts), а не разбор настроек.
  */
 const cliPath = (value: unknown): string | undefined => {
   if (typeof value !== 'string') return undefined
 
   const path = value.trim()
 
-  return path === '' || (path.startsWith('/') && !/[\n\r\0]/.test(path) && path.length < 1024)
+  return path === '' || (isAbsolute(path) && !/[\n\r\0]/.test(path) && path.length < 1024)
     ? path
     : undefined
 }

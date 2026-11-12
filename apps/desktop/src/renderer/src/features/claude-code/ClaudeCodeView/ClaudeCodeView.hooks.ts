@@ -16,6 +16,7 @@ import { tabBeside } from '../ConversationTabs/ConversationTabs.utils'
 import { isWorking } from '../StatusDot/StatusDot.utils'
 import { invoke } from '../../../lib/ipc'
 import { useIpcEvent } from '../../../lib/ipc.hooks'
+import { withMacKeys } from '../../../lib/keys'
 import { LONE_MODIFIERS } from './ClaudeCodeView.constants'
 
 /**
@@ -145,7 +146,7 @@ export const usePanelKeys = (
   })
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const key = panelKeyOf(event)
+    const key = panelKeyOf(withMacKeys(event))
 
     if (key && run(key)) event.preventDefault()
   }

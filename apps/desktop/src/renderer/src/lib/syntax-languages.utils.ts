@@ -1,3 +1,4 @@
+import { baseName } from './path.utils'
 import { GRAMMARS } from './syntax-grammars.constants'
 import {
   DOTENV_PREFIX,
@@ -19,7 +20,7 @@ export const resolveLanguage = (name: string): string | null => {
  * (.env, .env.local), потом расширение. null - текст без подсветки.
  */
 export const languageOfPath = (path: string): string | null => {
-  const name = (path.split('/').at(-1) ?? path).toLowerCase()
+  const name = baseName(path).toLowerCase()
   const byName = FILE_NAME_LANGUAGES[name]
 
   if (byName) return byName

@@ -2,8 +2,10 @@ import type { BrowserWindow } from 'electron'
 
 import type { WindowInvokeContract } from '@shared/ipc/window.contract'
 
+import { IS_MAC } from '../platform'
 import { TITLE_BAR_HEIGHT_LIMITS } from '../window/main-window.constants'
 import { trafficLightPosition } from '../window/traffic-lights'
+import { windowControls } from '../window/window-chrome'
 import type { InvokeHandlers } from './handle'
 
 type WindowChannels = keyof WindowInvokeContract
@@ -19,15 +21,17 @@ const assertTitleBarHeight = (value: unknown): number => {
 }
 
 /**
- * Каналы рамки окна: «светофор» macOS - по середине шапки, которую окно померило. Кнопки
- * рисует система, и только на macOS их можно сдвинуть.
+ * Каналы рамки окна: кнопки окна - по шапке, которую окно померило. На маке «светофор»
+ * встаёт по её середине, на Windows кнопки справа растут до её высоты.
  */
 export const createWindowHandlers = (
   getWindow: () => BrowserWindow | null,
 ): Pick<InvokeHandlers, WindowChannels> => ({
   'window:setTitleBarHeight': ({ height }) => {
-    const position = trafficLightPosition(assertTitleBarHeight(height))
+    const titleBarHeight = assertTitleBarHeight(height)
+    const window = getWindow()
 
-    if (process.platform === 'darwin') getWindow()?.setWindowButtonPosition(position)
+    if (IS_MAC) window?.setWindowButtonPosition(trafficLightPosition(titleBarHeight))
+    else window?.setTitleBarOverlay(windowControls(titleBarHeight))
   },
 })

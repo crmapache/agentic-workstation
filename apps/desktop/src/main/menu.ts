@@ -3,6 +3,7 @@ import type { MenuItemConstructorOptions } from 'electron'
 
 import type { WindowCommand } from '@shared/window'
 
+import { IS_MAC } from './platform'
 import { broadcast } from './ipc/broadcast'
 import { isPanelFocused } from './claude/tabs/panel-focus'
 
@@ -32,13 +33,20 @@ const reloadUnlessPanel = () => {
 /** Команда окну целиком (window:command): настройки и размер текста - не дело одного вида. */
 const toWindow = (command: WindowCommand) => () => broadcast('window:command', command)
 
-/** Меню программы - стандартное macOS, плюс Settings… (⌘,): настройки IDE открывает окно. */
+/** Settings… (⌘, и Ctrl+,): настройки IDE открывает окно. */
+const settingsItem: MenuItemConstructorOptions = {
+  label: 'Settings…',
+  accelerator: 'CmdOrCtrl+,',
+  click: toWindow('openSettings'),
+}
+
+/** Меню программы - стандартное macOS, плюс Settings…. На Windows его нет: настройки - в File. */
 const appMenu: MenuItemConstructorOptions = {
   label: app.name,
   submenu: [
     { role: 'about' },
     { type: 'separator' },
-    { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: toWindow('openSettings') },
+    settingsItem,
     { type: 'separator' },
     { role: 'services' },
     { type: 'separator' },
@@ -73,17 +81,21 @@ const textSizeItems: MenuItemConstructorOptions[] = [
  * Меню приложения. Стандартные разделы macOS (правка, вид, окно) дают системные
  * сочетания: копирование, вставку, полноэкранный режим. Свои пункты - только то,
  * что относится ко всей IDE, а не к одному виду. Закрытие, перезагрузка и масштаб - свои, а
- * не роли: их клавиши значат другое (closeTab, reloadUnlessPanel, textSizeItems).
+ * не роли: их клавиши значат другое (closeTab, reloadUnlessPanel, textSizeItems). На Windows
+ * полосы меню не видно (шапку рисует страница), меню только держит сочетания клавиш: разделов
+ * программы и окна macOS там нет, настройки и выход - в File.
  */
 export const installApplicationMenu = ({ openProject }: MenuActions) => {
   const template: MenuItemConstructorOptions[] = [
-    appMenu,
+    ...(IS_MAC ? [appMenu] : []),
     {
       label: 'File',
       submenu: [
         { label: 'Open Project…', accelerator: 'CmdOrCtrl+O', click: openProject },
+        ...(IS_MAC ? [] : [settingsItem]),
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: closeTab },
+        ...(IS_MAC ? [] : [{ type: 'separator' } as const, { role: 'quit' } as const]),
       ],
     },
     { role: 'editMenu' },
@@ -99,11 +111,20 @@ export const installApplicationMenu = ({ openProject }: MenuActions) => {
         { role: 'togglefullscreen' },
       ],
     },
-    {
-      label: 'Window',
-      role: 'window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }],
-    },
+    ...(IS_MAC
+      ? [
+          {
+            label: 'Window',
+            role: 'window',
+            submenu: [
+              { role: 'minimize' },
+              { role: 'zoom' },
+              { type: 'separator' },
+              { role: 'front' },
+            ],
+          } satisfies MenuItemConstructorOptions,
+        ]
+      : []),
   ]
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))

@@ -6,6 +6,7 @@ import { PageHeader } from '@agentic-workstation/ui/PageHeader'
 
 import type { TreeHeaderProps } from '../FileTreeView.types'
 import { useFileTreeStore } from '../../file-tree.store'
+import { isOutsidePath } from '../../../../lib/path.utils'
 import { useSelectedPath } from '../../../../state/selection.store'
 
 /**
@@ -21,7 +22,7 @@ export const TreeHeader = ({ projectId }: TreeHeaderProps) => {
   )
   const revealPath = useFileTreeStore((state) => state.revealPath)
   const collapseAll = useFileTreeStore((state) => state.collapseAll)
-  const inProject = opened !== undefined && !opened.startsWith('/')
+  const inProject = opened !== undefined && !isOutsidePath(opened)
 
   const handleSelectOpened = () => {
     if (opened !== undefined && inProject) revealPath(projectId, opened)

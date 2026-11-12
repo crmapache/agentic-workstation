@@ -28,6 +28,12 @@ describe('head reply', () => {
 })
 
 describe('head fence', () => {
+  it('a backslash in the program name is the shell escaping it, not a path (macOS)', () => {
+    expect(judgeCommand('x\\ls -la').ok).toBe(false)
+    expect(judgeCommand('./tools/x\\git status').ok).toBe(false)
+    expect(judgeCommand('git status').ok).toBe(true)
+  })
+
   it('lets the head read and ask git questions', () => {
     expect(judgeCommand('git log --oneline | head -5').ok).toBe(true)
     expect(judgeCommand('pnpm test').ok).toBe(true)

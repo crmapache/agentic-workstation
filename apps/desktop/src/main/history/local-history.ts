@@ -12,7 +12,7 @@ import type {
 import type { ProjectFileList } from '@shared/search'
 
 import { placeOf } from '../fs/file-ops'
-import { toWindowPath } from '../fs/project-paths'
+import { toWindowPath, toWindowRelative } from '../fs/project-paths'
 import { decodeText, relativeInside } from '../fs/text-file.utils'
 import { writeProjectBytes } from '../fs/text-write'
 import type { EditEntry } from '../claude/changes/turn-edits'
@@ -342,7 +342,7 @@ export class LocalHistory {
   /** Абсолютный путь агента - в проект и путь от его корня; не в открытом проекте - null. */
   private placeOfAbsolute(absolute: string): { history: RootHistory; path: string } | null {
     for (const history of this.roots.values()) {
-      const path = toWindowPath(relative(history.path, absolute))
+      const path = toWindowRelative(relative(history.path, absolute))
 
       if (path && !path.startsWith('..') && !isAbsolute(path) && placeOf(history.path, path)) {
         return { history, path }

@@ -6,6 +6,11 @@ export type UpdateAsset = {
   /** SHA-512 файла в base64. */
   sha512: string
   size: number
+  /**
+   * Подпись Ed25519 строки sha512, base64 - у установщика Windows (ADR 0048). У сборки мака её
+   * нет: там новую версию проверяет подпись кода.
+   */
+  signature?: string
 }
 
 /**
@@ -41,7 +46,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const parseAsset = (key: string, raw: unknown): UpdateAsset => {
   if (!isRecord(raw)) throw new Error(`Манифест: сборка ${key} не описана`)
 
-  const { url, sha512, size } = raw
+  const { url, sha512, size, signature } = raw
 
   if (typeof url !== 'string' || !isAllowedDownloadUrl(url)) {
     throw new Error(`Манифест: у сборки ${key} недопустимый адрес`)
@@ -55,7 +60,9 @@ const parseAsset = (key: string, raw: unknown): UpdateAsset => {
     throw new Error(`Манифест: у сборки ${key} неверный размер`)
   }
 
-  return { url, sha512, size }
+  return typeof signature === 'string' && signature.length > 0
+    ? { url, sha512, size, signature }
+    : { url, sha512, size }
 }
 
 /** Разбирает манифест и падает с понятной причиной, если он не тот, что ждём. */

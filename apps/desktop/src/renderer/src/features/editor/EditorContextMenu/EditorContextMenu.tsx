@@ -9,6 +9,7 @@ import { Popover } from '@agentic-workstation/ui/Popover'
 import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import { sendSelectionToChat } from '../editor-chat'
+import { shortcutLabel } from '../../../lib/keys'
 import { isOutsidePath } from '../../../lib/path.utils'
 import { useSelectionStore } from '../../../state/selection.store'
 import { EDITOR_MENU, MENU_SOURCE } from './EditorContextMenu.constants'
@@ -80,7 +81,7 @@ export const EditorContextMenu = ({
                     key={entry.name}
                     icon={entry.icon}
                     label={t(`editor.contextMenu.${entry.name}`)}
-                    hint={entry.keys}
+                    hint={entry.keys && shortcutLabel(entry.keys)}
                     disabled={readOnly && entry.edits}
                     onSelect={() => handleRun(entry.command)}
                   />

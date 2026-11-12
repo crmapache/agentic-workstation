@@ -10,6 +10,7 @@ import { AI_CLOCK_MS, SEARCH_KEYS, SEARCH_TABS } from '../search.constants'
 import type { SearchTab } from '../search.types'
 import { emptyLine, footStatus } from '../search.utils'
 import { AI_ICON } from '../../../lib/ai-icon.constants'
+import { shortcutLabel } from '../../../lib/keys'
 import {
   useEndWithTab,
   useWindowKeys,
@@ -70,7 +71,7 @@ export const SearchWindow = ({ project, conversation }: SearchWindowProps) => {
     label: t(`claudeCode.search.tabs.${id}`),
     icon: id === 'ai' ? AI_ICON : undefined,
     count: id === 'ai' ? search.ai.hits.length : view.counts[id],
-    hint: SEARCH_KEYS[id].join(''),
+    hint: shortcutLabel(SEARCH_KEYS[id].join('')),
   }))
   const failure = isAi
     ? search.ai.failure &&

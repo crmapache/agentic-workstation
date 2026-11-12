@@ -2,6 +2,12 @@ appId: io.github.crmapache.agenticworkstation
 productName: Agentic Workstation
 copyright: Copyright © crmapache
 
+# Имя пакета внутри сборки. Установщик Windows на одного человека берёт папку по нему, а не по
+# productName (electron-builder, oneClick): с именем пакета монорепо это была бы
+# `Programs\@agentic-workstationdesktop`. Имя окна, папки данных и меню остаются от productName.
+extraMetadata:
+  name: agentic-workstation
+
 directories:
   output: dist
   # Не build/: это имя часто сидит в глобальных .gitignore, а файл entitlements,
@@ -16,6 +22,12 @@ afterAllArtifactBuild: ./scripts/clean-unpacked.cjs
 # Подпись бандла сертификатом проекта - до сборки dmg и zip (см. mac.identity ниже).
 afterPack: ./scripts/sign-app.cjs
 
+# Установщик Windows собирается на Маке (ADR 0048). Старый NSIS у electron-builder (3.0.4.1)
+# несёт makensis только под Intel и без Rosetta падает с «Bad CPU type»; набор 1.2.1 - NSIS 3.12
+# со своим makensis под Apple Silicon, качается сам при первой сборке. Wine не нужен.
+toolsets:
+  nsis: '1.2.1'
+
 # Внутрь приложения едет только то, что собрал electron-vite. React, дизайн-система
 # и прочее, что нужно окну, уже вшито в бандл рендерера - отсюда они в devDependencies.
 # Рантайм-зависимости главного процесса (dependencies) electron-builder кладёт сам.
@@ -27,11 +39,11 @@ files:
   # IDE копирует их в ~/.agentic-workstation, а из архива их не скопировать обычным fs.
   - '!out/native-host/**'
   - '!out/chrome-extension/**'
-  # Терминал (ADR 0037): node-pty везёт готовые бинарники всех платформ (одни отладочные
-  # символы Windows - десятки мегабайт) и исходники для node-gyp. В сборку - только свои.
-  - '!**/node_modules/node-pty/prebuilds/win32-*/**'
+  # Терминал (ADR 0037): node-pty везёт готовые бинарники всех платформ, отладочные символы
+  # Windows (десятки мегабайт) и исходники для node-gyp. В сборку - только бинарники своей
+  # платформы: чужие отсекают mac.files и win.files ниже (они добавляются к общим).
   - '!**/node_modules/node-pty/prebuilds/linux-*/**'
-  - '!**/node_modules/node-pty/prebuilds/darwin-x64/**'
+  - '!**/node_modules/node-pty/prebuilds/**/*.pdb'
   - '!**/node_modules/node-pty/{src,third_party,scripts}/**'
   - '!**/node_modules/node-pty/binding.gyp'
 
@@ -44,10 +56,9 @@ extraResources:
   - from: out/chrome-extension
     to: chrome-extension
 
-# Нативный модуль терминала и его spawn-helper - вне app.asar: процесс из архива не
-# запустить, а node-pty сам ищет помощника в app.asar.unpacked.
-asarUnpack:
-  - '**/node_modules/node-pty/prebuilds/darwin-arm64/**'
+# Нативный модуль терминала и его помощники (spawn-helper на маке, conpty на Windows) - вне
+# app.asar: процесс из архива не запустить, а node-pty сам ищет их в app.asar.unpacked. Что
+# распаковать - у каждой платформы своё (mac.asarUnpack, win.asarUnpack).
 
 asar: true
 
@@ -60,6 +71,12 @@ npmRebuild: false
 mac:
   category: public.app-category.developer-tools
   darkModeSupport: true
+
+  files:
+    - '!**/node_modules/node-pty/prebuilds/win32-*/**'
+    - '!**/node_modules/node-pty/prebuilds/darwin-x64/**'
+  asarUnpack:
+    - '**/node_modules/node-pty/prebuilds/darwin-arm64/**'
 
   # Только Apple Silicon: IDE делается под конкретные машины, а universal удвоил бы
   # размер ради Intel, на котором её никто не запускает.
@@ -97,6 +114,33 @@ mac:
   entitlements: packaging/entitlements.mac.plist
   entitlementsInherit: packaging/entitlements.mac.plist
 
+# Windows (ADR 0048): только x64, установщик NSIS на одного человека - без прав
+# администратора, в %LOCALAPPDATA%\Programs. Им же приложение обновляется само: качает
+# новый установщик и запускает его тихо (main/updates/win-update.ts). Портативного exe нет: он
+# распаковывает себя во временную папку на каждом запуске, а IDE должна открываться быстро.
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: agentic-workstation-win-${arch}.${ext}
+  files:
+    - '!**/node_modules/node-pty/prebuilds/darwin-*/**'
+    - '!**/node_modules/node-pty/prebuilds/win32-arm64/**'
+  asarUnpack:
+    - '**/node_modules/node-pty/prebuilds/win32-x64/**'
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Agentic Workstation
+  runAfterFinish: true
+  # Данные IDE (проекты, разговоры, история файлов) переживают удаление: переустановка не
+  # должна стирать работу. Чистый лист - скилл /reinstall с clean.
+  deleteAppDataOnUninstall: false
+
 dmg:
   title: Agentic Workstation
   contents:
@@ -107,6 +151,6 @@ dmg:
       type: link
       path: /Applications
 
-# Публикацию делает скилл /release через gh, а не electron-builder: так релиз
+# Публикацию делает скилл /build через gh, а не electron-builder: так релиз
 # создаётся только после проверки подписи, а не сам по себе на каждой сборке.
 publish: null

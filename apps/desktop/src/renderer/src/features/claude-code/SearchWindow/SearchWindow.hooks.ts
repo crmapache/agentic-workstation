@@ -10,6 +10,7 @@ import { useClaudeState, useConversationFeed } from '../claude.queries'
 import { useAskClaude, useSearchAnswer } from '../search.queries'
 import { useSearchStore } from '../search.store'
 import { chatHits, searchTabOfKey } from '../search.utils'
+import { withMacKeys, isAltCommand } from '../../../lib/keys'
 import type { WindowKeys, WindowKeyHandler } from './SearchWindow.types'
 
 const NO_HITS: readonly SearchHit[] = []
@@ -149,7 +150,8 @@ export const useWindowKeys = (keys: WindowKeys): WindowKeyHandler => {
   return (event) => {
     if (event.nativeEvent.isComposing) return
 
-    const chord = event.altKey && event.metaKey && !event.shiftKey && !event.ctrlKey
+    // ⌥⌘ на маке, Alt на Windows: Ctrl+Alt там - AltGr (isAltCommand).
+    const chord = isAltCommand(event) && !event.shiftKey
     const byNumber = chord ? searchTabOfKey(event.code) : undefined
     const typed = keys.tab !== 'ai'
     const pick = keys.selected >= 0 ? keys.hits[keys.selected] : undefined
@@ -192,7 +194,7 @@ export const useWindowKeys = (keys: WindowKeys): WindowKeyHandler => {
 
       event.preventDefault()
 
-      if (event.metaKey) document.execCommand('insertText', false, '\n')
+      if (withMacKeys(event).metaKey) document.execCommand('insertText', false, '\n')
       else if (!keys.isRunning) keys.onRunAi()
     } else if (event.key === 'Enter' && pick) {
       event.preventDefault()

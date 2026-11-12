@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { connect } from 'node:net'
 
 import { HostBridge } from './host-bridge'
@@ -9,10 +10,23 @@ import { HostBridge } from './host-bridge'
  * Сокет IDE - аргументом --socket. В stdout - только кадры: любой лишний байт Chrome примет
  * за сломанный поток, поэтому журнал - в stderr.
  */
-const socketPath = (() => {
-  const index = process.argv.indexOf('--socket')
+const argument = (name: string) => {
+  const index = process.argv.indexOf(name)
 
   return index >= 0 ? process.argv[index + 1] : undefined
+}
+
+const socketPath = argument('--socket')
+
+/** Ключ моста (ADR 0048): путь к файлу аргументом --key; файла нет - проверки нет. */
+const key = (() => {
+  const path = argument('--key')
+
+  try {
+    return path ? readFileSync(path, 'utf8').trim() || undefined : undefined
+  } catch {
+    return undefined
+  }
 })()
 
 if (!socketPath) {
@@ -25,6 +39,7 @@ const bridge = new HostBridge({
   connect: () => connect(socketPath),
   log: (text) => process.stderr.write(`agentic-workstation host: ${text}\n`),
   exit: (code) => process.exit(code),
+  key,
 })
 
 process.stdin.on('data', (chunk: Buffer) => bridge.fromChrome(chunk))

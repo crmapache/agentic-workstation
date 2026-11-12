@@ -6,6 +6,7 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import { ROW_ICON_SIZE } from '../LibraryTab.constants'
 import styles from '../LibraryTab.module.scss'
 import type { ShelfGripProps } from '../LibraryTab.types'
+import { shortcutLabel } from '../../../../lib/keys'
 
 /**
  * Ручка строки: за неё строку переносят мышью (по своей полке и на соседнюю), с ней в фокусе -
@@ -17,7 +18,10 @@ export const ShelfGrip = ({ rowKey, shelf, id, kit }: ShelfGripProps) => {
 
   if (!kit.movable(rowKey)) return <span className={styles.gripSpace} aria-hidden />
 
-  const label = t('scenarios.library.move')
+  const label = t('scenarios.library.move', {
+    up: shortcutLabel('⌥↑'),
+    down: shortcutLabel('⌥↓'),
+  })
 
   return (
     <Tooltip label={label}>

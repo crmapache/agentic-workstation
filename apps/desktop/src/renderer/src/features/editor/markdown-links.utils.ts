@@ -1,6 +1,6 @@
 import { PREVIEW_IMAGE_TYPES } from '@shared/preview-images'
 
-import { isOutsidePath } from '../../lib/path.utils'
+import { pathParts, isOutsidePath } from '../../lib/path.utils'
 import type { FilePlace } from '../../state/selection.store'
 import type { PreviewLinkTarget, PreviewImageSource } from './markdown-preview.types'
 
@@ -10,6 +10,9 @@ const NONE = { kind: 'none' } as const
 const SCHEME = /^[a-z][a-z\d+.-]*:/i
 
 const WEB_URL = /^https?:\/\//i
+
+/** Диск пути Windows: `C:`. */
+const WINDOWS_DRIVE = /^[A-Za-z]:(?=[\\/])/
 
 /** Вписанная картинка: только растровые и SVG, через <img> они ничего не исполняют. */
 const IMAGE_DATA_URL = /^data:image\/[a-z\d.+-]+[;,]/i
@@ -28,11 +31,16 @@ const decode = (text: string): string => {
 /**
  * Путь файла из ссылки в файле `filePath`: от его папки или от корня проекта (`/docs/a.md`,
  * как на GitHub). У файла вне проекта (абсолютный путь) и ответ абсолютный, а `/x` - путь от
- * корня диска: репозитория за ним никто не знает. null - ссылка уходит за корень.
+ * корня диска: репозитория за ним никто не знает. У файла Windows корень - его диск, черта -
+ * «\». null - ссылка уходит за корень.
  */
 export const resolveFromFile = (filePath: string, target: string): string | null => {
   const outside = isOutsidePath(filePath)
-  const parts = target.startsWith('/') ? [] : filePath.split('/').slice(0, -1).filter(Boolean)
+  const drive = outside ? WINDOWS_DRIVE.exec(filePath)?.[0] : undefined
+  const folder = pathParts(filePath)
+    .slice(drive ? 1 : 0, -1)
+    .filter(Boolean)
+  const parts = target.startsWith('/') ? [] : folder
 
   for (const part of decode(target).split('/')) {
     if (part === '..') {
@@ -45,6 +53,7 @@ export const resolveFromFile = (filePath: string, target: string): string | null
   }
 
   if (parts.length === 0) return null
+  if (drive) return `${drive}\\${parts.join('\\')}`
 
   return outside ? `/${parts.join('/')}` : parts.join('/')
 }

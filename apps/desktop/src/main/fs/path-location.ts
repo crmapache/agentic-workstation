@@ -1,6 +1,7 @@
-import { sep, resolve, relative, normalize, isAbsolute } from 'node:path'
+import { sep, win32, resolve, relative, normalize, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { IS_WINDOWS } from '../platform'
 import { toWindowPath } from './project-paths'
 
 /** Как написан путь: куда он ведёт на диске и можно ли искать его по имени, если там пусто. */
@@ -24,7 +25,15 @@ export const hasControlChars = (path: string): boolean =>
  * подвешивает чтение на секунды.
  */
 export const isNetworkPath = (path: string): boolean =>
-  path.startsWith('//') || path.startsWith('\\\\') || path.includes('://')
+  path.startsWith('//') ||
+  path.startsWith('\\\\') ||
+  path.includes('://') ||
+  // На Windows сетевой путь пишут и смесью черт («\\/host/share»): решает вид после
+  // нормализации - иначе stat пошёл бы по SMB к чужому хосту с хешем пароля человека.
+  (IS_WINDOWS && win32.normalize(path).startsWith('\\\\'))
+
+/** Корень пути Windows - диск («C:\\»): путь от корня текущего диска («\\x») не принимаем. */
+const DRIVE_ROOT = /^[A-Za-z]:\\/
 
 /**
  * Абсолютный путь вне проекта, который прислало окно, - нормализованный, или null, если
@@ -35,7 +44,8 @@ export const outsidePath = (path: string): string | null =>
   isAbsolute(path) &&
   path.length <= MAX_PATH_LENGTH &&
   !isNetworkPath(path) &&
-  !hasControlChars(path)
+  !hasControlChars(path) &&
+  (!IS_WINDOWS || DRIVE_ROOT.test(normalize(path)))
     ? normalize(path)
     : null
 
@@ -51,12 +61,14 @@ const withoutFileScheme = (path: string): string | null => {
 }
 
 /**
- * `~` и `~/…` - домашняя папка этого человека. `~user` не трогаем: чужой дом - не этот,
- * а угадывать его место незачем.
+ * `~` и `~/…` (на Windows и `~\…`) - домашняя папка этого человека. `~user` не трогаем:
+ * чужой дом - не этот, а угадывать его место незачем.
  */
 export const expandHome = (path: string, homePath: string): string => {
   if (path === '~') return homePath
-  if (path.startsWith('~/')) return resolve(homePath, path.slice(2))
+  if (path.startsWith('~/') || (IS_WINDOWS && path.startsWith('~\\'))) {
+    return resolve(homePath, path.slice(2))
+  }
 
   return path
 }

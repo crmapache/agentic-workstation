@@ -1,3 +1,5 @@
+import { isAbsolute } from 'node:path'
+
 import { BROWSER_SERVER_NAME } from '@shared/connectors'
 import type { AddToTypeRequest, AddConnectorError, AddConnectorRequest } from '@shared/connectors'
 
@@ -110,11 +112,11 @@ const playwrightConnector = (
   const version = request.version.trim() || 'latest'
   const typed = request.profileDir.trim()
   const home = env['HOME'] ?? ''
-  const profileDir = typed.startsWith('~/') && home ? `${home}${typed.slice(1)}` : typed
+  const profileDir = /^~[\\/]/.test(typed) && home ? `${home}${typed.slice(1)}` : typed
 
   if (!isPlaywrightVersion(version)) return 'bad-version'
 
-  if (request.profile === 'saved' && (!profileDir.startsWith('/') || /[\0\r\n]/.test(profileDir))) {
+  if (request.profile === 'saved' && (!isAbsolute(profileDir) || /[\0\r\n]/.test(profileDir))) {
     return 'bad-profile'
   }
 

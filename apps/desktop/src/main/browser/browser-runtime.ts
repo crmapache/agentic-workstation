@@ -2,8 +2,10 @@ import { rm } from 'node:fs/promises'
 
 import type { BrowserState, BrowserSetupFailure } from '@shared/connectors'
 
+import { IS_WINDOWS } from '../platform'
 import { BrowserHub } from './browser-hub'
 import type { BrowserPlaces } from './browser-places'
+import { ensureBridgeKey } from './hub-auth'
 import { installBridge, uninstallBridge } from './native-host-install'
 import type { BridgeSource } from './native-host-install'
 
@@ -111,8 +113,20 @@ export class BrowserRuntime {
       return
     }
 
+    // Ключ моста - на Windows (ADR 0048): канал там не закрыт правами файла, host и IDE
+    // проверяют друг друга. На маке сокет закрыт правами, и ключа нет.
+    const bridgeKey = IS_WINDOWS
+      ? await ensureBridgeKey(places.hostDir).catch((error: unknown) => {
+          console.warn('[browser] ключ моста не записался', error)
+
+          return null
+        })
+      : null
+
     try {
-      await this.hub.start(socketPath)
+      if (IS_WINDOWS && !bridgeKey) throw new Error('нет ключа моста')
+
+      await this.hub.start(socketPath, bridgeKey?.key)
     } catch (error) {
       console.warn('[browser] сокет для расширений не открылся', error)
       this.failure = 'socket-failed'
@@ -130,6 +144,7 @@ export class BrowserRuntime {
           { ...places, socketPath },
           this.options.execPath,
           this.options.manifestDirs(),
+          bridgeKey?.path,
         )
         this.installed = true
       } catch (error) {

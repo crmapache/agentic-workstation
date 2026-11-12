@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from 'react'
 
 import { ROW_PATH, ROW_DIRECTORY } from '../file-tree.constants'
+import { isAltCommand } from '../../../lib/keys'
 import { splitPath } from '../../../lib/path.utils'
 import { NOT_ON_ROOT, DIRECTORY_ONLY } from './FileTreeView.constants'
 import type { TreeItem, TreeCommand } from './FileTreeView.types'
@@ -50,9 +51,10 @@ export const treeShortcut = (
   if (ctrlKey) return null
   if (key === 'F2' || (key === 'F6' && shiftKey)) return 'rename'
   if (key === 'Delete' || (key === 'Backspace' && metaKey)) return 'trash'
-  if (!metaKey || shiftKey) return null
-  if (code === 'KeyC') return altKey ? 'copyPath' : 'copy'
-  if (altKey) return null
+  // ⌥⌘C на маке, Alt+C на Windows (isAltCommand).
+  if (code === 'KeyC' && !shiftKey && isAltCommand(event)) return 'copyPath'
+  if (!metaKey || shiftKey || altKey) return null
+  if (code === 'KeyC') return 'copy'
   if (code === 'KeyX') return 'cut'
   if (code === 'KeyV') return 'paste'
 

@@ -10,6 +10,8 @@ import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 import { MENU_GROUPS, COMMAND_LOOK } from '../FileTreeView.constants'
 import type { TreeMenuProps } from '../FileTreeView.types'
 import { allows } from '../FileTreeView.utils'
+import { shortcutLabel } from '../../../../lib/keys'
+import { IS_MAC } from '../../../../lib/platform'
 
 /**
  * Меню правой кнопки в дереве, как в WebStorm: у папки - создать файл и папку, у всех -
@@ -38,8 +40,10 @@ export const TreeMenu = ({ target, canPaste, onCommand, onClose }: TreeMenuProps
                 <MenuItem
                   key={command}
                   icon={COMMAND_LOOK[command].icon}
-                  label={t(`fileTree.menu.${command === 'trash' ? 'delete' : command}`)}
-                  hint={COMMAND_LOOK[command].keys}
+                  label={t(
+                    `fileTree.menu.${command !== 'trash' ? command : IS_MAC ? 'delete' : 'deleteWindows'}`,
+                  )}
+                  hint={COMMAND_LOOK[command].keys && shortcutLabel(COMMAND_LOOK[command].keys)}
                   disabled={command === 'paste' && !canPaste}
                   onSelect={() => onCommand(command, target.item)}
                 />

@@ -8,6 +8,7 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { TextArea } from '@agentic-workstation/ui/TextArea'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
+import { shortcutLabel } from '../../../lib/keys'
 import { useTell } from './ScenarioTellField.hooks'
 import styles from './ScenarioTellField.module.scss'
 import type { ScenarioTellFieldProps } from './ScenarioTellField.types'
@@ -44,7 +45,7 @@ export const ScenarioTellField = ({ place, run }: ScenarioTellFieldProps) => {
           onKeyDown={handleKeyDown}
         />
       </div>
-      <Tooltip label={t('scenarios.run.tell.sendHint')}>
+      <Tooltip label={t('scenarios.run.tell.sendHint', { key: shortcutLabel('⌘Enter') })}>
         <Button variant="primary" icon={Send} disabled={!canSend} onClick={handleSend}>
           {t('scenarios.run.tell.send')}
         </Button>

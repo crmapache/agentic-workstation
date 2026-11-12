@@ -1,10 +1,9 @@
-import { chmod, mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir } from 'node:fs/promises'
 
 import type { PanelTerminalCommand } from '@shared/claude-panel'
 
-import { OUTRANKING, DRAWER_VARIABLE } from './account-env'
-import { quote } from './sign-in'
+import { IS_WINDOWS } from '../../platform'
+import { consoleScript, writeConsoleScript } from './console-script'
 
 /**
  * Команда CLI в Терминале, в хранилище аккаунта в работе (как в ACC): `/design-login` -
@@ -17,27 +16,17 @@ export const terminalCommandScript = (
   binary: string,
   drawer: string | null,
   command: PanelTerminalCommand,
-): string =>
-  [
-    '#!/bin/zsh',
-    drawer === null ? `unset ${DRAWER_VARIABLE}` : `export ${DRAWER_VARIABLE}=${quote(drawer)}`,
-    ...(drawer === null ? [] : OUTRANKING.map((name) => `export ${name}=''`)),
-    `exec ${quote(binary)} /${command}`,
-    '',
-  ].join('\n')
+  windows = IS_WINDOWS,
+): string => consoleScript(binary, drawer, [`/${command}`], windows)
 
-/** Записать скрипт рядом с хранилищами и отдать путь для Терминала. */
+/** Записать скрипт рядом с хранилищами и отдать путь для терминала. */
 export const writeTerminalCommand = async (
   dir: string,
   binary: string,
   drawer: string | null,
   command: PanelTerminalCommand,
 ): Promise<string> => {
-  const file = join(dir, `${command}.command`)
-
   await mkdir(dir, { recursive: true, mode: 0o700 })
-  await writeFile(file, terminalCommandScript(binary, drawer, command), { mode: 0o700 })
-  await chmod(file, 0o700)
 
-  return file
+  return writeConsoleScript(dir, command, terminalCommandScript(binary, drawer, command))
 }

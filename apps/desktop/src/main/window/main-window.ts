@@ -2,6 +2,7 @@ import { join } from 'node:path'
 
 import { BrowserWindow } from 'electron'
 
+import { IS_MAC } from '../platform'
 import {
   MIN_WINDOW_SIZE,
   TITLE_BAR_HEIGHT,
@@ -10,7 +11,7 @@ import {
 } from './main-window.constants'
 import { openExternalWeb } from './open-external'
 import { installSpellMenu } from './spell-menu'
-import { trafficLightPosition } from './traffic-lights'
+import { windowChrome } from './window-chrome'
 
 /**
  * Главное окно IDE. Страница работает в песочнице без Node, а наружу ходит только
@@ -24,9 +25,8 @@ export const createMainWindow = (rendererUrl: string | undefined): BrowserWindow
     minHeight: MIN_WINDOW_SIZE.height,
     show: false,
     backgroundColor: WINDOW_BACKGROUND,
-    titleBarStyle: 'hiddenInset',
     // До замера шапки окном - по шапке обычного размера текста (window:setTitleBarHeight).
-    trafficLightPosition: trafficLightPosition(TITLE_BAR_HEIGHT),
+    ...windowChrome(TITLE_BAR_HEIGHT),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
@@ -39,6 +39,9 @@ export const createMainWindow = (rendererUrl: string | undefined): BrowserWindow
   })
 
   window.once('ready-to-show', () => window.show())
+  // На Windows полосы меню нет: шапку рисует страница, а меню программы только держит
+  // сочетания клавиш (main/menu.ts) - они работают и у спрятанного меню.
+  if (!IS_MAC) window.setMenuBarVisibility(false)
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternalWeb(url)

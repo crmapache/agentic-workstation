@@ -32,6 +32,9 @@ export const PTY_NAME = 'xterm-256color'
 /** Оболочка, если у пользователя она не записана. */
 export const FALLBACK_SHELL = '/bin/zsh'
 
+/** Оболочка терминала и команд «!» на Windows (ADR 0048): есть на любой Windows. */
+export const WINDOWS_SHELL = 'powershell.exe'
+
 /** Кодировка по умолчанию: без неё оболочка, запущенная из Finder, ломает не-ASCII. */
 export const FALLBACK_LANG = 'en_US.UTF-8'
 

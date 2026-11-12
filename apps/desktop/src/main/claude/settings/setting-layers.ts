@@ -1,6 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
+import { IS_WINDOWS } from '../../platform'
+
 /**
  * Слои настроек Claude Code - те же файлы, что читает CLI, от сильного к слабому:
  * политика организации, локальный файл проекта, общий файл проекта, настройки
@@ -15,8 +17,13 @@ export type LayerFile = { layer: SettingsLayer; file: string }
 /** Файл слоя, уже прочитанный: битый или отсутствующий - пустой объект. */
 export type LayerSettings = { layer: SettingsLayer; settings: Record<string, unknown> }
 
-/** Политика организации на macOS: файл и папка его кусков рядом (CLI читает все). */
-const MANAGED_DIR = '/Library/Application Support/ClaudeCode'
+/**
+ * Политика организации: файл и папка его кусков рядом (CLI читает все). Место - как в
+ * документации Claude Code: на маке в /Library, на Windows - в Program Files.
+ */
+const MANAGED_DIR = IS_WINDOWS
+  ? join(process.env['ProgramFiles'] ?? 'C:\\Program Files', 'ClaudeCode')
+  : '/Library/Application Support/ClaudeCode'
 const MANAGED_FILE = 'managed-settings.json'
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>

@@ -1,10 +1,11 @@
 import { execFile } from 'node:child_process'
 import { constants } from 'node:fs'
 import { stat, access } from 'node:fs/promises'
-import { join, delimiter } from 'node:path'
+import { join, delimiter, isAbsolute } from 'node:path'
 
 import type { CliPathRefusal } from '@shared/claude-panel'
 
+import { IS_WINDOWS } from '../../platform'
 import { CLAUDE_BINARY, CLI_PROBE_TIMEOUT_MS } from './cli.constants'
 import type { Environment } from './shell-env'
 
@@ -39,7 +40,7 @@ export const checkCliPath = async (
   path: string,
   env: Environment,
 ): Promise<CliPathRefusal | null> => {
-  if (!path.startsWith('/') || !(await isExecutableFile(path))) return 'missing'
+  if (!isAbsolute(path) || !(await isExecutableFile(path))) return 'missing'
 
   return CLAUDE_VERSION.test(await versionOf(path, env)) ? null : 'not-claude'
 }
@@ -51,5 +52,5 @@ export const checkCliPath = async (
 export const searchedPlaces = (path: string, configured: string): string[] => [
   ...(configured ? [configured] : []),
   ...[...new Set(path.split(delimiter).filter(Boolean))].map((dir) => join(dir, CLAUDE_BINARY)),
-  `command -v ${CLAUDE_BINARY}`,
+  ...(IS_WINDOWS ? [] : [`command -v ${CLAUDE_BINARY}`]),
 ]

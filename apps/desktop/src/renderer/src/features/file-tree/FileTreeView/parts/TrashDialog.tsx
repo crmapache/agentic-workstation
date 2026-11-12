@@ -7,6 +7,7 @@ import styles from '../FileTreeView.module.scss'
 import type { TrashDialogProps } from '../FileTreeView.types'
 import { useFileActions } from '../../file-tree.queries'
 import { splitPath } from '../../../../lib/path.utils'
+import { IS_MAC } from '../../../../lib/platform'
 
 /** «Move to Trash?» - в корзину системы, а не насовсем: вернуть можно из Finder. */
 export const TrashDialog = ({ project, item, onClose }: TrashDialogProps) => {
@@ -21,7 +22,7 @@ export const TrashDialog = ({ project, item, onClose }: TrashDialogProps) => {
   return (
     <Dialog
       open
-      title={t('fileTree.trash.title')}
+      title={t(IS_MAC ? 'fileTree.trash.title' : 'fileTree.trash.titleWindows')}
       onSubmit={handleSubmit}
       onClose={onClose}
       actions={
@@ -30,14 +31,22 @@ export const TrashDialog = ({ project, item, onClose }: TrashDialogProps) => {
             {t('common.cancel')}
           </Button>
           <Button type="submit" variant="danger">
-            {t('fileTree.trash.submit')}
+            {t(IS_MAC ? 'fileTree.trash.submit' : 'fileTree.trash.submitWindows')}
           </Button>
         </>
       }>
       <div className={styles.dialogBody}>
         <div className={styles.dialogSubject}>{splitPath(item.path).name}</div>
         <p className={styles.dialogNote}>
-          {t(item.isDirectory ? 'fileTree.trash.folderNote' : 'fileTree.trash.fileNote')}
+          {t(
+            item.isDirectory
+              ? IS_MAC
+                ? 'fileTree.trash.folderNote'
+                : 'fileTree.trash.folderNoteWindows'
+              : IS_MAC
+                ? 'fileTree.trash.fileNote'
+                : 'fileTree.trash.fileNoteWindows',
+          )}
         </p>
       </div>
     </Dialog>

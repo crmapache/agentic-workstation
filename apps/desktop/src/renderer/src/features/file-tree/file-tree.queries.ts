@@ -7,7 +7,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
 import { useIpcEvent } from '../../lib/ipc.hooks'
-import { splitPath, isInsideAny } from '../../lib/path.utils'
+import { joinRoot, splitPath, isInsideAny } from '../../lib/path.utils'
+import { IS_MAC } from '../../lib/platform'
 import { useActionNoticeStore } from '../../state/action-notice.store'
 import { editorDocuments } from '../../state/editor-documents'
 import { NO_TABS, tabsUnder, tabTarget } from '../../state/editor-tabs.utils'
@@ -199,7 +200,9 @@ export const useFileActions = (project: Pick<Project, 'id' | 'rootPath'>) => {
       useFileTreeStore.getState().removed(projectId, path)
       show({
         tone: 'success',
-        title: t('fileTree.notices.trashed', { name: splitPath(path).name }),
+        title: t(IS_MAC ? 'fileTree.notices.trashed' : 'fileTree.notices.trashedWindows', {
+          name: splitPath(path).name,
+        }),
       })
     },
     onError: failed,
@@ -208,7 +211,7 @@ export const useFileActions = (project: Pick<Project, 'id' | 'rootPath'>) => {
   /** Полный путь от корня системы - в буфер обмена. */
   const copyPath = (path: string) =>
     navigator.clipboard
-      .writeText(path ? `${project.rootPath}/${path}` : project.rootPath)
+      .writeText(joinRoot(project.rootPath, path))
       .then(() => show({ tone: 'success', title: t('fileTree.notices.pathCopied') }), failed)
 
   return { create, move, copy, trash, copyPath, fail }

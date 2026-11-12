@@ -13,6 +13,8 @@ import type {
 import { PROFILE_KEY_PATTERN } from '@agentic-workstation/browser-protocol/tab-reference'
 
 import { BrowserError } from './browser-error'
+import { isWindowsPipe } from './browser-places'
+import { authenticateHost } from './hub-auth'
 import { HubLink } from './hub-link'
 
 /** Подключённый профиль Chrome: одна связь расширения через свой процесс native host. */
@@ -69,6 +71,8 @@ const profileOf = (hello: HelloMessage): BrowserProfile => ({
  */
 export class BrowserHub {
   private server: Server | null = null
+  /** Ключ моста: есть - каждый host сначала проходит проверку (hub-auth.ts). */
+  private key: string | null = null
   private readonly links = new Set<HubLink>()
   private readonly byKey = new Map<string, HubLink>()
   private readonly eventListeners = new Set<HubEventListener>()
@@ -85,11 +89,18 @@ export class BrowserHub {
    * Открыть сокет. Путь приходит сюда, а не в конструктор: связь нужна коннектору с первой
    * секунды, а место сокета считается, только когда человек включил Browser.
    */
-  async start(socketPath: string): Promise<void> {
+  async start(socketPath: string, key?: string): Promise<void> {
     if (this.server) return
 
-    await ensurePrivateDir(dirname(socketPath))
-    await removeStaleSocket(socketPath)
+    this.key = key ?? null
+
+    // Именованный канал Windows - не файл: ни папки, ни старого сокета, ни прав файла у него нет.
+    const isPipe = isWindowsPipe(socketPath)
+
+    if (!isPipe) {
+      await ensurePrivateDir(dirname(socketPath))
+      await removeStaleSocket(socketPath)
+    }
 
     const server = createServer((socket) => this.accept(socket))
 
@@ -100,7 +111,7 @@ export class BrowserHub {
         resolve()
       })
     })
-    await chmod(socketPath, 0o600)
+    if (!isPipe) await chmod(socketPath, 0o600)
     server.on('error', (error) => console.warn('[browser] сокет расширений', error))
     this.server = server
   }
@@ -166,7 +177,28 @@ export class BrowserHub {
     return () => this.linkListeners.delete(listener)
   }
 
+  /**
+   * Новая связь: с ключом - сначала проверка host (ADR 0048, Windows), не прошёл - связь
+   * рвётся; без ключа (мак: сокет закрыт правами файла) - сразу к делу.
+   */
   private accept(socket: Socket): void {
+    const key = this.key
+
+    if (!key) {
+      this.link(socket)
+
+      return
+    }
+
+    void authenticateHost(socket, key, this.options.helloTimeoutMs ?? HELLO_TIMEOUT_MS).then(
+      (ok) => {
+        if (ok) this.link(socket)
+        else socket.destroy()
+      },
+    )
+  }
+
+  private link(socket: Socket): void {
     const link = new HubLink(
       socket,
       {

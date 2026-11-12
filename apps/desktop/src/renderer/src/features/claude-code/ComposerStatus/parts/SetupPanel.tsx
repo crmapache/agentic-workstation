@@ -10,6 +10,7 @@ import { SECTION_STEPS, SECTION_TEXTS, SETUP_SECTIONS } from '../ComposerStatus.
 import styles from '../ComposerStatus.module.scss'
 import type { SetupFlow, PickerProps, SetupSection } from '../ComposerStatus.types'
 import { nextSection, stepAfterPick } from '../ComposerStatus.utils'
+import { shortcutLabel } from '../../../../lib/keys'
 import { EffortItems } from './EffortItems'
 import { ModeItems } from './ModeItems'
 import { ModelItems } from './ModelItems'
@@ -56,7 +57,9 @@ export const SetupPanel = ({ conversation }: PickerProps) => {
           <div
             key={id}
             className={clsx(styles.sectionPage, id !== flow.section && styles.sectionHidden)}>
-            <Menu label={t(SECTION_TEXTS[id].menu)} autoFocus={id === flow.section}>
+            <Menu
+              label={t(SECTION_TEXTS[id].menu, { key: shortcutLabel('⇧Tab') })}
+              autoFocus={id === flow.section}>
               {id === 'model' && <ModelItems conversation={conversation} onPicked={onPicked} />}
               {id === 'effort' && <EffortItems conversation={conversation} onPicked={onPicked} />}
               {id === 'mode' && <ModeItems conversation={conversation} />}

@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent } from 'react'
 import { DOUBLE_SHIFT_INTERVAL_MS } from '../search-everywhere.constants'
 import type { SearchTab } from '../search-everywhere.types'
 import { tabForShortcut, createDoubleShiftDetector } from '../search-shortcuts.utils'
+import { withMacKeys } from '../../../lib/keys'
 
 /**
  * Сочетания поиска на всё окно: двойной Shift - «All», ⌘⇧O, ⌘⇧A, ⌘⇧F - своя вкладка.
@@ -18,7 +19,7 @@ export const useSearchShortcuts = (onOpen: (tab: SearchTab) => void) => {
     const handleKey = (event: KeyboardEvent) => {
       if (document.querySelector('dialog:modal')) return
 
-      const tab = event.type === 'keydown' ? tabForShortcut(event) : null
+      const tab = event.type === 'keydown' ? tabForShortcut(withMacKeys(event)) : null
 
       if (tab) {
         event.preventDefault()

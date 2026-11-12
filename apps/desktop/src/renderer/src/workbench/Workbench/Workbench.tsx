@@ -26,6 +26,7 @@ import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
 import { ViewStack } from '../ViewStack/ViewStack'
+import { shortcutLabel } from '../../lib/keys'
 import { ConversationLogContext } from '../../state/conversation-log.context'
 import { PANEL_MIN_WIDTH } from '../../state/layout.constants'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
@@ -95,7 +96,7 @@ export const Workbench = () => {
               footer={
                 <IconButton
                   icon={Settings}
-                  label={t('settings.open')}
+                  label={t('settings.open', { key: shortcutLabel('⌘,') })}
                   active={isSettingsOpen}
                   tooltipPlacement="end"
                   onClick={openSettings}

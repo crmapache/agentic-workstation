@@ -1,5 +1,5 @@
 import { rm, stat, mkdir, rename, readdir, readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, basename } from 'node:path'
 
 import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
 import { SCENARIO_VERSION } from '@shared/scenarios'
@@ -207,7 +207,7 @@ export class ScenarioStore {
 
       if (!parsed) return null
 
-      const fileId = file.slice(file.lastIndexOf('/') + 1, -'.json'.length)
+      const fileId = basename(file, '.json')
 
       return {
         ...parsed,

@@ -71,7 +71,8 @@ const readHeadCommit = async (top: string) => {
 
 /**
  * Пути worktree, о которых знает репозиторий. Папку удалили руками, а запись
- * осталась - `git worktree add` на этот путь откажет, значит путь тоже занят.
+ * осталась - `git worktree add` на этот путь откажет, значит путь тоже занят. Путь - как его
+ * пишет система (resolve): git на Windows печатает `C:/x`, а join даёт `C:\x`.
  */
 const registeredWorktrees = async (top: string) => {
   const stdout = await gitOrFail(top, ['worktree', 'list', '--porcelain'])
@@ -80,7 +81,7 @@ const registeredWorktrees = async (top: string) => {
     stdout
       .split('\n')
       .filter((line) => line.startsWith('worktree '))
-      .map((line) => line.slice('worktree '.length)),
+      .map((line) => resolve(line.slice('worktree '.length))),
   )
 }
 

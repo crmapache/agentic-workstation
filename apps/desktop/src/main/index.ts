@@ -11,6 +11,7 @@ import type { WorkspaceState } from '@shared/workspace'
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
 import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
+import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
 import { claudeAsk } from './claude/claude-ask'
 import { ClaudeService } from './claude/claude-service'
 import type { StoredClaude } from './claude/claude-state'
@@ -36,6 +37,7 @@ import { UPDATE_FEED_URL, UPDATE_FEED_OVERRIDE_ENV } from './updates/update.cons
 import { saveEditorBeforeQuit } from './window/editor-save'
 import { EDITOR_SAVE_TIMEOUT_MS } from './window/editor-save.constants'
 import { createMainWindow } from './window/main-window'
+import { hideConsoleWindows } from './windows/console-hide'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import type { StoredAccounts } from './claude/accounts/account-store'
@@ -59,11 +61,25 @@ if (!app.isPackaged && CDP_PORT) app.commandLine.appendSwitch('remote-debugging-
 
 let mainWindow: BrowserWindow | null = null
 
+/** Выход дошёл до конца (всё сохранено и погашено): окну можно закрываться. */
+let quitDone = false
+
 const openMainWindow = () => {
   mainWindow = createMainWindow(RENDERER_URL)
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+  // На Windows крестик окна - это выход (ADR 0048). Закрой окно сразу, страница умерла бы до
+  // сохранения редактора и вопроса о файлах в конфликте: закрытие идёт тем же выходом, что ⌘Q,
+  // а окно закрывается, когда выход дошёл до конца. Выход отменили - окно остаётся.
+  if (!IS_MAC) {
+    mainWindow.on('close', (event) => {
+      if (quitDone) return
+
+      event.preventDefault()
+      app.quit()
+    })
+  }
 }
 
 const bootstrap = async () => {
@@ -295,6 +311,7 @@ const bootstrap = async () => {
     } finally {
       // Что бы ни упало выше, IDE закрывается: иначе следующий ⌘Q гасился бы молча.
       quitting = 'ready'
+      quitDone = true
       app.quit()
     }
   }
@@ -321,6 +338,13 @@ const bootstrap = async () => {
   updates.start()
 }
 
+// На Windows - без окна консоли у каждого процесса, который IDE запускает (ADR 0048): раньше
+// первого запуска, до bootstrap. И своё имя приложения - то же, что у ярлыка установщика.
+if (IS_WINDOWS) {
+  hideConsoleWindows()
+  app.setAppUserModelId(WINDOWS_APP_ID)
+}
+
 // Второй экземпляр IDE не запускается, а поднимает окно первого: два процесса
 // писали бы одно и то же состояние в userData наперегонки.
 if (!app.requestSingleInstanceLock()) {
@@ -331,8 +355,11 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow?.focus()
   })
 
-  // На macOS приложение живёт без окон, пока его не закроют через Cmd+Q.
-  app.on('window-all-closed', () => undefined)
+  // На маке приложение живёт без окон, пока его не закроют через ⌘Q; на Windows закрытое
+  // окно - это выход, как у всех программ там.
+  app.on('window-all-closed', () => {
+    if (!IS_MAC) app.quit()
+  })
 
   // Сертификат клиента IDE не нужен никому. Без отказа Electron сам предъявил бы первый
   // из связки ключей любому https-серверу, который его попросит, - например, сайту

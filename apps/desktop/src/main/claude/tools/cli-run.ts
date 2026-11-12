@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 
+import { SPAWN_DETACHED } from '../../platform'
 import type { ClaudeCli } from '../cli/cli-locator'
 import { ProcessGroup } from '../cli/process-group'
 import { CLI_COMMAND_TIMEOUT_MS } from './tools.constants'
@@ -32,7 +33,7 @@ export const runCli = (
     const child = spawn(cli.binary, args, {
       cwd,
       env: cli.env,
-      detached: true,
+      detached: SPAWN_DETACHED,
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 

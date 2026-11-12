@@ -6,7 +6,7 @@
   },
   "settings": {
     "title": "Settings",
-    "open": "Settings (⌘,)",
+    "open": "Settings ({{key}})",
     "sectionsLabel": "Settings sections",
     "sections": {
       "appearance": "Appearance",
@@ -16,7 +16,7 @@
     "textSize": {
       "label": "Text size",
       "value": "{{percent}}%",
-      "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. ⌘+, ⌘− and ⌘0 work from anywhere.",
+      "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. {{bigger}}, {{smaller}} and {{reset}} work from anywhere.",
       "reset": "Reset",
       "helpLabel": "About text size",
       "description": "Every font in the IDE at once: panels, editor and chats"
@@ -65,7 +65,7 @@
   },
   "connectors": {
     "title": "Connectors",
-    "vaultMissing": "Keychain encryption is unavailable, so the IDE can't save sign-ins. Connectors that need a sign-in won't work until it is back.",
+    "vaultMissing": "The system's encryption is unavailable, so the IDE can't save sign-ins. Connectors that need a sign-in won't work until it is back.",
     "vaultReset": "Saved sign-ins couldn't be read, most likely the keychain key changed. Sign in to your connectors again; the old file is kept next to the new one.",
     "listTitle": "Your connectors",
     "empty": "No connectors yet. Add the first one below.",
@@ -117,7 +117,7 @@
       },
       "command": {
         "name": "MCP server command",
-        "hint": "An MCP server this Mac runs: npx, node, a script",
+        "hint": "An MCP server this computer runs: npx, node, a script",
         "short": "MCP"
       },
       "http": {
@@ -139,7 +139,7 @@
       "sign-in-denied": "Access was denied in the browser.",
       "callback-busy": "Port 5319 is busy: another copy of the IDE is signing in. Finish there and try again.",
       "unreachable": "The service didn't answer. Refresh to try again.",
-      "vault-unavailable": "Keychain encryption is unavailable, so the sign-in can't be saved.",
+      "vault-unavailable": "The system's encryption is unavailable, so the sign-in can't be saved.",
       "google-app-missing": "Set up Google sign-in first.",
       "google-app-rejected": "Google rejected the IDE's Google app: its secret was reset or the client was deleted. Import a fresh client file above.",
       "google-api-disabled": "The API is turned off in your Google Cloud project. Enable Gmail API and Google Calendar API there, then sign in again.",
@@ -193,13 +193,13 @@
         "bad-name": "Use Latin letters or digits in the name.",
         "bad-label": "Use Latin letters or digits in the label.",
         "name-taken": "A connector with this name already exists.",
-        "bad-url": "Enter an https address. Plain http works only for this Mac (localhost).",
+        "bad-url": "Enter an https address. Plain http works only for this computer (localhost).",
         "missing-secret": "Fill in every field.",
-        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the sign-in.",
+        "vault-unavailable": "The system's encryption is unavailable, so the IDE can't save the sign-in.",
         "google-app-missing": "Set up Google sign-in first.",
         "failed": "The IDE couldn't add this connector. Check the fields and try again.",
         "bad-command": "Check the command and variables: an unclosed quote, a variable without \"=\", or a $NAME that your shell doesn't set.",
-        "bad-profile": "Enter the profile folder: a path from / or ~.",
+        "bad-profile": "Enter the profile folder: a full path or one from ~.",
         "bad-version": "Use latest or a version number like 0.0.78.",
         "bad-spec": "The connector description didn't pass the check. Generate it again."
       },
@@ -285,14 +285,14 @@
       "errors": {
         "bad-file": "This is not a Google OAuth client file.",
         "not-desktop-client": "This client is a Web application. Create a Desktop app client instead.",
-        "vault-unavailable": "Keychain encryption is unavailable, so the IDE can't save the client."
+        "vault-unavailable": "The system's encryption is unavailable, so the IDE can't save the client."
       },
       "setUpWithAi": "Set up with AI",
       "openIn": "Open in {{app}}",
       "copyPrompt": "Copy prompt",
       "promptCopied": "Prompt copied",
       "agentFailed": "{{app}} didn't open. Copy the prompt and paste it there.",
-      "agentPrompt": "Set up a Google OAuth client for Agentic Workstation, a desktop app, in my Google account, working in my browser. I'm already signed in to Google. If a site asks for a sign-in, a 2-step code, a payment method or accepting terms, stop and ask me.\n\nThe goal: any Google account I choose can sign in to Gmail and Calendar in Agentic Workstation. For that the app has to be published (\"In production\"). Google publishes only apps with a home page and a privacy policy on a domain I own and have verified in Google Search Console. Free shared addresses (github.io, web.app, blogspot.com, Google Sites) don't count.\n\n1. Open https://console.cloud.google.com/ and create a new project named \"Agentic Workstation\". If a project with this name already exists, use it. Don't change any other project.\n2. In that project, open APIs & Services > Library and enable \"Gmail API\" and \"Google Calendar API\".\n3. Open Google Auth Platform (https://console.cloud.google.com/auth/overview). If it asks to get started: app name \"Agentic Workstation\", user support email and developer contact email - my email, audience - External. Don't add scopes under Data Access: the app asks for them at sign-in.\n4. In Google Auth Platform > Clients, create a client: application type \"Desktop app\", name \"Agentic Workstation\". Download its JSON file right in the dialog that appears after creating it: Google shows the client secret only once. If the dialog closed without the download, create one more client the same way. The file is named like client_secret_....json and goes to Downloads. Tell me its name: I can already choose it in the IDE.\n5. Ask me whether I have my own domain and where its DNS is managed. Don't guess it.\nIf I have one:\na. Put two public pages on it: a home page and a privacy policy, on the same domain (for example https://example.com/agentic-workstation and https://example.com/agentic-workstation/privacy, or a subdomain). Use the hosting I already have for this domain. If I have none, offer a free hosting that serves my own domain (Cloudflare Pages, GitHub Pages) and ask before creating accounts or projects there.\nThe home page: Agentic Workstation is a desktop IDE for macOS; it connects my own Gmail and Google Calendar to the AI assistants inside the IDE, so they can search and read mail, manage drafts and labels, and read and change calendar events; sending mail and invitations stays off until I turn it on. Link to the privacy policy from it.\nThe privacy policy: the app reads and changes Gmail messages, drafts and labels and Calendar events and calendars only to do what I ask in the IDE; sign-in tokens are stored encrypted on my Mac and never sent to the app developer; mail and events the AI reads are sent to the AI provider I use in the IDE (for example Anthropic for Claude) as part of the conversation; the data is not sold or used for advertising; access can be revoked at https://myaccount.google.com/permissions; a contact email - mine. Add this sentence: \"Agentic Workstation's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.\"\nb. Verify the domain in Google Search Console (https://search.google.com/search-console) with this same Google account: a Domain property, confirmed by a DNS TXT record. Only add new DNS records, never change or delete existing ones, and ask me before adding.\nc. In Google Auth Platform > Branding, fill in the app home page and privacy policy links and add the domain under Authorized domains. Don't upload a logo: it needs a separate review by Google. Save.\nd. In Google Auth Platform > Audience, press \"Publish app\" and confirm. If Google says the app needs verification, skip it: the app is for my own use.\nIf I have no domain, or \"Publish app\" stays unavailable, tell me why and offer two ways: buy a domain and continue from step a, or leave the app in \"Testing\" and add the Google accounts I name under Audience > Test users. In testing mode only test users can sign in, and Google asks them to sign in again every 7 days.\n\nDon't copy the client secret anywhere and don't paste it into any chat or form. At the end, tell me whether the app is published or which test users you added."
+      "agentPrompt": "Set up a Google OAuth client for Agentic Workstation, a desktop app, in my Google account, working in my browser. I'm already signed in to Google. If a site asks for a sign-in, a 2-step code, a payment method or accepting terms, stop and ask me.\n\nThe goal: any Google account I choose can sign in to Gmail and Calendar in Agentic Workstation. For that the app has to be published (\"In production\"). Google publishes only apps with a home page and a privacy policy on a domain I own and have verified in Google Search Console. Free shared addresses (github.io, web.app, blogspot.com, Google Sites) don't count.\n\n1. Open https://console.cloud.google.com/ and create a new project named \"Agentic Workstation\". If a project with this name already exists, use it. Don't change any other project.\n2. In that project, open APIs & Services > Library and enable \"Gmail API\" and \"Google Calendar API\".\n3. Open Google Auth Platform (https://console.cloud.google.com/auth/overview). If it asks to get started: app name \"Agentic Workstation\", user support email and developer contact email - my email, audience - External. Don't add scopes under Data Access: the app asks for them at sign-in.\n4. In Google Auth Platform > Clients, create a client: application type \"Desktop app\", name \"Agentic Workstation\". Download its JSON file right in the dialog that appears after creating it: Google shows the client secret only once. If the dialog closed without the download, create one more client the same way. The file is named like client_secret_....json and goes to Downloads. Tell me its name: I can already choose it in the IDE.\n5. Ask me whether I have my own domain and where its DNS is managed. Don't guess it.\nIf I have one:\na. Put two public pages on it: a home page and a privacy policy, on the same domain (for example https://example.com/agentic-workstation and https://example.com/agentic-workstation/privacy, or a subdomain). Use the hosting I already have for this domain. If I have none, offer a free hosting that serves my own domain (Cloudflare Pages, GitHub Pages) and ask before creating accounts or projects there.\nThe home page: Agentic Workstation is a desktop IDE for macOS and Windows; it connects my own Gmail and Google Calendar to the AI assistants inside the IDE, so they can search and read mail, manage drafts and labels, and read and change calendar events; sending mail and invitations stays off until I turn it on. Link to the privacy policy from it.\nThe privacy policy: the app reads and changes Gmail messages, drafts and labels and Calendar events and calendars only to do what I ask in the IDE; sign-in tokens are stored encrypted on my computer and never sent to the app developer; mail and events the AI reads are sent to the AI provider I use in the IDE (for example Anthropic for Claude) as part of the conversation; the data is not sold or used for advertising; access can be revoked at https://myaccount.google.com/permissions; a contact email - mine. Add this sentence: \"Agentic Workstation's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.\"\nb. Verify the domain in Google Search Console (https://search.google.com/search-console) with this same Google account: a Domain property, confirmed by a DNS TXT record. Only add new DNS records, never change or delete existing ones, and ask me before adding.\nc. In Google Auth Platform > Branding, fill in the app home page and privacy policy links and add the domain under Authorized domains. Don't upload a logo: it needs a separate review by Google. Save.\nd. In Google Auth Platform > Audience, press \"Publish app\" and confirm. If Google says the app needs verification, skip it: the app is for my own use.\nIf I have no domain, or \"Publish app\" stays unavailable, tell me why and offer two ways: buy a domain and continue from step a, or leave the app in \"Testing\" and add the Google accounts I name under Audience > Test users. In testing mode only test users can sign in, and Google asks them to sign in again every 7 days.\n\nDon't copy the client secret anywhere and don't paste it into any chat or form. At the end, tell me whether the app is published or which test users you added."
     },
     "agentApps": {
       "claude": "Claude",
@@ -443,9 +443,9 @@
         "slack": "Slack lets only apps made inside a workspace, or published in the Slack Marketplace, use its MCP. So each workspace gets its own small Slack app, and each app gets its own connector: add another connector for another workspace.\n\nCreate Slack app opens Slack with the app ready: the redirect URL and the permissions the Slack MCP asks for are filled in. Model Context Protocol is the one switch Slack doesn't let set in advance.\n\nIf the workspace needs an admin to approve apps, Slack asks the admin first.\n\nUsing an app you already have? Add http://localhost:5319/callback as a redirect URL under OAuth & Permissions.",
         "atlassian": "Jira and Confluence on Atlassian Cloud - sites like yourteam.atlassian.net - through Atlassian's official MCP server. You sign in in your browser and allow access to your sites there.\n\nJira and Confluence on a company's own server (Data Center) don't work through it.",
         "todoist": "Todoist through its official MCP server, signed in with your API token: Todoist → Settings → Integrations → Developer → API token.\n\nThe token doesn't expire. If you reset it in Todoist, replace it in the connector.",
-        "playwright": "A browser the AI drives through the Playwright MCP server on this Mac. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
-        "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this Mac.",
-        "command": "An MCP server this Mac starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
+        "playwright": "A browser the AI drives through the Playwright MCP server on this computer. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
+        "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this computer.",
+        "command": "An MCP server this computer starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
         "http": "Describe a service: the AI reads its API docs and builds the connector as a list of HTTP requests, not code. It takes a few minutes, and you can close this window meanwhile: the result waits in the catalog.\n\nCheck what the AI built before adding it. Your API key is stored encrypted in the IDE; the AI that built the connector never sees it.",
         "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
         "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own."
@@ -558,6 +558,7 @@
       "copyPath": "Copy Path",
       "rename": "Rename…",
       "delete": "Move to Trash…",
+      "deleteWindows": "Move to Recycle Bin…",
       "history": "Local History"
     },
     "create": {
@@ -587,15 +588,20 @@
     },
     "trash": {
       "title": "Move to Trash?",
+      "titleWindows": "Move to Recycle Bin?",
       "fileNote": "You can put it back from the Trash in Finder.",
+      "fileNoteWindows": "You can put it back from the Recycle Bin.",
       "folderNote": "Everything inside goes too. You can put it back from the Trash in Finder.",
-      "submit": "Move to Trash"
+      "folderNoteWindows": "Everything inside goes too. You can put it back from the Recycle Bin.",
+      "submit": "Move to Trash",
+      "submitWindows": "Move to Recycle Bin"
     },
     "notices": {
       "renamed": "Renamed to {{name}}",
       "moved": "Moved to {{folder}}",
       "copied": "Copied as {{name}}",
       "trashed": "{{name}} is in the Trash",
+      "trashedWindows": "{{name}} is in the Recycle Bin",
       "pathCopied": "Path copied",
       "references_one": "Updated {{count}} reference in {{files}} file",
       "references_other": "Updated {{count}} references in {{files}} files",
@@ -1004,8 +1010,8 @@
       "user": "In every project",
       "help": {
         "label": "About this shelf",
-        "project": "A scenario on this shelf is a file in the project's .claude/scenarios folder. It travels with the repository: everyone working here has it, next to the project's own commands and skills.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, ⌥↑ and ⌥↓ do the same.",
-        "user": "A scenario on this shelf is yours alone: it lives in your home folder and follows you from project to project.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, ⌥↑ and ⌥↓ do the same."
+        "project": "A scenario on this shelf is a file in the project's .claude/scenarios folder. It travels with the repository: everyone working here has it, next to the project's own commands and skills.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, {{up}} and {{down}} do the same.",
+        "user": "A scenario on this shelf is yours alone: it lives in your home folder and follows you from project to project.\n\nDrag a scenario by its handle to change the order or to move it onto the other shelf - its file moves with it. With the handle focused, {{up}} and {{down}} do the same."
       },
       "projectEmpty": "No shared scenario yet",
       "userEmpty": "Nothing of your own yet",
@@ -1037,7 +1043,7 @@
       "missed": "missed {{when}}",
       "next": "next {{when}}",
       "then": "then {{when}}",
-      "move": "Drag to another place or onto the other shelf (⌥↑ ⌥↓)",
+      "move": "Drag to another place or onto the other shelf ({{up}} {{down}})",
       "confirmDelete": {
         "title": "Delete this scenario?",
         "note": "Its file goes from the shelf. Runs it already made stay in the history.",
@@ -1197,7 +1203,7 @@
         "placeholder": "Write to the main thread…",
         "over": "The run is over",
         "send": "Send",
-        "sendHint": "Send to the main thread (⌘Enter)"
+        "sendHint": "Send to the main thread ({{key}})"
       },
       "log": {
         "step": "Step · {{title}}",
@@ -1585,7 +1591,7 @@
     "error": "Statistics could not be read right now. They come back when the IDE reads Claude Code transcripts again.",
     "empty": {
       "title": "No statistics yet",
-      "text": "Numbers appear after the first agent turn on this Mac or the first minute of work in the IDE."
+      "text": "Numbers appear after the first agent turn on this computer or the first minute of work in the IDE."
     },
     "filters": {
       "period": "Period",
@@ -1746,7 +1752,7 @@
       "label": "About these numbers",
       "page": {
         "title": "Statistics",
-        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole Mac: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nToday is the current day; 7 days and 30 days end today. Each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. There is no comparison when the previous period starts before the data does.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
+        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nToday is the current day; 7 days and 30 days end today. Each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. There is no comparison when the previous period starts before the data does.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
       },
       "overview": {
         "title": "Overview",
@@ -2002,7 +2008,7 @@
       "forceStopHint": "Claude isn’t confirming the stop"
     },
     "modes": {
-      "menu": "Permission mode (⇧ Tab)",
+      "menu": "Permission mode ({{key}})",
       "labels": {
         "default": "Ask before edits",
         "acceptEdits": "Accept edits",
@@ -2343,7 +2349,7 @@
     },
     "blocked": {
       "trustTitle": "Trust this folder?",
-      "trustText": "Claude Code will load this project's settings, hooks and CLAUDE.md. Hooks can run any command on your Mac, so trust only folders you know.",
+      "trustText": "Claude Code will load this project's settings, hooks and CLAUDE.md. Hooks can run any command on your computer, so trust only folders you know.",
       "trust": "Trust and send",
       "trustOnly": "Trust folder",
       "missingTitle": "Project folder not found",
@@ -2557,7 +2563,7 @@
       "twin": "This account is already here.",
       "cancelled": "Sign-in cancelled.",
       "forgetTitle": "Forget {{name}}?",
-      "forgetText": "Its sign-in is removed from this Mac. Chats on it switch to the default sign-in.",
+      "forgetText": "Its sign-in is removed from this computer. Chats on it switch to the default sign-in.",
       "forgetExternalText": "It goes off this list. Amazing Claude Code keeps it as it is.",
       "logoutTitle": "Log out of the default sign-in?",
       "logoutText": "This signs Claude Code out on every machine that uses this sign-in.",
@@ -3123,7 +3129,7 @@
       "on_other": "Remote Control: {{count}} phones on the line",
       "pending": "Remote Control: {{label}} waits for your approval"
     },
-    "keysNotKept": "This Mac has no keychain encryption for the IDE: paired phones work until the IDE restarts, then pair them again.",
+    "keysNotKept": "This computer has no system encryption for the IDE: paired phones work until the IDE restarts, then pair them again.",
     "thisIde": "This IDE",
     "fingerprintNote": "The phone shows this code when it pairs",
     "relayLabel": "Relay",

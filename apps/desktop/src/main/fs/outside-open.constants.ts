@@ -57,5 +57,53 @@ export const RUNNABLE_EXTENSIONS: ReadonlySet<string> = new Set([
   '.vbs',
 ])
 
+/**
+ * Что на Windows можно отдать системе «открыть» (ADR 0048) - только документы и медиа: там
+ * запускают по двойному щелчку слишком многое (скрипты Windows Script Host, справка .chm,
+ * образы дисков, надстройки Office, ярлыки поиска), и чёрный список полным не бывает. Бита
+ * исполнения у файлов Windows нет, так что остальное только показывается в Проводнике. HTML и
+ * SVG сюда не входят: браузер исполнил бы их скрипты.
+ */
+export const WINDOWS_OPENABLE_EXTENSIONS: ReadonlySet<string> = new Set([
+  '.txt',
+  '.md',
+  '.markdown',
+  '.log',
+  '.csv',
+  '.tsv',
+  '.json',
+  '.jsonl',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.xml',
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.bmp',
+  '.tif',
+  '.tiff',
+  '.heic',
+  '.mp3',
+  '.wav',
+  '.m4a',
+  '.flac',
+  '.ogg',
+  '.mp4',
+  '.mov',
+  '.mkv',
+  '.webm',
+  '.docx',
+  '.xlsx',
+  '.pptx',
+  '.odt',
+  '.ods',
+  '.odp',
+  '.rtf',
+])
+
 /** Бит исполнения у владельца, группы или всех: такой файл - программа, как бы он ни назывался. */
 export const EXECUTABLE_MODE_BITS = 0o111

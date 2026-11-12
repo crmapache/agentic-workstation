@@ -11,7 +11,7 @@ import styles from '../FileTreeView.module.scss'
 import type { RenameDialogProps } from '../FileTreeView.types'
 import { stemLength, renamedPath } from '../FileTreeView.utils'
 import { useFileActions } from '../../file-tree.queries'
-import { splitPath } from '../../../../lib/path.utils'
+import { splitPath, isBadFileName } from '../../../../lib/path.utils'
 import { ReferencesSwitch } from './ReferencesSwitch'
 
 /**
@@ -28,7 +28,7 @@ export const RenameDialog = ({ project, item, onClose }: RenameDialogProps) => {
   const [error, setError] = useState<FileOpCode | null>(null)
   const fieldRef = useRef<HTMLInputElement>(null)
   const trimmed = name.trim()
-  const valid = trimmed !== '' && !trimmed.includes('/') && trimmed !== initial
+  const valid = trimmed !== '' && !isBadFileName(trimmed) && trimmed !== initial
   const move = valid ? { from: item.path, to: renamedPath(item.path, trimmed) } : null
 
   // Выделено имя без расширения: новое имя набирают поверх, расширение остаётся.
@@ -43,7 +43,8 @@ export const RenameDialog = ({ project, item, onClose }: RenameDialogProps) => {
 
   const handleSubmit = () => {
     if (trimmed === initial) return onClose()
-    if (!move || moveAction.isPending) return setError(trimmed.includes('/') ? 'invalidName' : null)
+    if (!move || moveAction.isPending)
+      return setError(isBadFileName(trimmed) ? 'invalidName' : null)
 
     moveAction.mutate(
       { move, update },

@@ -1,3 +1,5 @@
+import { sep } from 'node:path'
+
 import type { ClaudeState } from '@shared/claude'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -22,10 +24,13 @@ export type Statistics = {
   projectsChanged: () => void
 }
 
-/** Самая длинная папка проекта, внутри которой лежит path; null - ни в одной. */
+/**
+ * Самая длинная папка проекта, внутри которой лежит path; null - ни в одной. Черта - системы:
+ * на Windows папка разговора в транскрипте - `C:\repo\sub`.
+ */
 const insideOf = (roots: readonly string[], path: string): string | null =>
   roots
-    .filter((root) => path === root || path.startsWith(`${root}/`))
+    .filter((root) => path === root || path.startsWith(`${root}${sep}`))
     .sort((left, right) => right.length - left.length)[0] ?? null
 
 /**

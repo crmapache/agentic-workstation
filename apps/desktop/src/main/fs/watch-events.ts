@@ -1,5 +1,5 @@
 import { HIDDEN_ENTRY_NAMES } from './directory-reader.constants'
-import { toWindowPath } from './project-paths'
+import { toWindowRelative } from './project-paths'
 import { GIT_DIR_FILES, GIT_DIR_FOLDERS, GIT_SUBMODULE_STATE } from './project-watcher.constants'
 
 /**
@@ -33,7 +33,7 @@ export const classifyProjectEvent = (
 ): WatchChange | null => {
   if (filename === null) return UNKNOWN_CHANGE
 
-  const path = toWindowPath(filename)
+  const path = toWindowRelative(filename)
   const parts = path.split('/')
 
   if (parts[0] === '.git') return classifyGitDirEvent(parts.slice(1).join('/'))
@@ -43,12 +43,15 @@ export const classifyProjectEvent = (
 }
 
 /** Событие внутри папки .git (путь от неё): важно только то, что меняет статус и ветку. */
-export const classifyGitDirEvent = (path: string): WatchChange | null =>
-  GIT_DIR_FILES.has(path) ||
-  GIT_DIR_FOLDERS.some((folder) => path.startsWith(folder)) ||
-  GIT_SUBMODULE_STATE.test(path)
+export const classifyGitDirEvent = (filename: string): WatchChange | null => {
+  const path = toWindowRelative(filename)
+
+  return GIT_DIR_FILES.has(path) ||
+    GIT_DIR_FOLDERS.some((folder) => path.startsWith(folder)) ||
+    GIT_SUBMODULE_STATE.test(path)
     ? GIT_CHANGE
     : null
+}
 
 /**
  * Событие в папке над проектом, между ним и корнем репозитория: важен только её

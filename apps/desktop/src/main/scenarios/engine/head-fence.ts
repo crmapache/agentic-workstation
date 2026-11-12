@@ -1,3 +1,5 @@
+import { IS_WINDOWS } from '../../platform'
+
 /**
  * Забор головы (HeadFence в ACC): у главного потока нет Write и Edit, и это код, а не фраза в
  * промпте. Список разрешённых первых слов, а не запрещённых: запрещающий - догадка обо всех
@@ -117,7 +119,16 @@ const judgePiece = (piece: string): FenceVerdict | null => {
 
   if (!first) return null
 
-  const program = first.slice(first.lastIndexOf('/') + 1) || first
+  // На маке «\» в слове - экранирование оболочки, а не черта: `x\git` запустил бы `xgit`.
+  // На Windows - черта пути, как «/» (ADR 0048).
+  if (!IS_WINDOWS && first.includes('\\')) {
+    return refuse(`\`${first}\` is not a plain program name: the shell would read the backslash.`)
+  }
+
+  const separator = IS_WINDOWS
+    ? Math.max(first.lastIndexOf('/'), first.lastIndexOf('\\'))
+    : first.lastIndexOf('/')
+  const program = first.slice(separator + 1) || first
   const head = program === 'gradlew' ? './gradlew' : program
 
   if (!ALLOWED.has(head) && !ALLOWED.has(program)) {

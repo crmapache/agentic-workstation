@@ -1,6 +1,7 @@
 import type { editor } from 'monaco-editor'
 
 import { noteManual } from '../../lib/activity-log'
+import { baseName } from '../../lib/path.utils'
 import { editDelta } from './manual-edits.utils'
 
 /** Вставка: события изменения, пришедшие сразу после paste, - вставленное, а не набранное. */
@@ -23,7 +24,7 @@ export const watchPastes = (): void => {
 }
 
 const extensionOf = (path: string): string => {
-  const name = path.split('/').at(-1) ?? ''
+  const name = baseName(path)
   const dot = name.lastIndexOf('.')
 
   return dot > 0

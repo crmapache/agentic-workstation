@@ -5,7 +5,7 @@ import type { FeedItem, FeedPatch, ToolInput, ConversationFeed } from '@shared/c
 import type { ToolsFailure } from '@shared/claude-tools'
 import { MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
-import { splitPath } from '../../lib/path.utils'
+import { splitPath, relativeTo } from '../../lib/path.utils'
 import {
   CONTEXT_CALM_SHARE,
   TOOLS_FAILURE_KEYS,
@@ -85,14 +85,9 @@ export const contextTone = (share: number): 'success' | 'warning' | 'high' | 'da
   return 'success'
 }
 
-/** Путь от корня проекта, если файл внутри него; иначе как есть. */
-export const relativePath = (path: string, rootPath: string | undefined): string => {
-  if (!rootPath) return path
-
-  const root = rootPath.endsWith('/') ? rootPath : `${rootPath}/`
-
-  return path.startsWith(root) ? path.slice(root.length) : path
-}
+/** Путь от корня проекта, если файл внутри него; иначе как есть (и для путей Windows). */
+export const relativePath = (path: string, rootPath: string | undefined): string =>
+  relativeTo(path, rootPath)
 
 /** Последняя часть пути - имя файла. */
 export const baseName = (path: string): string => splitPath(path).name

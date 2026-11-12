@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs'
 import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 
-import { toWindowPath } from '../fs/project-paths'
+import { toWindowPath, toWindowRelative } from '../fs/project-paths'
 import { SKIPPED_DIRECTORY_NAMES } from '../search/search.constants'
 import { contentKey } from './content-key'
 import type { FileRow } from './history-store'
@@ -35,7 +35,7 @@ export class NameCheck {
 
   /** Путь от корня с точно такими именами, как на диске, - или нет (missing). */
   async exists(absolute: string): Promise<boolean> {
-    const parts = toWindowPath(relative(this.root, absolute)).split('/')
+    const parts = toWindowRelative(relative(this.root, absolute)).split('/')
 
     for (const [index, part] of parts.entries()) {
       const names = await this.names(join(this.root, ...parts.slice(0, index)))
@@ -144,7 +144,7 @@ export const filesInFolder = async (
       } else if (entry.isFile()) {
         if (files.length >= max) return null
 
-        files.push(toWindowPath(relative(root, path)))
+        files.push(toWindowRelative(relative(root, path)))
       }
     }
   }

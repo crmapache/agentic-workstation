@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
-import { rm, stat, mkdtemp } from 'node:fs/promises'
+import { rm, stat, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -86,8 +86,14 @@ describe('BrowserHub и настоящий native host', () => {
       helloTimeoutMs: 2000,
     })
 
-  const startHost = () => {
-    const child = spawn(process.execPath, [hostJs, '--socket', socketPath, 'chrome-extension://x/'])
+  const startHost = (keyPath?: string) => {
+    const child = spawn(process.execPath, [
+      hostJs,
+      '--socket',
+      socketPath,
+      ...(keyPath ? ['--key', keyPath] : []),
+      'chrome-extension://x/',
+    ])
 
     chrome = new FakeChrome(child)
 
@@ -134,6 +140,27 @@ describe('BrowserHub и настоящий native host', () => {
 
     expect(welcome).toMatchObject({ channel: 'dev', ideVersion: '9.9.9', extensionBuild: 'b1' })
     expect(hub.profiles()).toMatchObject([{ key: 'test1234', name: 'Work', browser: 'Chromium' }])
+  })
+
+  it('с ключом моста (Windows, ADR 0048): свой host проходит проверку, чужой - нет', async () => {
+    const keyPath = join(dir, 'bridge.key')
+    const wrongPath = join(dir, 'wrong.key')
+
+    await writeFile(keyPath, 'a'.repeat(64))
+    await writeFile(wrongPath, 'b'.repeat(64))
+    hub = newHub()
+    await hub.start(socketPath, 'a'.repeat(64))
+
+    const own = startHost(keyPath)
+
+    await connectProfile(own)
+    expect(hub.profiles()).toMatchObject([{ key: 'test1234' }])
+    own.host.kill()
+
+    const stranger = startHost(wrongPath)
+
+    await expect(stranger.next(status('connected'), 1500)).rejects.toThrow()
+    expect(hub.profiles()).toEqual([])
   })
 
   it('запрос, ответ, отказ, событие и тайм-аут', async () => {

@@ -1,3 +1,5 @@
+import { isAbsolute } from 'node:path'
+
 import type {
   ForkOrigin,
   TitleSource,
@@ -223,7 +225,7 @@ export const parseStoredClaude = (value: unknown): StoredClaude => {
 
   const trusted = record['trustedProjects']
   const trustedProjects = Array.isArray(trusted)
-    ? trusted.filter((path): path is string => typeof path === 'string' && path.startsWith('/'))
+    ? trusted.filter((path): path is string => typeof path === 'string' && isAbsolute(path))
     : []
 
   return {
@@ -243,8 +245,7 @@ const parseCommandNames = (value: unknown): Record<string, string[]> => {
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
       .filter(
-        (entry): entry is [string, unknown[]] =>
-          entry[0].startsWith('/') && Array.isArray(entry[1]),
+        (entry): entry is [string, unknown[]] => isAbsolute(entry[0]) && Array.isArray(entry[1]),
       )
       .map(([path, names]) => [
         path,

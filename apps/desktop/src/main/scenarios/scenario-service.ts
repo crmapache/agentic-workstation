@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { sep, join } from 'node:path'
 
 import type { ImageAttachment } from '@shared/claude'
 import type { ProviderId } from '@shared/providers'
@@ -151,7 +151,7 @@ export class ScenarioService {
       .find(
         (queue) =>
           queue.workdir.kind === 'worktree' &&
-          (path === queue.workdir.path || path.startsWith(`${queue.workdir.path}/`)),
+          (path === queue.workdir.path || path.startsWith(`${queue.workdir.path}${sep}`)),
       )
 
     return owner?.projectPath ?? null

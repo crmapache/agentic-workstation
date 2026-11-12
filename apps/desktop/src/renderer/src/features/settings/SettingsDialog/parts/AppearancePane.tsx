@@ -7,6 +7,7 @@ import { Section } from '@agentic-workstation/ui/Section'
 import { Slider } from '@agentic-workstation/ui/Slider'
 
 import styles from '../SettingsDialog.module.scss'
+import { shortcutLabel } from '../../../../lib/keys'
 import { TEXT_SIZE } from '../../../../state/text-size.constants'
 import { useTextSizeStore } from '../../../../state/text-size.store'
 import { SettingRow } from './SettingRow'
@@ -29,7 +30,11 @@ export const AppearancePane = () => {
         <HelpButton
           label={t('settings.textSize.helpLabel')}
           title={t('settings.textSize.label')}
-          text={t('settings.textSize.hint')}
+          text={t('settings.textSize.hint', {
+            bigger: shortcutLabel('⌘+'),
+            smaller: shortcutLabel('⌘−'),
+            reset: shortcutLabel('⌘0'),
+          })}
           closeLabel={t('common.close')}
         />
       }>

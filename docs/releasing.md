@@ -1,14 +1,17 @@
 # Выпуск версии
 
-Релиз делает скилл `/release` (`.claude/skills/release/SKILL.md`): поднимает версию,
-собирает и подписывает, проверяет подпись, пишет манифест и публикует. Здесь - что
-должно быть готово заранее и как это устроено.
+Релиз делает скилл `/build` (`.claude/skills/build/SKILL.md`): поднимает версию, собирает мак
+и Windows на этом Mac, подписывает и проверяет подписи, пишет манифест и публикует.
+Переустановить последний релиз на этом Mac - скилл `/reinstall`.
+Здесь - что должно быть готово заранее и как это устроено.
 
 ## Один раз перед первым релизом
 
-1. **Сертификат подписи** - [code-signing.md](code-signing.md). Создан 2026-11-10,
+1. **Сертификат подписи мака** - [code-signing.md](code-signing.md). Создан 2026-11-10,
    копия - `agentic-workstation-code-signing.p12` в корне репозитория.
-2. **Публичный репозиторий релизов** `crmapache/agentic-workstation-releases`, создан
+2. **Ключ подписи обновлений Windows** - там же, раздел про Windows. Создан 2026-11-11,
+   `agentic-workstation-update-signing.pem` в корне репозитория.
+3. **Публичный репозиторий релизов** `crmapache/agentic-workstation-releases`, создан
    2026-10-16 как `amazing-ide-releases`, переименован 2026-11-10 (имя задано в
    `apps/desktop/package.json`, поле `agenticWorkstation.releasesRepo`). Отдельный от кода,
    потому что качать обновления приложение должно без токена:
@@ -20,13 +23,14 @@
 
 ## Что лежит в релизе
 
-Тег `v<версия>`, три файла с фиксированными именами:
+Тег `v<версия>`, четыре файла с фиксированными именами:
 
-| Файл                                | Для кого                                               |
-| ----------------------------------- | ------------------------------------------------------ |
-| `agentic-workstation-mac-arm64.dmg` | человек, первая установка                              |
-| `agentic-workstation-mac-arm64.zip` | установленная IDE, самообновление                      |
-| `latest.json`                       | установленная IDE: какая версия последняя и где её zip |
+| Файл                                | Для кого                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| `agentic-workstation-mac-arm64.dmg` | человек на маке, первая установка                                                     |
+| `agentic-workstation-mac-arm64.zip` | установленная IDE на маке, самообновление                                             |
+| `agentic-workstation-win-x64.exe`   | Windows: и первая установка, и самообновление (тихий запуск)                          |
+| `latest.json`                       | установленная IDE: какая версия последняя, где её сборка, подпись установщика Windows |
 
 Приложение читает `https://github.com/<repo>/releases/latest/download/latest.json` -
 GitHub сам ведёт `latest` на новейший релиз. Адрес zip внутри манифеста - на
@@ -40,10 +44,21 @@ https://github.com/crmapache/agentic-workstation-releases/releases/latest/downlo
 
 ## Первая установка у человека
 
+Мак:
+
 1. Скачать dmg, перетащить Agentic Workstation в «Программы».
 2. Один раз снять карантин: `xattr -cr "/Applications/Agentic Workstation.app"`.
 
-Дальше обновления приходят уведомлением в самой IDE.
+Windows (ADR 0048):
+
+1. Скачать и запустить `agentic-workstation-win-x64.exe`:
+   `https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-win-x64.exe`.
+2. SmartScreen предупредит о неизвестном издателе: «Подробнее» → «Выполнить в любом случае».
+   Установка - в папку человека, без прав администратора; ярлык - на рабочем столе и в «Пуске».
+3. Claude Code на Windows - родной установщик (`claude.exe` в `%USERPROFILE%\.local\bin`); его
+   Bash просит Git для Windows.
+
+Дальше обновления приходят уведомлением в самой IDE на обеих системах.
 
 ## Проверить обновление без релиза
 
