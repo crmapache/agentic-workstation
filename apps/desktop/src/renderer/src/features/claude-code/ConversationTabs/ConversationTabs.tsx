@@ -88,6 +88,7 @@ export const ConversationTabs = ({ project, conversations, activeId }: Conversat
                 startsGroup={conversations[index - 1]?.groupId !== conversation.groupId}
                 endsGroup={endsGroup(conversations, index)}
                 groupSize={groupSizes.get(conversation.groupId) ?? 1}
+                tabCount={conversations.length}
                 call={calls[conversation.id] ?? null}
                 calm={calm}
                 dragView={view}

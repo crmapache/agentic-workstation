@@ -3,7 +3,12 @@ import { it, expect, describe } from 'vitest'
 import type { ProjectCall } from './ProjectTab.types'
 import { tabHint, callDots } from './ProjectTab.utils'
 
-const call = (id: string): ProjectCall => ({ id, tone: 'success', text: `chat ${id}: done` })
+const call = (id: string): ProjectCall => ({
+  id,
+  tone: 'success',
+  at: 0,
+  text: `chat ${id}: done`,
+})
 
 describe('точки зова на вкладке проекта', () => {
   it('до трёх - все, больше - три новых и число старых', () => {

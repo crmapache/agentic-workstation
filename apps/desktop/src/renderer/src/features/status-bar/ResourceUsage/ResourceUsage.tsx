@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { useResourceUsage } from '../status-bar.queries'
+import { StatusDivider } from '../StatusDivider/StatusDivider'
 import styles from './ResourceUsage.module.scss'
 import { formatMemory } from './ResourceUsage.utils'
 
@@ -27,6 +28,7 @@ export const ResourceUsage = () => {
             {t('statusBar.cpuValue', { value: Math.round(usage.cpuPercent) })}
           </span>
         </span>
+        <StatusDivider />
         {memory && (
           <span className={styles.metric}>
             {t('statusBar.memory')}

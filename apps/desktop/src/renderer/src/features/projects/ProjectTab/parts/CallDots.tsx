@@ -1,14 +1,15 @@
-import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+
+import { CallBeacon } from '@agentic-workstation/ui/CallBeacon'
 
 import styles from '../ProjectTab.module.scss'
 import type { CallDotsProps } from '../ProjectTab.types'
 import { callDots } from '../ProjectTab.utils'
 
 /**
- * Точки зова на вкладке проекта: по точке на позвавший разговор, цветом повода - зелёная
- * «закончил», оранжевая «ждёт тебя», красная «сломалось». Сверх трёх - «+N» старых слева.
- * Для скринридера - одним именем: какие чаты и чем позвали.
+ * Маячки зова на вкладке проекта: по маячку на позвавший разговор, цветом повода - зелёный
+ * «закончил», оранжевый «ждёт тебя», красный «сломалось» (CallBeacon). Сверх трёх - «+N» старых слева. Для скринридера - одним именем: какие чаты и чем
+ * позвали.
  */
 export const CallDots = ({ calls }: CallDotsProps) => {
   const { t } = useTranslation()
@@ -23,7 +24,7 @@ export const CallDots = ({ calls }: CallDotsProps) => {
         <span className={styles.moreCalls}>{t('projects.moreCalls', { count: hidden })}</span>
       )}
       {shown.map((call) => (
-        <span key={call.id} className={clsx(styles.callDot, styles[call.tone])} />
+        <CallBeacon key={call.id} tone={call.tone} since={call.at} />
       ))}
     </span>
   )

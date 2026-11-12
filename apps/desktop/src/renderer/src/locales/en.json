@@ -2615,6 +2615,9 @@
         "calmColors": {
           "title": "No-stress colors"
         },
+        "meters": {
+          "title": "Under the field"
+        },
         "newChat": {
           "title": "New chats"
         },
@@ -2665,6 +2668,10 @@
           "label": "No-stress colors",
           "sub": "How much colour the gauges keep"
         },
+        "meters": {
+          "label": "Under the field",
+          "sub": "Which limits and counters show"
+        },
         "newChat": {
           "label": "New chats",
           "sub": "Model, effort and permission mode"
@@ -2690,6 +2697,9 @@
         "on": "On",
         "off": "Off",
         "none": "None",
+        "all": "All",
+        "hidden_one": "{{count}} hidden",
+        "hidden_other": "{{count}} hidden",
         "never": "Never",
         "fullColor": "Full colour",
         "calm": "One tone",
@@ -2704,6 +2714,14 @@
       "hint": "The whole ladder at 100%, one calm tone at 0%",
       "percent": "{{value}}%",
       "help": "Nothing else changes: an error stays red, a permission stays what it is. Those are things that happened, not a mood."
+    },
+    "meters": {
+      "ring": "Limit ring and its percent",
+      "tokens": {
+        "label": "Tokens today",
+        "sub": "Across all projects on this machine"
+      },
+      "noLimits": "Limit rings show up here once Claude Code reports the limits of this account."
     },
     "newChats": {
       "rows": {

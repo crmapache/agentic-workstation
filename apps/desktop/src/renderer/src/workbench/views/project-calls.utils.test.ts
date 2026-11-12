@@ -20,8 +20,8 @@ const calls: Record<string, TabCall> = {
 describe('позвавшие разговоры проекта', () => {
   it('только свои и открытые, от старого зова к новому, со словами', () => {
     expect(projectCalls(conversations, calls, '/p', (id, call) => `${id}:${call.reason}`)).toEqual([
-      { id: 'b', tone: 'attention', text: 'b:permission' },
-      { id: 'a', tone: 'success', text: 'a:turnDone' },
+      { id: 'b', tone: 'attention', at: 10, text: 'b:permission' },
+      { id: 'a', tone: 'success', at: 30, text: 'a:turnDone' },
     ])
   })
 

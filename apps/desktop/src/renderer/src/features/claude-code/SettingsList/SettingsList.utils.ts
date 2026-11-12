@@ -16,6 +16,10 @@ export const settingValue = (screen: SettingsScreen, prefs: PanelPrefs, t: TFunc
       if (prefs.gaugeVivid === GAUGE_VIVID_CALM) return t('claudeCode.settings.values.calm')
 
       return t('claudeCode.settings.values.percent', { value: prefs.gaugeVivid })
+    case 'meters':
+      return prefs.hiddenMeters.length > 0
+        ? t('claudeCode.settings.values.hidden', { count: prefs.hiddenMeters.length })
+        : t('claudeCode.settings.values.all')
     case 'shareEditor':
       return prefs.shareEditor
         ? t('claudeCode.settings.values.on')

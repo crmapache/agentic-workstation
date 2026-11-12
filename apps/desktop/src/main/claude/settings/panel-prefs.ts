@@ -12,6 +12,12 @@ const MAX_CUSTOM_MODELS = 30
 
 const MAX_PASTE_LINES = 1000
 
+/** Спрятанных показаний не больше полусотни: их под полем - единицы. */
+const MAX_HIDDEN_METERS = 50
+
+/** Ключ показания - группа окна и имя модели от сервера: строка без переводов строк. */
+const METER_KEY_PATTERN = /^[^\n\r\0]{1,120}$/
+
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -49,6 +55,18 @@ const cliPath = (value: unknown): string | undefined => {
     : undefined
 }
 
+/** Ключи спрятанных показаний: строки узнаваемого вида, без повторов. */
+const meterKeys = (value: unknown): string[] | undefined =>
+  Array.isArray(value)
+    ? [
+        ...new Set(
+          value.filter(
+            (key): key is string => typeof key === 'string' && METER_KEY_PATTERN.test(key),
+          ),
+        ),
+      ].slice(0, MAX_HIDDEN_METERS)
+    : undefined
+
 /** Поле «как в последней вкладке» (null) или значение из списка. */
 const pinned = <T extends string>(value: unknown, options: readonly T[]): T | null | undefined =>
   value === null ? null : oneOf(value, options)
@@ -66,6 +84,7 @@ const parseFields = (value: unknown): PanelPrefsPatch => {
     pasteCollapse: clamp(input['pasteCollapse'], 0, MAX_PASTE_LINES),
     gaugeVivid: clamp(input['gaugeVivid'], GAUGE_VIVID_CALM, GAUGE_VIVID_FULL),
     shareEditor: typeof input['shareEditor'] === 'boolean' ? input['shareEditor'] : undefined,
+    hiddenMeters: meterKeys(input['hiddenMeters']),
     customModels: Array.isArray(input['customModels'])
       ? [
           ...new Set(input['customModels'].map(usableModel).filter((name) => name !== undefined)),

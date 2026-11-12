@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import clsx from 'clsx'
 import { Bot, Search, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
 import { Button } from '@agentic-workstation/ui/Button'
+import { CallBeacon } from '@agentic-workstation/ui/CallBeacon'
 import { Card } from '@agentic-workstation/ui/Card'
 import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
@@ -100,9 +100,10 @@ export const ChoicesSection = () => {
             hint={t('samples.otherPath')}
             active={false}
             trailing={
-              <span className={styles.tabDots} aria-hidden>
-                <span className={clsx(styles.tabDot, styles.tabDotDone)} />
-                <span className={clsx(styles.tabDot, styles.tabDotAsks)} />
+              <span className={styles.tabBeacons} aria-hidden>
+                <CallBeacon tone="success" since={0} />
+                <CallBeacon tone="attention" since={1600} />
+                <CallBeacon tone="danger" since={3200} />
               </span>
             }
             closeLabel={t('samples.close')}

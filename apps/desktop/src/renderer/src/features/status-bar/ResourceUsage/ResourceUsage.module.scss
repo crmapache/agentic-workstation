@@ -1,7 +1,7 @@
 // Цифры меняются каждую секунду: равная ширина цифр держит подписи на месте.
 .usage {
   display: flex;
-  gap: var(--space-3);
+  align-items: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -9,6 +9,7 @@
 .metric {
   display: flex;
   gap: var(--space-1);
+  padding: 0 var(--space-2);
 }
 
 // Подпись - тихим цветом строки, само число чуть ярче: взгляд цепляется за цифру.

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { ResourceUsage } from '../ResourceUsage/ResourceUsage'
+import { StatusDivider } from '../StatusDivider/StatusDivider'
 import { displayPath, isOutsidePath } from '../../../lib/path.utils'
 import { useAppInfo } from '../../../state/app-info.queries'
 import { useSelectedPath } from '../../../state/selection.store'
@@ -10,7 +11,8 @@ import type { StatusBarProps } from './StatusBar.types'
 
 /**
  * Зона 4: строка состояния. Слева - путь открытого файла (от проекта, а файл вне проекта -
- * своим путём через ~), справа - кнопки других фич (items), процессор и память IDE и её версия.
+ * своим путём через ~), справа - кнопки других фич (items), процессор и память IDE и её версия,
+ * через черту и с одинаковыми полями.
  */
 export const StatusBar = ({ items }: StatusBarProps) => {
   const { t } = useTranslation()
@@ -27,13 +29,17 @@ export const StatusBar = ({ items }: StatusBarProps) => {
   return (
     <footer className={styles.statusBar}>
       <span className={styles.path}>{path}</span>
-      {items}
-      <ResourceUsage />
-      {appInfo && (
-        <span className={styles.version}>
-          {t('statusBar.version', { version: appInfo.version })}
-        </span>
-      )}
+      <div className={styles.segments}>
+        {items}
+        <StatusDivider />
+        <ResourceUsage />
+        <StatusDivider />
+        {appInfo && (
+          <span className={styles.version}>
+            {t('statusBar.version', { version: appInfo.version })}
+          </span>
+        )}
+      </div>
     </footer>
   )
 }

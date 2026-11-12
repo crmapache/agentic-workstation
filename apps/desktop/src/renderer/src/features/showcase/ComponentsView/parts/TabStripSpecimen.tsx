@@ -8,7 +8,8 @@ import { Specimen } from '../../Specimen/Specimen'
 /**
  * Полоса разговоров (ClosableTab width="grow"): группа с выбранной головой и форком со
  * ступенью отступа, длинное имя, обрезанное посередине, и вкладки, позвавшие человека
- * цветом повода - успех, внимание, ошибка.
+ * цветом повода - успех, внимание, ошибка. Ниже - последняя пустая вкладка: закрывать нечего,
+ * крестика нет (closable).
  */
 export const TabStripSpecimen = () => {
   const { t } = useTranslation('showcase')
@@ -71,6 +72,19 @@ export const TabStripSpecimen = () => {
           active={false}
           label={t('samples.otherItem')}
           hint={t('samples.otherItem')}
+          closeLabel={t('samples.close')}
+          onActivate={noop}
+          onClose={noop}
+        />
+      </div>
+      <div role="tablist" aria-label={t('samples.chatNew')} className={styles.tabStripWrap}>
+        <ClosableTab
+          width="grow"
+          tinted
+          active
+          closable={false}
+          label={t('samples.chatNew')}
+          hint={t('samples.chatNew')}
           closeLabel={t('samples.close')}
           onActivate={noop}
           onClose={noop}

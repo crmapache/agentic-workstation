@@ -1,36 +1,13 @@
-@use '@agentic-workstation/ui/mixins' as *;
-@include breathing-keyframes;
-
-// Точки зова - того же размера и цвета, что точка состояния на вкладке разговора: один
-// язык цвета на всё окно. Дышит только «ждёт тебя», остальное стоит - полоса не рябит.
+// Маячки зова (CallBeacon) в ряд. Цвет повода - тот же, что у света вкладки разговора: один
+// язык цвета на всё окно.
 .callDots {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-}
-
-.callDot {
-  flex-shrink: 0;
-  width: var(--size-status-dot);
-  height: var(--size-status-dot);
-  border-radius: var(--radius-full);
-}
-
-.success {
-  background-color: var(--color-success);
-}
-
-.attention {
-  @include breathing;
-
-  background-color: var(--color-accent);
-}
-
-.danger {
-  background-color: var(--color-danger);
+  gap: var(--space-0-5);
 }
 
 .moreCalls {
+  margin-right: var(--space-0-5);
   color: var(--color-fg-subtle);
   font-family: var(--font-code);
   font-size: var(--font-size-xs);

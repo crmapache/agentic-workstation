@@ -44,6 +44,7 @@ export type FeedRow =
 /** Экран из списка Settings бокового меню. */
 export type SettingsScreen =
   | 'calmColors'
+  | 'meters'
   | 'newChat'
   | 'newChatModel'
   | 'newChatEffort'

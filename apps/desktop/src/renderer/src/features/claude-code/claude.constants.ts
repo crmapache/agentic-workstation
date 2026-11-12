@@ -57,6 +57,7 @@ export const MENU_PARENT: Record<MenuScreen, MenuScreen> = {
   accounts: 'menu',
   settings: 'menu',
   calmColors: 'settings',
+  meters: 'settings',
   newChat: 'settings',
   newChatModel: 'newChat',
   newChatEffort: 'newChat',

@@ -20,4 +20,4 @@ export const projectCalls = (
       return call ? [{ id: conversation.id, call }] : []
     })
     .sort((a, b) => a.call.at - b.call.at)
-    .map(({ id, call }) => ({ id, tone: call.tone, text: text(id, call) }))
+    .map(({ id, call }) => ({ id, tone: call.tone, at: call.at, text: text(id, call) }))

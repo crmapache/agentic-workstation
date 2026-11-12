@@ -23,7 +23,18 @@
   font-family: var(--font-code);
 }
 
+// Части справа - ячейки с полем кнопки sm (телефон Remote Control - кнопка): от черты до
+// текста и до значка одно расстояние. Последняя ячейка выносит своё поле за край, и текст
+// стоит от края листа так же, как путь слева.
+.segments {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-right: calc(var(--space-2) * -1);
+}
+
 .version {
   flex-shrink: 0;
+  padding: 0 var(--space-2);
   font-variant-numeric: tabular-nums;
 }

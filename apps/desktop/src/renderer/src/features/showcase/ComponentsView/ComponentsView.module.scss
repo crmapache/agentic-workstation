@@ -68,24 +68,10 @@
   background-color: var(--color-surface-panel);
 }
 
-// Знаки справа на вкладке проекта (trailing): точки позвавших разговоров, тонами повода.
-.tabDots {
+// Знаки справа на вкладке проекта (trailing): маячки позвавших разговоров, тонами повода.
+.tabBeacons {
   display: flex;
-  gap: var(--space-1);
-}
-
-.tabDot {
-  width: var(--size-status-dot);
-  height: var(--size-status-dot);
-  border-radius: var(--radius-full);
-}
-
-.tabDotDone {
-  background-color: var(--color-success);
-}
-
-.tabDotAsks {
-  background-color: var(--color-accent);
+  gap: var(--space-0-5);
 }
 
 // Полоса разговоров переносится в несколько рядов - узкая, чтобы перенос был виден.

@@ -25,16 +25,92 @@
   text-align: right;
 }
 
-// Шкалу и ручку рисует браузер в тоне акцента: плоско и без своих градиентов.
+// Ручка вместе с ореолом шире видимой, поэтому поле ползунка выносится за свой край на
+// ореол: края шкалы стоят вровень с подписью над ней и с соседними строками.
+.track {
+  --slider-box: calc(var(--size-slider-thumb) + var(--size-slider-halo) * 2);
+
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  margin: 0 calc(var(--size-slider-halo) * -1);
+}
+
+// Шкала от края до края видимой ручки: в крайних положениях ручка встаёт на её конец.
+.rail,
+.fill {
+  position: absolute;
+  top: calc(50% - var(--size-progress) / 2);
+  left: var(--size-slider-halo);
+  height: var(--size-progress);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+}
+
+.rail {
+  right: var(--size-slider-halo);
+  background-color: var(--color-bg-active);
+}
+
+// Заливка кончается под серединой ручки: середина ручки Chromium ставит на долю пути, которую
+// ручка проходит по полю за вычетом своей ширины.
+.fill {
+  width: calc(var(--size-slider-thumb) / 2 + (100% - var(--slider-box)) * var(--slider-fill, 0));
+  background-color: var(--color-accent);
+  transition: background-color var(--duration-fast) var(--easing-standard);
+
+  .track:has(:disabled) & {
+    background-color: var(--color-fg-disabled);
+  }
+}
+
+// Ореол - прозрачная рамка ручки, фон ручки её не заливает (padding-box): под курсором рамка
+// проступает тоном акцента, в жесте - плотнее. Кольца фокуса нет (ADR 0023).
 .input {
+  position: relative;
   flex: 1;
   min-width: 0;
+  height: var(--slider-box);
   margin: 0;
-  color-scheme: dark;
-  accent-color: var(--color-accent);
+  appearance: none;
+  background: transparent;
   cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 100%;
+    background: transparent;
+  }
+
+  &::-webkit-slider-thumb {
+    width: var(--slider-box);
+    height: var(--slider-box);
+    border: var(--size-slider-halo) solid transparent;
+    border-radius: var(--radius-full);
+    appearance: none;
+    background-color: var(--color-fg-strong);
+    background-clip: padding-box;
+    transition:
+      border-color var(--duration-fast) var(--easing-standard),
+      background-color var(--duration-fast) var(--easing-standard);
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled)::-webkit-slider-thumb {
+      border-color: color-mix(in srgb, var(--color-accent) var(--tint-soft), transparent);
+    }
+  }
+
+  &:active:not(:disabled)::-webkit-slider-thumb {
+    border-color: color-mix(in srgb, var(--color-accent) var(--tint-border), transparent);
+  }
 
   &:disabled {
     cursor: not-allowed;
+  }
+
+  &:disabled::-webkit-slider-thumb {
+    background-color: var(--color-fg-disabled);
   }
 }

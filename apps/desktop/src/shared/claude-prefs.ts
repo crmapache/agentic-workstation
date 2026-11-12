@@ -27,6 +27,12 @@ export const GAUGE_VIVID_CALM = 0
 /** С какого числа строк вставка сворачивается в чип; 0 - никогда. */
 export const DEFAULT_PASTE_COLLAPSE = 2
 
+/**
+ * Показание под полем ввода - токены за день. Остальные показания - окна лимитов, их ключ -
+ * группа окна и модель (meterKey в окне).
+ */
+export const TODAY_TOKENS_METER = 'todayTokens'
+
 export type PanelPrefs = {
   /** Модель новой вкладки; null - как в последней выбранной вкладке. */
   newTabModel: string | null
@@ -36,6 +42,11 @@ export type PanelPrefs = {
   gaugeVivid: number
   /** Каждое сообщение несёт открытый файл и выделенные строки. */
   shareEditor: boolean
+  /**
+   * Показания под полем ввода, которые человек спрятал: окна лимитов и токены за день.
+   * Хранится спрятанное, а не показанное: окно, о котором сервер скажет завтра, видно сразу.
+   */
+  hiddenMeters: string[]
   /** Модели, которых нет в каталоге CLI (прокси, шлюз), - добавлены руками. */
   customModels: string[]
   /**
@@ -52,6 +63,7 @@ export const DEFAULT_PANEL_PREFS: PanelPrefs = {
   pasteCollapse: DEFAULT_PASTE_COLLAPSE,
   gaugeVivid: GAUGE_VIVID_FULL,
   shareEditor: true,
+  hiddenMeters: [],
   customModels: [],
   cliPath: '',
 }
