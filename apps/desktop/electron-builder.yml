@@ -71,6 +71,8 @@ npmRebuild: false
 mac:
   category: public.app-category.developer-tools
   darkModeSupport: true
+  # Иконка - packaging/icon.icns, её собирает scripts/make-icon.sh из packaging/icon.svg.
+  icon: icon.icns
 
   files:
     - '!**/node_modules/node-pty/prebuilds/win32-*/**'
@@ -119,6 +121,8 @@ mac:
 # новый установщик и запускает его тихо (main/updates/win-update.ts). Портативного exe нет: он
 # распаковывает себя во временную папку на каждом запуске, а IDE должна открываться быстро.
 win:
+  # .ico для exe и установщика electron-builder рисует из той же .icns сам (как в callmate).
+  icon: icon.icns
   target:
     - target: nsis
       arch: [x64]
