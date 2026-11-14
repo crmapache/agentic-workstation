@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import { Mail, Plug, History, GitCompare, LayoutDashboard } from 'lucide-react'
+import { Mail, Plug, House, History, GitCompare, LayoutDashboard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
@@ -63,6 +63,8 @@ export const IndicatorsSection = () => {
         {AVATAR_SAMPLES.map(({ tone, initials }) => (
           <Avatar key={tone} tone={tone} initials={initials} />
         ))}
+        {/* Знак вместо букв - значок дома. */}
+        <Avatar tone={3} icon={House} />
       </Specimen>
 
       <Specimen wide label={t('specimens.fileIcons')}>

@@ -8,7 +8,8 @@ import { statusTone } from '../../scenarios-queues.utils'
 
 /**
  * Где очередь работает и что делает - две метки. У живого worktree в подсказке путь: по нему
- * его находят в терминале; удалённый остаётся словом - очередь помнит, где работала.
+ * его находят в терминале; удалённый остаётся словом - очередь помнит, где работала. Без status
+ * - только место: что делает очередь, говорит строка её идущего элемента.
  */
 export const QueueBadges = ({ queue, status }: QueueBadgesProps) => {
   const statusWord = useStatusWord()
@@ -24,7 +25,7 @@ export const QueueBadges = ({ queue, status }: QueueBadgesProps) => {
       ) : (
         place
       )}
-      <Badge tone={statusTone(status)}>{statusWord(status)}</Badge>
+      {status && <Badge tone={statusTone(status)}>{statusWord(status)}</Badge>}
     </span>
   )
 }

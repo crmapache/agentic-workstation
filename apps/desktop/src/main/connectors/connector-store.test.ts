@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { CONNECTOR_DESCRIPTION_MAX } from '@shared/connectors'
+import { CONNECTOR_DESCRIPTION_MAX, CONNECTOR_INSTRUCTIONS_MAX } from '@shared/connectors'
 
 import { parseStoredConnectors } from './connector-store'
 
@@ -37,6 +37,7 @@ describe('parseStoredConnectors', () => {
         command: null,
         spec: null,
         availability: { mode: 'all' },
+        inProjects: {},
         toolOverrides: { send_draft: true },
         tools: [{ name: 'search_threads', description: 'Search', access: 'read' }],
       },
@@ -64,6 +65,33 @@ describe('parseStoredConnectors', () => {
 
     expect(connector?.description).toHaveLength(CONNECTOR_DESCRIPTION_MAX)
     expect(connector?.availability).toEqual({ mode: 'all' })
+
+    // «Во всех» помнит отмеченные проекты: переключатель вернёт к ним (ADR 0054).
+    const [remembering] = parseStoredConnectors({
+      connectors: [{ ...gmail, availability: { mode: 'all', remembered: ['/p/a', 3] } }],
+    }).connectors
+
+    expect(remembering?.availability).toEqual({ mode: 'all', remembered: ['/p/a'] })
+  })
+
+  it('инструкции по проектам: только абсолютные пути и непустое, длинное обрезано', () => {
+    const [connector] = parseStoredConnectors({
+      connectors: [
+        {
+          ...gmail,
+          inProjects: {
+            '/p/work': { instructions: 'x'.repeat(5000), browserProfile: ' Improving ' },
+            '/p/empty': { instructions: '  ', browserProfile: '' },
+            relative: { instructions: 'nope', browserProfile: null },
+            '/p/broken': 'nope',
+          },
+        },
+      ],
+    }).connectors
+
+    expect(Object.keys(connector?.inProjects ?? {})).toEqual(['/p/work'])
+    expect(connector?.inProjects['/p/work']?.instructions).toHaveLength(CONNECTOR_INSTRUCTIONS_MAX)
+    expect(connector?.inProjects['/p/work']?.browserProfile).toBe('Improving')
   })
 
   it('свои типы: битый пропускается, ссылка на пропавший тип снимается', () => {

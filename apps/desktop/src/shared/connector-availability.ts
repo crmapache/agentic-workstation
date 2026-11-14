@@ -1,9 +1,11 @@
 /**
  * В каких проектах коннектор виден провайдеру. all - во всех, новые проекты получают его
  * сами; only - только в перечисленных. Исключений у «во всех» нет: «все» значит все, а
- * выбор по одному - режим only. Проект - путь к его корню.
+ * выбор по одному - режим only. remembered у «во всех» - отмеченные проекты, к которым вернёт
+ * переключатель (ADR 0054); на видимость они не влияют. Проект - путь к его корню.
  */
-export type ConnectorAvailability = { mode: 'all' } | { mode: 'only'; projects: string[] }
+export type ConnectorAvailability =
+  { mode: 'all'; remembered?: string[] | undefined } | { mode: 'only'; projects: string[] }
 
 /** Коннектор, видный только в отмеченных проектах: им одним есть что выбирать по одному. */
 export type SelectedProjects = Extract<ConnectorAvailability, { mode: 'only' }>
@@ -58,16 +60,21 @@ export const moveProject = (
 }
 
 /**
- * Сменить режим. «Во всех» - все, без исключений. «Только» из «во всех» - отмечены все
- * известные проекты: сейчас коннектор виден в каждом, и смена режима этого не отнимает,
- * лишние снимаются по одному. Разница - в новых проектах.
+ * Сменить режим (ADR 0054). «Во всех» - все, без исключений, а отмеченные проекты
+ * запоминаются. «Только» возвращает отмеченные в прошлый раз; в первый раз не отмечено ничего:
+ * где коннектор нужен, человек выбирает сам, а не снимает лишнее со всех.
  */
 export const withMode = (
   availability: ConnectorAvailability,
   mode: ConnectorAvailability['mode'],
-  knownPaths: readonly string[],
 ): ConnectorAvailability => {
   if (availability.mode === mode) return availability
 
-  return mode === 'all' ? EVERYWHERE : { mode: 'only', projects: [...knownPaths] }
+  if (availability.mode === 'only') {
+    return availability.projects.length
+      ? { mode: 'all', remembered: [...availability.projects] }
+      : EVERYWHERE
+  }
+
+  return { mode: 'only', projects: [...(availability.remembered ?? [])] }
 }

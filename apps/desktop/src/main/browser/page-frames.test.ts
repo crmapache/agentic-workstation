@@ -92,10 +92,8 @@ const setup = () => {
   hub.cdp.set('DOM.getContentQuads', () => ({ quads: [[0, 0, 10, 0, 10, 10, 0, 10]] }))
 
   // Рука без пауз и с серединой вместо разброса: путь и точка нажатия - предсказуемые.
-  const agent = new BrowserAgent(hub, Date.now, undefined, {
-    random: () => 0.5,
-    sleep: () => Promise.resolve(),
-    now: () => 0,
+  const agent = new BrowserAgent(hub, {
+    motion: { random: () => 0.5, sleep: () => Promise.resolve(), now: () => 0 },
   })
 
   agents.push(agent)

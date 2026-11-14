@@ -10,10 +10,12 @@ import type { HubPort, BrowserProfile } from './browser-hub'
 import { sessionIdOf, SessionLaunches, SESSION_GRACE_MS } from './browser-launches'
 import { BrowserSessions } from './browser-sessions'
 import type { HeldTab, BrowserSession } from './browser-sessions'
+import type { ProfileOpening } from './chrome-profiles'
 import type { Motion } from './human-motion'
 import { HUMAN_MOTION } from './human-motion'
 import { LoadWaitList } from './load-waits'
 import type { Page } from './page'
+import { pickProfile, listProfiles, reachProfile } from './profile-pick'
 
 /**
  * Чей вызов: процесс разговора (ключ запуска шлюза), его разговор, проект - для имени группы
@@ -45,6 +47,17 @@ const DISPOSE_WAIT_MS = 3000
 
 const ENDED = 'This conversation process has ended.'
 
+/** Что у агента подменяют: часы, срок сессии и руку - тесты, профиль проекта - коннектор. */
+export type AgentOptions = {
+  now?: (() => number) | undefined
+  graceMs?: number | undefined
+  motion?: Motion | undefined
+  /** Профиль Chrome проекта по умолчанию (ADR 0053): имя или ключ; не выбран - null. */
+  projectProfile?: ((projectPath: string) => string | null) | undefined
+  /** Открыть окно браузера в закрытом профиле по имени (ADR 0053); нет - не открываем. */
+  openProfile?: ((name: string) => Promise<ProfileOpening>) | undefined
+}
+
 /**
  * Браузер для агентов (ADR 0040): сессия на разговор, отладчик - на время работы, события
  * расширения (человек закрыл вкладку или группу, нажал Stop, отключил отладчик). Инструменты
@@ -59,13 +72,24 @@ export class BrowserAgent {
   private readonly control: TabControl
   private readonly unsubscribe: (() => void)[]
   private readonly idleTimer: ReturnType<typeof setInterval>
+  private readonly now: () => number
+  private readonly projectProfile: (projectPath: string) => string | null
+  private readonly openProfile: ((name: string) => Promise<ProfileOpening>) | undefined
 
   constructor(
     readonly hub: HubPort,
-    private readonly now: () => number = Date.now,
-    graceMs = SESSION_GRACE_MS,
-    motion: Motion = HUMAN_MOTION,
+    {
+      now = Date.now,
+      graceMs = SESSION_GRACE_MS,
+      motion = HUMAN_MOTION,
+      projectProfile = () => null,
+      openProfile,
+    }: AgentOptions = {},
   ) {
+    this.now = now
+    this.projectProfile = projectProfile
+    this.openProfile = openProfile
+
     const pushSummaries = (profileKey: string) => this.pushSummaries(profileKey)
     const context: EventContext = {
       hub,
@@ -129,53 +153,41 @@ export class BrowserAgent {
   }
 
   /**
-   * Профиль по ключу или имени; не задан - профиль группы сессии или единственный. Имя у двух
-   * профилей одно («Google Chrome» в двух окнах) - отказ со списком ключей, а не первый попавшийся.
+   * Профиль по ключу или имени; не задан - профиль группы сессии, потом профиль проекта
+   * (ADR 0053), потом единственный. Имя у двух профилей одно («Google Chrome» в двух окнах) -
+   * отказ со списком ключей, а не первый попавшийся.
    */
-  pickProfile(session: BrowserSession, wanted: string | undefined): string {
-    const profiles = this.hub.profiles()
+  pickProfile(
+    session: BrowserSession,
+    wanted: string | undefined,
+    projectPath: string | null = null,
+  ): string {
+    return pickProfile(this.hub.profiles(), {
+      wanted,
+      groupKey: session.group?.profileKey ?? null,
+      preferred: () => (projectPath ? this.projectProfile(projectPath) : null),
+    })
+  }
 
-    if (wanted) {
-      const lower = wanted.toLowerCase()
-      const byKey = profiles.find((profile) => profile.key === wanted)
-      const byName = profiles.filter((profile) => profile.name.toLowerCase() === lower)
+  /**
+   * Профиль вызова, как pickProfile; названный (моделью или настройками проекта) профиль не на
+   * связи - IDE открывает окно браузера в нём и ждёт его расширение (ADR 0053).
+   */
+  private async reachProfile(
+    session: BrowserSession,
+    wanted: string | undefined,
+    call: AgentCall,
+  ): Promise<string> {
+    try {
+      return this.pickProfile(session, wanted, call.projectPath)
+    } catch (error) {
+      const name = wanted ?? (call.projectPath ? this.projectProfile(call.projectPath) : null)
+      const isOffline = error instanceof BrowserError && error.code === 'profile-offline'
 
-      if (byKey) return byKey.key
+      if (!isOffline || !name || !this.openProfile) throw error
 
-      if (byName.length > 1) {
-        throw new BrowserError(
-          'bad-request',
-          `Several connected Chrome profiles are named "${wanted}"; pass the profile key instead. ${listProfiles(profiles)}`,
-        )
-      }
-
-      const [found] = byName
-
-      if (!found)
-        throw new BrowserError(
-          'profile-offline',
-          `Chrome profile "${wanted}" is not connected. ${listProfiles(profiles)}`,
-        )
-
-      return found.key
+      return reachProfile(this.hub, name, this.openProfile, error, call.signal)
     }
-
-    if (session.group && profiles.some((profile) => profile.key === session.group?.profileKey)) {
-      return session.group.profileKey
-    }
-
-    const [only, ...rest] = profiles
-
-    if (!only) throw new BrowserError('profile-offline', NO_PROFILE)
-
-    if (rest.length) {
-      throw new BrowserError(
-        'bad-request',
-        `Several Chrome profiles are connected; pass "profile". ${listProfiles(profiles)}`,
-      )
-    }
-
-    return only.key
   }
 
   /**
@@ -185,7 +197,7 @@ export class BrowserAgent {
    */
   async open(call: AgentCall, url: string, profile?: string): Promise<Page> {
     const session = this.session(call)
-    const profileKey = this.pickProfile(session, profile)
+    const profileKey = await this.reachProfile(session, profile, call)
     const group = session.group?.profileKey === profileKey ? session.group.groupId : null
     const opened = await this.hub.request(profileKey, 'tabs.open', {
       url,
@@ -286,7 +298,7 @@ export class BrowserAgent {
 
     if (!wanted) throw new BrowserError('bad-request', NO_TAB)
 
-    const profileKey = wanted.profileKey ?? this.pickProfile(session, undefined)
+    const profileKey = wanted.profileKey ?? (await this.reachProfile(session, undefined, call))
 
     return this.take(call, { ...wanted, profileKey })
   }
@@ -413,16 +425,8 @@ export class BrowserAgent {
 
 const NO_TAB = 'No tab yet: open one with "open" or take a tab reference with "take".'
 
-const NO_PROFILE =
-  'No Chrome profile is connected. Ask the user to install the Agentic Workstation extension (Agentic Workstation → Connectors → Browser) and keep Chrome open.'
-
 const staleReference = (tabId: number) =>
   `This tab reference is from an earlier Chrome session: Chrome restarted since, and tab ${tabId} may now be a different tab. Ask the user to copy a fresh reference (right-click the page, Copy tab reference for AI), or pick the tab from "tabs".`
 
 const otherTitle = (tabId: number, now: string, wanted: string) =>
   `Tab ${tabId} is now "${now}", not "${wanted}": the reference looks stale. Check "tabs" or ask the user for a fresh reference.`
-
-const listProfiles = (profiles: readonly BrowserProfile[]): string =>
-  profiles.length
-    ? `Connected: ${profiles.map((profile) => `${profile.name} (${profile.key})`).join(', ')}.`
-    : NO_PROFILE

@@ -49,6 +49,13 @@
   }
 }
 
+// Тянется вниз за уголок: высоту, которую человек задал, браузер держит сам, поверх роста с
+// текстом; потолок - свой, выше десяти строк.
+.resizable {
+  max-height: var(--size-area-resize-max);
+  resize: vertical;
+}
+
 .invalid,
 .invalid:focus-within {
   border-color: var(--color-danger);

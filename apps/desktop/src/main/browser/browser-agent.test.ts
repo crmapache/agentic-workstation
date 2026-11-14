@@ -11,7 +11,7 @@ const setup = (graceMs = 40) => {
 
   hub.connect('work', 'Work')
 
-  const agent = new BrowserAgent(hub, Date.now, graceMs)
+  const agent = new BrowserAgent(hub, { graceMs })
 
   agents.push(agent)
 
@@ -181,8 +181,86 @@ describe('профили', () => {
 
     const session = agent.session(callOf('p1'))
 
-    expect(() => agent.pickProfile(session, 'Work')).toThrow(/named "Work".*\(work\).*\(home\)/s)
+    expect(() => agent.pickProfile(session, 'Work')).toThrow(/named "Work".*key work.*key home/s)
     expect(agent.pickProfile(session, 'home')).toBe('home')
+  })
+
+  it('профиль проекта - когда модель профиль не назвала; группа сессии важнее', async () => {
+    const hub = new FakeHub()
+    const agent = new BrowserAgent(hub, {
+      projectProfile: (path) => (path === '/p/improving' ? 'Improving' : null),
+    })
+
+    agents.push(agent)
+    hub.connect('work')
+    hub.connect('impr', 'Google Chrome', 'run1', 'Improving')
+
+    const call = { ...callOf('p1'), projectPath: '/p/improving' }
+
+    expect(agent.pickProfile(agent.session(call), undefined, '/p/improving')).toBe('impr')
+    expect(() => agent.pickProfile(agent.session(call), undefined, '/p/other')).toThrow(
+      /pass "profile"/,
+    )
+
+    await agent.open(call, '')
+    hub.connect('impr2', 'Second', 'run1', 'Other')
+    expect(agent.pickProfile(agent.session(call), undefined, '/p/improving')).toBe('impr')
+
+    const away = new BrowserAgent(hub, { projectProfile: () => 'Gone' })
+
+    agents.push(away)
+    expect(() => away.pickProfile(away.session(callOf('p2')), undefined, '/p/x')).toThrow(
+      /This project works in the Chrome profile "Gone", and it is not connected/,
+    )
+  })
+
+  it('закрытый профиль проекта - IDE открывает его окно и ждёт расширение', async () => {
+    const hub = new FakeHub()
+    const opened: string[] = []
+    const agent = new BrowserAgent(hub, {
+      projectProfile: () => 'Improving',
+      openProfile: (name) => {
+        opened.push(name)
+        setTimeout(() => hub.connect('impr', 'Google Chrome', 'run1', 'Improving'), 5)
+
+        return Promise.resolve('opened')
+      },
+    })
+
+    agents.push(agent)
+    hub.connect('max', 'Max')
+
+    const page = await agent.open({ ...callOf('p1'), projectPath: '/p/improving' }, '')
+
+    expect(opened).toEqual(['Improving'])
+    expect(page.tab.profileKey).toBe('impr')
+  })
+
+  it('в закрытом профиле нет расширения - отказ говорит, что поставить', async () => {
+    const hub = new FakeHub()
+    const agent = new BrowserAgent(hub, {
+      openProfile: () => Promise.resolve('no-extension'),
+    })
+
+    agents.push(agent)
+    hub.connect('max', 'Max')
+
+    await expect(agent.open(callOf('p1'), '', 'Claude Work')).rejects.toThrow(
+      /"Claude Work" has no Agentic Workstation extension/,
+    )
+  })
+
+  it('по профилю Chrome - и тогда, когда копии дали своё имя', () => {
+    const { hub, agent } = setup()
+
+    hub.connect('impr', 'Job', 'run1', 'Improving')
+
+    const session = agent.session(callOf('p1'))
+
+    expect(agent.pickProfile(session, 'improving')).toBe('impr')
+    expect(() => agent.pickProfile(session, 'Support')).toThrow(
+      /"Job" \(Chrome profile "Improving"\), key impr/,
+    )
   })
 
   it('профиль отключился и вернулся - вкладки сверены, а не забыты', async () => {

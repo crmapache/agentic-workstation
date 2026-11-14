@@ -2,7 +2,7 @@ import { basename } from 'node:path'
 
 import type { Project, ProjectRef, WorkspaceState } from '@shared/workspace'
 
-import { RECENT_PROJECTS_LIMIT } from './workspace.constants'
+import { HOME_PROJECT_ID, HOME_PROJECT_NAME, RECENT_PROJECTS_LIMIT } from './workspace.constants'
 
 /**
  * Чистые переходы набора проектов. Ни диска, ни окна: на вход старое состояние,
@@ -45,13 +45,13 @@ export const addProject = (
 /**
  * Закрыть проект. Если закрыли активный, активным становится сосед справа, а у
  * последней вкладки - сосед слева: так ведут себя вкладки в браузере. Закрытый
- * проект встаёт первым в недавние.
+ * проект встаёт первым в недавние. Дом не закрывается.
  */
 export const closeProject = (state: WorkspaceState, projectId: string): WorkspaceState => {
   const index = state.projects.findIndex((project) => project.id === projectId)
   const closed = state.projects[index]
 
-  if (!closed) return state
+  if (!closed || closed.home) return state
 
   const projects = state.projects.filter((project) => project.id !== projectId)
   const recentProjects = [
@@ -72,6 +72,55 @@ export const activateProject = (state: WorkspaceState, projectId: string): Works
   if (!state.projects.some((project) => project.id === projectId)) return state
 
   return { ...state, activeProjectId: projectId }
+}
+
+/**
+ * Переставить вкладку проекта перед beforeId, null - в конец. Неизвестный проект, место
+ * перед самим собой или уже стоящая там вкладка - состояние то же самое (без записи на диск).
+ * Дом стоит первым: его не двигают, и перед ним не встают. Активный проект не меняется:
+ * перестановка - не переход в проект.
+ */
+export const moveProject = (
+  state: WorkspaceState,
+  projectId: string,
+  beforeId: string | null,
+): WorkspaceState => {
+  const moved = state.projects.find((project) => project.id === projectId)
+  const rest = state.projects.filter((project) => project.id !== projectId)
+  const at = beforeId === null ? rest.length : rest.findIndex((project) => project.id === beforeId)
+
+  if (!moved || moved.home || beforeId === projectId || at < 0 || rest[at]?.home) return state
+
+  const projects = [...rest.slice(0, at), moved, ...rest.slice(at)]
+  const isSame = projects.every((project, index) => project === state.projects[index])
+
+  return isSame ? state : { ...state, projects }
+}
+
+/**
+ * Дом первой вкладкой (ADR 0059). Вкладка той же папки, открытая руками до появления дома,
+ * сливается с ним, недавние дом не помнят. Активный проект, которого больше нет, - дом.
+ */
+export const withHomeProject = (state: WorkspaceState, homePath: string): WorkspaceState => {
+  const home: Project = {
+    id: HOME_PROJECT_ID,
+    name: HOME_PROJECT_NAME,
+    rootPath: homePath,
+    home: true,
+  }
+  const projects = [
+    home,
+    ...state.projects.filter(
+      (project) => !project.home && project.id !== HOME_PROJECT_ID && project.rootPath !== homePath,
+    ),
+  ]
+  const isActiveKnown = projects.some((project) => project.id === state.activeProjectId)
+
+  return {
+    projects,
+    activeProjectId: isActiveKnown ? state.activeProjectId : home.id,
+    recentProjects: withoutRecent(state.recentProjects, homePath),
+  }
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

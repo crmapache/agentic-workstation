@@ -15,8 +15,8 @@ import { ProjectChips } from './ProjectChips'
 
 /**
  * В каких проектах коннектор виден (ADR 0029): во всех - выбирать нечего, проектов не
- * видно; только в отмеченных - плашки проектов (ProjectChips). «Только» из «во всех»
- * начинается со всех отмеченных: сейчас коннектор виден в каждом.
+ * видно; только в отмеченных - плашки проектов (ProjectChips). «Только» возвращает отмеченные
+ * в прошлый раз, в первый раз - ни одного (ADR 0054).
  */
 export const ProjectsPicker = ({ connector, projects }: ProjectsPickerProps) => {
   const { t } = useTranslation()
@@ -24,14 +24,7 @@ export const ProjectsPicker = ({ connector, projects }: ProjectsPickerProps) => 
   const { availability } = connector
 
   const handleMode = (mode: ConnectorAvailability['mode']) =>
-    actions.setAvailability(
-      connector.id,
-      withMode(
-        availability,
-        mode,
-        projects.map((project) => project.rootPath),
-      ),
-    )
+    actions.setAvailability(connector.id, withMode(availability, mode))
 
   return (
     <Section

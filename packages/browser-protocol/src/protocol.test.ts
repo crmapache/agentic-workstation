@@ -16,6 +16,9 @@ describe('сообщения расширения', () => {
 
     expect(parseExtensionMessage(hello)).toEqual(hello)
     expect(parseExtensionMessage({ ...hello, build: 1 })).toBeNull()
+    // Дал ли имя человек - только флагом: чужое значение не принимается за «дал».
+    expect(parseExtensionMessage({ ...hello, named: true })).toEqual({ ...hello, named: true })
+    expect(parseExtensionMessage({ ...hello, named: 'yes' })).toEqual(hello)
   })
 
   it('hello расширения прежней сборки, без метки запуска, принимается: ему ещё перезагружаться', () => {

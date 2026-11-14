@@ -12,32 +12,35 @@ import type {
   ProviderViewId,
 } from './layout.types'
 import {
+  isSideShown,
   arrangeLayout,
   resizedPanels,
   restoreLayout,
   makeRoomForMain,
+  makeRoomForSide,
   resizedTerminalShare,
 } from './layout.utils'
 
 type LayoutStore = Layout & {
   /**
-   * Ширина, которую делят левая панель, середина и правая панель, - её мерит Workbench.
-   * Не сохраняется: это окно, а не выбор человека. До первого замера места сколько
-   * угодно - ничего не ужимается и не сворачивается.
+   * Ширина, которую делят середина и правая колонка, и левая панель вместе с зазором за
+   * ней, - её мерит Workbench. Не сохраняется: это окно, а не выбор человека. До первого
+   * замера места сколько угодно - ничего не ужимается и не сворачивается.
    */
   room: number
   /**
    * Клик по иконке вида. Другой вид - показать его (и развернуть область). Тот же,
    * что уже показан, - свернуть или развернуть область. Так у обеих панелей и середины.
-   * Середина, которой не хватает места, не показана: клик по ней просит показать и
-   * ужимает панели до места под неё.
+   * Область, которой не хватает места, не показана: клик по ней просит показать. Середине
+   * панели ужимаются до места под неё, а в узком окне, где не хватает и на их минимумах,
+   * сворачиваются (makeRoomForMain); левой панели уступает правая колонка (makeRoomForSide).
    */
   selectSideView: (viewId: SideViewId) => void
   selectMainView: (viewId: MainViewId) => void
   /**
    * Показать вид в середине, откуда бы ни позвали (файл из дерева, коннекторы из меню
    * Claude Code): уже показанный не трогается - повторный выбор вида свернул бы середину.
-   * Свёрнутую за нехваткой места разворачивает, ужимая панели.
+   * Свёрнутую за нехваткой места разворачивает, ужимая или сворачивая панели.
    */
   showMainView: (viewId: MainViewId) => void
   selectProviderView: (viewId: ProviderViewId) => void
@@ -76,7 +79,16 @@ export const useLayoutStore = create<LayoutStore>()(
       terminal: { isOpen: false, share: DEFAULT_TERMINAL_SHARE },
       room: Number.POSITIVE_INFINITY,
 
-      selectSideView: (viewId) => set((state) => ({ side: select(state.side, viewId) })),
+      selectSideView: (viewId) =>
+        set((state) => {
+          if (state.side.activeViewId === viewId && isSideShown(state, state.room)) {
+            return { side: { ...state.side, isOpen: false } }
+          }
+
+          const side = { ...state.side, activeViewId: viewId, isOpen: true }
+
+          return { side, ...makeRoomForSide({ ...state, side }, state.room) }
+        }),
       selectMainView: (viewId) =>
         set((state) => {
           const { isMainShown } = arrangeLayout(state, state.room)
@@ -127,6 +139,9 @@ export const useLayoutStore = create<LayoutStore>()(
 
 /** Видна ли середина окна: развёрнута и ей хватает места. Для getState() и селекторов. */
 export const isMainShown = (state: LayoutStore) => arrangeLayout(state, state.room).isMainShown
+
+/** Видна ли левая панель: развёрнута и влезает рядом с правой колонкой. */
+export const isSidePanelShown = (state: LayoutStore) => isSideShown(state, state.room)
 
 /** Раскладка на экране при нынешнем месте в окне - ширины панелей и видна ли середина. */
 export const useArrangement = () =>

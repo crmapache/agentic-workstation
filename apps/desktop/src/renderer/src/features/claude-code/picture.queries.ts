@@ -31,7 +31,8 @@ const lookOf = (view: PictureView | null): PictureLook =>
 
 /**
  * Картинка за чипом: байты окна - сразу, остальное - у главного процесса, когда enabled.
- * whole - целиком для просмотра, иначе превью (большая уменьшена, размер - её собственный).
+ * Не нашлась на своём месте - спрашивается запасное. whole - целиком для просмотра, иначе
+ * превью (большая уменьшена, размер - её собственный).
  */
 export const usePicture = (
   projectId: string,
@@ -40,15 +41,22 @@ export const usePicture = (
   whole: boolean,
 ): PictureLook => {
   const place = 'place' in source ? source.place : null
+  const fallback = ('place' in source && source.fallback) || null
   const query = useQuery({
     ...pictureQuery(projectId, place ?? NO_PLACE, whole),
     enabled: enabled && place !== null,
   })
+  const isGone = query.isError || query.data === null
+  const spare = useQuery({
+    ...pictureQuery(projectId, fallback ?? NO_PLACE, whole),
+    enabled: enabled && fallback !== null && isGone,
+  })
 
   if (!('place' in source)) return { state: 'ready', url: source.data, width: 0, height: 0 }
-  if (query.isError) return MISSING
+  if (!isGone) return query.data === undefined ? LOADING : lookOf(query.data)
+  if (!fallback || spare.isError) return MISSING
 
-  return query.data === undefined ? LOADING : lookOf(query.data)
+  return spare.data === undefined ? LOADING : lookOf(spare.data)
 }
 
 /**

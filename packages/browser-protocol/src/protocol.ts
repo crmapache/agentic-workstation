@@ -124,6 +124,11 @@ export type BrowserMethods = {
   }
   /** Сессии агентов этой IDE в профиле - для окна расширения (кнопка Stop). */
   'sessions.set': { params: { sessions: SessionSummary[] }; result: null }
+  /**
+   * Имя профиля Chrome, найденное уже после welcome (ADR 0052): на старте IDE поиск может не
+   * успеть к ответу на hello. Прежняя сборка расширения отвечает отказом - его не ждут.
+   */
+  'profile.chrome': { params: { name: string }; result: null }
 }
 
 export type BrowserMethod = keyof BrowserMethods
@@ -149,7 +154,8 @@ export type BrowserEvents = {
   'cdp-event': { tabId: number; method: string; params: unknown }
   /** Человек нажал Stop в окне расширения. */
   'session-stop': { sessionId: string }
-  'profile-renamed': { name: string }
+  /** named - имя дал человек; false - снова имя по умолчанию (профиль Chrome или браузер). */
+  'profile-renamed': { name: string; named?: boolean | undefined }
 }
 
 export type BrowserEventName = keyof BrowserEvents
@@ -177,6 +183,11 @@ export type HelloMessage = {
   profileKey: string
   /** Имя профиля, которое человек видит и меняет в окне расширения. */
   profileName: string
+  /**
+   * Имя дал человек в окне расширения. Нет - profileName по умолчанию (профиль Chrome, который
+   * назвала IDE, или браузер), и IDE называет профиль сама. Прежняя сборка поля не шлёт.
+   */
+  named?: boolean | undefined
   /** Браузер: Google Chrome, Brave, Microsoft Edge… */
   browser: string
   version: string
@@ -193,12 +204,15 @@ export type HelloMessage = {
 /**
  * Ответ IDE на hello. extensionBuild - сборка, которую IDE положила в папку расширения:
  * другая - расширение перезагружает себя (chrome.runtime.reload) и берёт новую с диска.
+ * chromeProfile - имя профиля Chrome, в котором стоит эта копия расширения: API расширения его
+ * не знает, IDE находит по файлам профиля (ADR 0052). null - не нашла.
  */
 export type WelcomeMessage = {
   type: 'welcome'
   channel: HostChannel
   ideVersion: string
   extensionBuild: string | null
+  chromeProfile?: string | null | undefined
 }
 
 export type RequestMessage = {
@@ -240,7 +254,7 @@ export const parseExtensionMessage = (value: unknown): ExtensionToIde | null => 
   if (!isRecord(value)) return null
 
   if (value['type'] === 'hello') {
-    const { profileKey, profileName, browser, version, build, launch } = value
+    const { profileKey, profileName, named, browser, version, build, launch } = value
 
     // Без метки запуска hello всё равно принимается: иначе расширение прежней сборки не
     // получило бы welcome и не перезагрузилось бы на новую.
@@ -253,6 +267,7 @@ export const parseExtensionMessage = (value: unknown): ExtensionToIde | null => 
           type: 'hello',
           profileKey,
           profileName,
+          ...(typeof named === 'boolean' && { named }),
           browser,
           version,
           build,

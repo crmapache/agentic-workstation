@@ -9,8 +9,11 @@ import type { TooltipPlacement } from '../Tooltip/Tooltip.types'
  */
 export type IconButtonSize = 'xs' | 'sm' | 'md' | 'touch'
 
-/** ghost - тихая кнопка в полосе или строке; primary - главное действие (отправить). */
-export type IconButtonVariant = 'ghost' | 'primary'
+/**
+ * ghost - тихая кнопка в полосе или строке; primary - главное действие (отправить); danger -
+ * необратимое (остановить ИИ в капсуле Computer Use), красным, как Button danger.
+ */
+export type IconButtonVariant = 'ghost' | 'primary' | 'danger'
 
 export type IconButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,

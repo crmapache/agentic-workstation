@@ -11,9 +11,10 @@ import { GoogleAppCard } from './GoogleAppCard'
 import { TokenReplace } from './TokenReplace'
 
 /**
- * Откуда коннектор и как он вошёл: сбой словами, аккаунт или сервис, адрес и команда -
- * строкой кода с копией, замена ключа. Кнопки входа и выхода - в подвале окна
- * (ConnectorSignIn). Сбой клиента Google - его карточка прямо здесь: чинится там, а не входом.
+ * Откуда коннектор и как он вошёл: сбой словами (и что ответил сам сервис, и ссылка туда, где
+ * это чинится), аккаунт или сервис, адрес и команда - строкой кода с копией, замена ключа.
+ * Кнопки входа и выхода - в подвале окна (ConnectorSignIn). Сбой клиента Google - его карточка
+ * прямо здесь: чинится там, а не входом.
  */
 export const ConnectorConnection = ({ connector, google }: ConnectorConnectionProps) => {
   const { t } = useTranslation()
@@ -28,6 +29,16 @@ export const ConnectorConnection = ({ connector, google }: ConnectorConnectionPr
       <div className={styles.stack}>
         {connector.failure && (
           <p className={styles.failure}>{t(`connectors.failure.${connector.failure}`)}</p>
+        )}
+        {connector.failureDetail && (
+          <p className={styles.hint}>
+            {t('connectors.failureDetail', { detail: connector.failureDetail })}
+          </p>
+        )}
+        {connector.failure === 'slack-mcp-off' && connector.failureUrl && (
+          <a className={styles.link} href={connector.failureUrl} target="_blank" rel="noreferrer">
+            {t('connectors.openSlackApp')}
+          </a>
         )}
         {isSigningIn && <p className={styles.hint}>{t('connectors.signingIn')}</p>}
         {isGoogleAppFailure(connector.failure) && <GoogleAppCard google={google} />}

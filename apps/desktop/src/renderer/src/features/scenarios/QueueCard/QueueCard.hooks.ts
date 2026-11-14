@@ -40,7 +40,7 @@ export const useProviderLabel = (queue: ScenarioQueue): string => {
   return PROVIDER_LIST.format(ids.map((id) => data?.find((one) => one.id === id)?.label ?? id))
 }
 
-/** Состояние очереди словом - одно для полосы, доски и выбора очереди в окне запуска. */
+/** Состояние очереди словом - одно для полосы, плотной карточки и выбора очереди в окне запуска. */
 export const useStatusWord = () => {
   const { t } = useTranslation()
 

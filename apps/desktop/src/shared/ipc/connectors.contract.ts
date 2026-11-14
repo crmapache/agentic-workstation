@@ -9,6 +9,7 @@ import type {
   AddToTypeRequest,
   GoogleAppOutcome,
   UpdateTypeRequest,
+  ConnectorInProject,
   AddConnectorOutcome,
   AddConnectorRequest,
 } from '../connectors'
@@ -58,6 +59,14 @@ export type ConnectorsInvokeContract = {
    */
   'connectors:setDescription': {
     request: ConnectorRequest & { description: string }
+    response: ConnectorsState
+  }
+  /**
+   * Инструкции модели и профиль Chrome коннектора в проекте (ADR 0053): пустое - стереть. Живые
+   * разговоры переподключают сервер и видят новое, как с описанием.
+   */
+  'connectors:setInProject': {
+    request: ConnectorRequest & { projectPath: string; settings: ConnectorInProject }
     response: ConnectorsState
   }
   /** В каких проектах коннектор виден: процессы затронутых проектов перезапускаются. */
@@ -112,6 +121,11 @@ export type ConnectorsInvokeContract = {
    * окно копирует адрес, человек вставляет его сам.
    */
   'connectors:openBrowserExtensions': { request: void; response: boolean }
+  /**
+   * Открыть «Полный доступ к диску» в настройках macOS: без него IDE не прочтёт имена профилей
+   * Chrome (ADR 0052). Не macOS или настройки не открылись - false.
+   */
+  'connectors:openDiskAccess': { request: void; response: boolean }
 }
 
 export type ConnectorsEventContract = {
@@ -136,6 +150,7 @@ export const CONNECTORS_CHANNELS = {
   'connectors:refresh': true,
   'connectors:setToken': true,
   'connectors:setDescription': true,
+  'connectors:setInProject': true,
   'connectors:setAvailability': true,
   'connectors:importCandidates': true,
   'connectors:import': true,
@@ -151,6 +166,7 @@ export const CONNECTORS_CHANNELS = {
   'connectors:createSlackApp': true,
   'connectors:revealBrowserExtension': true,
   'connectors:openBrowserExtensions': true,
+  'connectors:openDiskAccess': true,
 } satisfies Record<keyof ConnectorsInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

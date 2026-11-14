@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
 import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
-import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
+import { DAY_MS, HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import {
   usageTone,
@@ -113,5 +113,54 @@ describe('лимиты на экране', () => {
     const rings = usageRings(usage([window({ group: 'weekly', percent: 10 })]), NOW, t)
 
     expect(rings[0]?.hint).toContain('claudeCode.usage.resetsIn')
+  })
+
+  it('справка кольца: сброс у всех окон, темп и перерасход - только у недели', () => {
+    // Второй день недели: ровный темп - 28%, 70% обгоняют его на 42 - тревога.
+    const [week, session] = usageRings(
+      usage([
+        window({ group: 'weekly', percent: 70, resetsAt: NOW + 6 * DAY_MS }),
+        window({ percent: 40 }),
+      ]),
+      NOW,
+      t,
+    )
+
+    expect(week?.details.rows.map((row) => row.key)).toEqual(['reset', 'pace', 'over'])
+    expect(week?.details.rows.at(-1)?.tone).toBe('danger')
+    expect(session?.details.rows.map((row) => row.key)).toEqual(['reset'])
+    expect(session?.details.note).toBeUndefined()
+  })
+
+  it('неделя медленнее ровного темпа - запас, а не перерасход', () => {
+    const [week] = usageRings(
+      usage([window({ group: 'weekly', percent: 10, resetsAt: NOW + 6 * DAY_MS })]),
+      NOW,
+      t,
+    )
+
+    expect(week?.details.rows.at(-1)).toMatchObject({ key: 'reserve', tone: 'success' })
+  })
+
+  it('справка горящего кольца говорит о доплате, старые цифры - о давности', () => {
+    const [burning] = usageRings(
+      usage([window({ group: 'weekly', percent: 100 })], { percent: 3 }),
+      NOW,
+      t,
+    )
+    const [stale] = usageRings(
+      { ...usage([window({ percent: 40 })]), fetchedAt: NOW - 20 * MINUTE_MS },
+      NOW,
+      t,
+    )
+
+    expect(burning?.details.note).toBe('claudeCode.usage.extraPercent')
+    expect(stale?.details.note).toBe('claudeCode.usage.updated')
+  })
+
+  it('сброс прошёл - строки сброса нет', () => {
+    const [ring] = usageRings(usage([window({ percent: 40, resetsAt: NOW - 1 })]), NOW, t)
+
+    expect(ring?.details.rows).toEqual([])
   })
 })

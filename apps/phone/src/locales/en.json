@@ -933,7 +933,8 @@
       "atlassian": "Jira & Confluence",
       "todoist": "Todoist",
       "playwright": "Playwright",
-      "browser": "Browser",
+      "browser": "Browser Use",
+      "computer": "Computer Use",
       "mcp": "MCP server",
       "command": "MCP server command",
       "http": "API connector"

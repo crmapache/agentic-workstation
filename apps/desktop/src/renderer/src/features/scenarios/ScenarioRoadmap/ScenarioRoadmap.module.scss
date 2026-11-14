@@ -1,16 +1,38 @@
-@use '@agentic-workstation/ui/mixins' as *;
-
 // Дорога карточек: кружки ростом с маленький контрол, связка - короткая черта одной длины
-// везде, складка «+N» - в две остановки. Размеры частей - здесь, и только здесь: ряд складывается
-// по образцу (.probe), нарисованному этими же классами, и растёт вместе с размером текста IDE.
+// везде, складка «+N» - плашка в полторы остановки. Размеры частей - здесь, и только здесь: ряд
+// складывается по образцу (.probe), нарисованному этими же классами, и растёт вместе с размером
+// текста IDE. Больше места в ряду не берёт ничего: круглые концы полосы этапа нарисованы за
+// краями частей, и промежутки между остановками везде одинаковые.
 .scenarioRoadmap {
   --road-stop: var(--size-control-xs);
   --road-link: var(--space-2);
-  --road-fold: calc(var(--size-control-xs) * 2);
+  --road-fold: calc(var(--size-control-xs) * 1.5);
+
+  // Поле полосы этапа вокруг кружка: сверху, снизу и за крайними остановками этапа.
+  --road-reach: var(--space-1);
+  --road-band: transparent;
 
   position: relative;
   min-width: 0;
-  overflow: hidden;
+
+  // Режет то, что не влезло, но не круглый конец полосы у крайней остановки дороги: он выходит
+  // за край ровно на --road-reach.
+  overflow: clip;
+  overflow-clip-margin: var(--road-reach);
+}
+
+// Полоса этапа - тоном того, что прогон делает: работает сам - жёлтым, ждёт человека -
+// оранжевым, на паузе - серым. У законченного полосы нет.
+.bandworking {
+  --road-band: color-mix(in srgb, var(--color-warning) var(--tint-soft), transparent);
+}
+
+.bandasking {
+  --road-band: color-mix(in srgb, var(--color-accent) var(--tint-soft), transparent);
+}
+
+.bandpaused {
+  --road-band: color-mix(in srgb, var(--color-fg-subtle) var(--tint-soft), transparent);
 }
 
 // Дорога ровно своей ширины, а не на всё место (строка цифр окна прогона): показания встают
@@ -34,43 +56,71 @@
 .road {
   display: flex;
   align-items: center;
-  padding: var(--space-1) 0;
+  isolation: isolate;
 }
 
+// Место части в ряду ростом с полосу этапа: полоса - подложка места, а не второй слой поверх.
 .place {
+  position: relative;
   display: inline-flex;
-  border-radius: var(--radius-full);
-}
-
-// Этап, где стоит прогон, подложен полосой тона того, что прогон делает.
-.bandworking {
-  @include tinted-plaque(var(--color-warning));
-
-  border-color: transparent;
-}
-
-.bandasking {
-  @include tinted-plaque(var(--color-accent));
-
-  border-color: transparent;
-}
-
-.bandpaused {
-  @include tinted-plaque(var(--color-fg-subtle));
-
-  border-color: transparent;
-}
-
-.link {
   flex-shrink: 0;
+  align-items: center;
+  padding: var(--road-reach) 0;
+}
+
+// Связка - черта посередине своего места, а место ростом с ряд: полоса этапа идёт под связкой
+// без разрыва.
+.link {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  align-self: stretch;
   width: var(--road-link);
-  height: var(--border-width);
-  background-color: var(--color-border-strong);
+
+  &::before {
+    width: 100%;
+    height: var(--border-width);
+    background-color: var(--color-border-strong);
+    content: '';
+  }
 }
 
 // Пройденный отрезок между двумя галочками - того же цвета, что их кружки.
-.passed {
+.passed::before {
   background-color: var(--color-success);
+}
+
+// Полоса этапа - под его остановками и связками между ними одним отрезком.
+.banded {
+  background-color: var(--road-band);
+}
+
+// Концы полосы круглые и выходят за крайнюю остановку на --road-reach: кружок стоит в полукруге
+// по центру. Нарисованы, а не поля, - промежуток от конца этапа до соседней остановки тот же,
+// что везде на дороге. Под остановками, но над карточкой: .road - своя группа наложения.
+.bandStart,
+.bandEnd {
+  background-color: transparent;
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-under);
+    background-color: var(--road-band);
+    content: '';
+  }
+}
+
+.bandStart::before {
+  left: calc(var(--road-reach) * -1);
+  border-start-start-radius: var(--radius-full);
+  border-end-start-radius: var(--radius-full);
+}
+
+.bandEnd::before {
+  right: calc(var(--road-reach) * -1);
+  border-start-end-radius: var(--radius-full);
+  border-end-end-radius: var(--radius-full);
 }
 
 .stop {
@@ -138,11 +188,25 @@
   display: flex;
 }
 
+// Складка «+N» - плашка ростом с остановку в пунктирной рамке: часть дороги, а не подпись,
+// повисшая между кружками.
 .fold {
+  display: inline-flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   width: var(--road-fold);
+  height: var(--road-stop);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-full);
   color: var(--color-fg-subtle);
   font-family: var(--font-code);
-  font-size: var(--font-size-xs);
-  text-align: center;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+}
+
+// Все спрятанные карточки сделаны - цвета галочек.
+.foldPassed {
+  border-color: var(--color-success);
+  color: var(--color-success);
 }

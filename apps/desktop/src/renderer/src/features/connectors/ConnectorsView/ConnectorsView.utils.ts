@@ -1,5 +1,5 @@
 import type { ConnectorAvailability } from '@shared/connector-availability'
-import { projectsIn } from '@shared/connector-availability'
+import { projectsIn, isAvailableIn } from '@shared/connector-availability'
 import type {
   Connector,
   ToolAccess,
@@ -8,13 +8,14 @@ import type {
   ConnectorsState,
   ImportCandidate,
   ConnectorFailure,
+  BrowserProfileView,
   AddConnectorRequest,
 } from '@shared/connectors'
 import type { ProjectRef, WorkspaceState } from '@shared/workspace'
 
 import { baseName } from '../../../lib/path.utils'
 import { ACCESS_ORDER, TOOL_DESCRIPTION_MAX } from './ConnectorsView.constants'
-import type { FormKind, AddFormFields } from './ConnectorsView.types'
+import type { FormKind, AddFormFields, ProfileChoice } from './ConnectorsView.types'
 
 /** Инструменты по ступеням доступа, пустые группы не показываются. */
 export const toolGroups = (
@@ -51,7 +52,7 @@ export const addRequest = (kind: FormKind, fields: AddFormFields): AddConnectorR
   if (kind === 'todoist') return { kind, label: fields.label, token: fields.token }
 
   // Браузер для ИИ один на IDE: подпись и имя сервера ставит главный процесс.
-  if (kind === 'browser') return { kind }
+  if (kind === 'browser' || kind === 'computer') return { kind }
 
   if (kind === 'playwright') {
     const { label, profile, profileDir, headless, version } = fields
@@ -95,7 +96,8 @@ export const availabilitySummary = (
 
 /** Вход этого коннектора будет в браузере: кнопка «добавить и войти», а не просто «добавить». */
 export const signsInWithBrowser = (kind: ConnectorKind, fields: AddFormFields): boolean => {
-  if (['command', 'playwright', 'todoist', 'http', 'browser'].includes(kind)) return false
+  if (['command', 'playwright', 'todoist', 'http', 'browser', 'computer'].includes(kind))
+    return false
 
   return kind !== 'mcp' || fields.auth === 'oauth'
 }
@@ -159,19 +161,66 @@ export const isForeignHost = (baseUrl: string, docsUrl: string): boolean => {
 }
 
 /**
- * Папки из списков «только в отмеченных», которых нет среди открытых и недавних проектов:
- * переименованные, перенесённые, давно не открытые. Их видно в выборе по проектам, иначе
- * подпись «только в N» считала бы проекты, которых человек не видит.
+ * Папки из списков «только в отмеченных» и из инструкций по проектам, которых нет среди
+ * открытых и недавних проектов: переименованные, перенесённые, давно не открытые. Их видно в
+ * выборе по проектам, иначе подпись «только в N» считала бы проекты, которых человек не видит,
+ * а инструкции папки, которой больше нет, лежали бы невидимо.
  */
 export const forgottenProjects = (
-  connectors: readonly Pick<Connector, 'availability'>[],
+  connectors: readonly Pick<Connector, 'availability' | 'inProjects'>[],
   known: readonly Pick<ProjectRef, 'rootPath'>[],
 ): string[] => {
   const knownPaths = new Set(known.map((project) => project.rootPath))
+  const paths = connectors.flatMap((connector) => [
+    ...projectsIn(connector.availability),
+    ...Object.keys(connector.inProjects),
+  ])
 
-  return [...new Set(connectors.flatMap((connector) => projectsIn(connector.availability)))].filter(
-    (path) => !knownPaths.has(path),
-  )
+  return [...new Set(paths)].filter((path) => !knownPaths.has(path))
+}
+
+/**
+ * Проекты для инструкций коннектора: известные, где он виден, и с какого начать - с открытого,
+ * если коннектор виден в нём, иначе с первого. Нигде не виден - null, раздела нет.
+ */
+export const instructionProjects = (
+  projects: readonly ProjectRef[],
+  availability: ConnectorAvailability,
+  activePath: string | undefined,
+): { projects: ProjectRef[]; initial: string } | null => {
+  const visible = projects.filter((project) => isAvailableIn(availability, project.rootPath))
+  const initial = visible.find((project) => project.rootPath === activePath) ?? visible[0]
+
+  return initial ? { projects: visible, initial: initial.rootPath } : null
+}
+
+/**
+ * Профили Chrome для выбора в проекте: все профили браузера человека (так их видно в Chrome) и
+ * подключённые копии, которых среди них нет (своё имя, нет доступа к диску); без повторов.
+ * У каждого - на связи ли он, а если нет - стоит ли в нём расширение. Выбранный, которого
+ * нигде нет, остаётся в списке.
+ */
+export const profileChoices = (
+  profiles: readonly Pick<BrowserProfileView, 'name' | 'chromeProfile'>[],
+  chromeProfiles: readonly { name: string; hasExtension: boolean }[],
+  chosen: string | null,
+): ProfileChoice[] => {
+  const same = (one: string, other: string | null) => other?.toLowerCase() === one.toLowerCase()
+  const isConnected = (name: string) =>
+    profiles.some((profile) => same(name, profile.name) || same(name, profile.chromeProfile))
+  const names = [
+    ...chromeProfiles.map((profile) => profile.name),
+    ...profiles.map((profile) => profile.chromeProfile ?? profile.name),
+    ...(chosen ? [chosen] : []),
+  ].filter((name, index, all) => all.findIndex((other) => same(name, other)) === index)
+
+  return names.map((name): ProfileChoice => {
+    if (isConnected(name)) return { name, state: 'connected' }
+
+    const installed = chromeProfiles.find((profile) => same(name, profile.name))
+
+    return { name, state: installed && !installed.hasExtension ? 'missing' : 'offline' }
+  })
 }
 
 /**

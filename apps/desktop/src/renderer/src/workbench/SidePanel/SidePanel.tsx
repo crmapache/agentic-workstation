@@ -17,7 +17,6 @@ export const SidePanel = <ViewId extends string>({
   activeViewId,
   isOpen,
   width,
-  minWidth,
   placement,
   resizeLabel,
   dock,
@@ -34,7 +33,7 @@ export const SidePanel = <ViewId extends string>({
       ref={ref}
       className={clsx(styles.sidePanel, !isOpen && !isDockOpen && styles.closed)}
       // eslint-disable-next-line no-restricted-syntax -- ширину задают перетаскивание и место в окне
-      style={{ width, minWidth }}>
+      style={{ width }}>
       <div
         className={clsx(styles.sheet, !isOpen && styles.closed)}
         // По нему «открыть панель» узнаёт, что фокус уже в правой панели (actions/claude-panel.ts):

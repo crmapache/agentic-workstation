@@ -1,4 +1,4 @@
-// Хук electron-builder (afterPack): подписывает собранный бандл сертификатом
+// Часть хука electron-builder afterPack (after-pack.cjs): подписывает собранный бандл сертификатом
 // проекта «Agentic Workstation Code Signing» - до того, как из бандла соберутся dmg и zip.
 //
 // Почему не встроенная подпись electron-builder: она ищет сертификат только среди

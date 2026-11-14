@@ -66,7 +66,7 @@ export const QueueControls = ({ queue, live }: QueueControlsProps) => {
         </>
       )}
       <span className={styles.controlsEnd}>
-        <Button size="sm" variant="ghost" icon={Plus} onClick={handleAdd}>
+        <Button size="sm" icon={Plus} onClick={handleAdd}>
           {t('scenarios.queues.controls.add')}
         </Button>
       </span>

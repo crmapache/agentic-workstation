@@ -103,4 +103,22 @@ describe('связь с IDE без установленного host', () => {
 
     expect(connects).toBe(3)
   })
+
+  it('будильник: связи нет - пробует снова, есть живой порт - не трогает', () => {
+    const { link } = missingLink()
+
+    link.revive()
+
+    expect(connects).toBe(2)
+
+    link.revive()
+
+    // Порт открыт (host ещё отвечает) - второй не открывается.
+    expect(connects).toBe(2)
+
+    hostNotFound()
+    link.revive()
+
+    expect(connects).toBe(3)
+  })
 })

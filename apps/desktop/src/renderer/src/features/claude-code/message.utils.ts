@@ -9,12 +9,30 @@ import { kindOfPath, replayedDraft } from './message-replay.utils'
 import { RANGE_LABEL, PASTE_OPEN_CHARS, PASTE_BLOCK_CHARS } from './message.constants'
 
 /**
+ * Картинки сообщения без своего чипа в тексте (прежнее поле слало их отдельно) - чипами в
+ * конце: лента картинок отдельно не рисует, и без чипа их не увидеть, не открыть и не
+ * вернуть в поле. Номер - по месту среди вставленных, как у реплея.
+ */
+const withImageChips = (draft: MessageDraft, imageCount: number): MessageDraft => {
+  const chipped = pastedOrdinals(draft.tokens).filter((ordinal) => ordinal >= 0).length
+
+  if (chipped >= imageCount) return draft
+
+  const added = Array.from({ length: imageCount - chipped }, (_, index): DraftToken[] => [
+    ...(index > 0 || draft.tokens.length > 0 ? [{ kind: 'text', value: ' ' } as const] : []),
+    { kind: 'chip', chip: { kind: 'img', value: `Image #${chipped + index + 1}` } },
+  ])
+
+  return { ...draft, tokens: mergeText([...draft.tokens, ...added.flat()]) }
+}
+
+/**
  * Отправленное сообщение кусками - для карточки, копии, возврата в поле и полки
  * закреплённых. Своё, отправленное из этого окна, несёт куски поля; прочитанное из
- * транскрипта разбирается из текста.
+ * транскрипта разбирается из текста. У каждой картинки сообщения - свой чип.
  */
 export const messageDraft = (item: UserFeedItem, answered: readonly string[] = []): MessageDraft =>
-  item.draft ?? replayedDraft(item.text, answered)
+  withImageChips(item.draft ?? replayedDraft(item.text, answered), item.images.length)
 
 /** Ответы агента выше сообщения: по ним кавычки в тексте узнаются цитатой ответа. */
 export const answersBefore = (items: readonly FeedItem[], itemId: string): string[] => {
@@ -74,30 +92,17 @@ export const pastedOrdinals = (tokens: readonly DraftToken[]): number[] => {
  * Вставленная картинка k возвращается байтами (pictures[k] - из сообщения в
  * транскрипте), без них - файлом, куда её записали; без файла выпадает - и считается:
  * сообщение с пропавшей картинкой выглядит целым и ушло бы с подписью, за которой
- * ничего нет (ACC). Картинки сообщения без чипа в тексте (прежнее поле слало их
- * отдельно) встают в конец: вернуть в поле - значит вернуть всё.
+ * ничего нет (ACC). Чип есть у каждой картинки сообщения (messageDraft).
  */
 export const reusableMessage = (
   { tokens, quotes }: MessageDraft,
   pictures: readonly (string | null)[] = [],
 ): ReusedMessage => {
   const ordinals = pastedOrdinals(tokens)
-  const chipped = Math.max(-1, ...ordinals) + 1
-  const unchipped = pictures.slice(chipped).flatMap((picture, index): DraftToken[] =>
-    picture
-      ? [
-          { kind: 'text', value: ' ' },
-          {
-            kind: 'chip',
-            chip: { kind: 'img', value: `Image #${chipped + index + 1}`, data: picture },
-          },
-        ]
-      : [],
-  )
   const kept: DraftToken[] = []
   let lostImages = 0
 
-  for (const [index, token] of [...tokens, ...unchipped].entries()) {
+  for (const [index, token] of tokens.entries()) {
     const picture = pictures[ordinals[index] ?? -1]
 
     if (token.kind !== 'chip' || !isPastedImage(token.chip) || token.chip.data) {

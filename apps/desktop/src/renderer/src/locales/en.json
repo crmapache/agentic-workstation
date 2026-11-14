@@ -106,9 +106,14 @@
         "short": "Playwright"
       },
       "browser": {
-        "name": "Browser",
+        "name": "Browser Use",
         "hint": "Your own Chrome for the AI: its own tab group, a cursor you can see, tabs you share",
-        "short": "Browser"
+        "short": "Browser Use"
+      },
+      "computer": {
+        "name": "Computer Use",
+        "hint": "Your computer for the AI: the real mouse and keyboard, for apps and what Browser Use can't reach",
+        "short": "Computer Use"
       },
       "mcp": {
         "name": "MCP server by URL",
@@ -143,8 +148,11 @@
       "google-app-missing": "Set up Google sign-in first.",
       "google-app-rejected": "Google rejected the IDE's Google app: its secret was reset or the client was deleted. Import a fresh client file above.",
       "google-api-disabled": "The API is turned off in your Google Cloud project. Enable Gmail API and Google Calendar API there, then sign in again.",
-      "google-scope-missing": "Some permissions were unchecked on Google's consent screen. Sign in again and leave them all on."
+      "google-scope-missing": "Some permissions were unchecked on Google's consent screen. Sign in again and leave them all on.",
+      "slack-mcp-off": "Model Context Protocol is off in this Slack app, so Slack doesn't let the AI in. Turn it on in the app's Agents & AI Apps, then refresh the tools."
     },
+    "failureDetail": "The service said: {{detail}}",
+    "openSlackApp": "Open the app in Slack",
     "signingIn": "Finish signing in in your browser.",
     "actions": {
       "signIn": "Sign in",
@@ -468,7 +476,11 @@
       },
       "projects": {
         "title": "Projects",
-        "text": "All projects: every project sees the connector, new ones too.\n\nSelected only: only the projects switched on see it. New projects don't get it.\n\nSwitching to Selected only starts with every project on, so nothing changes until you switch some off."
+        "text": "All projects: every project sees the connector, new ones too.\n\nSelected only: only the projects switched on see it. New projects don't get it.\n\nSelected only brings back the projects you picked last time. The first time, none is picked: switch on the ones that need the connector. Until you do, no project sees it."
+      },
+      "inProject": {
+        "title": "Instructions by project",
+        "text": "Instructions for this connector in one project: links to use, accounts, what you prefer and what to avoid. Pick the project first: the list has the projects where the connector is on, starting with the open one. The AI gets the instructions together with the connector, but only in conversations of that project.\n\nFor the browser, also pick the Chrome profile the project works in. The AI opens its tabs there unless you name another profile.\n\nIt saves as you type."
       },
       "tools": {
         "title": "Tools",
@@ -492,7 +504,8 @@
         "command": "An MCP server this computer starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
         "http": "Describe a service, and the AI finds how to connect it: first among your MCP servers from Claude Code (that's how your own products connect), then the service's official MCP server, then its REST API with a personal key, described as a list of HTTP requests, not code.\n\nThe work goes on by itself in Building with AI on this page, so this window closes right away. Open the item there to watch the AI and to write to it.\n\nCheck what the AI proposes before adding it. Keys are stored encrypted in the IDE; the AI never sees them.",
         "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
-        "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own."
+        "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own.",
+        "computer": "The AI works on your computer with the real mouse and keyboard, looking at screenshots: other apps, system settings, and the parts of Chrome the extension can't reach. While it acts, the mouse is its; a capsule at the bottom of the screen shows that and lets you pause or stop it.\n\nAdd the connector. On a Mac, then allow Accessibility and Screen Recording for Agentic Workstation - the buttons are in the connector window. Windows asks for nothing."
       },
       "type": {
         "title": "Custom connector",
@@ -505,13 +518,34 @@
       "browser": {
         "title": "Browser for the AI",
         "text": "The extension connects Chrome to Agentic Workstation through a small helper that Chrome starts itself; nothing listens on a network port.\n\nEach conversation gets its own orange tab group. When the AI finishes, it closes its tabs and the group, and lets go of the tabs you shared. Stop in the extension window ends it at any time; so does Cancel on Chrome's \"started debugging\" bar.\n\nCopy tab reference for AI (right-click on a page or on the extension icon) copies a reference the AI understands: paste it into the chat to point it at that tab. A reference works until Chrome restarts. The AI tells profiles apart by the name you give each one in the extension window.\n\nThe AI can see and use every tab of a connected profile. Uploading files to a site is off until you turn it on in the connector's tools, and even then the AI uploads and opens only files inside the conversation's project. Turn the connector off or limit it to some projects to keep it out."
+      },
+      "computer": {
+        "title": "Computer Use",
+        "text": "On a Mac, Accessibility lets the IDE move the mouse and type in other apps, and Screen Recording lets it take screenshots for the AI. macOS asks for both once, in System Settings → Privacy & Security, and may ask you to reopen the IDE after Screen Recording. Windows asks for nothing, but it keeps everyone's mouse and keyboard out of apps running as administrator, the AI's too. There the AI pastes text through the clipboard and puts back what you had copied right after.\n\nOne conversation uses the computer at a time. While it works, a capsule at the bottom center of the screen shows its project. Pause stops the current action and holds the next one until you resume; Stop ends computer use, and the AI asks you before it takes the computer again. Moving the mouse yourself also stops the current action.\n\nWeb pages stay with Browser Use: it works in the background and doesn't take your mouse. Turn the connector off or limit it to some projects to keep the AI off your computer."
+      }
+    },
+    "inProject": {
+      "title": "Instructions by project",
+      "project": "Project",
+      "said": "Has instructions",
+      "instructions": "Instructions",
+      "placeholder": "What the AI should know when it uses this connector in this project: where to look, what to prefer, what to avoid.",
+      "placeholderBrowser": "Where to go and how: links for this project, which accounts to use, what you prefer.",
+      "profile": "Chrome profile",
+      "anyProfile": "Not chosen",
+      "profileState": {
+        "offline": "Not open now: the AI opens Chrome in it when it needs it",
+        "missing": "No Agentic Workstation extension in this profile"
       }
     },
     "browser": {
       "profiles": {
         "title": "Chrome profiles",
         "empty": "No Chrome profile is connected yet. Install the extension and keep Chrome open.",
-        "detail": "{{browser}} · extension {{version}}"
+        "detail": "{{browser}} · extension {{version}}",
+        "detailProfile": "Chrome profile \"{{profile}}\" · {{browser}} · extension {{version}}",
+        "denied": "macOS doesn't let the IDE read Chrome's profile names, so every profile shows up as Google Chrome. Give Agentic Workstation Full Disk Access, then reopen the IDE.",
+        "openDiskAccess": "Open Full Disk Access"
       },
       "setup": {
         "title": "Install in Chrome",
@@ -532,12 +566,52 @@
         "socket-failed": "The IDE couldn't open its connection for Chrome. Restart the IDE.",
         "socket-path": "The path to your home folder is too long for the IDE's connection to Chrome, and so is the path to the temporary folder. Set TMPDIR to a short folder and restart the IDE."
       }
+    },
+    "computer": {
+      "title": "macOS permissions",
+      "accessibility": {
+        "name": "Accessibility",
+        "why": "Moves the mouse and types in other apps"
+      },
+      "screen": {
+        "name": "Screen Recording",
+        "why": "Takes screenshots for the AI"
+      },
+      "allowed": "Allowed",
+      "allow": "Allow",
+      "reopen": "After you allow Screen Recording, macOS may ask to reopen Agentic Workstation.",
+      "unsupported": "Computer Use works on macOS and Windows only.",
+      "windowsTitle": "Windows",
+      "windows": "Windows asks for no permissions. It doesn't let the AI's mouse and keyboard into apps running as administrator: those steps stay yours, or run the app normally. Text goes in like a paste, through the clipboard: what you copied is back right after, and the AI's text stays out of clipboard history."
+    }
+  },
+  "computer": {
+    "capsule": {
+      "label": "Computer Use",
+      "working": "Using your computer",
+      "ready": "Thinking…",
+      "paused": "Paused",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "actions": {
+        "screenshot": "Looking at the screen",
+        "zoom": "Looking closer",
+        "click": "Clicking",
+        "move": "Moving the pointer",
+        "drag": "Dragging",
+        "scroll": "Scrolling {{detail}}",
+        "type": "Typing",
+        "key": "Pressing {{detail}}",
+        "open_app": "Opening {{detail}}"
+      }
     }
   },
   "projects": {
     "open": "Open project",
     "close": "Close {{name}}",
     "tabsLabel": "Open projects",
+    "home": "Home",
     "moreCalls": "+{{count}}",
     "call": "{{chat}} · {{reason}}",
     "openEllipsis": "Open Project…",
@@ -903,7 +977,6 @@
     "tabs": {
       "label": "Scenario sections",
       "queues": "Queues",
-      "board": "All queues",
       "library": "Library",
       "schedule": "Schedule",
       "history": "History"
@@ -941,6 +1014,11 @@
       "emptyText": "Run a scenario: it starts a queue of its own.",
       "run": "Run scenario",
       "listLabel": "Queues of this project",
+      "others": {
+        "title": "Other projects",
+        "open": "Go to project",
+        "openQueue": "Go to this queue in its project"
+      },
       "name": {
         "label": "Queue name",
         "hint": "Double-click to rename. Leave it empty to let the AI name it."
@@ -1036,18 +1114,6 @@
         "worktreeDropped": "Its worktree has nothing new and is removed with it.",
         "confirm": "Close queue"
       }
-    },
-    "board": {
-      "emptyTitle": "No queues in any open project",
-      "emptyText": "Queues of every open project show up here.",
-      "run": "Run scenario",
-      "summary": "Queues at a glance",
-      "running": "{{count}} running",
-      "waiting": "{{count}} waiting for you",
-      "quiet": "Nothing running",
-      "current": "This project",
-      "open": "Go to project",
-      "openQueue": "Go to this queue in its project"
     },
     "library": {
       "project": "In this project",
@@ -1627,7 +1693,8 @@
         "failed": "Not done",
         "skipped": "Skipped"
       },
-      "more": "+{{count}}"
+      "more": "+{{count}}",
+      "folded": "Cards {{from}}-{{to}}"
     }
   },
   "statistics": {
@@ -2473,9 +2540,7 @@
       "editorSelected_one": "1 line from {{name}}",
       "editorSelected_other": "{{count}} lines from {{name}}",
       "editorOpened": "In {{name}}",
-      "openImage": "Open image {{number}}",
       "imageLoading": "Loading image…",
-      "imageMissing": "The picture could not be read - the file is gone, or the message no longer holds it",
       "closeImage": "Close"
     },
     "pins": {
@@ -2636,7 +2701,15 @@
       "updated": "Updated {{time}} ago.",
       "ringHint": "{{label}}: {{value}}%",
       "paceBudget": "even pace: {{value}}% by today",
-      "todayTokens": "Tokens used today across all projects"
+      "todayTokens": "Tokens used today across all projects",
+      "tip": {
+        "resetsIn": "Resets in",
+        "evenPace": "Even pace",
+        "byToday": "by today",
+        "over": "Over pace",
+        "overValue": "+{{value}}%",
+        "reserve": "In reserve"
+      }
     },
     "menu": {
       "open": "Menu",
@@ -2666,7 +2739,7 @@
           "title": "No-stress colors"
         },
         "meters": {
-          "title": "Under the field"
+          "title": "Usage meters"
         },
         "newChat": {
           "title": "New chats"
@@ -2716,11 +2789,11 @@
       "rows": {
         "calmColors": {
           "label": "No-stress colors",
-          "sub": "How much colour the gauges keep"
+          "sub": "How much color the gauges keep"
         },
         "meters": {
-          "label": "Under the field",
-          "sub": "Which limits and counters show"
+          "label": "Usage meters",
+          "sub": "Limit rings and today's tokens below the message box"
         },
         "newChat": {
           "label": "New chats",
@@ -3133,6 +3206,7 @@
     "actions": {
       "closeProject": "Close Project {{name}}",
       "switchProject": "Switch to Project {{name}}",
+      "goHome": "Go to Home",
       "openRecent": "Open Recent Project {{name}}",
       "toggleClaudeCode": "Show or Hide Claude Code",
       "toggleTerminal": "Show or Hide Terminal",

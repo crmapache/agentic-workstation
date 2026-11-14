@@ -5,6 +5,8 @@ import { join, isAbsolute } from 'node:path'
 import type { ImportableAccount } from '@shared/claude-accounts'
 
 import { isRecord, stringField, recordsField } from '../cli/cli-messages'
+import type { StoredAccount } from './account-store'
+import { accountKey } from './identity-probe'
 
 /** Аккаунт ACC: что показать, где его хранилище и организация (у ACC записи её несут). */
 export type AccAccount = ImportableAccount & { drawer: string; orgUuid: string }
@@ -38,4 +40,67 @@ export const readAccAccounts = async (): Promise<AccAccount[]> => {
   } catch {
     return []
   }
+}
+
+/** Куда перевести запись IDE: id записи и хранилище ACC, в котором её аккаунт живёт теперь. */
+export type AccMove = { id: string; drawer: string }
+
+type FollowedRecord = Pick<StoredAccount, 'id' | 'drawer' | 'email' | 'orgUuid' | 'external'>
+
+/**
+ * Аккаунты ACC, которые IDE взяла, но ACC увёл в новое хранилище: повторный вход в ACC кладёт
+ * аккаунт в новую папку, а старую бросает и чистит. Запись IDE на брошенной папке выглядела бы
+ * вышедшей, а тот же аккаунт ACC предлагался бы взять второй раз. Аккаунт узнаётся по почте и
+ * организации (accountKey); запись без организации, хранилище, которое ACC ещё ведёт, и папка,
+ * которую уже держит другая запись, - не трогаются.
+ */
+export const accMoves = (
+  records: readonly FollowedRecord[],
+  acc: readonly AccAccount[],
+): AccMove[] => {
+  const accDrawers = new Set(acc.map((account) => account.drawer))
+  const taken = new Set(records.map((record) => record.drawer))
+
+  return records.flatMap((record) => {
+    if (!record.external || !record.orgUuid || accDrawers.has(record.drawer)) return []
+
+    const key = accountKey(record.email, record.orgUuid)
+    const target = acc.find(
+      (account) =>
+        account.orgUuid &&
+        accountKey(account.email, account.orgUuid) === key &&
+        !taken.has(account.drawer),
+    )
+
+    if (!target) return []
+
+    taken.add(target.drawer)
+
+    return [{ id: record.id, drawer: target.drawer }]
+  })
+}
+
+/**
+ * Аккаунты ACC, которые можно взять: нет их хранилища среди записей IDE и нет того же аккаунта
+ * (почта и организация) - ни записью, ни обычным входом. Иначе «Add here» завёл бы дубль.
+ */
+export const importableOf = (
+  acc: readonly AccAccount[],
+  records: readonly Pick<StoredAccount, 'drawer' | 'email' | 'orgUuid'>[],
+  defaultKey: string | null,
+): AccAccount[] => {
+  const drawers = new Set(records.map((record) => record.drawer))
+  const keys = new Set(
+    records
+      .filter((record) => record.orgUuid)
+      .map((record) => accountKey(record.email, record.orgUuid)),
+  )
+
+  if (defaultKey) keys.add(defaultKey)
+
+  return acc.filter(
+    (account) =>
+      !drawers.has(account.drawer) &&
+      !(account.orgUuid && keys.has(accountKey(account.email, account.orgUuid))),
+  )
 }

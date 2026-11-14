@@ -43,10 +43,14 @@ describe('доступность коннектора по проектам', ()
     expect(moveProject(EVERYWHERE, '/p/old', '/p/new')).toEqual(EVERYWHERE)
   })
 
-  it('«только» из «во всех» отмечает все известные, «во всех» - без исключений', () => {
-    const known = ['/p/a', '/p/b', '/p/c']
+  it('«только» в первый раз - ни одного, потом - отмеченные в прошлый раз', () => {
+    const picked = { mode: 'only' as const, projects: ['/p/a', '/p/c'] }
+    const everywhere = withMode(picked, 'all')
 
-    expect(withMode(EVERYWHERE, 'only', known)).toEqual({ mode: 'only', projects: known })
-    expect(withMode({ mode: 'only', projects: ['/p/a'] }, 'all', known)).toEqual(EVERYWHERE)
+    expect(withMode(EVERYWHERE, 'only')).toEqual({ mode: 'only', projects: [] })
+    expect(everywhere).toEqual({ mode: 'all', remembered: ['/p/a', '/p/c'] })
+    expect(isAvailableIn(everywhere, '/p/b')).toBe(true)
+    expect(withMode(everywhere, 'only')).toEqual(picked)
+    expect(withMode({ mode: 'only', projects: [] }, 'all')).toEqual(EVERYWHERE)
   })
 })

@@ -1,14 +1,17 @@
+import type { MouseEvent } from 'react'
 import clsx from 'clsx'
 
 import { CARD_ICON_SIZE, CARD_ICON_STROKE_WIDTH } from './Card.constants'
 import styles from './Card.module.scss'
 import type { CardProps } from './Card.types'
+import { isAreaPress } from './Card.utils'
 
 /**
  * Стеклянная карточка внутри панели: заголовок, строка состояния, справа число, действия и «?»
  * справки у самого края, содержимое. Для группы настроек, сводки, блока в GUI провайдера. Тон accent - то, что
  * ждёт ответа человека: оранжевая рамка и заголовок. fit - не выше места, где стоит: тело
- * сжимается, шапка на виду. Всплывающее поверх окна - Popover или Dialog, не карточка.
+ * сжимается, шапка на виду. onPress - карточка нажимается вся (ведёт к своему предмету), её
+ * кнопки - сами по себе. Всплывающее поверх окна - Popover или Dialog, не карточка.
  */
 export const Card = ({
   title,
@@ -20,14 +23,26 @@ export const Card = ({
   size = 'md',
   actions,
   fit = false,
+  onPress,
   children,
 }: CardProps) => {
   const hasHeader = Boolean(title || actions || help || count !== undefined)
 
+  const handleClick = (event: MouseEvent<HTMLElement>) => {
+    if (onPress && isAreaPress(event)) onPress()
+  }
+
   return (
     <section
       aria-label={title}
-      className={clsx(styles.card, styles[tone], styles[size], fit && styles.fit)}>
+      className={clsx(
+        styles.card,
+        styles[tone],
+        styles[size],
+        fit && styles.fit,
+        onPress && styles.pressable,
+      )}
+      onClick={onPress && handleClick}>
       {hasHeader && (
         <>
           <div className={styles.header}>

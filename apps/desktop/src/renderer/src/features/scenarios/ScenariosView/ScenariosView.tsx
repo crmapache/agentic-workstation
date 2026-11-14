@@ -17,7 +17,7 @@ import { ScenariosTabBody } from './parts/ScenariosTabBody'
 
 /**
  * Сценарии на уровне IDE (ADR 0039) - вид середины окна: шапка с запуском и новым сценарием,
- * под её линией вкладки (полки, очереди проекта, все очереди, расписание, история), окна поверх.
+ * под её линией вкладки (полки, очереди, расписание, история), окна поверх.
  */
 export const ScenariosView = () => {
   const { t } = useTranslation()
@@ -38,7 +38,7 @@ export const ScenariosView = () => {
     )
   }
 
-  const items = tabItems((id) => t(`scenarios.tabs.${id}`), project.rootPath, queues, shelves)
+  const items = tabItems((id) => t(`scenarios.tabs.${id}`), queues, shelves)
   const handleRun = () => open({ kind: 'launch' })
   const handleNew = () => open({ kind: 'author' })
 

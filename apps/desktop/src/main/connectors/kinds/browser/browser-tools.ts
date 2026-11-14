@@ -4,6 +4,7 @@ import { toolJson } from '../../connector-source'
 import { BrowserAgent } from '../../../browser/browser-agent'
 import { BrowserError } from '../../../browser/browser-error'
 import type { HubPort } from '../../../browser/browser-hub'
+import type { ProfileOpening } from '../../../browser/chrome-profiles'
 import { KeyComboError } from '../../../browser/page-keys'
 import { agentCall } from './browser-args'
 import { BROWSER_INPUT_TOOLS } from './browser-input-tools'
@@ -63,8 +64,12 @@ const BROWSER_EXPLAINABLE = [BrowserError, KeyComboError]
  * процесса разговора ждёт его следующий процесс, закрытый разговор и выключение или удаление
  * коннектора закрывают сессии сразу.
  */
-export const createBrowserSource = (hub: HubPort): NativeSource<BrowserAgent> => {
-  const agent = new BrowserAgent(hub)
+export const createBrowserSource = (
+  hub: HubPort,
+  projectProfile: (projectPath: string) => string | null = () => null,
+  openProfile?: (name: string) => Promise<ProfileOpening>,
+): NativeSource<BrowserAgent> => {
+  const agent = new BrowserAgent(hub, { projectProfile, openProfile })
 
   return new NativeSource(BROWSER_TOOLS, agent, BROWSER_EXPLAINABLE, {
     release: (launch) => agent.release(launch),

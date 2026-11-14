@@ -14,7 +14,7 @@ import { Debuggers } from './debugger'
 import { HostLink } from './host-link'
 import { createMethods } from './methods'
 import { OverlayControl } from './overlay-control'
-import { loadProfile, renameProfile, newLaunchMarker } from './profile'
+import { loadProfile, renameProfile, newLaunchMarker, rememberChromeProfile } from './profile'
 import { tabInfo } from './tabs'
 
 /**
@@ -39,7 +39,18 @@ const broadcast = (event: EventMessage): void => {
 const debuggers = new Debuggers(broadcast, (tabId) => methods.forget(tabId))
 const overlay = new OverlayControl()
 const agentTabs = new AgentTabs((channel, keep) => methods.release(channel, keep))
-const methods = createMethods({ debuggers, overlay, agentTabs, sessionsChanged: notifyPopup })
+/** Имя профиля Chrome от IDE (в welcome или позже): поменялось - окно значка перечитает. */
+const takeChromeProfile = async (name: string | null | undefined): Promise<void> => {
+  if (await rememberChromeProfile(name)) notifyPopup()
+}
+
+const methods = createMethods({
+  debuggers,
+  overlay,
+  agentTabs,
+  sessionsChanged: notifyPopup,
+  chromeProfile: takeChromeProfile,
+})
 
 /**
  * IDE положила в папку другую сборку - перезагрузиться и взять её с диска. Не посреди работы
@@ -65,6 +76,7 @@ const links: HostLink[] = HOST_CHANNELS.map(
           type: 'hello',
           profileKey: profile.key,
           profileName: profile.name,
+          named: profile.named,
           browser: profile.browser,
           version: chrome.runtime.getManifest().version,
           build: OWN_BUILD,
@@ -75,6 +87,7 @@ const links: HostLink[] = HOST_CHANNELS.map(
       welcome: (welcome, link) => {
         agentTabs.welcome(link.channel)
         void maybeReload(welcome)
+        void takeChromeProfile(welcome.chromeProfile)
       },
       // IDE ушла: её отладчики и рамки - снять сразу, её вкладки агента ждут её (AgentTabs).
       gone: (link) => {
@@ -112,7 +125,11 @@ const answerPopup = async (request: PopupRequest): Promise<unknown> => {
     case 'popup:rename': {
       const profile = await renameProfile(request.name)
 
-      broadcast({ type: 'event', name: 'profile-renamed', data: { name: profile.name } })
+      broadcast({
+        type: 'event',
+        name: 'profile-renamed',
+        data: { name: profile.name, named: profile.named },
+      })
 
       return popupState(false)
     }
@@ -195,6 +212,18 @@ chrome.tabGroups.onUpdated.addListener((group) => void agentTabs.groupSeen(group
 
 chrome.tabGroups.onRemoved.addListener((group) => {
   broadcast({ type: 'event', name: 'group-removed', data: { groupId: group.id } })
+})
+
+/** Будильник связи: раз в минуту - переподключиться, где связи нет (HostLink.revive). */
+const RECONNECT_ALARM = 'reconnect'
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === RECONNECT_ALARM) for (const link of links) link.revive()
+})
+
+// Будильник переживает сон воркера; заводится один раз, иначе каждый запуск сдвигал бы срок.
+void chrome.alarms.get(RECONNECT_ALARM).then((alarm) => {
+  if (!alarm) void chrome.alarms.create(RECONNECT_ALARM, { periodInMinutes: 1 })
 })
 
 // Каждый запуск сервис-воркера (старт Chrome, установка, пробуждение по событию) - связь с IDE.

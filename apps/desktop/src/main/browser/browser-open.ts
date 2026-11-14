@@ -7,11 +7,27 @@ import { shell } from 'electron'
 
 import { CHROME_EXTENSIONS_URL } from '@shared/connectors'
 
-import { IS_WINDOWS } from '../platform'
+import { IS_MAC, IS_WINDOWS } from '../platform'
 import { SHOWS_WINDOW } from '../windows/console-hide'
+import { macBrowserApp } from './browser-places'
 
 /** Chrome: стандартное имя приложения в /Applications. */
 const CHROME_APP = 'Google Chrome'
+
+/** Раздел «Полный доступ к диску» настроек macOS. */
+const DISK_ACCESS_PANE = 'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles'
+
+/**
+ * «Полный доступ к диску» в настройках macOS: без него IDE не прочтёт имена профилей Chrome
+ * (ADR 0052). Адрес - постоянный, свой, а не пришедший извне. Не macOS - false.
+ */
+export const openDiskAccessSettings = (): Promise<boolean> =>
+  IS_MAC
+    ? shell.openExternal(DISK_ACCESS_PANE).then(
+        () => true,
+        () => false,
+      )
+    : Promise.resolve(false)
 
 /**
  * Папка расширения в Finder - выделенной в её родителе: в «Load unpacked» человек выбирает
@@ -34,6 +50,47 @@ const windowsChrome = (): string | null =>
     .filter((dir): dir is string => Boolean(dir))
     .map((dir) => join(dir, 'Google', 'Chrome', 'Application', 'chrome.exe'))
     .find((file) => existsSync(file)) ?? null
+
+/**
+ * Окно браузера в нужном профиле (ADR 0053): `--profile-directory` с папкой профиля - Chrome,
+ * если уже запущен, открывает окно этого профиля, иначе стартует с ним. На маке - через `open`
+ * приложением этой папки данных, на Windows - chrome.exe. Не открылось - false.
+ */
+export const openBrowserProfile = (dataDir: string, profileDir: string): Promise<boolean> =>
+  new Promise((resolve) => {
+    const flag = `--profile-directory=${profileDir}`
+
+    if (IS_WINDOWS) {
+      const chrome = /Google[\\/]Chrome[\\/]User Data$/.test(dataDir) ? windowsChrome() : null
+
+      if (!chrome) {
+        resolve(false)
+
+        return
+      }
+
+      const options = { detached: true, stdio: 'ignore', [SHOWS_WINDOW]: true } as SpawnOptions
+      const child = spawn(chrome, [flag], options)
+
+      child.once('error', () => resolve(false))
+      child.once('spawn', () => {
+        child.unref()
+        resolve(true)
+      })
+
+      return
+    }
+
+    const app = macBrowserApp(dataDir)
+
+    if (!app) {
+      resolve(false)
+
+      return
+    }
+
+    execFile('open', ['-na', app, '--args', flag], (error) => resolve(!error))
+  })
 
 /**
  * chrome://extensions в Google Chrome. Электрон такие адреса наружу не открывает

@@ -10,9 +10,8 @@ import {
   roadMood,
   holdItemOf,
   statusTone,
-  boardCounts,
-  boardGroups,
   itemDotTone,
+  queueGroups,
   queueStatus,
   waitingItems,
   folderNeighbours,
@@ -128,7 +127,7 @@ describe('состояние очереди', () => {
   })
 })
 
-describe('точки элементов на доске', () => {
+describe('точки элементов в плотной карточке', () => {
   it('по исходу, идущий с вопросом - акцентом, отказ - красным', () => {
     expect(itemDotTone(item('a', { state: 'done' }), undefined)).toBe('success')
     expect(itemDotTone(item('a', { state: 'failed' }), undefined)).toBe('danger')
@@ -164,11 +163,11 @@ describe('элементы очереди', () => {
   })
 })
 
-describe('доска всех очередей', () => {
+describe('очереди по проектам', () => {
   const projects = [project('p1', '/work/app', 'app'), project('p2', '/work/site', 'site')]
 
   it('текущий проект первым, дальше по вкладкам, без вкладки - в конце по имени', () => {
-    const groups = boardGroups(
+    const groups = queueGroups(
       [
         queue('a', { projectPath: '/old/zeta' }),
         queue('b', { projectPath: '/work/app' }),
@@ -192,19 +191,6 @@ describe('доска всех очередей', () => {
     expect(canGoTo({ projectId: 'p1', projectPath: '/work/app' }, [])).toBe(true)
     expect(canGoTo({ projectId: null, projectPath: '/old/alpha' }, recent)).toBe(true)
     expect(canGoTo({ projectId: null, projectPath: '/old/zeta' }, recent)).toBe(false)
-  })
-
-  it('идут и ждут человека - без пересечения', () => {
-    const queues = [
-      queue('a', { items: [item('1', { state: 'running', runId: 'r1' })] }),
-      queue('b', { items: [item('2', { state: 'running', runId: 'r2' })] }),
-      queue('c', { items: [item('3', { state: 'running', runId: 'r3' })] }),
-      queue('d', { hold: { reason: 'failed', itemId: 'x', at: 1 } }),
-      queue('e'),
-    ]
-    const live = [run('r1'), run('r2', { state: 'paused' }), run('r3', { state: 'blocked' })]
-
-    expect(boardCounts(queues, live)).toEqual({ running: 2, waiting: 2 })
   })
 })
 

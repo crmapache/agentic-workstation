@@ -62,7 +62,8 @@ export const BROWSER_PAGE_TOOLS: NativeTool<BrowserAgent>[] = [
       },
       profile: {
         type: 'string',
-        description: 'Chrome profile key or name, when several are connected (see "profiles").',
+        description:
+          'Chrome profile key, name or Chrome profile, when several are connected (see "profiles"). A Chrome profile that is closed opens by itself if it has the extension.',
       },
     }),
     run: async (args, agent, call) => {

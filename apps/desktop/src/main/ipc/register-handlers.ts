@@ -22,6 +22,7 @@ import { createClaudeSearchHandlers } from './claude-search-handlers'
 import { createClaudeSettingsHandlers } from './claude-settings-handlers'
 import { createClaudeToolsHandlers } from './claude-tools-handlers'
 import { createComposerHandlers } from './composer-handlers'
+import { createComputerHandlers } from './computer-handlers'
 import { createConnectorsHandlers } from './connectors-handlers'
 import { createEditorHandlers } from './editor-handlers'
 import { createFileOpsHandlers } from './file-ops-handlers'
@@ -101,6 +102,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createClaudeSearchHandlers(workspace, services.conversationSearch),
     ...createWindowHandlers(services.getWindow),
     ...createConnectorsHandlers(services.connectors),
+    ...createComputerHandlers(services.connectors.computer),
     ...createTerminalHandlers(workspace, services.terminals),
     ...createScenariosHandlers(workspace, claude, services.scenarios),
     ...createStatisticsHandlers(workspace, services.stats),

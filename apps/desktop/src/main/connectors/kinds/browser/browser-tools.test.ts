@@ -112,6 +112,7 @@ describe('список вкладок для модели', () => {
   const profile = {
     key: 'work',
     name: 'Work',
+    chromeProfile: null,
     browser: 'Google Chrome',
     version: '0.1.0',
     build: 'b',
@@ -140,7 +141,7 @@ describe('список вкладок для модели', () => {
       holderOf: (key) => (key === 'work/2' ? 'you' : null),
     }).split('\n')
 
-    expect(lines[0]).toBe('Profile "Work" (work), Google Chrome: 30 of 30 tabs')
+    expect(lines[0]).toBe('Profile "Work", key work, Google Chrome: 30 of 30 tabs')
     expect(lines[1]).toBe('- chrome-tab:work/1@run1 "Mail 0" https://site.example/0 [active]')
     expect(lines[2]).toBe(
       '- chrome-tab:work/2@run1 "Page 1" https://site.example/1 [group "AW · web"] [held by you]',
@@ -155,7 +156,7 @@ describe('список вкладок для модели', () => {
     })
 
     expect(mail.split('\n')[0]).toBe(
-      'Profile "Work" (work), Google Chrome: 10 of 30 tabs match "MAIL"',
+      'Profile "Work", key work, Google Chrome: 10 of 30 tabs match "MAIL"',
     )
     expect(mail).not.toMatch(/more/)
   })

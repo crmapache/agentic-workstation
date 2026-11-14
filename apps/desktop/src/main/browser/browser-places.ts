@@ -129,5 +129,58 @@ export const WINDOWS_HOST_KEYS = [
   'HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts',
 ] as const
 
+/**
+ * Папки данных браузеров Chromium на Windows (в %LOCALAPPDATA%): Local State и профили. На маке
+ * это те же CHROMIUM_BROWSERS в Application Support.
+ */
+const WINDOWS_DATA_DIRS = [
+  'Google/Chrome/User Data',
+  'Google/Chrome Beta/User Data',
+  'Google/Chrome Dev/User Data',
+  'Google/Chrome SxS/User Data',
+  'Chromium/User Data',
+  'Microsoft/Edge/User Data',
+  'BraveSoftware/Brave-Browser/User Data',
+] as const
+
+/**
+ * Папки данных браузеров Chromium (там Local State и папки профилей) - где искать профиль, в
+ * котором стоит копия расширения (chrome-profiles.ts). Только чтение.
+ */
+export const chromiumDataDirs = ({
+  appData,
+  localAppData,
+}: {
+  appData: string
+  localAppData: string | undefined
+}): string[] =>
+  IS_WINDOWS
+    ? localAppData
+      ? WINDOWS_DATA_DIRS.map((dir) => join(localAppData, dir))
+      : []
+    : CHROMIUM_BROWSERS.map((browser) => join(appData, browser))
+
+/**
+ * Приложение браузера на маке по папке его данных - чтобы открыть окно нужного профиля
+ * (`open -na <приложение> --args --profile-directory=…`). Arc папки профилей так не открывает.
+ */
+const MAC_BROWSER_APPS: Record<string, string> = {
+  'Google/Chrome': 'Google Chrome',
+  'Google/Chrome Beta': 'Google Chrome Beta',
+  'Google/Chrome Dev': 'Google Chrome Dev',
+  'Google/Chrome Canary': 'Google Chrome Canary',
+  Chromium: 'Chromium',
+  'BraveSoftware/Brave-Browser': 'Brave Browser',
+  'Microsoft Edge': 'Microsoft Edge',
+  Vivaldi: 'Vivaldi',
+}
+
+/** Приложение браузера по папке его данных (macOS); не знаем такого - null. */
+export const macBrowserApp = (dataDir: string): string | null => {
+  const found = Object.entries(MAC_BROWSER_APPS).find(([dir]) => dataDir.endsWith(`/${dir}`))
+
+  return found?.[1] ?? null
+}
+
 /** Переменная для тестов: манифесты host - только в эту папку, браузеры человека не трогаются. */
 export const HOSTS_DIR_ENV = 'AGENTIC_WORKSTATION_BROWSER_HOSTS_DIR'

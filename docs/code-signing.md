@@ -55,7 +55,7 @@ designated => identifier "io.github.crmapache.agenticworkstation" and certificat
 ## Кто подписывает и почему без доверия
 
 Подписывает не electron-builder, а наш хук `apps/desktop/scripts/sign-app.cjs`
-(`afterPack`, до сборки dmg и zip) - прямым вызовом `codesign`. Встроенная подпись
+(его зовёт `afterPack` - `after-pack.cjs`, до сборки dmg и zip) - прямым вызовом `codesign`. Встроенная подпись
 electron-builder ищет сертификат только среди доверенных, а доверие самоподписанному
 сертификату macOS выдаёт лишь через системное окно с паролем учётной записи. Самому
 `codesign` доверие не нужно, подпись и правило выходят те же. У людей, которые ставят
@@ -125,7 +125,7 @@ codesign -d -r- "apps/desktop/dist/mac-arm64/Agentic Workstation.app"
 
 ## Когда появится Developer ID
 
-Подпись переходит на него: хук `sign-app.cjs` убирается, в
+Подпись переходит на него: хук `sign-app.cjs` убирается (и его вызов из `after-pack.cjs`), в
 `apps/desktop/electron-builder.yml` вместо `identity: null` вписывается Developer ID,
 возвращается `hardenedRuntime: true`, настраивается нотаризация. Правило подписи при
 этом сменится, поэтому первую версию на Developer ID установленные копии не примут

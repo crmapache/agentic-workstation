@@ -17,9 +17,7 @@ export type MessageBodyProps = {
   tokens: readonly DraftToken[]
   /** id сообщения: вставленная картинка без файла берётся из его строки в транскрипте. */
   messageId: string
-  /** Открыть картинку сообщения крупно по её номеру среди вставленных. */
-  onOpenImage: (index: number) => void
-  /** Открыть крупно выбранную картинку - её файл. */
+  /** Открыть картинку чипа крупно - оттуда же, откуда она показывается под курсором. */
   onOpenPicture: (source: PictureSource, chip: DraftChip) => void
 }
 
@@ -30,13 +28,6 @@ export type PastedTextProps = {
   chip: DraftChip
   /** Последняя в сообщении: свёрнутая занимает всю ширину и показывает первые строки. */
   isBlock: boolean
-}
-
-export type MessageImagesProps = {
-  item: UserFeedItem
-  /** Какая картинка открыта крупно; null - никакая. */
-  opened: number | null
-  onOpen: (index: number | null) => void
 }
 
 export type EditorLineProps = {

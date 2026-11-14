@@ -71,6 +71,19 @@
   }
 }
 
+// Необратимое без текста (остановить) - тот же язык, что у Button danger: красная иконка и рамка
+// на тёмно-красной подложке, не путается с главным оранжевым.
+.danger {
+  @include tinted-plaque(var(--color-danger));
+
+  @media (hover: hover) {
+    &:not(:disabled, [aria-disabled='true']):hover {
+      background-color: var(--color-danger-soft);
+      color: var(--color-danger-strong);
+    }
+  }
+}
+
 // Включённый переключатель - серая плашка и белая иконка, как выбранный раздел в
 // навигации. Так же горит кнопка, чья панель открыта (три точки над меню): видно, откуда
 // меню.

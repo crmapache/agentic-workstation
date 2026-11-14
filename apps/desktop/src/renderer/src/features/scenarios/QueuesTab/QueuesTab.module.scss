@@ -1,6 +1,32 @@
-// Очереди проекта - полосами одна под другой.
+// Вкладка очередей: свои очереди сверху, другие проекты ниже - с воздухом между ними.
+.queuesTab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+// Очереди текущего проекта - полосами одна под другой.
 .list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+}
+
+// Подразделы других проектов.
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+// Плотные карточки по две в ряд, каждая в половину ширины, даже одна; где половина уже плитки, -
+// по одной. Нижний предел чуть меньше половины, чтобы две колонки влезали при любом округлении,
+// а 1fr дотягивает их до ровной половины.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(var(--size-tile-min), calc(50% - var(--space-3))), 1fr)
+  );
   gap: var(--space-3);
 }

@@ -64,6 +64,11 @@
   white-space: pre-wrap;
 }
 
+// Вложение в теле - своей коробки нет: метка куска для копии не меняет раскладку.
+.token {
+  display: contents;
+}
+
 // Обычный поток, а не flex: чипы стоят в тексте как слова, переносы набранного целы.
 .body {
   color: var(--color-fg);
@@ -72,12 +77,6 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: text;
-}
-
-.imageGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1-5);
 }
 
 .editorLine {

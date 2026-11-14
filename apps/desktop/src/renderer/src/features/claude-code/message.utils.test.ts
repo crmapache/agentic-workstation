@@ -41,6 +41,8 @@ const item = (patch: Partial<UserFeedItem>): UserFeedItem => ({
   ...patch,
 })
 
+const pictures = (count: number) => Array.from({ length: count }, () => ({ thumbnail: '' }))
+
 describe('отправленное сообщение', () => {
   it('куски поля важнее текста; без них - разбор текста', () => {
     expect(messageDraft(item({ text: '@a.ts', draft }))).toBe(draft)
@@ -90,15 +92,21 @@ describe('отправленное сообщение', () => {
     expect(lostImages(draft, 1)).toBe(1)
   })
 
-  it('картинки без чипа (прежнее поле) встают в конец, а не теряются', () => {
-    const reused = reusableMessage({ tokens: [{ kind: 'text', value: 'look' }], quotes: [] }, [
-      'data:image/png;base64,AA',
-    ])
+  it('картинки без чипа (прежнее поле) - чипами в конце, а не теряются', () => {
+    const looked = messageDraft(item({ text: 'look [Image #1]', images: pictures(3) }))
 
-    expect(reused.draft.tokens).toEqual([
+    expect(looked.tokens).toEqual([
       { kind: 'text', value: 'look ' },
-      { kind: 'chip', chip: { kind: 'img', value: 'Image #1', data: 'data:image/png;base64,AA' } },
+      { kind: 'chip', chip: { kind: 'img', value: 'Image #1' } },
+      { kind: 'text', value: ' ' },
+      { kind: 'chip', chip: { kind: 'img', value: 'Image #2' } },
+      { kind: 'text', value: ' ' },
+      { kind: 'chip', chip: { kind: 'img', value: 'Image #3' } },
     ])
+    expect(messageDraft(item({ images: pictures(1) })).tokens).toEqual([
+      { kind: 'chip', chip: { kind: 'img', value: 'Image #1' } },
+    ])
+    expect(reusableMessage(looked, [null, 'data:image/png;base64,BB', null]).lostImages).toBe(2)
   })
 
   it('ответы выше сообщения', () => {

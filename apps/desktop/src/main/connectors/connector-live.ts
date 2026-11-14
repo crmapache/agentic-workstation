@@ -8,6 +8,8 @@ import type { SourceTool, SourceLaunch, ConnectorSource } from './connector-sour
 import type { StoredTool, StoredConnector } from './connector-store'
 import { enabledTools, instructionsFor, disabledToolText } from './connector-view'
 import type { LiveFacts } from './connector-view'
+import type { ServiceAnswer } from './service-answer'
+import { serviceAnswer } from './service-answer'
 import type { GatewayServer } from './gateway/gateway'
 import type { Launch } from './gateway/launches'
 import { hasSignIn, createSource } from './kinds/sources'
@@ -28,6 +30,8 @@ export type LiveHost = {
   changed: () => void
   /** Чей коннектор сейчас, если это знает только живая IDE (профили Chrome у Browser). */
   account?: () => string | null
+  /** Типы других включённых коннекторов, видных в проекте: пояснение говорит о соседях. */
+  neighbours?: (projectPath: string) => StoredConnector['kind'][]
 }
 
 const toMcpTool = ({ access: _access, ...tool }: SourceTool): Tool => tool
@@ -73,6 +77,8 @@ const isPerLaunch = (connector: StoredConnector | null): boolean =>
  */
 export class LiveConnector {
   failure: ConnectorFailure | null = null
+  /** Что сервис ответил о сбое на карточке: его слова и где чинить. */
+  private said: ServiceAnswer | null = null
   private lostSignIn = false
   private source: ConnectorSource
   private readonly launchSources = new Map<string, ConnectorSource>()
@@ -81,14 +87,18 @@ export class LiveConnector {
   private disposed = false
   /** Идущее чтение списка для шлюза: процессы разговоров, пришедшие разом, ждут одного. */
   private listing: Promise<void> | null = null
+  private readonly deps: SourceDeps
 
   constructor(
     connector: StoredConnector,
     readonly secrets: SecretsOf,
-    private readonly deps: SourceDeps,
+    deps: SourceDeps,
     private readonly host: LiveHost,
   ) {
-    this.source = createSource(connector, secrets, deps)
+    // Настройки проекта источник читает свежими на каждом вызове: смена их не пересоздаёт
+    // источник (у Browser в нём живут сессии разговоров).
+    this.deps = { ...deps, inProject: (path) => host.stored()?.inProjects[path] ?? null }
+    this.source = createSource(connector, secrets, this.deps)
   }
 
   facts(connector: StoredConnector): LiveFacts {
@@ -96,6 +106,7 @@ export class LiveConnector {
       signedIn: !this.lostSignIn && hasSignIn(connector, this.secrets.read()),
       signingIn: this.host.signingIn(),
       failure: this.failure,
+      said: this.said,
       ...(this.host.account ? { account: this.host.account() } : {}),
     }
   }
@@ -118,7 +129,10 @@ export class LiveConnector {
       this.listedAt = Date.now()
       // Беда с клиентом Google снимается живым вызовом или новым клиентом (reset), а не
       // списком инструментов: у Google он свой и в сеть не ходит.
-      if (!isGoogleAppFailure(this.failure)) this.failure = null
+      if (!isGoogleAppFailure(this.failure)) {
+        this.failure = null
+        this.said = null
+      }
       this.host.toolsListed(
         this.tools.map(({ name, description, access }) => ({
           name,
@@ -138,6 +152,7 @@ export class LiveConnector {
     await this.suspend()
     this.lostSignIn = false
     this.failure = null
+    this.said = null
     this.tools = []
     this.listedAt = 0
   }
@@ -192,7 +207,13 @@ export class LiveConnector {
         const connector = this.host.stored()
 
         return connector
-          ? instructionsFor(connector, this.facts(connector), this.host.typeName())
+          ? instructionsFor(
+              connector,
+              this.facts(connector),
+              this.host.typeName(),
+              launch.projectPath,
+              this.host.neighbours?.(launch.projectPath) ?? [],
+            )
           : ''
       },
       tools: () => this.listForGateway(launch),
@@ -310,14 +331,21 @@ export class LiveConnector {
     if (error instanceof SignedOutError) {
       this.lostSignIn = true
       this.failure = null
+      this.said = null
 
       return
     }
 
     console.warn('[connectors] сервис не ответил', this.host.stored()?.serverName, error)
 
-    const fixable = failureOf(error)
+    // Что сервис ответил сам: MCP Slack выключен - чинится в настройках, на карточку всегда.
+    const said = serviceAnswer(error)
+    const fixable = failureOf(error) ?? (said?.failure === 'slack-mcp-off' ? said.failure : null)
+    const next = fixable ?? failure
 
-    if (fixable ?? failure) this.failure = fixable ?? failure
+    if (!next) return
+
+    this.failure = next
+    this.said = said?.failure === next ? said : null
   }
 }

@@ -1,6 +1,5 @@
-import { BrowserWindow } from 'electron'
-
 import { broadcast } from '../ipc/broadcast'
+import { ideWindows } from './overlay-windows'
 
 /**
  * Перед выходом из IDE окно должно дописать на диск то, что человек набрал за последнюю
@@ -15,7 +14,7 @@ let answer: ((unsaved: number) => void) | null = null
 let unsavedAllowed = false
 
 export const saveEditorBeforeQuit = (timeoutMs: number): Promise<number> => {
-  const windows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed())
+  const windows = ideWindows()
 
   if (unsavedAllowed || windows.length === 0) return Promise.resolve(0)
 

@@ -141,6 +141,29 @@ export const isLinkPassed = (
   return stops[left]?.state === 'done' && stops[right]?.state === 'done'
 }
 
+/**
+ * Какие части нарисованной дороги лежат на полосе этапа: его остановки и складки, спрятавшие
+ * только его карточки. Складка внутри этапа полосу не рвёт - этап читается одним отрезком.
+ */
+export const bandedParts = (
+  items: readonly RoadItem[],
+  band: { from: number; to: number } | null,
+): boolean[] =>
+  items.map((item) => {
+    if (!band) return false
+
+    const from = item.kind === 'stop' ? item.index : item.from
+    const to = item.kind === 'stop' ? item.index : item.to
+
+    return from >= band.from && to <= band.to
+  })
+
+/** Пройдена ли складка «+N»: все спрятанные в ней карточки сделаны - тогда она цвета галочек. */
+export const isFoldPassed = (
+  stops: readonly RoadmapStop[],
+  fold: { from: number; to: number },
+): boolean => stops.slice(fold.from, fold.to + 1).every((stop) => stop.state === 'done')
+
 /** Как рисовать остановку: галочка, крестик, пунктир, номер. */
 export const stopLook = (state: StepState): 'done' | 'failed' | 'skipped' | 'ahead' | 'open' => {
   if (state === 'done') return 'done'

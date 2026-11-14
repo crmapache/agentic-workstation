@@ -1,12 +1,17 @@
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 
 import { app } from 'electron'
 
+import { EXTENSION_ID } from '@agentic-workstation/browser-protocol/extension-id'
+
 import { PROFILE_DIR_ENV } from '../app-profile'
-import { browserPlaces, HOSTS_DIR_ENV } from './browser-places'
+import { openBrowserProfile } from './browser-open'
+import { browserPlaces, HOSTS_DIR_ENV, chromiumDataDirs } from './browser-places'
 import { BrowserRuntime } from './browser-runtime'
+import { findProfilePlace, findChromeProfile, listChromeProfiles } from './chrome-profiles'
+import type { ProfileOpening } from './chrome-profiles'
 import { browserManifestDirs } from './native-host-install'
 import type { BridgeSource } from './native-host-install'
 
@@ -40,6 +45,35 @@ const manifestDirs = (): string[] => {
   return browserManifestDirs(app.getPath('appData'))
 }
 
+/**
+ * Где искать профиль Chrome копии расширения. В тесте папка манифестов лежит внутри папки
+ * данных его Chromium - её он и читает. Файлы браузеров человека только читаются.
+ */
+const dataDirs = (): string[] => {
+  const override = process.env[HOSTS_DIR_ENV]
+
+  return override
+    ? [dirname(override)]
+    : chromiumDataDirs({
+        appData: app.getPath('appData'),
+        localAppData: process.env['LOCALAPPDATA'],
+      })
+}
+
+/**
+ * Открыть окно браузера в закрытом профиле (ADR 0053): только профиль, который есть у человека
+ * в Local State, и только с нашим расширением - иначе открывать незачем.
+ */
+const openProfile = async (name: string): Promise<ProfileOpening> => {
+  const place = await findProfilePlace(dataDirs(), EXTENSION_ID, name)
+
+  if (!place) return 'unknown'
+
+  if (!place.hasExtension) return 'no-extension'
+
+  return (await openBrowserProfile(place.dataDir, place.dir)) ? 'opened' : 'failed'
+}
+
 /** Мост браузера этой IDE (ADR 0040); changed - разослать окну новое состояние коннекторов. */
 export const createBrowserRuntime = (changed: () => void): BrowserRuntime =>
   new BrowserRuntime({
@@ -53,5 +87,8 @@ export const createBrowserRuntime = (changed: () => void): BrowserRuntime =>
     execPath: process.execPath,
     ideVersion: app.getVersion(),
     manifestDirs,
+    identify: (profileKey) => findChromeProfile(dataDirs(), EXTENSION_ID, profileKey),
+    listProfiles: () => listChromeProfiles(dataDirs(), EXTENSION_ID),
+    openProfile,
     changed,
   })

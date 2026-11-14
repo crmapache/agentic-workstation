@@ -46,6 +46,7 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       '--color-danger-strong',
       '--color-danger-soft',
       '--color-info',
+      '--color-agent',
     ],
   },
   {

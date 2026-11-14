@@ -4,12 +4,15 @@ import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
+import type { TooltipRow, TooltipTone, TooltipDetails } from '@agentic-workstation/ui/Tooltip.types'
 
+import { clockLabel, daysBetween, weekdayClockLabel } from '../../lib/dates.utils'
 import type { UsageRing } from './claude.types'
 import {
   WEEK_MS,
   FIVE_HOUR_MS,
   PACE_HIGH_OVER,
+  USAGE_STALE_MS,
   PACE_FULL_PERCENT,
   PACE_HIGH_PERCENT,
   PACE_WARNING_OVER,
@@ -134,11 +137,96 @@ export const weekBudget = (resetsAt: number | null, now: number): number | null 
   return Math.min(day * WEEK_DAILY_BUDGET, USAGE_FULL_PERCENT)
 }
 
+/** Когда сброс по часам: сегодня - «20:00», в другой день - «Sun 20:00». */
+const resetClock = (resetsAt: number, now: number): string =>
+  daysBetween(now, resetsAt) === 0 ? clockLabel(resetsAt) : weekdayClockLabel(resetsAt)
+
+/** Ступень кольца - тон справки; доплата и «без оценки» - не ступени, их не красим. */
+const gaugeTone = (tone: RingMeterTone): TooltipTone | undefined =>
+  tone === 'accent' || tone === 'neutral' ? undefined : tone
+
+/** Перерасход против ровного темпа - та же лестница, что у тона кольца. */
+const overTone = (over: number): TooltipTone =>
+  over <= PACE_WARNING_OVER ? 'warning' : over <= PACE_HIGH_OVER ? 'high' : 'danger'
+
+/**
+ * Строки темпа недели: сколько положено к сегодняшнему дню и запас или перерасход против
+ * этого - разность той же цифры, что видна на кольце бледной дугой.
+ */
+const paceRows = (percent: number, pace: number, t: TFunction): TooltipRow[] => {
+  const over = percent - pace
+
+  return [
+    {
+      key: 'pace',
+      label: t('claudeCode.usage.tip.evenPace'),
+      value: t('claudeCode.usage.percent', { value: pace }),
+      aside: t('claudeCode.usage.tip.byToday'),
+    },
+    over > 0
+      ? {
+          key: 'over',
+          label: t('claudeCode.usage.tip.over'),
+          value: t('claudeCode.usage.tip.overValue', { value: over }),
+          tone: overTone(over),
+        }
+      : {
+          key: 'reserve',
+          label: t('claudeCode.usage.tip.reserve'),
+          value: t('claudeCode.usage.percent', { value: -over }),
+          tone: 'success',
+        },
+  ]
+}
+
+/**
+ * Справка кольца: процент у заголовка цветом темпа, под ним - через сколько сброс и в
+ * котором часу, у недели - ровный темп и запас против него. Внизу - доплата у горящего
+ * кольца и давность цифр, если сервер давно не отвечал.
+ */
+const ringDetails = (
+  ring: Omit<UsageRing, 'details'>,
+  resetsAt: number | null,
+  usage: AccountUsage,
+  now: number,
+  t: TFunction,
+): TooltipDetails => {
+  const percent = Math.round(ring.value)
+  const age = now - usage.fetchedAt
+  const extra =
+    ring.burning && usage.extra
+      ? usage.extra.percent === null
+        ? t('claudeCode.usage.extra')
+        : t('claudeCode.usage.extraPercent', { value: Math.round(usage.extra.percent) })
+      : ''
+  const stale =
+    age > USAGE_STALE_MS ? t('claudeCode.usage.updated', { time: formatRemaining(age) }) : ''
+  const reset: TooltipRow[] =
+    resetsAt !== null && resetsAt > now
+      ? [
+          {
+            key: 'reset',
+            label: t('claudeCode.usage.tip.resetsIn'),
+            value: formatRemaining(resetsAt - now),
+            aside: resetClock(resetsAt, now),
+          },
+        ]
+      : []
+
+  return {
+    value: t('claudeCode.usage.percent', { value: percent }),
+    tone: gaugeTone(ring.tone),
+    rows: [...reset, ...(ring.pace === null ? [] : paceRows(percent, ring.pace, t))],
+    note: [extra, stale].filter(Boolean).join(' ') || undefined,
+  }
+}
+
 /**
  * Кольца лимитов в порядке окон сервера (как в ACC: пять часов, неделя, неделя модели).
  * Тон - по темпу до сброса, у недель - бледная дуга ровного темпа; у окна, чью длину
  * панель не знает, - только по пределу. Окно, которое упёрлось, пока идёт доплата, -
- * горящее кольцо без цифры: его процент застрял на ста и ничего не говорит.
+ * горящее кольцо без цифры: его процент застрял на ста и ничего не говорит. Подсказка -
+ * справкой (details), строкой (hint) - для скринридера.
  */
 export const usageRings = (usage: AccountUsage, now: number, t: TFunction): UsageRing[] =>
   usage.windows.map((window) => {
@@ -154,8 +242,7 @@ export const usageRings = (usage: AccountUsage, now: number, t: TFunction): Usag
       left > 0 ? t('claudeCode.usage.resetsIn', { time: formatRemaining(left) }) : '',
       pace !== null ? t('claudeCode.usage.paceBudget', { value: pace }) : '',
     ]
-
-    return {
+    const ring = {
       key: meterKey(window),
       label,
       value,
@@ -164,4 +251,6 @@ export const usageRings = (usage: AccountUsage, now: number, t: TFunction): Usag
       burning: usage.extra !== null && value >= USAGE_FULL_PERCENT,
       hint: lines.filter(Boolean).join(' · '),
     }
+
+    return { ...ring, details: ringDetails(ring, window.resetsAt, usage, now, t) }
   })

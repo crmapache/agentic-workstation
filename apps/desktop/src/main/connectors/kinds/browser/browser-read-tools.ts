@@ -2,6 +2,7 @@ import { numberArg, stringArg, booleanArg, ToolOutput } from '../native-tools'
 import type { NativeTool } from '../native-tools'
 import type { BrowserAgent } from '../../../browser/browser-agent'
 import { BrowserError } from '../../../browser/browser-error'
+import { isProfileNamed } from '../../../browser/browser-hub'
 import { formatConsole } from '../../../browser/console-log'
 import { snapshot, pageHeader, screenshot } from '../../../browser/page-read'
 import { schema, tabArg, agentCall, TAB_PROPERTY } from './browser-args'
@@ -12,12 +13,17 @@ export const BROWSER_READ_TOOLS: NativeTool<BrowserAgent>[] = [
   {
     name: 'profiles',
     description:
-      'List the Chrome profiles connected to Agentic Workstation: key, name the user gave it, browser.',
+      'List the Chrome profiles connected to Agentic Workstation: key, name, the Chrome profile it is (as the user sees it in Chrome), browser.',
     access: 'read',
     inputSchema: schema({}),
     run: (_args, agent) =>
       Promise.resolve(
-        agent.profiles().map(({ key, name, browser }) => ({ profile: key, name, browser })),
+        agent.profiles().map(({ key, name, chromeProfile, browser }) => ({
+          profile: key,
+          name,
+          chromeProfile,
+          browser,
+        })),
       ),
   },
   {
@@ -26,7 +32,10 @@ export const BROWSER_READ_TOOLS: NativeTool<BrowserAgent>[] = [
       'List open tabs of the connected Chrome profiles (or one profile), one line per tab: reference, title, URL, active, tab group, and whether you already hold it. Filter with "query" on long lists. Pass a reference to "take" or to any tool\'s "tab" to work in that tab.',
     access: 'read',
     inputSchema: schema({
-      profile: { type: 'string', description: 'Profile key or name. Default: all profiles.' },
+      profile: {
+        type: 'string',
+        description: 'Profile key, name or Chrome profile. Default: all profiles.',
+      },
       query: {
         type: 'string',
         description: 'Only tabs whose title or URL contains this text (any case).',
@@ -34,13 +43,11 @@ export const BROWSER_READ_TOOLS: NativeTool<BrowserAgent>[] = [
       limit: { type: 'number', description: 'At most this many tabs (default 50, max 200).' },
     }),
     run: async (args, agent, call) => {
-      const wanted = stringArg(args, 'profile')?.toLowerCase()
+      const wanted = stringArg(args, 'profile')
       const session = agent.session(agentCall(call))
       const profiles = agent
         .profiles()
-        .filter(
-          (profile) => !wanted || profile.key === wanted || profile.name.toLowerCase() === wanted,
-        )
+        .filter((profile) => !wanted || isProfileNamed(profile, wanted))
 
       if (!profiles.length)
         throw new BrowserError('profile-offline', 'No matching Chrome profile is connected.')

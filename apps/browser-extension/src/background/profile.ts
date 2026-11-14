@@ -2,6 +2,7 @@ import type { ProfileInfo } from '../common/messages'
 
 const KEY = 'profileKey'
 const NAME = 'profileName'
+const CHROME_PROFILE = 'chromeProfile'
 const LAUNCH = 'launchMarker'
 
 /** Ключ профиля: 8 знаков a-z0-9 - коротко для ссылки и не повторится среди профилей человека. */
@@ -87,25 +88,51 @@ export const newLaunchMarker = (): Promise<string> => {
   return launchLoading
 }
 
+const textOf = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
+
 /**
  * Профиль этой установки расширения. Ключ создаётся один раз и живёт в storage.local
  * профиля Chrome - по нему ИИ отличает вкладки рабочего профиля от личного. Имя меняет
- * человек в окне значка; пока не менял - имя браузера.
+ * человек в окне значка; пока не менял - имя профиля Chrome (его называет IDE), без него -
+ * имя браузера.
  */
 export const loadProfile = async (): Promise<ProfileInfo> => {
   const [key, launch, stored] = await Promise.all([
     profileKey(),
     launchMarker(),
-    chrome.storage.local.get(NAME),
+    chrome.storage.local.get([NAME, CHROME_PROFILE]),
   ])
-  const storedName: unknown = stored[NAME]
+  const own = textOf(stored[NAME])
   const browser = currentBrowser()
-  const name = typeof storedName === 'string' && storedName.trim() ? storedName : browser
 
-  return { key, name, browser, launch }
+  return {
+    key,
+    name: own || textOf(stored[CHROME_PROFILE]) || browser,
+    named: own !== '',
+    browser,
+    launch,
+  }
 }
 
-/** Новое имя профиля; пустое - снова имя браузера. */
+/**
+ * Имя профиля Chrome, которое назвала IDE (ADR 0052): API расширения его не знает. Не нашла -
+ * прежнее остаётся. true - имя поменялось, окну значка перечитать.
+ */
+export const rememberChromeProfile = async (name: string | null | undefined): Promise<boolean> => {
+  const clean = textOf(name).slice(0, 60)
+
+  if (!clean) return false
+
+  const stored = await chrome.storage.local.get(CHROME_PROFILE)
+
+  if (stored[CHROME_PROFILE] === clean) return false
+
+  await chrome.storage.local.set({ [CHROME_PROFILE]: clean })
+
+  return true
+}
+
+/** Новое имя профиля; пустое - снова имя по умолчанию (профиль Chrome или браузер). */
 export const renameProfile = async (name: string): Promise<ProfileInfo> => {
   const clean = name.replace(/\s+/g, ' ').trim().slice(0, 60)
 

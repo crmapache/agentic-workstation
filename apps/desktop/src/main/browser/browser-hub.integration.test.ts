@@ -83,6 +83,7 @@ describe('BrowserHub и настоящий native host', () => {
       channel: 'dev',
       ideVersion: '9.9.9',
       extensionBuild: () => 'b1',
+      identify: (key) => Promise.resolve(key === 'test1234' ? 'Improving' : null),
       helloTimeoutMs: 2000,
     })
 
@@ -138,8 +139,51 @@ describe('BrowserHub и настоящий native host', () => {
 
     const welcome = await fake.next((message) => message['type'] === 'welcome')
 
-    expect(welcome).toMatchObject({ channel: 'dev', ideVersion: '9.9.9', extensionBuild: 'b1' })
-    expect(hub.profiles()).toMatchObject([{ key: 'test1234', name: 'Work', browser: 'Chromium' }])
+    expect(welcome).toMatchObject({
+      channel: 'dev',
+      ideVersion: '9.9.9',
+      extensionBuild: 'b1',
+      chromeProfile: 'Improving',
+    })
+    expect(hub.profiles()).toMatchObject([
+      { key: 'test1234', name: 'Work', chromeProfile: 'Improving', browser: 'Chromium' },
+    ])
+
+    // Имя, которое дал человек, снято: копия зовётся своим профилем Chrome, а не браузером.
+    fake.send({ type: 'event', name: 'profile-renamed', data: { name: 'Chromium', named: false } })
+    await expect.poll(() => hub.profiles()[0]?.name).toBe('Improving')
+  })
+
+  it('профиль Chrome не успел к ответу на hello - имя досылается расширению отдельно', async () => {
+    hub = new BrowserHub({
+      channel: 'dev',
+      ideVersion: '9.9.9',
+      extensionBuild: () => 'b1',
+      identify: () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve('Improving'), 300)
+        }),
+      identifyTimeoutMs: 20,
+      helloTimeoutMs: 2000,
+    })
+    await hub.start(socketPath)
+
+    const fake = startHost()
+
+    await fake.next(status('connected'))
+    fake.send({ ...HELLO, profileName: 'Chromium', named: false })
+
+    const welcome = await fake.next((message) => message['type'] === 'welcome')
+
+    expect(welcome['chromeProfile']).toBeNull()
+    expect(hub.profiles()[0]?.name).toBe('Chromium')
+
+    const late = await fake.next(
+      (message) => message['type'] === 'request' && message['method'] === 'profile.chrome',
+    )
+
+    expect(late['params']).toEqual({ name: 'Improving' })
+    expect(hub.profiles()[0]?.name).toBe('Improving')
   })
 
   it('с ключом моста (Windows, ADR 0048): свой host проходит проверку, чужой - нет', async () => {

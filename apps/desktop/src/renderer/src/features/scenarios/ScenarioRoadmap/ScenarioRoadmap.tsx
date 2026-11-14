@@ -1,34 +1,44 @@
 import { Fragment } from 'react'
 import clsx from 'clsx'
-import { useTranslation } from 'react-i18next'
 
-import { endOf, bandOf, hereOf, roadLayout, isLinkPassed } from '../scenarios-road.utils'
+import {
+  endOf,
+  bandOf,
+  hereOf,
+  roadLayout,
+  bandedParts,
+  isLinkPassed,
+} from '../scenarios-road.utils'
 import { NO_STOP } from './ScenarioRoadmap.constants'
 import { useRoadMeasure } from './ScenarioRoadmap.hooks'
 import styles from './ScenarioRoadmap.module.scss'
 import type { ScenarioRoadmapProps } from './ScenarioRoadmap.types'
 import { roadStopsStyle } from './ScenarioRoadmap.utils'
+import { RoadFold } from './parts/RoadFold'
 import { RoadStop } from './parts/RoadStop'
 
 /**
  * Дорога карточек прогона (Roadmap в ACC): кружки на одном расстоянии, этап, где стоит прогон,
- * подложен полосой, связка между сделанными - тоже цвета успеха. Не влезает - первая и последняя на месте, окно вокруг текущей и «+N».
+ * подложен одной сплошной полосой с круглыми концами, связка между сделанными - цвета успеха. Не
+ * влезает - первая и последняя на месте, окно вокруг текущей и «+N».
  * У законченного прогона настоящего нет: ничего не выделено, окно смотрит туда, где он кончился.
  */
 export const ScenarioRoadmap = ({ stops, mood, ownWidth = false }: ScenarioRoadmapProps) => {
-  const { t } = useTranslation()
   const { ref, probeRef, width, metrics } = useRoadMeasure()
   const isOver = mood === 'over'
   const here = isOver ? endOf(stops) : hereOf(stops)
   // Пока части не обмерены (первая раскладка до отрисовки), ряд пуст, а не сложен по догадке.
   const items = metrics ? roadLayout(stops.length, here, width, metrics) : []
-  const band = isOver ? null : bandOf(stops, here)
-  const inBand = (index: number) => band !== null && index >= band.from && index <= band.to
+  const banded = bandedParts(items, isOver ? null : bandOf(stops, here))
+  // Круглые концы - у первой и последней НАРИСОВАННОЙ части этапа: этап, наполовину ушедший в
+  // складку, всё равно читается отрезком с двумя концами.
+  const bandStart = banded.indexOf(true)
+  const bandEnd = banded.lastIndexOf(true)
 
   return (
     <div
       ref={ref}
-      className={clsx(styles.scenarioRoadmap, ownWidth && styles.ownWidth)}
+      className={clsx(styles.scenarioRoadmap, styles[`band${mood}`], ownWidth && styles.ownWidth)}
       // eslint-disable-next-line no-restricted-syntax -- число остановок приходит с прогоном: по нему дорога своей ширины
       style={ownWidth ? roadStopsStyle(stops.length) : undefined}>
       <div ref={probeRef} className={styles.probe} aria-hidden>
@@ -41,24 +51,32 @@ export const ScenarioRoadmap = ({ stops, mood, ownWidth = false }: ScenarioRoadm
           <Fragment key={item.kind === 'stop' ? `stop-${item.index}` : `fold-${item.from}`}>
             {at > 0 && (
               <span
-                className={clsx(styles.link, isLinkPassed(stops, items, at) && styles.passed)}
+                className={clsx(
+                  styles.link,
+                  isLinkPassed(stops, items, at) && styles.passed,
+                  banded[at - 1] && banded[at] && styles.banded,
+                )}
                 aria-hidden
               />
             )}
-            {item.kind === 'stop' ? (
-              <span className={clsx(styles.place, inBand(item.index) && styles[`band${mood}`])}>
+            <span
+              className={clsx(
+                styles.place,
+                banded[at] && styles.banded,
+                at === bandStart && styles.bandStart,
+                at === bandEnd && styles.bandEnd,
+              )}>
+              {item.kind === 'stop' ? (
                 <RoadStop
                   stop={stops[item.index] ?? NO_STOP}
                   index={item.index}
                   isHere={!isOver && item.index === here}
                   mood={mood}
                 />
-              </span>
-            ) : (
-              <span className={styles.fold}>
-                {t('scenarios.common.more', { count: item.to - item.from + 1 })}
-              </span>
-            )}
+              ) : (
+                <RoadFold stops={stops} fold={item} />
+              )}
+            </span>
           </Fragment>
         ))}
       </div>

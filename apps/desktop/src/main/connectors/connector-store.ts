@@ -9,6 +9,7 @@ import type {
   ToolAccess,
   McpTransport,
   ConnectorKind,
+  ConnectorInProject,
 } from '@shared/connectors'
 import {
   MCP_AUTHS,
@@ -17,7 +18,9 @@ import {
   isCustomKind,
   MCP_TRANSPORTS,
   CONNECTOR_KINDS,
+  BROWSER_PROFILE_NAME_MAX,
   CONNECTOR_DESCRIPTION_MAX,
+  CONNECTOR_INSTRUCTIONS_MAX,
 } from '@shared/connectors'
 
 import { isAllowedMcpUrl } from './connector-url'
@@ -57,6 +60,8 @@ export type StoredConnector = {
   spec: HttpConnectorSpec | null
   /** В каких проектах коннектор виден провайдеру. */
   availability: ConnectorAvailability
+  /** Инструкции модели и профиль Chrome по проектам (ADR 0053), ключ - путь проекта. */
+  inProjects: Record<string, ConnectorInProject>
   account: string | null
   enabled: boolean
   /** Выбор человека по инструментам; нет записи - как по умолчанию (tool-access.ts). */
@@ -107,6 +112,7 @@ export const blankConnector = (
   command: null,
   spec: null,
   availability: EVERYWHERE,
+  inProjects: {},
   account: null,
   enabled: true,
   toolOverrides: {},
@@ -156,11 +162,36 @@ const authOf = (kind: ConnectorKind, value: unknown): McpAuth | null => {
   return kind === 'mcp' ? (oneOf(value, MCP_AUTHS) ?? 'oauth') : null
 }
 
-/** Доступность из файла; нет или битая - во всех проектах. */
-const parseAvailability = (value: unknown): ConnectorAvailability =>
-  isRecord(value) && value['mode'] === 'only'
-    ? { mode: 'only', projects: stringList(value['projects']) }
-    : EVERYWHERE
+/** Доступность из файла; нет или битая - во всех проектах, с запомненными отмеченными. */
+const parseAvailability = (value: unknown): ConnectorAvailability => {
+  if (!isRecord(value)) return EVERYWHERE
+
+  if (value['mode'] === 'only') return { mode: 'only', projects: stringList(value['projects']) }
+
+  const remembered = stringList(value['remembered'])
+
+  return remembered.length ? { mode: 'all', remembered } : EVERYWHERE
+}
+
+/**
+ * Настройки по проектам из файла: только абсолютные пути и непустое - пустую запись незачем
+ * хранить. Длинное обрезается до потолка, как и поле окна.
+ */
+const parseInProjects = (value: unknown): Record<string, ConnectorInProject> => {
+  if (!isRecord(value)) return {}
+
+  const entries = Object.entries(value).flatMap(([path, entry]): [string, ConnectorInProject][] => {
+    if (!isAbsolute(path) || !isRecord(entry)) return []
+
+    const instructions = stringOr(entry['instructions'], '').slice(0, CONNECTOR_INSTRUCTIONS_MAX)
+    const profile = stringOr(entry['browserProfile'], '').trim().slice(0, BROWSER_PROFILE_NAME_MAX)
+    const browserProfile = profile || null
+
+    return instructions.trim() || browserProfile ? [[path, { instructions, browserProfile }]] : []
+  })
+
+  return Object.fromEntries(entries)
+}
 
 const parseCommand = (value: unknown): StoredCommand | null =>
   isRecord(value) && typeof value['command'] === 'string' && value['command']
@@ -195,6 +226,7 @@ const parseConnector = (value: unknown): StoredConnector | null => {
     // Описание проверяется заново: файл мог править кто угодно, а шлюз его исполняет.
     spec: kind === 'http' ? parseSpec(value['spec']) : null,
     availability: parseAvailability(value['availability']),
+    inProjects: parseInProjects(value['inProjects']),
     account: stringOr(value['account'], null),
     enabled: value['enabled'] !== false,
     toolOverrides: parseOverrides(value['toolOverrides']),

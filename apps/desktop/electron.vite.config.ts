@@ -37,6 +37,15 @@ export default defineConfig({
     },
     // electron-vite по умолчанию не сжимает рендерер. Окно грузит бандл с диска, но
     // разбирать JS движку всё равно приходится: меньше код - быстрее первый кадр.
-    build: { minify: true },
+    // Вторая страница - капсула Computer Use (ADR 0057): своё окно-панель поверх приложений.
+    build: {
+      minify: true,
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          capsule: resolve(__dirname, 'src/renderer/capsule.html'),
+        },
+      },
+    },
   },
 })

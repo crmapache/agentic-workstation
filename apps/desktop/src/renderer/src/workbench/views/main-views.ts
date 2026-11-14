@@ -53,3 +53,12 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     ),
   },
 ]
+
+/**
+ * Вид середины, чья кнопка стоит внизу левой полосы над настройками, а не в полосе видов
+ * середины: статистику смотрят изредка, а полоса - для того, с чем работают весь день.
+ */
+export const FOOTER_MAIN_VIEW_ID: MainViewId = 'statistics'
+
+/** Кнопки полосы видов середины - все виды, кроме того, что внизу левой полосы. */
+export const MAIN_BAR_VIEWS = MAIN_VIEWS.filter((view) => view.id !== FOOTER_MAIN_VIEW_ID)

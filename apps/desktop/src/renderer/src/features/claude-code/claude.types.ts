@@ -19,6 +19,7 @@ import type { Project } from '@shared/workspace'
 
 import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
+import type { TooltipDetails } from '@agentic-workstation/ui/Tooltip.types'
 
 export type ToolKind = 'hidden' | 'plain' | 'edit' | 'agent' | 'plan' | 'question'
 
@@ -100,5 +101,8 @@ export type UsageRing = {
   tone: RingMeterTone
   /** Окно упёрлось, работа идёт на доплате: кольцо горит, цифры нет. */
   burning: boolean
+  /** Всё о кольце одной строкой - имя для скринридера. */
   hint: string
+  /** То же справкой в подсказке: процент, сброс, темп, заметки строками. */
+  details: TooltipDetails
 }

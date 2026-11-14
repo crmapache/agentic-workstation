@@ -31,7 +31,10 @@ const [command, argument] = process.argv.slice(2)
 const findPageSocketUrl = async () => {
   const response = await fetch(`http://127.0.0.1:${port}/json`)
   const targets = await response.json()
-  const page = targets.find((target) => target.type === 'page')
+  // Страниц у IDE две: главное окно и капсула Computer Use (ADR 0057). Скрипт смотрит на окно.
+  const page = targets.find(
+    (target) => target.type === 'page' && !target.url.includes('capsule.html'),
+  )
 
   if (!page) throw new Error(`На порту ${port} нет страницы. Окно запущено с отладкой?`)
 

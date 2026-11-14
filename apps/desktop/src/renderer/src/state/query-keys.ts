@@ -9,6 +9,8 @@ export const QUERY_KEYS = {
   appInfo: ['app', 'info'],
   resourceUsage: ['app', 'resource-usage'],
   workspace: ['workspace'],
+  /** Капсула Computer Use (ADR 0057): что делает ИИ на компьютере; свободен - null. */
+  computerCapsule: ['computer', 'capsule'],
   updateStatus: ['updates', 'status'],
   directory: (projectId: string, relativePath: string) => [
     'fs',

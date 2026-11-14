@@ -10,11 +10,13 @@ import {
   isForeignHost,
   connectorNames,
   connectorTitle,
+  profileChoices,
   connectorDetail,
   shortDescription,
   forgottenProjects,
   signsInWithBrowser,
   availabilitySummary,
+  instructionProjects,
 } from './ConnectorsView.utils'
 
 const tool = (name: string, access: 'read' | 'write' | 'outbound') => ({
@@ -47,14 +49,71 @@ describe('shortDescription', () => {
 })
 
 describe('forgottenProjects', () => {
-  it('пути из доступности, которых нет среди известных проектов, - без повторов', () => {
+  it('пути из доступности и инструкций, которых нет среди известных проектов, - без повторов', () => {
+    const said = { instructions: 'use the staging site', browserProfile: null }
     const connectors = [
-      { availability: { mode: 'all' as const } },
-      { availability: { mode: 'only' as const, projects: ['/p/old', '/p/a'] } },
-      { availability: { mode: 'only' as const, projects: ['/p/old', '/p/gone'] } },
+      { availability: { mode: 'all' as const }, inProjects: { '/p/moved': said, '/p/a': said } },
+      { availability: { mode: 'only' as const, projects: ['/p/old', '/p/a'] }, inProjects: {} },
+      { availability: { mode: 'only' as const, projects: ['/p/old', '/p/gone'] }, inProjects: {} },
     ]
 
-    expect(forgottenProjects(connectors, [{ rootPath: '/p/a' }])).toEqual(['/p/old', '/p/gone'])
+    expect(forgottenProjects(connectors, [{ rootPath: '/p/a' }])).toEqual([
+      '/p/moved',
+      '/p/old',
+      '/p/gone',
+    ])
+  })
+})
+
+describe('instructionProjects', () => {
+  const projects = [
+    { name: 'improving', rootPath: '/p/improving' },
+    { name: 'home', rootPath: '/p/home' },
+  ]
+
+  it('с открытого проекта, если коннектор в нём виден; иначе с первого видимого', () => {
+    expect(instructionProjects(projects, { mode: 'all' }, '/p/home')).toEqual({
+      projects,
+      initial: '/p/home',
+    })
+    expect(
+      instructionProjects(projects, { mode: 'only', projects: ['/p/home'] }, '/p/improving'),
+    ).toEqual({ projects: [projects[1]], initial: '/p/home' })
+    expect(instructionProjects(projects, { mode: 'only', projects: [] }, '/p/home')).toBeNull()
+  })
+})
+
+describe('profileChoices', () => {
+  it('все профили Chrome: на связи, не на связи, без расширения; без повторов', () => {
+    const connected = [
+      { name: 'Job', chromeProfile: 'Improving' },
+      { name: 'Support', chromeProfile: 'Support' },
+    ]
+    const all = [
+      { name: 'Max', hasExtension: true },
+      { name: 'Improving', hasExtension: true },
+      { name: 'Support', hasExtension: true },
+      { name: 'Claude Work', hasExtension: false },
+    ]
+
+    expect(profileChoices(connected, all, 'improving')).toEqual([
+      { name: 'Max', state: 'offline' },
+      { name: 'Improving', state: 'connected' },
+      { name: 'Support', state: 'connected' },
+      { name: 'Claude Work', state: 'missing' },
+    ])
+    // Выбранный, которого нигде нет (старое имя), - в конце, «не на связи».
+    expect(profileChoices(connected, all, 'Google Chrome').at(-1)).toEqual({
+      name: 'Google Chrome',
+      state: 'offline',
+    })
+  })
+
+  it('без доступа к диску список пуст - выбор из подключённых', () => {
+    expect(profileChoices([{ name: 'Google Chrome', chromeProfile: null }], [], null)).toEqual([
+      { name: 'Google Chrome', state: 'connected' },
+    ])
+    expect(profileChoices([], [], null)).toEqual([])
   })
 })
 

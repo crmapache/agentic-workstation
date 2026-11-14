@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderOpen, SquareArrowOutUpRight } from 'lucide-react'
+import { FolderOpen, ShieldCheck, SquareArrowOutUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { CHROME_EXTENSIONS_URL } from '@shared/connectors'
@@ -46,17 +46,38 @@ export const BrowserSetup = ({ browser }: BrowserSetupProps) => {
           {browser.profiles.length === 0 && (
             <p className={styles.hint}>{t('connectors.browser.profiles.empty')}</p>
           )}
-          {browser.profiles.map((profile) => (
-            <div key={profile.key} className={styles.fact}>
-              <span className={styles.factValue}>{profile.name}</span>
-              <span className={styles.factLabel}>
-                {t('connectors.browser.profiles.detail', {
-                  browser: profile.browser,
-                  version: profile.version,
-                })}
-              </span>
+          {browser.namesDenied && (
+            <>
+              <p className={styles.hint}>{t('connectors.browser.profiles.denied')}</p>
+              <div className={styles.buttons}>
+                <Button size="sm" icon={ShieldCheck} onClick={() => void actions.openDiskAccess()}>
+                  {t('connectors.browser.profiles.openDiskAccess')}
+                </Button>
+              </div>
+            </>
+          )}
+          {browser.profiles.length > 0 && (
+            <div className={styles.toolList}>
+              {browser.profiles.map((profile) => (
+                <div key={profile.key} className={styles.profileRow}>
+                  <span className={styles.factValue}>{profile.name}</span>
+                  <span className={styles.factLabel}>
+                    {/* Своё имя копии - и профиль Chrome под ним: по нему человек её узнаёт. */}
+                    {profile.chromeProfile && profile.chromeProfile !== profile.name
+                      ? t('connectors.browser.profiles.detailProfile', {
+                          profile: profile.chromeProfile,
+                          browser: profile.browser,
+                          version: profile.version,
+                        })
+                      : t('connectors.browser.profiles.detail', {
+                          browser: profile.browser,
+                          version: profile.version,
+                        })}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </Section>
       <Section

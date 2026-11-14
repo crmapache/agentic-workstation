@@ -11,7 +11,7 @@ import styles from '../ConnectorsView.module.scss'
 import type { ProjectChipsProps } from '../ConnectorsView.types'
 import { baseName } from '../../../../lib/path.utils'
 import { useConnectorActions } from '../../../../state/connectors.queries'
-import { projectTone, projectInitials } from '../../../../state/project-avatar.utils'
+import { projectAvatar } from '../../../../state/project-avatar.utils'
 
 /**
  * Отмеченные проекты режима «только в отмеченных» - плашками со значком, как во вкладках;
@@ -37,9 +37,7 @@ export const ProjectChips = ({ connector, selected, projects }: ProjectChipsProp
         <ToggleChip
           key={project.rootPath}
           label={project.name}
-          leading={
-            <Avatar initials={projectInitials(project.name)} tone={projectTone(project.name)} />
-          }
+          leading={<Avatar {...projectAvatar(project)} />}
           hint={project.rootPath}
           pressed={selected.projects.includes(project.rootPath)}
           onChange={(on) => handleToggle(project.rootPath, on)}

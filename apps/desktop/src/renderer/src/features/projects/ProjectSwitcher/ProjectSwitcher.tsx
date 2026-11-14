@@ -8,12 +8,12 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import { useProjectsStore } from '../projects.store'
 import { CloneDialog } from '../CloneDialog/CloneDialog'
 import { ProjectMenu } from '../ProjectMenu/ProjectMenu'
-import { projectTone, projectInitials } from '../../../state/project-avatar.utils'
+import { projectAvatar } from '../../../state/project-avatar.utils'
 import { useActiveProject } from '../../../state/workspace.queries'
 
 /**
- * Переключатель проекта в шапке, как в WebStorm: значок с инициалами и имя активного
- * проекта, по клику - меню проектов. Меню монтируется только открытым: так оно
+ * Переключатель проекта в шапке, как в WebStorm: значок с инициалами (у дома - его знак) и имя
+ * активного проекта, по клику - меню проектов. Меню монтируется только открытым: так оно
  * каждый раз свежее и не держит память, пока закрыто.
  */
 export const ProjectSwitcher = () => {
@@ -23,9 +23,7 @@ export const ProjectSwitcher = () => {
   const isCloneOpen = useProjectsStore((state) => state.isCloneOpen)
   const closeClone = useProjectsStore((state) => state.closeClone)
 
-  const avatar = project && (
-    <Avatar initials={projectInitials(project.name)} tone={projectTone(project.name)} />
-  )
+  const avatar = project && <Avatar {...projectAvatar(project)} />
 
   return (
     <>

@@ -10,12 +10,18 @@ import {
   WandSparkles,
   MessagesSquare,
   SquareTerminal,
+  MousePointerClick,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { GenerateConnectorRequest } from '@shared/connector-spec'
-import type { ToolAccess, ConnectorKind, ConnectorStatus } from '@shared/connectors'
+import type {
+  ToolAccess,
+  ConnectorKind,
+  ConnectorStatus,
+  ConnectorInProject,
+} from '@shared/connectors'
 import { MCP_AUTHS } from '@shared/connectors'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
@@ -31,12 +37,16 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   todoist: ListTodo,
   playwright: Drama,
   browser: Globe,
+  computer: MousePointerClick,
   mcp: Plug,
   command: SquareTerminal,
   http: WandSparkles,
 }
 
-/** Коннекторы к известным приложениям: имя сервиса - имя типа, его видно заголовком плитки. */
+/**
+ * Коннекторы к известным приложениям: имя сервиса - имя типа, его видно заголовком плитки.
+ * Computer Use - на обеих системах IDE, мак и Windows (ADR 0057, 0058).
+ */
 export const APP_KINDS: readonly ConnectorKind[] = [
   'gmail',
   'calendar',
@@ -46,6 +56,7 @@ export const APP_KINDS: readonly ConnectorKind[] = [
   'todoist',
   'playwright',
   'browser',
+  'computer',
 ]
 
 /**
@@ -53,6 +64,9 @@ export const APP_KINDS: readonly ConnectorKind[] = [
  * переподключает сервер у живых разговоров, на каждую букву это лишнее.
  */
 export const DESCRIPTION_SAVE_MS = 1000
+
+/** Коннектору в проекте ничего не сказано: ни инструкций, ни профиля Chrome. */
+export const NOTHING_SAID: ConnectorInProject = { instructions: '', browserProfile: null }
 
 /** Тон плитки типа в каталоге: разные сервисы узнаются цветом, смысла состояния в нём нет. */
 export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
@@ -64,6 +78,7 @@ export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   todoist: 'danger',
   playwright: 'success',
   browser: 'accent',
+  computer: 'info',
   mcp: 'accent',
   command: 'neutral',
   http: 'success',
@@ -98,6 +113,9 @@ export const SLACK_APPS_URL = 'https://api.slack.com/apps'
 
 /** Шаги установки расширения браузера для ИИ: режим разработчика, Load unpacked, закрепить. */
 export const BROWSER_STEPS = ['one', 'two', 'three'] as const
+
+/** Разрешения macOS для Computer Use: мышь и клавиатура, потом экран. */
+export const COMPUTER_PERMISSIONS = ['accessibility', 'screen'] as const
 
 /** Шаги своего Slack app: создать по готовому описанию, включить MCP, взять ключи. */
 export const SLACK_STEPS = ['one', 'two', 'three'] as const

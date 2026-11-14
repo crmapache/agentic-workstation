@@ -80,11 +80,14 @@ export const CONNECTORS: Connector[] = [
     signedIn: true,
     status: 'connected',
     failure: null,
+    failureDetail: null,
+    failureUrl: null,
     tools: [
       { name: 'search', description: '', access: 'read', enabled: true },
       { name: 'send', description: '', access: 'outbound', enabled: false },
     ],
     availability: { mode: 'all' },
+    inProjects: {},
   },
   {
     id: '7c6b5a49-3827-4615-a4b3-c2d1e0f9a8b7',
@@ -105,8 +108,11 @@ export const CONNECTORS: Connector[] = [
     signedIn: false,
     status: 'failed',
     failure: 'unreachable',
+    failureDetail: null,
+    failureUrl: null,
     tools: [],
     availability: { mode: 'all' },
+    inProjects: {},
   },
 ]
 

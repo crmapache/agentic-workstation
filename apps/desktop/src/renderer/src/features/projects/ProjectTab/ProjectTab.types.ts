@@ -1,3 +1,5 @@
+import type { MouseEvent } from 'react'
+
 import type { Project } from '@shared/workspace'
 
 import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
@@ -14,6 +16,13 @@ export type ProjectTabProps = {
   isActive: boolean
   /** Позвавшие разговоры проекта, от старого к новому; пусто - точек нет. */
   calls: readonly ProjectCall[]
+  /** Вкладку несут рукой: поднята над соседями и едет за курсором без задержки. */
+  lifted: boolean
+  /** Сдвиг от своего места на время перетаскивания, в пикселях; null - на месте. */
+  offset: number | null
+  /** Узел вкладки для жеста: где она стоит и откуда доедет после перестановки. */
+  register: (projectId: string, node: HTMLDivElement | null) => void
+  onPress: (event: MouseEvent<HTMLDivElement>, projectId: string) => void
   onActivate: (projectId: string) => void
   onClose: (projectId: string) => void
 }

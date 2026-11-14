@@ -4,6 +4,7 @@ import {
   Play,
   Plus,
   Search,
+  Square,
   Trash2,
   ArrowUp,
   Ellipsis,
@@ -19,12 +20,12 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { ResizeHandle } from '@agentic-workstation/ui/ResizeHandle'
-import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { TooltipSpecimens } from './TooltipSpecimens'
 import { TouchSpecimens } from './TouchSpecimens'
 
 /**
@@ -99,6 +100,7 @@ export const ActionsSection = () => {
         <IconButton icon={Search} size="xs" label={t('samples.search')} />
         <IconButton icon={ArrowUp} variant="primary" label={t('samples.send')} />
         <IconButton icon={ArrowUp} variant="primary" label={t('samples.send')} disabled />
+        <IconButton icon={Square} variant="danger" label={t('samples.stop')} />
       </Specimen>
 
       <Specimen label={t('specimens.dropdowns')}>
@@ -143,11 +145,7 @@ export const ActionsSection = () => {
         />
       </Specimen>
 
-      <Specimen label={t('specimens.tooltip')}>
-        <Tooltip label={t('samples.tooltipText')} placement="top">
-          <Button variant="secondary">{t('samples.hoverMe')}</Button>
-        </Tooltip>
-      </Specimen>
+      <TooltipSpecimens />
 
       <Specimen label={t('specimens.resizeHandle')} layout="column">
         <div className={styles.resizeBox}>

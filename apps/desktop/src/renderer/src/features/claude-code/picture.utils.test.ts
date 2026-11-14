@@ -11,8 +11,12 @@ describe('картинка за чипом', () => {
     })
   })
 
-  it('вставленная с файлом - файлом, без имени под превью', () => {
+  it('вставленная с файлом - файлом, без имени под превью; файл убран - местом чипа', () => {
     expect(chipPicture({ kind: 'img', value: 'Image #2', path: '/u/pasted/a.png' }, said)).toEqual({
+      place: { kind: 'file', path: '/u/pasted/a.png' },
+      fallback: said,
+    })
+    expect(chipPicture({ kind: 'img', value: 'Image #2', path: '/u/pasted/a.png' })).toEqual({
       place: { kind: 'file', path: '/u/pasted/a.png' },
     })
   })

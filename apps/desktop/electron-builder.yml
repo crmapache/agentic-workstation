@@ -19,8 +19,9 @@ directories:
 # с установленным. Оставить каталог - AGENTIC_WORKSTATION_KEEP_UNPACKED=1.
 afterAllArtifactBuild: ./scripts/clean-unpacked.cjs
 
-# Подпись бандла сертификатом проекта - до сборки dmg и zip (см. mac.identity ниже).
-afterPack: ./scripts/sign-app.cjs
+# Проверка нативных модулей своей системы и подпись бандла сертификатом проекта - до сборки dmg,
+# zip и установщика Windows (см. mac.identity ниже).
+afterPack: ./scripts/after-pack.cjs
 
 # Установщик Windows собирается на Маке (ADR 0048). Старый NSIS у electron-builder (3.0.4.1)
 # несёт makensis только под Intel и без Rosetta падает с «Bad CPU type»; набор 1.2.1 - NSIS 3.12
@@ -77,6 +78,10 @@ mac:
   files:
     - '!**/node_modules/node-pty/prebuilds/win32-*/**'
     - '!**/node_modules/node-pty/prebuilds/darwin-x64/**'
+    # koffi (ADR 0008, 0058): в сборку мака - только его бинарник; пакеты Windows pnpm ставит ради
+    # сборки Windows на этой же машине.
+    - '!**/node_modules/@koromix/koffi-win32-*/**'
+    - '!**/node_modules/@koromix/koffi-darwin-x64/**'
   asarUnpack:
     - '**/node_modules/node-pty/prebuilds/darwin-arm64/**'
 
@@ -130,6 +135,9 @@ win:
   files:
     - '!**/node_modules/node-pty/prebuilds/darwin-*/**'
     - '!**/node_modules/node-pty/prebuilds/win32-arm64/**'
+    # koffi: только бинарник Windows x64 - маковый тут не загрузится (ADR 0058).
+    - '!**/node_modules/@koromix/koffi-darwin-*/**'
+    - '!**/node_modules/@koromix/koffi-win32-arm64/**'
   asarUnpack:
     - '**/node_modules/node-pty/prebuilds/win32-x64/**'
 

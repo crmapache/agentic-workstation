@@ -15,7 +15,7 @@ import { QUERY_KEYS } from '../../../../state/query-keys'
 /**
  * Сколько токенов ушло сегодня по всем проектам машины - счётчик справа от колец, как в
  * ACC. Считает главный процесс по транскриптам CLI; освежается раз в минуту, пока виден.
- * Спрятан в Settings → Under the field - не рисуется и не спрашивает.
+ * Спрятан в Settings → Usage meters - не рисуется и не спрашивает.
  */
 export const TodayTokens = () => {
   const { t } = useTranslation()

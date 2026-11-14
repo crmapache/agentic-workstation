@@ -58,6 +58,11 @@ export const useWorkspaceActions = () => {
     mutationFn: (projectId: string) => invoke('workspace:activateProject', { projectId }),
     onSuccess,
   })
+  const move = useMutation({
+    mutationFn: (request: { projectId: string; beforeId: string | null }) =>
+      invoke('workspace:moveProject', request),
+    onSuccess,
+  })
 
   return {
     openProject: () => open.mutate(),
@@ -67,5 +72,13 @@ export const useWorkspaceActions = () => {
     closeProject: (projectId: string) =>
       guardDiscard('project', heldPaths(projectId), () => close.mutate(projectId)),
     activateProject: (projectId: string) => activate.mutate(projectId),
+    // Ответ - порядок переставляемых проектов после перестановки (дом стоит на месте и в ряд
+    // жеста не входит): жест вкладок по нему понимает, встал ли ряд.
+    moveProject: (projectId: string, beforeId: string | null) =>
+      move
+        .mutateAsync({ projectId, beforeId })
+        .then((state) =>
+          state.projects.filter((project) => !project.home).map((project) => project.id),
+        ),
   }
 }

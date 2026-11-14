@@ -13,11 +13,13 @@ export const CONNECTOR_REDIRECT_URL = 'http://localhost:5319/callback'
 
 import type { ConnectorAvailability } from './connector-availability'
 import type { AiJob, HttpConnectorSpec } from './connector-spec'
+import type { ComputerState } from './computer'
 
 /**
  * Тип коннектора. atlassian - Jira и Confluence в облаке Atlassian, todoist - Todoist по
  * личному токену, оба через официальные MCP (ADR 0036); playwright - браузер Playwright MCP
- * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); mcp - любой
+ * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); computer -
+ * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); mcp - любой
  * MCP-сервер по адресу (Linear, Sentry, свой); command - MCP-сервер командой на этой машине
  * (npx, node); http - описанный ИИ по документации сервиса (ADR 0029).
  */
@@ -30,6 +32,7 @@ export type ConnectorKind =
   | 'todoist'
   | 'playwright'
   | 'browser'
+  | 'computer'
   | 'mcp'
   | 'command'
   | 'http'
@@ -43,6 +46,7 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'todoist',
   'playwright',
   'browser',
+  'computer',
   'mcp',
   'command',
   'http',
@@ -116,12 +120,31 @@ export type ConnectorFailure =
   | 'google-app-rejected'
   | 'google-api-disabled'
   | 'google-scope-missing'
+  /** Slack-приложению коннектора не включили Model Context Protocol (Agents & AI Apps). */
+  | 'slack-mcp-off'
 
 /**
  * Потолок описания коннектора: пара абзацев о том, что это и зачем. Модель читает его при
  * каждом подключении к серверу, длинный текст стоил бы ей контекста в каждом разговоре.
  */
 export const CONNECTOR_DESCRIPTION_MAX = 1000
+
+/** Потолок инструкций коннектора в проекте - по той же причине, что у описания. */
+export const CONNECTOR_INSTRUCTIONS_MAX = 2000
+
+/** Потолок имени профиля Chrome проекта: имя профиля в Chrome - пара слов. */
+export const BROWSER_PROFILE_NAME_MAX = 80
+
+/**
+ * Что человек сказал про коннектор в одном проекте (ADR 0053): инструкции модели - куда ходить,
+ * что и как он предпочитает - и у Browser профиль Chrome проекта. Модель получает их в
+ * пояснении сервера только в разговорах этого проекта.
+ */
+export type ConnectorInProject = {
+  instructions: string
+  /** Профиль Chrome по умолчанию в проекте - имя, как его видит человек; null - не выбран. */
+  browserProfile: string | null
+}
 
 export type Connector = {
   id: string
@@ -164,10 +187,16 @@ export type Connector = {
   signedIn: boolean
   status: ConnectorStatus
   failure: ConnectorFailure | null
+  /** Что сказал сам сервис о сбое (его слова, по-английски); не сказал - null. */
+  failureDetail: string | null
+  /** Страница настроек сервиса, где сбой чинится (у Slack - включить MCP); нет - null. */
+  failureUrl: string | null
   /** Инструменты, как их отдал сервис в последний раз, с выключенными. */
   tools: ConnectorTool[]
   /** В каких проектах коннектор виден провайдеру. */
   availability: ConnectorAvailability
+  /** Инструкции и настройки по проектам - по пути проекта; проекта нет - ничего не сказано. */
+  inProjects: Record<string, ConnectorInProject>
 }
 
 /** Чем подключение своего типа входит - какие поля нужны форме нового подключения. */
@@ -198,7 +227,10 @@ export type GoogleAppState = {
 /** Подключённый профиль Chrome с расширением IDE (ADR 0040). */
 export type BrowserProfileView = {
   key: string
+  /** Имя для ИИ: данное в окне расширения, иначе профиль Chrome, иначе браузер. */
   name: string
+  /** Профиль Chrome, в котором стоит копия расширения (ADR 0052); не нашли - null. */
+  chromeProfile: string | null
   browser: string
   version: string
 }
@@ -220,6 +252,16 @@ export type BrowserState = {
   extensionDir: string | null
   profiles: BrowserProfileView[]
   failure: BrowserSetupFailure | null
+  /**
+   * Имена профилей Chrome не прочитать: macOS не пускает IDE в данные Chrome без «Полного
+   * доступа к диску» (ADR 0052). Окно говорит, что дать, и открывает эту настройку.
+   */
+  namesDenied: boolean
+  /**
+   * Все профили браузеров человека и стоит ли в каждом расширение - для выбора профиля проекта
+   * (ADR 0053). Без «Полного доступа к диску» пусто: выбор - из подключённых.
+   */
+  chromeProfiles: { name: string; hasExtension: boolean }[]
 }
 
 /** Имя сервера браузера для ИИ: тип в начале - правило коннекторов (ADR 0028). */
@@ -240,6 +282,8 @@ export type ConnectorsState = {
   /** Работы ИИ над новыми коннекторами (ADR 0050), новые - первыми. */
   aiJobs: AiJob[]
   browser: BrowserState
+  /** Готовность Computer Use: система и разрешения macOS (ADR 0057). */
+  computer: ComputerState
 }
 
 /**
@@ -253,6 +297,8 @@ export type AddConnectorRequest =
   | { kind: 'gmail' | 'calendar' | 'notion' | 'atlassian'; label: string }
   /** Браузер для ИИ (ADR 0040): один на IDE, подпись и имя сервера постоянные. */
   | { kind: 'browser' }
+  /** Computer Use (ADR 0057): мышь у машины одна - и коннектор один, имя сервера постоянное. */
+  | { kind: 'computer' }
   /** Личный токен API Todoist: с ним официальный MCP Todoist пускает без входа в браузере. */
   | { kind: 'todoist'; label: string; token: string }
   | { kind: 'slack'; label: string; clientId: string; clientSecret: string }

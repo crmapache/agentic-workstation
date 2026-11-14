@@ -7,15 +7,16 @@ export type QueueCardProps = {
   queue: ScenarioQueue
   /** Сводка идущего прогона очереди (liveOf); нет - ничего не идёт или сводка ещё не пришла. */
   live?: RunSummary | undefined
-  /** Плотная полоса доски всех очередей: шапка в строку, элементы точками, дорога идущего. */
+  /** Плотная карточка очереди другого проекта: шапка, элементы точками, этап и дорога идущего. */
   compact?: boolean | undefined
-  /** Доска: перейти к проекту очереди и его вкладке очередей. */
+  /** Плотная карточка: перейти к проекту очереди - там её полоса целиком. */
   onOpen?: (() => void) | undefined
 }
 
 export type QueueHeaderProps = {
   queue: ScenarioQueue
-  status: QueueStatus
+  /** Состояние очереди меткой; null - его говорит строка идущего элемента. */
+  status: QueueStatus | null
   isRenaming: boolean
   onRenaming: (isRenaming: boolean) => void
 }
@@ -24,7 +25,11 @@ export type QueueNameProps = Omit<QueueHeaderProps, 'status'>
 
 export type QueueNameFieldProps = { queue: ScenarioQueue; onDone: () => void }
 
-export type QueueBadgesProps = { queue: ScenarioQueue; status: QueueStatus }
+export type QueueBadgesProps = {
+  queue: ScenarioQueue
+  /** null - метки состояния нет: его говорит строка идущего элемента. */
+  status: QueueStatus | null
+}
 
 export type QueueMenuProps = { queue: ScenarioQueue; onRename: () => void }
 

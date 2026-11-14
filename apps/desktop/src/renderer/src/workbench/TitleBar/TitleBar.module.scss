@@ -4,6 +4,9 @@
 .titleBar {
   @include chrome-surface;
 
+  // Шапка - мера для «половины места» проекта ниже: проценты от .start считались бы от самого
+  // проекта с веткой, и при короткой ветке имя проекта резалось при пустой шапке.
+  container-type: inline-size;
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -41,5 +44,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+// В узком окне (от 422, на Windows ещё и кнопки окна справа) проекту и ветке тесно. Проект
+// главнее: он держит своё имя целиком, пока не займёт половину шапки, а ветка режется
+// первой. Поровну они ужимались бы так, что от имени проекта оставалась буква.
+.project {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 50cqi;
+}
+
+.branch {
+  display: flex;
   min-width: 0;
 }

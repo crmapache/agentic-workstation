@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
 
+import type { ComputerState } from '@shared/computer'
 import type { SelectedProjects } from '@shared/connector-availability'
 import type { AiJob, AiProposal, GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
@@ -13,6 +14,7 @@ import type {
   ConnectorsState,
   AddConnectorError,
   PlaywrightProfile,
+  BrowserProfileView,
 } from '@shared/connectors'
 import type { ProjectRef } from '@shared/workspace'
 
@@ -133,10 +135,50 @@ export type ConnectorModalProps = {
   customType: TypePartProps | null
   /** Мост в Chrome - окну коннектора Browser (ADR 0040). */
   browser: BrowserState
+  /** Разрешения macOS - окну коннектора Computer Use (ADR 0057). */
+  computer: ComputerState
 }
 
 /** Установка расширения браузера и профили Chrome на связи. */
 export type BrowserSetupProps = { browser: BrowserState }
+
+/** Разрешения macOS для Computer Use. */
+export type ComputerSetupProps = { computer: ComputerState }
+
+/** Инструкции коннектора в открытом проекте; у Browser - и профиль Chrome из подключённых. */
+/**
+ * Инструкции коннектора по проектам: проекты, где он виден, и с какого начать (открытый, если он
+ * среди них); у Browser - и профиль Chrome из подключённых.
+ */
+export type ProjectInstructionsProps = {
+  connector: Connector
+  projects: ProjectRef[]
+  initial: string
+  browser: BrowserState
+}
+
+/** Поля одного проекта: его путь, коннектор и подключённые профили Chrome. */
+export type InProjectFieldsProps = {
+  connector: Connector
+  projectPath: string
+  browser: BrowserState
+}
+
+/** Выбор проекта для инструкций: у каких проектов они уже есть - видно в списке. */
+export type ProjectSelectProps = {
+  projects: ProjectRef[]
+  value: string
+  said: readonly string[]
+  onPick: (projectPath: string) => void
+}
+
+/** Профиль Chrome проекта: выбранное имя (null - не выбран), подключённые и все профили. */
+export type BrowserProfilePickerProps = {
+  value: string | null
+  profiles: BrowserProfileView[]
+  chromeProfiles: BrowserState['chromeProfiles']
+  onPick: (profile: string | null) => void
+}
 
 /** Подключение коннектора: клиент Google - на случай его сбоя. */
 export type ConnectorConnectionProps = { connector: Connector; google: GoogleAppState }
@@ -154,8 +196,16 @@ export type ConnectorsHelpProps = {
     | 'forgotten'
     | 'google'
     | 'browser'
+    | 'computer'
+    | 'inProject'
     | 'aiJobs'
 }
+
+/**
+ * Профиль Chrome в выборе проекта: имя и что с ним сейчас - на связи, расширение стоит, но
+ * профиль не на связи (окно закрыто), или расширения в нём нет.
+ */
+export type ProfileChoice = { name: string; state: 'connected' | 'offline' | 'missing' }
 
 /** Часть окна одного коннектора. */
 export type ConnectorPartProps = { connector: Connector }

@@ -17,6 +17,7 @@ import { startScenarios } from './scenarios/scenarios-setup'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
 import type { WorkspaceService } from './workspace/workspace-service'
+import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
 
 /** Сколько выход из IDE ждёт возможности IDE поверх провайдеров. */
@@ -66,6 +67,13 @@ export const startIdeFeatures = async (setup: {
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
   const providers = new ProviderWatch((list) => broadcast('providers:changed', list))
 
+  // Stop в капсуле Computer останавливает и ход разговора панели, который держал компьютер, - как
+  // Stop в чате (ADR 0060). Процесс без разговора панели (сценарий) узнаёт об остановке отказом шага.
+  setup.connectors.computer.stopped = (key) => {
+    if (claude.getState().conversations.some((conversation) => conversation.id === key)) {
+      claude.actions.interrupt(key)
+    }
+  }
   taps.onQueues = () => remote.queuesChanged()
   taps.onRun = (run) => remote.runChanged(run)
   statistics.observeClaude(claude.getState())
@@ -79,7 +87,15 @@ export const startIdeFeatures = async (setup: {
       remote.claudeChanged(state)
       providers.claudeChanged(state)
     },
-    observeFeed: (patch) => remote.feedPatched(patch),
+    observeFeed: (patch) => {
+      remote.feedPatched(patch)
+
+      // Последняя фраза разговора - капсуле Computer: пока модель думает между шагами, человек
+      // видит, о чём (ADR 0057).
+      const saying = latestSaying(patch)
+
+      if (saying) setup.connectors.computer.heard(patch.conversationId, saying)
+    },
     observeCall: (call) => remote.claudeCalled(call),
     projectsChanged: () => {
       statistics.projectsChanged()

@@ -13,9 +13,9 @@ import { QueueItems } from './parts/QueueItems'
 import { QueueRunning } from './parts/QueueRunning'
 
 /**
- * Очередь сценариев полосой: имя, где работает, что делает; элементы по порядку, идущий -
- * с дорогой карточек и часами; почему встала и как её пустить; пауза, остановка после
- * текущего, добавить. compact - та же очередь строкой на доске всех очередей.
+ * Очередь сценариев полосой: имя, где работает, что делает (пока элемент идёт, это говорит метка
+ * его строки - второй такой же в шапке нет); элементы по порядку, идущий - с дорогой карточек
+ * и часами; почему встала и как её пустить; пауза, остановка после текущего, добавить. compact - та же очередь плотной карточкой среди других проектов.
  * Ждущий человека прогон красит карточку акцентом: это единственное, что ждёт ответа.
  */
 export const QueueCard = ({ queue, live, compact = false, onOpen }: QueueCardProps) => {
@@ -32,7 +32,7 @@ export const QueueCard = ({ queue, live, compact = false, onOpen }: QueueCardPro
       <div className={styles.lane}>
         <QueueHeader
           queue={queue}
-          status={status}
+          status={isGoing ? null : status}
           isRenaming={isRenaming}
           onRenaming={setIsRenaming}
         />

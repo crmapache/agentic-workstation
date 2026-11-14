@@ -17,18 +17,17 @@ import { formatClock } from './UserMessage.utils'
 import { EditorLine } from './parts/EditorLine'
 import { MessageActions } from './parts/MessageActions'
 import { MessageBody } from './parts/MessageBody'
-import { MessageImages } from './parts/MessageImages'
 
 /**
  * Сообщение человека - карточка с рамкой (как в ACC): в шапке «YOU» и время, в углу
  * кнопки. Ниже - цитаты, с которыми оно ушло (без них вопрос «а почему?» висит в
- * воздухе), слова с живыми ссылками и чипы вложений, картинки, строка редактора.
+ * воздухе), слова с живыми ссылками и чипы вложений, строка редактора. Картинки -
+ * только чипами: показывают себя под курсором, по нажатию - крупно.
  */
 export const UserMessage = memo(({ item }: UserMessageProps) => {
   const { t } = useTranslation()
   const { conversationId, author } = useFeedScope()
   const draft = useMessageDraft(conversationId, item)
-  const [openedImage, setOpenedImage] = useState<number | null>(null)
   const [openedPicture, setOpenedPicture] = useState<OpenedPicture | null>(null)
   const why = autoWhy(item.auto, t)
 
@@ -54,13 +53,7 @@ export const UserMessage = memo(({ item }: UserMessageProps) => {
           {quote}
         </blockquote>
       ))}
-      <MessageBody
-        tokens={draft.tokens}
-        messageId={item.id}
-        onOpenImage={setOpenedImage}
-        onOpenPicture={handleOpenPicture}
-      />
-      <MessageImages item={item} opened={openedImage} onOpen={setOpenedImage} />
+      <MessageBody tokens={draft.tokens} messageId={item.id} onOpenPicture={handleOpenPicture} />
       {openedPicture && (
         <PictureLightbox
           source={openedPicture.source}

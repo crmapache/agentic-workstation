@@ -148,6 +148,40 @@
   background-color: var(--color-surface-sunken);
 }
 
+// Профиль Chrome на связи - строка в той же подложке, что инструменты: имя и подпись под ним
+// вместе, между профилями - линия, чтобы соседние не сливались в один столбец текста.
+.profileRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding: var(--space-2) var(--space-3);
+
+  & + & {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}
+
+// Разрешение macOS строкой в той же подложке: что и зачем слева, состояние или кнопка - справа,
+// по середине строки.
+.permissionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+
+  & + & {
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}
+
+.permissionText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
 // Правая часть подвала окна: удаление, а при подтверждении - вопрос и ответы. Прижата
 // вправо и тогда, когда слева ничего нет (коннектор без входа в браузере).
 .footerEnd {

@@ -5,7 +5,8 @@ import { ICON_SIZES } from './icons'
 /**
  * Разрешения - ровно то, чем расширение работает: отладчик (CDP во вкладках агента), вкладки и
  * группы, native messaging (связь с IDE), пункт меню, внедрение курсора, хранилище ключа
- * профиля, offscreen-документ и запись в буфер для ссылки на вкладку.
+ * профиля, offscreen-документ, запись в буфер для ссылки на вкладку и будильник, который раз в
+ * минуту будит сервис-воркер проверить связь с IDE.
  */
 export const PERMISSIONS = [
   'debugger',
@@ -17,6 +18,7 @@ export const PERMISSIONS = [
   'storage',
   'offscreen',
   'clipboardWrite',
+  'alarms',
 ] as const
 
 /**

@@ -39,7 +39,7 @@ export const AddModal = ({ target, google }: AddModalProps) => {
   // У браузера для ИИ подписи нет: он один на IDE.
   const helpText = [
     t(`connectors.help.add.${target}`),
-    isImport || target === 'browser' ? '' : t(nameHelp),
+    isImport || target === 'browser' || target === 'computer' ? '' : t(nameHelp),
   ]
     .filter(Boolean)
     .join('\n\n')

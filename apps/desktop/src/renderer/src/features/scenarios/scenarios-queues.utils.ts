@@ -9,7 +9,7 @@ import type { RoadMood } from './ScenarioRoadmap/ScenarioRoadmap.types'
 
 /**
  * Очереди на экране: что очередь делает сейчас (по самой очереди и сводке её идущего прогона),
- * какой у этого тон, как доска группирует очереди по проектам и что сказать окну запуска о
+ * какой у этого тон, как очереди группируются по проектам и что сказать окну запуска о
  * соседях в той же папке. Всё здесь - арифметика без React: проверяется тестом.
  */
 
@@ -83,7 +83,7 @@ export const statusTone = (status: QueueStatus): BadgeTone => {
   }
 }
 
-/** Тон точки элемента на доске; waiting - пустой кружок: ещё не начинался. */
+/** Тон точки элемента в плотной карточке; waiting - пустой кружок: ещё не начинался. */
 export type ItemDotTone = BadgeTone | 'waiting'
 
 export const itemDotTone = (item: QueueItem, live: RunSummary | undefined): ItemDotTone => {
@@ -116,25 +116,8 @@ export const waitingItems = (queue: ScenarioQueue): QueueItem[] =>
 export const holdItemOf = (queue: ScenarioQueue): QueueItem | null =>
   (queue.hold && queue.items.find((item) => item.id === queue.hold?.itemId)) || null
 
-/**
- * Сводка доски: сколько очередей идёт и сколько ждут человека - вопросом или остановкой,
- * которую снимает только он. Без пересечения: ждущая ответа - в «ждут», не в «идут».
- */
-export const boardCounts = (
-  queues: readonly ScenarioQueue[],
-  live: readonly RunSummary[],
-): { running: number; waiting: number } => {
-  const statuses = queues.map((queue) => queueStatus(queue, liveOf(queue, live)))
-
-  return {
-    running: statuses.filter((status) => status.kind === 'running' || status.kind === 'paused')
-      .length,
-    waiting: statuses.filter((status) => status.kind === 'asking' || status.kind === 'held').length,
-  }
-}
-
-/** Проект на доске: его очереди, имя и открыт ли он (без id - вкладка проекта закрыта). */
-export type BoardGroup = {
+/** Проект с очередями: его очереди, имя и открыт ли он (без id - вкладка проекта закрыта). */
+export type QueueGroup = {
   projectPath: string
   projectId: string | null
   name: string
@@ -146,14 +129,14 @@ export type BoardGroup = {
  * Очереди по проектам: текущий первым, дальше в порядке вкладок проектов, проекты без
  * вкладки (очередь пережила закрытие проекта) - в конце по имени.
  */
-export const boardGroups = (
+export const queueGroups = (
   queues: readonly ScenarioQueue[],
   projects: readonly Project[],
   currentPath: string,
-): BoardGroup[] => {
+): QueueGroup[] => {
   const paths = [...new Set(queues.map((queue) => queue.projectPath))]
   const tabOf = (path: string) => projects.findIndex((project) => project.rootPath === path)
-  const groups = paths.map((path): BoardGroup => {
+  const groups = paths.map((path): QueueGroup => {
     const project = projects.find((one) => one.rootPath === path)
 
     return {
@@ -164,7 +147,7 @@ export const boardGroups = (
       queues: queues.filter((queue) => queue.projectPath === path),
     }
   })
-  const rank = (group: BoardGroup) =>
+  const rank = (group: QueueGroup) =>
     group.isCurrent ? -1 : group.projectId ? tabOf(group.projectPath) : projects.length
 
   return groups.sort(
@@ -177,7 +160,7 @@ export const boardGroups = (
  * процесс открывает по пути лишь их: окно не может так открыть произвольную папку).
  */
 export const canGoTo = (
-  group: Pick<BoardGroup, 'projectId' | 'projectPath'>,
+  group: Pick<QueueGroup, 'projectId' | 'projectPath'>,
   recent: readonly ProjectRef[],
 ): boolean =>
   group.projectId !== null || recent.some((project) => project.rootPath === group.projectPath)

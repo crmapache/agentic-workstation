@@ -7,6 +7,9 @@
   @include glass-overlay;
   @include enter-transition;
 
+  // Контейнер для раскладки колонок (.columns): ширину окна задаёт размер (md, lg), а не
+  // содержимое, поэтому сдерживание ширины ничего не ломает.
+  container-type: inline-size;
   max-width: none;
   max-height: calc(100vh - 4 * var(--space-8));
   padding: 0;
@@ -107,6 +110,22 @@
   padding: var(--space-3);
   overflow-y: auto;
   border-right: var(--border-width) solid var(--color-border);
+}
+
+// Окно уже md (окно IDE бывает от 422): меню рядом с телом съело бы полокна, и строки
+// тела вылезали бы за край. Меню встаёт над телом во всю ширину, тело прокручивается под ним.
+// 560px - --size-modal-md: в запросе к контейнеру переменные не работают.
+@container (width < 560px) {
+  .columns {
+    flex-direction: column;
+  }
+
+  .aside {
+    width: auto;
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
 }
 
 .footer {

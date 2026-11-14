@@ -38,21 +38,23 @@
   margin: 0 auto;
 }
 
+// Ширина - не больше окна с полями, как у Modal: окно IDE бывает уже панели (от 422), и
+// широкая панель (поиск везде) уходила бы за край.
 .md {
-  width: var(--size-popover-md);
+  width: min(var(--size-popover-md), 100vw - 2 * var(--space-6));
 }
 
 .lg {
-  width: var(--size-popover-lg);
+  width: min(var(--size-popover-lg), 100vw - 2 * var(--space-6));
 }
 
 .xl {
-  width: var(--size-popover-xl);
+  width: min(var(--size-popover-xl), 100vw - 2 * var(--space-6));
 }
 
 // Список поля выбора - ровно под полем, его ширины (якорь - кнопка поля), но не уже md:
 // узкое поле (час) не должно сжать пункты меню с пояснениями.
 .field {
   width: anchor-size(width);
-  min-width: var(--size-popover-md);
+  min-width: min(var(--size-popover-md), 100vw - 2 * var(--space-6));
 }

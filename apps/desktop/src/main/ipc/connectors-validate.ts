@@ -1,9 +1,12 @@
+import { isAbsolute } from 'node:path'
+
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { HttpConnectorSpec, GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
   AgentApp,
   AddToTypeRequest,
   UpdateTypeRequest,
+  ConnectorInProject,
   AddConnectorRequest,
 } from '@shared/connectors'
 import {
@@ -11,7 +14,9 @@ import {
   AGENT_APPS,
   CONNECTOR_KINDS,
   PLAYWRIGHT_PROFILES,
+  BROWSER_PROFILE_NAME_MAX,
   CONNECTOR_DESCRIPTION_MAX,
+  CONNECTOR_INSTRUCTIONS_MAX,
 } from '@shared/connectors'
 
 import { assertOneOf, assertString } from './validate'
@@ -56,12 +61,39 @@ export const assertAvailability = (value: unknown): ConnectorAvailability => {
   const record = recordOf(value)
   const mode = assertOneOf(record['mode'], ['all', 'only'], 'mode')
 
-  return mode === 'all' ? { mode } : { mode, projects: paths(record['projects'], 'projects') }
+  if (mode === 'only') return { mode, projects: paths(record['projects'], 'projects') }
+
+  return record['remembered'] === undefined
+    ? { mode }
+    : { mode, remembered: paths(record['remembered'], 'remembered') }
 }
 
 /** Описание коннектора: без пробелов по краям, не длиннее потолка, который держит и поле. */
 export const assertDescription = (value: unknown): string =>
   field(value, 'description', CONNECTOR_DESCRIPTION_MAX).trim()
+
+/** Путь проекта для настроек коннектора в нём: только абсолютный. */
+export const assertProjectPath = (value: unknown): string => {
+  const path = field(value, 'projectPath')
+
+  if (!isAbsolute(path)) throw new Error('Путь проекта не абсолютный')
+
+  return path
+}
+
+/** Настройки коннектора в проекте: инструкции и профиль Chrome, не длиннее потолков поля. */
+export const assertInProject = (value: unknown): ConnectorInProject => {
+  const record = recordOf(value)
+  const profile = record['browserProfile']
+
+  return {
+    instructions: field(record['instructions'], 'instructions', CONNECTOR_INSTRUCTIONS_MAX).trim(),
+    browserProfile:
+      profile === null
+        ? null
+        : field(profile, 'browserProfile', BROWSER_PROFILE_NAME_MAX).trim() || null,
+  }
+}
 
 /** Приложение ИИ, которому отдают настройку: только из своего списка. */
 export const assertAgentApp = (value: unknown): AgentApp => assertOneOf(value, AGENT_APPS, 'app')
@@ -101,8 +133,8 @@ export const assertAddRequest = (value: unknown): AddConnectorRequest => {
   const request = recordOf(value)
   const kind = assertOneOf(request['kind'], CONNECTOR_KINDS, 'kind')
 
-  // Браузеру для ИИ подпись не нужна: он один, имя сервера постоянное.
-  if (kind === 'browser') return { kind }
+  // Браузеру для ИИ и Computer Use подпись не нужна: они одни, имя сервера постоянное.
+  if (kind === 'browser' || kind === 'computer') return { kind }
 
   const label = field(request['label'], 'label')
 

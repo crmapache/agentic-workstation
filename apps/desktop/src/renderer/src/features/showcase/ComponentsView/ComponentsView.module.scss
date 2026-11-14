@@ -220,3 +220,10 @@
 .tabColumn {
   width: var(--size-modal-aside);
 }
+
+// Строка RollingLine ограничена шириной, как в капсуле: длинная фраза режется многоточием.
+.rollingSample {
+  width: var(--size-tile-min);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-sm);
+}

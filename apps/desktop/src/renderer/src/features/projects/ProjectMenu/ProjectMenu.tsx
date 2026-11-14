@@ -10,12 +10,8 @@ import { PROJECT_ACTIONS } from '../project-actions.constants'
 import { useProjectActionRunner } from '../project-actions.hooks'
 import { displayPath } from '../../../lib/path.utils'
 import { useAppInfo } from '../../../state/app-info.queries'
-import { projectTone, projectInitials } from '../../../state/project-avatar.utils'
+import { projectAvatar } from '../../../state/project-avatar.utils'
 import { useWorkspace, useWorkspaceActions } from '../../../state/workspace.queries'
-
-const projectAvatar = (name: string) => (
-  <Avatar initials={projectInitials(name)} tone={projectTone(name)} />
-)
 
 /**
  * Меню проекта, как в WebStorm: создать, открыть, клонировать; открытые проекты (с
@@ -42,7 +38,7 @@ export const ProjectMenu = () => {
           {projects.map((project) => (
             <MenuItem
               key={project.id}
-              leading={projectAvatar(project.name)}
+              leading={<Avatar {...projectAvatar(project)} />}
               label={project.name}
               description={displayPath(project.rootPath, appInfo?.homeDir)}
               current={project.id === workspace?.activeProjectId}
@@ -58,7 +54,7 @@ export const ProjectMenu = () => {
           {recentProjects.map((project) => (
             <MenuItem
               key={project.rootPath}
-              leading={projectAvatar(project.name)}
+              leading={<Avatar {...projectAvatar(project)} />}
               label={project.name}
               description={displayPath(project.rootPath, appInfo?.homeDir)}
               onSelect={() => openRecentProject(project.rootPath)}

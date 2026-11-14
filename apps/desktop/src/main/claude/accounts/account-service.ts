@@ -10,7 +10,7 @@ import type { Environment } from '../cli/shell-env'
 import { runCli } from '../tools/cli-run'
 import type { JsonFile } from '../../storage/json-file'
 import type { AccAccount } from './acc-import'
-import { readAccAccounts } from './acc-import'
+import { accMoves, importableOf, readAccAccounts } from './acc-import'
 import { destroyDrawer, orphanDrawers } from './account-drawers'
 import { environmentFor } from './account-env'
 import type { Landing } from './account-landing'
@@ -18,6 +18,7 @@ import type { StoredAccount, StoredAccounts } from './account-store'
 import { parseStoredAccounts } from './account-store'
 import { authStatus } from './auth-status'
 import type { AccountIdentity } from './identity-probe'
+import { accountKey } from './identity-probe'
 import { SignInFlow } from './sign-in-flow'
 
 export type AccountDeps = {
@@ -44,6 +45,8 @@ export class AccountService {
   private lastOutcome: AccountOutcome | null = null
   /** Тариф обычного входа: его CLI говорит честно, а записи в реестре у этого входа нет. */
   private defaultPlan = ''
+  /** Кто в обычном входе, со слов самого входа (круг экрана); null - не спрашивали или вышли. */
+  private defaultWho: AccountIdentity | null = null
 
   /**
    * Хранилище аккаунта заменено повторным входом: живые процессы на нём держат удалённое
@@ -79,15 +82,18 @@ export class AccountService {
 
     for (const drawer of await orphanDrawers(dir, known)) await destroyDrawer(dir, drawer)
 
+    // ACC мог увести взятый аккаунт в новое хранилище, пока IDE была закрыта.
+    service.importable = await readAccAccounts()
+    service.followAcc()
+
     return service
   }
 
   get view(): Omit<AccountsState, 'usage'> {
-    const known = new Set(this.stored.accounts.map((account) => account.drawer))
     const ordinary = {
       id: '',
       alias: this.stored.defaultAlias,
-      email: '',
+      email: this.defaultWho?.email ?? '',
       plan: '',
       external: false,
     }
@@ -102,9 +108,11 @@ export class AccountService {
         external: account.external,
         signedIn: this.signedIn.get(account.id) ?? null,
       })),
-      importable: this.importable
-        .filter((account) => !known.has(account.drawer))
-        .map(({ sourceId, alias, email, plan }) => ({ sourceId, alias, email, plan })),
+      importable: importableOf(
+        this.importable,
+        this.stored.accounts,
+        this.defaultWho && accountKey(this.defaultWho.email, this.defaultWho.orgUuid),
+      ).map(({ sourceId, alias, email, plan }) => ({ sourceId, alias, email, plan })),
       signingIn: this.flow.signingIn,
       lastOutcome: this.lastOutcome,
     }
@@ -147,6 +155,7 @@ export class AccountService {
   /** Спросить у каждого хранилища, вошёл ли CLI, и перечитать аккаунты ACC. */
   async refresh(): Promise<void> {
     this.importable = await readAccAccounts()
+    this.followAcc()
 
     for (const id of ['', ...this.stored.accounts.map((account) => account.id)]) {
       const status = await this.statusOf(this.drawerOf(id))
@@ -204,6 +213,14 @@ export class AccountService {
   /** Чем кончилось действие со входом - плашкой на экране аккаунтов. */
   noteOutcome(outcome: AccountOutcome | null): void {
     this.lastOutcome = outcome
+    this.deps.onChange()
+  }
+
+  /** Кто в обычном входе - ответ самого входа из круга экрана: карточка называет его почтой. */
+  noteDefaultIdentity(who: AccountIdentity | null): void {
+    if (who?.email === this.defaultWho?.email && who?.orgUuid === this.defaultWho?.orgUuid) return
+
+    this.defaultWho = who
     this.deps.onChange()
   }
 
@@ -291,6 +308,7 @@ export class AccountService {
     }
 
     this.signedIn.set('', false)
+    this.defaultWho = null
     this.noteOutcome(null)
 
     if (this.stored.current === '') this.deps.onCurrentChanged()
@@ -337,6 +355,19 @@ export class AccountService {
     this.stored = { ...this.stored, accounts: [...this.stored.accounts, { ...draft, ...named }] }
     this.signedIn.set(draft.id, true)
     this.save()
+  }
+
+  /**
+   * Записи на хранилищах, которые ACC бросил, переходят туда, где ACC держит их аккаунт теперь
+   * (acc-import.ts). Живые процессы на старом хранилище поднимаются заново, как после повторного
+   * входа: ACC вот-вот уберёт старую папку.
+   */
+  private followAcc() {
+    for (const move of accMoves(this.stored.accounts, this.importable)) {
+      this.update(move.id, { drawer: move.drawer })
+      this.signedIn.delete(move.id)
+      this.renewed(move.id)
+    }
   }
 
   private async statusOf(drawer: string | null) {

@@ -27,6 +27,7 @@ type WorkspaceChannels =
   | 'workspace:cloneProject'
   | 'workspace:closeProject'
   | 'workspace:activateProject'
+  | 'workspace:moveProject'
   | 'fs:readDirectory'
 
 /** Корень открытого проекта по id из окна. Неизвестный id - ошибка, не догадка. */
@@ -86,6 +87,12 @@ export const createWorkspaceHandlers = (
       assertString(projectId, 'projectId')
 
       return workspace.activateProject(projectId)
+    },
+    'workspace:moveProject': ({ projectId, beforeId }) => {
+      assertString(projectId, 'projectId')
+      if (beforeId !== null) assertString(beforeId, 'beforeId')
+
+      return workspace.moveProject(projectId, beforeId)
     },
 
     'fs:readDirectory': ({ projectId, relativePath }) => {

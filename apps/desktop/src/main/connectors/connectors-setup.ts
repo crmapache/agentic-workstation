@@ -4,6 +4,7 @@ import { app, safeStorage } from 'electron'
 import type { BrowserWindow } from 'electron'
 
 import { createBrowserRuntime } from '../browser/browser-setup'
+import { ComputerRuntime } from '../computer/computer-runtime'
 import { broadcast } from '../ipc/broadcast'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
@@ -36,6 +37,8 @@ export type ProviderLinks = {
   isTrusted: (projectPath: string) => Promise<boolean>
   /** Разговор с ИИ о новом коннекторе (ADR 0050). */
   chats: OpenAiChat
+  /** Откуда грузить страницы IDE (в dev - Vite): капсула Computer - своя страница. */
+  rendererUrl: string | undefined
 }
 
 /**
@@ -48,9 +51,12 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
   // Профили Chrome подключились или отключились - окну новое состояние; до загрузки сервиса
   // рассылать нечего.
   let service: ConnectorsService | null = null
-  const browser = createBrowserRuntime(() => {
+  const announce = () => {
     if (service) broadcast('connectors:state', service.getState())
-  })
+  }
+  const browser = createBrowserRuntime(announce)
+  // Разрешения macOS для Computer перечитываются при возврате в IDE - окну новое состояние.
+  const computer = new ComputerRuntime(links.rendererUrl, announce)
   const connectors = await ConnectorsService.load(
     {
       // Права 600: ключей в реестре нет, но адреса, команды и почты - тоже не для чужих глаз.
@@ -64,6 +70,7 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       aiJobsFile: new JsonFile<StoredAiJobs>(join(userData, AI_JOBS_FILE), { mode: 0o600 }),
       version: app.getVersion(),
       browser,
+      computer,
     },
     {
       onState: (state) => broadcast('connectors:state', state),

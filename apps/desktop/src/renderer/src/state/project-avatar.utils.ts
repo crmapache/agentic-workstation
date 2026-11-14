@@ -1,5 +1,7 @@
-import { AVATAR_TONES } from './project-avatar.constants'
-import type { ProjectTone } from './project-avatar.types'
+import type { Project } from '@shared/workspace'
+
+import { HOME_ICON, AVATAR_TONES, HOME_AVATAR_TONE } from './project-avatar.constants'
+import type { ProjectTone, ProjectAvatar } from './project-avatar.types'
 
 /**
  * Инициалы проекта, как в WebStorm: первые буквы двух первых слов имени
@@ -25,3 +27,9 @@ export const projectTone = (name: string): ProjectTone => {
 
   return AVATAR_TONES[hash % AVATAR_TONES.length] ?? 0
 }
+
+/** Значок проекта для Avatar: у дома - его знак, у остальных - буквы и цвет по имени. */
+export const projectAvatar = (project: Pick<Project, 'name' | 'home'>): ProjectAvatar =>
+  project.home
+    ? { icon: HOME_ICON, tone: HOME_AVATAR_TONE }
+    : { initials: projectInitials(project.name), tone: projectTone(project.name) }

@@ -107,10 +107,10 @@
   gap: var(--space-2);
 }
 
-// Элементы - плашками в ряд с переносом: порядок читается слева направо.
+// Элементы - строками во всю ширину одна под другой: порядок читается сверху вниз.
 .items {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -122,7 +122,6 @@
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
-  max-width: 100%;
   padding: var(--space-1) var(--space-1-5) var(--space-1) var(--space-2);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
@@ -132,6 +131,16 @@
 .itemRunning {
   border-color: var(--color-border-strong);
   background-color: var(--color-bg-hover);
+}
+
+// Строка с прогоном нажимается вся: подложка под курсором, как у пункта списка.
+.itemPressable {
+  @include interactive-surface;
+}
+
+// Идущий и так на подложке наведения: под курсором - на ступень плотнее.
+.itemRunning.itemPressable {
+  @include interactive-surface(var(--color-bg-active));
 }
 
 .itemHead {
@@ -156,16 +165,20 @@
   font-size: var(--font-size-sm);
 }
 
+// Имя с прогоном - кнопка для клавиатуры; мышью нажимается вся строка, и подложки у имени нет.
 .itemOpen {
   @include button-reset;
   @include truncate;
-  @include interactive-surface;
 
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-xs);
   color: var(--color-fg);
   font-size: var(--font-size-sm);
   line-height: var(--size-control-xs);
+}
+
+// Меню ждущего - у правого края строки.
+.itemEnd {
+  display: flex;
+  margin-left: auto;
 }
 
 // Метка «очередь встанет после него» - оранжевым: это то, что человек поставил сам и о чём
@@ -269,14 +282,12 @@
   gap: var(--space-2);
 }
 
-// Доска: имя - кнопка к очереди в её проекте.
+// Доска: имя - кнопка к очереди в её проекте для клавиатуры. Мышью нажимается вся карточка, и
+// подложки наведения у имени нет - светлеет карточка.
 .compactName {
   @include button-reset;
   @include truncate;
-  @include interactive-surface;
 
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-xs);
   color: var(--color-fg-strong);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
@@ -287,18 +298,18 @@
 .compactItems {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
   min-width: 0;
 }
 
 // Элементы точками: точка ростом с метку состояния, место вокруг - чтобы в неё попадали мышью.
+// Ряд сдвинут влево на это место: первая точка стоит по одной линии с текстом карточки.
 .dots {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-0-5);
-  margin: 0;
+  margin: 0 0 0 calc((var(--size-control-xs) - var(--size-status-dot)) / -2);
   padding: 0;
   list-style: none;
 }

@@ -11,6 +11,8 @@ import type { ClaudeSettingsInvokeContract } from './claude-settings.contract'
 import { CLAUDE_SETTINGS_CHANNELS } from './claude-settings.contract'
 import type { ClaudeTabsEventContract, ClaudeTabsInvokeContract } from './claude-tabs.contract'
 import { CLAUDE_TABS_EVENTS, CLAUDE_TABS_CHANNELS } from './claude-tabs.contract'
+import type { ComputerEventContract, ComputerInvokeContract } from './computer.contract'
+import { COMPUTER_EVENTS, COMPUTER_CHANNELS } from './computer.contract'
 import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connectors.contract'
 import { CONNECTORS_EVENTS, CONNECTORS_CHANNELS } from './connectors.contract'
 import type { EditorEventContract, EditorInvokeContract } from './editor.contract'
@@ -59,6 +61,7 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   EditorInvokeContract &
   WindowInvokeContract &
   ConnectorsInvokeContract &
+  ComputerInvokeContract &
   TerminalInvokeContract &
   ScenariosInvokeContract &
   StatisticsInvokeContract &
@@ -74,6 +77,7 @@ export type AreaEventContract = ClaudeTabsEventContract &
   EditorEventContract &
   WindowEventContract &
   ConnectorsEventContract &
+  ComputerEventContract &
   TerminalEventContract &
   ScenariosEventContract &
   StatisticsEventContract &
@@ -95,6 +99,7 @@ export const AREA_CHANNELS = {
   ...EDITOR_CHANNELS,
   ...WINDOW_CHANNELS,
   ...CONNECTORS_CHANNELS,
+  ...COMPUTER_CHANNELS,
   ...TERMINAL_CHANNELS,
   ...SCENARIOS_CHANNELS,
   ...STATISTICS_CHANNELS,
@@ -113,6 +118,7 @@ export const AREA_EVENTS = {
   ...EDITOR_EVENTS,
   ...WINDOW_EVENTS,
   ...CONNECTORS_EVENTS,
+  ...COMPUTER_EVENTS,
   ...TERMINAL_EVENTS,
   ...SCENARIOS_EVENTS,
   ...STATISTICS_EVENTS,

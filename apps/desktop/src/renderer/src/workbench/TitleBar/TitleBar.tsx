@@ -9,7 +9,7 @@ import styles from './TitleBar.module.scss'
  * дизайн-системы (в dev) - действием поиска. Окно таскают за пустые места - место под
  * кнопки окна и распорку до них; кнопки шапки в область перетаскивания не попадают. Кнопки
  * окна рисует система: на маке «светофор» слева, на Windows - справа. Шапка растёт с
- * размером текста, и кнопки окна встают по её высоте.
+ * размером текста, и кнопки окна встают по её высоте. В узком окне первой ужимается ветка.
  */
 export const TitleBar = () => {
   const ref = useTitleBarHeightReport()
@@ -18,8 +18,12 @@ export const TitleBar = () => {
     <header ref={ref} className={styles.titleBar}>
       <div className={styles.windowStart} />
       <div className={styles.start}>
-        <ProjectSwitcher />
-        <BranchSwitcher />
+        <div className={styles.project}>
+          <ProjectSwitcher />
+        </div>
+        <div className={styles.branch}>
+          <BranchSwitcher />
+        </div>
       </div>
       <div className={styles.dragSpace} />
       <div className={styles.windowEnd} />

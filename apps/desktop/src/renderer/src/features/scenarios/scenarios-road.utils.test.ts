@@ -10,6 +10,8 @@ import {
   windowed,
   roadWidth,
   roadLayout,
+  bandedParts,
+  isFoldPassed,
   isLinkPassed,
 } from './scenarios-road.utils'
 
@@ -86,5 +88,27 @@ describe('road of cards', () => {
     ]
 
     expect(folded.map((_, at) => isLinkPassed(road, folded, at))).toEqual([false, true, false])
+  })
+
+  it('lays the stage band under its stops and under a fold of its own cards only', () => {
+    const items = [
+      { kind: 'stop' as const, index: 0 },
+      { kind: 'fold' as const, from: 1, to: 2 },
+      { kind: 'stop' as const, index: 3 },
+      { kind: 'fold' as const, from: 4, to: 7 },
+      { kind: 'stop' as const, index: 8 },
+      { kind: 'stop' as const, index: 9 },
+    ]
+
+    expect(bandedParts(items, { from: 3, to: 8 })).toEqual([false, false, true, true, true, false])
+    expect(bandedParts(items, { from: 2, to: 9 })).toEqual([false, false, true, true, true, true])
+    expect(bandedParts(items, null).some(Boolean)).toBe(false)
+  })
+
+  it('colours a fold as passed only when every card it hides is done', () => {
+    const road = stops(['done', 'done', 'skipped', 'done', 'running'])
+
+    expect(isFoldPassed(road, { from: 0, to: 1 })).toBe(true)
+    expect(isFoldPassed(road, { from: 1, to: 3 })).toBe(false)
   })
 })

@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { parseAccAccounts } from './acc-import'
+import { accMoves, importableOf, parseAccAccounts } from './acc-import'
 import { environmentFor, DRAWER_VARIABLE } from './account-env'
 import { parseStoredAccounts } from './account-store'
 import { parseAuthStatus } from './auth-status'
@@ -102,5 +102,75 @@ describe('хранилища', () => {
     })
     expect(identityFrom(config(50), 100)).toBeNull()
     expect(identityFrom({}, 100)).toBeNull()
+  })
+})
+
+describe('аккаунты ACC', () => {
+  const acc = (drawer: string, email: string, orgUuid = 'org-m') => ({
+    sourceId: drawer,
+    drawer,
+    alias: 'Main',
+    email,
+    orgUuid,
+    plan: 'max',
+  })
+  const record = (
+    id: string,
+    drawer: string,
+    email: string,
+    external = true,
+    orgUuid = 'org-m',
+  ) => ({
+    id,
+    drawer,
+    email,
+    orgUuid,
+    external,
+  })
+
+  it('запись на брошенном ACC хранилище переходит туда, где ACC держит её аккаунт теперь', () => {
+    expect(
+      accMoves([record('work', '/acc/old', 'm@gmail.com')], [acc('/acc/new', 'M@gmail.com')]),
+    ).toEqual([{ id: 'work', drawer: '/acc/new' }])
+  })
+
+  it('не трогает живое хранилище ACC, своё хранилище, запись без организации и чужой аккаунт', () => {
+    const list = [acc('/acc/live', 'm@gmail.com'), acc('/acc/other', 'r@reclick.io', 'org-r')]
+
+    expect(
+      accMoves(
+        [
+          record('live', '/acc/live', 'm@gmail.com'),
+          record('own', '/ide/s-1', 'm@gmail.com', false),
+          record('old', '/acc/gone', 'm@gmail.com', true, ''),
+          record('stranger', '/acc/gone2', 'x@gmail.com'),
+        ],
+        list,
+      ),
+    ).toEqual([])
+  })
+
+  it('папку, которую уже держит другая запись, второй раз не отдаёт', () => {
+    expect(
+      accMoves(
+        [record('a', '/acc/old', 'm@gmail.com'), record('b', '/acc/new', 'm@gmail.com', false)],
+        [acc('/acc/new', 'm@gmail.com')],
+      ),
+    ).toEqual([])
+  })
+
+  it('не предлагает взять аккаунт, который уже есть записью или обычным входом', () => {
+    const list = [
+      acc('/acc/a', 'm@gmail.com'),
+      acc('/acc/b', 'r@reclick.io', 'org-r'),
+      acc('/acc/c', 'new@gmail.com', 'org-n'),
+    ]
+    const offered = importableOf(
+      list,
+      [record('w', '/ide/s-1', 'm@gmail.com', false)],
+      'r@reclick.io|org-r',
+    )
+
+    expect(offered.map((account) => account.drawer)).toEqual(['/acc/c'])
   })
 })

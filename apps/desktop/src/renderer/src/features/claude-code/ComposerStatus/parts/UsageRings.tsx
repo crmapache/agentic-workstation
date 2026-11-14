@@ -16,7 +16,7 @@ import { usageRings } from '../../usage.utils'
  * неделя, неделя модели) - кольцо и процент цветом темпа, без подписи. Что за окно и когда
  * сбросится - в подсказке своего кольца. Горящее (идёт доплата) - без процента: он застрял
  * на ста. Пока цифр нет - ничего: пустые кольца только отвлекали бы. Кольцо, спрятанное в
- * Settings → Under the field, не рисуется.
+ * Settings → Usage meters, не рисуется.
  */
 export const UsageRings = () => {
   const { t } = useTranslation()
@@ -34,7 +34,7 @@ export const UsageRings = () => {
   const rings = usageRings(usage, now, t).filter((ring) => !hiddenMeters.includes(ring.key))
 
   return rings.map((ring) => (
-    <Tooltip key={ring.key} label={ring.hint} placement="top">
+    <Tooltip key={ring.key} label={ring.label} details={ring.details} placement="top">
       <span className={styles.meter} role="img" tabIndex={0} aria-label={ring.hint}>
         <RingMeter
           value={ring.value}

@@ -78,6 +78,11 @@ export type InvokeContract = {
   }
   'workspace:closeProject': { request: ProjectRequest; response: WorkspaceState }
   'workspace:activateProject': { request: ProjectRequest; response: WorkspaceState }
+  /** Переставить вкладку проекта перед вкладкой beforeId, null - в конец ряда. */
+  'workspace:moveProject': {
+    request: ProjectRequest & { beforeId: string | null }
+    response: WorkspaceState
+  }
 
   'fs:readDirectory': {
     request: ProjectRequest & { relativePath: string }
@@ -307,6 +312,7 @@ export const INVOKE_CHANNELS = Object.keys({
   'workspace:cloneProject': true,
   'workspace:closeProject': true,
   'workspace:activateProject': true,
+  'workspace:moveProject': true,
   'fs:readDirectory': true,
   'search:listFiles': true,
   'search:findText': true,

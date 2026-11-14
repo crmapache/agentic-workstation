@@ -20,7 +20,10 @@ import { HubLink } from './hub-link'
 /** Подключённый профиль Chrome: одна связь расширения через свой процесс native host. */
 export type BrowserProfile = {
   key: string
+  /** Имя для ИИ и человека: данное в окне расширения, иначе имя профиля Chrome, иначе браузер. */
   name: string
+  /** Профиль Chrome, в котором стоит эта копия расширения (ADR 0052); не нашли - null. */
+  chromeProfile: string | null
   browser: string
   version: string
   build: string
@@ -29,12 +32,35 @@ export type BrowserProfile = {
   connectedAt: number
 }
 
+/**
+ * Профиль, которого просит модель, - по ключу, по имени или по профилю Chrome: человек говорит
+ * «в Improving», а имя он мог дать копии другое.
+ */
+export const isProfileNamed = (profile: BrowserProfile, wanted: string): boolean => {
+  const lower = wanted.trim().toLowerCase()
+
+  return (
+    profile.key === wanted ||
+    profile.name.toLowerCase() === lower ||
+    profile.chromeProfile?.toLowerCase() === lower
+  )
+}
+
+/** Как профиль назван модели: имя и, если оно другое, профиль Chrome. */
+export const profileLabel = ({ name, chromeProfile }: BrowserProfile): string =>
+  chromeProfile && chromeProfile !== name
+    ? `"${name}" (Chrome profile "${chromeProfile}")`
+    : `"${name}"`
+
 export type HubOptions = {
   channel: HostChannel
   ideVersion: string
   /** Сборка расширения, которую IDE положила в папку: расширение сверит свою. */
   extensionBuild: () => string | null
+  /** Профиль Chrome копии расширения по её ключу (chrome-profiles.ts); нет - не ищем. */
+  identify?: ((profileKey: string) => Promise<string | null>) | undefined
   helloTimeoutMs?: number
+  identifyTimeoutMs?: number
   requestTimeoutMs?: number
 }
 
@@ -53,9 +79,33 @@ const HELLO_TIMEOUT_MS = 10_000
 /** Обычный запрос к расширению: команда CDP или вкладка - доли секунды, с большим запасом. */
 export const REQUEST_TIMEOUT_MS = 30_000
 
-const profileOf = (hello: HelloMessage): BrowserProfile => ({
+/**
+ * Сколько ответ на hello ждёт поиска профиля Chrome: это чтение пары мелких файлов, а ждать
+ * дольше - держать расширение без ответа IDE. На старте IDE те же потоки читают транскрипты и
+ * статистику, и поиск опаздывает: тогда имя досылается отдельно (profile.chrome).
+ */
+const IDENTIFY_TIMEOUT_MS = 2_000
+
+/**
+ * Через сколько искать ещё раз, если профиль не нашёлся: свежая копия могла ещё не дописать
+ * свой ключ на диск.
+ */
+const IDENTIFY_RETRY_MS = 30_000
+
+/**
+ * Имя профиля: данное человеком в окне расширения важнее профиля Chrome. Прежняя сборка не
+ * говорит, дал ли имя человек, - тогда имя по умолчанию у неё и есть имя браузера.
+ */
+const displayName = (hello: HelloMessage, chromeProfile: string | null): string => {
+  const named = hello.named ?? hello.profileName !== hello.browser
+
+  return named || !chromeProfile ? hello.profileName : chromeProfile
+}
+
+const profileOf = (hello: HelloMessage, chromeProfile: string | null): BrowserProfile => ({
   key: hello.profileKey,
-  name: hello.profileName,
+  name: displayName(hello, chromeProfile),
+  chromeProfile,
   browser: hello.browser,
   version: hello.version,
   build: hello.build,
@@ -78,6 +128,8 @@ export class BrowserHub {
   private readonly eventListeners = new Set<HubEventListener>()
   private readonly profileListeners = new Set<() => void>()
   private readonly linkListeners = new Set<HubLinkListener>()
+  /** Профиль Chrome по ключу копии расширения: ищется заново на каждом hello. */
+  private readonly chromeProfiles = new Map<string, string | null>()
 
   constructor(private readonly options: HubOptions) {}
 
@@ -127,13 +179,15 @@ export class BrowserHub {
   }
 
   profiles(): BrowserProfile[] {
-    return [...this.byKey.values()].flatMap((link) => (link.hello ? [profileOf(link.hello)] : []))
+    return [...this.byKey.values()].flatMap((link) =>
+      link.hello ? [this.profileOf(link.hello)] : [],
+    )
   }
 
   profile(key: string): BrowserProfile | null {
     const hello = this.byKey.get(key)?.hello
 
-    return hello ? profileOf(hello) : null
+    return hello ? this.profileOf(hello) : null
   }
 
   request<M extends BrowserMethod>(
@@ -225,15 +279,73 @@ export class BrowserHub {
 
     if (previous && previous !== link) previous.close()
 
+    void this.greet(link, hello)
+  }
+
+  /**
+   * Ответ на hello - с именем профиля Chrome, и только после него «профиль поднялся»: первая
+   * сводка сессий после ответа решает в расширении судьбу вкладок агента, и прийти раньше
+   * ответа она не должна. Пока искали, связь сменилась или ушла - отвечать некому.
+   */
+  private async greet(link: HubLink, hello: HelloMessage): Promise<void> {
+    const lookup = this.identify(hello.profileKey)
+    let timer: NodeJS.Timeout | undefined
+    const late = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), this.options.identifyTimeoutMs ?? IDENTIFY_TIMEOUT_MS)
+    })
+    const chromeProfile = await Promise.race([lookup, late])
+
+    clearTimeout(timer)
+
+    if (this.byKey.get(hello.profileKey) !== link) return
+
     link.send({
       type: 'welcome',
       channel: this.options.channel,
       ideVersion: this.options.ideVersion,
       extensionBuild: this.options.extensionBuild(),
+      chromeProfile,
     })
     this.profilesChanged()
 
     for (const listener of this.linkListeners) listener(hello.profileKey, true)
+
+    if (!chromeProfile) void this.nameLater(link, hello.profileKey, lookup)
+  }
+
+  /**
+   * Имя не успело к welcome или не нашлось: дождаться поиска, не нашлось - поискать ещё раз, и
+   * найденное дослать расширению. Связь сменилась или ушла - некому.
+   */
+  private async nameLater(
+    link: HubLink,
+    profileKey: string,
+    lookup: Promise<string | null>,
+  ): Promise<void> {
+    const found =
+      (await lookup) ??
+      (await new Promise<string | null>((resolve) => {
+        setTimeout(() => resolve(this.identify(profileKey)), IDENTIFY_RETRY_MS).unref()
+      }))
+
+    if (!found || this.byKey.get(profileKey) !== link) return
+
+    this.profilesChanged()
+    void link.request('profile.chrome', { name: found }, REQUEST_TIMEOUT_MS).catch(() => undefined)
+  }
+
+  /** Поиск профиля Chrome; найденное запоминается, ненайденное прежнее имя не стирает. */
+  private async identify(profileKey: string): Promise<string | null> {
+    const find = this.options.identify
+    const found = find ? await find(profileKey).catch(() => null) : null
+
+    if (found) this.chromeProfiles.set(profileKey, found)
+
+    return found
+  }
+
+  private profileOf(hello: HelloMessage): BrowserProfile {
+    return profileOf(hello, this.chromeProfiles.get(hello.profileKey) ?? null)
   }
 
   private event(link: HubLink, event: EventMessage): void {
@@ -242,7 +354,13 @@ export class BrowserHub {
     if (!key || this.byKey.get(key) !== link) return
 
     if (event.name === 'profile-renamed' && link.hello) {
-      link.hello = { ...link.hello, profileName: event.data.name.slice(0, 80) }
+      const { name, named } = event.data
+
+      link.hello = {
+        ...link.hello,
+        profileName: name.slice(0, 80),
+        ...(typeof named === 'boolean' && { named }),
+      }
       this.profilesChanged()
     }
 

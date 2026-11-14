@@ -94,18 +94,6 @@ export const useConversationFeed = (conversationId: string | undefined) =>
     staleTime: Infinity,
   })
 
-/**
- * Картинка сообщения целиком (data URL) - только когда её открыли: в ленте одни
- * миниатюры. index null - ничего не открыто.
- */
-export const useMessageImage = (conversationId: string, messageId: string, index: number | null) =>
-  useQuery({
-    queryKey: QUERY_KEYS.claudeImage(conversationId, messageId, index ?? -1),
-    queryFn: () => invoke('claude:getImage', { conversationId, messageId, index: index ?? 0 }),
-    enabled: index !== null,
-    staleTime: Infinity,
-  })
-
 /** Что вернёт откат кода к сообщению: CLI спрашивается, пока открыт диалог отката. */
 export const useRewindPreview = (conversationId: string, messageId: string) =>
   useQuery({

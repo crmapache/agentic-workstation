@@ -12,6 +12,7 @@ import { PROGRESS_SAMPLES } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { RollingLineSpecimen } from './RollingLineSpecimen'
 import { SearchListSpecimen } from './SearchListSpecimen'
 import { SelectFieldSpecimen } from './SelectFieldSpecimen'
 
@@ -60,6 +61,13 @@ export const FieldsSection = () => {
           label={t('samples.noteLabel')}
           placeholder={t('samples.notePlaceholder')}
           value={note}
+          onChange={setNote}
+        />
+        <TextArea
+          label={t('samples.instructionsLabel')}
+          placeholder={t('samples.notePlaceholder')}
+          value={note}
+          resizable
           onChange={setNote}
         />
         <TextArea
@@ -114,6 +122,8 @@ export const FieldsSection = () => {
           </span>
         </span>
       </Specimen>
+
+      <RollingLineSpecimen />
     </ShowcaseSection>
   )
 }

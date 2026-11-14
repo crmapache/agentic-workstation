@@ -7,8 +7,8 @@ import type { TextAreaProps } from './TextArea.types'
 
 /**
  * Многострочное поле с подписью: описание, заметка - текст в несколько предложений.
- * Растёт с набранным от трёх строк до десяти, дальше прокрутка. Одна строка (имя, адрес,
- * поиск) - TextField.
+ * Растёт с набранным от трёх строк до десяти, дальше прокрутка; resizable - ещё и тянется
+ * вниз за уголок, до 400 px. Одна строка (имя, адрес, поиск) - TextField.
  */
 export const TextArea = ({
   label,
@@ -16,6 +16,7 @@ export const TextArea = ({
   value,
   onChange,
   error,
+  resizable = false,
   ref,
   ...rest
 }: TextAreaProps) => {
@@ -36,7 +37,7 @@ export const TextArea = ({
         autoComplete="off"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={clsx(styles.area, error && styles.invalid)}
+        className={clsx(styles.area, resizable && styles.resizable, error && styles.invalid)}
         onChange={handleChange}
         {...rest}
       />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, FileJson, KeyRound } from 'lucide-react'
+import { Trash2, FileJson, KeyRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { AgentApp, GoogleAppError, GoogleAppState } from '@shared/connectors'
@@ -69,12 +69,12 @@ export const GoogleAppCard = ({ google }: { google: GoogleAppState }) => {
           <Button
             size="sm"
             icon={FileJson}
-            variant={google.configured ? 'ghost' : 'primary'}
+            variant={google.configured ? 'secondary' : 'primary'}
             onClick={() => void handleImport()}>
             {t(google.configured ? 'connectors.google.replace' : 'connectors.google.import')}
           </Button>
           {google.configured && (
-            <Button size="sm" variant="ghost" icon={X} onClick={actions.forgetGoogleApp}>
+            <Button size="sm" variant="danger" icon={Trash2} onClick={actions.forgetGoogleApp}>
               {t('connectors.google.forget')}
             </Button>
           )}

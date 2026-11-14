@@ -4,9 +4,11 @@ import type { WorkspaceState } from '@shared/workspace'
 
 import {
   addProject,
+  moveProject,
   closeProject,
   activateProject,
   EMPTY_WORKSPACE,
+  withHomeProject,
   parseStoredWorkspace,
 } from './workspace-state'
 
@@ -149,5 +151,103 @@ describe('parseStoredWorkspace', () => {
     })
 
     expect(state.recentProjects).toEqual([{ name: 'b', rootPath: '/p/b' }])
+  })
+})
+
+describe('moveProject', () => {
+  const order = (state: WorkspaceState) => state.projects.map((project) => project.id).join('')
+
+  it('ставит вкладку перед другой - влево и вправо', () => {
+    expect(order(moveProject(threeProjects, 'c', 'a'))).toBe('cab')
+    expect(order(moveProject(threeProjects, 'a', 'c'))).toBe('bac')
+  })
+
+  it('null - в конец ряда', () => {
+    expect(order(moveProject(threeProjects, 'a', null))).toBe('bca')
+  })
+
+  it('активный проект перестановка не меняет', () => {
+    expect(moveProject(threeProjects, 'a', null).activeProjectId).toBe('b')
+  })
+
+  it('место не меняется или проект неизвестен - то же состояние, без записи', () => {
+    expect(moveProject(threeProjects, 'a', 'b')).toBe(threeProjects)
+    expect(moveProject(threeProjects, 'c', null)).toBe(threeProjects)
+    expect(moveProject(threeProjects, 'b', 'b')).toBe(threeProjects)
+    expect(moveProject(threeProjects, 'x', 'a')).toBe(threeProjects)
+    expect(moveProject(threeProjects, 'a', 'x')).toBe(threeProjects)
+  })
+})
+
+describe('домашний проект', () => {
+  const home = { id: 'home', name: 'Home', rootPath: '/h', home: true as const }
+  const withHome: WorkspaceState = {
+    ...threeProjects,
+    projects: [home, ...threeProjects.projects],
+  }
+  const order = (state: WorkspaceState) => state.projects.map((project) => project.id).join(' ')
+
+  it('встаёт первым и активен, если активного нет', () => {
+    const state = withHomeProject(EMPTY_WORKSPACE, '/h')
+
+    expect(state.projects).toEqual([home])
+    expect(state.activeProjectId).toBe('home')
+  })
+
+  it('старый дом из файла заменяется новым, активный проект остаётся', () => {
+    const stored = {
+      ...withHome,
+      projects: [...threeProjects.projects, { ...home, rootPath: '/old' }],
+    }
+    const state = withHomeProject(stored, '/h')
+
+    expect(order(state)).toBe('home a b c')
+    expect(state.projects[0]?.rootPath).toBe('/h')
+    expect(state.activeProjectId).toBe('b')
+  })
+
+  it('вкладка той же папки сливается с домом, недавние дом не помнят', () => {
+    const state = withHomeProject(
+      {
+        projects: [{ id: 'x', name: 'h', rootPath: '/h' }, ...threeProjects.projects],
+        activeProjectId: 'x',
+        recentProjects: [{ name: 'h', rootPath: '/h' }],
+      },
+      '/h',
+    )
+
+    expect(order(state)).toBe('home a b c')
+    expect(state.activeProjectId).toBe('home')
+    expect(state.recentProjects).toEqual([])
+  })
+
+  it('не закрывается', () => {
+    expect(closeProject({ ...withHome, activeProjectId: 'home' }, 'home')).toEqual({
+      ...withHome,
+      activeProjectId: 'home',
+    })
+  })
+
+  it('закрыли последнюю вкладку проекта - активным становится дом', () => {
+    const state = closeProject(
+      { ...withHome, projects: [home, threeProjects.projects[0]!], activeProjectId: 'a' },
+      'a',
+    )
+
+    expect(state.activeProjectId).toBe('home')
+    expect(order(state)).toBe('home')
+  })
+
+  it('не двигается, и перед ним не встают', () => {
+    expect(moveProject(withHome, 'home', null)).toBe(withHome)
+    expect(moveProject(withHome, 'c', 'home')).toBe(withHome)
+    expect(order(moveProject(withHome, 'c', 'a'))).toBe('home c a b')
+  })
+
+  it('открыть папку дома - перейти в дом, без второй вкладки', () => {
+    const state = addProject(withHome, '/h', ids('dup'))
+
+    expect(order(state)).toBe('home a b c')
+    expect(state.activeProjectId).toBe('home')
   })
 })

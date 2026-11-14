@@ -13,7 +13,7 @@ const BUILT_IN = [
   'Jira & Confluence',
   'Todoist',
   'Playwright',
-  'Browser',
+  'Browser Use',
 ]
 
 const SPEC_RULES = [

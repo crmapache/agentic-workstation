@@ -13,12 +13,15 @@ type DialogContext = {
   getWindow: () => BrowserWindow | null
 }
 
-/** Папка, от которой начинать выбор: рядом с активным проектом или «Документы». */
+/**
+ * Папка, от которой начинать выбор: рядом с активным проектом или «Документы». Рядом с домом
+ * проектов нет - служебная папка IDE, от дома тоже «Документы».
+ */
 const startingFolder = (workspace: WorkspaceService) => {
   const { projects, activeProjectId } = workspace.getState()
   const active = projects.find((project) => project.id === activeProjectId)
 
-  return active ? dirname(active.rootPath) : app.getPath('documents')
+  return active && !active.home ? dirname(active.rootPath) : app.getPath('documents')
 }
 
 const showOpen = (window: BrowserWindow | null, options: OpenDialogOptions) =>

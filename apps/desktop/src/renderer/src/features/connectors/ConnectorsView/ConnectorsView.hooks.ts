@@ -6,7 +6,12 @@ import type { Connector, ImportOutcome, AddConnectorError } from '@shared/connec
 
 import { useImportCandidates } from '../connectors.queries'
 import { useConnectorActions } from '../../../state/connectors.queries'
-import { EMPTY_ADD_FIELDS, EMPTY_AI_REQUEST, DESCRIPTION_SAVE_MS } from './ConnectorsView.constants'
+import {
+  NOTHING_SAID,
+  EMPTY_ADD_FIELDS,
+  EMPTY_AI_REQUEST,
+  DESCRIPTION_SAVE_MS,
+} from './ConnectorsView.constants'
 import type { FormKind, AddFormState, AddFormFields, TypeNameValues } from './ConnectorsView.types'
 import { addRequest, defaultImportChoice } from './ConnectorsView.utils'
 
@@ -256,4 +261,36 @@ export const useDescriptionDraft = ({ id, description }: Connector) => {
   useEffect(() => () => flushNow(), [])
 
   return { draft, setDraft, flush }
+}
+
+/**
+ * Инструкции коннектора в проекте - как описание: сохраняются сами через секунду тишины, при
+ * уходе из поля и при закрытии окна. Профиль Chrome - выбор, а не набор: сохраняется сразу.
+ */
+export const useInProjectDraft = ({ id, inProjects }: Connector, projectPath: string) => {
+  const actions = useConnectorActions()
+  const saved = inProjects[projectPath] ?? NOTHING_SAID
+  const [draft, setDraft] = useState(saved.instructions)
+
+  const flush = () => {
+    if (draft.trim() !== saved.instructions) {
+      void actions.setInProject(id, projectPath, { ...saved, instructions: draft.trim() })
+    }
+  }
+
+  const flushNow = useEffectEvent(flush)
+
+  useEffect(() => {
+    const timer = setTimeout(() => flushNow(), DESCRIPTION_SAVE_MS)
+
+    return () => clearTimeout(timer)
+  }, [draft])
+
+  // Окно закрыли посреди набора - набранное не теряется.
+  useEffect(() => () => flushNow(), [])
+
+  const pickProfile = (browserProfile: string | null) =>
+    void actions.setInProject(id, projectPath, { instructions: draft.trim(), browserProfile })
+
+  return { draft, setDraft, flush, profile: saved.browserProfile, pickProfile }
 }

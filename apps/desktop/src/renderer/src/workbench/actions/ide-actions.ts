@@ -58,7 +58,8 @@ export const useIdeActions = (): SearchAction[] => {
   }))
 
   const workspaceActions: SearchAction[] = [
-    ...(project
+    // Дом не закрывается (ADR 0059): закрыть его нечем.
+    ...(project && !project.home
       ? [
           {
             id: 'project.close',
@@ -72,7 +73,9 @@ export const useIdeActions = (): SearchAction[] => {
       .filter((other) => other.id !== project?.id)
       .map((other) => ({
         id: `project.switch:${other.id}`,
-        label: t('searchEverywhere.actions.switchProject', { name: other.name }),
+        label: other.home
+          ? t('searchEverywhere.actions.goHome')
+          : t('searchEverywhere.actions.switchProject', { name: other.name }),
         icon: ArrowRightLeft,
         run: () => activateProject(other.id),
       })),

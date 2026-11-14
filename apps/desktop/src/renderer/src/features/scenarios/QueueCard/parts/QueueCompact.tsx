@@ -13,24 +13,28 @@ import { QueueBadges } from './QueueBadges'
 import { QueueDots } from './QueueDots'
 
 /**
- * Очередь строкой доски: имя ведёт к её проекту, метки - где и что, элементы - точками, идущий -
- * дорогой карточек. Вопрос человеку отвечается прямо отсюда: доска - то место, где видно, кто
- * из всех проектов ждёт.
+ * Очередь другого проекта плотной карточкой: нажимается вся и ведёт к её проекту (клавиатуре -
+ * кнопка имени), метки - где и что, элементы - точками (когда их больше одного: единственный и
+ * так сказан меткой состояния), идущий - этапом и дорогой карточек. Вопрос человеку отвечается
+ * прямо отсюда, не переключая проект.
  */
 export const QueueCompact = ({ queue, live, status, onOpen }: QueueCompactProps) => {
   const { t } = useTranslation()
   const openRun = useOpenRun(queue.id)
   const isAsking = status.kind === 'asking'
+  const hasDots = queue.items.length > 1
+  const canAnswer = isAsking && live !== undefined
+  const road = runningItemOf(queue) && live && live.roadmap.length > 0 ? live : null
 
   const handleAnswer = () => {
     if (live) openRun(live.id)
   }
 
   return (
-    <Card size="sm" tone={isAsking ? 'accent' : 'neutral'}>
+    <Card size="sm" tone={isAsking ? 'accent' : 'neutral'} onPress={onOpen}>
       <div className={styles.compact}>
         <div className={styles.header}>
-          <Tooltip label={t('scenarios.board.openQueue')} stretch>
+          <Tooltip label={t('scenarios.queues.others.openQueue')} stretch>
             <button
               type="button"
               className={styles.compactName}
@@ -43,16 +47,23 @@ export const QueueCompact = ({ queue, live, status, onOpen }: QueueCompactProps)
             <QueueBadges queue={queue} status={status} />
           </div>
         </div>
-        <div className={styles.compactItems}>
-          <QueueDots queue={queue} live={live} />
-          {isAsking && live && (
-            <Button size="sm" variant="primary" onClick={handleAnswer}>
-              {t('scenarios.queues.running.answer')}
-            </Button>
-          )}
-        </div>
-        {runningItemOf(queue) && live && live.roadmap.length > 0 && (
-          <ScenarioRoadmap stops={live.roadmap} mood={roadMood(live.state)} />
+        {(hasDots || canAnswer) && (
+          <div className={styles.compactItems}>
+            {hasDots && <QueueDots queue={queue} live={live} />}
+            {canAnswer && (
+              <span className={styles.controlsEnd}>
+                <Button size="sm" variant="primary" onClick={handleAnswer}>
+                  {t('scenarios.queues.running.answer')}
+                </Button>
+              </span>
+            )}
+          </div>
+        )}
+        {road && (
+          <div className={styles.running}>
+            <div className={styles.stage}>{road.stageTitle || road.at || road.scenarioName}</div>
+            <ScenarioRoadmap stops={road.roadmap} mood={roadMood(road.state)} />
+          </div>
         )}
       </div>
     </Card>

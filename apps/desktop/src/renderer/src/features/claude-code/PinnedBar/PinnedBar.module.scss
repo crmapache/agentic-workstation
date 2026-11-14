@@ -1,7 +1,9 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
 // Полка лежит поверх верха ленты: непрозрачная (текст под полупрозрачным не читается
-// дважды), черта снизу говорит, что разговор уходит под неё, а не кончается.
+// дважды), черта снизу говорит, что разговор уходит под неё, а не кончается. Цвет панели -
+// стекло на 86 %, и лента сквозь него просвечивала: снизу - фон окна, сверху - цвет панели, как
+// сама панель лежит на окне. Полка непрозрачна и того же тона, что панель вокруг.
 .pinnedBar {
   position: absolute;
   z-index: var(--z-sticky);
@@ -11,7 +13,15 @@
   gap: var(--space-0-5);
   padding: var(--space-1) var(--size-panel-gutter);
   border-bottom: var(--border-width) solid var(--color-border);
-  background-color: var(--color-surface-panel);
+  background-color: var(--color-bg-app);
+
+  &::before {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-under);
+    background-color: var(--color-surface-panel);
+    content: '';
+  }
 }
 
 .row {

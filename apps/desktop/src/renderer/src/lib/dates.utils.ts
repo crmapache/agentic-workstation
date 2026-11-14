@@ -12,6 +12,7 @@ const CLOCK = new Intl.DateTimeFormat(LOCALE, {
   minute: '2-digit',
   hourCycle: 'h23',
 })
+const WEEKDAY = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' })
 const WEEKDAY_DAY = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'short',
   month: 'short',
@@ -20,6 +21,9 @@ const WEEKDAY_DAY = new Intl.DateTimeFormat(LOCALE, {
 
 /** «14:00». */
 export const clockLabel = (ms: number): string => CLOCK.format(ms)
+
+/** «Sun 20:00»: день недели и час - для срока в пределах недели. */
+export const weekdayClockLabel = (ms: number): string => `${WEEKDAY.format(ms)} ${CLOCK.format(ms)}`
 
 /** «Tue, Nov 10». */
 export const weekdayDayLabel = (ms: number): string => WEEKDAY_DAY.format(ms)

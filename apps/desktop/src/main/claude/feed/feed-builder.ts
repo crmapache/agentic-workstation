@@ -18,7 +18,7 @@ import { AgentTasks } from './agent-tasks'
 import { AssistantBlocks } from './assistant-blocks'
 import { FeedStore } from './feed-store'
 import { lineTime } from './line-time'
-import { leftQuestion, replayedUser, assistantText } from './replayed-user'
+import { leftQuestion, replayedUser, assistantText, replayedQueued } from './replayed-user'
 import { ServiceRows } from './service-rows'
 import { TaskList } from './task-list'
 import { ToolResults } from './tool-results'
@@ -129,6 +129,8 @@ export class FeedBuilder {
       this.applyAssistant(message, at)
     } else if (message.type === 'user') {
       this.applyUser(message, replay, at)
+    } else if (message.type === 'attachment' && replay) {
+      this.applyQueuedPrompt(message, at)
     } else if (message.type === 'system') {
       this.applySystem(message, at)
     } else if (message.type === 'rate_limit_event' && !replay) {
@@ -377,6 +379,13 @@ export class FeedBuilder {
     for (const item of replayed?.items ?? []) this.store.put(item)
 
     if (replayed?.messageId) this.tasksBefore.set(replayed.messageId, this.taskList.tasks)
+  }
+
+  /** Написанное посреди хода из транскрипта; живое лента держит с отправки. */
+  private applyQueuedPrompt(message: CliMessage, at: number) {
+    const queued = replayedQueued(message, at, (images) => this.thumbnails(images))
+
+    for (const item of queued?.items ?? []) this.store.put(item)
   }
 
   private applySystem(message: CliMessage, at: number) {

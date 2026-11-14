@@ -19,6 +19,7 @@ const connector = (id: string): StoredConnector => ({
   command: null,
   spec: null,
   availability: EVERYWHERE,
+  inProjects: {},
   account: null,
   enabled: true,
   toolOverrides: {},

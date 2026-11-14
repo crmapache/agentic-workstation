@@ -104,6 +104,10 @@ export const targetArg = (args: Record<string, unknown>): Target => {
  * Адрес для перехода: без схемы - https (модель часто пишет example.com); javascript: и
  * адреса Chrome (chrome://) не открываются - в них агенту нечего делать.
  */
+/** Что делать с тем, куда расширение не пускают: Computer Use (ADR 0057), если он есть. */
+export const COMPUTER_HINT =
+  'To work there, use the computer tools of the Computer Use connector if you have them.'
+
 export const urlArg = (value: unknown): string => {
   if (value === undefined || value === null || value === '') return ''
 
@@ -116,7 +120,9 @@ export const urlArg = (value: unknown): string => {
     const url = new URL(withScheme)
 
     if (!['http:', 'https:', 'about:', 'file:', 'data:'].includes(url.protocol)) {
-      throw new ArgumentError(`Can't open ${url.protocol} addresses.`)
+      throw new ArgumentError(
+        `Can't open ${url.protocol} addresses: Chrome keeps extensions out of them. ${COMPUTER_HINT}`,
+      )
     }
 
     return url.href

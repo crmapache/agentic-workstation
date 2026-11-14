@@ -1,8 +1,10 @@
 import { isAbsolute } from 'node:path'
 
+import { COMPUTER_SERVER_NAME } from '@shared/computer'
 import { BROWSER_SERVER_NAME } from '@shared/connectors'
 import type { AddToTypeRequest, AddConnectorError, AddConnectorRequest } from '@shared/connectors'
 
+import { IS_WINDOWS } from '../platform'
 import { parseEnvLine, splitCommandLine } from './command-line'
 import type { ShellVariables } from './command-line'
 import { commandForStore } from './connector-command'
@@ -59,6 +61,21 @@ export const newConnector = (
         kind: 'browser',
         label: 'Chrome',
         serverName: BROWSER_SERVER_NAME,
+      }),
+      secrets: {},
+    }
+  }
+
+  // Computer Use (ADR 0057): мышь и экран у машины одни - коннектор тоже один.
+  if (request.kind === 'computer') {
+    if (taken.servers.has(COMPUTER_SERVER_NAME)) return 'name-taken'
+
+    return {
+      connector: blankConnector({
+        id: ids.connector,
+        kind: 'computer',
+        label: IS_WINDOWS ? 'Windows' : 'Mac',
+        serverName: COMPUTER_SERVER_NAME,
       }),
       secrets: {},
     }

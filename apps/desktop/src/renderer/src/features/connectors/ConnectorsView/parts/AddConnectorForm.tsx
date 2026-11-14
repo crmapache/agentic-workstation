@@ -44,7 +44,7 @@ export const AddConnectorForm = ({
           onKeyDown={form.handleKeyDown}
         />
       )}
-      {!isCustom && kind !== 'browser' && (
+      {!isCustom && kind !== 'browser' && kind !== 'computer' && (
         <TextField
           label={`${t(`connectors.kinds.${kind}.name`)} · ${t('connectors.add.label')}`}
           placeholder={t('connectors.add.labelPlaceholder')}

@@ -4,7 +4,8 @@
   @include glass-overlay;
   @include enter-transition;
 
-  width: var(--size-dialog);
+  // Не шире окна с полями, как Modal: окно IDE бывает уже диалога (от 422).
+  width: min(var(--size-dialog), 100vw - 2 * var(--space-6));
   padding: 0;
   border-radius: var(--radius-xl);
   color: var(--color-fg);

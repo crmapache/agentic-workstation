@@ -48,6 +48,97 @@
   }
 }
 
+// Справка: шире по полям, строки - колонками, а не переносами текста. Заголовок от строк
+// отделён волосяной линией: так видно, что сверху - о чём справка, а ниже - её числа.
+.details {
+  padding: var(--space-1-5) var(--space-2);
+  color: var(--color-fg-muted);
+  white-space: nowrap;
+
+  &:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+// Главное число - моноширинным, цифры не прыгают при смене; цвет - ступень показания.
+.headValue {
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+// Три колонки на все строки сразу: числа встают под числами, как в таблице. Зазоры - у
+// ячеек, а не у сетки: колонка уточнений без единого уточнения не оставляет пустого поля справа.
+.rows {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  row-gap: var(--space-1);
+  padding-top: var(--space-1-5);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.rowLabel {
+  color: var(--color-fg-muted);
+}
+
+.rowValue {
+  justify-self: end;
+  padding-left: var(--space-4);
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.aside {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+
+  &:not(:empty) {
+    padding-left: var(--space-1-5);
+  }
+}
+
+// Заметка длиннее строк - переносится по их ширине, а не растягивает справку: своей ширины
+// у неё нет (contain), место даёт колонка.
+.note {
+  contain: inline-size;
+  color: var(--color-fg-subtle);
+  white-space: normal;
+}
+
+// Ступени показания - роли колец (--color-gauge-*): их приглушает режим спокойных цветов.
+.success {
+  color: var(--color-gauge-1);
+}
+
+.warning {
+  color: var(--color-gauge-2);
+}
+
+.high {
+  color: var(--color-gauge-3);
+}
+
+.danger {
+  color: var(--color-gauge-4);
+}
+
 .top {
   position-area: block-start;
 }

@@ -28,7 +28,7 @@ const leaveRefused = (tabId: number) =>
   `The page in tab ${tabId} has unsaved changes and asked before leaving. It is the user's tab, so the agent stayed on the page. Ask the user before leaving it.`
 
 const lostControl = (tabId: number, url: string) =>
-  `Chrome took tab ${tabId} out of the agent's control: it went to a page extensions can't control (${url || 'unknown page'}) - chrome:// pages, the Chrome Web Store, or a file: page without file access. It is no longer your current tab: open or take another tab. close_tab still closes it.`
+  `Chrome took tab ${tabId} out of the agent's control: it went to a page extensions can't control (${url || 'unknown page'}) - chrome:// pages, the Chrome Web Store, or a file: page without file access. It is no longer your current tab: open or take another tab. close_tab still closes it. To work on that page, use the computer tools of the Computer Use connector if you have them.`
 
 /**
  * События расширения (ADR 0040): человек закрыл вкладку или группу, нажал Stop в окне

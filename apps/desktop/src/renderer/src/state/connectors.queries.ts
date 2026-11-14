@@ -1,4 +1,5 @@
 import type { ConversationFeed } from '@shared/claude-feed'
+import type { ComputerPermission } from '@shared/computer'
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
@@ -6,6 +7,7 @@ import type {
   ConnectorsState,
   AddToTypeRequest,
   UpdateTypeRequest,
+  ConnectorInProject,
   AddConnectorRequest,
 } from '@shared/connectors'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -121,6 +123,17 @@ export const useConnectorActions = () => {
         console.warn('[connectors] описание не сохранилось', error)
       }
     },
+    /**
+     * Инструкции и профиль Chrome коннектора в проекте (ADR 0053) - как описание: ответ сразу в
+     * кэш, окно сохраняет и при закрытии.
+     */
+    setInProject: async (id: string, projectPath: string, settings: ConnectorInProject) => {
+      try {
+        keep(await invoke('connectors:setInProject', { id, projectPath, settings }))
+      } catch (error) {
+        console.warn('[connectors] настройки проекта не сохранились', error)
+      }
+    },
     setAvailability: (id: string, availability: ConnectorAvailability) =>
       run(() => invoke('connectors:setAvailability', { id, availability })),
     importCandidates: () => invoke('connectors:importCandidates'),
@@ -149,5 +162,8 @@ export const useConnectorActions = () => {
     revealBrowserExtension: () => invoke('connectors:revealBrowserExtension'),
     /** chrome://extensions в Chrome; Chrome не открылся - false. */
     openBrowserExtensions: () => invoke('connectors:openBrowserExtensions'),
+    openDiskAccess: () => invoke('connectors:openDiskAccess'),
+    /** Разрешение macOS для Computer Use: IDE - в список, открыть настройку; не мак - false. */
+    allowComputer: (permission: ComputerPermission) => invoke('computer:allow', { permission }),
   }
 }

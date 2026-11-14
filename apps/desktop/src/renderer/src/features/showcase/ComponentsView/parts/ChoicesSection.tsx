@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bot, Search, FileText, ShieldAlert } from 'lucide-react'
+import { Bot, House, Search, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
@@ -17,6 +17,7 @@ import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 import {
   CHIP_SAMPLES,
   SAMPLE_ICON_SIZE,
+  PINNED_TAB_ICON_SIZE,
   SAMPLE_ICON_STROKE_WIDTH,
 } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
@@ -87,6 +88,16 @@ export const ChoicesSection = () => {
 
       <Specimen label={t('specimens.closableTabs')} layout="column">
         <div role="tablist" aria-label={t('specimens.closableTabs')} className={styles.tabStrip}>
+          <ClosableTab
+            pinned
+            label={t('samples.home')}
+            hint={t('samples.home')}
+            active={false}
+            leading={<House size={PINNED_TAB_ICON_SIZE} aria-hidden />}
+            closeLabel={t('samples.close')}
+            onActivate={() => undefined}
+            onClose={() => undefined}
+          />
           <ClosableTab
             label={t('samples.project')}
             hint={t('samples.currentPath')}

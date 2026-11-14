@@ -8,8 +8,6 @@ export type SidePanelProps<ViewId extends string> = {
   isOpen: boolean
   /** Ширина на экране - сохранённая или ужатая под место в окне. */
   width: number
-  /** Уже панель не ужимается, даже когда окну не хватает места. */
-  minWidth: number
   /** С какой стороны окна стоит панель. Ручка размера - у внутреннего края. */
   placement: 'start' | 'end'
   resizeLabel: string

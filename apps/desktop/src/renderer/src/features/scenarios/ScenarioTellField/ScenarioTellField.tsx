@@ -16,7 +16,8 @@ import type { ScenarioTellFieldProps } from './ScenarioTellField.types'
 /**
  * Поле главному потоку внизу окна прогона (поле головы в ACC): голова - один разговор на всю
  * ночь, слова ложатся в таймлайн под карточку, где прогон стоит, и ответ - туда же. Отправка -
- * кнопкой или ⌘Enter (Enter - новая строка: пишут абзацами). У законченного прогона поле молчит.
+ * кнопкой под полем у правого края или ⌘Enter (Enter - новая строка: пишут абзацами). У
+ * законченного прогона поле молчит.
  */
 export const ScenarioTellField = ({ place, run }: ScenarioTellFieldProps) => {
   const { t } = useTranslation()
@@ -45,11 +46,13 @@ export const ScenarioTellField = ({ place, run }: ScenarioTellFieldProps) => {
           onKeyDown={handleKeyDown}
         />
       </div>
-      <Tooltip label={t('scenarios.run.tell.sendHint', { key: shortcutLabel('⌘Enter') })}>
-        <Button variant="primary" icon={Send} disabled={!canSend} onClick={handleSend}>
-          {t('scenarios.run.tell.send')}
-        </Button>
-      </Tooltip>
+      <div className={styles.actions}>
+        <Tooltip label={t('scenarios.run.tell.sendHint', { key: shortcutLabel('⌘Enter') })}>
+          <Button variant="primary" icon={Send} disabled={!canSend} onClick={handleSend}>
+            {t('scenarios.run.tell.send')}
+          </Button>
+        </Tooltip>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,5 @@
 import type { ScenariosProject } from '../ScenariosView.types'
 import type { ScenariosTab } from '../../scenarios.types'
-import { BoardTab } from '../../BoardTab/BoardTab'
 import { HistoryTab } from '../../HistoryTab/HistoryTab'
 import { LibraryTab } from '../../LibraryTab/LibraryTab'
 import { QueuesTab } from '../../QueuesTab/QueuesTab'
@@ -17,8 +16,6 @@ export const ScenariosTabBody = ({
   switch (tab) {
     case 'queues':
       return <QueuesTab project={project} />
-    case 'board':
-      return <BoardTab project={project} />
     case 'library':
       return <LibraryTab project={project} />
     case 'schedule':

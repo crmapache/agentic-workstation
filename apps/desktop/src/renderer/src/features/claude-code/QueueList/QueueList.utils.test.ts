@@ -4,6 +4,12 @@ import { queueHintKey, queuePictures } from './QueueList.utils'
 
 describe('картинки очереди', () => {
   it('вставленная без файла - по месту среди вставленных; с файлом и выбранная - файлом', () => {
+    const queued = (image: number) => ({
+      kind: 'queued',
+      conversationId: 'c1',
+      queuedId: 'q1',
+      image,
+    })
     const pictures = queuePictures(
       [
         { kind: 'text', value: 'look ' },
@@ -18,10 +24,11 @@ describe('картинки очереди', () => {
 
     expect(pictures).toEqual([
       null,
-      { place: { kind: 'queued', conversationId: 'c1', queuedId: 'q1', image: 0 } },
+      { place: queued(0) },
       { place: { kind: 'file', path: 'shot.png' }, name: 'shot.png' },
-      { place: { kind: 'file', path: '/p/pasted.png' } },
-      { place: { kind: 'queued', conversationId: 'c1', queuedId: 'q1', image: 2 } },
+      // Записанную вставку IDE со временем убирает - тогда байты очереди.
+      { place: { kind: 'file', path: '/p/pasted.png' }, fallback: queued(1) },
+      { place: queued(2) },
     ])
   })
 })

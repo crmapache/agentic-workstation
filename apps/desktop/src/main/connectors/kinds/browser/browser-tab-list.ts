@@ -2,6 +2,7 @@ import type { BrowserMethods } from '@agentic-workstation/browser-protocol/proto
 import { formatTabReference } from '@agentic-workstation/browser-protocol/tab-reference'
 
 import type { BrowserProfile } from '../../../browser/browser-hub'
+import { profileLabel } from '../../../browser/browser-hub'
 import { tabKey } from '../../../browser/browser-sessions'
 
 const TITLE_MAX = 100
@@ -40,7 +41,7 @@ export const tabLines = (listings: readonly Listing[], options: TabListOptions):
 
     left -= shown.length
     lines.push(
-      `Profile "${profile.name}" (${profile.key}), ${profile.browser}: ${matching.length} of ${listing.tabs.length} tabs${query ? ` match "${options.query.trim()}"` : ''}`,
+      `Profile ${profileLabel(profile)}, key ${profile.key}, ${profile.browser}: ${matching.length} of ${listing.tabs.length} tabs${query ? ` match "${options.query.trim()}"` : ''}`,
     )
 
     for (const tab of shown) {

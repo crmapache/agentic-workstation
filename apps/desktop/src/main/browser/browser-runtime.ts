@@ -5,6 +5,7 @@ import type { BrowserState, BrowserSetupFailure } from '@shared/connectors'
 import { IS_WINDOWS } from '../platform'
 import { BrowserHub } from './browser-hub'
 import type { BrowserPlaces } from './browser-places'
+import type { ChromeLookup, ProfileOpening, ChromeProfileEntry } from './chrome-profiles'
 import { ensureBridgeKey } from './hub-auth'
 import { installBridge, uninstallBridge } from './native-host-install'
 import type { BridgeSource } from './native-host-install'
@@ -18,6 +19,12 @@ export type BrowserRuntimeOptions = {
   ideVersion: string
   /** Куда класть манифесты host: папки браузеров человека или папка теста. */
   manifestDirs: () => string[]
+  /** Профиль Chrome копии расширения по её ключу (ADR 0052); нет - имена не ищутся. */
+  identify?: ((profileKey: string) => Promise<ChromeLookup>) | undefined
+  /** Все профили браузеров человека - для выбора профиля проекта; нет - только подключённые. */
+  listProfiles?: (() => Promise<ChromeProfileEntry[]>) | undefined
+  /** Открыть окно браузера в закрытом профиле по имени (ADR 0053); нет - не открываем. */
+  openProfile?: ((name: string) => Promise<ProfileOpening>) | undefined
   changed: () => void
 }
 
@@ -32,6 +39,10 @@ export class BrowserRuntime {
   private installed = false
   private failure: BrowserSetupFailure | null = null
   private extensionBuild: string | null = null
+  /** Имена профилей Chrome не прочитать: macOS не пускает IDE в данные Chrome (ADR 0052). */
+  private namesDenied = false
+  /** Все профили браузеров человека, как их прочли последний раз. */
+  private chromeProfiles: ChromeProfileEntry[] = []
   /** Установка или удаление в пути: следующее ждёт предыдущее, они не пересекаются. */
   private work: Promise<void> = Promise.resolve()
 
@@ -40,8 +51,12 @@ export class BrowserRuntime {
       channel: options.places.channel,
       ideVersion: options.ideVersion,
       extensionBuild: () => this.extensionBuild,
+      identify: options.identify ? (profileKey) => this.lookup(profileKey) : undefined,
     })
-    this.hub.onProfiles(() => options.changed())
+    this.hub.onProfiles(() => {
+      options.changed()
+      void this.refreshChromeProfiles()
+    })
   }
 
   /** Поставить мост и открыть сокет. Ошибку не бросает - она в state().failure. */
@@ -83,14 +98,50 @@ export class BrowserRuntime {
     return {
       installed: this.installed,
       extensionDir: this.installed ? this.options.places.extensionDir : null,
-      profiles: this.hub.profiles().map(({ key, name, browser, version }) => ({
+      profiles: this.hub.profiles().map(({ key, name, chromeProfile, browser, version }) => ({
         key,
         name,
+        chromeProfile,
         browser,
         version,
       })),
       failure: this.failure,
+      namesDenied: this.namesDenied,
+      chromeProfiles: this.chromeProfiles,
     }
+  }
+
+  /**
+   * Поиск профиля Chrome для связи: имя - ей, «система не пустила» - окну, которое попросит
+   * дать IDE полный доступ к диску (ADR 0052).
+   */
+  private async lookup(profileKey: string): Promise<string | null> {
+    const found = (await this.options.identify?.(profileKey)) ?? { name: null, denied: false }
+
+    if (found.denied !== this.namesDenied) {
+      this.namesDenied = found.denied
+      this.options.changed()
+    }
+
+    return found.name
+  }
+
+  /**
+   * Перечитать профили браузеров: при каждом подключении и уходе копии расширения - человек мог
+   * завести профиль или поставить расширение. Поменялось - окну новое состояние.
+   */
+  private async refreshChromeProfiles(): Promise<void> {
+    const listed = (await this.options.listProfiles?.().catch(() => null)) ?? null
+
+    if (!listed || JSON.stringify(listed) === JSON.stringify(this.chromeProfiles)) return
+
+    this.chromeProfiles = listed
+    this.options.changed()
+  }
+
+  /** Открыть окно браузера в профиле по имени: агенту нужен профиль, который сейчас закрыт. */
+  openProfile(name: string): Promise<ProfileOpening> {
+    return this.options.openProfile?.(name) ?? Promise.resolve('failed')
   }
 
   private queue(task: () => Promise<void>): Promise<void> {
@@ -154,5 +205,6 @@ export class BrowserRuntime {
     }
 
     this.options.changed()
+    void this.refreshChromeProfiles()
   }
 }

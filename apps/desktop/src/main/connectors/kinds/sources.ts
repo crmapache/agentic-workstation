@@ -1,3 +1,4 @@
+import type { ConnectorInProject } from '@shared/connectors'
 import { runsCommand } from '@shared/connectors'
 
 import { launchCommand } from '../connector-command'
@@ -7,10 +8,13 @@ import type { StoredConnector } from '../connector-store'
 import { isRemoteKind, REMOTE_MCP_URL } from '../connectors.constants'
 import type { GoogleClient } from '../oauth/google-oauth'
 import type { BrowserHub } from '../../browser/browser-hub'
+import type { ProfileOpening } from '../../browser/chrome-profiles'
+import type { ComputerRuntime } from '../../computer/computer-runtime'
 import { NativeSource } from './native-tools'
 import { RemoteMcpSource } from './remote-mcp'
 import { StdioMcpSource } from './stdio-mcp'
 import { createBrowserSource } from './browser/browser-tools'
+import { createComputerSource } from './computer/computer-tools'
 import { CALENDAR_TOOLS } from './google/calendar-tools'
 import { GMAIL_TOOLS } from './google/gmail-tools'
 import { GoogleSession, GoogleApiError } from './google/google-session'
@@ -23,6 +27,12 @@ export type SourceDeps = {
   version: string
   /** Связь с расширениями Chrome - для коннектора Browser (ADR 0040); в тестах - null. */
   browser: BrowserHub | null
+  /** Мышь, клавиатура и экран мака - для коннектора Computer (ADR 0057); в тестах - null. */
+  computer?: ComputerRuntime | null | undefined
+  /** Открыть окно браузера в закрытом профиле по имени (ADR 0053); в тестах нет. */
+  openBrowserProfile?: ((name: string) => Promise<ProfileOpening>) | undefined
+  /** Что человек сказал про этот коннектор в проекте (ADR 0053); ставит живой коннектор. */
+  inProject?: ((projectPath: string) => ConnectorInProject | null) | undefined
 }
 
 /**
@@ -63,7 +73,22 @@ export const createSource = (
 
   // Браузер для ИИ: свои инструменты поверх расширения, сессии - по процессам разговоров.
   if (connector.kind === 'browser') {
-    return deps.browser ? createBrowserSource(deps.browser) : new NativeSource([], null, [])
+    return deps.browser
+      ? createBrowserSource(
+          deps.browser,
+          (path) => deps.inProject?.(path)?.browserProfile ?? null,
+          deps.openBrowserProfile,
+        )
+      : new NativeSource([], null, [])
+  }
+
+  // Computer Use: один агент на машину, источник - инструменты поверх него.
+  if (connector.kind === 'computer') {
+    const { computer } = deps
+
+    return computer
+      ? createComputerSource(computer.agent, () => computer.idle())
+      : new NativeSource([], null, [])
   }
 
   if (runsCommand(connector.kind) && connector.command) {
@@ -99,7 +124,13 @@ export const createSource = (
 export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets): boolean => {
   if (connector.kind === 'gmail' || connector.kind === 'calendar') return Boolean(secrets.google)
 
-  if (runsCommand(connector.kind) || connector.kind === 'browser') return true
+  if (
+    runsCommand(connector.kind) ||
+    connector.kind === 'browser' ||
+    connector.kind === 'computer'
+  ) {
+    return true
+  }
 
   if (connector.kind === 'http')
     return connector.spec?.auth.type === 'none' || Boolean(secrets.apiKey)
@@ -112,11 +143,16 @@ export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets)
 }
 
 /**
- * Входить в браузере надо готовым сервисам и своему MCP с OAuth; команде, Playwright, ИИ и
- * браузеру для ИИ - нет.
+ * Входить в браузере надо готовым сервисам и своему MCP с OAuth; команде, Playwright, ИИ,
+ * браузеру для ИИ и Computer Use - нет.
  */
 export const signsInWithBrowser = (connector: StoredConnector): boolean => {
-  if (runsCommand(connector.kind) || connector.kind === 'http' || connector.kind === 'browser') {
+  if (
+    runsCommand(connector.kind) ||
+    connector.kind === 'http' ||
+    connector.kind === 'browser' ||
+    connector.kind === 'computer'
+  ) {
     return false
   }
 

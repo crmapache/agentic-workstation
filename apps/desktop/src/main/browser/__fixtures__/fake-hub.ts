@@ -44,10 +44,11 @@ export class FakeHub implements HubPort {
   private nextTab = 100
   private nextGroup = 1
 
-  connect(key: string, name = key, launch = 'run1'): void {
+  connect(key: string, name = key, launch = 'run1', chromeProfile: string | null = null): void {
     this.connected.set(key, {
       key,
       name,
+      chromeProfile,
       launch,
       browser: 'Google Chrome',
       version: '0.1.0',

@@ -90,6 +90,9 @@ export const PROGRESS_SAMPLES: readonly ProgressSample[] = [
 // Иконка рядом с подписью в переключателе ветки - как в шапке окна.
 export const SAMPLE_ICON_SIZE = 14
 
+// Знак закреплённой вкладки - как знак дома на настоящей вкладке проектов.
+export const PINNED_TAB_ICON_SIZE = 16
+
 export const SAMPLE_ICON_STROKE_WIDTH = 1.75
 
 // Файлы для образца списка поиска - данные, как у настоящего проекта, не переводятся.
@@ -180,3 +183,6 @@ export const CHART_TIP_STEPS: MarkSteps = { across: 1, down: null }
 
 /** Варианты поля выбора в витрине - имена провайдеров, как в окне запуска сценария. */
 export const SELECT_SAMPLES = ['Claude Code', 'Codex', 'Gemini CLI'] as const
+
+// Фразы образца RollingLine по порядку - ключи samples.*: короткая, длинная (режется), снова короткая.
+export const ROLLING_SAMPLE_KEYS = ['rolling1', 'rolling2', 'rolling3'] as const

@@ -13,7 +13,7 @@ import type { QueueDotsProps } from '../QueueCard.types'
 import { itemDotTone } from '../../scenarios-queues.utils'
 
 /**
- * Элементы очереди точками доски: цвет - исход, пустой кружок - ещё не начинался. Имя и
+ * Элементы очереди точками плотной карточки: цвет - исход, пустой кружок - ещё не начинался. Имя и
  * состояние - в подсказке; точка с прогоном открывает его. После точки с остановкой - её метка.
  */
 export const QueueDots = ({ queue, live }: QueueDotsProps) => {

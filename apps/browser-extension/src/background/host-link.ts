@@ -99,6 +99,18 @@ export class HostLink {
     port.onDisconnect.addListener(() => this.disconnected(chrome.runtime.lastError?.message ?? ''))
   }
 
+  /**
+   * Будильник раз в минуту (background.ts): связи нет - попробовать снова. Таймер повтора
+   * пропадает вместе с уснувшим сервис-воркером, а «host не найден» сам не повторяется вовсе -
+   * и профиль, где человек всё время работает (воркер не засыпает и не начинает заново), так и
+   * оставался без IDE, пока не откроют окно значка.
+   */
+  revive(): void {
+    if (this.port) return
+
+    this.connect()
+  }
+
   /** Окно значка открыли: host, которого не было, мог появиться. */
   retry(now = Date.now()): void {
     if (this.state !== 'host-missing' && this.state !== 'host-error') return

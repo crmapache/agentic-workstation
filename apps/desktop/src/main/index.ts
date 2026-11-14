@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell } from 'electron'
+import type { BrowserWindow } from 'electron'
 
 import type { ClaudeState } from '@shared/claude'
 import type { FeedPatch } from '@shared/claude-feed'
@@ -37,7 +38,9 @@ import { UPDATE_FEED_URL, UPDATE_FEED_OVERRIDE_ENV } from './updates/update.cons
 import { saveEditorBeforeQuit } from './window/editor-save'
 import { EDITOR_SAVE_TIMEOUT_MS } from './window/editor-save.constants'
 import { createMainWindow } from './window/main-window'
+import { ideWindows } from './window/overlay-windows'
 import { hideConsoleWindows } from './windows/console-hide'
+import { homeFolderPath } from './workspace/home-folder'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import type { StoredAccounts } from './claude/accounts/account-store'
@@ -94,6 +97,7 @@ const bootstrap = async () => {
   let observeCall = (_call: ConversationCall): void => undefined
   const workspace = await WorkspaceService.load(
     new JsonFile<WorkspaceState>(join(app.getPath('userData'), 'workspace.json')),
+    homeFolderPath(PROFILE_DIR),
     (state) => {
       broadcast('workspace:changed', state)
       onWorkspace()
@@ -143,9 +147,13 @@ const bootstrap = async () => {
   )
   // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
   claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
+  // Дом - папка, которую создала сама IDE, чужих хуков и настроек в ней нет: вопроса о доверии
+  // на первом сообщении дома не будет (ADR 0059).
+  void claude.trustProject(homeFolderPath(PROFILE_DIR))
   // Коннекторы к приложениям держит IDE, а не провайдер (ADR 0028): шлюз - до первого
   // процесса разговора, его серверы процессы получают файлом --mcp-config.
   const connectors = await startConnectors({
+    rendererUrl: RENDERER_URL,
     serversChanged: (affects) => claude.connectors.serversChanged(affects),
     serverChanged: (serverName) => claude.connectors.serverChanged(serverName),
     getWindow: () => mainWindow,
@@ -371,7 +379,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) openMainWindow()
+    if (ideWindows().length === 0) openMainWindow()
   })
 
   app

@@ -15,6 +15,8 @@ export type MethodDeps = {
   agentTabs: AgentTabs
   /** Сессии IDE поменялись - окно значка покажет их. */
   sessionsChanged: () => void
+  /** IDE назвала профиль Chrome этой копии позже welcome (ADR 0052). */
+  chromeProfile: (name: string) => Promise<void>
 }
 
 const tabIdOf = (value: unknown): number => {
@@ -150,6 +152,10 @@ export const createMethods = (deps: MethodDeps) => {
         link.sessions = Array.isArray(request.params.sessions) ? request.params.sessions : []
         deps.sessionsChanged()
         await deps.agentTabs.sessions(channel, link.sessions)
+
+        return null
+      case 'profile.chrome':
+        await deps.chromeProfile(String(request.params.name))
 
         return null
       default:

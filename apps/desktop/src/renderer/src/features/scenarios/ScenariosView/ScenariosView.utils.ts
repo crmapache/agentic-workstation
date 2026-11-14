@@ -5,24 +5,17 @@ import type { TabsItem } from '@agentic-workstation/ui/Tabs.types'
 
 import type { ScenariosTab } from '../scenarios.types'
 
-/** Вкладки вида со счётчиками: сценарии, очереди проекта, все очереди, расписание, история. */
+/**
+ * Вкладки вида со счётчиками: сценарии, очереди, расписание, история. Очереди - все открытые:
+ * вкладка показывает и очереди других проектов.
+ */
 export const tabItems = (
   label: (tab: ScenariosTab) => string,
-  projectPath: string,
   queues: ScenarioQueuesView | undefined,
   shelves: ScenarioShelvesView | undefined,
-): TabsItem<ScenariosTab>[] => {
-  const open = queues?.queues ?? []
-
-  return [
-    { id: 'library', label: label('library'), count: shelves?.scenarios.length ?? 0 },
-    {
-      id: 'queues',
-      label: label('queues'),
-      count: open.filter((queue) => queue.projectPath === projectPath).length,
-    },
-    { id: 'board', label: label('board'), count: open.length },
-    { id: 'schedule', label: label('schedule'), count: shelves?.schedules.length ?? 0 },
-    { id: 'history', label: label('history'), count: shelves?.runs.length ?? 0 },
-  ]
-}
+): TabsItem<ScenariosTab>[] => [
+  { id: 'library', label: label('library'), count: shelves?.scenarios.length ?? 0 },
+  { id: 'queues', label: label('queues'), count: queues?.queues.length ?? 0 },
+  { id: 'schedule', label: label('schedule'), count: shelves?.schedules.length ?? 0 },
+  { id: 'history', label: label('history'), count: shelves?.runs.length ?? 0 },
+]

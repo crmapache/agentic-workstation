@@ -23,7 +23,7 @@ const DOMAINS = ['Page.enable', 'Runtime.enable', 'Log.enable']
 const offLimits = (tab: HeldTab, reason: string) =>
   `${reason} Chrome keeps extensions out of chrome:// pages, the Chrome Web Store and file: pages without file access. ${
     tab.owned ? 'The tab stays in your group: close it with close_tab.' : 'The tab was released.'
-  } Open another tab or take a different one.`
+  } Open another tab or take a different one, or use the computer tools of the Computer Use connector if you have them.`
 
 /**
  * Отладчик и рамка во вкладках сессий (ADR 0040): подключить на время работы, отпустить,

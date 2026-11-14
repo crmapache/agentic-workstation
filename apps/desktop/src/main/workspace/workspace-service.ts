@@ -1,10 +1,17 @@
 import { randomUUID } from 'node:crypto'
-import { stat } from 'node:fs/promises'
+import { stat, mkdir } from 'node:fs/promises'
 
 import type { Project, WorkspaceState } from '@shared/workspace'
 
 import type { JsonFile } from '../storage/json-file'
-import { addProject, closeProject, activateProject, parseStoredWorkspace } from './workspace-state'
+import {
+  addProject,
+  moveProject,
+  closeProject,
+  activateProject,
+  withHomeProject,
+  parseStoredWorkspace,
+} from './workspace-state'
 
 const isExistingDirectory = async (path: string) => {
   try {
@@ -27,23 +34,34 @@ export class WorkspaceService {
 
   /**
    * Поднимает сохранённое состояние. Папки, которых больше нет на диске
-   * (удалили, переименовали), выпадают и из вкладок, и из недавних.
+   * (удалили, переименовали), выпадают и из вкладок, и из недавних. Дом (ADR 0059) есть
+   * всегда: его папку IDE создаёт сама, и он встаёт первой вкладкой.
    */
   static async load(
     file: JsonFile<WorkspaceState>,
+    homePath: string,
     onChange: (state: WorkspaceState) => void,
   ): Promise<WorkspaceService> {
+    // Папку не создать (нет прав) - дом всё равно на месте: дерево скажет, что папки нет, а
+    // вкладки и разговоры не теряют своего места.
+    await mkdir(homePath, { recursive: true }).catch((error: unknown) =>
+      console.warn('Папку дома не создать', homePath, error),
+    )
+
     const stored = parseStoredWorkspace(await file.read())
     const existing = async <T extends { rootPath: string }>(items: T[]) => {
       const presence = await Promise.all(items.map((item) => isExistingDirectory(item.rootPath)))
 
       return items.filter((_item, index) => presence[index])
     }
-    const state = parseStoredWorkspace({
-      ...stored,
-      projects: await existing(stored.projects),
-      recentProjects: await existing(stored.recentProjects),
-    })
+    const state = withHomeProject(
+      parseStoredWorkspace({
+        ...stored,
+        projects: await existing(stored.projects),
+        recentProjects: await existing(stored.recentProjects),
+      }),
+      homePath,
+    )
 
     return new WorkspaceService(state, file, onChange)
   }
@@ -78,6 +96,10 @@ export class WorkspaceService {
 
   activateProject(projectId: string): Promise<WorkspaceState> {
     return this.commit(activateProject(this.state, projectId))
+  }
+
+  moveProject(projectId: string, beforeId: string | null): Promise<WorkspaceState> {
+    return this.commit(moveProject(this.state, projectId, beforeId))
   }
 
   private async commit(next: WorkspaceState): Promise<WorkspaceState> {

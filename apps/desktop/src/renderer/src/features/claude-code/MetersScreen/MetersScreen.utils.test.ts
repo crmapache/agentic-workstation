@@ -18,7 +18,7 @@ const window = (group: string, model = ''): UsageWindow => ({
 
 const usage = (windows: UsageWindow[]): AccountUsage => ({ windows, extra: null, fetchedAt: 0 })
 
-describe('экран Under the field', () => {
+describe('экран Usage meters', () => {
   it('строки - окна аккаунта по порядку и токены за день последними', () => {
     const keys = meterChoices(
       usage([window('session'), window('weekly'), window('weekly', 'Fable')]),

@@ -7,15 +7,19 @@ import type {
 
 import { maskArgs } from '../claude/tools/secret-mask'
 import type { StoredTool, StoredType, StoredConnector } from './connector-store'
+import type { ServiceAnswer } from './service-answer'
 import { isToolEnabled } from './tool-access'
 import { signsInWithBrowser } from './kinds/sources'
-import { BROWSER_GUIDE } from './kinds/browser/browser-guide'
+import { BROWSER_GUIDE, BROWSER_COMPUTER_NOTE } from './kinds/browser/browser-guide'
+import { COMPUTER_GUIDE } from './kinds/computer/computer-guide'
 
 /** Что о коннекторе знает только живая IDE: идёт ли вход и чем кончилась последняя попытка. */
 export type LiveFacts = {
   signedIn: boolean
   signingIn: boolean
   failure: ConnectorFailure | null
+  /** Что ответил сервис о сбое: его слова и страница, где чинить (service-answer.ts). */
+  said?: ServiceAnswer | null | undefined
   /**
    * Чей коннектор сейчас, когда это знает только живая IDE: у Browser - профили Chrome на
    * связи (ADR 0040). Нет - из реестра.
@@ -70,6 +74,7 @@ export const connectorView = (
     command: commandView(connector),
     service: connector.spec?.service ?? null,
     availability: connector.availability,
+    inProjects: connector.inProjects,
     auth: connector.auth,
     takesToken:
       connector.auth === 'token' ||
@@ -79,6 +84,8 @@ export const connectorView = (
     signedIn: live.signedIn,
     status: statusOf(connector, live),
     failure: connector.enabled ? live.failure : null,
+    failureDetail: (connector.enabled && live.said?.detail) || null,
+    failureUrl: (connector.enabled && live.said?.url) || null,
     tools: toolsView(connector),
   }
 }
@@ -98,6 +105,7 @@ const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   todoist: 'Todoist account',
   playwright: 'Playwright browser',
   browser: "the user's Chrome",
+  computer: "the user's computer (real mouse, keyboard and screen)",
   mcp: 'MCP server',
   command: 'MCP server',
   http: 'API',
@@ -139,24 +147,75 @@ const stateFor = (connector: StoredConnector, live: LiveFacts, name: string | nu
 }
 
 /** Как работать с коннектором, когда это не видно из самих инструментов. */
-const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = { browser: BROWSER_GUIDE }
+const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = {
+  browser: BROWSER_GUIDE,
+  computer: COMPUTER_GUIDE,
+}
+
+/**
+ * Заметки о соседях: коннектор говорит модели о другом, только если тот есть в проекте. Browser
+ * отдаёт Computer Use то, куда Chrome не пускает расширение (ADR 0057).
+ */
+const NEIGHBOUR_NOTES: Partial<
+  Record<StoredConnector['kind'], Partial<Record<StoredConnector['kind'], string>>>
+> = { browser: { computer: BROWSER_COMPUTER_NOTE } }
+
+const neighbourNotes = (
+  kind: StoredConnector['kind'],
+  neighbours: readonly StoredConnector['kind'][],
+): string[] => {
+  const notes = NEIGHBOUR_NOTES[kind] ?? {}
+
+  return [...new Set(neighbours)].flatMap((other) => notes[other] ?? [])
+}
+
+/**
+ * Что человек сказал про коннектор в проекте разговора (ADR 0053): профиль Chrome у Browser и
+ * его инструкции. Проекта у процесса нет или там ничего не сказано - пусто.
+ */
+const projectNotes = (connector: StoredConnector, projectPath: string | null): string[] => {
+  const inProject = projectPath ? connector.inProjects[projectPath] : undefined
+  const profile = connector.kind === 'browser' ? inProject?.browserProfile : null
+  const instructions = inProject?.instructions.trim()
+
+  return [
+    profile
+      ? `In this project, work in the Chrome profile "${profile}" unless the user names another one: it is the default when you don't pass "profile".`
+      : '',
+    instructions
+      ? `The user's instructions for this connector in this project: ${instructions}`
+      : '',
+  ].filter(Boolean)
+}
 
 /**
  * Пояснение для модели при подключении к серверу: что это за коннектор, чей он, что
- * человек запретил, как с ним работать и как человек сам его описал. Модель видит его у
- * каждого сервера - по нему она отличает рабочую почту от своей, выбирает нужный из похожих
- * и не пытается обойти выключенную отправку.
+ * человек запретил, как с ним работать, как человек сам его описал и что сказал про него в
+ * проекте разговора (projectPath), и что ему поручают соседние коннекторы проекта (neighbours).
+ * Модель видит его у каждого сервера - по нему она отличает рабочую почту от своей, выбирает
+ * нужный из похожих и не пытается обойти выключенную отправку. Claude Code режет пояснение до
+ * 2048 знаков: слова человека идут раньше заметок о соседях, чтобы под нож уходили заметки.
  */
 export const instructionsFor = (
   connector: StoredConnector,
   live: LiveFacts,
   name: string | null,
+  projectPath: string | null = null,
+  neighbours: readonly StoredConnector['kind'][] = [],
 ): string => {
-  const guide = connector.enabled && live.signedIn ? KIND_GUIDE[connector.kind] : undefined
+  const isWorking = connector.enabled && live.signedIn
+  const guide = isWorking ? KIND_GUIDE[connector.kind] : undefined
   const note = connector.description.trim()
-  const about = note ? `\nThe user describes this connector: ${note}` : ''
 
-  return `${stateFor(connector, live, name)}${guide ? `\n${guide}` : ''}${about}`
+  return [
+    stateFor(connector, live, name),
+    guide ?? '',
+    note ? `The user describes this connector: ${note}` : '',
+    ...(isWorking ? neighbourNotes(connector.kind, neighbours) : []),
+    ...(isWorking ? projectNotes(connector, projectPath) : []),
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 /** Ответ модели на выключенный инструмент - чтобы она не искала обход. */

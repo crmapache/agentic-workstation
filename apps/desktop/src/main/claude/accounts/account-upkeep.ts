@@ -109,6 +109,8 @@ export class AccountUpkeep {
       accounts.view.accounts.find((row) => row.id === id)?.signedIn === true
     const defaultLive = isLive('')
     const defaultWho = defaultLive ? await probeIdentity(cli, null, dir) : null
+    // Не ответил, хотя вошёл, - прежнее имя остаётся: «не сказал» - не «вышел».
+    if (defaultWho || !defaultLive) accounts.noteDefaultIdentity(defaultWho)
     const rows: TwinRow[] = []
 
     for (const record of accounts.records()) {

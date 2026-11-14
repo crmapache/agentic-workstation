@@ -10,7 +10,8 @@ const NETWORK_PATH = /^(\/\/|\\\\)/
  * Картинка за чипом - или null у чипа, за которым её нет (как в ACC). Сначала байты в самом
  * чипе (вставленная в поле), потом файл (выбранная - это путь, вставленную IDE записала),
  * последним - что знает место, где нарисован чип (elsewhere): очередь держит байты для
- * отправки, транскрипт - картинку в строке сообщения.
+ * отправки, транскрипт - картинку в строке сообщения. Записанную вставку IDE через две
+ * недели убирает - тогда она берётся оттуда же, из elsewhere.
  */
 export const chipPicture = (
   chip: DraftChip,
@@ -23,9 +24,11 @@ export const chipPicture = (
   const path = chip.path || (isPasted ? '' : chip.value)
 
   if (path) {
-    return NETWORK_PATH.test(path)
-      ? null
-      : { place: { kind: 'file', path }, ...(isPasted ? {} : { name: path }) }
+    if (NETWORK_PATH.test(path)) return null
+
+    return isPasted
+      ? { place: { kind: 'file', path }, ...(elsewhere && { fallback: elsewhere }) }
+      : { place: { kind: 'file', path }, name: path }
   }
 
   return elsewhere ? { place: elsewhere } : null

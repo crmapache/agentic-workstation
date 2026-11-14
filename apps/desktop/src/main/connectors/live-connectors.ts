@@ -1,3 +1,5 @@
+import { isAvailableIn } from '@shared/connector-availability'
+
 import type { ConnectorAccess } from './connector-access'
 import { LiveConnector } from './connector-live'
 import type { ConnectorRegistry } from './connector-registry'
@@ -38,6 +40,8 @@ export class LiveConnectors {
         shellEnv: this.places.shellEnv,
         version: this.places.version,
         browser: this.places.browser.hub,
+        computer: this.places.computer,
+        openBrowserProfile: (name) => this.places.browser.openProfile(name),
       },
       {
         stored: () => this.registry.find(connector.id),
@@ -50,6 +54,15 @@ export class LiveConnectors {
           })
         },
         changed: this.changed,
+        neighbours: (projectPath) =>
+          this.registry.connectors
+            .filter(
+              (other) =>
+                other.id !== connector.id &&
+                other.enabled &&
+                isAvailableIn(other.availability, projectPath),
+            )
+            .map((other) => other.kind),
         ...(connector.kind === 'browser'
           ? { account: () => browserAccount(this.places.browser.state()) }
           : {}),

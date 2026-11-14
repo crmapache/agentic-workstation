@@ -20,10 +20,17 @@ export type LinkView = {
 }
 
 /**
- * Профиль этой установки расширения. launch - метка запуска Chrome: новая на каждом старте
- * браузера, она входит в ссылку на вкладку (id вкладок после перезапуска раздаются заново).
+ * Профиль этой установки расширения. named - имя дал человек, иначе оно по умолчанию. launch -
+ * метка запуска Chrome: новая на каждом старте браузера, она входит в ссылку на вкладку (id
+ * вкладок после перезапуска раздаются заново).
  */
-export type ProfileInfo = { key: string; name: string; browser: string; launch: string }
+export type ProfileInfo = {
+  key: string
+  name: string
+  named: boolean
+  browser: string
+  launch: string
+}
 
 export type PopupState = {
   profile: ProfileInfo

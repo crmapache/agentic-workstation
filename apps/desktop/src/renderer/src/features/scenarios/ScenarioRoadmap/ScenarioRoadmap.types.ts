@@ -19,3 +19,8 @@ export type RoadStopProps = {
   isHere: boolean
   mood: RoadMood
 }
+
+export type RoadFoldProps = {
+  stops: readonly RoadmapStop[]
+  fold: { from: number; to: number }
+}

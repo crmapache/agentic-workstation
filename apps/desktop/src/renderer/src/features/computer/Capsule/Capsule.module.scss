@@ -1,0 +1,58 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Капсула занимает всё окно: окно ровно её размера, за скруглением - пусто (капсула прозрачна
+// по углам). Плоское тёмное стекло, как у всплывающих панелей IDE, без тени - окно её обрезало
+// бы. Угол концентричен кнопкам: их радиус плюс их отступ от края. Полное скругление спорило с
+// почти прямыми углами кнопок, а крайняя кнопка упиралась в закругление. Справа кнопка стоит в
+// том же отступе, что сверху и снизу: кнопки-значки md ростом 30 в окне 44 - по 6 с каждой
+// стороны.
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 100%;
+  padding: 0 var(--space-1-5) 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface-overlay);
+}
+
+// Знак состояния ростом со Spinner md: работает - крутится, думает - тёплая точка, пауза - серая.
+.mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+}
+
+.dot,
+.dotPaused {
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  border-radius: var(--radius-full);
+}
+
+.dot {
+  @include breathing;
+
+  background-color: var(--color-warning);
+}
+
+.dotPaused {
+  background-color: var(--color-fg-subtle);
+}
+
+// Что ИИ делает - одна строка на всё место между знаком и кнопками; сменяется снизу вверх.
+.line {
+  flex: 1;
+  min-width: 0;
+  margin: 0 var(--space-1);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+}
+
+@include breathing-keyframes;

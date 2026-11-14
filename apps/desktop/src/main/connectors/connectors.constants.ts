@@ -32,6 +32,7 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   todoist: 'todoist',
   playwright: 'playwright',
   browser: 'browser',
+  computer: 'computer',
   mcp: '',
   command: '',
   http: '',

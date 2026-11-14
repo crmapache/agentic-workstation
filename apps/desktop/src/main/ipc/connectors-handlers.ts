@@ -1,4 +1,8 @@
-import { openChromeExtensions, revealExtensionFolder } from '../browser/browser-open'
+import {
+  openChromeExtensions,
+  revealExtensionFolder,
+  openDiskAccessSettings,
+} from '../browser/browser-open'
 import { openInAgentApp, installedAgentApps } from '../connectors/agent-apps'
 import { MAX_AGENT_PROMPT } from '../connectors/agent-links'
 import type { ConnectorsService } from '../connectors/connectors-service'
@@ -12,9 +16,11 @@ import {
   assertAgentApp,
   assertGenerate,
   assertAddToType,
+  assertInProject,
   assertAddRequest,
   assertUpdateType,
   assertDescription,
+  assertProjectPath,
   assertAvailability,
 } from './connectors-validate'
 import type { InvokeHandlers } from './handle'
@@ -50,6 +56,12 @@ export const createConnectorsHandlers = (
     connectors.setToken(field(id, 'id'), field(token, 'token', MAX_SECRET)),
   'connectors:setDescription': ({ id, description }) =>
     connectors.setDescription(field(id, 'id'), assertDescription(description)),
+  'connectors:setInProject': ({ id, projectPath, settings }) =>
+    connectors.setInProject(
+      field(id, 'id'),
+      assertProjectPath(projectPath),
+      assertInProject(settings),
+    ),
   'connectors:setAvailability': ({ id, availability }) =>
     connectors.setAvailability(field(id, 'id'), assertAvailability(availability)),
   'connectors:importCandidates': () => connectors.imports.candidates(),
@@ -89,4 +101,5 @@ export const createConnectorsHandlers = (
   'connectors:revealBrowserExtension': () =>
     revealExtensionFolder(connectors.getState().browser.extensionDir),
   'connectors:openBrowserExtensions': () => openChromeExtensions(),
+  'connectors:openDiskAccess': () => openDiskAccessSettings(),
 })

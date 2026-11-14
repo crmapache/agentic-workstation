@@ -58,6 +58,10 @@ export const SurfacesSection = () => {
         <Card size="sm" title={t('samples.cardCompactTitle')} count={3}>
           {t('samples.cardCompactBody')}
         </Card>
+        {/* Нажимается вся (onPress): под курсором светлеет, кнопки внутри - сами по себе. */}
+        <Card size="sm" title={t('samples.cardPressTitle')} onPress={() => undefined}>
+          {t('samples.cardPressBody')}
+        </Card>
       </Specimen>
 
       <Specimen label={t('specimens.tile')} layout="column">

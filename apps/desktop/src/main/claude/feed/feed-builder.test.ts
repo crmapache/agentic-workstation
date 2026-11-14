@@ -186,6 +186,45 @@ describe('транскрипт', () => {
     expect(builder.items).toEqual([])
   })
 
+  it('написанное посреди хода - из вложения очереди, под нашим uuid', () => {
+    const builder = new FeedBuilder()
+    const queued = (uuid: string, mode: string, prompt: unknown): CliMessage => ({
+      type: 'attachment',
+      uuid,
+      attachment: {
+        type: 'queued_command',
+        prompt,
+        source_uuid: `${uuid}-ours`,
+        commandMode: mode,
+      },
+    })
+    const picture = {
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/png', data: 'AA' },
+    }
+
+    builder.apply(
+      queued('a1', 'prompt', [picture, { type: 'text', text: '[Image #1] look' }]),
+      true,
+    )
+    builder.apply(
+      queued('a2', 'task-notification', '<task-notification>done</task-notification>'),
+      true,
+    )
+    // Живое вложение лента не повторяет: сообщение стоит в ней с отправки.
+    builder.apply(queued('a3', 'prompt', 'live'), false)
+
+    expect(builder.items).toEqual([
+      expect.objectContaining({
+        kind: 'user',
+        id: 'a1-ours',
+        text: '[Image #1] look',
+        images: [{ thumbnail: '' }],
+        steering: true,
+      }),
+    ])
+  })
+
   it('отказ в разрешении - статус denied, а не ошибка', () => {
     const builder = new FeedBuilder()
 

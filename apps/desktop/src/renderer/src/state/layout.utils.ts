@@ -1,4 +1,5 @@
 import {
+  SHEET_GAP,
   MAIN_VIEW_IDS,
   SIDE_VIEW_IDS,
   MAIN_MIN_WIDTH,
@@ -86,13 +87,35 @@ type Panels = Pick<Layout, PanelSide | 'terminal'>
 export const isPanelShown = (panels: Panels, side: PanelSide): boolean =>
   side === 'provider' ? panels.provider.isOpen || panels.terminal.isOpen : panels.side.isOpen
 
+/**
+ * Видна ли левая панель: развёрнута и влезает рядом с правой колонкой на их минимумах.
+ * Правая главнее - минимум разговора держится всегда (просьба владельца), поэтому в узком
+ * окне левая прячется, а развёрнутой остаётся: окно станет шире - вернётся.
+ */
+export const isSideShown = (panels: Panels, room: number): boolean =>
+  panels.side.isOpen &&
+  (!isPanelShown(panels, 'provider') ||
+    room >= PANEL_MIN_WIDTH.side + SHEET_GAP + PANEL_MIN_WIDTH.provider)
+
+/** Раскладка, где левая панель, которой нет места, считается свёрнутой. */
+const onScreen = <Shape extends Panels>(panels: Shape, room: number): Shape => ({
+  ...panels,
+  side: { ...panels.side, isOpen: isSideShown(panels, room) },
+})
+
 /** Сколько панель может отдать: всё сверх минимума. Свёрнутая не отдаёт ничего. */
 const spare = (panels: Panels, side: PanelSide) =>
   isPanelShown(panels, side) ? Math.max(0, panels[side].width - PANEL_MIN_WIDTH[side]) : 0
 
-/** Сколько занимает панель на экране: свёрнутая - ничего. */
-const occupied = (panels: Panels, side: PanelSide, width: number) =>
-  isPanelShown(panels, side) ? width : 0
+/**
+ * Сколько места занимает панель: свёрнутая - ничего. Место левой - её ширина и зазор за
+ * ней: спрятанная, она отдаёт и зазор (замер места в Workbench.hooks.ts считает так же).
+ */
+const occupied = (panels: Panels, side: PanelSide, width: number) => {
+  if (!isPanelShown(panels, side)) return 0
+
+  return side === 'side' ? width + SHEET_GAP : width
+}
 
 /**
  * Ширины панелей, ужатых на excess пикселей: каждая отдаёт одну и ту же долю того, что
@@ -110,23 +133,53 @@ const shrinkPanels = (panels: Panels, excess: number): Record<PanelSide, number>
 }
 
 /**
- * Раскладка на месте room - ширине, которую делят левая панель, середина и правая
- * панель. Панели берут сохранённую ширину, а если окну её не хватает - ужимаются, но
- * сохранённую не трогают: окно станет шире, и они вернутся. Середине - остаток; меньше
- * MAIN_MIN_WIDTH - она не видна, на её месте пустая рама.
+ * Сколько места надо середине, чтобы её показать: MAIN_MIN_WIDTH, а в окне, где всего места
+ * меньше, - всё место. Иначе в узком окне середину было бы не показать никак.
  */
-export const arrangeLayout = (layout: Layout, room: number): Arrangement => {
+const mainNeed = (room: number) => Math.min(MAIN_MIN_WIDTH, room)
+
+/**
+ * Ширины, которые видимые панели берут сами, без места свёрнутой середины: сохранённые,
+ * ужатые до минимумов. Середине - остаток. От них, а не от ширины на экране, считают
+ * ручки и просьба показать середину: правая колонка, забравшая место середины, своей
+ * ширины не меняла.
+ */
+const fitLayout = (panels: Panels, room: number): Record<PanelSide | 'main', number> => {
   const excess =
-    occupied(layout, 'side', layout.side.width) +
-    occupied(layout, 'provider', layout.provider.width) -
+    occupied(panels, 'side', panels.side.width) +
+    occupied(panels, 'provider', panels.provider.width) -
     room
-  const widths = shrinkPanels(layout, excess)
+  const widths = shrinkPanels(panels, excess)
   const main = Math.max(
     0,
-    room - occupied(layout, 'side', widths.side) - occupied(layout, 'provider', widths.provider),
+    room - occupied(panels, 'side', widths.side) - occupied(panels, 'provider', widths.provider),
   )
 
-  return { ...widths, main, isMainShown: layout.main.isOpen && main >= MAIN_MIN_WIDTH }
+  return { ...widths, main }
+}
+
+/**
+ * Раскладка на месте room - ширине, которую делят середина и правая колонка, и левая
+ * панель вместе с зазором за ней. Панели берут сохранённую ширину, а если окну её не
+ * хватает - ужимаются, но сохранённую не трогают: окно станет шире, и они вернутся. Левой
+ * нет места рядом с правой на минимумах - она не видна (isSideShown). Середине - остаток;
+ * меньше MAIN_MIN_WIDTH - она не видна, и её место забирает правая колонка (разговор и
+ * терминал), а не пустая рама. Свёрнутая человеком середина - пустая рама, панели на своих
+ * местах (ADR 0015).
+ */
+export const arrangeLayout = (layout: Layout, room: number): Arrangement => {
+  const shown = onScreen(layout, room)
+  const fit = fitLayout(shown, room)
+  const isMainShown = layout.main.isOpen && fit.main >= mainNeed(room)
+  const fills = layout.main.isOpen && !isMainShown && isPanelShown(shown, 'provider')
+
+  return {
+    side: fit.side,
+    provider: fills ? fit.provider + fit.main : fit.provider,
+    main: fills ? 0 : fit.main,
+    isSideShown: shown.side.isOpen,
+    isMainShown,
+  }
 }
 
 /** Открытая панель с новой шириной в целых пикселях; свёрнутая - как была. */
@@ -137,35 +190,74 @@ const fitted = <Panel extends PanelState<string>>(
 ): Panel => (isShown ? { ...panel, width: Math.floor(width) } : panel)
 
 /**
- * Панели, освободившие середине MAIN_MIN_WIDTH: человек попросил показать её (иконка,
- * выбор файла), а места нет. Ужимаются ровно на недостающее, от ширины на экране, и
- * новая ширина сохраняется. Целые пиксели вниз - чтобы середина точно не осталась
- * на долю пикселя короче предела.
+ * Панели, освободившие середине место (MAIN_MIN_WIDTH, в окне уже него - всё): человек
+ * попросил показать её (иконка, выбор файла), а места нет. Ужимаются ровно на недостающее,
+ * от своей ширины, и новая ширина сохраняется. Целые пиксели вниз - чтобы середина точно
+ * не осталась на долю пикселя короче предела. Не хватает и на минимумах (узкое окно) -
+ * панели уступают целиком: сначала левая, потом правая колонка, и с ней левая, даже
+ * спрятанная, - иначе она встала бы на освобождённое место. Вернуть их - их иконкой.
  */
-export const makeRoomForMain = (layout: Layout, room: number): Pick<Layout, PanelSide> => {
-  const arrangement = arrangeLayout(layout, room)
-  const shortage = MAIN_MIN_WIDTH - arrangement.main
+export const makeRoomForMain = (
+  layout: Layout,
+  room: number,
+): Pick<Layout, PanelSide | 'terminal'> => {
+  const shown = onScreen(layout, room)
+  const need = mainNeed(room)
+  const fit = fitLayout(shown, room)
+  const unchanged = { side: layout.side, provider: layout.provider, terminal: layout.terminal }
 
-  if (shortage <= 0) return { side: layout.side, provider: layout.provider }
+  if (fit.main >= need) return unchanged
 
-  const onScreen: Panels = {
-    side: { ...layout.side, width: arrangement.side },
-    provider: { ...layout.provider, width: arrangement.provider },
+  const widths = shrinkPanels(
+    {
+      side: { ...shown.side, width: fit.side },
+      provider: { ...shown.provider, width: fit.provider },
+      terminal: shown.terminal,
+    },
+    need - fit.main,
+  )
+  const shrunk = {
+    side: fitted(layout.side, widths.side, isPanelShown(shown, 'side')),
+    provider: fitted(layout.provider, widths.provider, isPanelShown(shown, 'provider')),
     terminal: layout.terminal,
   }
-  const widths = shrinkPanels(onScreen, shortage)
+
+  if (fitLayout(onScreen({ ...layout, ...shrunk }, room), room).main >= need) return shrunk
+
+  if (isPanelShown(shown, 'side')) {
+    return makeRoomForMain({ ...layout, side: { ...layout.side, isOpen: false } }, room)
+  }
 
   return {
-    side: fitted(layout.side, widths.side, isPanelShown(layout, 'side')),
-    provider: fitted(layout.provider, widths.provider, isPanelShown(layout, 'provider')),
+    side: { ...layout.side, isOpen: false },
+    provider: { ...layout.provider, isOpen: false },
+    terminal: { ...layout.terminal, isOpen: false },
   }
 }
 
 /**
- * Панели после сдвига ручки одной из них на delta пикселей. Отсчёт - от ширины на
- * экране, а не сохранённой: ужатая узким окном панель отзывается на ручку сразу. Расти
- * можно в место середины, развёрнутой или нет, до самой полосы иконок - без щели между
- * ними. Дальше панель вытолкнула бы соседнюю за край окна.
+ * Правая колонка, уступившая место левой панели: человек попросил показать левую, а рядом
+ * с колонкой на минимумах ей места нет (узкое окно). Колонка сворачивается вместе с
+ * терминалом - вернуть её иконкой, и тогда спрячется левая. Места хватает - без изменений.
+ */
+export const makeRoomForSide = (
+  layout: Layout,
+  room: number,
+): Pick<Layout, 'provider' | 'terminal'> =>
+  isSideShown({ ...layout, side: { ...layout.side, isOpen: true } }, room)
+    ? { provider: layout.provider, terminal: layout.terminal }
+    : {
+        provider: { ...layout.provider, isOpen: false },
+        terminal: { ...layout.terminal, isOpen: false },
+      }
+
+/**
+ * Панели после сдвига ручки одной из них на delta пикселей. Отсчёт - от ширины, которую
+ * панель берёт сама, а не сохранённой: ужатая узким окном панель отзывается на ручку
+ * сразу. Расти можно в место середины, развёрнутой или нет, до самой полосы иконок - без
+ * щели между ними. Дальше панель вытолкнула бы соседнюю за край окна. Правая колонка,
+ * забравшая место развёрнутой середины, сужается от своей ширины: середина вернётся,
+ * когда ей хватит места, а до тех пор колонка так и стоит до полосы.
  */
 export const resizedPanels = (
   layout: Layout,
@@ -173,8 +265,8 @@ export const resizedPanels = (
   side: PanelSide,
   delta: number,
 ): Pick<Layout, PanelSide> => {
-  const arrangement = arrangeLayout(layout, room)
-  const width = clampWidth(side, arrangement[side] + Math.min(delta, arrangement.main))
+  const fit = fitLayout(onScreen(layout, room), room)
+  const width = clampWidth(side, fit[side] + Math.min(delta, fit.main))
 
   return {
     side: side === 'side' ? { ...layout.side, width } : layout.side,

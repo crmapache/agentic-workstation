@@ -1,7 +1,9 @@
+import type { MouseEvent } from 'react'
 import clsx from 'clsx'
 import { OctagonPause } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { isAreaPress } from '@agentic-workstation/ui/Card.utils'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { MARK_ICON_SIZE } from '../QueueCard.constants'
@@ -16,10 +18,11 @@ import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 import { QueueItemMenu } from './QueueItemMenu'
 
 /**
- * Один сценарий очереди: место, имя, состояние, метка «встанет после него», ответы. С прогоном -
- * имя открывает его. Ждущий говорит, чего ждёт (успеха предыдущего или любого конца), и носит
- * меню: сдвинуть, остановить после, убрать. Отказ старта - под именем, если его не сказала
- * полоса остановки.
+ * Один сценарий очереди строкой во всю ширину: место, имя, состояние, метка «встанет после него»,
+ * ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
+ * говорит, чего ждёт (успеха предыдущего или любого конца), и носит меню у правого края:
+ * сдвинуть, остановить после, убрать. Отказ старта - под именем, если его не сказала полоса
+ * остановки.
  */
 export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps) => {
   const { t } = useTranslation()
@@ -43,8 +46,18 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
 
   const handleOpen = () => openRun(item.runId)
 
+  const handleAreaClick = (event: MouseEvent<HTMLLIElement>) => {
+    if (isAreaPress(event)) handleOpen()
+  }
+
   return (
-    <li className={clsx(styles.item, item.state === 'running' && styles.itemRunning)}>
+    <li
+      className={clsx(
+        styles.item,
+        item.state === 'running' && styles.itemRunning,
+        item.runId && styles.itemPressable,
+      )}
+      onClick={item.runId ? handleAreaClick : undefined}>
       <div className={styles.itemHead}>
         {/* Порядок скринридеру говорит сам список; число - для глаза. */}
         <span className={styles.itemNumber} aria-hidden>
@@ -81,12 +94,14 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
           </Tooltip>
         )}
         {isWaiting && (
-          <QueueItemMenu
-            queue={queue}
-            item={item}
-            isFirst={place === 0}
-            isLast={place === waiting.length - 1}
-          />
+          <span className={styles.itemEnd}>
+            <QueueItemMenu
+              queue={queue}
+              item={item}
+              isFirst={place === 0}
+              isLast={place === waiting.length - 1}
+            />
+          </span>
         )}
       </div>
       {refusal && <ScenarioAlert tone="danger">{refusal}</ScenarioAlert>}

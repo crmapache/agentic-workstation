@@ -10,7 +10,7 @@ import styles from './MetersScreen.module.scss'
 import { toggleMeter, meterChoices } from './MetersScreen.utils'
 
 /**
- * Settings → Under the field: какие показания стоят справа под полем ввода - каждое кольцо
+ * Settings → Usage meters: какие показания стоят справа под полем ввода - каждое кольцо
  * лимита и токены за день, отметкой. По умолчанию видно всё; снятая отметка прячет
  * показание во всех вкладках сразу.
  */

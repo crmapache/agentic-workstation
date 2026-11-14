@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import clsx from 'clsx'
-import { Settings, SquareTerminal } from 'lucide-react'
+import { SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -15,23 +15,21 @@ import { useWindowCommands } from '../actions/window-commands'
 import { ActivityBar } from '../ActivityBar/ActivityBar'
 import { NotificationArea } from '../NotificationArea/NotificationArea'
 import { SearchLayer } from '../SearchLayer/SearchLayer'
+import { SideFooter } from '../SideFooter/SideFooter'
 import { SidePanel } from '../SidePanel/SidePanel'
 import { TerminalDock } from '../TerminalDock/TerminalDock'
 import { TitleBar } from '../TitleBar/TitleBar'
 import { CONVERSATION_LOG } from '../views/conversation-log'
 import { useMainViewBadges } from '../views/main-view-badges'
-import { MAIN_VIEWS } from '../views/main-views'
+import { MAIN_VIEWS, MAIN_BAR_VIEWS } from '../views/main-views'
 import { useProjectCalls } from '../views/project-calls'
 import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
 import { ViewStack } from '../ViewStack/ViewStack'
-import { shortcutLabel } from '../../lib/keys'
 import { ConversationLogContext } from '../../state/conversation-log.context'
-import { PANEL_MIN_WIDTH } from '../../state/layout.constants'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
-import { useSettingsStore } from '../../features/settings/settings.store'
 import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
@@ -67,8 +65,6 @@ export const Workbench = () => {
   const terminal = useTerminalToggle()
   const mainBadges = useMainViewBadges()
   const projectCallsOf = useProjectCalls()
-  const isSettingsOpen = useSettingsStore((state) => state.isOpen)
-  const openSettings = useSettingsStore((state) => state.open)
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -92,16 +88,8 @@ export const Workbench = () => {
               label={t('sideViews.label')}
               views={SIDE_VIEWS}
               activeViewId={side.activeViewId}
-              isPanelOpen={side.isOpen}
-              footer={
-                <IconButton
-                  icon={Settings}
-                  label={t('settings.open', { key: shortcutLabel('⌘,') })}
-                  active={isSettingsOpen}
-                  tooltipPlacement="end"
-                  onClick={openSettings}
-                />
-              }
+              isPanelOpen={arrangement.isSideShown}
+              footer={<SideFooter />}
               onSelect={selectSideView}
             />
             <SidePanel
@@ -109,9 +97,8 @@ export const Workbench = () => {
               placement="start"
               views={SIDE_VIEWS}
               activeViewId={side.activeViewId}
-              isOpen={side.isOpen}
+              isOpen={arrangement.isSideShown}
               width={arrangement.side}
-              minWidth={PANEL_MIN_WIDTH.side}
               resizeLabel={t('sideViews.resize')}
               onResize={(delta) => resizePanel('side', delta)}
             />
@@ -119,7 +106,7 @@ export const Workbench = () => {
             <ActivityBar
               edge="start"
               label={t('mainViews.label')}
-              views={MAIN_VIEWS}
+              views={MAIN_BAR_VIEWS}
               badges={mainBadges}
               activeViewId={main.activeViewId}
               isPanelOpen={arrangement.isMainShown}
@@ -145,7 +132,6 @@ export const Workbench = () => {
               activeViewId={provider.activeViewId}
               isOpen={provider.isOpen}
               width={arrangement.provider}
-              minWidth={PANEL_MIN_WIDTH.provider}
               resizeLabel={t('providerViews.resize')}
               dock={<TerminalDock isOpen={isTerminalOpen} fills={!provider.isOpen} />}
               isDockOpen={isTerminalOpen}
