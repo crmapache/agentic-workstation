@@ -5,32 +5,75 @@ import type { StatsReport } from '@shared/statistics'
 import {
   addDays,
   deltaOf,
-  periodOf,
+  rangeOf,
   startOfDay,
+  hasEarlierOf,
   compareMomentOf,
+  pickedLastDayOf,
+  steppedLastDayOf,
   isHumanComparable,
   comparablePeriodOf,
 } from './statistics-period.utils'
 
 const at = (text: string) => new Date(text).getTime()
 
-describe('periodOf', () => {
+describe('rangeOf', () => {
   const now = at('2026-11-10T15:20:00')
 
-  it('сегодня - сутки целиком, до следующей полуночи', () => {
-    expect(periodOf('today', now)).toEqual({
-      from: at('2026-11-10T00:00:00'),
-      to: at('2026-11-11T00:00:00'),
+  it('день - сутки целиком, до следующей полуночи', () => {
+    expect(rangeOf('day', now, null)).toEqual({
+      period: { from: at('2026-11-10T00:00:00'), to: at('2026-11-11T00:00:00') },
+      today: at('2026-11-10T00:00:00'),
+      lastDay: at('2026-11-10T00:00:00'),
     })
   })
 
-  it('7 и 30 дней - по сегодня включительно', () => {
-    expect(periodOf('week', now).from).toBe(at('2026-11-04T00:00:00'))
-    expect(periodOf('month', now).from).toBe(at('2026-10-12T00:00:00'))
+  it('7 и 30 дней - по последний день включительно', () => {
+    expect(rangeOf('week', now, null).period.from).toBe(at('2026-11-04T00:00:00'))
+    expect(rangeOf('month', now, null).period.from).toBe(at('2026-10-12T00:00:00'))
+    expect(rangeOf('week', now, at('2026-11-01T00:00:00')).period).toEqual({
+      from: at('2026-10-26T00:00:00'),
+      to: at('2026-11-02T00:00:00'),
+    })
   })
 
-  it('всё время - с начала эпохи', () => {
-    expect(periodOf('all', now)).toEqual({ from: 0, to: at('2026-11-11T00:00:00') })
+  it('выбранный день не позже сегодня, всё время его не замечает', () => {
+    expect(rangeOf('day', now, at('2026-11-12T00:00:00')).lastDay).toBe(at('2026-11-10T00:00:00'))
+    expect(rangeOf('all', now, at('2026-11-01T00:00:00')).period).toEqual({
+      from: 0,
+      to: at('2026-11-11T00:00:00'),
+    })
+  })
+})
+
+describe('steppedLastDayOf, pickedLastDayOf и hasEarlierOf', () => {
+  const now = at('2026-11-10T15:20:00')
+
+  it('стрелки шагают на длину периода', () => {
+    const range = rangeOf('week', now, at('2026-11-01T00:00:00'))
+
+    expect(steppedLastDayOf('week', range, -1)).toBe(at('2026-10-25T00:00:00'))
+    expect(steppedLastDayOf('day', rangeOf('day', now, null), -1)).toBe(at('2026-11-09T00:00:00'))
+  })
+
+  it('дошли до сегодня или дальше - снова по сегодня', () => {
+    expect(steppedLastDayOf('week', rangeOf('week', now, at('2026-11-05T00:00:00')), 1)).toBeNull()
+    expect(steppedLastDayOf('day', rangeOf('day', now, at('2026-11-09T00:00:00')), 1)).toBeNull()
+  })
+
+  it('день из календаря: сегодня - null, прошлый - его полночь', () => {
+    expect(pickedLastDayOf(at('2026-11-10T00:00:00'), at('2026-11-10T00:00:00'))).toBeNull()
+    expect(pickedLastDayOf(at('2026-11-03T12:00:00'), at('2026-11-10T00:00:00'))).toBe(
+      at('2026-11-03T00:00:00'),
+    )
+  })
+
+  it('назад есть куда, только если данные начались раньше периода', () => {
+    const range = rangeOf('day', now, null)
+
+    expect(hasEarlierOf(range, at('2026-11-02T09:00:00'))).toBe(true)
+    expect(hasEarlierOf(range, at('2026-11-10T09:00:00'))).toBe(false)
+    expect(hasEarlierOf(range, null)).toBe(false)
   })
 })
 
@@ -43,7 +86,7 @@ describe('startOfDay и addDays', () => {
 
 describe('comparablePeriodOf', () => {
   it('сегодня сравнивается со вчера до того же часа', () => {
-    const period = periodOf('today', at('2026-11-10T15:20:00'))
+    const { period } = rangeOf('day', at('2026-11-10T15:20:00'), null)
 
     expect(comparablePeriodOf(period, at('2026-11-10T15:20:00'))).toEqual({
       from: at('2026-11-09T00:00:00'),

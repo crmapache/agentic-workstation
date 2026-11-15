@@ -555,6 +555,52 @@ describe('конец хода', () => {
     expect(runtime.meta.status).toBe('idle')
   })
 
+  it('работа встала - коннекторы узнают сразу; пока работает фоновый флот - нет', async () => {
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const idle = vi.fn()
+    const result = { type: 'result', num_turns: 1, result: 'hi', total_cost_usd: 0 }
+
+    runtime.connectors = { path: '', own: vi.fn(), release: vi.fn(), idle, end: vi.fn() }
+    nextProcess(fake)
+    await runtime.send(msg('hello'))
+    expect(idle).not.toHaveBeenCalled()
+
+    receive(runtime, fake, result)
+    expect(idle).toHaveBeenCalledOnce()
+
+    await runtime.send(msg('review'))
+    receive(runtime, fake, {
+      type: 'assistant',
+      message: { id: 'm1', content: [{ type: 'tool_use', id: 'w1', name: 'Workflow', input: {} }] },
+    })
+    receive(runtime, fake, {
+      type: 'system',
+      subtype: 'task_started',
+      task_id: 'wf-1',
+      tool_use_id: 'w1',
+      task_type: 'local_workflow',
+    })
+    receive(runtime, fake, {
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'w1', content: 'Workflow launched in background.' },
+        ],
+      },
+    })
+    receive(runtime, fake, result)
+    expect(idle).toHaveBeenCalledOnce()
+
+    receive(runtime, fake, {
+      type: 'system',
+      subtype: 'task_notification',
+      task_id: 'wf-1',
+      status: 'completed',
+    })
+    expect(idle).toHaveBeenCalledTimes(2)
+  })
+
   it('остановленный ход кончается исходом interrupted, следующий ход его снимает', async () => {
     const runtime = makeRuntime({ value: true })
     const fake = fakeProcess()

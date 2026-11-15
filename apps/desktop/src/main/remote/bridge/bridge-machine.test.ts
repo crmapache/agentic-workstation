@@ -8,7 +8,6 @@ import type {
 import { bridgeSetup, stopBridges } from '../__fixtures__/fake-bridge'
 import { ACCOUNT_ID, CONNECTORS } from '../__fixtures__/fake-extras'
 import { RECENT_PATH, PROJECT_PATH } from '../__fixtures__/fake-ide'
-import { maskEmail } from './machine-wire'
 import { projectKey } from './project-keys'
 
 afterEach(stopBridges)
@@ -17,16 +16,15 @@ const callsOf = (ide: ReturnType<typeof bridgeSetup>['ide'], name: string) =>
   ide.calls.filter((call) => call.name === name).map((call) => call.args)
 
 describe('аккаунты с телефона', () => {
-  it('список: почта замаскирована, лимиты числами, отказ лимита, свежие цифры у вошедших', async () => {
+  it('список: почта целиком, лимиты числами, отказ лимита, свежие цифры у вошедших', async () => {
     const { ide, command } = bridgeSetup()
     const listed = await command('accounts.list', {})
     const { accounts } = (listed as { data: AccountsWire }).data
 
-    expect(JSON.stringify(accounts)).not.toContain('mzpizote@')
     expect(accounts.map((account) => [account.id, account.email, account.current])).toEqual([
-      ['', 'mz…e@gmail.com', true],
-      [ACCOUNT_ID, 'm…@company.example', false],
-      ['fedcba9876543210', 'o…@x.io', false],
+      ['', 'mzpizote@gmail.com', true],
+      [ACCOUNT_ID, 'max@company.example', false],
+      ['fedcba9876543210', 'old@x.io', false],
     ])
     expect(accounts[0]?.usage?.windows).toEqual([
       { group: 'session', model: '', percent: 64, resetsAt: 5_000 },
@@ -72,15 +70,15 @@ describe('аккаунты с телефона', () => {
 })
 
 describe('коннекторы с телефона', () => {
-  it('без команд, адресов и ключей; чей вход - замаскирован; инструменты числом', async () => {
+  it('без команд, адресов и ключей; чей вход - почтой целиком; инструменты числом', async () => {
     const { command } = bridgeSetup()
     const listed = await command('connectors.list', {})
     const wire = (listed as { data: ConnectorsWire }).data
 
-    expect(JSON.stringify(wire)).not.toMatch(/sk-secret|\/Users\/|max@company/)
+    expect(JSON.stringify(wire)).not.toMatch(/sk-secret|\/Users\//)
     expect(wire.connectors[0]).toMatchObject({
       kind: 'gmail',
-      account: 'm…@company.example',
+      account: 'max@company.example',
       status: 'connected',
       tools: 2,
       toolsOn: 1,
@@ -119,14 +117,5 @@ describe('недавний проект с телефона', () => {
       ok: true,
     })
     expect(callsOf(ide, 'workspace.openRecent')).toEqual([[RECENT_PATH]])
-  })
-})
-
-describe('маска почты', () => {
-  it('начало и конец имени и домен; короткое имя - первая буква; не почта - как есть', () => {
-    expect(maskEmail('mzpizote@gmail.com')).toBe('mz…e@gmail.com')
-    expect(maskEmail('abc@x.io')).toBe('a…@x.io')
-    expect(maskEmail('Acme workspace')).toBe('Acme workspace')
-    expect(maskEmail('')).toBe('')
   })
 })

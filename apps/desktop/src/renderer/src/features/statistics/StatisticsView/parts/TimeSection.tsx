@@ -16,9 +16,11 @@ import { FactGrid } from './FactGrid'
 import { StatisticsHelp } from './StatisticsHelp'
 
 /**
- * Время: присутствие человека и настенное время агентов по шагам рядом - видно, где агенты
- * работали, пока человека не было. Рядом с графиком, своей карточкой, - сколько так набралось,
- * сумма ходов (параллельные складываются), настенное и доля оценки по транскриптам.
+ * Время: присутствие человека и настенное время агентов одним столбцом - меньшее снизу, из него
+ * растёт большее, видно, где агенты работали, пока человека не было. Не стопкой: минуты одного
+ * часа идут одновременно и не складываются, столбец высотой с большее. График - во всю ширину (неделя по часам - 168 шагов), под
+ * ним своей карточкой - сколько так набралось, сумма ходов (параллельные складываются),
+ * настенное и доля оценки по транскриптам.
  */
 export const TimeSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
@@ -33,7 +35,7 @@ export const TimeSection = ({ data, chart, labels }: SectionProps) => {
       title={t('statistics.time.title')}
       description={humanNote}
       help={<StatisticsHelp topic="time" />}>
-      <div className={styles.split}>
+      <div className={styles.cards}>
         <Card title={t('statistics.time.chartTitle')}>
           <BarChart
             label={t('statistics.time.chart')}
@@ -47,6 +49,7 @@ export const TimeSection = ({ data, chart, labels }: SectionProps) => {
             ])}
             formatValue={formatValue}
             emptyLabel={t('statistics.time.empty')}
+            layout="overlaid"
           />
         </Card>
         <Card>

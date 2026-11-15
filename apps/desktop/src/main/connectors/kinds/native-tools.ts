@@ -34,9 +34,13 @@ export type NativeTool<Api> = {
   run: (args: Record<string, unknown>, api: Api, call: NativeCall) => Promise<unknown>
 }
 
-/** Что источник делает, когда кончился процесс разговора, сам разговор и когда гаснет сам. */
+/**
+ * Что источник делает, когда кончился процесс разговора, встала его работа, кончился сам
+ * разговор и когда гаснет сам.
+ */
 export type NativeHooks = {
   release?: (launch: SourceLaunch) => void
+  idle?: (conversationId: string) => void
   endConversation?: (conversationId: string) => void
   dispose?: () => Promise<void>
 }
@@ -99,6 +103,10 @@ export class NativeSource<Api> implements ConnectorSource {
 
   release(launch: SourceLaunch): void {
     this.hooks.release?.(launch)
+  }
+
+  idle(conversationId: string): void {
+    this.hooks.idle?.(conversationId)
   }
 
   endConversation(conversationId: string): void {

@@ -2,12 +2,13 @@ import clsx from 'clsx'
 
 import styles from '../BarChart.module.scss'
 import type { BarSlotProps } from '../BarChart.types'
-import { heightOf } from '../BarChart.utils'
+import { heightOf, segmentsOf } from '../BarChart.utils'
 
 /**
- * Шаг графика: колонка во всю высоту поля - она и цель указателя (шире самого столбца), в
- * ней столбцы рядов рядом. Рекорд ряда - полным тоном, остальные тише; над самым высоким
- * столбцом графика - его число.
+ * Шаг графика: колонка во всю высоту поля - она и цель указателя, в ней метки рядов во всю
+ * её ширину - рядом, стопкой или меньший снизу, а из него растёт больший. Рекорд ряда -
+ * полным тоном, остальные тише; над самым высоким столбцом графика - его число. Шаг
+ * выходного дня - на подложке, первый шаг суток - за линией.
  */
 export const BarSlot = ({
   index,
@@ -18,28 +19,39 @@ export const BarSlot = ({
   tallest,
   active,
   formatValue,
-}: BarSlotProps) => (
-  <span data-mark={index} className={clsx(styles.slot, active && styles.active)}>
-    <span className={styles.group}>
-      {series.map((item, seriesIndex) => {
-        const value = point.values[seriesIndex] ?? 0
-        const isTallest = tallest?.point === index && tallest.series === seriesIndex
+  layout,
+}: BarSlotProps) => {
+  const segments = segmentsOf(point, layout)
 
-        return (
-          <span
-            key={item.key}
-            className={clsx(
-              styles.bar,
-              styles[item.tone],
-              value > 0 && styles.filled,
-              value > 0 && value === maxima[seriesIndex] && styles.peak,
-            )}
-            // eslint-disable-next-line no-restricted-syntax -- высота столбца - само число шага
-            style={{ height: heightOf(value, top) }}>
-            {isTallest && <span className={styles.peakValue}>{formatValue(value)}</span>}
-          </span>
-        )
-      })}
+  return (
+    <span
+      data-mark={index}
+      className={clsx(
+        styles.slot,
+        active && styles.active,
+        point.shaded && styles.shaded,
+        point.boundary && styles.boundary,
+      )}>
+      <span className={clsx(styles.group, styles[layout])}>
+        {segments.map(({ series: seriesIndex, value, height }) => {
+          const isTallest = tallest?.point === index && tallest.series === seriesIndex
+
+          return (
+            <span
+              key={series[seriesIndex]?.key ?? seriesIndex}
+              className={clsx(
+                styles.bar,
+                styles[series[seriesIndex]?.tone ?? 'other'],
+                value > 0 && styles.filled,
+                value > 0 && value === maxima[seriesIndex] && styles.peak,
+              )}
+              // eslint-disable-next-line no-restricted-syntax -- высота метки - само число шага
+              style={{ height: heightOf(height, top) }}>
+              {isTallest && <span className={styles.peakValue}>{formatValue(tallest.value)}</span>}
+            </span>
+          )
+        })}
+      </span>
     </span>
-  </span>
-)
+  )
+}

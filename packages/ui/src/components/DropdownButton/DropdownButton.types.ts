@@ -19,4 +19,9 @@ export type DropdownButtonProps = Omit<
   /** Подпись для скринридера: что переключает кнопка. */
   menuLabel: string
   size?: DropdownButtonSize
+  /**
+   * Стрелка вниз после значения; false - без неё, когда кнопка и так читается выбором (дата
+   * между стрелками листания периода). По умолчанию есть.
+   */
+  chevron?: boolean | undefined
 }

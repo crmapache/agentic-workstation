@@ -6,9 +6,13 @@ import { ConnectorGateway } from './gateway/gateway'
 import { GatewayLaunches } from './gateway/launches'
 import type { Launch, McpLaunch } from './gateway/launches'
 
-/** Что шлюз сообщает живым коннекторам о конце процессов и разговоров (LiveConnectors). */
+/**
+ * Что шлюз сообщает живым коннекторам (LiveConnectors): процесс кончился, работа разговора
+ * встала, разговор закрыт.
+ */
 export type LaunchEnds = {
   release: (launch: Launch) => void
+  idle: (conversationId: string) => void
   endConversation: (conversationId: string) => void
 }
 
@@ -32,6 +36,7 @@ export class GatewayHost {
     this.launches = new GatewayLaunches(
       configDir,
       (launch) => ends.release(launch),
+      (conversationId) => ends.idle(conversationId),
       (conversationId) => ends.endConversation(conversationId),
     )
     this.gateway = new ConnectorGateway<Launch>(

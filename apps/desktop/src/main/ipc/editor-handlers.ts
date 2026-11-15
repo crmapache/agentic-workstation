@@ -1,8 +1,12 @@
+import { isAbsolute } from 'node:path'
+
 import { app } from 'electron'
 
 import type { EditorInvokeContract } from '@shared/ipc/editor.contract'
 
+import type { DefinitionService } from '../definitions/definition-service'
 import { readImageFile } from '../fs/image-file'
+import { resolveInsideRoot } from '../fs/project-paths'
 import { readTextFile, readOutsideTextFile } from '../fs/text-file'
 import { writeTextFile, writeOutsideTextFile } from '../fs/text-write'
 import type { LocalHistory } from '../history/local-history'
@@ -26,6 +30,14 @@ const versionOrNull = (value: unknown, name: string): string | null => {
   if (value === null || value === undefined) return null
 
   assertString(value, name)
+
+  return value
+}
+
+const assertOffset = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new Error('Ожидалось смещение в тексте в поле offset')
+  }
 
   return value
 }
@@ -67,6 +79,7 @@ const fileTarget = (
 export const createEditorHandlers = (
   workspace: WorkspaceService,
   history: LocalHistory,
+  definitions: DefinitionService,
 ): Pick<InvokeHandlers, EditorChannels> => ({
   'fs:readFile': async (request) => {
     const target = fileTarget(workspace, request)
@@ -107,6 +120,28 @@ export const createEditorHandlers = (
     }
 
     return written
+  },
+  // Файл проекта - только внутри корня; файл вне проекта открыт ссылкой и читается так же, как
+  // его читает вкладка (fs:readFile).
+  'editor:definition': (request) => {
+    const target = fileTarget(workspace, request)
+    const { version, offset, text } = request
+    const file =
+      'absolutePath' in target
+        ? target.absolutePath
+        : resolveInsideRoot(target.rootPath, target.relativePath)
+
+    assertString(version, 'version')
+    if (text !== undefined) assertString(text, 'text')
+    if (!file || !isAbsolute(file)) throw new Error('Путь файла вне проекта')
+
+    const question = { version, offset: assertOffset(offset) }
+
+    return definitions.find(
+      projectRootOf(workspace, request.projectId),
+      file,
+      text === undefined ? question : { ...question, text },
+    )
   },
   'fs:readImage': ({ projectId, relativePath, known }) => {
     assertString(relativePath, 'relativePath')

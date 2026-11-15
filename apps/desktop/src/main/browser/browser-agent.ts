@@ -16,6 +16,7 @@ import { HUMAN_MOTION } from './human-motion'
 import { LoadWaitList } from './load-waits'
 import type { Page } from './page'
 import { pickProfile, listProfiles, reachProfile } from './profile-pick'
+import { TabRest } from './tab-rest'
 
 /**
  * Чей вызов: процесс разговора (ключ запуска шлюза), его разговор, проект - для имени группы
@@ -38,7 +39,10 @@ export type WantedTab = {
   title: string | null
 }
 
-/** Отладчик вкладки, которую агент не трогал минуту, отключается (плашка Chrome уходит). */
+/**
+ * Вкладка, которую агент не трогал минуту, отдыхает: отладчик и рамка с курсором уходят
+ * (tab-rest.ts), даже если разговор ещё работает - пишет код, а не ходит по страницам.
+ */
 export const IDLE_DETACH_MS = 60_000
 const IDLE_CHECK_MS = 15_000
 
@@ -70,6 +74,7 @@ export class BrowserAgent {
   private readonly notices = new Map<string, string>()
   private readonly launches: SessionLaunches
   private readonly control: TabControl
+  private readonly rest: TabRest
   private readonly unsubscribe: (() => void)[]
   private readonly idleTimer: ReturnType<typeof setInterval>
   private readonly now: () => number
@@ -109,6 +114,7 @@ export class BrowserAgent {
       pushSummaries,
       motion,
     })
+    this.rest = new TabRest(this.sessions, (tab) => this.control.letGo(tab))
     this.launches = new SessionLaunches((sessionId) => this.expire(sessionId), graceMs)
     this.unsubscribe = [
       hub.onEvent((profileKey, event) => handleBrowserEvent(context, profileKey, event)),
@@ -117,7 +123,7 @@ export class BrowserAgent {
         else this.sessions.profileOffline(profileKey)
       }),
     ]
-    this.idleTimer = setInterval(() => void this.detachIdle(), IDLE_CHECK_MS)
+    this.idleTimer = setInterval(() => this.rest.sweep(this.now(), IDLE_DETACH_MS), IDLE_CHECK_MS)
     this.idleTimer.unref()
   }
 
@@ -339,9 +345,27 @@ export class BrowserAgent {
     return this.finish(sessionIdOf(call))
   }
 
-  /** Процесс разговора кончился: сессия ждёт его следующий процесс (SessionLaunches). */
+  /** Вызов инструмента: пока он идёт, вкладки его сессии не отдыхают (TabRest). */
+  during<T>(call: AgentCall, work: () => Promise<T>): Promise<T> {
+    return this.rest.during(sessionIdOf(call), work)
+  }
+
+  /**
+   * Работа разговора встала (ход кончился, фоновых агентов нет): курсор, рамка и плашка
+   * отладчика уходят с его вкладок сразу, а не через минуту простоя. Вкладки остаются в сессии.
+   */
+  idle(conversationId: string): void {
+    this.rest.idle(conversationId)
+  }
+
+  /**
+   * Процесс разговора кончился: его работа встала, а сессия ждёт следующий процесс
+   * (SessionLaunches).
+   */
   release(launch: { id: string; conversationId: string | null }): void {
     this.launches.release(launch)
+
+    if (launch.conversationId) this.rest.idle(launch.conversationId)
   }
 
   /** Разговор закрыт насовсем (закрыли вкладку): его вкладки - как по finish, сразу. */
@@ -405,15 +429,6 @@ export class BrowserAgent {
     void this.finish(sessionId).catch((error: unknown) => {
       console.warn('[browser] сессия не закрылась', error)
     })
-  }
-
-  private async detachIdle(): Promise<void> {
-    for (const tab of this.sessions.idle(this.now(), IDLE_DETACH_MS)) {
-      tab.attached = false
-      await this.hub
-        .request(tab.profileKey, 'debugger.detach', { tabId: tab.tabId })
-        .catch(() => undefined)
-    }
   }
 
   private pushSummaries(profileKey: string): void {

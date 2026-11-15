@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { History, MessageSquareShare } from 'lucide-react'
+import { History, LocateFixed, MessageSquareShare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Menu } from '@agentic-workstation/ui/Menu'
@@ -8,7 +8,9 @@ import { MenuSeparator } from '@agentic-workstation/ui/MenuSeparator'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
+import { hasDefinitions } from '../definition.utils'
 import { sendSelectionToChat } from '../editor-chat'
+import { GO_TO_DECLARATION_ACTION } from '../editor.constants'
 import { shortcutLabel } from '../../../lib/keys'
 import { isOutsidePath } from '../../../lib/path.utils'
 import { useSelectionStore } from '../../../state/selection.store'
@@ -20,8 +22,8 @@ import type { EditorContextMenuProps } from './EditorContextMenu.types'
  * Меню правой кнопки в коде - нашим меню, как у вкладок, а не меню Monaco: то рисуется в
  * теневом DOM внутри панели редактора, куда не доходят цвета темы, и край панели его
  * обрезает. Встаёт у курсора мыши, пункт выполняет ту же команду Monaco, что и сочетание. У
- * файла проекта первым - «Send to Chat»: выделенный кусок в поле открытого чата ИИ, последним
- * - его локальная история.
+ * файла проекта первым - «Send to Chat»: выделенный кусок в поле открытого чата ИИ, у кода -
+ * переход к определению имени под кареткой (ADR 0061), последним - локальная история файла.
  */
 export const EditorContextMenu = ({
   editorRef,
@@ -38,6 +40,7 @@ export const EditorContextMenu = ({
   const { id, ref, onToggle } = useAnchoredPopover(at ? anchor : null, onClose)
   const openHistory = useSelectionStore((state) => state.openHistory)
   const historyOf = chatOwner && !isOutsidePath(chatOwner.path) ? chatOwner : null
+  const canGoToDeclaration = chatOwner !== undefined && hasDefinitions(chatOwner.path)
 
   // Пункт сначала закрывает меню, и фокус возвращается в код: буфер обмена и правка всех
   // вхождений работают только у редактора с фокусом.
@@ -69,6 +72,17 @@ export const EditorContextMenu = ({
                   label={t('editor.contextMenu.sendToChat')}
                   disabled={!hasSelection}
                   onSelect={handleSendToChat}
+                />
+                <MenuSeparator />
+              </>
+            )}
+            {canGoToDeclaration && (
+              <>
+                <MenuItem
+                  icon={LocateFixed}
+                  label={t('editor.contextMenu.goToDeclaration')}
+                  hint={shortcutLabel('⌘B')}
+                  onSelect={() => handleRun(GO_TO_DECLARATION_ACTION)}
                 />
                 <MenuSeparator />
               </>

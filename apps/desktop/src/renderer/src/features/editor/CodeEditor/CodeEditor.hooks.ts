@@ -3,16 +3,18 @@ import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
+import { useDefinitionLinks } from '../definition.hooks'
 import { documents } from '../documents'
 import { documentKey } from '../documents.utils'
 import type { EditorDocument } from '../editor-document'
 import {
   takeFocus,
   followTextSize,
+  holdMinimapWidth,
   hideFindFromPalette,
   remeasureWhenLoaded,
 } from '../editor-instance'
-import { editorOptions, scrollbarOptions } from '../editor-options'
+import { editorOptions, fileScrollbarOptions } from '../editor-options'
 import { watchSelection } from '../editor-selection'
 import type { SelectionWatch } from '../editor-selection'
 import { useEditorStore } from '../editor.store'
@@ -46,7 +48,7 @@ const useMonacoEditor = (shown: RefObject<EditorDocument | null>, isShown: RefOb
 
     const instance = monaco.editor.create(host, editorOptions(hasClassicScrollbars(probe)))
     const scrollbars = new ResizeObserver(() =>
-      instance.updateOptions({ scrollbar: scrollbarOptions(hasClassicScrollbars(probe)) }),
+      instance.updateOptions({ scrollbar: fileScrollbarOptions(hasClassicScrollbars(probe)) }),
     )
 
     scrollbars.observe(probe)
@@ -57,6 +59,7 @@ const useMonacoEditor = (shown: RefObject<EditorDocument | null>, isShown: RefOb
     instance.onDidBlurEditorText(() => void shown.current?.save())
     remeasureWhenLoaded()
 
+    const minimapWidth = holdMinimapWidth(instance)
     const unfollowTextSize = followTextSize(instance)
     const selection = watchSelection(
       instance,
@@ -68,6 +71,7 @@ const useMonacoEditor = (shown: RefObject<EditorDocument | null>, isShown: RefOb
 
     return () => {
       scrollbars.disconnect()
+      minimapWidth.dispose()
       unfollowTextSize()
       selection.dispose()
       selectionRef.current = null
@@ -104,6 +108,8 @@ export const useCodeEditor = ({
   const isShown = useRef(isActive)
   const { hostRef, probeRef, editorRef, selectionRef } = useMonacoEditor(shown, isShown)
   const readOnly = status.kind === 'text' && status.readOnly
+
+  useDefinitionLinks(editorRef, shown)
 
   // Модель файла - в редактор, как только файл прочитан. Прежний файл запоминает, где
   // в нём стояли, и дописывается: переключение вкладки - тоже уход из файла.

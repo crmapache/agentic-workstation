@@ -99,7 +99,12 @@ export const claudeScenarioProvider = (
               env: { ...env, ...CLI_ENV_OVERRIDES },
             },
             {
-              onMessage: wires.onMessage,
+              onMessage: (message) => {
+                // Ход кончился: курсор агента в Chrome и капсула Computer не ждут конца сессии.
+                if (message.type === 'result') connectors?.idle()
+
+                wires.onMessage(message)
+              },
               onControlRequest: wires.onControlRequest,
               onExit: (code, stderrTail) => {
                 connectors?.release()

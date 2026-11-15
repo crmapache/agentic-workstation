@@ -16,6 +16,7 @@ import type { CliTap, CliMessage, ControlRequest } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
 import { syncWork } from '../feed/work-clock'
 import { ShellRuns } from '../shell/shell-runs'
+import type { ConnectorsLaunch } from './connectors-launch'
 import { takeControlRequest } from './control-requests'
 import { ConversationFeedSync } from './conversation-feed'
 import { IDLE_SLEEP_MS } from './conversation.constants'
@@ -28,18 +29,8 @@ import { answerFor, matchesRequest, modeFromAlways } from './pending-requests'
 import { routeMessage } from './process-router'
 import { spawnConversationProcess } from './spawn'
 
-/**
- * Конфиг коннекторов IDE для одного процесса разговора (ADR 0029): файл для
- * `--mcp-config`; own - чей это процесс (разговор и его папка), release - процесс кончился
- * (ключ шлюза и процессы команд гаснут, сессия браузера ждёт следующий процесс разговора),
- * end - разговор закрыт насовсем (вкладки браузера закрываются сразу).
- */
-export type ConnectorsLaunch = {
-  path: string
-  own: (owner: { conversationId: string; workDir: string }) => void
-  release: () => void
-  end: () => void
-}
+/** Разговор работает: идёт ход (с вопросами к человеку) или фоновые агенты. */
+const isWorking = (meta: Conversation): boolean => meta.status !== 'idle' || meta.backgroundWork
 
 /** Что разговору нужно от сервиса: CLI, доверие к папке и куда сообщать об изменениях. */
 export type ConversationHost = CliTap & {
@@ -279,10 +270,18 @@ export class ConversationRuntime {
     return process ? process.stop() : Promise.resolve()
   }
 
-  /** Поменять поля вкладки и сообщить сервису. */
+  /**
+   * Поменять поля вкладки и сообщить сервису. Работа встала - коннекторы сразу убирают то, чем
+   * показывали её человеку: иначе курсор и рамка агента в Chrome стояли бы на странице до
+   * закрытия вкладки разговора, а капсула Computer - минуту.
+   */
   update(change: Partial<Conversation>): void {
+    const wasWorking = isWorking(this.meta)
+
     this.meta = { ...this.meta, ...change, updatedAt: Date.now() }
     this.host.onChange()
+
+    if (wasWorking && !isWorking(this.meta)) this.connectors?.idle()
   }
 
   /**

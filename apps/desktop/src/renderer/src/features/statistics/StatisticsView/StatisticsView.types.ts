@@ -3,7 +3,14 @@ import type { LucideIcon } from 'lucide-react'
 
 import type { StatsTokens, StatsScanProgress } from '@shared/statistics'
 
-import type { RankedRow, BucketLabels, ChartBuckets, StatisticsData } from '../statistics.types'
+import type {
+  RankedRow,
+  Comparison,
+  BucketLabels,
+  ChartBuckets,
+  StatisticsData,
+  StatisticsRange,
+} from '../statistics.types'
 
 /** О чём «?»: вид целиком или его раздел. */
 export type HelpTopic =
@@ -27,11 +34,11 @@ export type OverviewTileProps = {
   unit?: string | undefined
   /** Сравнение с прошлым: текущее и прошлое число; previous null - не сравниваем. */
   compare: { current: number; previous: number | null; format: (value: number) => string }
-  period: StatisticsData['period']
+  comparison: Comparison
   children?: ReactNode
 }
 
-export type DeltaMarkProps = Pick<OverviewTileProps, 'compare' | 'period'>
+export type DeltaMarkProps = Pick<OverviewTileProps, 'compare' | 'comparison'>
 
 /** Сведение раздела: подпись тише, число ярче. */
 export type Fact = { key: string; label: string; value: string }
@@ -46,3 +53,15 @@ export type RankedListProps = {
 }
 
 export type CacheShareProps = { tokens: StatsTokens }
+
+/** Слова подписи периода в шапке - из i18n: пакет дат их не знает. */
+export type PeriodWords = {
+  today: string
+  yesterday: string
+  range: (from: string, to: string) => string
+}
+
+/** Границы периода, по которым листают, и начало данных - раньше листать некуда. */
+export type PeriodNavigatorProps = { range: StatisticsRange; dataStart: number | null }
+
+export type StatisticsFiltersProps = PeriodNavigatorProps

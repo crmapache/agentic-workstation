@@ -106,15 +106,14 @@ describe('команды уровня ACC через настоящую IDE', ()
     expect(JSON.stringify(found)).not.toContain('/Users/')
   })
 
-  it('машина: почта замаскирована, выбор аккаунта, недавний проект открывается и виден открытым', async () => {
+  it('машина: почта целиком, выбор аккаунта, недавний проект открывается и виден открытым', async () => {
     const ide = await harness()
     const { client, inbox, code } = await pairPhone(ide)
     const agentId = code.agentId
     const inventory = await until(() => lastOf(inbox, 'inventory'), 'inventory')
     const accounts = await client.command(agentId, 'accounts.list', {})
 
-    expect(JSON.stringify(accounts)).not.toContain('mzpizote@')
-    expect((accounts as { data: AccountsWire }).data.accounts[0]?.email).toBe('mz…e@gmail.com')
+    expect((accounts as { data: AccountsWire }).data.accounts[0]?.email).toBe('mzpizote@gmail.com')
     expect(
       await client.command(agentId, 'accounts.use', { accountId: '0123456789abcdef' }),
     ).toMatchObject({ ok: true, data: { accounts: [{ current: false }, { current: true }, {}] } })

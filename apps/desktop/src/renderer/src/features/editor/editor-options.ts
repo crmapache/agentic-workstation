@@ -1,7 +1,13 @@
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
-import { SCROLLBAR_SIZE, DIFF_REVEAL_LINES, DIFF_CONTEXT_LINES } from './editor.constants'
+import {
+  MINIMAP_WIDTH,
+  SCROLLBAR_SIZE,
+  DIFF_REVEAL_LINES,
+  DIFF_CONTEXT_LINES,
+} from './editor.constants'
 import type { DiffViewOptions } from './editor.types'
+import { minimapColumns } from './editor.utils'
 import { editorTypography } from './monaco-theme'
 import { EDITOR_THEME } from './monaco-theme.constants'
 
@@ -27,8 +33,35 @@ export const scrollbarOptions = (classic: boolean): editor.IEditorScrollbarOptio
 }
 
 /**
+ * Полосы редактора файла: вертикальной нет, её место и работу взяла миникарта (ниже).
+ * Горизонтальная - как у разницы.
+ */
+export const fileScrollbarOptions = (classic: boolean): editor.IEditorScrollbarOptions => ({
+  ...scrollbarOptions(classic),
+  vertical: 'hidden',
+  verticalScrollbarSize: 0,
+})
+
+/**
+ * Миникарта редактора файла - его полоса прокрутки шириной MINIMAP_WIDTH: устройство файла
+ * сбоку и рамка видимой части, которую тянут, как бегунок. Код - цветными блоками, а не
+ * буквами: в такой ширине буквы не читаются, а блоки дешевле рисовать. Ширину Monaco считает
+ * колонками от плотности экрана, поэтому колонки пересчитывает holdMinimapWidth.
+ */
+export const minimapOptions = (): editor.IEditorMinimapOptions => ({
+  enabled: true,
+  side: 'right',
+  size: 'proportional',
+  showSlider: 'always',
+  renderCharacters: false,
+  scale: 1,
+  maxColumn: minimapColumns(window.devicePixelRatio, MINIMAP_WIDTH),
+})
+
+/**
  * Настройки кода середины окна - и у редактора файла, и у обеих сторон разницы. Шрифт и
- * тема - из токенов. Миникарты нет, как в WebStorm; липких заголовков тоже: строки внешних
+ * тема - из токенов. Миникарта - только у редактора файла (editorOptions): у разницы справа
+ * своя полоса отметок правок. Липких заголовков нет: строки внешних
  * блоков поверх кода владелец просил убрать. Подсказки по словам и цветные скобки
  * выключены: подсказки дадут языковые серверы, а радуга скобок спорит с подсветкой ролей.
  */
@@ -72,12 +105,14 @@ const codeOptions = (classicScrollbars: boolean) => {
   } satisfies editor.IStandaloneEditorConstructionOptions
 }
 
-/** Редактор файла: модель ставится, когда файл прочитан. */
+/** Редактор файла: модель ставится, когда файл прочитан; справа миникарта вместо полосы. */
 export const editorOptions = (
   classicScrollbars: boolean,
 ): editor.IStandaloneEditorConstructionOptions => ({
   model: null,
   ...codeOptions(classicScrollbars),
+  scrollbar: fileScrollbarOptions(classicScrollbars),
+  minimap: minimapOptions(),
 })
 
 /**

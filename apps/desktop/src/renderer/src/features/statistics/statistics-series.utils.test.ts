@@ -75,6 +75,66 @@ describe('barPointsOf', () => {
     expect(bars[14]?.label).toBe('Tue, Nov 10, 14:00')
   })
 
+  it('неделя по часам: линия перед полуночью, дата под полднем, выходные полосой', () => {
+    // 8 ноября 2026 - воскресенье, 14-е - суббота.
+    const chart = {
+      bucket: 'hour' as const,
+      points: Array.from({ length: 7 * 24 }, (_, hour) =>
+        point(new Date(2026, 10, 8, hour).getTime()),
+      ),
+    }
+    const bars = barPointsOf(
+      chart,
+      bucketLabelsOf('hour', (date) => date),
+      (item) => [item.tokens],
+    )
+
+    expect(bars.filter((bar) => bar.axisLabel !== '').map((bar) => bar.axisLabel)).toEqual([
+      'Nov 8',
+      'Nov 9',
+      'Nov 10',
+      'Nov 11',
+      'Nov 12',
+      'Nov 13',
+      'Nov 14',
+    ])
+    expect(bars.flatMap((bar, index) => (bar.boundary ? [index] : []))).toEqual([
+      24, 48, 72, 96, 120, 144,
+    ])
+    expect(bars.filter((bar) => bar.shaded)).toHaveLength(48)
+    expect(bars[0]?.shaded).toBe(true)
+    expect(bars[24]?.shaded).toBe(false)
+  })
+
+  it('одни сутки по часам - без полос и линий, дни - выходные полосой', () => {
+    const hours = barPointsOf(
+      {
+        bucket: 'hour',
+        points: Array.from({ length: 24 }, (_, hour) =>
+          point(new Date(2026, 10, 14, hour).getTime()),
+        ),
+      },
+      bucketLabelsOf('hour', (date) => date),
+      (item) => [item.tokens],
+    )
+    const daily = barPointsOf(
+      { bucket: 'day', points: days(7) },
+      bucketLabelsOf('day', (date) => date),
+      (item) => [item.tokens],
+    )
+
+    expect(hours.some((bar) => bar.shaded || bar.boundary)).toBe(false)
+    expect(daily.map((bar) => bar.shaded ?? false)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+    ])
+  })
+
   it('неделя подписывается словами вызывающего', () => {
     const labels = bucketLabelsOf('week', (date) => `Week of ${date}`)
 

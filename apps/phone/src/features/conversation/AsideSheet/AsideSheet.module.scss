@@ -47,8 +47,11 @@
   font-size: var(--font-size-sm);
 }
 
+// Подвал окна: поле во всю ширину, кнопка под ним.
 .ask {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0;
 }

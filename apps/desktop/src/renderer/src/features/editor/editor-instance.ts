@@ -1,8 +1,9 @@
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
 import { onTextSizeApplied } from '../../state/text-size.store'
-import { MONACO_FIND_COMMANDS } from './editor.constants'
+import { MINIMAP_WIDTH, MONACO_FIND_COMMANDS } from './editor.constants'
 import { useEditorStore } from './editor.store'
+import { minimapColumns } from './editor.utils'
 import { monaco } from './monaco-setup'
 import { editorTypography } from './monaco-theme'
 
@@ -55,3 +56,19 @@ export const remeasureWhenLoaded = () => {
  */
 export const followTextSize = (instance: Configurable) =>
   onTextSizeApplied(() => instance.updateOptions(editorTypography()))
+
+/**
+ * Миникарта - шириной MINIMAP_WIDTH на любом экране. Колонки в ней зависят от плотности
+ * экрана, а окно переезжает между Retina и обычным монитором на ходу: Monaco тогда сам
+ * перекладывает редактор, и здесь колонки пересчитываются под новую плотность. Возвращает
+ * отписку.
+ */
+export const holdMinimapWidth = (instance: Editor) =>
+  instance.onDidLayoutChange(() => {
+    const columns = minimapColumns(window.devicePixelRatio, MINIMAP_WIDTH)
+    const { minimap } = instance.getRawOptions()
+
+    if (minimap?.enabled && minimap.maxColumn !== columns) {
+      instance.updateOptions({ minimap: { maxColumn: columns } })
+    }
+  })

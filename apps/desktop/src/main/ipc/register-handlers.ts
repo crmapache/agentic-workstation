@@ -2,6 +2,7 @@ import { shell } from 'electron'
 
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
+import type { DefinitionService } from '../definitions/definition-service'
 import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
@@ -66,6 +67,8 @@ type Services = HandlerContext & {
   history: LocalHistory
   /** Звуки IDE (ADR 0046): чем и как громко зовут разговоры. */
   sounds: SoundsService
+  /** «Где определено» для редактора (ADR 0061): компилятор TypeScript в своём процессе. */
+  definitions: DefinitionService
 }
 
 /**
@@ -90,7 +93,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ),
     ...createLocalHistoryHandlers(workspace, history),
     ...createSoundsHandlers(services.sounds),
-    ...createEditorHandlers(workspace, history),
+    ...createEditorHandlers(workspace, history, services.definitions),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
     ...createClaudeHandlers(workspace, claude),

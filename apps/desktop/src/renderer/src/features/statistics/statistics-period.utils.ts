@@ -1,7 +1,7 @@
 import type { StatsPeriod, StatsReport } from '@shared/statistics'
 
 import { PERIOD_DAYS, COMPARE_STEP_MS } from './statistics.constants'
-import type { Delta, PeriodKind } from './statistics.types'
+import type { Delta, PeriodKind, StatisticsRange } from './statistics.types'
 
 /**
  * Периоды и сравнение. Границы дней - по местному времени: их считает окно (главный процесс
@@ -28,16 +28,41 @@ export const addDays = (day: number, days: number): number => {
 }
 
 /**
- * Период вида [from, to). Конец - всегда следующая полночь: сегодняшний график - все 24
- * часа, а не столько, сколько уже прошло. 7 и 30 дней - по сегодня включительно, «всё
- * время» - с начала эпохи (главный процесс рисует график с первого дня данных).
+ * Период вида [from, to) по последний день включительно. Конец - всегда полночь после него:
+ * сегодняшний график - все 24 часа, а не столько, сколько уже прошло. Выбранный день не
+ * позже сегодня (null - сегодня); «всё время» - с начала эпохи по сегодня (главный процесс
+ * рисует график с первого дня данных), выбранный день его не двигает.
  */
-export const periodOf = (kind: PeriodKind, now: number): StatsPeriod => {
+export const rangeOf = (kind: PeriodKind, now: number, picked: number | null): StatisticsRange => {
   const today = startOfDay(now)
-  const to = addDays(today, 1)
+  const lastDay = kind === 'all' || picked === null || picked >= today ? today : picked
+  const to = addDays(lastDay, 1)
+  const from = kind === 'all' ? 0 : addDays(lastDay, 1 - PERIOD_DAYS[kind])
 
-  return kind === 'all' ? { from: 0, to } : { from: addDays(today, 1 - PERIOD_DAYS[kind]), to }
+  return { period: { from, to }, today, lastDay }
 }
+
+/**
+ * Последний день соседнего периода: стрелки шагают на его длину (день, 7 и 30 дней). Дошли
+ * до сегодня или дальше - null: период снова по сегодня и сам переходит на новый день.
+ */
+export const steppedLastDayOf = (
+  kind: Exclude<PeriodKind, 'all'>,
+  range: StatisticsRange,
+  direction: -1 | 1,
+): number | null => {
+  const next = addDays(range.lastDay, direction * PERIOD_DAYS[kind])
+
+  return next >= range.today ? null : next
+}
+
+/** День из календаря - последний день периода; сегодня и позже - null, период по сегодня. */
+export const pickedLastDayOf = (day: number, today: number): number | null =>
+  day >= today ? null : startOfDay(day)
+
+/** Раньше периода есть данные - назад листать есть куда. */
+export const hasEarlierOf = (range: StatisticsRange, dataStart: number | null): boolean =>
+  dataStart !== null && dataStart < range.period.from
 
 /** «Сейчас» с точностью до шага сравнения: ключ запроса меняется раз в несколько минут. */
 export const compareMomentOf = (now: number): number =>

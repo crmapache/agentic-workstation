@@ -15,7 +15,7 @@ export const OverviewTile = ({
   value,
   unit,
   compare,
-  period,
+  comparison,
   children,
 }: OverviewTileProps) => (
   <Card size="sm" title={title} icon={icon}>
@@ -24,7 +24,7 @@ export const OverviewTile = ({
         <span className={styles.figure}>{value}</span>
         {unit && <span className={styles.unit}>{unit}</span>}
         <span className={styles.deltaSlot}>
-          <DeltaMark compare={compare} period={period} />
+          <DeltaMark compare={compare} comparison={comparison} />
         </span>
       </div>
       {children}

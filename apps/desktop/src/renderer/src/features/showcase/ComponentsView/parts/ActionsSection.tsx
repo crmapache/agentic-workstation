@@ -143,6 +143,12 @@ export const ActionsSection = () => {
           }
           menuLabel={t('samples.setupMenu')}
         />
+        <DropdownButton
+          size="sm"
+          chevron={false}
+          label={t('samples.dateValue')}
+          menuLabel={t('samples.dateMenu')}
+        />
       </Specimen>
 
       <TooltipSpecimens />

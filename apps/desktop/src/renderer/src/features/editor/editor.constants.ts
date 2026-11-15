@@ -27,6 +27,12 @@ export const DIFF_COMPARE_WAIT_MS = 1_000
 /** Признак на разнице, пока Monaco сравнивает новую пару: не видна, но место держит. */
 export const DIFF_COMPARING_ATTRIBUTE = 'data-comparing'
 
+/** Действие «Go to Declaration» (⌘B и F12, как в WebStorm; пункт меню правой кнопки). */
+export const GO_TO_DECLARATION_ACTION = 'agenticWorkstation.goToDeclaration'
+
+/** Класс имени, которое с ⌘ под мышью стало ссылкой на своё определение (monaco.css). */
+export const DEFINITION_LINK_CLASS = 'definition-link'
+
 /** Команда Monaco за ⌘S в редакторе: записать файл по явной просьбе. */
 export const SAVE_COMMAND = 'agenticWorkstation.saveFile'
 
@@ -36,6 +42,13 @@ export const SAVE_COMMAND = 'agenticWorkstation.saveFile'
  * шире (11 px), но бегунок у неё сдвинут к краю, так он встаёт ровно туда же.
  */
 export const SCROLLBAR_SIZE = 10
+
+/**
+ * Ширина миникарты редактора файла в CSS-пикселях: она и есть его полоса прокрутки, широкая -
+ * чтобы сбоку было видно устройство файла (просьба владельца). Узкий редактор Monaco сжимает
+ * её сам, пропорционально ширине кода.
+ */
+export const MINIMAP_WIDTH = 80
 
 /**
  * Команды поиска Monaco. Его панели поиска в IDE нет (будет свой поиск): сочетания этих

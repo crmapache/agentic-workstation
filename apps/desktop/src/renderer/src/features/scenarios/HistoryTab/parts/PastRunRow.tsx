@@ -21,7 +21,8 @@ import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
  * Строка прошлого прогона: какой (имя и ответы - то, чем две ночи одного сценария различаются,
  * теми же чипами, что у записи очереди), когда начат и кончился, сколько работал, во что обошёлся,
  * чем кончился. Звезда - метка человека и ничего больше: не сортирует и от удаления не защищает.
- * Прогон плагина ACC - с меткой ACC и без звезды и удаления: его запись IDE не пишет.
+ * Прогон плагина ACC - с меткой ACC в своей колонке перед временем (у имени она сдвигала ответы
+ * на ширину метки) и без звезды и удаления: его запись IDE не пишет.
  */
 export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRunRowProps) => {
   const { t } = useTranslation()
@@ -47,13 +48,13 @@ export const PastRunRow = ({ run, now, words, onOpen, onStar, onDelete }: PastRu
       onClick={handlePress}>
       <button type="button" className={clsx(styles.colRun, styles.runOpen)} onClick={handleOpen}>
         <span className={styles.runName}>{run.scenarioName}</span>
-        {isAcc && <AccRunBadge />}
         {hasAnswers && (
           <span className={styles.answers}>
             <ScenarioFormsAnswers inputs={run.inputs} />
           </span>
         )}
       </button>
+      <span className={styles.colOrigin}>{isAcc && <AccRunBadge />}</span>
       <span className={styles.colStarted}>{momentLabel(run.startedAt, words, now)}</span>
       <span className={styles.colFinished}>
         {isOver ? endedLabel(run.startedAt, run.finishedAt, words, now) : ''}

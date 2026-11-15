@@ -195,6 +195,11 @@ export class LiveConnector {
     this.source.release?.(sourceLaunch(launch))
   }
 
+  /** Работа разговора встала: общий источник убирает то, чем показывал работу агента. */
+  idle(conversationId: string): void {
+    this.source.idle?.(conversationId)
+  }
+
   /** Разговор закрыт насовсем: общий источник отпускает то, что держал на него. */
   endConversation(conversationId: string): void {
     this.source.endConversation?.(conversationId)

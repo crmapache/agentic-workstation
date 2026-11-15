@@ -199,13 +199,14 @@
     "title": "My IDEs",
     "help": {
       "title": "Remote Control",
-      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nAll queues, Accounts and Connectors belong to the whole IDE, not to one project.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
+      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nAll queues, Accounts and Connectors belong to the whole IDE, not to one project.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera, or tap Pair another IDE at the end of the list and paste the link of the code.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
     },
     "empty": {
       "title": "No IDE paired yet",
       "description": "Open Remote Control in Agentic Workstation and scan the QR code with the phone camera."
     },
     "pairIde": "Pair an IDE",
+    "pairAnother": "Pair another IDE",
     "notPersistent": "This browser does not keep data: pairings last until the page is closed.",
     "version": "IDE {{version}}",
     "loading": "Getting the projects",
@@ -893,12 +894,19 @@
     "current": "In use",
     "signedIn": "Signed in",
     "signedOut": "Signed out",
+    "plans": {
+      "pro": "Pro plan",
+      "max": "Max plan",
+      "team": "Team plan",
+      "enterprise": "Enterprise plan",
+      "other": "{{plan}} plan"
+    },
     "windows": {
       "session": "5-hour",
       "weekly": "Week",
       "weeklyModel": "Week · {{model}}"
     },
-    "resets": "resets {{when}}",
+    "resets": "Resets {{when}}",
     "extra": "Extra usage is on: {{percent}} of the monthly cap spent",
     "refusedUntil": "The limit refused it until {{when}}",
     "use": "Use this account",

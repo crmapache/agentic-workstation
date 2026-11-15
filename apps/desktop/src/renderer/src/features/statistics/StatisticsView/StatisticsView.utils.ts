@@ -8,13 +8,20 @@ import type {
   StatsLanguageRow,
 } from '@shared/statistics'
 
-import { dateLabel, hourRangeLabel, weekdayRangeLabel } from '../statistics-dates.utils'
+import {
+  dateLabel,
+  hourRangeLabel,
+  pickedDayLabel,
+  weekdayRangeLabel,
+} from '../statistics-dates.utils'
 import { formatCount } from '../statistics-format.utils'
+import { addDays } from '../statistics-period.utils'
 import { tokensOf } from '../statistics-totals.utils'
 import { YOU_TONE, AGENTS_TONE } from '../statistics.constants'
-import type { RankedRow, CalendarMetric } from '../statistics.types'
+import type { RankedRow, PeriodKind, CalendarMetric, StatisticsRange } from '../statistics.types'
 import { baseName } from '../../../lib/path.utils'
 import { PRESENCE_DAYS_FOR_CALENDAR } from './StatisticsView.constants'
+import type { PeriodWords } from './StatisticsView.types'
 
 /** Шкала списка-рейтинга: самая большая строка - вся полоса. */
 export const rankedTotal = (rows: readonly RankedRow[]): number =>
@@ -119,3 +126,25 @@ export const projectRows = (
       current: project.project !== null && project.project === activePath,
       parts: [{ key: 'tokens', value: project.tokens, tone: AGENTS_TONE }],
     }))
+
+/**
+ * Подпись периода в шапке вида: сутки - «Today», «Yesterday» или день с днём недели
+ * («Thu, Nov 12»), 7 и 30 дней - отрезком дат («Nov 6 - Nov 12»).
+ */
+export const periodLabelOf = (
+  kind: PeriodKind,
+  range: StatisticsRange,
+  words: PeriodWords,
+): string => {
+  if (kind !== 'day') {
+    return words.range(
+      pickedDayLabel(range.period.from, range.today, false),
+      pickedDayLabel(range.lastDay, range.today, false),
+    )
+  }
+
+  if (range.lastDay === range.today) return words.today
+  if (range.lastDay === addDays(range.today, -1)) return words.yesterday
+
+  return pickedDayLabel(range.lastDay, range.today, true)
+}

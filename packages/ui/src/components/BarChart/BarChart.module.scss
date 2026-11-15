@@ -1,5 +1,8 @@
 @use '../../styles/mixins' as *;
 
+// Зазор между шагами: тот же у колонок поля, подписей оси, полосы выходных и линии суток.
+$slot-gap: var(--space-0-5);
+
 // Подписи графика - тише данных: моноширинные цифры шкалы и шагов цветом вторичного
 // текста. Вбок график не вылезает: подписи у краёв прижаты внутрь, остальное обрезается, а
 // не даёт странице прокрутку вбок.
@@ -82,10 +85,12 @@
 }
 
 // Колонки шагов поля и подписи под ним - одной раскладки: подпись стоит под своим шагом.
+// Между шагами - узкий зазор фона, остальное место отдано столбцам: шаг читается столбцом,
+// а не точкой в воздухе.
 .bars,
 .axis {
   display: flex;
-  gap: var(--space-0-5);
+  gap: $slot-gap;
 }
 
 .bars {
@@ -93,7 +98,9 @@
   inset: 0;
 }
 
+// Шаг - контейнер: зазор между столбцами рядов в нём тает вместе с его шириной.
 .slot {
+  position: relative;
   display: flex;
   flex: 1 1 0;
   align-items: flex-end;
@@ -101,6 +108,7 @@
   min-width: 0;
   border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   transition: background-color var(--duration-fast) var(--easing-standard);
+  container-type: inline-size;
 }
 
 // Шаг под рукой: колонка проступает, столбцы в ней - полным тоном.
@@ -108,14 +116,54 @@
   background-color: var(--color-bg-hover);
 }
 
-// Столбцы рядов рядом - с зазором фона, а не обводкой; вместе не толще меры.
+// Полоса выходных - подложка шага вместе с половинами зазоров по бокам: соседние шаги
+// полосы смыкаются без щелей. Вдвое тише подсветки под рукой - не спорит с ней.
+.shaded::before {
+  position: absolute;
+  inset: 0 calc($slot-gap / -2);
+  background-color: color-mix(in srgb, var(--color-bg-hover) 50%, transparent);
+  content: '';
+  pointer-events: none;
+}
+
+// Начало новых суток - волосяная линия посередине зазора перед шагом, как линия сетки.
+.boundary::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc($slot-gap / -2);
+  border-left: var(--border-width) solid var(--color-border);
+  content: '';
+  pointer-events: none;
+}
+
+// Столбцы рядов шага - во всю его ширину, рядом, с зазором фона, а не обводкой. В узком шаге
+// (неделя по часам) зазор тает до нуля: иначе от столбцов остались бы нити.
 .group {
   display: flex;
   align-items: flex-end;
-  gap: var(--space-0-5);
+  gap: min(var(--space-0-5), 8cqi);
   width: 100%;
-  max-width: var(--size-chart-bar);
   height: 100%;
+}
+
+// Стопка и наложение - куски один на другом снизу вверх, с зазором фона между ними; скруглена
+// только вершина столбца. У наложения куски - не части суммы, а продолжение меньшего ряда до
+// большего (segmentsOf).
+.stacked,
+.overlaid {
+  flex-direction: column-reverse;
+  align-items: stretch;
+  justify-content: flex-start;
+
+  .bar {
+    flex: none;
+    border-radius: 0;
+  }
+
+  .bar:last-child {
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  }
 }
 
 // Метка - тон ряда чуть тише полного; скругление только у вершины, у нуля - прямо.

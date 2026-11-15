@@ -2,8 +2,9 @@ import { it, expect, describe } from 'vitest'
 
 import type { StatsModelRow, StatsProjectRow, StatsCalendarDay } from '@shared/statistics'
 
+import { rangeOf } from '../statistics-period.utils'
 import { PRESENCE_DAYS_FOR_CALENDAR } from './StatisticsView.constants'
-import { modelRows, projectRows, calendarMetricOf } from './StatisticsView.utils'
+import { modelRows, projectRows, periodLabelOf, calendarMetricOf } from './StatisticsView.utils'
 
 const day = (index: number, presenceMinutes: number): StatsCalendarDay => ({
   day: `2026-10-${String(index + 1).padStart(2, '0')}`,
@@ -64,5 +65,30 @@ describe('правила вида статистики', () => {
 
     expect(rows.map((row) => row.label)).toEqual(['Haiku 3.5', '<synthetic>'])
     expect(rows[0]?.hint).toBe('claude-3-5-haiku-20241022')
+  })
+})
+
+describe('periodLabelOf', () => {
+  const now = new Date('2026-11-14T10:00:00').getTime()
+  const words = {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    range: (from: string, to: string) => `${from} - ${to}`,
+  }
+  const picked = (text: string) => new Date(`${text}T00:00:00`).getTime()
+
+  it('сутки - словами рядом с сегодня, дальше - днём недели и датой', () => {
+    expect(periodLabelOf('day', rangeOf('day', now, null), words)).toBe('Today')
+    expect(periodLabelOf('day', rangeOf('day', now, picked('2026-11-13')), words)).toBe('Yesterday')
+    expect(periodLabelOf('day', rangeOf('day', now, picked('2026-11-10')), words)).toBe(
+      'Tue, Nov 10',
+    )
+  })
+
+  it('7 дней - отрезком дат, прошлый год - с годом', () => {
+    expect(periodLabelOf('week', rangeOf('week', now, null), words)).toBe('Nov 8 - Nov 14')
+    expect(periodLabelOf('day', rangeOf('day', now, picked('2025-12-31')), words)).toBe(
+      'Wed, Dec 31, 2025',
+    )
   })
 })

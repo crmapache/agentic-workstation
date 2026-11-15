@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { BarChart } from '@agentic-workstation/ui/BarChart'
@@ -17,9 +18,10 @@ import { RankedList } from './RankedList'
 import { StatisticsHelp } from './StatisticsHelp'
 
 /**
- * Код: строки руками и агентами по шагам рядом, сведения (набрано, вставлено, файлы, доля
- * агентов) и языки по расширениям - каждое своей карточкой. Код руками считается с выпуска статистики - строка под
- * заголовком говорит, с какого дня, если период начинается раньше.
+ * Код: строки руками и агентами стопкой по шагам (вместе - все строки шага) - графиком во всю ширину, под ним сведения
+ * (набрано, вставлено, файлы, доля агентов) и языки по расширениям - каждое своей карточкой.
+ * Код руками считается с выпуска статистики - строка под заголовком говорит, с какого дня,
+ * если период начинается раньше.
  */
 export const CodeSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
@@ -33,24 +35,25 @@ export const CodeSection = ({ data, chart, labels }: SectionProps) => {
       title={t('statistics.code.title')}
       description={humanNote}
       help={<StatisticsHelp topic="code" />}>
-      <div className={styles.split}>
-        <div className={styles.cards}>
-          <Card title={t('statistics.code.chartTitle')}>
-            <BarChart
-              label={t('statistics.code.chart')}
-              series={[
-                { key: 'you', label: t('statistics.you'), tone: YOU_TONE },
-                { key: 'agents', label: t('statistics.agents'), tone: AGENTS_TONE },
-              ]}
-              points={barPointsOf(chart, labels, (point) => [
-                point.manualLinesAdded + point.manualLinesRemoved,
-                point.agentLinesAdded + point.agentLinesRemoved,
-              ])}
-              formatValue={formatCount}
-              emptyLabel={t('statistics.code.empty')}
-              integer
-            />
-          </Card>
+      <div className={styles.cards}>
+        <Card title={t('statistics.code.chartTitle')}>
+          <BarChart
+            label={t('statistics.code.chart')}
+            series={[
+              { key: 'you', label: t('statistics.you'), tone: YOU_TONE },
+              { key: 'agents', label: t('statistics.agents'), tone: AGENTS_TONE },
+            ]}
+            points={barPointsOf(chart, labels, (point) => [
+              point.manualLinesAdded + point.manualLinesRemoved,
+              point.agentLinesAdded + point.agentLinesRemoved,
+            ])}
+            formatValue={formatCount}
+            emptyLabel={t('statistics.code.empty')}
+            integer
+            layout="stacked"
+          />
+        </Card>
+        <div className={clsx(styles.split, styles.splitTop)}>
           <Card>
             <FactGrid
               facts={[
@@ -93,12 +96,12 @@ export const CodeSection = ({ data, chart, labels }: SectionProps) => {
               ]}
             />
           </Card>
+          <RankedList
+            title={t('statistics.code.languages')}
+            emptyLabel={t('statistics.nothing')}
+            rows={languageRows(report.languages, t('statistics.code.noExtension'))}
+          />
         </div>
-        <RankedList
-          title={t('statistics.code.languages')}
-          emptyLabel={t('statistics.nothing')}
-          rows={languageRows(report.languages, t('statistics.code.noExtension'))}
-        />
       </div>
     </Section>
   )

@@ -860,6 +860,31 @@ describe.skipIf(!ready)(
       json(await call('finish'))
     }, 60_000)
 
+    it('работа встала - курсор уходит со страницы, вкладка остаётся и снова в работе без него', async () => {
+      json(await call('open', { url: `${base}/blue` }))
+      json(await call('click', { ref: refOf(text(await call('snapshot')), '- button "Go"') }))
+
+      const pressed = await pressedAt()
+
+      expect(
+        accentNear(pixelsOf(await call('screenshot')), pressed[0], pressed[1]),
+      ).toBeGreaterThan(10)
+
+      source.idle(launch.id)
+
+      // Курсор гаснет плавно: ждём, пока его не станет на снимке. Снимок - уже новый вызов, он
+      // снова подключает вкладку, но курсор до движения мыши не рисует.
+      let seen = Number.POSITIVE_INFINITY
+
+      for (const deadline = Date.now() + 5000; seen > 0 && Date.now() < deadline;) {
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        seen = accentNear(pixelsOf(await call('screenshot')), pressed[0], pressed[1])
+      }
+
+      expect(seen).toBe(0)
+      json(await call('finish'))
+    }, 60_000)
+
     it('окно расширения: связь, сессия, имя профиля, ссылка на вкладку, Stop', async () => {
       const opened = json<{ tab: string }>(await call('open', { url: base }))
       const tabId = tabIdOf(opened.tab)

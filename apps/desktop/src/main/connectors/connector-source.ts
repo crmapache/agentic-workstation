@@ -23,8 +23,8 @@ export type SourceTool = Tool & { access: ToolAccess }
  * чужой MCP-сервер (Notion, Slack, свой адрес). Шлюзу всё равно, что внутри. signal -
  * провайдер ушёл, не дождавшись ответа; кто умеет, отменяет вызов у сервиса. launch - чей
  * процесс разговора зовёт (шлюз знает его по ключу); release - этот процесс кончился,
- * endConversation - кончился сам разговор (его вкладку закрыли). После
- * dispose источник не оживает: новый собирает LiveConnector.
+ * idle - встала работа разговора, endConversation - кончился сам разговор (его вкладку
+ * закрыли). После dispose источник не оживает: новый собирает LiveConnector.
  */
 export type ConnectorSource = {
   listTools: () => Promise<SourceTool[]>
@@ -35,6 +35,12 @@ export type ConnectorSource = {
     launch?: SourceLaunch,
   ) => Promise<CallToolResult>
   release?: (launch: SourceLaunch) => void
+  /**
+   * Работа разговора встала: ни хода, ни фоновых агентов. То, чем источник показывает человеку
+   * работу агента (курсор и рамка в Chrome, капсула Computer), уходит сразу, а не по сроку
+   * простоя; своё на разговор источник держит дальше.
+   */
+  idle?: (conversationId: string) => void
   /** Разговор закрыт насовсем: то, что источник держал на него, отпускается сразу. */
   endConversation?: (conversationId: string) => void
   dispose: () => Promise<void>

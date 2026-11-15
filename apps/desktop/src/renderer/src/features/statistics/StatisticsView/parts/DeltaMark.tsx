@@ -11,9 +11,10 @@ import { deltaOf } from '../../statistics-period.utils'
 /**
  * Изменение против прошлого периода: стрелка и процент цветом вторичного текста. Рост и
  * падение здесь не «хорошо» и не «плохо» (больше токенов - и больше сделано, и дороже),
- * поэтому без зелёного и красного. Под рукой - само прошлое число.
+ * поэтому без зелёного и красного. Под рукой - само прошлое число: у идущего периода - «к
+ * этому часу», у прошлого - прошлый период целиком.
  */
-export const DeltaMark = ({ compare, period }: DeltaMarkProps) => {
+export const DeltaMark = ({ compare, comparison }: DeltaMarkProps) => {
   const { t } = useTranslation()
   const delta = deltaOf(compare.current, compare.previous)
 
@@ -26,7 +27,8 @@ export const DeltaMark = ({ compare, period }: DeltaMarkProps) => {
       : delta.direction === 'flat'
         ? t('statistics.delta.flat')
         : formatDeltaPercent(delta)
-  const hint = t(`statistics.delta.previous.${period}`, {
+  const basis = comparison.live ? 'previous' : 'whole'
+  const hint = t(`statistics.delta.${basis}.${comparison.period}`, {
     value: compare.format(compare.previous),
   })
 

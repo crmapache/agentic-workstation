@@ -132,6 +132,20 @@ export const editorColors = (colors: ThemeColors): editor.IColors => {
     'editorOverviewRuler.selectionHighlightForeground': TRANSPARENT,
     'editorOverviewRuler.bracketMatchForeground': TRANSPARENT,
     'editorOverviewRuler.rangeHighlightForeground': TRANSPARENT,
+    // Миникарта - полоса прокрутки файла. Фон прозрачный, как у кода, но цвет листа Monaco
+    // нужен для смешения: блоки кода он красит наполовину к фону. Рамка видимой части - тихой
+    // плашкой, под курсором и в жесте - тоном бегунка полосы прокрутки. Метки - по тому же
+    // правилу, что у полосы: найденное поиском и ошибки; выделение и его повторы - нет.
+    'minimap.background': toHex({ ...sheet, a: 0 }),
+    'minimapSlider.background': hex('active'),
+    'minimapSlider.hoverBackground': hex('scrollbar'),
+    'minimapSlider.activeBackground': hex('scrollbar'),
+    'minimap.findMatchHighlight': hex('accent'),
+    'minimap.errorHighlight': hex('danger'),
+    'minimap.warningHighlight': hex('warning'),
+    'minimap.infoHighlight': hex('info'),
+    'minimap.selectionHighlight': TRANSPARENT,
+    'minimap.selectionOccurrenceHighlight': TRANSPARENT,
     'editorLink.activeForeground': hex('syntaxLink'),
     'editorError.foreground': hex('danger'),
     'editorWarning.foreground': hex('warning'),

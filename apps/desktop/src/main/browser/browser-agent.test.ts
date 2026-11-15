@@ -382,3 +382,73 @@ describe('вкладки, куда Chrome не пускает отладчик',
     expect(page.tab.attached).toBe(true)
   })
 })
+
+describe('курсор и рамка агента - только пока он работает', () => {
+  it('работа разговора встала - отладчик и рамка уходят, вкладка остаётся; следующий вызов их вернёт', async () => {
+    const { hub, agent } = setup(60_000)
+    const call = callOf('p1', 'tab-1')
+    const page = await agent.during(call, () => agent.open(call, ''))
+    const { key } = page.tab
+
+    expect(hub.framed.has(key)).toBe(true)
+
+    agent.idle('tab-1')
+
+    await expect.poll(() => hub.framed.has(key)).toBe(false)
+    expect(hub.attached.has(key)).toBe(false)
+    expect(hub.tab('work', tabIdOf(page))).toBeDefined()
+    expect(agent.sessions.get('tab-1')?.tabs.has(key)).toBe(true)
+
+    await agent.during(call, () => agent.page(call))
+
+    expect(hub.framed.has(key)).toBe(true)
+    expect(hub.attached.has(key)).toBe(true)
+  })
+
+  it('вызов фонового агента идёт после конца хода - рамка уходит, когда он кончится', async () => {
+    const { hub, agent } = setup(60_000)
+    const call = callOf('p1', 'tab-1')
+    const page = await agent.open(call, '')
+    let finish = () => undefined as void
+    const running = agent.during(
+      call,
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+
+    agent.idle('tab-1')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(hub.framed.has(page.tab.key)).toBe(true)
+
+    finish()
+    await running
+
+    await expect.poll(() => hub.framed.has(page.tab.key)).toBe(false)
+  })
+
+  it('процесс кончился - рамка уходит сразу, а вкладки ждут следующий процесс', async () => {
+    const { hub, agent } = setup(60_000)
+    const page = await agent.open(callOf('p1', 'tab-1'), '')
+
+    agent.release({ id: 'p1', conversationId: 'tab-1' })
+
+    await expect.poll(() => hub.framed.has(page.tab.key)).toBe(false)
+    expect(hub.tab('work', tabIdOf(page))).toBeDefined()
+  })
+
+  it('расширение переподключилось и потеряло отладчик - рамку в странице всё равно снимают', async () => {
+    const { hub, agent } = setup(60_000)
+    const page = await agent.open(callOf('p1', 'tab-1'), '')
+
+    hub.disconnect('work')
+    hub.connect('work', 'Work')
+    await expect.poll(() => page.tab.offline).toBe(false)
+    expect(page.tab.attached).toBe(false)
+
+    agent.idle('tab-1')
+
+    await expect.poll(() => hub.framed.has(page.tab.key)).toBe(false)
+  })
+})

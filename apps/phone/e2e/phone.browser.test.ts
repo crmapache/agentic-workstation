@@ -646,10 +646,9 @@ describe('телефон в мобильном Chromium против насто�
     const called = (name: string, what = name) =>
       until(() => ide.ide.calls.find((call) => call.name === name), what)
 
-    // Аккаунты: почта замаскирована, лимиты числами; выбрать другой - с «точно?».
+    // Аккаунты: почта целиком, лимиты числами; выбрать другой - с «точно?».
     await page.getByRole('button', { name: /Accounts/ }).click()
-    await page.getByText('mz…e@gmail.com', { exact: true }).waitFor()
-    expect(await page.getByText(/mzpizote/).count()).toBe(0)
+    await page.getByText('mzpizote@gmail.com', { exact: true }).waitFor()
     await shot('30-accounts')
     await page.getByRole('button', { name: 'Use this account' }).first().click()
     await page.getByRole('dialog').getByRole('button', { name: 'Use this account' }).click()

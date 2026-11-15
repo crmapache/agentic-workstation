@@ -5,11 +5,14 @@ import type { ChartTone } from '@agentic-workstation/ui/ChartTip.types'
 
 import type { ScopeKind, PeriodKind } from './statistics.types'
 
-export const PERIODS: readonly PeriodKind[] = ['today', 'week', 'month', 'all']
+export const PERIODS: readonly PeriodKind[] = ['day', 'week', 'month', 'all']
 
-/** Сколько дней в периоде по сегодня включительно; всё время - не здесь. */
+/**
+ * Сколько дней в периоде по последний день включительно; на столько же шагают стрелки
+ * соседнего периода. Всё время - не здесь: листать его некуда.
+ */
 export const PERIOD_DAYS: Record<Exclude<PeriodKind, 'all'>, number> = {
-  today: 1,
+  day: 1,
   week: 7,
   month: 30,
 }
@@ -38,6 +41,9 @@ export const MAX_DAY_BARS = 92
 
 /** Подписей под осью не больше этого: остальные шаги - в подсказке. */
 export const AXIS_LABELS = 6
+
+/** На графике недели по часам дата суток стоит под этим часом - по середине суток. */
+export const DAY_LABEL_HOUR = 12
 
 /**
  * Шаг «сейчас» для честного сравнения: прошлый период берётся до того же места, что

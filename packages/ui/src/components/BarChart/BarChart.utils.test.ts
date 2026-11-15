@@ -1,6 +1,15 @@
 import { it, expect, describe } from 'vitest'
 
-import { niceTop, shareOf, heightOf, maximaOf, tallestOf, axisAlignOf } from './BarChart.utils'
+import {
+  niceTop,
+  shareOf,
+  heightOf,
+  maximaOf,
+  tallestOf,
+  scaleMaxOf,
+  segmentsOf,
+  axisAlignOf,
+} from './BarChart.utils'
 
 const point = (key: string, ...values: number[]) => ({ key, label: key, values })
 
@@ -47,13 +56,50 @@ describe('maximaOf и tallestOf', () => {
 
   it('рекорд у каждого ряда, число - над самым высоким столбцом графика', () => {
     expect(maximaOf(points, 2)).toEqual([9, 30])
-    expect(tallestOf(points)).toEqual({ point: 0, series: 1 })
+    expect(tallestOf(points)).toEqual({ point: 0, series: 1, value: 30 })
   })
 
   it('из равных - первый; нули рекордом не бывают', () => {
-    expect(tallestOf([point('a', 3), point('b', 3)])).toEqual({ point: 0, series: 0 })
+    expect(tallestOf([point('a', 3), point('b', 3)])).toEqual({ point: 0, series: 0, value: 3 })
     expect(tallestOf([point('a', 0), point('b', 0)])).toBeNull()
     expect(maximaOf([], 2)).toEqual([0, 0])
+  })
+})
+
+describe('stacked', () => {
+  const points = [point('a', 2, 30), point('b', 25, 10), point('c', 0, 0)]
+
+  it('шкала и число над вершиной - по сумме шага, метка - верхний кусок', () => {
+    expect(scaleMaxOf(points, 'stacked')).toBe(35)
+    expect(scaleMaxOf(points, 'overlaid')).toBe(30)
+    expect(tallestOf(points, 'stacked')).toEqual({ point: 1, series: 1, value: 35 })
+    expect(tallestOf([point('a', 4, 0)], 'stacked')).toEqual({ point: 0, series: 0, value: 4 })
+  })
+})
+
+describe('segmentsOf', () => {
+  it('рядом - все ряды как есть, стопкой - без нулей', () => {
+    expect(segmentsOf(point('a', 0, 5), 'grouped')).toEqual([
+      { series: 0, value: 0, height: 0 },
+      { series: 1, value: 5, height: 5 },
+    ])
+    expect(segmentsOf(point('a', 0, 5), 'stacked')).toEqual([{ series: 1, value: 5, height: 5 }])
+  })
+
+  it('наложение: меньший снизу, больший растёт из него на разницу', () => {
+    expect(segmentsOf(point('a', 50, 10), 'overlaid')).toEqual([
+      { series: 1, value: 10, height: 10 },
+      { series: 0, value: 50, height: 40 },
+    ])
+    expect(segmentsOf(point('a', 0, 30), 'overlaid')).toEqual([
+      { series: 1, value: 30, height: 30 },
+    ])
+  })
+
+  it('равные в наложении - одна метка, первого ряда', () => {
+    expect(segmentsOf(point('a', 60, 60), 'overlaid')).toEqual([
+      { series: 0, value: 60, height: 60 },
+    ])
   })
 })
 

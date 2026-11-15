@@ -207,6 +207,11 @@ export class ComputerAgent {
     this.port.desk.release(key)
   }
 
+  /** Работа разговора встала: капсула уходит сразу (ComputerDesk.idle). */
+  idle(key: string): void {
+    this.port.desk.idle(key)
+  }
+
   private need(permissions: ComputerPermission[]): void {
     assertComputerAccess(this.port.access(), permissions)
   }

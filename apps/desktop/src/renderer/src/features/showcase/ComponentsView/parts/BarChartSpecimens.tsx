@@ -6,13 +6,15 @@ import {
   SAMPLE_NUMBERS,
   BAR_DAY_SAMPLES,
   BAR_HOUR_SAMPLES,
+  BAR_WEEK_SAMPLES,
   BAR_EMPTY_SAMPLES,
 } from '../ComponentsView.constants'
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
- * Образцы столбцового графика: один ряд с числом над самым высоким столбцом, два ряда рядом с
- * легендой, пустой период. Наведи или пройди стрелками - подсказка с числами шага.
+ * Образцы столбцового графика: один ряд с числом над самым высоким столбцом, неделя по часам
+ * с линиями суток и полосами выходных, два ряда рядом, стопкой и наложением, пустой период. Наведи или
+ * пройди стрелками - подсказка с числами шага.
  */
 export const BarChartSpecimens = () => {
   const { t } = useTranslation('showcase')
@@ -34,6 +36,16 @@ export const BarChartSpecimens = () => {
           integer
         />
       </Specimen>
+      <Specimen wide label={t('specimens.barChartWeek')} layout="column">
+        <BarChart
+          label={t('samples.chartTokensLabel')}
+          series={[{ key: 'tokens', label: t('samples.chartTokens'), tone: 'chart2' }]}
+          points={BAR_WEEK_SAMPLES}
+          formatValue={formatValue}
+          emptyLabel={t('samples.chartEmpty')}
+          integer
+        />
+      </Specimen>
       <Specimen label={t('specimens.barChartGrouped')} layout="column">
         <BarChart
           label={t('samples.chartLinesLabel')}
@@ -42,6 +54,28 @@ export const BarChartSpecimens = () => {
           formatValue={formatValue}
           emptyLabel={t('samples.chartEmpty')}
           integer
+        />
+      </Specimen>
+      <Specimen label={t('specimens.barChartStacked')} layout="column">
+        <BarChart
+          label={t('samples.chartLinesLabel')}
+          series={series}
+          points={BAR_DAY_SAMPLES}
+          formatValue={formatValue}
+          emptyLabel={t('samples.chartEmpty')}
+          integer
+          layout="stacked"
+        />
+      </Specimen>
+      <Specimen label={t('specimens.barChartOverlaid')} layout="column">
+        <BarChart
+          label={t('samples.chartLinesLabel')}
+          series={series}
+          points={BAR_DAY_SAMPLES}
+          formatValue={formatValue}
+          emptyLabel={t('samples.chartEmpty')}
+          integer
+          layout="overlaid"
         />
       </Specimen>
       <Specimen label={t('specimens.barChartEmpty')} layout="column">

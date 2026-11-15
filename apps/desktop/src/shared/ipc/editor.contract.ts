@@ -1,3 +1,4 @@
+import type { DefinitionAnswer } from '../definitions'
 import type { FileRead, TextHash, FileWrite, FileVersion, EditorCommand } from '../fs'
 import type { WebImageRead, ProjectImageRead } from '../preview-images'
 
@@ -42,6 +43,16 @@ export type EditorInvokeContract = {
     response: FileWrite
   }
   /**
+   * Где определено имя в коде (⌘ + наведение, ⌘B, ADR 0061): переменная, параметр, функция,
+   * тип - в том же файле; импорт - в файле модуля, у самого экспорта; путь импорта - сам файл.
+   * offset - смещение в тексте модели, version - её версия. Текст едет, только когда главный
+   * процесс этой версии ещё не видел: тогда ответ needText, и окно спрашивает снова с текстом.
+   */
+  'editor:definition': {
+    request: FileRequest & { offset: number; version: string; text?: string }
+    response: DefinitionAnswer
+  }
+  /**
    * Картинка проекта для просмотра Markdown. Путь - из текста файла, то есть чужой:
    * читается только картинка, только внутри проекта и не больше потолка. known - версия,
    * которую окно уже держит: та же - unchanged, без байтов.
@@ -76,6 +87,7 @@ export type EditorEventContract = {
 export const EDITOR_CHANNELS = {
   'fs:readFile': true,
   'fs:writeFile': true,
+  'editor:definition': true,
   'fs:readImage': true,
   'preview:readWebImage': true,
   'editor:savedAll': true,

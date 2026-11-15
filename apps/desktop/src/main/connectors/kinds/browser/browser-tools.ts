@@ -14,7 +14,7 @@ import { BROWSER_READ_TOOLS } from './browser-read-tools'
 /**
  * Заметки сессии (страница не дала уйти, Chrome забрал вкладку у отладчика) - к ответу
  * инструмента: модель узнаёт о них тем же ходом. Отказ получает их в свой текст: часто они и
- * есть его причина.
+ * есть его причина. Пока вызов идёт, вкладки сессии не отдыхают (BrowserAgent.during).
  */
 const withNotes = (tool: NativeTool<BrowserAgent>): NativeTool<BrowserAgent> => ({
   ...tool,
@@ -22,7 +22,7 @@ const withNotes = (tool: NativeTool<BrowserAgent>): NativeTool<BrowserAgent> => 
     let value: unknown
 
     try {
-      value = await tool.run(args, agent, call)
+      value = await agent.during(agentCall(call), () => tool.run(args, agent, call))
     } catch (error) {
       const notes = agent.takeNotes(agentCall(call))
 
@@ -62,7 +62,8 @@ const BROWSER_EXPLAINABLE = [BrowserError, KeyComboError]
 /**
  * Источник коннектора Browser: один на коннектор, сессии внутри - по разговорам. Конец
  * процесса разговора ждёт его следующий процесс, закрытый разговор и выключение или удаление
- * коннектора закрывают сессии сразу.
+ * коннектора закрывают сессии сразу. Работа разговора встала - курсор и рамка уходят с его
+ * вкладок, а вкладки остаются.
  */
 export const createBrowserSource = (
   hub: HubPort,
@@ -73,6 +74,7 @@ export const createBrowserSource = (
 
   return new NativeSource(BROWSER_TOOLS, agent, BROWSER_EXPLAINABLE, {
     release: (launch) => agent.release(launch),
+    idle: (conversationId) => agent.idle(conversationId),
     endConversation: (conversationId) => agent.endConversation(conversationId),
     dispose: () => agent.dispose(),
   })

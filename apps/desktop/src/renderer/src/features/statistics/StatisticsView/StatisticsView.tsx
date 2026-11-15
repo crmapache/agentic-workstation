@@ -12,13 +12,13 @@ import { StatisticsPage } from './parts/StatisticsPage'
 
 /**
  * Статистика IDE в середине окна (docs/workplan/20-statistics.md, ADR 0030): шапка вида с
- * фильтрами нижним рядом, под ней разделы - сводка, код, время, привычки, токены, сценарии,
+ * фильтрами и листанием по датам нижним рядом, под ней разделы - сводка, код, время, привычки, токены, сценарии,
  * инструменты. Агенты - вся машина (транскрипты Claude Code), человек - только окно IDE.
  * Числа считает главный процесс, здесь только вид.
  */
 export const StatisticsView = () => {
   const { t } = useTranslation()
-  const { data, failed } = useStatisticsData()
+  const { data, failed, range } = useStatisticsData()
 
   return (
     <div className={styles.view}>
@@ -26,7 +26,7 @@ export const StatisticsView = () => {
         icon={ChartColumn}
         title={t('statistics.title')}
         help={<StatisticsHelp topic="page" />}
-        toolbar={<StatisticsFilters />}
+        toolbar={<StatisticsFilters range={range} dataStart={data?.report.dataStart ?? null} />}
       />
       <div className={styles.scroller}>
         {data && <StatisticsPage data={data} />}

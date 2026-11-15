@@ -17,6 +17,7 @@ vi.mock('./kinds/sources', async (importOriginal) => ({
 type FakeSource = ConnectorSource & {
   cwd: string | null
   release: (launch: SourceLaunch) => void
+  idle: (conversationId: string) => void
   endConversation: (conversationId: string) => void
 }
 
@@ -62,6 +63,7 @@ beforeEach(() => {
       listTools: vi.fn(() => Promise.resolve([])),
       callTool: vi.fn(() => Promise.resolve({ content: [] })),
       release: vi.fn(),
+      idle: vi.fn(),
       endConversation: vi.fn(),
       dispose: vi.fn(() => Promise.resolve()),
     }
@@ -130,6 +132,7 @@ describe('LiveConnector', () => {
       conversationId: 'tab-1',
     })
 
+    live.idle('tab-1')
     live.release(launch)
     live.endConversation('tab-1')
 
@@ -139,6 +142,7 @@ describe('LiveConnector', () => {
       workDir: '/worktrees/a',
       conversationId: 'tab-1',
     })
+    expect(shared?.idle).toHaveBeenCalledWith('tab-1')
     expect(shared?.endConversation).toHaveBeenCalledWith('tab-1')
     expect(shared?.dispose).not.toHaveBeenCalled()
   })

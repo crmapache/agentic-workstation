@@ -23,12 +23,13 @@ import {
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { DatePickerSpecimens } from './DatePickerSpecimens'
 import { TabStripSpecimen } from './TabStripSpecimen'
 
 /**
  * Раздел «Выбор и раскрытие»: карточка вопроса к человеку, строки-раскрывашки,
- * закрываемые вкладки, варианты выбора с отметкой, плашки-переключатели и меню с полем
- * поиска в шапке.
+ * закрываемые вкладки, варианты выбора с отметкой, плашки-переключатели, меню с полем
+ * поиска в шапке и календарь выбора дня.
  */
 export const ChoicesSection = () => {
   const { t } = useTranslation('showcase')
@@ -187,6 +188,8 @@ export const ChoicesSection = () => {
           </Menu>
         </div>
       </Specimen>
+
+      <DatePickerSpecimens />
     </ShowcaseSection>
   )
 }

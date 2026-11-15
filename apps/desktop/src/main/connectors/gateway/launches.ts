@@ -30,13 +30,15 @@ export type LaunchOwner = { conversationId: string; workDir: string }
 /**
  * Конфиг шлюза одного процесса: файл для `--mcp-config`. own - назвать разговор процесса;
  * зовётся сразу после выдачи ключа, до подъёма CLI, - вызовов по ключу ещё нет. release -
- * процесс кончился (разговор может поднять следующий), end - кончился сам разговор: его
- * вкладку закрыли. end можно звать и после release - разговор переживает свои процессы.
+ * процесс кончился (разговор может поднять следующий), idle - работа разговора встала (ни
+ * хода, ни фоновых агентов), end - кончился сам разговор: его вкладку закрыли. idle и end
+ * можно звать и после release - разговор переживает свои процессы.
  */
 export type McpLaunch = {
   path: string
   own: (owner: LaunchOwner) => void
   release: () => void
+  idle: () => void
   end: () => void
 }
 
@@ -56,6 +58,8 @@ export class GatewayLaunches {
     private readonly dir: string,
     /** Процесс кончился: его процессы команд больше не нужны. */
     private readonly released: (launch: Launch) => void,
+    /** Работа разговора встала: показывать человеку работу агента больше нечего. */
+    private readonly idled: (conversationId: string) => void,
     /** Разговор закрыт насовсем: держать для него больше нечего. */
     private readonly ended: (conversationId: string) => void,
   ) {}
@@ -96,6 +100,9 @@ export class GatewayLaunches {
         launch.workDir = workDir
       },
       release: () => this.release(key),
+      idle: () => {
+        if (launch.conversationId) this.idled(launch.conversationId)
+      },
       end: () => {
         if (launch.conversationId) this.ended(launch.conversationId)
       },

@@ -7,6 +7,8 @@ import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
 import type { ConnectorsService } from './connectors/connectors-service'
+import type { DefinitionService } from './definitions/definition-service'
+import { createDefinitionService } from './definitions/definition-setup'
 import { broadcast } from './ipc/broadcast'
 import { ProviderWatch } from './providers/provider-registry'
 import type { RemoteService } from './remote/remote-service'
@@ -32,6 +34,11 @@ export type IdeFeatures = {
   scenarios: ScenarioService
   statistics: Statistics
   remote: RemoteService
+  /**
+   * «Где определено» для редактора (ADR 0061). Процесс с компилятором TypeScript поднимется первым
+   * ⌘ + наведением в коде, а не со стартом IDE.
+   */
+  definitions: DefinitionService
   /** Состояние панели Claude поменялось: статистике, Remote Control и списку провайдеров. */
   observeClaude: (state: ClaudeState) => void
   /** Живая заплатка ленты разговора: Remote Control (телефонам, которые смотрят разговор). */
@@ -46,7 +53,7 @@ export type IdeFeatures = {
 
 /**
  * Возможности уровня IDE поверх провайдеров: сценарии (ADR 0039), статистика и Remote Control
- * (ADR 0041). Статистика слушает сценарии (итоги прогонов), Remote Control - сценарии и
+ * (ADR 0041), переход к определению в редакторе (ADR 0061). Статистика слушает сценарии (итоги прогонов), Remote Control - сценарии и
  * разговоры, поэтому оба поднимаются после сценариев.
  */
 export const startIdeFeatures = async (setup: {
@@ -64,6 +71,7 @@ export const startIdeFeatures = async (setup: {
   const scenarios = await startScenarios({ ...setup, taps })
   const statistics = await startStatistics({ dataDir: setup.dataDir, scenarios, workspace })
   const remote = await startRemote({ ...setup, scenarios })
+  const definitions = createDefinitionService()
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
   const providers = new ProviderWatch((list) => broadcast('providers:changed', list))
 
@@ -82,6 +90,7 @@ export const startIdeFeatures = async (setup: {
     scenarios,
     statistics,
     remote,
+    definitions,
     observeClaude: (state) => {
       statistics.observeClaude(state)
       remote.claudeChanged(state)
@@ -107,6 +116,7 @@ export const startIdeFeatures = async (setup: {
       // постановка сценария в worktree тянется минутами, а ⌘Q и установка обновления - нет.
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
+        await definitions.close().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)
         await scenarios.shutdown().catch(warnShutdown)
         await statistics.stats.close().catch(warnShutdown)

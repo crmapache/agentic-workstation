@@ -6,6 +6,7 @@ import { Switch } from '@agentic-workstation/ui/Switch'
 import { useClaudeActions } from '../claude-actions.hooks'
 import { usePanelPrefs } from '../claude.queries'
 import { PanelScreen } from '../PanelScreen/PanelScreen'
+import styles from './ShareEditorScreen.module.scss'
 
 /**
  * Settings → Open file and selection: уходит ли с сообщением открытый файл и выделенные
@@ -20,12 +21,14 @@ export const ShareEditorScreen = () => {
   return (
     <PanelScreen title={t('claudeCode.menu.titles.shareEditor.title')}>
       <Card>
-        <Switch
-          label={t('claudeCode.shareEditor.label')}
-          description={t('claudeCode.shareEditor.hint')}
-          checked={shareEditor}
-          onChange={(value) => void setPrefs({ shareEditor: value })}
-        />
+        <div className={styles.row}>
+          <Switch
+            label={t('claudeCode.shareEditor.label')}
+            description={t('claudeCode.shareEditor.hint')}
+            checked={shareEditor}
+            onChange={(value) => void setPrefs({ shareEditor: value })}
+          />
+        </div>
       </Card>
     </PanelScreen>
   )

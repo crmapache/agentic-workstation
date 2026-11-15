@@ -88,20 +88,15 @@ describe('сессии браузера по процессам разговор
     expect(a.current).toBe('p1/1')
   })
 
-  it('сводка для окна расширения - по профилю; простой - по времени последнего вызова', () => {
+  it('сводка для окна расширения - по профилю', () => {
     const sessions = new BrowserSessions()
     const a = sessions.ensure('a', 'A')
-    const fresh = sessions.hold(a, 'p1', 1, true, 1000)
-    const stale = sessions.hold(a, 'p1', 2, true, 0)
 
-    if (!fresh || !stale) throw new Error('hold failed')
-
-    fresh.attached = true
-    stale.attached = true
+    sessions.hold(a, 'p1', 1, true, 0)
+    sessions.hold(a, 'p1', 2, true, 0)
     sessions.hold(a, 'p2', 9, false, 0)
 
     expect(sessions.summaries('p1')).toEqual([{ id: 'a', title: 'A', tabIds: [1, 2] }])
     expect(sessions.summaries('p3')).toEqual([])
-    expect(sessions.idle(61_000, 60_000).map((tab) => tab.tabId)).toEqual([2])
   })
 })

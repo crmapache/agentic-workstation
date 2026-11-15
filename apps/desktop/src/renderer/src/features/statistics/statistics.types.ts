@@ -1,9 +1,12 @@
-import type { StatsReport, StatsSeriesPoint } from '@shared/statistics'
+import type { StatsPeriod, StatsReport, StatsSeriesPoint } from '@shared/statistics'
 
 import type { ChartTone } from '@agentic-workstation/ui/ChartTip.types'
 
-/** Период вида: сегодняшние сутки, последние 7 и 30 дней по сегодня, всё время. */
-export type PeriodKind = 'today' | 'week' | 'month' | 'all'
+/**
+ * Период вида: сутки, 7 и 30 дней - по выбранный день включительно (по умолчанию сегодня),
+ * всё время - по сегодня.
+ */
+export type PeriodKind = 'day' | 'week' | 'month' | 'all'
 
 /** Какие проекты: все или открытый сейчас. */
 export type ScopeKind = 'all' | 'project'
@@ -37,8 +40,22 @@ export type StatisticsData = {
   humanComparable: boolean
   /** Данные пересчитываются под новый период или фильтр: на экране ещё прежние. */
   refreshing: boolean
-  /** Период отчёта: с чем сравниваем («Yesterday by this time»). */
-  period: PeriodKind
+  /** С чем сравнивается период - для подсказки у изменения. */
+  comparison: Comparison
+}
+
+/**
+ * Сравнение периода с прошлым: live - период идёт сейчас и сравнивается до того же места
+ * («Yesterday by this time»), иначе он в прошлом и сравнивается с прошлым целиком
+ * («Previous day»).
+ */
+export type Comparison = { period: PeriodKind; live: boolean }
+
+/** Период вида по фильтрам: его границы, сегодня и последний день (местные полуночи). */
+export type StatisticsRange = {
+  period: StatsPeriod
+  today: number
+  lastDay: number
 }
 
 /** Строка списка-рейтинга: подпись, число справа и куски полосы. */

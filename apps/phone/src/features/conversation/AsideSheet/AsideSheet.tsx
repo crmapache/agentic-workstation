@@ -12,7 +12,10 @@ import { AsideEntryView } from './parts/AsideEntryView'
 
 /**
  * Вопросы сбоку этого разговора с этого телефона: что спросили, думает ли модель, её ответы.
- * Поле вопроса - внизу, под пальцем; как это работает - за «?».
+ * Поле вопроса с кнопкой - в подвале окна, под пальцем: ответы прокручиваются над ним, а с
+ * клавиатурой окно сжимается, и поле с «спросить» остаются на виду. Как это работает - за «?».
+ * Фокуса при открытии нет: клавиатура закрыла бы полэкрана, а окно открывают и чтобы
+ * перечитать ответы.
  */
 export const AsideSheet = ({
   open,
@@ -43,6 +46,25 @@ export const AsideSheet = ({
           closeLabel={t('common.close')}
         />
       }
+      footer={
+        <div className={styles.ask}>
+          <TextArea
+            label={t('aside.question')}
+            hideLabel
+            placeholder={t('aside.placeholder')}
+            value={aside.question}
+            maxLength={MAX_ASIDE_CHARS}
+            onChange={aside.setQuestion}
+          />
+          <Button
+            size="touch"
+            variant="primary"
+            disabled={!aside.question.trim() || aside.isThinking}
+            onClick={aside.handleAsk}>
+            {t('aside.ask')}
+          </Button>
+        </div>
+      }
       onClose={onClose}>
       <div className={styles.sheet}>
         {aside.entries.length === 0 && <p className={styles.muted}>{t('aside.none')}</p>}
@@ -54,23 +76,6 @@ export const AsideSheet = ({
             onCancel={aside.handleCancel}
           />
         ))}
-        <div className={styles.ask}>
-          <TextArea
-            label={t('aside.question')}
-            placeholder={t('aside.placeholder')}
-            value={aside.question}
-            maxLength={MAX_ASIDE_CHARS}
-            data-autofocus
-            onChange={aside.setQuestion}
-          />
-          <Button
-            size="touch"
-            variant="primary"
-            disabled={!aside.question.trim() || aside.isThinking}
-            onClick={aside.handleAsk}>
-            {t('aside.ask')}
-          </Button>
-        </div>
       </div>
     </Modal>
   )

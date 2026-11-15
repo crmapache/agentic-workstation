@@ -222,4 +222,10 @@ describe('buildReport habits and series', () => {
     expect(series.points[9]).toMatchObject({ tokens: 10, agentMinutes: 30 })
     expect(series.points[10]).toMatchObject({ tokens: 0, agentMinutes: 15 })
   })
+
+  it('buckets a week by hours and a longer period by days', () => {
+    expect(report(D0 - 6 * DAY_MS, D0 + DAY_MS).series).toMatchObject({ bucket: 'hour' })
+    expect(report(D0 - 6 * DAY_MS, D0 + DAY_MS).series.points).toHaveLength(7 * 24)
+    expect(report(D0 - 7 * DAY_MS, D0 + DAY_MS).series.bucket).toBe('day')
+  })
 })

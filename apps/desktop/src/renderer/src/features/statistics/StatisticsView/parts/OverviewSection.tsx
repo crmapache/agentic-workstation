@@ -27,7 +27,7 @@ import { StatisticsHelp } from './StatisticsHelp'
  */
 export const OverviewSection = ({ data }: Pick<SectionProps, 'data'>) => {
   const { t } = useTranslation()
-  const { report, previous, humanComparable, period } = data
+  const { report, previous, humanComparable, comparison } = data
   const totals = report.totals
   const lines = linesOf(totals)
   const human = humanComparable ? previous : null
@@ -47,7 +47,7 @@ export const OverviewSection = ({ data }: Pick<SectionProps, 'data'>) => {
             previous: human ? linesOf(human).total : null,
             format: formatCount,
           }}
-          period={period}>
+          comparison={comparison}>
           <ShareBar
             label={t('statistics.overview.codeShare', {
               you: formatPercent(shareOf(lines.you, lines.total)),
@@ -91,7 +91,7 @@ export const OverviewSection = ({ data }: Pick<SectionProps, 'data'>) => {
             previous: previous?.agentWorkMs ?? null,
             format: formatDuration,
           }}
-          period={period}>
+          comparison={comparison}>
           <ShareBar
             label={t('statistics.overview.estimateShare', {
               measured: formatPercent(measuredShare),
@@ -128,7 +128,7 @@ export const OverviewSection = ({ data }: Pick<SectionProps, 'data'>) => {
             previous: human ? human.presenceMinutes * MINUTE_MS : null,
             format: formatDuration,
           }}
-          period={period}>
+          comparison={comparison}>
           <p className={styles.note}>
             {t('statistics.overview.sessions', {
               count: report.workSessions.count,
@@ -146,7 +146,7 @@ export const OverviewSection = ({ data }: Pick<SectionProps, 'data'>) => {
             previous: previous ? tokensOf(previous.tokens) : null,
             format: formatCount,
           }}
-          period={period}>
+          comparison={comparison}>
           <p className={styles.note}>
             {t('statistics.overview.cost', {
               cost: formatCost(totals.cost),

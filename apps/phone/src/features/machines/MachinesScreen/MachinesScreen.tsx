@@ -8,15 +8,19 @@ import { useClient } from '../../../lib/client'
 import { useRouter } from '../../../lib/router.store'
 import { useMachines } from '../../../state/remote.queries'
 import { Banner } from '../../../shell/Banner/Banner'
+import { ListGroup } from '../../../shell/ListGroup/ListGroup'
+import { ListRow } from '../../../shell/ListRow/ListRow'
 import { Screen } from '../../../shell/Screen/Screen'
+import styles from './MachinesScreen.module.scss'
 import { MachineSection } from './parts/MachineSection'
 import { NotificationsSection } from './parts/NotificationsSection'
 
 /**
  * Первый экран: спаренные IDE (машины), у каждой - связь, открытые и недавние проекты. Проект -
  * ключом IDE, путь на диске сюда не приходит. Под ними - уведомления: сюда телефон приходит
- * сразу после пары, здесь их и предлагают. Внизу - пара вставленным адресом: приложение с
- * экрана «Домой» адрес из камеры не получает.
+ * сразу после пары, здесь их и предлагают. Пара вставленным адресом (приложение с экрана «Домой»
+ * адрес из камеры не получает) - главная кнопка, пока пусто, а потом строкой в самом конце
+ * списка: вторую IDE парят редко, и место под пальцем ей не нужно.
  */
 export const MachinesScreen = () => {
   const { t } = useTranslation()
@@ -24,26 +28,24 @@ export const MachinesScreen = () => {
   const machines = useMachines().data ?? []
   const navigate = useRouter((state) => state.navigate)
 
+  const handlePair = () => navigate({ name: 'pair' })
+
   return (
     <Screen
       title={t('machines.title')}
       back={false}
       help={{ title: t('machines.help.title'), text: t('machines.help.text') }}
-      banner={!client.persistent && <Banner tone="warning" text={t('machines.notPersistent')} />}
-      footer={
-        <Button
-          size="touch"
-          variant="secondary"
-          icon={Link2}
-          onClick={() => navigate({ name: 'pair' })}>
-          {t('machines.pairIde')}
-        </Button>
-      }>
+      banner={!client.persistent && <Banner tone="warning" text={t('machines.notPersistent')} />}>
       {machines.length === 0 ? (
         <EmptyState
           icon={Smartphone}
           title={t('machines.empty.title')}
           description={t('machines.empty.description')}
+          action={
+            <Button size="touch" variant="primary" icon={Link2} onClick={handlePair}>
+              {t('machines.pairIde')}
+            </Button>
+          }
         />
       ) : (
         <>
@@ -51,6 +53,13 @@ export const MachinesScreen = () => {
             <MachineSection key={machine.agentId} machine={machine} />
           ))}
           <NotificationsSection />
+          <ListGroup label={t('machines.pairAnother')}>
+            <ListRow
+              title={t('machines.pairAnother')}
+              leading={<Link2 className={styles.rowIcon} aria-hidden />}
+              onClick={handlePair}
+            />
+          </ListGroup>
         </>
       )}
     </Screen>

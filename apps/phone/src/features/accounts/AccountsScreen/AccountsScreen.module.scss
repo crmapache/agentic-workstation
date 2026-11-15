@@ -26,6 +26,12 @@
   color: var(--color-fg-muted);
   font-family: var(--font-code);
   font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.windowReset {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
 }
 
 .note {

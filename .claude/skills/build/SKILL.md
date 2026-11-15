@@ -58,23 +58,27 @@ curl -sL https://github.com/$R/releases/latest/download/latest.json | jq -r '.ve
 В конце - новая версия и `mac-arm64 win-x64`. Релиз с таким тегом уже есть - `gh` откажет;
 молча не перезаписывать, сказать.
 
-## 4. Версия в git
+## 4. Коммит и пуш всего
+
+Выпуск собран из рабочей копии как есть, поэтому в git уходит всё, что в него вошло, а не
+только версия. Сначала взгляд на изменения:
 
 ```
-git status --porcelain
+git status --porcelain --untracked-files=all
 ```
 
-Ровно одна строка про `apps/desktop/package.json` - закоммитить и запушить, не спрашивая:
+Секретов (`.pem`, `.p12`, `.env`) и артефактов сборки (`.dmg`, `.zip`, `.exe`, журналы) там быть
+не должно; есть - остановиться и сказать. Иначе закоммитить всё и запушить, не спрашивая.
+Сообщение - что нового в выпуске и его номер; поменялась одна версия - `chore(desktop): release
+<версия>`:
 
 ```
-git add apps/desktop/package.json && git commit -m "chore(desktop): release <версия>" && git push
+git add -A && git commit -m "feat: <что нового>, release <версия>" && git push
 ```
-
-Есть что-то ещё - ничего не коммитить и не пушить: рядом чужая работа. Сказать в отчёте.
 
 ## 5. Отчёт
 
-Коротко: версия, ссылка на релиз, что с версией в git. Ссылки на установщики постоянные:
+Коротко: версия, ссылка на релиз, коммит и пуш. Ссылки на установщики постоянные:
 
 ```
 https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-mac-arm64.dmg

@@ -112,6 +112,20 @@
   backdrop-filter: var(--glass-blur);
 }
 
+// Всплывающее окно (Modal, Dialog) по центру видимой части окна: не под вырезом и полосой
+// «домой» телефона и не под его экранной клавиатурой. $size - что ограничить: max-height у окна
+// по содержимому, height у окна во всю высоту.
+@mixin overlay-in-visible-area($size: max-height) {
+  $top: max(var(--offset-visible-top), var(--offset-safe-top));
+  $bottom: max(
+    100% - var(--offset-visible-top) - var(--size-visible-height),
+    var(--offset-safe-bottom)
+  );
+
+  inset-block: $top $bottom;
+  #{$size}: calc(100% - #{$top} - #{$bottom} - 2 * var(--offset-overlay-edge));
+}
+
 // Тонированная плашка: текст и тонкая рамка цвета тона на его же полупрозрачной
 // подложке - как статусы «ACTIVE», «EN ROUTE». $tone - токен роли или локальная
 // переменная тона, объявленная в том же файле.

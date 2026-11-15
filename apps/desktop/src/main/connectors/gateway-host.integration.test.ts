@@ -57,6 +57,7 @@ describe('GatewayHost', () => {
   let registry: ConnectorRegistry
   const released = vi.fn<(launch: Launch) => void>()
   const ended = vi.fn<(conversationId: string) => void>()
+  const idled = vi.fn<(conversationId: string) => void>()
   const asked: Launch[] = []
 
   beforeEach(async () => {
@@ -83,6 +84,7 @@ describe('GatewayHost', () => {
 
     host = new GatewayHost(registry, () => live, join(dir, 'configs'), '0', {
       release: released,
+      idle: idled,
       endConversation: ended,
     })
     await host.start()
@@ -93,6 +95,7 @@ describe('GatewayHost', () => {
     await rm(dir, { recursive: true, force: true })
     released.mockClear()
     ended.mockClear()
+    idled.mockClear()
     asked.length = 0
   })
 
@@ -167,10 +170,24 @@ describe('GatewayHost', () => {
     expect(ended).toHaveBeenCalledWith('tab-7')
   })
 
-  it('конец разговора без названного разговора - ничего', async () => {
+  it('работа разговора встала - коннекторы узнают разговор, и после конца процесса тоже', async () => {
     const launch = (await host.open('/p/a'))!
 
+    launch.own({ conversationId: 'tab-7', workDir: '/p/a' })
+    launch.idle()
+    launch.release()
+    launch.idle()
+
+    expect(idled.mock.calls).toEqual([['tab-7'], ['tab-7']])
+    expect(ended).not.toHaveBeenCalled()
+  })
+
+  it('конец разговора и простой без названного разговора - ничего', async () => {
+    const launch = (await host.open('/p/a'))!
+
+    launch.idle()
     launch.end()
+    expect(idled).not.toHaveBeenCalled()
     expect(ended).not.toHaveBeenCalled()
   })
 })

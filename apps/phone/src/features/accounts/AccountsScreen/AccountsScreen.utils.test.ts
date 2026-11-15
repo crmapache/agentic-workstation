@@ -4,11 +4,13 @@ import { it, expect, describe } from 'vitest'
 import type { AccountWire } from '@agentic-workstation/remote-protocol/machine-wire-types'
 
 import {
+  planLabel,
   usageTone,
   usageShare,
   accountName,
   percentText,
   windowLabel,
+  accountFacts,
 } from './AccountsScreen.utils'
 
 const t = ((key: string, values: Record<string, unknown> = {}) =>
@@ -32,6 +34,26 @@ describe('аккаунты на телефоне', () => {
     expect(accountName(t, account({ email: 'w…k@x.com' }))).toBe('w…k@x.com')
     expect(accountName(t, account({ id: '' }))).toBe('accounts.default{}')
     expect(accountName(t, account({}))).toBe('accounts.untitled{}')
+  })
+
+  it('тариф словами; незнакомый - как есть, пустой - ничего', () => {
+    expect(planLabel(t, 'max')).toBe(
+      'accounts.plans.max{"defaultValue":"accounts.plans.other{\\"plan\\":\\"max\\"}"}',
+    )
+    expect(planLabel(t, '')).toBe('')
+  })
+
+  it('строка под именем: почта - только когда имя своё, затем тариф и вход', () => {
+    const plain = ((key: string) =>
+      key === 'accounts.plans.max' ? 'Max plan' : key) as unknown as TFunction
+
+    expect(accountFacts(plain, account({ alias: 'Work', email: 'w…k@x.com' }))).toBe(
+      'w…k@x.com · Max plan · accounts.signedIn',
+    )
+    expect(accountFacts(plain, account({ email: 'w…k@x.com', signedIn: false }))).toBe(
+      'Max plan · accounts.signedOut',
+    )
+    expect(accountFacts(plain, account({ plan: '', signedIn: null }))).toBe('')
   })
 
   it('окно лимита: неделя одной модели - с её именем', () => {

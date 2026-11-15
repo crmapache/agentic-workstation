@@ -1,8 +1,10 @@
 @use '../../styles/mixins' as *;
 
+// Как Modal - в видимой части: на телефоне поле диалога (имя) над клавиатурой, с кнопками.
 .dialog {
   @include glass-overlay;
   @include enter-transition;
+  @include overlay-in-visible-area;
 
   // Не шире окна с полями, как Modal: окно IDE бывает уже диалога (от 422).
   width: min(var(--size-dialog), 100vw - 2 * var(--space-6));

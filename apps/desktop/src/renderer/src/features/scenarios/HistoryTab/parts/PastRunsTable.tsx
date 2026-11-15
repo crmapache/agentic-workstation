@@ -34,6 +34,7 @@ export const PastRunsTable = ({
       <div className={styles.table}>
         <div className={clsx(styles.tableRow, styles.tableHead)}>
           <span className={styles.colRun}>{t('scenarios.history.table.run')}</span>
+          <span className={styles.colOrigin} />
           <span className={styles.colStarted}>{t('scenarios.history.table.started')}</span>
           <span className={styles.colFinished}>{t('scenarios.history.table.finished')}</span>
           <span className={styles.colTook}>{t('scenarios.history.table.took')}</span>

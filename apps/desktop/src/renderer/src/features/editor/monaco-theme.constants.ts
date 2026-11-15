@@ -39,6 +39,7 @@ export const THEME_ROLES = {
   hover: '--color-bg-hover',
   active: '--color-bg-active',
   selected: '--color-bg-selected',
+  scrollbar: '--color-scrollbar',
   selection: '--color-selection',
   focus: '--color-focus',
   accent: '--color-accent',

@@ -99,12 +99,14 @@ describe('NativeSource', () => {
     })
   })
 
-  it('конец процесса, конец разговора и dispose - в хуки источника', async () => {
+  it('конец процесса, простой и конец разговора, dispose - в хуки источника', async () => {
     const released: string[] = []
+    const idled: string[] = []
     const ended: string[] = []
     let disposed = false
     const source = new NativeSource(tools, null, [], {
       release: (launch) => released.push(launch.id),
+      idle: (conversationId) => idled.push(conversationId),
       endConversation: (conversationId) => ended.push(conversationId),
       dispose: () => {
         disposed = true
@@ -114,10 +116,12 @@ describe('NativeSource', () => {
     })
 
     source.release({ id: 'l1', projectPath: '/p', workDir: '/p', conversationId: 'c1' })
+    source.idle('c1')
     source.endConversation('c1')
     await source.dispose()
 
     expect(released).toEqual(['l1'])
+    expect(idled).toEqual(['c1'])
     expect(ended).toEqual(['c1'])
     expect(disposed).toBe(true)
   })

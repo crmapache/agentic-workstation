@@ -87,6 +87,11 @@ export class LiveConnectors {
     for (const live of this.live.values()) live.release(launch)
   }
 
+  /** Работа разговора встала: курсор и рамку браузера, капсулу Computer - убрать. */
+  idle(conversationId: string): void {
+    for (const live of this.live.values()) live.idle(conversationId)
+  }
+
   /** Разговор закрыт: то, что коннекторы держали на него (вкладки браузера), - отпустить. */
   endConversation(conversationId: string): void {
     for (const live of this.live.values()) live.endConversation(conversationId)

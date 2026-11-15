@@ -519,13 +519,12 @@ describe('Remote Control: IDE, релей и телефон', () => {
       data: { state: 'answered', text: 'Working in {project}/src on it.' },
     })
 
-    // Аккаунты: почта замаскирована, по проводу целиком не уходит.
+    // Аккаунты: почта целиком (ADR 0064).
     const accounts = await command('accounts.list', {})
 
-    expect(JSON.stringify(accounts)).not.toContain('mzpizote@')
     expect(accounts).toMatchObject({
       ok: true,
-      data: { accounts: [{ id: '', current: true }, {}, {}] },
+      data: { accounts: [{ id: '', email: 'mzpizote@gmail.com', current: true }, {}, {}] },
     })
 
     // Журнал головы прогона - конец, сколько влезло, и «есть выше».

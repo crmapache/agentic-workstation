@@ -7,16 +7,17 @@ import { ChartLegend } from '../ChartTip/parts/ChartLegend'
 import { BAR_STEPS } from './BarChart.constants'
 import styles from './BarChart.module.scss'
 import type { BarChartProps } from './BarChart.types'
-import { niceTop, maximaOf, tallestOf, axisAlignOf } from './BarChart.utils'
+import { niceTop, maximaOf, tallestOf, scaleMaxOf, axisAlignOf } from './BarChart.utils'
 import { BarSlot } from './parts/BarSlot'
 import { BarTable } from './parts/BarTable'
 import { BarTicks } from './parts/BarTicks'
 
 /**
- * Столбцы по шагам (часы, дни): один ряд или два - рядом, у двух над графиком легенда.
- * Ось из трёх линий - верх круглым числом, половина, ноль; столбец не толще меры, лишнее
- * место - воздух. Рекорд ряда ярче, над самым высоким - его число. Под рукой или стрелками -
- * подсказка с числами шага. Для скринридера - картинка с подписью и таблица чисел.
+ * Столбцы по шагам (часы, дни): один ряд или несколько - рядом, стопкой или первый поверх
+ * второго (layout), у двух и больше над графиком легенда. Ось из трёх линий - верх круглым
+ * числом, половина, ноль; столбцы занимают шаг целиком, между шагами - узкий зазор. Шаги можно делить линиями (сутки) и полосами (выходные). Рекорд ряда
+ * ярче, над самым высоким - его число. Под рукой или стрелками - подсказка с числами шага.
+ * Для скринридера - картинка с подписью и таблица чисел.
  */
 export const BarChart = ({
   label,
@@ -25,15 +26,16 @@ export const BarChart = ({
   formatValue,
   emptyLabel,
   integer = false,
+  layout = 'grouped',
 }: BarChartProps) => {
   const plotRef = useRef<HTMLDivElement>(null)
   const { mark, handlers } = useMarkCursor(points.length, BAR_STEPS)
   const tipRef = useChartTip(plotRef, mark)
 
   const maxima = maximaOf(points, series.length)
-  const top = niceTop(Math.max(0, ...maxima), integer)
+  const top = niceTop(scaleMaxOf(points, layout), integer)
   const empty = maxima.every((max) => max === 0)
-  const tallest = tallestOf(points)
+  const tallest = tallestOf(points, layout)
   const active = mark === null ? undefined : points[mark]
 
   return (
@@ -66,6 +68,7 @@ export const BarChart = ({
                   tallest={tallest}
                   active={index === mark}
                   formatValue={formatValue}
+                  layout={layout}
                 />
               ))}
             </div>

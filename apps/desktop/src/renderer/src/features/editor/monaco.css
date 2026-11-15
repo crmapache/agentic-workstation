@@ -84,3 +84,18 @@
   background-color: var(--color-bg-active);
   transition-duration: var(--duration-fast);
 }
+
+/* Рамка видимой части на миникарте (она - полоса прокрутки файла) - тихой плашкой со
+   скруглением, как видимая часть на полосе разницы выше. Цвет - из темы (monaco-theme.utils.ts). */
+.monaco-editor .minimap-slider .minimap-slider-horizontal {
+  border-radius: var(--radius-xs);
+}
+
+/* Имя с ⌘ под мышью - ссылка к месту, где оно определено (ADR 0061): цветом ссылки кода,
+   подчёркнуто, курсор - рука. Класс ставит definition-links.ts; перебивает цвет токена. */
+.monaco-editor .definition-link {
+  color: var(--color-syntax-link);
+  text-decoration: underline;
+  text-underline-offset: var(--space-0-5);
+  cursor: pointer;
+}

@@ -54,9 +54,14 @@ export class TabControl {
     return page
   }
 
-  /** Взятую вкладку отпустить: отладчик и рамка уходят, вкладка остаётся человеку. */
+  /**
+   * Отладчик и рамка с курсором уходят из вкладки. Так отпускают взятую вкладку (она остаётся
+   * человеку) и так вкладка сессии отдыхает, пока агент не работает (tab-rest.ts): следующий
+   * вызов подключит её снова.
+   */
   async letGo(tab: HeldTab): Promise<void> {
     tab.attached = false
+    tab.framed = false
     await this.quiet(tab.profileKey, 'debugger.detach', { tabId: tab.tabId })
     await this.quiet(tab.profileKey, 'overlay.frame', { tabId: tab.tabId, on: false })
   }
@@ -173,6 +178,7 @@ export class TabControl {
     // Фоновая вкладка считает себя в фокусе: поля принимают ввод, как у человека.
     await this.cdpQuiet(tab, 'Emulation.setFocusEmulationEnabled', { enabled: true })
     await this.quiet(tab.profileKey, 'overlay.frame', { tabId: tab.tabId, on: true })
+    tab.framed = true
   }
 
   /**

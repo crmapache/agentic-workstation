@@ -159,6 +159,36 @@ export const BAR_DAY_SAMPLES: readonly BarChartPoint[] = [
   { key: 'sun', label: 'Sun, Nov 10', axisLabel: 'Nov 10', values: [8, 0] },
 ]
 
+/** Дневные множители недели по часам: будни громче, выходные (края образца) тише. */
+const WEEK_DAY_SCALES: readonly number[] = [0.3, 1, 1.4, 0.8, 1.2, 0.9, 0.4]
+
+/** Первый день недели образца - воскресенье 8 ноября 2026: выходные по обоим краям. */
+const WEEK_SAMPLE_START = new Date(2026, 10, 8)
+
+const WEEK_SAMPLE_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+
+/** Неделя по часам: сутки за линией, дата - под полднем, выходные - полосой. */
+export const BAR_WEEK_SAMPLES: readonly BarChartPoint[] = WEEK_DAY_SCALES.flatMap((scale, day) =>
+  HOUR_TOKENS.map((tokens, hour) => {
+    const start = new Date(WEEK_SAMPLE_START)
+
+    start.setDate(start.getDate() + day)
+    start.setHours(hour)
+
+    const date = WEEK_SAMPLE_DAY.format(start)
+    const weekday = start.getDay()
+
+    return {
+      key: String(start.getTime()),
+      label: `${date}, ${String(hour).padStart(2, '0')}:00`,
+      axisLabel: hour === 12 ? date : '',
+      values: [Math.round(tokens * scale)],
+      shaded: weekday === 0 || weekday === 6,
+      boundary: day > 0 && hour === 0,
+    }
+  }),
+)
+
 /** Пустой период: все шаги на месте, чисел нет. */
 export const BAR_EMPTY_SAMPLES: readonly BarChartPoint[] = BAR_DAY_SAMPLES.map((point) => ({
   ...point,
@@ -186,3 +216,31 @@ export const SELECT_SAMPLES = ['Claude Code', 'Codex', 'Gemini CLI'] as const
 
 // Фразы образца RollingLine по порядку - ключи samples.*: короткая, длинная (режется), снова короткая.
 export const ROLLING_SAMPLE_KEYS = ['rolling1', 'rolling2', 'rolling3'] as const
+
+/** Календарь выбора дня: «сегодня» образца, начало данных и подписи - данные, а не текст. */
+export const DATE_SAMPLE_TODAY = new Date(2026, 10, 14).getTime()
+
+export const DATE_SAMPLE_MIN = new Date(2026, 9, 20).getTime()
+
+const DATE_SAMPLE_MONTH = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
+
+const DATE_SAMPLE_DAY = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
+
+export const dateSampleMonth = (ms: number): string => DATE_SAMPLE_MONTH.format(ms)
+
+export const dateSampleDay = (ms: number): string => DATE_SAMPLE_DAY.format(ms)
+
+export const DATE_SAMPLE_WEEKDAYS: readonly string[] = [
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+]

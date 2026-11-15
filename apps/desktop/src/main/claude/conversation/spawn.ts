@@ -10,7 +10,8 @@ import { releasedBriefing } from '../history/released-heads'
 import { findTranscript } from '../history/transcript-paths'
 import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
-import type { ConnectorsLaunch, ConversationRuntime } from './conversation-runtime'
+import type { ConnectorsLaunch } from './connectors-launch'
+import type { ConversationRuntime } from './conversation-runtime'
 
 /**
  * Окружение процесса разговора. Копии файлов (откат кода) - только если человек их не

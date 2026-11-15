@@ -9,11 +9,14 @@ import { createRoot } from 'react-dom/client'
 import { bootClient } from './lib/client'
 import { takePairingCode } from './lib/pairing-link'
 import { bootPush } from './lib/push'
+import { followVisibleViewport } from './lib/visible-viewport'
 import { usePairingStore } from './state/pairing.store'
 import { App } from './app/App/App'
 
 // Секрет пары - из адреса сразу, до всего остального: дальше он живёт только в памяти.
 usePairingStore.getState().take(takePairingCode(window.location, window.history))
+// Окна поверх экрана - над клавиатурой, а не под ней: на всё время жизни страницы.
+followVisibleViewport()
 
 const client = await bootClient()
 const push = bootPush(client)

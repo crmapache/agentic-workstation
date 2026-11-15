@@ -6,9 +6,11 @@ import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap
 
 import { clockLabel, weekdayDayLabel } from '../../lib/dates.utils'
 import { dayLabel, monthLabel, weekdayNames } from './statistics-dates.utils'
+import { startOfDay } from './statistics-period.utils'
 import {
   AXIS_LABELS,
   MAX_DAY_BARS,
+  DAY_LABEL_HOUR,
   LABELED_WEEKDAYS,
   FIRST_MONTH_LABEL_MAX_DAY,
 } from './statistics.constants'
@@ -72,9 +74,59 @@ export const bucketLabelsOf = (
   axis: (start) => (bucket === 'hour' ? clockLabel(start) : dayLabel(start)),
 })
 
+/** Суббота или воскресенье: шаг на графике - на полосе выходных. */
+const isWeekend = (ms: number): boolean => {
+  const weekday = new Date(ms).getDay()
+
+  return weekday === 0 || weekday === 6
+}
+
+/** Шаги графика по часам лежат больше чем в одних сутках (неделя). */
+const spansDays = (chart: ChartBuckets): boolean => {
+  const first = chart.points[0]
+  const last = chart.points.at(-1)
+
+  return (
+    chart.bucket === 'hour' &&
+    first !== undefined &&
+    last !== undefined &&
+    startOfDay(first.start) !== startOfDay(last.start)
+  )
+}
+
 /**
- * Точки столбцового графика из шагов вида: числа рядов, подпись под осью не чаще, чем
- * влезает (AXIS_LABELS на ось), и строка под числами в подсказке.
+ * Разметка шагов: подпись под осью, полоса выходных и линия суток. Неделя по часам делится
+ * на сутки, как в календаре: линия перед полуночью, дата - под полднем, то есть по середине
+ * суток, выходные - полосой. Дни - полосой выходных и подписью не чаще, чем влезает
+ * (AXIS_LABELS на ось). Одни сутки по часам - подписями часов, без полос.
+ */
+const stepMarksOf = (
+  chart: ChartBuckets,
+  labels: BucketLabels,
+): Pick<BarChartPoint, 'axisLabel' | 'shaded' | 'boundary'>[] => {
+  if (spansDays(chart)) {
+    return chart.points.map((point, index) => {
+      const hour = new Date(point.start).getHours()
+
+      return {
+        axisLabel: hour === DAY_LABEL_HOUR ? dayLabel(point.start) : '',
+        shaded: isWeekend(point.start),
+        boundary: index > 0 && hour === 0,
+      }
+    })
+  }
+
+  const step = Math.max(1, Math.ceil(chart.points.length / AXIS_LABELS))
+
+  return chart.points.map((point, index) => ({
+    axisLabel: index % step === 0 ? labels.axis(point.start) : '',
+    shaded: chart.bucket === 'day' && isWeekend(point.start),
+  }))
+}
+
+/**
+ * Точки столбцового графика из шагов вида: числа рядов, разметка шагов (подписи под осью,
+ * сутки, выходные) и строка под числами в подсказке.
  */
 export const barPointsOf = (
   chart: ChartBuckets,
@@ -82,12 +134,12 @@ export const barPointsOf = (
   values: (point: StatsSeriesPoint) => number[],
   note?: (point: StatsSeriesPoint) => string | undefined,
 ): BarChartPoint[] => {
-  const step = Math.max(1, Math.ceil(chart.points.length / AXIS_LABELS))
+  const marks = stepMarksOf(chart, labels)
 
   return chart.points.map((point, index) => ({
+    ...marks[index],
     key: String(point.start),
     label: labels.full(point.start),
-    axisLabel: index % step === 0 ? labels.axis(point.start) : '',
     values: values(point),
     note: note?.(point),
   }))

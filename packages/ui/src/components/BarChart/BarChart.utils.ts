@@ -1,5 +1,5 @@
 import { NICE_STEPS } from './BarChart.constants'
-import type { TallestBar, BarChartPoint } from './BarChart.types'
+import type { BarSegment, TallestBar, BarChartPoint, BarChartLayout } from './BarChart.types'
 
 /**
  * Верх шкалы: круглое число не ниже самого высокого столбца. У целых величин (строки,
@@ -34,21 +34,40 @@ export const maximaOf = (points: readonly BarChartPoint[], seriesCount: number):
     Math.max(0, ...points.map((point) => point.values[series] ?? 0)),
   )
 
+/** Сумма шага - высота столбца stacked. */
+const sumOf = (point: BarChartPoint): number =>
+  point.values.reduce((sum, value) => sum + Math.max(0, value), 0)
+
+/** Самое большое число на поле: от него - верх шкалы. У stacked - сумма шага. */
+export const scaleMaxOf = (points: readonly BarChartPoint[], layout: BarChartLayout): number =>
+  Math.max(
+    0,
+    ...points.map((point) => (layout === 'stacked' ? sumOf(point) : Math.max(0, ...point.values))),
+  )
+
 /**
  * Где стоит число над вершиной: самый высокий столбец всего графика (первый из равных).
  * Одно на график, а не по рекорду ряда: два числа над соседними столбцами одного шага
- * налезли бы друг на друга. Пустой график - нигде.
+ * налезли бы друг на друга. У stacked - шаг с самой большой суммой, число - над верхним
+ * куском. Пустой график - нигде.
  */
-export const tallestOf = (points: readonly BarChartPoint[]): TallestBar | null => {
+export const tallestOf = (
+  points: readonly BarChartPoint[],
+  layout: BarChartLayout = 'grouped',
+): TallestBar | null => {
   let best: TallestBar | null = null
-  let height = 0
 
   for (const [index, point] of points.entries()) {
+    if (layout === 'stacked') {
+      const value = sumOf(point)
+      const top = point.values.findLastIndex((part) => part > 0)
+
+      if (value > (best?.value ?? 0)) best = { point: index, series: top, value }
+      continue
+    }
+
     for (const [series, value] of point.values.entries()) {
-      if (value > height) {
-        height = value
-        best = { point: index, series }
-      }
+      if (value > (best?.value ?? 0)) best = { point: index, series, value }
     }
   }
 
@@ -58,3 +77,29 @@ export const tallestOf = (points: readonly BarChartPoint[]): TallestBar | null =
 /** Как стоит подпись под осью: крайние прижаты внутрь, чтобы не вылезать за график. */
 export const axisAlignOf = (index: number, count: number): 'start' | 'end' | 'center' =>
   index === 0 ? 'start' : index === count - 1 ? 'end' : 'center'
+
+/**
+ * Метки шага снизу вверх. grouped - все ряды, как есть (рядом, нули держат место). stacked -
+ * ряды без нулей, кусок на кусок. overlaid - ряды по возрастанию: меньший снизу, каждый
+ * следующий продолжает столбец на свою разницу; равный предыдущему метки не даёт - его число
+ * уже нарисовано (из равных снизу - первый по порядку рядов).
+ */
+export const segmentsOf = (point: BarChartPoint, layout: BarChartLayout): BarSegment[] => {
+  const all = point.values.map((value, series) => ({ series, value, height: value }))
+
+  if (layout === 'grouped') return all
+  if (layout === 'stacked') return all.filter((part) => part.value > 0)
+
+  let reached = 0
+
+  return all
+    .toSorted((a, b) => a.value - b.value)
+    .map((part) => {
+      const height = part.value - reached
+
+      reached = Math.max(reached, part.value)
+
+      return { ...part, height }
+    })
+    .filter((part) => part.height > 0)
+}

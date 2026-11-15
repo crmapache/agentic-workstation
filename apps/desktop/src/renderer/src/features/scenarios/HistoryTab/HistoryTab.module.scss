@@ -9,7 +9,7 @@
 // Таблица на сетке: колонки общие для всех строк (subgrid), ширина - по самому длинному.
 .table {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(7, max-content);
+  grid-template-columns: minmax(0, 1fr) repeat(8, max-content);
   overflow: hidden;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
@@ -77,6 +77,13 @@
   overflow: hidden;
 }
 
+// Чей прогон: метка ACC у прогона плагина, у своих пусто. Своя колонка, а не место за именем:
+// там метка сдвигала ответы, и строки одного сценария переставали стоять ровно.
+.colOrigin {
+  display: flex;
+  align-items: center;
+}
+
 // Время, длительность и цена - показания: консольный шрифт, ровные цифры.
 .colStarted,
 .colFinished,
@@ -119,7 +126,7 @@
 
 @container (width < 680px) {
   .table {
-    grid-template-columns: minmax(0, 1fr) repeat(6, max-content);
+    grid-template-columns: minmax(0, 1fr) repeat(7, max-content);
   }
 
   .colCost {
@@ -129,7 +136,7 @@
 
 @container (width < 560px) {
   .table {
-    grid-template-columns: minmax(0, 1fr) repeat(5, max-content);
+    grid-template-columns: minmax(0, 1fr) repeat(6, max-content);
   }
 
   .colTook {
@@ -150,15 +157,19 @@
   }
 
   .tableRow {
-    grid-template-columns: max-content minmax(0, 1fr) auto auto auto;
+    grid-template-columns: max-content minmax(0, 1fr) auto auto auto auto;
     grid-template-areas:
-      'run run state star drop'
-      'started finished finished star drop';
+      'run run origin state star drop'
+      'started finished finished finished star drop';
     row-gap: var(--space-0-5);
   }
 
   .colRun {
     grid-area: run;
+  }
+
+  .colOrigin {
+    grid-area: origin;
   }
 
   .colStarted {

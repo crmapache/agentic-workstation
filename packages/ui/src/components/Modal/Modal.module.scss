@@ -1,17 +1,18 @@
 @use '../../styles/mixins' as *;
 
 // Окно поверх IDE: стеклянный лист, как у Dialog, только шире и с прокруткой внутри.
-// Высокое окно не доходит до краёв IDE на два space-8 сверху и снизу: шапка и подвал IDE
-// видны вокруг, и окно не читается как полноэкранный лист.
+// Высокое окно не доходит до краёв видимой части на --offset-overlay-edge сверху и снизу: шапка
+// и подвал IDE видны вокруг, и окно не читается как полноэкранный лист. На телефоне видимая
+// часть - над клавиатурой: окно сжимается, тело прокручивается, подвал с полем на виду.
 .modal {
   @include glass-overlay;
   @include enter-transition;
+  @include overlay-in-visible-area;
 
   // Контейнер для раскладки колонок (.columns): ширину окна задаёт размер (md, lg), а не
   // содержимое, поэтому сдерживание ширины ничего не ломает.
   container-type: inline-size;
   max-width: none;
-  max-height: calc(100vh - 4 * var(--space-8));
   padding: 0;
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -37,7 +38,7 @@
 
 // Во всю доступную высоту: раздел короче или длиннее - окно стоит.
 .tall[open] {
-  height: calc(100vh - 4 * var(--space-8));
+  @include overlay-in-visible-area(height);
 }
 
 .md {
@@ -90,8 +91,11 @@
   gap: var(--space-3);
 }
 
+// Основа - по содержимому (auto), а не 0: Safari на iPhone (iOS 26) считает flex: 1 в колонке
+// без высоты от нуля, и тело окна по содержимому схлопывалось до своих полей. Растёт до высоты
+// tall и сжимается с прокруткой у max-height так же.
 .body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   padding: var(--space-5);
   overflow-y: auto;
@@ -100,7 +104,7 @@
 // Колонка меню слева и тело рядом: колонка во всю высоту стоит, тело прокручивается само.
 .columns {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
 }
 

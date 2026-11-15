@@ -876,6 +876,7 @@
     "contextMenu": {
       "label": "Code actions",
       "sendToChat": "Send to Chat",
+      "goToDeclaration": "Go to Declaration",
       "history": "Show Local History",
       "show": "Show Editor Context Menu",
       "changeAll": "Change All Occurrences",
@@ -1710,10 +1711,28 @@
       "scope": "Projects"
     },
     "periods": {
-      "today": "Today",
+      "day": "Day",
       "week": "7 days",
       "month": "30 days",
       "all": "All time"
+    },
+    "navigator": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "range": "{{from}} - {{to}}",
+      "pick": "Pick a date",
+      "previous": {
+        "day": "Previous day",
+        "week": "Previous 7 days",
+        "month": "Previous 30 days"
+      },
+      "next": {
+        "day": "Next day",
+        "week": "Next 7 days",
+        "month": "Next 30 days"
+      },
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
     },
     "sources": {
       "all": "All",
@@ -1732,9 +1751,15 @@
       "new": "new",
       "flat": "same",
       "previous": {
-        "today": "Yesterday by this time: {{value}}",
+        "day": "Yesterday by this time: {{value}}",
         "week": "Previous 7 days at this point: {{value}}",
         "month": "Previous 30 days at this point: {{value}}",
+        "all": "Previous period: {{value}}"
+      },
+      "whole": {
+        "day": "Previous day: {{value}}",
+        "week": "Previous 7 days: {{value}}",
+        "month": "Previous 30 days: {{value}}",
         "all": "Previous period: {{value}}"
       }
     },
@@ -1863,7 +1888,7 @@
       "label": "About these numbers",
       "page": {
         "title": "Statistics",
-        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nToday is the current day; 7 days and 30 days end today. Each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. There is no comparison when the previous period starts before the data does.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
+        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nDay is one day, 7 days and 30 days end on the chosen day: today unless you pick another one. The arrows move to the previous or next period of the same length, the date opens a calendar, and Today brings you back. While a period is still going, each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. A past period is compared with the whole period before it. There is no comparison when the previous period starts before the data does.\n\nThe charts show a day and 7 days by the hour, with a line between days and weekends shaded, and longer periods by the day.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
       },
       "overview": {
         "title": "Overview",
@@ -3277,7 +3302,7 @@
     "help": {
       "label": "What the phone can do",
       "title": "What the phone can do",
-      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Email addresses reach it masked.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort or fast mode.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort or fast mode.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
     }
   }
 }

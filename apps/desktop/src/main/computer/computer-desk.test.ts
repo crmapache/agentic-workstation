@@ -252,6 +252,28 @@ describe('computer desk', () => {
     await expect(waiting).rejects.toMatchObject({ code: 'stopped' })
   })
 
+  it('hides the capsule as soon as its conversation stops working, but not under a running call', async () => {
+    const { desk } = setup()
+    const step = held()
+
+    await desk.run(call('a'), () => Promise.resolve(1))
+    desk.idle('b')
+    expect(desk.view()).not.toBeNull()
+
+    const running = desk.run(call('a'), step.work)
+
+    await settle()
+    desk.idle('a')
+    expect(desk.view()).toMatchObject({ state: 'working' })
+
+    step.finish()
+    await expect(running).resolves.toBe('done')
+    desk.idle('a')
+
+    expect(desk.view()).toBeNull()
+    await expect(desk.run(call('b'), () => Promise.resolve(2))).resolves.toBe(2)
+  })
+
   it('lets the computer go when its conversation ends', async () => {
     const { desk } = setup()
 

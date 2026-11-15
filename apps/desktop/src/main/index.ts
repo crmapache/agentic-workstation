@@ -28,11 +28,7 @@ import { createInvokeHandlers } from './ipc/register-handlers'
 import { SearchService } from './search/search-service'
 import { SoundsService } from './sounds/sounds-service'
 import { JsonFile } from './storage/json-file'
-import { loginShell, spawnNodePty } from './terminal/node-pty-spawn'
-import { terminalEnv } from './terminal/terminal-env'
-import { TerminalService } from './terminal/terminal-service'
-import { withZshIntegration } from './terminal/zsh-integration'
-import { ZSH_INTEGRATION_DIR } from './terminal/zsh-integration.constants'
+import { createTerminalService } from './terminal/terminal-setup'
 import { UpdateService } from './updates/update-service'
 import { UPDATE_FEED_URL, UPDATE_FEED_OVERRIDE_ENV } from './updates/update.constants'
 import { saveEditorBeforeQuit } from './window/editor-save'
@@ -227,21 +223,8 @@ const bootstrap = async () => {
     history.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
   }
 
-  // Терминалы под панелью Claude Code (ADR 0037): оболочка в корне проекта, закрытый проект
-  // гасит свои.
-  const terminals = new TerminalService(
-    {
-      output: (output) => broadcast('terminal:output', output),
-      sessions: (sessions) => broadcast('terminal:sessions', sessions),
-    },
-    {
-      spawn: spawnNodePty,
-      shell: loginShell,
-      env: withZshIntegration(join(app.getPath('userData'), ZSH_INTEGRATION_DIR), () =>
-        terminalEnv(process.env, app.getVersion()),
-      ),
-    },
-  )
+  // Терминалы под панелью Claude Code (ADR 0037): закрытый проект гасит свои (onWorkspace ниже).
+  const terminals = createTerminalService(app.getPath('userData'), app.getVersion())
 
   // Сценарии (ADR 0039), статистика и Remote Control (ADR 0041) - возможности всей IDE поверх
   // провайдеров.
@@ -285,6 +268,7 @@ const bootstrap = async () => {
     remote: features.remote,
     history,
     sounds,
+    definitions: features.definitions,
     getWindow: () => mainWindow,
   }
 

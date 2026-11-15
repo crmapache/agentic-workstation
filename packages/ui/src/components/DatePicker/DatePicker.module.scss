@@ -1,0 +1,99 @@
+@use '../../styles/mixins' as *;
+
+// Календарь во всю ширину панели: месяц со стрелками сверху, под ним сетка дней.
+.datePicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.month {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-0-5);
+}
+
+// Дни недели - тише чисел, как подписи оси.
+.weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-control-xs);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Число дня - ровными цифрами: колонки не гуляют от «1» к «28».
+.day {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-control-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.outside {
+  color: var(--color-fg-subtle);
+}
+
+// Сегодня - числом тона акцента, без рамки: рамка читалась бы как выбор.
+.today {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+// Полоса до выбранного дня - тише выбора; под рукой проступает, как и остальные дни.
+.inSpan {
+  @include interactive-surface(var(--color-bg-active), var(--color-bg-selected));
+
+  background-color: var(--color-bg-hover);
+}
+
+// Выбранное - заливкой (ADR 0006), не свечением.
+.selected {
+  @include interactive-surface(var(--color-bg-selected), var(--color-bg-selected));
+
+  background-color: var(--color-bg-selected);
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.today.selected {
+  color: var(--color-accent-strong);
+}
+
+// День под курсором клавиатуры - заливкой, как пункт меню под стрелками: кольца фокуса в IDE
+// нет (ADR 0023). Выбранный и так залит - на нём фокус узнают по нему самому.
+.day:focus-visible:not(.selected) {
+  background-color: var(--color-bg-active);
+}
+
+.day:disabled {
+  color: var(--color-fg-disabled);
+}

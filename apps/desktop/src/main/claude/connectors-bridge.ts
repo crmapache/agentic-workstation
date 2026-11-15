@@ -1,4 +1,5 @@
-import type { ConnectorsLaunch, ConversationRuntime } from './conversation/conversation-runtime'
+import type { ConnectorsLaunch } from './conversation/connectors-launch'
+import type { ConversationRuntime } from './conversation/conversation-runtime'
 
 /**
  * Коннекторы IDE для процессов разговоров (ADR 0028, 0029). Серверы шлюза CLI получает

@@ -79,7 +79,7 @@ export class ComputerDesk {
   private waiters = new Set<() => void>()
   /** Что сказать разговору на следующем вызове вместо ответа: Stop между вызовами. */
   private notices = new Map<string, string>()
-  private idle: unknown = null
+  private idleTimer: unknown = null
   private tail: Promise<unknown> = Promise.resolve()
 
   constructor(
@@ -149,7 +149,7 @@ export class ComputerDesk {
 
     this.isPaused = true
     this.pauseCount += 1
-    this.clock.clearTimeout(this.idle)
+    this.clock.clearTimeout(this.idleTimer)
     this.action?.abort(abortReason('paused', PAUSED))
     this.changed()
   }
@@ -185,6 +185,14 @@ export class ComputerDesk {
     if (this.holder?.key === key) this.free()
   }
 
+  /**
+   * Работа разговора встала (ход кончился, фоновых агентов нет): компьютер свободен и капсула
+   * уходит сразу, а не через минуту простоя. Вызов разговора ещё идёт - капсула ждёт его.
+   */
+  idle(key: string): void {
+    if (this.holder?.key === key && !this.hasCalls(key)) this.free()
+  }
+
   endConversation(key: string): void {
     this.notices.delete(key)
     this.release(key)
@@ -217,7 +225,7 @@ export class ComputerDesk {
 
     this.admit(call)
     this.holder = { key: call.key, label: call.label }
-    this.clock.clearTimeout(this.idle)
+    this.clock.clearTimeout(this.idleTimer)
     this.changed()
 
     const pausedFrom = Date.now()
@@ -309,17 +317,17 @@ export class ComputerDesk {
     this.isPaused = false
     this.step = null
     this.said = null
-    this.clock.clearTimeout(this.idle)
+    this.clock.clearTimeout(this.idleTimer)
     this.wake()
     this.changed()
   }
 
   private armIdle(): void {
-    this.clock.clearTimeout(this.idle)
+    this.clock.clearTimeout(this.idleTimer)
 
     if (this.isPaused) return
 
-    this.idle = this.clock.setTimeout(() => {
+    this.idleTimer = this.clock.setTimeout(() => {
       if (!this.isWorking && !this.isPaused) this.free()
     }, HOLD_IDLE_MS)
   }

@@ -220,10 +220,14 @@ export const COMPUTER_TOOLS: NativeTool<ComputerAgent>[] = [
   },
 ]
 
-/** Источник коннектора Computer: инструменты над агентом IDE, разговор кончился - отпустить. */
+/**
+ * Источник коннектора Computer: инструменты над агентом IDE; работа разговора встала или он
+ * кончился - компьютер свободен.
+ */
 export const createComputerSource = (agent: ComputerAgent, idle: () => void) =>
   new NativeSource(COMPUTER_TOOLS, agent, [ComputerError], {
     release: (launch) => agent.release(launch.conversationId ?? launch.id),
+    idle: (conversationId) => agent.idle(conversationId),
     endConversation: (conversationId) => agent.endConversation(conversationId),
     dispose: () => {
       idle()

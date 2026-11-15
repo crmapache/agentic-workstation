@@ -1,4 +1,4 @@
-import { DAY_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
+import { DAY_MS, HOUR_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 /** Файл базы в userData. */
 export const STATS_DB_FILE = 'statistics.sqlite'
@@ -24,8 +24,12 @@ export const CHANGED_THROTTLE_MS = 30 * SECOND_MS
  */
 export const SLOT_MS = 15 * MINUTE_MS
 
-/** Период не длиннее этого рисуется по часам, длиннее - по дням. */
-export const HOURLY_PERIOD_MAX_MS = 2 * DAY_MS
+/**
+ * Период не длиннее этого рисуется по часам, длиннее - по дням: неделя по часам показывает
+ * ритм суток, 30 дней по часам - уже штриховка. Час запаса - неделя с переводом часов назад
+ * длиннее на час и иначе ушла бы в дни.
+ */
+export const HOURLY_PERIOD_MAX_MS = 7 * DAY_MS + HOUR_MS
 
 /** Календарь активности - год, как у GitHub. */
 export const CALENDAR_WEEKS = 53

@@ -16,8 +16,17 @@ export type HeldTab = {
    * из этой группы, finish не закрывает: человек оставил её себе.
    */
   groupId: number
-  /** Отладчик подключён сейчас: после минуты простоя он отключается, вкладка остаётся. */
+  /**
+   * Отладчик подключён сейчас: в конце работы разговора и после минуты простоя он отключается,
+   * вкладка остаётся (tab-rest.ts).
+   */
   attached: boolean
+  /**
+   * Рамка и курсор агента стоят в странице. Отдельно от attached: отладчик снимают и без нас
+   * (Chrome при уходе на свою страницу, переподключение расширения), а рамка остаётся, пока её
+   * не снимет IDE.
+   */
+  framed: boolean
   /**
    * Профиль Chrome отключился (расширение перезагрузилось, Chrome перезапускается, host
    * упал): вкладка помнится, пока профиль не вернётся и не скажет, жива ли она.
@@ -129,6 +138,7 @@ export class BrowserSessions {
       owned,
       groupId: -1,
       attached: false,
+      framed: false,
       offline: false,
       url: '',
       launch: '',
@@ -232,12 +242,5 @@ export class BrowserSessions {
 
       return tabIds.length ? [{ id: session.id, title: session.title, tabIds }] : []
     })
-  }
-
-  /** Вкладки с подключённым отладчиком, которых агент не трогал дольше idleMs. */
-  idle(now: number, idleMs: number): HeldTab[] {
-    return this.all().flatMap((session) =>
-      [...session.tabs.values()].filter((tab) => tab.attached && now - tab.lastUsed > idleMs),
-    )
   }
 }

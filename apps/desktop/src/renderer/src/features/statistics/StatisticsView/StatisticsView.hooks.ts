@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { StatsReport } from '@shared/statistics'
 
 import {
-  periodOf,
+  rangeOf,
   compareMomentOf,
   isHumanComparable,
   comparablePeriodOf,
@@ -54,25 +54,27 @@ const useCompareMoment = (): number => {
  * Числа вида по фильтрам: отчёт периода и честное сравнение - тот же отрезок прошлого
  * периода до того же места (отдельный отчёт: главный процесс сравнивает с прошлым периодом
  * целиком). Сравнение спрашивается, только если главный процесс считает его честным по
- * началу данных.
+ * началу данных. Период в прошлом сравнивается с прошлым целиком - «то же место» там конец.
+ * Границы периода - наружу: по ним листает шапка вида.
  */
 export const useStatisticsData = () => {
   const period = useStatisticsStore((state) => state.period)
+  const lastDay = useStatisticsStore((state) => state.lastDay)
   const source = useStatisticsStore((state) => state.source)
   const scope = useStatisticsStore((state) => state.scope)
   const project = useActiveProject()
   const moment = useCompareMoment()
 
-  const range = periodOf(period, moment)
-  const comparable = comparablePeriodOf(range, moment)
+  const range = rangeOf(period, moment, lastDay)
+  const comparable = comparablePeriodOf(range.period, moment)
   const projectId = scope === 'project' ? (project?.id ?? null) : null
-  const current = useStatsReport(range, source, projectId)
+  const current = useStatsReport(range.period, source, projectId)
   const report = current.data
   const wantsPrevious =
     !current.isPlaceholderData && report !== undefined && report.previous !== null
   const previous = useStatsReport(comparable, source, projectId, wantsPrevious)
 
-  if (!report) return { data: null, failed: current.isError }
+  if (!report) return { data: null, failed: current.isError, range }
 
   // Пока новое сравнение считается, на месте прежнее - если оно про тот же период и фильтр
   // (сдвинулось только «сейчас»), а не про другой срез.
@@ -88,8 +90,8 @@ export const useStatisticsData = () => {
     previous: report.previous !== null && matches ? previousReport.totals : null,
     humanComparable: isHumanComparable(report),
     refreshing: current.isPlaceholderData,
-    period,
+    comparison: { period, live: range.lastDay === range.today },
   }
 
-  return { data, failed: false }
+  return { data, failed: false, range }
 }
