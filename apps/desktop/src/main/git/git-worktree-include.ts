@@ -73,12 +73,16 @@ const listCandidates = async (repoRoot: string, includeFile: string) => {
   return { paths: paths.slice(0, WORKTREE_INCLUDE_LIMIT), truncated: outcome.kind === 'stopped' }
 }
 
-/** Из путей - только те, что игнорирует сам репозиторий (.gitignore, info/exclude, глобальный). */
-const keepIgnored = async (repoRoot: string, paths: string[]): Promise<string[]> => {
+/**
+ * Из путей - только те, что git в папке cwd игнорирует (.gitignore, info/exclude,
+ * глобальный). Отслеживаемые он не называет никогда. Пути, которых нет на диске, git
+ * судит как файлы: шаблон со слэшем на конце (`dir/`) их не накрывает.
+ */
+export const keepIgnored = async (cwd: string, paths: string[]): Promise<string[]> => {
   if (paths.length === 0) return []
 
   const pending = run('git', ['check-ignore', '-z', '--stdin'], {
-    cwd: repoRoot,
+    cwd,
     timeout: GIT_LOCAL_TIMEOUT_MS,
     maxBuffer: CHECK_IGNORE_MAX_BUFFER,
     env: { ...process.env, ...GIT_ENV_OVERRIDES },

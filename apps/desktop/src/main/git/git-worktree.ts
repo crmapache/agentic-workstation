@@ -5,6 +5,7 @@ import { join, dirname, resolve, basename } from 'node:path'
 import { exitCodeOf } from './git-output'
 import { git } from './git-runner'
 import { copyWorktreeInclude } from './git-worktree-include'
+import { linkWorktreeShared } from './git-worktree-links'
 import {
   gitOrFail,
   isPresent,
@@ -120,10 +121,11 @@ const discard = async (top: string, path: string, gitBranch: string, root: strin
 
 /**
  * Новый worktree на новой ветке `scenarios/<slug>` от текущего HEAD проекта.
- * Незакоммиченное в проекте сюда не попадает - кроме игнорируемых файлов из
- * .worktreeinclude. В add идёт хеш, а не HEAD: человек может закоммитить между
- * чтением HEAD и add, а baseCommit должен быть ровно тем, что в worktree.
- * Не удалось - ничего не остаётся наполовину.
+ * Незакоммиченное в проекте сюда не попадает - кроме игнорируемых файлов: копий из
+ * .worktreeinclude и ссылок на локальные файлы Claude Code и пути из .worktreelink.
+ * В add идёт хеш, а не HEAD: человек может закоммитить между чтением HEAD и add, а
+ * baseCommit должен быть ровно тем, что в worktree. Не удалось - ничего не остаётся
+ * наполовину.
  *
  * Очередь записи - по корню репозитория, а не проекта: имя ветки занимается на
  * весь репозиторий, и два проекта из одного репозитория (корень и подпапка) иначе
@@ -171,6 +173,9 @@ export const createWorktree = async ({
     }
 
     await copyWorktreeInclude(repo.top, path)
+
+    // После копий: путь, названный в обоих списках, становится ссылкой.
+    await linkWorktreeShared({ repoRoot: repo.top, prefix: repo.prefix, worktreePath: path })
 
     return { path, projectDir, gitBranch, baseCommit }
   })
