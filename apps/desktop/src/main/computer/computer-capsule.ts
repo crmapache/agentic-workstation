@@ -111,7 +111,14 @@ export class ComputerCapsule {
 
     markOverlay(window)
     window.setAlwaysOnTop(true, 'screen-saver')
-    if (IS_MAC) window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    // Без skipTransformProcessType Electron зовёт app.dock.hide(): IDE пропадала из Dock и меню
+    // до перезапуска. Поверх полноэкранных приложений панель встаёт и так - это даёт тип panel.
+    if (IS_MAC) {
+      window.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true,
+        skipTransformProcessType: true,
+      })
+    }
 
     // Модель капсулу не видит: на снимке она не отличила бы её от кнопок приложения. На Windows
     // это WDA_EXCLUDEFROMCAPTURE (Windows 10 2004 и новее).

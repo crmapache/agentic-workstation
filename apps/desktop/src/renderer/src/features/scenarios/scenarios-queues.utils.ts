@@ -23,6 +23,8 @@ export type QueueStatus =
   /** Идущий прогон ждёт человека: вопрос или разрешение. */
   | { kind: 'asking' }
   | { kind: 'held'; reason: QueueHoldReason }
+  /** Вне рабочих часов (ADR 0074): ждущие стартуют, когда окно откроется. */
+  | { kind: 'resting' }
   | { kind: 'idle' }
   /** Закрыта человеком, но её worktree ещё живёт - карточка ради него. */
   | { kind: 'closed' }
@@ -60,7 +62,9 @@ export const queueStatus = (queue: ScenarioQueue, live: RunSummary | undefined):
     return live?.state === 'paused' ? { kind: 'paused' } : { kind: 'running' }
   }
 
-  return queue.hold ? { kind: 'held', reason: queue.hold.reason } : { kind: 'idle' }
+  if (queue.hold) return { kind: 'held', reason: queue.hold.reason }
+
+  return queue.nap && waitingItems(queue).length > 0 ? { kind: 'resting' } : { kind: 'idle' }
 }
 
 /**
@@ -76,6 +80,7 @@ export const statusTone = (status: QueueStatus): BadgeTone => {
     case 'held':
       return status.reason === 'failed' || status.reason === 'refused' ? 'danger' : 'neutral'
     case 'paused':
+    case 'resting':
     case 'idle':
     case 'closed':
       return 'neutral'

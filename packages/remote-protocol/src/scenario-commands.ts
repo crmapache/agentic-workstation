@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   ID,
   TEXT,
+  FILES,
   SCOPE,
   IMAGES,
   INPUTS,
@@ -100,7 +101,7 @@ export const SCENARIO_ARGS = {
     seen: z.enum(SEEN_RUN_STATES),
   }),
   'scenarios.answer': z.object({ runId: ID, question: ASKED, allow: z.boolean(), text: TEXT }),
-  'scenarios.tell': z.object({ runId: ID, text: TEXT, images: IMAGES }),
+  'scenarios.tell': z.object({ runId: ID, text: TEXT, images: IMAGES, files: FILES }),
   'scenarios.carryOn': z.object({ runId: ID }),
   /**
    * Журнал шага (или головы): конец, сколько влезло в кадр; before - страница выше этого

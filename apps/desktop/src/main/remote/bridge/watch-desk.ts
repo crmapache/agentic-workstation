@@ -19,6 +19,8 @@ export type WatchDeskHost = {
   /** Телефон на связи: спящему состояние не шлётся, проснувшись, он получит последнее. */
   awake: (deviceId: string) => boolean
   conversations: () => Conversation[]
+  /** Режимы, которые окно гасит этой вкладке в меню MODE (ModeGate.offFor). */
+  modesOff: (conversation: Conversation) => readonly string[]
   keys: () => ProjectKeys
   redact: () => Redact
   clock: StatusClock
@@ -67,6 +69,7 @@ export class WatchDesk {
       conversation,
       keys.keyOf(conversation.projectPath),
       this.host.clock.since(conversation, Date.now()),
+      this.host.modesOff(conversation),
     )
     const fitted = fitConversation(wire, this.host.redact())
     const print = JSON.stringify(fitted)

@@ -10,11 +10,17 @@ export const MAX_MESSAGE_BYTES = 4 * 1024 * 1024
 /** Сколько фото в одном сообщении. */
 export const MAX_IMAGES = 6
 
+/** Сколько файлов (не картинок) в одном сообщении. */
+export const MAX_FILES = 6
+
+/** Имя файла, как его назвал телефон: IDE всё равно чистит его до своего (pastedName). */
+export const MAX_FILE_NAME_CHARS = 200
+
 /** Текст сообщения в знаках. */
 export const MAX_TEXT_CHARS = 100_000
 
 /**
- * Все фото сообщения вместе (base64): остальное - место под текст и конверт команды. Жёсткая
- * проверка всё равно по MAX_MESSAGE_BYTES от готового JSON.
+ * Все фото и файлы сообщения вместе (base64): остальное - место под текст и конверт команды.
+ * Жёсткая проверка всё равно по MAX_MESSAGE_BYTES от готового JSON.
  */
 export const MAX_IMAGES_CHARS = MAX_MESSAGE_BYTES - 512 * 1024

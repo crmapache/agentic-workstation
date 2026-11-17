@@ -35,11 +35,7 @@ export const BoardScreen = ({ route }: { route: RouteOf<'board'> }) => {
   const counts = message ? boardCounts(message.queues, message.live) : null
 
   return (
-    <Screen
-      title={t('board.title')}
-      subtitle={inventory?.machine.label}
-      agentId={agentId}
-      help={{ title: t('board.help.title'), text: t('board.help.text') }}>
+    <Screen title={t('board.title')} subtitle={inventory?.machine.label} agentId={agentId}>
       {!message && <LinkWait agentId={agentId} label={t('project.loadingQueues')} />}
       {message && groups.length === 0 && (
         <EmptyState

@@ -1,10 +1,5 @@
-import {
-  editLines,
-  patchLines,
-  extensionOf,
-  writtenLines,
-  isNotAuthoredCommand,
-} from './edit-lines'
+import { patchLines, writtenLines } from '../../claude/changes/line-counts'
+import { editLines, extensionOf, isNotAuthoredCommand } from './edit-lines'
 
 /**
  * Что статистика берёт из разобранной строки транскрипта Claude Code 2.1.x. Формат меняется

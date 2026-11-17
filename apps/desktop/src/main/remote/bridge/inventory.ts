@@ -5,7 +5,7 @@ import type { WorkspaceState } from '@shared/workspace'
 
 import type { InventoryMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { CAP_PUSH, CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
-import { EFFORTS, PHONE_PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
+import { EFFORTS, PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
 
@@ -21,12 +21,14 @@ export type InventoryInput = {
   providers: ProviderInfo[]
   keys: ProjectKeys
   clock: StatusClock
+  /** Режимы, в которых новый разговор проекта не начнётся (ModeGate.offForNew). */
+  newModesOff: (projectPath: string) => readonly string[]
   machine: { label: string; ideVersion: string }
   epoch: string
   now: number
 }
 
-/** Что можно выбрать у провайдера с телефона: модели из каталога, усилия, режимы без bypass и auto. */
+/** Что можно выбрать у провайдера с телефона: модели каталога, усилия, режимы окна (ADR 0076). */
 const capsOf = (provider: ProviderInfo, claude: ClaudeState): ProviderCaps => ({
   id: provider.id,
   label: provider.label,
@@ -41,7 +43,7 @@ const capsOf = (provider: ProviderInfo, claude: ClaudeState): ProviderCaps => ({
         }))
       : [],
   efforts: [...EFFORTS],
-  permissionModes: [...PHONE_PERMISSION_MODES],
+  permissionModes: [...PERMISSION_MODES],
 })
 
 /**
@@ -58,6 +60,7 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
       .filter((conversation) => conversation.projectPath === project.rootPath)
       .map((conversation) => summaryOf(conversation, clock.since(conversation, now))),
     queues: queuesSummary(queues, project.rootPath),
+    unavailableModes: { [CLAUDE_PROVIDER]: [...input.newModesOff(project.rootPath)] },
   }))
   const recent = workspace.recentProjects
     .filter((project) => !keys.isOpen(project.rootPath))

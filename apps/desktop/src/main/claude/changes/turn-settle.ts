@@ -1,23 +1,11 @@
-import type { EditHunk, FileEdit } from './change-revert'
+import type { FileEdit } from './change-revert'
 import { redoEdits } from './change-revert'
+import { patchLines } from './line-counts'
 import { lineDiff } from './line-diff'
 import type { TurnFile } from './turn-edits'
 
 /** Настоящий итог хода по файлу: от того, с чего ход начал, до того, что стоит на диске. */
 export type SettledFile = { added: number; removed: number; edits: FileEdit[] }
-
-/** Добавленные и удалённые строки ханков. «\ No newline…» - пометка, не строка. */
-export const hunkCounts = (hunks: readonly EditHunk[]): { added: number; removed: number } => {
-  let added = 0
-  let removed = 0
-
-  for (const line of hunks.flatMap((hunk) => hunk.lines)) {
-    if (line.startsWith('+')) added += 1
-    else if (line.startsWith('-')) removed += 1
-  }
-
-  return { added, removed }
-}
 
 /**
  * Сверка файла хода с диском в конце хода. Файл меняли не только правки с диффом:
@@ -58,7 +46,7 @@ export const settleFile = (
   const patch: FileEdit = { kind: 'patch', hunks }
 
   return {
-    ...hunkCounts(hunks),
+    ...patchLines(hunks),
     edits: created ? [{ kind: 'create', content: '' }, patch] : [patch],
   }
 }

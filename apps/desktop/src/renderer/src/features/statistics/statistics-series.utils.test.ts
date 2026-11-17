@@ -21,6 +21,7 @@ const point = (start: number, tokens = 0): StatsSeriesPoint => ({
   manualLinesAdded: 0,
   manualLinesRemoved: 0,
   agentMinutes: 0,
+  agentsWithoutYouMinutes: 0,
   presenceMinutes: 0,
 })
 

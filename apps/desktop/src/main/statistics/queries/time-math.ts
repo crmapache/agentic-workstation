@@ -47,11 +47,11 @@ export const minuteIntervals = (minutes: readonly number[]): Interval[] => {
 }
 
 /**
- * Сколько времени из a лежит вне b (оба - объединённые и упорядоченные): «агенты работали
- * без тебя» - настенное время агентов минус минуты присутствия.
+ * Части a вне b (оба - объединённые и упорядоченные): «агенты работали без тебя» - настенное
+ * время агентов за вычетом минут присутствия. Ответ - тоже объединённый и упорядоченный.
  */
-export const lengthOutside = (a: readonly Interval[], b: readonly Interval[]): number => {
-  let outside = 0
+export const intervalsOutside = (a: readonly Interval[], b: readonly Interval[]): Interval[] => {
+  const outside: Interval[] = []
   let index = 0
 
   for (const interval of a) {
@@ -63,12 +63,12 @@ export const lengthOutside = (a: readonly Interval[], b: readonly Interval[]): n
       const cover = b[probe]
 
       if (!cover || cover.start >= interval.end) break
-      if (cover.start > cursor) outside += cover.start - cursor
+      if (cover.start > cursor) outside.push({ start: cursor, end: cover.start })
 
       cursor = Math.max(cursor, cover.end)
     }
 
-    if (cursor < interval.end) outside += interval.end - cursor
+    if (cursor < interval.end) outside.push({ start: cursor, end: interval.end })
   }
 
   return outside

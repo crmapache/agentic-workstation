@@ -14,7 +14,7 @@ export type HomeTabProps = {
   isActive: boolean
   /** Позвавшие разговоры дома, от старого к новому; свет вкладки - по последнему. */
   calls: readonly ProjectCall[]
-  /** Что работает в доме само; пусто - кольца работы вокруг знака нет. */
+  /** Что работает в доме само; пусто - на вкладке знак дома, иначе спиннер на его месте. */
   work: readonly ProjectWork[]
   onActivate: (projectId: string) => void
 }

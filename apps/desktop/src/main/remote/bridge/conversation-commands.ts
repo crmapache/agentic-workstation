@@ -2,17 +2,16 @@ import type { Conversation, RequestResponse } from '@shared/claude'
 import { isProviderId } from '@shared/providers'
 
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
-import { PHONE_PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
 
+import { withFiles } from './attached-files'
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { ConversationReads } from './conversation-reads'
 import { ConversationTools } from './conversation-tools'
 import type { Redact } from './fit'
+import type { ModeGate } from './mode-gate'
 import { done, fail } from './outcomes'
 import type { ProjectKeys } from './project-keys'
-
-const PHONE_MODES: readonly string[] = PHONE_PERMISSION_MODES
 
 export type ConversationCommand = Extract<Command, { name: `conversation.${string}` }>
 
@@ -54,9 +53,10 @@ export class ConversationCommands {
     private readonly ports: BridgePorts,
     private readonly keys: () => ProjectKeys,
     redact: () => Redact,
+    private readonly modes: ModeGate,
   ) {
     this.reads = new ConversationReads(ports, keys, redact)
-    this.tools = new ConversationTools(ports, redact)
+    this.tools = new ConversationTools(ports, redact, modes)
   }
 
   async run(command: ConversationCommand): Promise<Outcome> {
@@ -89,7 +89,10 @@ export class ConversationCommands {
 
     switch (command.name) {
       case 'conversation.send': {
-        const { text, images = [] } = command.args
+        const { images = [], files = [] } = command.args
+        const text = await withFiles(command.args.text, files, conversations.saveFile)
+
+        if (text === null) return fail('refused', 'fileNotSaved')
 
         await conversations.send(id, { text, images })
 
@@ -141,9 +144,10 @@ export class ConversationCommands {
 
   /**
    * Новый разговор с телефона. Режим задаётся всегда (default, если телефон не выбрал): иначе
-   * вкладка взяла бы закреплённый в настройках или режим выбранной вкладки - auto или bypass,
-   * которые с телефона не выбираются. Вышел режим не из телефонных - разговор закрывается, а
-   * телефону отказ.
+   * вкладка взяла бы закреплённый в настройках или режим выбранной вкладки, а не выбранный на
+   * телефоне. Режим, которого окно не дало бы (ADR 0076), - отказ modeUnavailable: bypass - ещё
+   * до вкладки, по настройкам проекта; auto - по модели, которую вкладка взяла. Вышел не тот
+   * режим или недоступный - разговор закрывается, а телефону отказ.
    */
   private async newConversation(args: CommandArgs<'conversation.new'>): Promise<Outcome> {
     const path = this.keys().openPathOf(args.projectKey)
@@ -151,21 +155,27 @@ export class ConversationCommands {
     if (!path) return fail(this.keys().pathOf(args.projectKey) ? 'notOpen' : 'notFound')
     if (!isProviderId(args.provider)) return fail('refused', 'providerMissing')
 
+    const mode = args.permissionMode ?? 'default'
+
+    if (!(await this.modes.allows(mode, path, null))) return fail('refused', 'modeUnavailable')
+
     const { conversations } = this.ports
     const id = await conversations.newConversation(path, {
       ...(args.model !== undefined && { model: args.model }),
       ...(args.effort !== undefined && { effort: args.effort }),
-      permissionMode: args.permissionMode ?? 'default',
+      permissionMode: mode,
     })
     const created = conversations.getState().conversations.find((one) => one.id === id)
 
     if (!created) return fail('failed')
 
-    if (!PHONE_MODES.includes(created.permissionMode)) {
+    const asked = created.permissionMode === mode
+
+    if (!asked || !(await this.modes.allows(mode, path, created))) {
       console.warn(`[remote] новый разговор вышел в режиме ${created.permissionMode} - закрыт`)
       await conversations.close(id)
 
-      return fail('refused', 'permissionMode')
+      return fail('refused', asked ? 'modeUnavailable' : 'permissionMode')
     }
 
     return done({ conversationId: id })

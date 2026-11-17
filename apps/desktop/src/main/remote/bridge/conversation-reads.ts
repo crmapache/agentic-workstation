@@ -8,7 +8,7 @@ import { searchWire, aiSearchWire } from './conversation-extras-wire'
 import type { Redact } from './fit'
 import { done, fail } from './outcomes'
 import type { ProjectKeys } from './project-keys'
-import { pageBefore, historyThatFits, pictureThatFits } from './reads-fit'
+import { pageBefore, historyThatFits, pictureThatFits, feedWithRowAbove } from './reads-fit'
 
 /**
  * Прогоны поиска модели с телефона - под своей приставкой: номер называет телефон, и с номером
@@ -95,18 +95,17 @@ export class ConversationReads {
   }
 
   /**
-   * Страница перед самым ранним элементом телефона. Он первый и в ленте IDE, а выше есть
-   * транскрипт - сначала страница транскрипта в ленту IDE (как «load earlier» окна): лента IDE
-   * растёт вверх, и следующая просьба телефона, как и окна, пойдёт уже от неё.
+   * Страница строк перед самой ранней строкой телефона. Выше неё в ленте IDE строк нет, а есть
+   * транскрипт - сначала его страницы в ленту IDE (как «load earlier» окна, feedWithRowAbove).
    */
   async earlier(args: CommandArgs<'conversation.earlier'>): Promise<Outcome> {
     const { conversations } = this.ports
-    let feed = await conversations.getFeed(args.conversationId)
-    const at = feed.items.findIndex((item) => item.id === args.before)
-
-    if (at === 0 && feed.hasEarlier) feed = await conversations.loadEarlier(args.conversationId)
-
-    const page = pageBefore(feed.items, args.before, feed.hasEarlier, this.redact())
+    const feed = await feedWithRowAbove(
+      await conversations.getFeed(args.conversationId),
+      args.before,
+      () => conversations.loadEarlier(args.conversationId),
+    )
+    const page = feed && pageBefore(feed.items, args.before, feed.hasEarlier, this.redact())
 
     return page ? done(page) : fail('notFound')
   }

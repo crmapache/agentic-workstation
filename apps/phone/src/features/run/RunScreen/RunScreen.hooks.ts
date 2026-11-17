@@ -1,10 +1,12 @@
-import type { RunQuestionWire } from '@agentic-workstation/remote-protocol/wire-types'
+import type { RunWire, RunQuestionWire } from '@agentic-workstation/remote-protocol/wire-types'
 
-import type { PreparedImage } from '../../../lib/images'
+import type { OutgoingMessage } from '../../../lib/attachments'
+import { attachmentArgs } from '../../../lib/attachments'
+import { useNow } from '../../../lib/now.hooks'
 import type { RouteOf } from '../../../lib/route.types'
-import { seenRunState } from '../../../lib/status.constants'
+import { isRunOver, seenRunState } from '../../../lib/status.constants'
 import { useCommand } from '../../../state/commands.hooks'
-import { useRun, useWatch } from '../../../state/remote.queries'
+import { useRun, useWatch, useInventory } from '../../../state/remote.queries'
 
 /** Прогон сценария: подписка на него у IDE и команды прогона. */
 export const useRunScreen = (route: RouteOf<'run'>) => {
@@ -17,15 +19,9 @@ export const useRunScreen = (route: RouteOf<'run'>) => {
 
   useWatch(agentId, { kind: 'run', runId })
 
-  const handleTell = async (text: string, images: PreparedImage[]): Promise<boolean> => {
+  const handleTell = async (message: OutgoingMessage): Promise<boolean> => {
     try {
-      await tell.mutateAsync({
-        runId,
-        text,
-        ...(images.length > 0 && {
-          images: images.map(({ mediaType, data }) => ({ mediaType, data })),
-        }),
-      })
+      await tell.mutateAsync({ runId, text: message.text, ...attachmentArgs(message) })
 
       return true
     } catch {
@@ -49,4 +45,16 @@ export const useRunScreen = (route: RouteOf<'run'>) => {
     carryOn: () => carryOn.mutate({ runId }),
     handleTell,
   }
+}
+
+/**
+ * Часы IDE для прогона: сейчас по часам телефона с поправкой на часы IDE (времена прогона - её),
+ * раз в секунду, пока прогон идёт, и раз в минуту после. offset - насколько часы IDE впереди.
+ */
+export const useRunClock = (agentId: string, run: RunWire | null | undefined) => {
+  const inventory = useInventory(agentId).data
+  const now = useNow(run && !isRunOver(run.state) ? 1000 : 60_000)
+  const offset = inventory ? inventory.at - inventory.receivedAt : 0
+
+  return { now: now + offset, offset }
 }

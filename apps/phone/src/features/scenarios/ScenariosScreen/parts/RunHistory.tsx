@@ -12,8 +12,9 @@ import styles from '../ScenariosScreen.module.scss'
 import { useNow } from '../../../../lib/now.hooks'
 import type { RouteOf } from '../../../../lib/route.types'
 import { useRouter } from '../../../../lib/router.store'
+import { runWorked } from '../../../../lib/scenarios.utils'
 import { RUN_TONES } from '../../../../lib/status.constants'
-import { costText, momentText } from '../../../../lib/time.utils'
+import { costText, momentText, durationText } from '../../../../lib/time.utils'
 import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
@@ -55,7 +56,13 @@ export const RunHistory = ({
                   <Badge tone={RUN_TONES[run.state] ?? 'neutral'}>
                     {t(`runState.${run.state}`, { defaultValue: run.state })}
                   </Badge>
-                  {[momentText(run.startedAt - screen.offset, now), costText(run.cost)].join(' · ')}
+                  {[
+                    momentText(run.startedAt - screen.offset, now),
+                    run.startedAt > 0 && durationText(t, runWorked(run, now + screen.offset)),
+                    costText(run.cost),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </>
               }
               aside={

@@ -3,6 +3,7 @@ import { useScenariosStore } from '../../scenarios.store'
 import { AuthorModal } from '../../AuthorModal/AuthorModal'
 import { EditorModal } from '../../EditorModal/EditorModal'
 import { LaunchModal } from '../../LaunchModal/LaunchModal'
+import { QueueHoursModal } from '../../QueueHoursModal/QueueHoursModal'
 import { RunModal } from '../../RunModal/RunModal'
 import { ScheduleModal } from '../../ScheduleModal/ScheduleModal'
 import { WorktreeRemoveDialog } from '../../WorktreeRemoveDialog/WorktreeRemoveDialog'
@@ -24,6 +25,8 @@ export const ScenariosModals = ({ project }: ScenariosTabProps) => {
       return <ScheduleModal project={project} request={modal} />
     case 'worktreeRemove':
       return <WorktreeRemoveDialog request={modal} />
+    case 'hours':
+      return <QueueHoursModal request={modal} />
     case undefined:
       return null
   }

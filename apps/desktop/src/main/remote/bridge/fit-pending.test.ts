@@ -35,6 +35,7 @@ const asking = (input: Record<string, unknown>) =>
     }),
     KEY,
     0,
+    [],
   )
 
 describe('вопрос хода в кадре', () => {

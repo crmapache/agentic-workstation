@@ -218,7 +218,12 @@ export class ScenarioService {
     action: ScenarioRunControl,
     seen?: RunState,
   ): RunControlRefusal | null {
-    return this.desks.get(projectPath)?.control(runId, action, seen) ?? 'runOver'
+    const refusal = this.desks.get(projectPath)?.control(runId, action, seen) ?? 'runOver'
+
+    // Пауза и продолжение рукой главнее рабочих часов: проснувшись, очередь этот прогон не тронет.
+    if (!refusal) this.runner.touched(runId)
+
+    return refusal
   }
 
   carryOn(runId: string): Promise<ScenarioCode | null> {
@@ -289,6 +294,14 @@ export class ScenarioService {
 
   unschedule(projectPath: string, scheduleId: string) {
     return this.afterShelves(projectPath, unscheduleHour(this.desk(projectPath), scheduleId))
+  }
+
+  /**
+   * Машина проснулась: таймеры главного процесса во сне стоят, и граница рабочих часов, прошедшая
+   * во сне, иначе ждала бы удара часов до полуминуты - прогон работал бы вне окна.
+   */
+  awake(): void {
+    void this.beat()
   }
 
   /** Выход из IDE: идущие прогоны останавливаются и дописываются, очереди - тоже. */

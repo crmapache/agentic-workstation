@@ -6,22 +6,15 @@
   gap: var(--space-2);
 }
 
-// Поле и кнопки - одной высоты (цель касания); выросшее поле кнопки держат у нижней строки.
-.row {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-1-5);
-}
-
 .file {
   display: none;
 }
 
+// Поле во всю ширину: строке сообщения на телефоне нужна вся ширина экрана, кнопки - под ним.
 .field {
   @include field-frame;
 
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   min-height: var(--size-touch-target);
   max-height: var(--size-code-compact-max);
   padding: var(--space-2) var(--space-3);
@@ -36,6 +29,52 @@
   &::placeholder {
     color: var(--color-fg-subtle);
   }
+}
+
+// Ряд под полем: скрепка слева, Stop и «отправить» справа - все одного размера под палец.
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.toolsGap {
+  flex: 1;
+}
+
+// Цитата строкой: черта слева, как у цитаты в ответе, текст обрезается, крестик - справа.
+.quotes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-left: var(--space-2);
+  border-left: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.quoteIcon {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-fg-subtle);
+}
+
+.quoteText {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
 }
 
 .strip {
@@ -60,6 +99,34 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+// Файл - плитка той же высоты, что фото: иконка типа и имя, обрезанное с конца.
+.fileTile {
+  @include button-reset;
+
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: calc(var(--size-image-tile) * 1.5);
+  height: var(--size-image-tile);
+  padding: var(--space-1-5);
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+}
+
+.fileName {
+  @include truncate;
+
+  max-width: 100%;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
 }
 
 .remove {

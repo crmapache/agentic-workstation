@@ -204,6 +204,11 @@ export class RunDesk {
     return null
   }
 
+  /** Пауза по рабочим часам очереди; false - прогон не идёт или уже на паузе человека. */
+  pauseForHours(runId: string): boolean {
+    return this.live.get(runId)?.engine.pauseForHours() ?? false
+  }
+
   /** false - прогон не идёт или стоит уже не тот вопрос, что видел отвечающий (asked). */
   answer(runId: string, allow: boolean, text: string, asked?: RunQuestionRef): boolean {
     return this.live.get(runId)?.engine.answer(allow, text, asked) ?? false

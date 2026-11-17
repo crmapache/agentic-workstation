@@ -12,11 +12,13 @@ import type { ScenarioCode } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import { launchRun, carryOnRun } from './launch-run'
+import { QueueHoursKeeper } from './queue-hours-keeper'
 import { QueueNaming } from './queue-naming'
 import { shortId, placeItem } from './queue-placing'
 import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
 import type { QueueBook } from './queues/queue-book'
+import { setHours, forgetNapRun } from './queues/queue-nap'
 import * as rules from './queues/queue-rules'
 
 export type RunnerHost = {
@@ -61,9 +63,16 @@ export class QueueRunner {
   /** Идущие постановки: создание worktree длится минутами, выход из IDE их дожидается. */
   private readonly starting = new Set<Promise<unknown>>()
   private readonly naming: QueueNaming
+  private readonly hours: QueueHoursKeeper
 
   constructor(private readonly host: RunnerHost) {
     this.naming = new QueueNaming(host)
+    this.hours = new QueueHoursKeeper({
+      ...host,
+      carryOn: (runId) => this.carryOn(runId),
+      step: (queueId) => this.step(queueId),
+      folderTaken: (queue) => this.folderTaken(queue),
+    })
   }
 
   /** Поставить сценарий: в новую очередь (с worktree или без) или в существующую. */
@@ -105,6 +114,26 @@ export class QueueRunner {
       )
   }
 
+  /**
+   * В папке проекта идёт сценарий другой открытой очереди. Прогон, который спит по рабочим часам,
+   * папку не занимает: иначе две спящие очереди в одной папке ждали бы друг друга вечно.
+   */
+  private folderTaken(queue: ScenarioQueue): boolean {
+    if (queue.workdir.kind !== 'project') return false
+
+    return this.host.book.all().some((other) => {
+      const running =
+        other.id !== queue.id &&
+        other.projectPath === queue.projectPath &&
+        other.closedAt === 0 &&
+        other.workdir.kind === 'project'
+          ? rules.runningItem(other)
+          : null
+
+      return running !== null && other.nap?.runId !== running.runId
+    })
+  }
+
   /** Почему элемент не стартовал; null - стартовал или ещё ждёт своей очереди. */
   refusalOf(queueId: string, itemId: string): ScenarioCode | null {
     return this.host.book.get(queueId)?.items.find((item) => item.id === itemId)?.refusal ?? null
@@ -129,7 +158,13 @@ export class QueueRunner {
 
   /** Выход из IDE ждёт шагов, которые уже начались: они могли быть посреди запуска. */
   async settle(): Promise<void> {
+    this.hours.stop()
     await Promise.all([...this.starting, ...this.stepping.values()])
+  }
+
+  /** Человек сам поставил или снял паузу прогона: рабочие часы очереди его больше не будят. */
+  touched(runId: string): void {
+    this.hours.touched(runId)
   }
 
   /** Прогон кончился: элемент получает исход, очередь решает, встать ей или идти дальше. */
@@ -140,12 +175,23 @@ export class QueueRunner {
 
     const outcome: rules.ItemOutcome =
       run.state === 'done' || run.state === 'failed' ? run.state : 'stopped'
-    const settled = rules.settleItem(found.queue, found.itemId, outcome, Date.now())
+    // Кончился - будить нечего: проснувшись, очередь возьмёт следующий, а не этот.
+    const settled = forgetNapRun(
+      rules.settleItem(found.queue, found.itemId, outcome, Date.now()),
+      run.id,
+    )
 
     this.host.book.put(settled)
     this.host.onQueues()
     this.sayHold(found.queue, settled)
     await this.step(settled.id)
+
+    // Папка проекта освободилась - проснуться может спящая очередь, которая её ждала.
+    for (const other of this.host.book.all()) {
+      if (other.nap && other.id !== settled.id && other.projectPath === settled.projectPath) {
+        void this.step(other.id)
+      }
+    }
   }
 
   /** Правка очереди руками. */
@@ -169,7 +215,8 @@ export class QueueRunner {
 
     // Человек стёр имя - имя снова за ИИ.
     if (action.kind === 'rename' && changed.nameSource === 'fallback') void this.name(queueId)
-    // Правка могла снять остановку (убран отказавший элемент) - шаг сразу, а не по таймеру.
+    // Правка могла снять остановку (убран отказавший элемент) или поменять часы (уснуть,
+    // проснуться) - шаг сразу, а не по таймеру.
     await this.step(queueId)
 
     return null
@@ -196,7 +243,13 @@ export class QueueRunner {
 
     if (refusal) return refusal
 
-    this.host.book.put(reopened)
+    // Пока прогон поднимался, очередь могли поправить (убрать ждущие, добавить): элемент
+    // помечается идущим в свежей очереди, а не в снимке до ожидания. Закрыли за это время - её
+    // не открывать: прогон доиграет, и его исход ляжет на элемент.
+    const fresh = rules.reopenItem(this.host.book.get(found.queue.id) ?? reopened, found.itemId)
+
+    if (fresh) this.host.book.put(fresh)
+
     this.host.onQueues()
 
     return null
@@ -208,9 +261,14 @@ export class QueueRunner {
   }
 
   private async stepNow(queueId: string, from: string): Promise<void> {
+    if (!this.host.book.get(queueId) || this.host.isClosing()) return
+
+    // Сначала часы: вне окна идущий встаёт на паузу, в начале окна - снимается с неё.
+    await this.hours.keep(queueId)
+
     const found = this.host.book.get(queueId)
 
-    if (!found || this.host.isClosing()) return
+    if (!found) return
 
     const queue = rules.holdBeforeFailure(found, Date.now())
 
@@ -223,7 +281,7 @@ export class QueueRunner {
       return
     }
 
-    const item = rules.nextToStart(queue)
+    const item = rules.nextToStart(queue, Date.now())
 
     // Worktree удаляется прямо сейчас - в его папке ничего не начинать.
     if (!item || this.host.removing.has(queueId)) return
@@ -272,6 +330,8 @@ export class QueueRunner {
         return rules.renameQueue(queue, action.name, 'user')
       case 'clear':
         return rules.clearWaiting(queue)
+      case 'hours':
+        return setHours(queue, action.hours)
       case 'close':
         return rules.closeQueue(queue, Date.now())
     }

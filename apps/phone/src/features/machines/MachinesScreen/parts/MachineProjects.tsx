@@ -2,11 +2,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Avatar } from '@agentic-workstation/ui/Avatar'
 import { Badge } from '@agentic-workstation/ui/Badge'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import styles from '../MachinesScreen.module.scss'
 import {
   initialsOf,
   avatarToneOf,
+  projectWorks,
   projectNeedsYou,
   conversationCounts,
 } from '../../../../lib/projects.utils'
@@ -19,7 +21,8 @@ import { MachineLinks } from './MachineLinks'
 
 /**
  * Открытые проекты IDE, под ними - недавние (у них видны история и очереди сценариев) и экраны
- * машины: доска всех очередей, аккаунты, коннекторы.
+ * машины: доска всех очередей, аккаунты, коннекторы. Где что-то работает само - янтарный
+ * спиннер справа, как знак работы на вкладке проекта в IDE.
  */
 export const MachineProjects = ({
   agentId,
@@ -40,7 +43,6 @@ export const MachineProjects = ({
     projects.map((project) => {
       const counts = conversationCounts(project)
       const parts = [
-        counts.running > 0 && t('machines.counts.running', { count: counts.running }),
         counts['waiting-for-you'] > 0 &&
           t('machines.counts.waiting', { count: counts['waiting-for-you'] }),
         project.open && t('machines.counts.conversations', { count: project.conversations.length }),
@@ -55,11 +57,16 @@ export const MachineProjects = ({
           muted={!project.open}
           leading={<Avatar initials={initialsOf(project.name)} tone={avatarToneOf(project.name)} />}
           trailing={
-            projectNeedsYou(project) && (
-              <Badge tone="accent" variant="soft">
-                {t('machines.needsYou')}
-              </Badge>
-            )
+            <>
+              {projectNeedsYou(project) && (
+                <Badge tone="accent" variant="soft">
+                  {t('machines.needsYou')}
+                </Badge>
+              )}
+              {projectWorks(project) && (
+                <Spinner size="sm" tone="warning" label={t('machines.working')} />
+              )}
+            </>
           }
           onClick={() => navigate({ name: 'project', agentId, projectKey: project.key })}
         />

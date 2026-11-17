@@ -38,7 +38,6 @@ export const ProjectScreen = ({ route }: { route: RouteOf<'project'> }) => {
         <StatusLine badge={<LinkBadge status={status} />} text={inventory?.machine.label} />
       }
       agentId={agentId}
-      help={{ title: t('project.help.title'), text: t('project.help.text') }}
       footer={
         project &&
         (project.open ? (

@@ -27,7 +27,6 @@ export const AccountsScreen = ({ route }: { route: RouteOf<'accounts'> }) => {
       title={t('accounts.title')}
       subtitle={screen.machine}
       agentId={route.agentId}
-      help={{ title: t('accounts.help.title'), text: t('accounts.help.text') }}
       actions={
         <IconButton
           icon={RefreshCw}

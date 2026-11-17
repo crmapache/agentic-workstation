@@ -1,13 +1,13 @@
-import type { Conversation } from '@shared/claude'
+import type { Conversation, ModeAvailability } from '@shared/claude'
+import { modeAvailability } from '@shared/claude'
 
 import { useProjectClaudeSettings } from './claude-settings.queries'
 import { useRefusedModes } from './claude.queries'
-import type { ModeAvailability } from './pane-keys.utils'
-import { modeAvailability } from './pane-keys.utils'
 
 /**
  * Какие режимы разговору доступны: запрет bypass из слоёв настроек проекта и отказы CLI,
- * которые помнит главный процесс. Одно правило для Shift+Tab и меню MODE.
+ * которые помнит главный процесс. Одно правило для Shift+Tab, меню MODE и телефона
+ * (`modeAvailability` общий с мостом Remote Control).
  */
 export const useModeAvailability = (
   projectId: string | undefined,

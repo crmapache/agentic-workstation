@@ -1,4 +1,4 @@
-import type { FeedItemWire, RunSummaryWire, ShelfScenarioWire } from './wire-types'
+import type { FeedItemWire, FeedStepsWire, RunSummaryWire, ShelfScenarioWire } from './wire-types'
 
 /**
  * Сценарии с телефона целиком: сценарий на чтение, полки с историей прогонов и расписанием,
@@ -81,9 +81,15 @@ export type ShelvesWire = {
 
 /**
  * Журнал шага прогона (scenarios.log) - разговор карточки той же лентой, что разговор: конец,
- * сколько влезло, или страница выше before. found false - журнала нет (шаг не начинался).
+ * сколько влезло, или страница выше before; шаги субагентов - счётом steps, как в странице
+ * разговора (FeedPageWire). found false - журнала нет (шаг не начинался).
  */
-export type StepLogWire = { found: boolean; items: FeedItemWire[]; hasEarlier: boolean }
+export type StepLogWire = {
+  found: boolean
+  items: FeedItemWire[]
+  steps?: FeedStepsWire | undefined
+  hasEarlier: boolean
+}
 
 /** Сохранённый черновик (scenarios.saveDraft): под каким id и на какой полке он лёг. */
 export type SavedDraftWire = { scenarioId: string; scope: 'project' | 'user' }

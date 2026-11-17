@@ -15,6 +15,7 @@ export type ScenariosModal =
   | { kind: 'author' }
   | { kind: 'schedule'; scheduleId?: string; scenarioId?: string; scope?: ScenarioScope }
   | { kind: 'worktreeRemove'; queueId: string }
+  | { kind: 'hours'; queueId: string }
 
 /** Отказ главного процесса, который показывается уведомлением в углу окна. */
 export type ScenarioNoticeState = { code: ScenarioCode; detail: string } | null

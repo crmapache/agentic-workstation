@@ -55,6 +55,11 @@ export type ConversationsPort = {
   /** Закрыть разговор, который не вышел таким, как просили (откат неудачного создания). */
   close: (conversationId: string) => Promise<unknown>
   setOptions: (conversationId: string, options: ConversationOptions) => unknown
+  /**
+   * Запретил ли режим без вопросов хоть один слой настроек проекта (claudeConfig:project) - то,
+   * по чему окно гасит bypass в меню MODE.
+   */
+  bypassDisabled: (projectPath: string) => Promise<boolean>
   rename: (conversationId: string, title: string) => Promise<unknown>
   providers: () => Promise<ProviderInfo[]>
   /** Прошлые разговоры проекта (claude:listHistory). */
@@ -74,6 +79,11 @@ export type ConversationsPort = {
     message: { text: string; images: ImageAttachment[] },
   ) => Promise<unknown>
   unqueue: (conversationId: string, queuedId: string) => unknown
+  /**
+   * Файл с телефона - в каталог вставок IDE (claude:savePasted): путь на диске или null (пустой,
+   * тяжелее потолка, не записался). Тот же путь, что у документа, вставленного в поле IDE.
+   */
+  saveFile: (name: string, data: string) => Promise<string | null>
   moveQueued: (conversationId: string, queuedId: string, toIndex: number) => unknown
   sendQueued: (conversationId: string, queuedId: string) => Promise<unknown>
   forceStop: (conversationId: string) => unknown

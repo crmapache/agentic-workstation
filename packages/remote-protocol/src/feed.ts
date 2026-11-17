@@ -1,5 +1,5 @@
 import type { FeedPatchMessage, FeedSnapshotMessage } from './agent-messages'
-import type { FeedItemWire, FeedPageWire, FeedTaskWire } from './wire-types'
+import type { FeedItemWire, FeedPageWire, FeedTaskWire, FeedStepsWire } from './wire-types'
 
 /**
  * Лента разговора на телефоне: снимок и заплатки по номеру - те же правила, что у ленты окна
@@ -13,6 +13,11 @@ export type FeedView = {
   seq: number
   items: FeedItemWire[]
   tasks: FeedTaskWire[]
+  /**
+   * Счёт шагов вызовов субагентов от IDE - и тех вызовов, что выше загруженного: их строка
+   * придёт страницей, а число уже здесь. Нет - IDE постарше, шаги лежат в items.
+   */
+  steps?: FeedStepsWire | undefined
   hasEarlier: boolean
 }
 
@@ -22,6 +27,7 @@ export const feedFromSnapshot = (snapshot: FeedSnapshotMessage): FeedView => ({
   seq: snapshot.seq,
   items: snapshot.items,
   tasks: snapshot.tasks,
+  ...(snapshot.steps && { steps: snapshot.steps }),
   hasEarlier: snapshot.hasEarlier,
 })
 
@@ -54,6 +60,8 @@ export const applyFeedPatch = (view: FeedView, patch: FeedPatchMessage): FeedVie
     seq: patch.seq,
     items,
     tasks: patch.tasks ?? view.tasks,
+    // Счёт в заплатке - число целиком: повтор той же заплатки ничего не прибавит.
+    ...(patch.steps && { steps: { ...view.steps, ...patch.steps } }),
     hasEarlier: patch.hasEarlier ?? view.hasEarlier,
   }
 }
@@ -63,7 +71,8 @@ export const applyFeedPatch = (view: FeedView, patch: FeedPatchMessage): FeedVie
  * элементом, перед которым её просили: пока страница шла, мог прийти снимок, а он заменяет ленту
  * целиком - тогда null, страница не к этой ленте. Номер журнала не меняется: страница - не
  * заплатка, заплатки дальше меняют её элементы по id, как любые другие. Элемент, который уже
- * есть (заплатка успела его вставить), второй раз не встаёт.
+ * есть (заплатка успела его вставить), второй раз не встаёт. Счёт шагов, который уже есть,
+ * страница не перебивает: он пришёл заплаткой и живой, а страница - разовое чтение.
  */
 export const prependFeedPage = (
   view: FeedView,
@@ -75,5 +84,10 @@ export const prependFeedPage = (
   const known = new Set(view.items.map((item) => item.id))
   const fresh = page.items.filter((item) => !known.has(item.id))
 
-  return { ...view, items: [...fresh, ...view.items], hasEarlier: page.hasEarlier }
+  return {
+    ...view,
+    items: [...fresh, ...view.items],
+    ...(page.steps && { steps: { ...page.steps, ...view.steps } }),
+    hasEarlier: page.hasEarlier,
+  }
 }

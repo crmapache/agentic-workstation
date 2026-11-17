@@ -99,11 +99,15 @@ const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
   }
 }
 
-/** Разговор целиком - тому, кто его смотрит. Папки проекта здесь нет: только ключ. */
+/**
+ * Разговор целиком - тому, кто его смотрит. Папки проекта здесь нет: только ключ.
+ * unavailableModes - что окно гасит этой вкладке в меню MODE (ModeGate.offFor).
+ */
 export const conversationWire = (
   conversation: Conversation,
   projectKey: string,
   since: number,
+  unavailableModes: readonly string[],
 ): ConversationWire => ({
   ...summaryOf(conversation, since),
   projectKey,
@@ -123,4 +127,5 @@ export const conversationWire = (
   queueHold: conversation.queueHold ?? null,
   carryOn: conversation.carryOn ?? null,
   fast: { asked: conversation.fastMode === true, state: conversation.fastReport?.state ?? null },
+  unavailableModes: [...unavailableModes],
 })

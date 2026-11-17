@@ -37,6 +37,8 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
   newConversation: (projectPath, options) => claude.openConversation(projectPath, options),
   close: (id) => claude.tabs.close(id, false),
   setOptions: (id, options) => claude.actions.setOptions(id, options),
+  bypassDisabled: async (projectPath) =>
+    (await claude.settings.projectInfo(projectPath)).bypassDisabled,
   rename: (id, title) => claude.tabs.rename(id, title),
   providers: () => listProviders(claude),
   history: (projectPath) => claude.listHistory(projectPath),
@@ -56,6 +58,7 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
   image: (id, messageId, index) => claude.actions.getImage(id, messageId, index),
   enqueue: (id, message) => claude.actions.enqueue(id, message),
   unqueue: (id, queuedId) => claude.actions.removeQueued(id, queuedId),
+  saveFile: (name, data) => claude.composer.savePasted(name, data),
   moveQueued: (id, queuedId, toIndex) => claude.actions.moveQueued(id, queuedId, toIndex),
   sendQueued: (id, queuedId) => claude.actions.sendQueued(id, queuedId),
   forceStop: (id) => claude.actions.forceStop(id),

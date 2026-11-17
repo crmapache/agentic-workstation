@@ -5,6 +5,7 @@ import type {
   FeedItemWire,
   FeedTaskWire,
   ProviderCaps,
+  FeedStepsWire,
   RunSummaryWire,
   ConversationWire,
   InventoryProject,
@@ -71,7 +72,8 @@ export type InventoryMessage = Versioned & {
 }
 
 /**
- * Снимок ленты: последние элементы, сколько влезло. seq - номер журнала, на котором снят
+ * Снимок ленты: последние строки, сколько влезло, и счёт шагов их вызовов субагентов (steps):
+ * шаги, чей вызов есть в ленте IDE, элементами не идут. seq - номер журнала, на котором снят
  * снимок; следующая заплатка - seq + 1. hasEarlier - выше есть ещё: в IDE или в транскрипте,
  * телефон просит их страницами (conversation.earlier, prependFeedPage).
  *
@@ -86,10 +88,16 @@ export type FeedSnapshotMessage = Versioned & {
   seq: number
   items: FeedItemWire[]
   tasks: FeedTaskWire[]
+  /** Нет - IDE постарше: шаги субагентов идут элементами. */
+  steps?: FeedStepsWire | undefined
   hasEarlier: boolean
 }
 
-/** Заплатка ленты по id элементов. Пропущен номер - телефон подписывается заново с since. */
+/**
+ * Заплатка ленты по id элементов. Пропущен номер - телефон подписывается заново с since. Новый
+ * шаг субагента - не вставка, а новый счёт его вызова в steps (число целиком, не прибавка):
+ * вставка вызова, которого у телефона нет, встала бы в конец ленты.
+ */
 export type FeedPatchMessage = Versioned & {
   k: 'patch'
   conversationId: string
@@ -98,6 +106,7 @@ export type FeedPatchMessage = Versioned & {
   upserts: FeedItemWire[]
   removes?: string[] | undefined
   tasks?: FeedTaskWire[] | undefined
+  steps?: FeedStepsWire | undefined
   hasEarlier?: boolean | undefined
 }
 
@@ -134,7 +143,8 @@ export type RemoteErrorCode =
 
 /**
  * Ответ на команду по её id. Отказ - кодом; refused с detail - отказ самой IDE её словом
- * (у сценариев: queueBusy, untrusted, runOver…; у нового разговора - permissionMode).
+ * (у сценариев: queueBusy, untrusted, runOver…; у режима разговора - modeUnavailable, а у
+ * нового разговора ещё permissionMode).
  */
 export type ResultMessage = Versioned & { k: 'result'; id: string } & (
     { ok: true; data?: unknown } | { ok: false; code: RemoteErrorCode; detail?: string | undefined }

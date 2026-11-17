@@ -1,17 +1,17 @@
 import type { ReactNode } from 'react'
 
-import type { PreparedImage } from '../../lib/images'
+import type { OutgoingMessage } from '../../lib/attachments'
 
 export type ComposerProps = {
-  /** Чей черновик: разговор или прогон. */
+  /** Чей черновик (и цитаты): разговор или прогон. */
   draftKey: string
   placeholder: string
   sendLabel: string
-  /** Можно ли приложить фото. */
-  allowImages?: boolean | undefined
+  /** Можно ли приложить фото и файлы. */
+  allowAttachments?: boolean | undefined
   disabled?: boolean | undefined
-  /** Перед «отправить», в том же ряду: Stop идущего хода - под большим пальцем, как в IDE. */
+  /** В ряду под полем перед «отправить»: Stop идущего хода - под большим пальцем, как в IDE. */
   actions?: ReactNode | undefined
-  /** true - ушло, поле очищается; false - осталось как было. */
-  onSend: (text: string, images: PreparedImage[]) => Promise<boolean>
+  /** true - ушло, поле, цитаты и вложения очищаются; false - осталось как было. */
+  onSend: (message: OutgoingMessage) => Promise<boolean>
 }

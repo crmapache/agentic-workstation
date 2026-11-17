@@ -1,7 +1,10 @@
 import { isProviderId } from '@shared/providers'
+import { cleanHours } from '@shared/queue-hours'
 import type {
+  QueueNap,
   QueueHold,
   QueueItem,
+  QueueHours,
   QueueWorkdir,
   ScenarioQueue,
   QueueItemState,
@@ -81,6 +84,24 @@ const parseHold = (value: unknown): QueueHold | null =>
       }
     : null
 
+/** Часы без дней - не часы: окно никогда бы не открылось, и очередь спала бы вечно. */
+const parseHours = (value: unknown): QueueHours | null => {
+  if (!isRaw(value) || !Array.isArray(value.days)) return null
+
+  const hours = cleanHours({
+    from: count(value.from),
+    to: count(value.to),
+    days: value.days.filter((day): day is number => typeof day === 'number'),
+  })
+
+  return hours.days.length > 0 ? hours : null
+}
+
+const parseNap = (value: unknown): QueueNap | null =>
+  isRaw(value) && count(value.at) > 0
+    ? { at: count(value.at), until: count(value.until), runId: text(value.runId) }
+    : null
+
 export const parseQueue = (value: unknown): ScenarioQueue | null => {
   if (!isRaw(value) || !text(value.id) || !text(value.projectPath)) return null
 
@@ -100,6 +121,9 @@ export const parseQueue = (value: unknown): ScenarioQueue | null => {
     stopAfterItemId: text(value.stopAfterItemId),
     hold: parseHold(value.hold),
     acknowledgedItemId: text(value.acknowledgedItemId),
+    // Очередь старого выпуска часов не знала: работает в любое время.
+    hours: parseHours(value.hours),
+    nap: parseNap(value.nap),
   }
 }
 

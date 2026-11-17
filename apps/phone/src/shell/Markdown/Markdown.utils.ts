@@ -21,8 +21,6 @@ export const codeLanguage = (info: string | undefined): string => info?.trim().s
 
 /** Номер пункта, как написан в исходнике: шаги называют по номеру («сделай шаг 3»). */
 export const listMarker = (list: Tokens.List, item: Tokens.ListItem, index: number): string => {
-  if (!list.ordered) return '•'
-
   const written = /^\s*(\d{1,9})[.)]/.exec(item.raw)?.[1]
   const start = typeof list.start === 'number' ? list.start : 1
 

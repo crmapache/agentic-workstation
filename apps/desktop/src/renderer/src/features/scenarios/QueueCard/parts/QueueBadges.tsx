@@ -4,16 +4,18 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import { useStatusWord, useWorkdirWord } from '../QueueCard.hooks'
 import styles from '../QueueCard.module.scss'
 import type { QueueBadgesProps } from '../QueueCard.types'
+import { useHoursWords } from '../../scenarios-queue-hours.hooks'
 import { statusTone } from '../../scenarios-queues.utils'
 
 /**
- * Где очередь работает и что делает - две метки. У живого worktree в подсказке путь: по нему
+ * Где очередь работает, в какие часы и что делает - метками. У живого worktree в подсказке путь: по нему
  * его находят в терминале; удалённый остаётся словом - очередь помнит, где работала. Без status
  * - только место: что делает очередь, говорит строка её идущего элемента.
  */
 export const QueueBadges = ({ queue, status }: QueueBadgesProps) => {
   const statusWord = useStatusWord()
   const workdirWord = useWorkdirWord()
+  const hoursWords = useHoursWords()
   const { workdir } = queue
   // Серым всегда: цвет метки значит состояние (ADR 0006), а папка - не состояние.
   const place = <Badge>{workdirWord(workdir)}</Badge>
@@ -25,6 +27,7 @@ export const QueueBadges = ({ queue, status }: QueueBadgesProps) => {
       ) : (
         place
       )}
+      {queue.hours && <Badge>{hoursWords.label(queue.hours)}</Badge>}
       {status && <Badge tone={statusTone(status)}>{statusWord(status)}</Badge>}
     </span>
   )

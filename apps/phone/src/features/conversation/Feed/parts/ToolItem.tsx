@@ -40,8 +40,8 @@ const StatusIcon = ({ status }: { status: string }) => {
 }
 
 /**
- * Вызов инструмента одной строкой: что и о чём, правка - итогом +N -M, у субагента - сколько
- * шагов внутри. Нажатие раскрывает вход и вывод. За вызовом идёт задача (субагент, фоновая
+ * Вызов инструмента одной строкой: что и о чём, правка - итогом +N -M (большая правка без
+ * диффа CLI - «±», как в IDE), у субагента - сколько шагов внутри. Нажатие раскрывает вход и вывод. За вызовом идёт задача (субагент, фоновая
  * команда) - рядом «остановить» её одну, не трогая ход: как у карточки задачи в панели IDE.
  */
 export const ToolItem = ({
@@ -76,10 +76,16 @@ export const ToolItem = ({
             </span>
             {counts && (
               <span className={styles.counts}>
-                <span className={styles.added}>{t('feed.added', { count: counts.added })}</span>
-                <span className={styles.removed}>
-                  {t('feed.removed', { count: counts.removed })}
-                </span>
+                {counts === 'uncounted' ? (
+                  <span className={styles.uncounted}>{t('feed.uncounted')}</span>
+                ) : (
+                  <>
+                    <span className={styles.added}>{t('feed.added', { count: counts.added })}</span>
+                    <span className={styles.removed}>
+                      {t('feed.removed', { count: counts.removed })}
+                    </span>
+                  </>
+                )}
               </span>
             )}
             {steps > 0 && <span className={styles.steps}>{t('feed.steps', { count: steps })}</span>}

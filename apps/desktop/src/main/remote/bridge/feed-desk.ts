@@ -10,14 +10,19 @@ import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-mes
 
 import type { FoldedPatch } from './feed-journal'
 import { emptyFold, foldPatch, FeedJournal } from './feed-journal'
+import { StepLedger } from './feed-steps'
+import { tailWindow } from './feed-window'
 import type { Redact } from './fit'
-import { sizeOf, BODY_BUDGET, listThatFits, packsThatFit, tailThatFits } from './fit'
+import { sizeOf, BODY_BUDGET, listThatFits, packsThatFit } from './fit'
 
 /** Окно складывания заплаток: поток модели не шлёт телефону кадр на каждую пачку букв. */
 export const FOLD_MS = 150
 
-/** Сколько элементов в снимке ленты: телефону хватает конца разговора. */
-export const SNAPSHOT_ITEMS = 120
+/**
+ * Сколько строк в снимке ленты: телефону хватает конца разговора. Строк, а не элементов: шаги
+ * субагентов идут счётом (feed-window.ts).
+ */
+export const SNAPSHOT_ROWS = 120
 
 /** Задачам ленты - не больше четверти кадра: остальное - самой ленте. */
 const TASKS_BUDGET = Math.floor(BODY_BUDGET / 4)
@@ -48,13 +53,15 @@ export type FeedDeskHost = {
 type Watch = { conversationId: string; live: boolean; token: number; sent: number }
 
 /**
- * Ленты разговоров телефонам. Подписка - снимок последних элементов или догонка по номеру из
+ * Ленты разговоров телефонам. Подписка - снимок последних строк или догонка по номеру из
  * журнала; дальше живые заплатки, сложенные за FOLD_MS, - только телефонам на связи: спящему
  * незачем копить кадры в ящике релея, он догонит из журнала. Журнал заводится на первой
- * подписке и живёт, пока его смотрят, и ещё JOURNAL_IDLE_MS после.
+ * подписке и живёт, пока его смотрят, и ещё JOURNAL_IDLE_MS после; с ним - память шагов
+ * субагентов (StepLedger), по которой заплатка несёт новый шаг счётом, а не элементом.
  */
 export class FeedDesk {
   private readonly journals = new Map<string, FeedJournal>()
+  private readonly ledgers = new Map<string, StepLedger>()
   /** С какого момента журнал никто не смотрит. */
   private readonly unwatched = new Map<string, number>()
   /** Последний номер убранного журнала: новый продолжит после него с пропуском. */
@@ -84,7 +91,11 @@ export class FeedDesk {
     if (previous !== undefined && previous !== conversationId) this.noteUnwatched(previous)
     this.flush(conversationId)
 
-    const caught = epoch === this.host.epoch && since !== undefined ? journal.after(since) : null
+    // Память шагов ещё не видела ленту целиком - догонять заплатками нечем: снимок её и заведёт.
+    const caught =
+      epoch === this.host.epoch && since !== undefined && this.ledgerOf(conversationId).seeded
+        ? journal.after(since)
+        : null
 
     if (caught) {
       watch.sent = since ?? 0
@@ -145,19 +156,14 @@ export class FeedDesk {
     if (!this.journals.has(id)) return
 
     this.pending.set(id, foldPatch(this.pending.get(id) ?? emptyFold(), patch))
-
-    if (!this.timers.has(id)) {
-      const timer = setTimeout(() => this.flush(id), FOLD_MS)
-
-      timer.unref()
-      this.timers.set(id, timer)
-    }
+    this.arm(id)
   }
 
   /** Разговора больше нет: журнал и смотрящие уходят. */
   forget(conversationId: string): void {
     this.drop(conversationId)
     this.journals.delete(conversationId)
+    this.ledgers.delete(conversationId)
     this.unwatched.delete(conversationId)
     this.retired.delete(conversationId)
     this.pending.delete(conversationId)
@@ -180,6 +186,7 @@ export class FeedDesk {
 
       this.drop(conversationId)
       this.journals.delete(conversationId)
+      this.ledgers.delete(conversationId)
       this.pending.delete(conversationId)
       this.unwatched.delete(conversationId)
     }
@@ -195,12 +202,13 @@ export class FeedDesk {
   }
 
   /**
-   * Снимок: хвост ленты, сколько влезает в кадр вместе с задачами и конвертом. Не ушёл (ключей
-   * нет, кадр не влез) - подписка не живая: заплатки к ленте, которой у телефона нет, - мусор.
+   * Снимок: хвост ленты строками, сколько влезает в кадр вместе со счётом шагов, задачами и
+   * конвертом. Лента целиком заодно заводит память шагов. Не ушёл (ключей нет, кадр не влез) -
+   * подписка не живая: заплатки к ленте, которой у телефона нет, - мусор.
    */
   private async snapshot(deviceId: string, watch: Watch, journal: FeedJournal) {
     const base = journal.lastSeq
-    const feed = await this.host.getFeed(watch.conversationId)
+    const feed = await this.readFeed(watch.conversationId)
 
     // Пока поднимался транскрипт, телефон мог уйти смотреть другое.
     if (this.watches.get(deviceId)?.token !== watch.token) return
@@ -215,11 +223,17 @@ export class FeedDesk {
       seq: base,
       items: [],
       tasks,
+      steps: {},
       hasEarlier: false,
     }
     const budget = MAX_BODY_BYTES - sizeOf(shell) - SHELL_SLACK
-    const tail = tailThatFits(feed.items, budget, SNAPSHOT_ITEMS, redact)
-    const snapshot = { ...shell, items: tail.items, hasEarlier: feed.hasEarlier || tail.cut }
+    const tail = tailWindow(feed.items, budget, SNAPSHOT_ROWS, redact)
+    const snapshot = {
+      ...shell,
+      items: tail.items,
+      steps: tail.steps,
+      hasEarlier: feed.hasEarlier || tail.cut,
+    }
 
     if (!this.host.send(deviceId, snapshot)) {
       console.warn('[remote] снимок ленты не ушёл телефону - подписка не живая')
@@ -244,25 +258,42 @@ export class FeedDesk {
     return true
   }
 
-  /** Сложенное - в журнал пачками по кадру и живым смотрящим на связи. */
+  /**
+   * Сложенное - в журнал пачками по кадру и живым смотрящим на связи: строки - вставками, шаги
+   * субагентов - счётом их вызовов. Пока память шагов не видела ленту целиком (снимок ещё
+   * читает её), сложенное ждёт: шаг ушёл бы строкой.
+   */
   private flush(conversationId: string) {
     this.drop(conversationId)
 
     const fold = this.pending.get(conversationId)
     const journal = this.journals.get(conversationId)
+    const ledger = this.ledgers.get(conversationId)
+
+    if (fold && ledger && !ledger.seeded) {
+      this.arm(conversationId)
+
+      return
+    }
 
     this.pending.delete(conversationId)
 
-    if (!fold || !journal) return
+    if (!fold || !journal || !ledger) return
 
     const redact = this.host.redact()
+    const { rows, steps } = ledger.apply([...fold.upserts.values()], fold.removes)
     const extras = {
       ...(fold.removes.size > 0 && { removes: [...fold.removes] }),
       ...(fold.tasks && { tasks: listThatFits(fold.tasks, TASKS_BUDGET, redact) }),
+      ...(Object.keys(steps).length > 0 && { steps }),
       ...(fold.hasEarlier !== undefined && { hasEarlier: fold.hasEarlier }),
     }
-    // Снятые и задачи едут в первой пачке - место под них вычитается из каждой.
-    const packs = packsThatFit([...fold.upserts.values()], BODY_BUDGET - sizeOf(extras), redact)
+
+    // Сложились одни шаги, чей счёт не поменялся (итог вызова внутри субагента), - слать нечего.
+    if (rows.length === 0 && Object.keys(extras).length === 0) return
+
+    // Снятые, задачи и счёт едут в первой пачке - место под них вычитается из каждой.
+    const packs = packsThatFit(rows, BODY_BUDGET - sizeOf(extras), redact)
 
     for (const [index, upserts] of (packs.length > 0 ? packs : [[]]).entries()) {
       const message = journal.append(
@@ -286,12 +317,53 @@ export class FeedDesk {
     }
   }
 
+  /** Сложить ещё FOLD_MS и отправить; таймер уже стоит - ждать его. */
+  private arm(conversationId: string) {
+    if (this.timers.has(conversationId)) return
+
+    const timer = setTimeout(() => this.flush(conversationId), FOLD_MS)
+
+    timer.unref()
+    this.timers.set(conversationId, timer)
+  }
+
   private drop(conversationId: string) {
     const timer = this.timers.get(conversationId)
 
     if (timer) clearTimeout(timer)
 
     this.timers.delete(conversationId)
+  }
+
+  /**
+   * Лента целиком для снимка - она же начало памяти шагов. Не прочиталась - память живёт тем,
+   * что принесут заплатки, а не держит их вечно.
+   */
+  private async readFeed(conversationId: string): Promise<ConversationFeed> {
+    const ledger = this.ledgerOf(conversationId)
+
+    try {
+      const feed = await this.host.getFeed(conversationId)
+
+      ledger.seed(feed.items)
+
+      return feed
+    } catch (error) {
+      ledger.seed([])
+      throw error
+    }
+  }
+
+  /** Память шагов разговора - живёт с его журналом. */
+  private ledgerOf(conversationId: string): StepLedger {
+    let ledger = this.ledgers.get(conversationId)
+
+    if (!ledger) {
+      ledger = new StepLedger()
+      this.ledgers.set(conversationId, ledger)
+    }
+
+    return ledger
   }
 
   /** Последний смотревший ушёл: с этого момента журнал считает время до уборки. */
@@ -302,12 +374,14 @@ export class FeedDesk {
       this.unwatched.set(conversationId, this.now())
   }
 
+  /** Журнал разговора, а с ним и память шагов: новый журнал - и память с нуля, до снимка. */
   private journalOf(conversationId: string): FeedJournal {
     let journal = this.journals.get(conversationId)
 
     if (!journal) {
       journal = new FeedJournal(undefined, undefined, this.retired.get(conversationId) ?? 0)
       this.journals.set(conversationId, journal)
+      this.ledgers.set(conversationId, new StepLedger())
     }
 
     return journal

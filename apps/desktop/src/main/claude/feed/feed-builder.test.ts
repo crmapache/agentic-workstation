@@ -17,6 +17,16 @@ const fixture = readFileSync(join(import.meta.dirname, '__fixtures__/turn.ndjson
   .map(parseCliLine)
   .filter((message): message is CliMessage => message !== null)
 
+/*
+ * Настоящие строки транскриптов CLI 2.1.293 с правками файлов: замена всех вхождений в
+ * большом файле (CLI отдал пустой дифф), перезапись файла Write и новый файл Write (тоже
+ * пустой дифф). Пути заменены на /Users/dev/project, служебные поля вырезаны.
+ */
+const writes = readFileSync(join(import.meta.dirname, '__fixtures__/writes.ndjson'), 'utf8')
+  .split('\n')
+  .map(parseCliLine)
+  .filter((message): message is CliMessage => message !== null)
+
 /** Часы, которые идут на 100 мс при каждом взгляде: у хода есть длительность. */
 const tickingClock = () => {
   let now = 1_000_000
@@ -323,5 +333,33 @@ describe('откат к сообщению', () => {
     builder.truncateFrom('missing')
 
     expect(builder.items.map((item) => item.id)).toEqual(['u1'])
+  })
+})
+
+describe('строки правок из транскрипта', () => {
+  const replayWrites = () => {
+    const builder = new FeedBuilder()
+
+    for (const message of writes) builder.apply(message, true)
+
+    builder.finishReplay()
+
+    return builder.items.filter((item) => item.kind === 'tool')
+  }
+
+  it('новый файл - строки содержимого, перезапись - дифф CLI, большая правка - без цифр', () => {
+    const tools = replayWrites()
+    const resultOf = (file: string) =>
+      tools.find((tool) => tool.input['file_path'] === `/Users/dev/project/${file}`)?.result
+
+    expect(tools.map((tool) => tool.status)).toEqual(['done', 'done', 'done'])
+    expect(resultOf('asked.txt')).toMatchObject({
+      created: true,
+      changeCounts: { added: 1, removed: 0 },
+    })
+    expect(resultOf('hello.txt')).toMatchObject({ changeCounts: { added: 1, removed: 0 } })
+    expect(resultOf('hello.txt')?.created).toBeUndefined()
+    expect(resultOf('big/huge.js')).toMatchObject({ uncounted: true })
+    expect(resultOf('big/huge.js')?.changeCounts).toBeUndefined()
   })
 })

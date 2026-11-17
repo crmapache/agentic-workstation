@@ -20,6 +20,8 @@ export const metaText = (t: TFunction, meta: ToolMeta): string => {
       return meta.empty ? t('claudeCode.feed.tool.noOutput') : t('claudeCode.feed.tool.output')
     case 'diff':
       return t('claudeCode.feed.tool.diff', { added: meta.added, removed: meta.removed })
+    case 'uncounted':
+      return t('claudeCode.feed.tool.uncounted')
     case 'closed':
       return t(CLOSED_META_KEYS[meta.reason])
     default:

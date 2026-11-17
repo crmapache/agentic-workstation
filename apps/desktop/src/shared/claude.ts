@@ -319,6 +319,28 @@ export type RefusedModes = { bypass: boolean; autoModels: string[] }
 export const modeModel = (conversation: Pick<Conversation, 'model' | 'activeModel'>): string =>
   conversation.model ?? conversation.activeModel ?? ''
 
+/** Какие из необязательных режимов доступны разговору: bypass - запрет слоёв, auto - отказ CLI. */
+export type ModeAvailability = { bypass: boolean; auto: boolean }
+
+/**
+ * Доступность режимов (как в ACC): bypass - пока его не запретили слои настроек проекта
+ * (неизвестно - недоступен) и CLI не отказал; auto - пока CLI не отказал на этой модели (без
+ * разговора - новая вкладка - не гасится). Одно правило у окна (Shift+Tab, меню MODE) и у
+ * телефона (мост Remote Control, ADR 0076): иначе телефон предлагал бы то, что окно гасит.
+ */
+export const modeAvailability = (
+  refused: RefusedModes,
+  bypassDisabled: boolean | undefined,
+  conversation: Pick<Conversation, 'model' | 'activeModel'> | null,
+): ModeAvailability => ({
+  bypass: bypassDisabled === false && !refused.bypass,
+  auto: !conversation || !refused.autoModels.includes(modeModel(conversation)),
+})
+
+/** Режим есть в меню, но выбрать его нельзя: недоступный ведёт только к отказу CLI. */
+export const isModeOff = (mode: PermissionMode, available: ModeAvailability): boolean =>
+  (mode === 'bypassPermissions' && !available.bypass) || (mode === 'auto' && !available.auto)
+
 /** Прошлый разговор проекта из транскриптов CLI (~/.claude/projects). */
 export type HistoryEntry = {
   sessionId: string

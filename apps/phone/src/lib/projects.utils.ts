@@ -43,3 +43,12 @@ export const conversationCounts = (
 export const projectNeedsYou = (project: InventoryProject): boolean =>
   project.queues.asking > 0 ||
   project.conversations.some((conversation) => conversation.status === 'waiting-for-you')
+
+/**
+ * Работает ли в проекте что-то само: разговор с идущим ходом или прогон сценария, который идёт и
+ * ни о чём не спрашивает, - как знак работы на вкладке проекта в IDE (ADR 0071). Ждущее человека
+ * - не работа: о нём говорит метка «Needs you».
+ */
+export const projectWorks = (project: InventoryProject): boolean =>
+  project.queues.running - project.queues.asking > 0 ||
+  project.conversations.some((conversation) => conversation.status === 'running')

@@ -6,6 +6,7 @@ import type { ConversationCommand } from './conversation-commands'
 import { ConversationCommands } from './conversation-commands'
 import type { Redact } from './fit'
 import { MachineCommands } from './machine-commands'
+import type { ModeGate } from './mode-gate'
 import type { ProjectKeys } from './project-keys'
 import type { ScenarioCommand } from './scenario-commands'
 import { ScenarioCommands } from './scenario-commands'
@@ -27,8 +28,8 @@ export class CommandDesk {
   private readonly scenarios: ScenarioCommands
   private readonly machine: MachineCommands
 
-  constructor(ports: BridgePorts, keys: () => ProjectKeys, redact: () => Redact) {
-    this.conversations = new ConversationCommands(ports, keys, redact)
+  constructor(ports: BridgePorts, keys: () => ProjectKeys, redact: () => Redact, modes: ModeGate) {
+    this.conversations = new ConversationCommands(ports, keys, redact, modes)
     this.scenarios = new ScenarioCommands(ports, keys, redact)
     this.machine = new MachineCommands(ports, keys)
   }

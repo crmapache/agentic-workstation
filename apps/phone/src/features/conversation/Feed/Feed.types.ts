@@ -7,6 +7,12 @@ export type OpenPhoto = { messageId: string; index: number; thumbnail: string }
 export type RunningTask = { taskId: string; kind: string }
 
 /**
+ * Итог правки файла на строке вызова: строки плюсом и минусом или «не посчитать» - большую
+ * правку CLI присылает без диффа, и IDE пишет ей «±», а не «+0 -0».
+ */
+export type EditCounts = { added: number; removed: number } | 'uncounted'
+
+/**
  * Что можно сделать из ленты живого разговора. Журнал шага прогона рисуется той же лентой, но
  * только для чтения - там действий нет.
  */

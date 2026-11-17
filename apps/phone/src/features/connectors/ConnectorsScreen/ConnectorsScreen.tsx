@@ -22,11 +22,7 @@ export const ConnectorsScreen = ({ route }: { route: RouteOf<'connectors'> }) =>
   const { connectors } = screen
 
   return (
-    <Screen
-      title={t('connectors.title')}
-      subtitle={screen.machine}
-      agentId={route.agentId}
-      help={{ title: t('connectors.help.title'), text: t('connectors.help.text') }}>
+    <Screen title={t('connectors.title')} subtitle={screen.machine} agentId={route.agentId}>
       {connectors.isPending && <LinkWait agentId={route.agentId} label={t('connectors.loading')} />}
       {connectors.isError && (
         <div className={styles.failed}>

@@ -93,7 +93,10 @@ export const fakeIde = () => {
     conversations: [conversationOf()],
     models: [],
     accounts: accountsOf(),
+    refusedModes: { bypass: false, autoModels: [] },
   } as unknown as ClaudeState
+  /** Слои настроек проекта для режима: тест запрещает bypass руками. */
+  const settings = { bypassDisabled: false }
   const feed: ConversationFeed = {
     conversationId: CONVERSATION_ID,
     items: [itemOf('u1', 'hello'), itemOf('a1', 'Hi! How can I help?')],
@@ -141,6 +144,8 @@ export const fakeIde = () => {
         return Promise.resolve(null)
       },
       setOptions: (id, options) => record('setOptions', id, options),
+      // Чтение файлов настроек, а не действие: в calls не пишется.
+      bypassDisabled: () => Promise.resolve(settings.bypassDisabled),
       rename: (id, title) => Promise.resolve(record('rename', id, title)),
       providers: () =>
         Promise.resolve([
@@ -204,5 +209,5 @@ export const fakeIde = () => {
     },
   }
 
-  return { ports, calls, state, feed, workspace, queues, earlier, images, schedules }
+  return { ports, calls, state, settings, feed, workspace, queues, earlier, images, schedules }
 }

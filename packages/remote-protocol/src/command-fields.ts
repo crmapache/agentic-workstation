@@ -1,13 +1,19 @@
 import { z } from 'zod'
 
 import { BASE64_PATTERN } from './base64'
-import { MAX_IMAGES, MAX_TEXT_CHARS, MAX_IMAGES_CHARS } from './message-size'
+import {
+  MAX_FILES,
+  MAX_IMAGES,
+  MAX_TEXT_CHARS,
+  MAX_IMAGES_CHARS,
+  MAX_FILE_NAME_CHARS,
+} from './message-size'
 import { PROJECT_KEY_PATTERN } from './project-key'
 
 /**
  * Поля команд телефона, общие для всех областей (разговоры, сценарии, машина). Каждое - узкое:
- * id без путей и разделителей, тексты с потолком, перечисления без значений, которые с телефона
- * не выбираются (bypass, auto).
+ * id без путей и разделителей, тексты с потолком, перечисления только из того, что знает и окно
+ * IDE (незнакомое значение - отказ всей команды).
  */
 
 /** id очередей, элементов, прогонов, часов и того, что телефон называет сам (вопрос сбоку). */
@@ -55,10 +61,41 @@ export const IMAGES = z
   )
   .optional()
 
+/**
+ * Файл сообщения, не картинка (PDF, таблица, текст): имя и base64. IDE пишет его в свой каталог
+ * вставок и ставит в текст ссылкой «@путь» - так же, как документ, вставленный в поле IDE: пути на
+ * телефоне у файла нет, а модель читает файл с диска машины.
+ */
+const FILE = z.object({
+  name: z.string().trim().min(1).max(MAX_FILE_NAME_CHARS),
+  data: z.string().min(1).max(MAX_IMAGES_CHARS).regex(BASE64_PATTERN),
+})
+
+/** Файлы сообщения - числом и весом; вместе с фото их держит MAX_MESSAGE_BYTES готового JSON. */
+export const FILES = z
+  .array(FILE)
+  .max(MAX_FILES)
+  .refine(
+    (files) => files.reduce((sum, file) => sum + file.data.length, 0) <= MAX_IMAGES_CHARS,
+    'files over the message size',
+  )
+  .optional()
+
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
 
-/** Режимы нового разговора с телефона: bypass и auto выбирает только человек за столом. */
-export const PHONE_PERMISSION_MODES = ['default', 'acceptEdits', 'plan'] as const
+/**
+ * Режимы разрешений разговора - те же пять, что в меню MODE окна IDE (ADR 0076). Спаренный
+ * телефон и так отвечает на каждый вопрос разрешения, режим не шире этого. Доступен ли режим
+ * разговору (bypass под запретом настроек, auto, от которого CLI отказался), решает IDE - тем же
+ * правилом, что у окна. dontAsk нет и у окна - его не выразить и здесь.
+ */
+export const PERMISSION_MODES = [
+  'default',
+  'acceptEdits',
+  'plan',
+  'auto',
+  'bypassPermissions',
+] as const
 
 export const PROVIDER = z.string().regex(/^[a-z][a-z0-9-]{0,31}$/)
 

@@ -24,6 +24,13 @@
   gap: var(--space-2);
 }
 
+// Очередь спит вне рабочих часов: что стоит - обычным текстом, срок - в шапке карточки.
+.rest {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
 .asking {
   margin: 0;
   color: var(--color-fg-accent);
@@ -35,4 +42,11 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
+}
+
+// Длинная подпись - во всю ширину: в половине она переносилась и кнопка выходила вдвое толще.
+.wideAction {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
 }

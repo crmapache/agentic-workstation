@@ -2,7 +2,6 @@ import { BellOff, BellRing } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
-import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../MachinesScreen.module.scss'
@@ -33,16 +32,7 @@ export const NotificationsSection = () => {
   return (
     <Section
       title={t('machines.notifications.title')}
-      description={t(`machines.notifications.${line}`)}
-      help={
-        <HelpButton
-          size="touch"
-          label={t('common.help')}
-          title={t('machines.notifications.help.title')}
-          text={t('machines.notifications.help.text')}
-          closeLabel={t('common.close')}
-        />
-      }>
+      description={t(`machines.notifications.${line}`)}>
       {(status === 'off' || status === 'on' || status === 'working') && (
         <div className={styles.actions}>
           {status === 'on' ? (

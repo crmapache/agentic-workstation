@@ -21,6 +21,7 @@ import { StatusClock } from './conversation-wire'
 import { FeedDesk } from './feed-desk'
 import type { Redact } from './fit'
 import { InventoryDesk } from './inventory-desk'
+import { ModeGate } from './mode-gate'
 import { PhoneChains } from './phone-chain'
 import { ProjectKeys } from './project-keys'
 import { machineRoots, pathRedactor } from './redact'
@@ -59,6 +60,7 @@ export class Bridge {
   private readonly ledger = new CommandLedger()
   private readonly chains: PhoneChains
   private readonly clock = new StatusClock()
+  private readonly modes: ModeGate
   private lensCache: Lens | null = null
 
   constructor(private readonly host: BridgeHost) {
@@ -67,6 +69,12 @@ export class Bridge {
     const keys = () => this.lens().keys
 
     this.chains = new PhoneChains(host.known)
+    // Запрет bypass прочитан или перечитан иным - телефонам новое, как при перемене разговоров.
+    this.modes = new ModeGate({
+      read: (projectPath) => ports.conversations.bypassDisabled(projectPath),
+      refused: () => ports.conversations.getState().refusedModes,
+      changed: () => this.claudeChanged(ports.conversations.getState()),
+    })
     this.feeds = new FeedDesk({
       getFeed: (conversationId) => ports.conversations.getFeed(conversationId),
       send: (deviceId, message) => host.send(deviceId, message),
@@ -78,6 +86,7 @@ export class Bridge {
       send: (deviceId, message) => host.send(deviceId, message),
       awake: host.awake,
       conversations: () => ports.conversations.getState().conversations,
+      modesOff: (conversation) => this.modes.offFor(conversation),
       keys,
       redact,
       clock: this.clock,
@@ -91,10 +100,11 @@ export class Bridge {
       keys,
       redact,
       clock: this.clock,
+      modes: this.modes,
       machine: host.machine,
       epoch: host.epoch,
     })
-    this.commands = new CommandDesk(ports, keys, redact)
+    this.commands = new CommandDesk(ports, keys, redact, this.modes)
   }
 
   /** Открытое и проверенное слово спаренного телефона (предел частоты уже позади). */
@@ -237,6 +247,8 @@ export class Bridge {
 
   private async subscribe(deviceId: string, message: SubscribeMessage): Promise<void> {
     if (message.conversationId) {
+      // Режимы - уже по прочитанным настройкам проекта, а не погашенный bypass и следом второй.
+      await this.modes.ready(this.lens().keys.openPaths())
       // Подписка заново - состояние разговора уходит, даже если оно то же: у телефона его нет.
       this.watches.freshConversation(deviceId)
 

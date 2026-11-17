@@ -7,6 +7,7 @@ import type { StatusClock } from './conversation-wire'
 import type { Redact } from './fit'
 import { fitValue } from './fit'
 import { inventoryOf, inventoryPrint } from './inventory'
+import type { ModeGate } from './mode-gate'
 import type { ProjectKeys } from './project-keys'
 
 /** Начало хода, вопрос и ответ приходят за миллисекунды - список шлётся один раз. */
@@ -20,6 +21,8 @@ export type InventoryDeskHost = {
   keys: () => ProjectKeys
   redact: () => Redact
   clock: StatusClock
+  /** Какие режимы новый разговор проекта может взять - как меню New chats окна. */
+  modes: ModeGate
   machine: () => { label: string; ideVersion: string }
   epoch: string
 }
@@ -42,10 +45,13 @@ export class InventoryDesk {
 
   /**
    * Телефон спросил: список ему сейчас, что бы ему ни слали раньше. Провайдеры заодно
-   * спрашиваются заново (Claude Code могли поставить) - перемена уйдёт следом сама.
+   * спрашиваются заново (Claude Code могли поставить) - перемена уйдёт следом сама. Настройки
+   * режима открытых проектов, которых мост ещё не читал, - до ответа: иначе bypass ушёл бы
+   * погашенным и следом - второй список.
    */
   async answer(deviceId: string, still: () => boolean): Promise<void> {
     await this.loaded
+    await this.host.modes.ready(this.host.keys().openPaths())
 
     if (!still()) return
 
@@ -103,6 +109,7 @@ export class InventoryDesk {
       providers: this.providers,
       keys: this.host.keys(),
       clock: this.host.clock,
+      newModesOff: (projectPath) => this.host.modes.offForNew(projectPath),
       machine: this.host.machine(),
       epoch: this.host.epoch,
       now: Date.now(),

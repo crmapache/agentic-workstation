@@ -1,11 +1,11 @@
 /**
  * Сколько строк добавила и убрала правка агента. Главный источник - structuredPatch в
- * результате инструмента (CLI сам посчитал разность с файлом). Нет его (старые версии CLI) -
- * разность старого и нового куска с обрезкой общих начала и конца, как EditLines панели ACC.
+ * результате инструмента (CLI сам посчитал разность с файлом), его считает общее правило
+ * (claude/changes/line-counts.ts). Нет его (старые версии CLI) - разность старого и нового
+ * куска с обрезкой общих начала и конца, как EditLines панели ACC.
  */
 
-/** Строки правки. */
-export type LineChange = { added: number; removed: number }
+import type { LineChange } from '../../claude/changes/line-counts'
 
 /** Строки правки по старому и новому тексту: совпадающие голова и хвост не считаются. */
 export const editLines = (before: string, after: string): LineChange => {
@@ -26,37 +26,6 @@ export const editLines = (before: string, after: string): LineChange => {
   }
 
   return { added: next.length - head - tail, removed: old.length - head - tail }
-}
-
-/** Файл, записанный целиком: каждая строка новая; перевод строки в конце - не лишняя строка. */
-export const writtenLines = (content: string): number => {
-  const trimmed = content.replace(/\n+$/, '')
-
-  return trimmed === '' ? 0 : trimmed.split('\n').length
-}
-
-/**
- * Строки кусков диффа (structuredPatch CLI или bashEditDiff): «+» - добавлена, «-» -
- * убрана, пробел - контекст. «\ No newline at end of file» не строка файла.
- */
-export const patchLines = (hunks: unknown): LineChange => {
-  const change = { added: 0, removed: 0 }
-
-  if (!Array.isArray(hunks)) return change
-
-  for (const hunk of hunks) {
-    const lines = (hunk as { lines?: unknown } | null)?.lines
-
-    if (!Array.isArray(lines)) continue
-
-    for (const line of lines) {
-      if (typeof line !== 'string') continue
-      if (line.startsWith('+')) change.added += 1
-      else if (line.startsWith('-')) change.removed += 1
-    }
-  }
-
-  return change
 }
 
 /**

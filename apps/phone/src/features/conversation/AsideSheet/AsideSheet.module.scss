@@ -1,7 +1,10 @@
+// Выделяется весь разговор сбоку - вопросы, ответы, пометки, а не только ответ: на iPhone ручка
+// выделения, заехавшая на невыделяемый вопрос, растягивала выделение на весь ответ разом.
 .sheet {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  user-select: text;
 }
 
 // Вопрос и под ним ответ: линия слева отделяет один вопрос от другого.
@@ -9,7 +12,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-left: var(--space-3);
+  padding-left: var(--space-2);
   border-left: var(--border-width) solid var(--color-border);
 }
 
@@ -22,8 +25,10 @@
   white-space: pre-wrap;
 }
 
+// Строка «думает» с кнопкой - управление, а не текст: долгое нажатие на «Cancel» не выделяет.
 .thinking {
   display: flex;
+  user-select: none;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-fg-muted);

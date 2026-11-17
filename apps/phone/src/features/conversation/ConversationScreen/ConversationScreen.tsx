@@ -5,7 +5,10 @@ import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { Feed } from '../Feed/Feed'
+import { QuoteButton } from '../QuoteButton/QuoteButton'
+import { useQuotableSelection } from '../QuoteButton/QuoteButton.hooks'
 import type { RouteOf } from '../../../lib/route.types'
+import { useDraftsStore } from '../../../state/drafts.store'
 import { Banner } from '../../../shell/Banner/Banner'
 import { Screen } from '../../../shell/Screen/Screen'
 import {
@@ -23,7 +26,8 @@ import { ConversationSubtitle } from './parts/ConversationSubtitle'
  * Разговор с провайдером (сейчас Claude Code): лента с ранними сообщениями по просьбе, решение
  * хода над полем, очередь, поле с фото и Stop идущего хода - всё в низу, под пальцем. Пока ход
  * идёт, новое сообщение встаёт в очередь IDE. Вопрос сбоку и настройки разговора (модель,
- * усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте.
+ * усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте; выделенное в
+ * ответе - цитатой в поле кнопкой над лентой.
  */
 export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }) => {
   const { t } = useTranslation()
@@ -32,13 +36,21 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
   const sheets = useConversationSheets()
   const { conversation, feed, inventory } = screen
   const working = useWorkingText(conversation, inventory)
+  const draftKey = `${route.agentId}|${route.conversationId}`
+  const quotable = useQuotableSelection(screen.bodyRef)
+  const addQuote = useDraftsStore((state) => state.addQuote)
+
+  const handleQuote = () => {
+    const quote = quotable.take()
+
+    if (quote) addQuote(draftKey, quote)
+  }
   const provider = inventory?.providers.find((one) => one.id === conversation?.provider)
   const offset = inventory ? inventory.at - inventory.receivedAt : 0
-  const help = { title: t('conversation.help.title'), text: t('conversation.help.text') }
 
   if (conversation === null) {
     return (
-      <Screen title={t('conversation.title')} agentId={route.agentId} help={help}>
+      <Screen title={t('conversation.title')} agentId={route.agentId}>
         <EmptyState
           icon={MessageSquareOff}
           title={t('conversation.gone.title')}
@@ -78,7 +90,7 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
           </>
         )
       }
-      help={help}
+
       banner={
         conversation?.error && (
           <Banner
@@ -90,10 +102,13 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
         )
       }
       bodyRef={screen.bodyRef}
+      overlay={
+        <QuoteButton selection={quotable.shown} onHold={quotable.hold} onQuote={handleQuote} />
+      }
       footer={
         <ConversationFooter
           conversation={conversation}
-          draftKey={`${route.agentId}|${route.conversationId}`}
+          draftKey={draftKey}
           offset={offset}
           screen={screen}
           commands={commands}

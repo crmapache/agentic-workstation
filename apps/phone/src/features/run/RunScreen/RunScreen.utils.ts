@@ -1,4 +1,8 @@
-import type { RunWire, RunStepWire } from '@agentic-workstation/remote-protocol/wire-types'
+import type {
+  RunWire,
+  RunNoteWire,
+  RunStepWire,
+} from '@agentic-workstation/remote-protocol/wire-types'
 
 /** Этапы прогона с их шагами по порядку снимка сценария; шаг без этапа - в конце, своим. */
 export const stagesOf = (run: RunWire): { id: string; title: string; steps: RunStepWire[] }[] => {
@@ -18,3 +22,13 @@ export const stepWords = (step: RunStepWire): string =>
 
 /** Шаг начинался - у него есть журнал (разговор карточки); ждущий ещё не говорил ни слова. */
 export const begun = (step: RunStepWire): boolean => step.startedAt > 0 || step.state !== 'waiting'
+
+/**
+ * Последние слова человека голове - под ними «голова пишет ответ» или «ждёт, пока голова
+ * освободится», как в IDE (lastToldAt). Нет таких - null.
+ */
+export const lastTold = (notes: readonly RunNoteWire[]): RunNoteWire | null =>
+  notes.reduce<RunNoteWire | null>(
+    (last, note) => (note.who === 'person' && (!last || note.at >= last.at) ? note : last),
+    null,
+  )

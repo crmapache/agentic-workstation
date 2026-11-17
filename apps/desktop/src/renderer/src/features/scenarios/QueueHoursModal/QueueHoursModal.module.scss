@@ -1,0 +1,50 @@
+// Поля одно под другим, у каждого своя подпись - как в окне задания по расписанию.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.caption {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+// Начало и конец окна - рядом: это одно «с и до».
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.footer {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.footerEnd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}

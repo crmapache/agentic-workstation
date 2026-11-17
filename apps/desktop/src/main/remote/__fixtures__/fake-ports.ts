@@ -39,6 +39,7 @@ type Controls = Omit<
   | 'newConversation'
   | 'close'
   | 'setOptions'
+  | 'bypassDisabled'
   | 'rename'
   | 'providers'
   | 'history'
@@ -84,6 +85,12 @@ export const controlsOf = (ide: ExtrasIde): Controls => {
       ])
 
       return Promise.resolve(null)
+    },
+    // Как ComposerTools.savePasted: файл ложится в каталог вставок, ответ - его путь.
+    saveFile: (name, data) => {
+      ide.record('saveFile', name, data)
+
+      return Promise.resolve(`/ide/pasted/${name}`)
     },
     unqueue: (id, queuedId) => {
       ide.record('unqueue', id, queuedId)

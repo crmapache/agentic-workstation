@@ -52,4 +52,9 @@
   color: var(--color-fg-muted);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
+
+  // Погашенная строка гаснет целиком, а не одной подписью.
+  .option:disabled & {
+    color: var(--color-fg-disabled);
+  }
 }

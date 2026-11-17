@@ -1,11 +1,13 @@
-import type { Conversation } from '@shared/claude'
+import type { Conversation, PermissionMode } from '@shared/claude'
 
 import type { Command } from '@agentic-workstation/remote-protocol/commands'
 
+import { withFiles } from './attached-files'
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { asideAnswerWire, rewindOutcomeWire, rewindPreviewWire } from './conversation-extras-wire'
 import type { Redact } from './fit'
+import type { ModeGate } from './mode-gate'
 import { done, fail } from './outcomes'
 
 type ToolCommand = Extract<
@@ -21,6 +23,7 @@ type ToolCommand = Extract<
       | 'conversation.stopTask'
       | 'conversation.cancelCarryOn'
       | 'conversation.setFast'
+      | 'conversation.setMode'
       | 'conversation.aside'
       | 'conversation.asideCancel'
       | 'conversation.rewindPreview'
@@ -30,14 +33,15 @@ type ToolCommand = Extract<
 
 /**
  * Служебное поверх одного разговора с телефона (как в ACC): очередь сообщений, закрыть вопрос
- * без ответа, погасить процесс, остановить задачу, «Don't continue», быстрый режим, вопрос сбоку
- * и откат. Те же публичные методы ClaudeService и панели, что у окна. Разговор уже найден и его
- * проект открыт - это проверил тот, кто зовёт.
+ * без ответа, погасить процесс, остановить задачу, «Don't continue», быстрый режим, режим
+ * разрешений, вопрос сбоку и откат. Те же публичные методы ClaudeService и панели, что у окна.
+ * Разговор уже найден и его проект открыт - это проверил тот, кто зовёт.
  */
 export class ConversationTools {
   constructor(
     private readonly ports: BridgePorts,
     private readonly redact: () => Redact,
+    private readonly modes: ModeGate,
   ) {}
 
   async run(command: Command, conversation: Conversation): Promise<Outcome> {
@@ -48,7 +52,10 @@ export class ConversationTools {
 
     switch (command.name) {
       case 'conversation.enqueue': {
-        const { text, images = [] } = command.args
+        const { images = [], files = [] } = command.args
+        const text = await withFiles(command.args.text, files, conversations.saveFile)
+
+        if (text === null) return fail('refused', 'fileNotSaved')
 
         await conversations.enqueue(id, { text, images })
 
@@ -90,6 +97,8 @@ export class ConversationTools {
         conversations.setOptions(id, { fastMode: command.args.fast })
 
         return done()
+      case 'conversation.setMode':
+        return this.setMode(conversation, command.args.mode)
       case 'conversation.aside':
         return this.aside(id, command.args.askId, command.args.question)
       case 'conversation.asideCancel':
@@ -130,6 +139,28 @@ export class ConversationTools {
   }
 
   /**
+   * Режим разрешений - как пункт меню MODE окна (ADR 0076): недоступный у окна (bypass под
+   * запретом настроек, auto, от которого CLI отказался) - отказ modeUnavailable, текущий не
+   * гасится. Отказ самого CLI потом вернёт вкладку к прежнему режиму, как у окна.
+   */
+  private async setMode(conversation: Conversation, mode: PermissionMode): Promise<Outcome> {
+    const { conversations } = this.ports
+    const allowed =
+      mode === conversation.permissionMode ||
+      (await this.modes.allows(mode, conversation.projectPath, conversation))
+
+    if (!allowed) return fail('refused', 'modeUnavailable')
+    // Пока читались настройки, вкладку могли закрыть.
+    if (!conversations.getState().conversations.some((one) => one.id === conversation.id)) {
+      return fail('notFound')
+    }
+
+    conversations.setOptions(conversation.id, { permissionMode: mode })
+
+    return done()
+  }
+
+  /**
    * Вопрос сбоку: итог команды - ответ, когда он пришёл. Он уходит только спросившему телефону
    * (итогом его команды), в транскрипт не пишется. id уже занят - отказ askTaken.
    */
@@ -152,6 +183,7 @@ const TOOL_COMMANDS: ReadonlySet<string> = new Set<ToolCommand['name']>([
   'conversation.stopTask',
   'conversation.cancelCarryOn',
   'conversation.setFast',
+  'conversation.setMode',
   'conversation.aside',
   'conversation.asideCancel',
   'conversation.rewindPreview',

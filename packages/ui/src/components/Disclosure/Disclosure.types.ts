@@ -2,7 +2,7 @@ import type { ReactNode, ButtonHTMLAttributes } from 'react'
 
 /**
  * sm - строка в списке (вызов в ленте); md - шапка карточки, которая раскрывается; touch - строка
- * ленты на телефоне: не ниже цели касания.
+ * ленты на телефоне: нажимается во всю ширину, высотой контрола md.
  */
 export type DisclosureSize = 'sm' | 'md' | 'touch'
 

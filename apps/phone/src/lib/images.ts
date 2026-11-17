@@ -1,6 +1,6 @@
 import { toBase64 } from '@agentic-workstation/remote-protocol/base64'
 import type { IMAGE_TYPES } from '@agentic-workstation/remote-protocol/commands'
-import { MAX_IMAGES, MAX_IMAGES_CHARS } from '@agentic-workstation/remote-protocol/message-size'
+import { MAX_IMAGES } from '@agentic-workstation/remote-protocol/message-size'
 
 export { MAX_IMAGES }
 
@@ -73,8 +73,3 @@ export const prepareImage = async (file: File): Promise<PreparedImage | null> =>
 
   return blob ? prepared(blob, output) : null
 }
-
-/** Влезают ли фото в одно сообщение - и числом, и весом: те же числа, что у схемы команды. */
-export const imagesFit = (images: readonly PreparedImage[]): boolean =>
-  images.length <= MAX_IMAGES &&
-  images.reduce((sum, image) => sum + image.data.length, 0) <= MAX_IMAGES_CHARS

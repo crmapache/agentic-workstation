@@ -223,6 +223,24 @@ describe('buildReport habits and series', () => {
     expect(series.points[10]).toMatchObject({ tokens: 0, agentMinutes: 15 })
   })
 
+  it('splits agent minutes of each hour by human presence', () => {
+    turn('S1', D0 + 9 * HOUR_MS + 30 * MINUTE_MS, D0 + 10 * HOUR_MS + 15 * MINUTE_MS)
+    // Человек у окна с 9:40 до 9:50 - в другом проекте: «без тебя» считается по всей IDE.
+    notes.write({
+      kind: 'presence',
+      entries: Array.from({ length: 10 }, (_, index) => ({
+        minute: (D0 + 9 * HOUR_MS) / MINUTE_MS + 40 + index,
+        project: '/p/other',
+      })),
+    })
+
+    const { series, totals } = report(D0, D0 + DAY_MS)
+
+    expect(series.points[9]).toMatchObject({ agentMinutes: 30, agentsWithoutYouMinutes: 20 })
+    expect(series.points[10]).toMatchObject({ agentMinutes: 15, agentsWithoutYouMinutes: 15 })
+    expect(totals.agentsWithoutYouMs).toBe(35 * MINUTE_MS)
+  })
+
   it('buckets a week by hours and a longer period by days', () => {
     expect(report(D0 - 6 * DAY_MS, D0 + DAY_MS).series).toMatchObject({ bucket: 'hour' })
     expect(report(D0 - 6 * DAY_MS, D0 + DAY_MS).series.points).toHaveLength(7 * 24)

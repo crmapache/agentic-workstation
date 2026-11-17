@@ -2,7 +2,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { BrowserWindow } from 'electron'
-import { Notification } from 'electron'
+import { Notification, powerMonitor } from 'electron'
 
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -75,6 +75,7 @@ export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioSer
   })
 
   service.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
+  powerMonitor.on('resume', () => service.awake())
 
   return service
 }

@@ -6,15 +6,16 @@ import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import type { RouteOf } from '../../../lib/route.types'
 import { useRouter } from '../../../lib/router.store'
+import { runWorked } from '../../../lib/scenarios.utils'
 import { isRunOver, RUN_TONES } from '../../../lib/status.constants'
-import { costText } from '../../../lib/time.utils'
+import { costText, durationText } from '../../../lib/time.utils'
 import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import { ListGroup } from '../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../shell/ListRow/ListRow'
 import { Screen } from '../../../shell/Screen/Screen'
 import { StatusLine } from '../../../shell/StatusLine/StatusLine'
 import { HEAD_LOG } from './RunScreen.constants'
-import { useRunScreen } from './RunScreen.hooks'
+import { useRunClock, useRunScreen } from './RunScreen.hooks'
 import styles from './RunScreen.module.scss'
 import { CarryOnCard } from './parts/CarryOnCard'
 import { RunFooter } from './parts/RunFooter'
@@ -22,8 +23,8 @@ import { RunNotes } from './parts/RunNotes'
 import { RunSteps } from './parts/RunSteps'
 
 /**
- * Прогон сценария: дорожка этапов и шагов, продолжить после лимита или остановки, журналы шагов
- * и головы. Всё, что нажимают, пока прогон идёт, - в низу под пальцем: вопрос головы над полем
+ * Прогон сценария: сколько работает (без пауз и вопросов человеку, как в IDE), дорожка этапов и
+ * шагов, продолжить после лимита или остановки, журналы шагов и головы. Всё, что нажимают, пока прогон идёт, - в низу под пальцем: вопрос головы над полем
  * (как вопрос хода в разговоре), пауза и стоп, «написать голове».
  */
 export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
@@ -31,7 +32,7 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
   const navigate = useRouter((state) => state.navigate)
   const screen = useRunScreen(route)
   const { run } = screen
-  const help = { title: t('run.help.title'), text: t('run.help.text') }
+  const clock = useRunClock(route.agentId, run)
 
   const handleOpenLog = (stepKey: string) =>
     navigate({
@@ -44,7 +45,7 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
 
   if (!run) {
     return (
-      <Screen title={t('run.title')} agentId={route.agentId} help={help}>
+      <Screen title={t('run.title')} agentId={route.agentId}>
         {run === null ? (
           <EmptyState icon={SearchX} title={t('run.gone')} />
         ) : (
@@ -65,11 +66,16 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
           badge={
             <Badge tone={RUN_TONES[run.state] ?? 'neutral'}>{t(`runState.${run.state}`)}</Badge>
           }
-          text={costText(run.cost)}
+          text={[
+            run.startedAt > 0 && durationText(t, runWorked(run, clock.now)),
+            costText(run.cost),
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         />
       }
       agentId={route.agentId}
-      help={help}
+
       footer={
         !isRunOver(run.state) &&
         !isAcc && (
@@ -77,7 +83,7 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
         )
       }>
       {!isAcc && <CarryOnCard run={run} busy={screen.busy} onCarryOn={screen.carryOn} />}
-      <RunSteps run={run} onOpenLog={handleOpenLog} />
+      <RunSteps run={run} now={clock.now} onOpenLog={handleOpenLog} />
       <ListGroup label={t('run.headLog')}>
         <ListRow
           title={t('run.headLog')}
@@ -85,7 +91,7 @@ export const RunScreen = ({ route }: { route: RouteOf<'run'> }) => {
           onClick={() => handleOpenLog(HEAD_LOG)}
         />
       </ListGroup>
-      <RunNotes notes={run.notes} />
+      <RunNotes run={run} now={clock.now} offset={clock.offset} />
     </Screen>
   )
 }

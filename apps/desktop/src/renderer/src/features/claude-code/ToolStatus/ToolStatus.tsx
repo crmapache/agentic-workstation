@@ -7,7 +7,8 @@ import { metaText } from './ToolStatus.utils'
 
 /**
  * Итог вызова в шапке, как в ACC: «· running», «· waiting for you» у вызова, который
- * ждёт разрешения, «· 12 lines», «· +2 −1», «· failed», почему закрыт без результата.
+ * ждёт разрешения, «· 12 lines», «· +2 −1» (большая правка без диффа CLI - «· ±»),
+ * «· failed», почему закрыт без результата.
  */
 export const ToolStatus = ({ meta, running, awaiting }: ToolStatusProps) => {
   const { t } = useTranslation()

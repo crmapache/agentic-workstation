@@ -25,7 +25,6 @@ export const StartScenarioScreen = ({ route }: { route: RouteOf<'startScenario'>
     <Screen
       title={t('start.title')}
       agentId={route.agentId}
-      help={{ title: t('start.help.title'), text: t('start.help.text') }}
       footer={
         <Button
           size="touch"

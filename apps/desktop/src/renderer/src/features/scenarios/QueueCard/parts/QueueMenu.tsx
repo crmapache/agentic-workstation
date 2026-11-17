@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Trash2, Archive, Ellipsis, FolderOpen } from 'lucide-react'
+import { Clock, Pencil, Trash2, Archive, Ellipsis, FolderOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -10,13 +10,15 @@ import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { QueueMenuProps } from '../QueueCard.types'
+import { useHoursWords } from '../../scenarios-queue-hours.hooks'
 import { runningItemOf } from '../../scenarios-queues.utils'
 import { useScenarioActions } from '../../scenarios.actions'
 import { useScenariosStore } from '../../scenarios.store'
 import { CloseQueueDialog } from './CloseQueueDialog'
 
 /**
- * Меню очереди под «…»: переименовать, открыть worktree проектом, удалить worktree, закрыть.
+ * Меню очереди под «…»: переименовать, рабочие часы, открыть worktree проектом, удалить
+ * worktree, закрыть.
  * Пока сценарий идёт, папку и очередь не трогают - пункты погашены с причиной: прогон писал бы
  * в удалённую папку.
  */
@@ -25,10 +27,13 @@ export const QueueMenu = ({ queue, onRename }: QueueMenuProps) => {
   const popover = usePopover()
   const actions = useScenarioActions()
   const open = useScenariosStore((state) => state.open)
+  const hoursWords = useHoursWords()
   const [isClosing, setIsClosing] = useState(false)
   const isBusy = runningItemOf(queue) !== null
   const hasWorktree = queue.workdir.kind === 'worktree' && !queue.workdir.removed
   const busy = isBusy ? t('scenarios.queues.menu.busy') : undefined
+
+  const handleHours = () => open({ kind: 'hours', queueId: queue.id })
 
   const handleOpenWorktree = () => void actions.worktree(queue.id, { kind: 'open' })
 
@@ -51,6 +56,14 @@ export const QueueMenu = ({ queue, onRename }: QueueMenuProps) => {
         {popover.isOpen && (
           <Menu label={t('scenarios.queues.menu.label')} autoFocus>
             <MenuItem icon={Pencil} label={t('scenarios.queues.menu.rename')} onSelect={onRename} />
+            {queue.closedAt === 0 && (
+              <MenuItem
+                icon={Clock}
+                label={t('scenarios.queues.menu.hours')}
+                description={queue.hours ? hoursWords.label(queue.hours) : undefined}
+                onSelect={handleHours}
+              />
+            )}
             {hasWorktree && (
               <>
                 <MenuSeparator />

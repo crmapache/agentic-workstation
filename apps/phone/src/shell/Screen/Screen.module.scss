@@ -72,6 +72,15 @@
   align-items: center;
 }
 
+// Видимая часть тела: прокрутка - внутри, плавающее поверх (overlay) стоит на месте.
+.frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .body {
   display: flex;
   flex: 1;
@@ -99,8 +108,7 @@
 }
 
 // С низом тело не уходит под полосу «домой» - её место уже занял низ.
-.footer ~ .body,
-.body:has(~ .footer) {
+.frame:has(~ .footer) > .body {
   padding-bottom: var(--space-4);
 }
 

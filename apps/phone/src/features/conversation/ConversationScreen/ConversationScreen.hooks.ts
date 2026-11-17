@@ -6,7 +6,8 @@ import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire
 import { STICK_THRESHOLD_PX } from '../Feed/Feed.constants'
 import type { FeedActions, RunningTask } from '../Feed/Feed.types'
 import type { Decision } from '../PendingCard/PendingCard.types'
-import type { PreparedImage } from '../../../lib/images'
+import type { OutgoingMessage } from '../../../lib/attachments'
+import { attachmentArgs } from '../../../lib/attachments'
 import { useNow } from '../../../lib/now.hooks'
 import type { RouteOf } from '../../../lib/route.types'
 import { durationText } from '../../../lib/time.utils'
@@ -71,14 +72,8 @@ export const useConversationScreen = (route: RouteOf<'conversation'>) => {
     }
   }, [feed, conversation?.status, conversation?.pending])
 
-  const handleSend = async (text: string, images: PreparedImage[]): Promise<boolean> => {
-    const args = {
-      conversationId,
-      text,
-      ...(images.length > 0 && {
-        images: images.map(({ mediaType, data }) => ({ mediaType, data })),
-      }),
-    }
+  const handleSend = async (message: OutgoingMessage): Promise<boolean> => {
+    const args = { conversationId, text: message.text, ...attachmentArgs(message) }
 
     // Пока идёт ход - в очередь IDE, она уйдёт после него. Пока висит вопрос - сразу, как Send
     // окна: IDE кладёт слова человека перед отказом, и модель их прочтёт, а не будет ждать.

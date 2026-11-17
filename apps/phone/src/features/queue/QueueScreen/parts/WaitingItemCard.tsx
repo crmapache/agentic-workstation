@@ -9,13 +9,15 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import type { useQueueScreen } from '../QueueScreen.hooks'
 import styles from '../QueueScreen.module.scss'
+import type { Confirmation } from '../QueueScreen.types'
 import { itemFacts } from '../QueueScreen.utils'
 import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
 import { OptionList } from '../../../../shell/OptionList/OptionList'
 
 /**
  * Ждущий элемент очереди: сценарий и ответы на его вопросы, «только после успеха», переставить,
- * остановить очередь после него, убрать (с вопросом «точно?»).
+ * остановить очередь после него, убрать. Каждое действие кнопкой - через «точно?»: значки стоят
+ * плотно, и палец, листающий карточки, задевал их случайно.
  */
 export const WaitingItemCard = ({
   queue,
@@ -32,9 +34,34 @@ export const WaitingItemCard = ({
   screen: ReturnType<typeof useQueueScreen>
 }) => {
   const { t } = useTranslation()
-  const [isRemoving, setIsRemoving] = useState(false)
+  const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const stopsAfter = queue.stopAfterItemId === item.id
   const { queueAction, busy } = screen
+  const name = item.scenarioName
+
+  const handleMove = (by: -1 | 1) =>
+    setConfirming({
+      title: t(by < 0 ? 'queue.moveUpConfirm' : 'queue.moveDownConfirm', { name }),
+      label: t(by < 0 ? 'queue.moveUp' : 'queue.moveDown'),
+      tone: 'primary',
+      onConfirm: () => queueAction({ kind: 'move', itemId: item.id, by }),
+    })
+
+  const handleStopAfter = () =>
+    setConfirming({
+      title: t(stopsAfter ? 'queue.keepGoingConfirm' : 'queue.stopAfterConfirm', { name }),
+      label: t(stopsAfter ? 'queue.keepGoing' : 'queue.stopAfterThis'),
+      tone: 'primary',
+      onConfirm: () => queueAction({ kind: 'stopAfter', itemId: stopsAfter ? null : item.id }),
+    })
+
+  const handleRemove = () =>
+    setConfirming({
+      title: t('queue.removeConfirm', { name }),
+      label: t('queue.remove'),
+      tone: 'danger',
+      onConfirm: () => queueAction({ kind: 'remove', itemId: item.id }),
+    })
 
   return (
     <Card
@@ -59,14 +86,14 @@ export const WaitingItemCard = ({
             size="touch"
             label={t('queue.moveUp')}
             disabled={busy || position <= 0}
-            onClick={() => queueAction({ kind: 'move', itemId: item.id, by: -1 })}
+            onClick={() => handleMove(-1)}
           />
           <IconButton
             icon={ArrowDown}
             size="touch"
             label={t('queue.moveDown')}
             disabled={busy || position >= waitingCount - 1}
-            onClick={() => queueAction({ kind: 'move', itemId: item.id, by: 1 })}
+            onClick={() => handleMove(1)}
           />
           <IconButton
             icon={CircleStop}
@@ -74,23 +101,25 @@ export const WaitingItemCard = ({
             label={t(stopsAfter ? 'queue.keepGoing' : 'queue.stopAfterThis')}
             active={stopsAfter}
             disabled={busy}
-            onClick={() => queueAction({ kind: 'stopAfter', itemId: stopsAfter ? null : item.id })}
+            onClick={handleStopAfter}
           />
           <IconButton
             icon={Trash2}
             size="touch"
             label={t('queue.remove')}
             disabled={busy}
-            onClick={() => setIsRemoving(true)}
+            onClick={handleRemove}
           />
         </div>
       </div>
       <ConfirmDialog
-        open={isRemoving}
-        title={t('queue.removeConfirm', { name: item.scenarioName })}
-        confirmLabel={t('queue.remove')}
-        onConfirm={() => queueAction({ kind: 'remove', itemId: item.id })}
-        onClose={() => setIsRemoving(false)}
+        open={confirming !== null}
+        title={confirming?.title ?? ''}
+        text={confirming?.text}
+        confirmLabel={confirming?.label ?? ''}
+        tone={confirming?.tone}
+        onConfirm={() => confirming?.onConfirm()}
+        onClose={() => setConfirming(null)}
       />
     </Card>
   )

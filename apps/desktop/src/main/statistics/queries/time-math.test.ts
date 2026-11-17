@@ -3,12 +3,13 @@ import { it, expect, describe } from 'vitest'
 import {
   streaksOf,
   bestWindow,
+  totalLength,
   workSessions,
   dayIndexStart,
-  lengthOutside,
   localDayIndex,
   unionIntervals,
   minuteIntervals,
+  intervalsOutside,
 } from './time-math'
 
 describe('unionIntervals', () => {
@@ -28,14 +29,20 @@ describe('unionIntervals', () => {
   })
 })
 
-describe('lengthOutside', () => {
-  it('measures agent time when the human was away', () => {
+describe('intervalsOutside', () => {
+  it('cuts the human presence out of agent time', () => {
     const presence = minuteIntervals([10, 11, 12, 20])
     const wall = [{ start: 5 * 60_000, end: 25 * 60_000 }]
+    const away = intervalsOutside(wall, presence)
 
     // 20 минут работы, из них 4 минуты человек был у окна.
-    expect(lengthOutside(wall, presence)).toBe(16 * 60_000)
-    expect(lengthOutside(wall, [])).toBe(20 * 60_000)
+    expect(away).toEqual([
+      { start: 5 * 60_000, end: 10 * 60_000 },
+      { start: 13 * 60_000, end: 20 * 60_000 },
+      { start: 21 * 60_000, end: 25 * 60_000 },
+    ])
+    expect(totalLength(away)).toBe(16 * 60_000)
+    expect(intervalsOutside(wall, [])).toEqual(wall)
   })
 })
 

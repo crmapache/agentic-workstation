@@ -144,34 +144,48 @@ export const currentRange = (root: HTMLElement, kept: Range | null = null): Rang
   return padTrailingBreak(root) ?? endRange(root)
 }
 
-/**
- * Текстовый узел рядом с диапазоном, который стоит между узлами (сразу после вставленного):
- * иначе пробел за вложением ставился бы и перед словом, которое уже начинается с пробела.
- */
-const textBeside = (range: Range, side: 'before' | 'after'): string => {
-  const { startContainer: container, startOffset: offset } = range
-  const node = container.childNodes[side === 'before' ? offset - 1 : offset]
+/** Текст узла рядом с местом вставки; не текст (чип, <br>) или нет узла - пусто. */
+const textOf = (node: Node | null | undefined): string =>
+  node?.nodeType === Node.TEXT_NODE ? (node.textContent ?? '') : ''
 
-  return node?.nodeType === Node.TEXT_NODE ? (node.textContent ?? '') : ''
+/**
+ * Символ перед свёрнутым диапазоном; вложение или начало поля - пусто. Смотрит и через край
+ * узла, как в ACC: текст поля лежит в нескольких узлах, и на краю своего узла чип в начале строки
+ * вставал вплотную к слову перед ним.
+ */
+export const charBefore = (range: Range): string => {
+  const { startContainer: container, startOffset: offset } = range
+
+  if (container.nodeType !== Node.TEXT_NODE)
+    return textOf(container.childNodes[offset - 1]).slice(-1)
+  if (offset > 0) return (container.textContent ?? '').charAt(offset - 1)
+
+  return textOf(container.previousSibling).slice(-1)
 }
 
-/** Символ перед и после свёрнутого диапазона; не текст - пусто. */
-export const charBefore = (range: Range): string =>
-  range.startContainer.nodeType === Node.TEXT_NODE
-    ? range.startOffset > 0
-      ? (range.startContainer.textContent ?? '').charAt(range.startOffset - 1)
-      : ''
-    : textBeside(range, 'before').slice(-1)
+/**
+ * Символ после - так же, через край узла: иначе место сразу за вставленным чипом казалось пустым,
+ * и чип посреди фразы приносил второй пробел к уже стоящему.
+ */
+export const charAfter = (range: Range): string => {
+  const { startContainer: container, startOffset: offset } = range
 
-export const charAfter = (range: Range): string =>
-  range.startContainer.nodeType === Node.TEXT_NODE
-    ? (range.startContainer.textContent ?? '').charAt(range.startOffset)
-    : textBeside(range, 'after').charAt(0)
+  if (container.nodeType !== Node.TEXT_NODE) return textOf(container.childNodes[offset]).charAt(0)
 
-/** Перед вложением пробел нужен, только если там не пробел; после - всегда: каретке надо где-то стоять. */
+  const text = container.textContent ?? ''
+
+  return offset < text.length ? text.charAt(offset) : textOf(container.nextSibling).charAt(0)
+}
+
+/** Перед вложением пробел нужен, только если там не пробел и не начало поля. */
 export const needsLeadingSpace = (char: string): boolean => char.length > 0 && !/\s/.test(char)
 
-export const needsTrailingSpace = (char: string): boolean => char.length === 0 || !/\s/.test(char)
+/**
+ * После вложения пробел нужен всегда, как в ACC, - каретке надо где-то стоять, - но не второй.
+ * Перевод строки за ним - не место для каретки: чип в конце строки перед следующей (или на новой
+ * строке после Shift+Enter) оставался без пробела, и следующая буква липла к нему.
+ */
+export const needsTrailingSpace = (char: string): boolean => !/[^\S\r\n]/.test(char)
 
 /**
  * Элемент поля, который не чип (блок или <br> самого браузера), - перенос строки и его

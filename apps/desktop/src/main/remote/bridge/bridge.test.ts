@@ -42,12 +42,15 @@ describe('инвентарь', () => {
       },
     ])
     expect(open?.queues).toEqual({ open: 1, running: 1, asking: 1 })
+    // Новый разговор открытого проекта - во всех режимах окна: bypass здесь не запрещён.
+    expect(open?.unavailableModes).toEqual({ claude: [] })
     expect(recent).toMatchObject({ open: false, conversations: [] })
+    expect(recent?.unavailableModes).toBeUndefined()
     // Ключ один и для открытого, и для закрытого: открыт ли - говорит open.
     expect(recent?.key).toMatch(/^p-[A-Za-z0-9_-]{22}$/)
     expect(inventory.providers[0]).toMatchObject({
       id: 'claude',
-      permissionModes: ['default', 'acceptEdits', 'plan'],
+      permissionModes: ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'],
     })
     expect(inventory.machine).toEqual({ label: 'Agentic Workstation on test', ideVersion: '0.1.0' })
   })
@@ -272,7 +275,7 @@ describe('команды телефона', () => {
     expect(ide.state.conversations.at(-1)?.permissionMode).toBe('default')
   })
 
-  it('разговор вышел не в телефонном режиме - отказ, и он закрыт', async () => {
+  it('разговор вышел не в выбранном режиме - отказ permissionMode, и он закрыт', async () => {
     const { ide, command } = bridgeSetup()
 
     // IDE, которая не послушала выбор: вкладка унаследовала bypass.

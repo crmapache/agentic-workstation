@@ -18,8 +18,9 @@ import styles from './NewConversationScreen.module.scss'
 type NewArgs = CommandArgs<'conversation.new'>
 
 /**
- * Новый разговор в открытом проекте: провайдер, модель, усилие и режим - только те, что можно
- * с телефона (без bypass и auto). Первое сообщение пишется уже в самом разговоре.
+ * Новый разговор в открытом проекте: провайдер, модель, усилие и режим - любой, в котором окно
+ * IDE начало бы вкладку этого проекта (ADR 0076; погашенное у окна погашено и здесь). Первое
+ * сообщение пишется уже в самом разговоре.
  */
 export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversation'> }) => {
   const { t } = useTranslation()
@@ -61,7 +62,6 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
       title={t('newConversation.title')}
       subtitle={project?.name}
       agentId={agentId}
-      help={{ title: t('newConversation.help.title'), text: t('newConversation.help.text') }}
       footer={
         <Button
           size="touch"
@@ -104,7 +104,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
           <Section size="sm" title={t('newConversation.mode')}>
             <OptionList
               label={t('newConversation.mode')}
-              options={modeOptions(t, provider)}
+              options={modeOptions(t, provider, project?.unavailableModes?.[provider.id])}
               isSelected={(value) => value === mode}
               onSelect={setMode}
             />

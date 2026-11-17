@@ -3,6 +3,8 @@ import { isItemOver } from '@shared/scenario-queues'
 import type { RunState } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
 
+import { isResting, forgetNapRun } from './queue-nap'
+
 /**
  * Очередь сценариев - арифметикой, без процессов и диска: что очередь делает сейчас и как
  * она меняется от каждого события. Так каждое правило проверяется тестом, а сервис только
@@ -41,9 +43,12 @@ const blockedByFailure = (queue: ScenarioQueue, next: QueueItem): QueueItem | nu
     : null
 }
 
-/** Следующий, кто стартует сейчас; null - очередь стоит, занята, закрыта или пуста. */
-export const nextToStart = (queue: ScenarioQueue): QueueItem | null => {
-  if (queue.closedAt > 0 || queue.hold || runningItem(queue)) return null
+/**
+ * Следующий, кто стартует сейчас; null - очередь стоит, занята, закрыта, пуста или отдыхает
+ * вне рабочих часов.
+ */
+export const nextToStart = (queue: ScenarioQueue, now: number): QueueItem | null => {
+  if (queue.closedAt > 0 || queue.hold || runningItem(queue) || isResting(queue, now)) return null
 
   const next = queue.items.find((item) => item.state === 'waiting') ?? null
 
@@ -53,9 +58,11 @@ export const nextToStart = (queue: ScenarioQueue): QueueItem | null => {
 /**
  * Очередь свободна, а следующий не может стартовать из-за неуспеха перед ним - встать с той
  * же причиной, что при провале: человек решает, идти ли дальше. Иначе - та же очередь.
+ * Отдыхающая вне рабочих часов не решает ничего: за ней может ждать прогон, оборванный выходом
+ * IDE, - его продолжат утром, и это не провал.
  */
 export const holdBeforeFailure = (queue: ScenarioQueue, now: number): ScenarioQueue => {
-  if (queue.closedAt > 0 || queue.hold || runningItem(queue)) return queue
+  if (queue.closedAt > 0 || queue.hold || runningItem(queue) || isResting(queue, now)) return queue
 
   const next = queue.items.find((item) => item.state === 'waiting')
   const failed = next && blockedByFailure(queue, next)
@@ -258,7 +265,8 @@ export const reopenItem = (queue: ScenarioQueue, itemId: string): ScenarioQueue 
 /**
  * IDE поднялась: элемент, который «идёт» без живого прогона, - прогон оборвался вместе с
  * IDE (при выходе он пишется остановленным, при падении - упавшим). Очередь при этом
- * встаёт, если за ним кто-то ждёт: сама она без человека ничего не начинает.
+ * встаёт, если за ним кто-то ждёт: сама она без человека ничего не начинает. Исключение -
+ * прогон, который на паузу поставили рабочие часы: его очередь продолжит, проснувшись.
  */
 export const recoverQueue = (
   queue: ScenarioQueue,
@@ -270,13 +278,22 @@ export const recoverQueue = (
   if (!running) return queue
 
   const state = running.runId ? stateOf(running.runId) : null
+
+  // Прогон спал по рабочим часам: человек его не останавливал - очередь продолжит его сама,
+  // когда окно откроется (ADR 0074), и не ждёт Resume. IDE упала, а не вышла, - запись прогона
+  // помечена упавшей, но на паузе ему нечем было упасть: он остановлен, а не провален.
+  if (running.runId && queue.nap?.runId === running.runId && state !== 'done') {
+    return patchItem(queue, running.id, { state: 'stopped' })
+  }
+
   const outcome: ItemOutcome = state === 'done' || state === 'failed' ? state : 'stopped'
   const settled = patchItem(queue, running.id, { state: outcome })
   const waiting = settled.items.some((item) => item.state === 'waiting')
+  const forgotten = forgetNapRun(settled, running.runId)
 
   return waiting
-    ? { ...settled, hold: { reason: 'interrupted', itemId: running.id, at: now } }
-    : settled
+    ? { ...forgotten, hold: { reason: 'interrupted', itemId: running.id, at: now } }
+    : forgotten
 }
 
 /** Имя, пока ИИ думает: сценарий и первый непустой ответ - так очереди уже различимы. */

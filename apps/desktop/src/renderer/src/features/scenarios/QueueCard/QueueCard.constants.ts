@@ -7,5 +7,8 @@ export const QUEUE_NAME_MAX = 200
 /** Иконка-метка «очередь встанет после этого» - ростом с мелкий текст строки. */
 export const MARK_ICON_SIZE = 12
 
+/** Строка «вне рабочих часов» сверяется с часами раз в минуту: «Today 10:00» к полуночи - «Tomorrow». */
+export const REST_TICK_MS = 60_000
+
 /** Провайдеры очереди перечнем («Claude Code, Codex»): элементы очереди могут идти у разных. */
 export const PROVIDER_LIST = new Intl.ListFormat('en', { style: 'narrow', type: 'unit' })

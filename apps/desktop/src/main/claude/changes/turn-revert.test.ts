@@ -52,10 +52,11 @@ const fakeRuntime = (items: FeedItem[], messageId = MESSAGE) => {
   } as unknown as ConversationRuntime
 }
 
+/** counts 'uncounted' - большая правка: CLI прислал пустой дифф, цифр у ленты нет. */
 const tool = (
   id: string,
   path: string,
-  counts: { added: number; removed: number },
+  counts: { added: number; removed: number } | 'uncounted',
   input: Record<string, unknown> = { old_string: 'two', new_string: 'TWO' },
 ) =>
   ({
@@ -65,7 +66,12 @@ const tool = (
     name: 'Edit',
     input: { file_path: path, ...input },
     status: 'done',
-    result: { text: 'ok', isError: false, truncated: false, changeCounts: counts },
+    result: {
+      text: 'ok',
+      isError: false,
+      truncated: false,
+      ...(counts === 'uncounted' ? { uncounted: true } : { changeCounts: counts }),
+    },
     startedAt: 0,
     endedAt: 0,
     closedReason: null,
@@ -166,7 +172,7 @@ describe('откат файлов хода', () => {
     const path = join(dir, 'a.txt')
     const before = Array.from({ length: 50 }, (_, index) => `x = foo(${index})\n`).join('')
     const replaceAll = { old_string: 'foo(', new_string: 'bar(', replace_all: true }
-    const items: FeedItem[] = [tool('t1', path, { added: 0, removed: 0 }, replaceAll)]
+    const items: FeedItem[] = [tool('t1', path, 'uncounted', replaceAll)]
     const revert = new TurnRevert(fakeRuntime(items))
 
     await copied(path, before)

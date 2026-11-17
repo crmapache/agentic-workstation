@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import { MAX_ASIDE_CHARS } from '@agentic-workstation/remote-protocol/conversation-commands'
 import { Button } from '@agentic-workstation/ui/Button'
-import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
 import { TextArea } from '@agentic-workstation/ui/TextArea'
 
@@ -37,15 +36,6 @@ export const AsideSheet = ({
       title={t('aside.title')}
       closeLabel={t('common.close')}
       closeSize="touch"
-      headerActions={
-        <HelpButton
-          size="touch"
-          label={t('common.help')}
-          title={t('aside.help.title')}
-          text={t('aside.help.text')}
-          closeLabel={t('common.close')}
-        />
-      }
       footer={
         <div className={styles.ask}>
           <TextArea

@@ -5,7 +5,8 @@ import type { OptionListProps } from './OptionList.types'
 
 /**
  * Выбор строками под палец: модель, усилие, режим, вариант ответа. На телефоне список с
- * отметками удобнее выпадающего меню - всё видно сразу, промахнуться трудно.
+ * отметками удобнее выпадающего меню - всё видно сразу, промахнуться трудно. Недоступная строка
+ * видна погашенной, как пункт меню окна IDE, а не пропадает.
  */
 export const OptionList = <V extends string>({
   label,
@@ -28,7 +29,7 @@ export const OptionList = <V extends string>({
           type="button"
           role={shape === 'circle' ? 'radio' : 'checkbox'}
           aria-checked={selected}
-          disabled={disabled}
+          disabled={disabled || option.disabled}
           className={styles.option}
           onClick={() => onSelect(option.value)}>
           <ChoiceMark shape={shape} checked={selected} />

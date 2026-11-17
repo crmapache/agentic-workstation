@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import type { Scope } from './query-scope'
 import { turnWhere, humanWhere } from './query-scope'
 import type { Interval } from './time-math'
-import { clip, totalLength, lengthOutside, unionIntervals, minuteIntervals } from './time-math'
+import { clip, totalLength, unionIntervals, minuteIntervals, intervalsOutside } from './time-math'
 
 /** Ход из базы: живые часы IDE (exact) или кусок оценки по транскрипту. */
 export type TurnRow = {
@@ -23,6 +23,8 @@ export type AgentTime = {
   withoutYouMs: number
   /** Объединённые отрезки работы - для графика по часам и дням. */
   wall: Interval[]
+  /** Из wall - отрезки вне минут присутствия: на графике они стоят над присутствием. */
+  away: Interval[]
 }
 
 /**
@@ -76,14 +78,15 @@ export const agentTime = (
   }
 
   const wall = unionIntervals(pieces)
-  const presence = minuteIntervals(presenceMinutes)
+  const away = intervalsOutside(wall, minuteIntervals(presenceMinutes))
 
   return {
     workMs,
     estimatedMs,
     wallMs: totalLength(wall),
-    withoutYouMs: lengthOutside(wall, presence),
+    withoutYouMs: totalLength(away),
     wall,
+    away,
   }
 }
 

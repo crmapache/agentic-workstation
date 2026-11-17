@@ -3,7 +3,8 @@ import type { ClosedReason, ToolFeedItem } from '@shared/claude-feed'
 import type { OpenFileRequest } from '../../state/open-file.context'
 import { DETAIL_LIMIT, ANCHOR_MIN_CHARS } from './claude.constants'
 import { inputText, relativePath } from './claude.utils'
-import { editRows } from './diff.utils'
+import type { DiffRow } from './diff.utils'
+import { editRows, diffStats } from './diff.utils'
 
 const text = inputText
 
@@ -103,7 +104,18 @@ export type ToolMeta =
   | { kind: 'matches'; count: number }
   | { kind: 'output'; empty: boolean }
   | { kind: 'diff'; added: number; removed: number }
+  | { kind: 'uncounted' }
   | { kind: 'closed'; reason: ClosedReason }
+
+/**
+ * Итог правки в шапке её карточки: строки по всему диффу CLI, без них - по показанным строкам.
+ * Большую правку CLI не сравнивает (`uncounted`) - «±», как в списке файлов хода: «+0 −0»
+ * сказало бы, что правка ничего не изменила.
+ */
+export const editMeta = (result: ToolFeedItem['result'], rows: readonly DiffRow[]): ToolMeta =>
+  result?.uncounted
+    ? { kind: 'uncounted' }
+    : { kind: 'diff', ...(result?.changeCounts ?? diffStats(rows)) }
 
 /** Итог вызова для шапки: цифры - самого вызова. */
 export const toolMeta = (tool: ToolFeedItem): ToolMeta => {

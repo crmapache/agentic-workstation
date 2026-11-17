@@ -2,7 +2,13 @@ import { it, expect, describe } from 'vitest'
 
 import type { InventoryProject } from '@agentic-workstation/remote-protocol/wire-types'
 
-import { initialsOf, avatarToneOf, projectNeedsYou, conversationCounts } from './projects.utils'
+import {
+  initialsOf,
+  avatarToneOf,
+  projectWorks,
+  projectNeedsYou,
+  conversationCounts,
+} from './projects.utils'
 
 const project = (over: Partial<InventoryProject> = {}): InventoryProject => ({
   key: 'p-x',
@@ -46,5 +52,18 @@ describe('проекты на телефоне', () => {
   it('ждёт человека: разговор с вопросом или прогон с вопросом', () => {
     expect(projectNeedsYou(project())).toBe(false)
     expect(projectNeedsYou(project({ queues: { open: 1, running: 1, asking: 1 } }))).toBe(true)
+  })
+
+  it('работа - идущий ход или прогон, который ни о чём не спрашивает', () => {
+    const idle = project().conversations.map((one) => ({ ...one, status: 'idle' as const }))
+
+    expect(projectWorks(project())).toBe(true)
+    expect(projectWorks(project({ conversations: idle }))).toBe(false)
+    expect(
+      projectWorks(project({ conversations: idle, queues: { open: 1, running: 1, asking: 0 } })),
+    ).toBe(true)
+    expect(
+      projectWorks(project({ conversations: idle, queues: { open: 1, running: 1, asking: 1 } })),
+    ).toBe(false)
   })
 })

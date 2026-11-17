@@ -9,11 +9,20 @@ import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import type { useQueueScreen } from '../QueueScreen.hooks'
 import styles from '../QueueScreen.module.scss'
+import type { Confirmation } from '../QueueScreen.types'
+import { useNow } from '../../../../lib/now.hooks'
 import type { RouteOf } from '../../../../lib/route.types'
 import { useRouter } from '../../../../lib/router.store'
+import { runWorked } from '../../../../lib/scenarios.utils'
+import { durationText } from '../../../../lib/time.utils'
 import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
 
-/** Идущий прогон очереди: этап, доля шагов, вопрос к человеку и кнопки прогона. */
+/**
+ * Идущий прогон очереди: этап, доля шагов, сколько работает, вопрос к человеку и кнопки прогона. Пауза и Stop -
+ * парой, длинные «остановиться после» и «открыть прогон» - каждая своим рядом: в половине ширины
+ * их подписи переносились, и кнопки выходили вдвое толще. Stop и «остановиться после» - через
+ * «точно?».
+ */
 export const CurrentRun = ({
   route,
   queue,
@@ -27,16 +36,36 @@ export const CurrentRun = ({
 }) => {
   const { t } = useTranslation()
   const navigate = useRouter((state) => state.navigate)
-  const [isStopping, setIsStopping] = useState(false)
+  const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const paused = run.state === 'paused'
   const stopsAfter = queue.stopAfterItemId === run.itemId
-  const facts = [run.stageTitle, t('queue.stepsDone', { done: run.done, total: run.total })]
+  const name = run.scenarioName
+  const now = useNow(1000)
+  const facts = [
+    run.stageTitle,
+    t('queue.stepsDone', { done: run.done, total: run.total }),
+    run.startedAt > 0 && durationText(t, runWorked(run, now + screen.offset)),
+  ]
 
   const handleOpen = () =>
     navigate({ name: 'run', agentId: route.agentId, projectKey: route.projectKey, runId: run.id })
 
+  const handleStop = () =>
+    setConfirming({
+      title: t('run.stopConfirm', { name }),
+      label: t('run.stop'),
+      tone: 'danger',
+      onConfirm: () => screen.runAction(run, 'stop'),
+    })
+
   const handleStopAfter = () =>
-    screen.queueAction({ kind: 'stopAfter', itemId: stopsAfter ? null : run.itemId })
+    setConfirming({
+      title: t(stopsAfter ? 'queue.keepGoingConfirm' : 'queue.stopAfterConfirm', { name }),
+      label: t(stopsAfter ? 'queue.keepGoing' : 'queue.stopAfterCurrent'),
+      tone: 'primary',
+      onConfirm: () =>
+        screen.queueAction({ kind: 'stopAfter', itemId: stopsAfter ? null : run.itemId }),
+    })
 
   return (
     <Card
@@ -59,23 +88,29 @@ export const CurrentRun = ({
             onClick={() => screen.runAction(run, paused ? 'resume' : 'pause')}>
             {t(paused ? 'run.resume' : 'run.pause')}
           </Button>
-          <Button size="touch" variant="danger" icon={Square} onClick={() => setIsStopping(true)}>
+          <Button size="touch" variant="danger" icon={Square} onClick={handleStop}>
             {t('run.stop')}
           </Button>
-          <Button size="touch" icon={CircleStop} disabled={screen.busy} onClick={handleStopAfter}>
-            {t(stopsAfter ? 'queue.keepGoing' : 'queue.stopAfterCurrent')}
-          </Button>
-          <Button size="touch" variant="primary" icon={ArrowRight} onClick={handleOpen}>
-            {t('queue.openRun')}
-          </Button>
+          <span className={styles.wideAction}>
+            <Button size="touch" icon={CircleStop} disabled={screen.busy} onClick={handleStopAfter}>
+              {t(stopsAfter ? 'queue.keepGoing' : 'queue.stopAfterCurrent')}
+            </Button>
+          </span>
+          <span className={styles.wideAction}>
+            <Button size="touch" variant="primary" icon={ArrowRight} onClick={handleOpen}>
+              {t('queue.openRun')}
+            </Button>
+          </span>
         </div>
       </div>
       <ConfirmDialog
-        open={isStopping}
-        title={t('run.stopConfirm', { name: run.scenarioName })}
-        confirmLabel={t('run.stop')}
-        onConfirm={() => screen.runAction(run, 'stop')}
-        onClose={() => setIsStopping(false)}
+        open={confirming !== null}
+        title={confirming?.title ?? ''}
+        text={confirming?.text}
+        confirmLabel={confirming?.label ?? ''}
+        tone={confirming?.tone}
+        onConfirm={() => confirming?.onConfirm()}
+        onClose={() => setConfirming(null)}
       />
     </Card>
   )

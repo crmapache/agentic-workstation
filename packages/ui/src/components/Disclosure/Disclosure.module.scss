@@ -25,9 +25,10 @@
   border-radius: var(--radius-sm);
 }
 
-// Под палец: строка ленты телефона не ниже цели касания.
+// Строка ленты телефона: нажимается во всю ширину, поэтому ей хватает высоты контрола md, а
+// не цели касания - строки журнала идут подряд, и с высотой 44 px лента рассыпалась на пустоты.
 .touch {
-  min-height: var(--size-touch-target);
+  min-height: var(--size-control-md);
   padding: 0 var(--space-1-5);
   border-radius: var(--radius-sm);
 }

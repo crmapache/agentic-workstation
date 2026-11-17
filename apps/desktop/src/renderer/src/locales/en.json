@@ -1053,7 +1053,8 @@
           "refused": "Stopped: would not start",
           "interrupted": "Stopped: IDE closed"
         },
-        "closed": "Closed, worktree kept"
+        "closed": "Closed, worktree kept",
+        "resting": "Outside working hours"
       },
       "workdir": {
         "worktree": "worktree · {{branch}}",
@@ -1116,6 +1117,7 @@
       "menu": {
         "label": "Queue actions",
         "rename": "Rename",
+        "hours": "Working hours…",
         "openWorktree": "Open worktree as project",
         "removeWorktree": "Remove worktree…",
         "close": "Close queue",
@@ -1130,6 +1132,42 @@
         "worktreeKept": "Its worktree has work in it and stays, on branch {{branch}}. The queue stays in the list until you remove the worktree.",
         "worktreeDropped": "Its worktree has nothing new and is removed with it.",
         "confirm": "Close queue"
+      },
+      "hours": {
+        "label": "{{days}} {{span}}",
+        "allDay": "all day",
+        "days": {
+          "everyDay": "Every day",
+          "weekdays": "Weekdays",
+          "weekend": "Weekends",
+          "list": "{{days}}"
+        },
+        "now": {
+          "inside": "Inside these hours now. The queue pauses: {{when}}.",
+          "outside": "Outside these hours now: a running scenario pauses as soon as you save. The queue resumes: {{when}}.",
+          "noDays": "Pick at least one day.",
+          "always": "These hours cover the whole week: the queue never sleeps."
+        },
+        "rest": {
+          "paused": "Outside working hours: {{name}} is paused. It resumes on its own: {{when}}.",
+          "waiting": "Outside working hours: nothing new starts. Next start: {{when}}.",
+          "folder": "Working hours have begun. The queue goes on in a moment, once the project folder is free."
+        },
+        "change": "Change hours",
+        "form": {
+          "title": "Working hours",
+          "days": "Days",
+          "from": "From",
+          "to": "To",
+          "hour": "Hour",
+          "minute": "Minute",
+          "save": "Save",
+          "anyTime": "Work any time",
+          "help": {
+            "label": "About working hours",
+            "text": "Outside these hours the queue sleeps: the running scenario pauses, as if you pressed Pause, and the next one does not start. When the hours begin, the queue goes on by itself, even if the IDE was restarted at night.\n\nIf you resume a paused scenario yourself, the hours leave it alone until they end again. A queue with no work just waits for the hours.\n\nTimes are this computer's local time. An end earlier than the start runs past midnight: 22:00 to 06:00 is one night. The same start and end mean the whole day."
+          }
+        }
       }
     },
     "library": {
@@ -1825,7 +1863,8 @@
       "chartTitle": "Presence and agent work",
       "empty": "No activity in this period",
       "present": "You present",
-      "working": "Agents working",
+      "away": "Agents without you",
+      "workingTotal": "Agents worked {{duration}} in total",
       "withoutYou": "Agents worked without you",
       "summed": "Agent turns, summed",
       "wall": "Agents, wall-clock",
@@ -1916,7 +1955,7 @@
       },
       "time": {
         "title": "Time",
-        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from transcripts: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
+        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from transcripts: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nOn the chart, the lower part of a bar is your presence and the upper part is agent wall-clock time while you were away, so a bar never adds up to more than the hour, day or week it covers. The tooltip also shows how long agents worked in total.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
       },
       "habits": {
         "title": "When you work",
@@ -2264,6 +2303,7 @@
         "output": "· output",
         "noOutput": "· no output",
         "diff": "· +{{added}} −{{removed}}",
+        "uncounted": "· ±",
         "moreLines": "… {{count}} more lines",
         "fewerLines": "… collapse",
         "count_one": "{{count}} tool",
@@ -3322,7 +3362,7 @@
     "help": {
       "label": "What the phone can do",
       "title": "What the phone can do",
-      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort or fast mode.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort, fast mode or permission mode (the modes the IDE offers it, Auto and Bypass permissions included).\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
     }
   },
   "tasks": {

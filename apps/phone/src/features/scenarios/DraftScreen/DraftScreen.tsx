@@ -27,7 +27,6 @@ export const DraftScreen = ({ route }: { route: RouteOf<'draft'> }) => {
     <Screen
       title={t('draft.title')}
       agentId={route.agentId}
-      help={{ title: t('draft.help.title'), text: t('draft.help.text') }}
       footer={<DraftFooter screen={screen} />}>
       {phase.kind === 'ready' ? (
         <ScenarioView scenario={phase.scenario} />

@@ -5,7 +5,7 @@ import type {
   ConversationWire,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
-import { fastOffered, fastStateKey } from './ConversationSettings.utils'
+import { fastOffered, fastStateKey, modesOffered } from './ConversationSettings.utils'
 
 const provider: ProviderCaps = {
   id: 'claude',
@@ -39,5 +39,13 @@ describe('быстрый режим разговора', () => {
     expect(fastStateKey({ asked: true, state: 'cooldown' })).toBe(
       'conversation.fast.states.cooldown',
     )
+  })
+})
+
+describe('режим разговора с телефона', () => {
+  it('раздел есть у IDE, которая называет погашенные режимы; у старой - нет', () => {
+    expect(modesOffered(conversation({ unavailableModes: [] }))).toBe(true)
+    expect(modesOffered(conversation({ unavailableModes: ['bypassPermissions'] }))).toBe(true)
+    expect(modesOffered(conversation({}))).toBe(false)
   })
 })

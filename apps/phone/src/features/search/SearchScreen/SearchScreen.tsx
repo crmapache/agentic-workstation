@@ -27,7 +27,6 @@ export const SearchScreen = ({ route }: { route: RouteOf<'search'> }) => {
       title={t('search.title')}
       subtitle={project?.name}
       agentId={route.agentId}
-      help={{ title: t('search.help.title'), text: t('search.help.text') }}
       footer={
         closed ? (
           <OpenInIdeButton agentId={route.agentId} projectKey={route.projectKey} />

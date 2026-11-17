@@ -22,6 +22,7 @@ import type { DocumentStatus, MarkdownLayout } from '../editor.types'
 import { useMarkdownLayoutStore } from '../markdown-layout.store'
 import { usePreviewScrollSync } from '../markdown-scroll.hooks'
 import { monaco } from '../monaco-setup'
+import { normalizePastedLineBreaks } from '../paste-line-breaks'
 import type { CodeEditorProps } from './CodeEditor.types'
 import { placeRange, hasClassicScrollbars } from './CodeEditor.utils'
 
@@ -56,6 +57,7 @@ const useMonacoEditor = (shown: RefObject<EditorDocument | null>, isShown: RefOb
     editorRef.current = instance
 
     hideFindFromPalette(instance)
+    normalizePastedLineBreaks(instance)
     instance.onDidBlurEditorText(() => void shown.current?.save())
     remeasureWhenLoaded()
 

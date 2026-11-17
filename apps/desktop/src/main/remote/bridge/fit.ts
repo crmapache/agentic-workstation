@@ -95,36 +95,6 @@ export const fitItem = (
   redact: Redact = asIs,
 ): FeedItemWire => fitValue(item, budget, redact) ?? stubOf(item, budget, redact)
 
-/**
- * Хвост списка, который влезает в один кадр, - от конца к началу, не больше max штук. cut -
- * выше осталось ещё (лента: снимок честно говорит, что неполон, и телефон просит выше страницами).
- */
-export const tailThatFits = <T extends FeedItemWire>(
-  items: readonly T[],
-  budget: number,
-  max: number,
-  redact: Redact = asIs,
-): { items: FeedItemWire[]; cut: boolean } => {
-  const kept: FeedItemWire[] = []
-  let used = 0
-
-  for (let index = items.length - 1; index >= 0 && kept.length < max; index -= 1) {
-    const raw = items[index]
-
-    if (raw === undefined) continue
-
-    const item = fitItem(raw, budget, redact)
-    const size = sizeOf(item) + 1
-
-    if (used + size > budget) break
-
-    kept.unshift(item)
-    used += size
-  }
-
-  return { items: kept, cut: kept.length < items.length }
-}
-
 /** Список пачками, каждая влезает в кадр; порядок сохраняется, ни один элемент не теряется. */
 export const packsThatFit = <T extends FeedItemWire>(
   items: readonly T[],

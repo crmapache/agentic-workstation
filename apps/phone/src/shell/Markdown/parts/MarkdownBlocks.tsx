@@ -20,7 +20,17 @@ const List = ({ token }: { token: Tokens.List }) => (
     {token.items.map((item, index) => (
       <li key={index} className={styles.listItem}>
         <span className={styles.marker}>
-          {item.task ? (item.checked ? '☑' : '☐') : listMarker(token, item, index)}
+          {item.task ? (
+            item.checked ? (
+              '☑'
+            ) : (
+              '☐'
+            )
+          ) : token.ordered ? (
+            listMarker(token, item, index)
+          ) : (
+            <span className={styles.bullet} />
+          )}
         </span>
         <div className={styles.listBody}>
           <MarkdownBlocks tokens={item.tokens} />

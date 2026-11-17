@@ -10,6 +10,7 @@ import type { ScenarioQueue } from '@shared/scenario-queues'
 
 import { MESSAGE_UUID } from '../../desktop/src/main/remote/__fixtures__/fake-extras'
 import {
+  RUN,
   QUEUE,
   itemOf,
   RECENT_PATH,
@@ -152,7 +153,8 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('button', { name: /Fix the login bug/ }).waitFor()
     await page.getByRole('button', { name: /Cleanup/ }).waitFor()
     await page.getByRole('button', { name: /Past conversations/ }).waitFor()
-    expect(await page.locator('header').getByRole('button').count()).toBe(2)
+    // В шапке только «назад»: справки «?» на телефоне нет (ADR 0077).
+    expect(await page.locator('header').getByRole('button').count()).toBe(1)
     await expectOneRow(
       'footer button:has-text("New conversation")',
       'footer button:has-text("Start a scenario")',
@@ -218,16 +220,54 @@ describe('телефон в мобильном Chromium против насто�
     expect(backBox.height).toBe(44)
     expect(Math.abs(titles.middle - backBox.middle)).toBeLessThanOrEqual(1)
     expect(await page.locator('header').getByRole('button', { name: 'Stop' }).count()).toBe(0)
-    await expectOneRow('textarea', 'button[aria-label="Send"]')
+    // Поле во всю ширину, под ним ряд: скрепка слева, «отправить» справа - одной высоты.
+    await expectOneRow('button[aria-label="Attach photos or files"]', 'button[aria-label="Send"]')
+    expect((await boxOf(page, 'footer textarea')).bottom).toBeLessThanOrEqual(
+      (await boxOf(page, 'button[aria-label="Send"]')).top,
+    )
     await shot('05-conversation')
 
-    // Ход идёт: Stop - в ряду поля, рядом с «отправить», той же высоты.
+    // Цитата: выделенный кусок ответа - кнопкой «Quote» строкой над полем, в сообщение - «> »
+    // сверху, как цитаты поля IDE.
+    await page.evaluate(() => {
+      const answer = [...document.querySelectorAll('[data-quotable] p')].find((paragraph) =>
+        paragraph.textContent?.includes('Fixed the endpoint in'),
+      )
+      const range = document.createRange()
+      const selection = window.getSelection()
+
+      if (!answer || !selection) throw new Error('no answer to quote')
+
+      range.selectNodeContents(answer)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    })
+    await shot('05-quote-button')
+    await page.getByRole('button', { name: 'Quote', exact: true }).click()
+    await page.getByRole('list', { name: 'Quotes' }).waitFor()
+    await shot('05-quote')
+    await page.getByRole('textbox', { name: 'Message' }).fill('Why there?')
+    await page.getByRole('button', { name: 'Send' }).click()
+
+    const quoted = await until(
+      () =>
+        ide.ide.calls.find(
+          (call) => call.name === 'send' && JSON.stringify(call.args).includes('Why there?'),
+        ),
+      'the quote at the IDE',
+    )
+
+    expect((quoted.args[1] as { text: string }).text).toMatch(
+      /^> Fixed the endpoint in.*\nWhy there\?$/,
+    )
+    await page.getByRole('list', { name: 'Quotes' }).waitFor({ state: 'detached' })
+
+    // Ход идёт: Stop значком - в ряду под полем, рядом с «отправить», той же высоты.
     ide.update({ status: 'running', turnStartedAt: Date.now(), workStartedAt: Date.now() })
     await page.getByRole('button', { name: 'Stop', exact: true }).waitFor()
     await expectOneRow(
-      'button[aria-label="Add a photo"]',
-      'textarea',
-      'footer button:has-text("Stop")',
+      'button[aria-label="Attach photos or files"]',
+      'footer button[aria-label="Stop"]',
       'button[aria-label="Send"]',
     )
     await shot('05b-running-stop')
@@ -285,21 +325,36 @@ describe('телефон в мобильном Chromium против насто�
     expect((await boxOf(page, 'dialog[open] button[aria-label="Close"]')).height).toBe(44)
     expect((await boxOf(page, 'dialog[open] input', true)).height).toBe(44)
     await shot('07-conversation-settings')
-    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
 
-    // Новый разговор: только разрешённые режимы.
+    // Режим разговора - любой из меню окна IDE (ADR 0076), и он виден под заголовком.
+    await page.getByRole('radio', { name: /Bypass permissions/ }).click()
+    await until(
+      () =>
+        ide.ide.calls.find(
+          (call) =>
+            call.name === 'setOptions' &&
+            JSON.stringify(call.args[1]) === '{"permissionMode":"bypassPermissions"}',
+        ),
+      'mode change at the IDE',
+    )
+    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+    await page.getByText(/Bypass · /).waitFor()
+
+    // Новый разговор: все режимы окна IDE теми же словами.
     await back()
     await page.getByRole('button', { name: 'New conversation' }).click()
-    await page.getByRole('radio', { name: /Plan first/ }).waitFor()
+    await page.getByRole('radio', { name: /Plan mode/ }).waitFor()
     expect(
       await page
         .getByRole('radiogroup', { name: 'Mode', exact: true })
         .getByRole('radio')
         .allTextContents(),
     ).toEqual([
-      expect.stringContaining('Ask before changes'),
+      expect.stringContaining('Ask before edits'),
       expect.stringContaining('Accept edits'),
-      expect.stringContaining('Plan first'),
+      expect.stringContaining('Plan mode'),
+      expect.stringContaining('Auto'),
+      expect.stringContaining('Bypass permissions'),
     ])
     await shot('08-new-conversation')
     await back()
@@ -339,7 +394,11 @@ describe('телефон в мобильном Chromium против насто�
     await back()
     await page.getByRole('button', { name: /Cleanup/ }).click()
     await page.getByRole('region', { name: 'Write the changelog' }).waitFor()
+    // Действие очереди - через «точно?»: палец, листающий карточки, задевал кнопки случайно.
     await page.getByRole('button', { name: 'Stop after this' }).click()
+    await page.getByRole('dialog').getByText('Stop the queue after').waitFor()
+    await shot('11a-queue-confirm')
+    await page.getByRole('dialog').getByRole('button', { name: 'Stop after this' }).click()
     await until(
       () =>
         ide.ide.calls.find(
@@ -363,12 +422,36 @@ describe('телефон в мобильном Chromium против насто�
     // Прогон: вопрос головы над полем, пауза и стоп - рядом под пальцем, в шапке их нет.
     await expectOneRow('footer button:has-text("Pause")', 'footer button:has-text("Stop")')
     await expectOneRow('button:has-text("Refuse")', 'button:has-text("Allow")')
-    expect(await page.locator('header').getByRole('button').count()).toBe(2)
+    expect(await page.locator('header').getByRole('button').count()).toBe(1)
 
     const stage = page.getByRole('heading', { name: 'Look around' })
 
     expect(await stage.evaluate((element) => getComputedStyle(element).textTransform)).toBe('none')
     await shot('12-run')
+
+    // Время работы прогона в шапке и «голова пишет ответ» под словами человека, как в IDE.
+    const now = Date.now()
+
+    ide.service.runChanged({
+      ...RUN,
+      startedAt: now - 5 * 60_000 - 7_000,
+      answering: true,
+      notes: [
+        {
+          at: now - 20_000,
+          stepKey: '',
+          text: 'Why so slow?',
+          who: 'person',
+          deliveredAt: now - 12_000,
+          relayed: '',
+        },
+      ],
+    })
+    await page.getByText(/The head is writing a reply · \d+s/).waitFor()
+    await page.getByText(/^5m \d\ds · \$0\.10$/).waitFor()
+    await page.getByText('Why so slow?').scrollIntoViewIfNeeded()
+    await shot('12b-run-head-answering')
+    ide.service.runChanged(RUN)
 
     expect(errors).toEqual([])
   })
@@ -522,6 +605,31 @@ describe('телефон в мобильном Chromium против насто�
     expect(bytes.subarray(0, 2).toString('hex')).toBe('ffd8')
     expect(bytes.includes('Exif')).toBe(false)
     expect(bytes.includes('SECRET-PLACE')).toBe(false)
+
+    // Файл (не картинка) - тем же выбором; IDE пишет его к себе и ставит в текст ссылкой.
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'report.pdf',
+      mimeType: 'application/pdf',
+      buffer: Buffer.from('%PDF-1.4 test'),
+    })
+    await page.getByRole('button', { name: 'Remove report.pdf' }).waitFor()
+    await shot('15b-file-attached')
+    await page.getByRole('textbox', { name: /message/i }).fill('Read the report')
+    await page.getByRole('button', { name: 'Send', exact: true }).click()
+
+    const withFile = await until(
+      () =>
+        ide.ide.calls.find(
+          (call) =>
+            (call.name === 'send' || call.name === 'enqueue') &&
+            JSON.stringify(call.args).includes('Read the report'),
+        ),
+      'the file at the IDE',
+    )
+
+    expect((withFile.args[1] as { text: string }).text).toBe(
+      'Read the report @/ide/pasted/report.pdf',
+    )
 
     // Фото сообщения крупно: тяжелее кадра - IDE уменьшает его под экран и говорит об этом.
     const pictures = await screenshotPictures(page)

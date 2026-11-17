@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Card } from '@agentic-workstation/ui/Card'
 
+import { queueRest } from '../scenarios-queue-hours.utils'
 import { queueStatus, runningItemOf } from '../scenarios-queues.utils'
 import styles from './QueueCard.module.scss'
 import type { QueueCardProps } from './QueueCard.types'
@@ -9,12 +10,14 @@ import { QueueControls } from './parts/QueueControls'
 import { QueueHeader } from './parts/QueueHeader'
 import { QueueHold } from './parts/QueueHold'
 import { QueueItems } from './parts/QueueItems'
+import { QueueRest } from './parts/QueueRest'
 import { QueueRunning } from './parts/QueueRunning'
 
 /**
  * Очередь сценариев полосой: имя, где работает, что делает (пока элемент идёт, это говорит метка
  * его строки - второй такой же в шапке нет); элементы по порядку, идущий - с дорогой карточек
- * и часами; почему встала и как её пустить; пауза, остановка после текущего, добавить.
+ * и часами; почему встала и как её пустить, почему спит вне рабочих часов и когда пойдёт сама;
+ * пауза, остановка после текущего, добавить.
  * Ждущий человека прогон красит карточку акцентом: это единственное, что ждёт ответа.
  */
 export const QueueCard = ({ queue, live }: QueueCardProps) => {
@@ -23,6 +26,7 @@ export const QueueCard = ({ queue, live }: QueueCardProps) => {
   const isGoing = runningItemOf(queue) !== null
   // Закрытая очередь на виду только ради своего worktree: запускать в неё больше нечего.
   const isClosed = queue.closedAt > 0
+  const rest = queueRest(queue)
 
   return (
     <Card tone={status.kind === 'asking' ? 'accent' : 'neutral'}>
@@ -34,6 +38,7 @@ export const QueueCard = ({ queue, live }: QueueCardProps) => {
           onRenaming={setIsRenaming}
         />
         {queue.hold && <QueueHold queue={queue} hold={queue.hold} />}
+        {rest && <QueueRest queueId={queue.id} why={rest} />}
         <QueueItems queue={queue} live={live} />
         {isGoing && live && <QueueRunning queue={queue} live={live} />}
         {!isClosed && <QueueControls queue={queue} live={live} />}

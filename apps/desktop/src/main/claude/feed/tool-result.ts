@@ -1,5 +1,7 @@
 import type { PatchHunk, ToolResult } from '@shared/claude-feed'
 
+import type { LineChange } from '../changes/line-counts'
+import { patchLines, writtenLines } from '../changes/line-counts'
 import { isRecord, numberField, stringField, recordsField } from '../cli/cli-messages'
 import { MAX_PATCH_LINES, MAX_RESULT_CHARS } from './feed.constants'
 
@@ -49,22 +51,28 @@ export const parsePatch = (value: unknown): PatchHunk[] | undefined => {
   return hunks
 }
 
-/** Добавленные и удалённые строки по всему диффу CLI, не по обрезанному для показа. */
-const countPatch = (value: unknown) => {
-  if (!Array.isArray(value)) return undefined
+/**
+ * Строки правки по результату CLI - по всему диффу, а не по обрезанному для показа. Новый
+ * файл CLI отдаёт пустым диффом, а текст - полем content: его строки и есть добавленное.
+ * Пустой дифф у существующего файла - большая правка, которую CLI не стал сравнивать
+ * (contentNotInModelContext): это «не посчитать», а не ноль строк. Ноль настоящий, только
+ * когда Write записал тот же текст, что был. undefined - диффа CLI нет вовсе (Read, Bash,
+ * старый CLI).
+ */
+const countChange = (structured: Record<string, unknown>): LineChange | 'uncounted' | undefined => {
+  const patch = structured['structuredPatch']
 
-  let added = 0
-  let removed = 0
-
-  for (const hunk of value.filter(isRecord)) {
-    for (const line of Array.isArray(hunk['lines']) ? hunk['lines'] : []) {
-      if (typeof line !== 'string') continue
-      if (line.startsWith('+')) added += 1
-      if (line.startsWith('-')) removed += 1
-    }
+  if (!Array.isArray(patch)) return undefined
+  if (structured['type'] === 'create') {
+    return { added: writtenLines(stringField(structured, 'content')), removed: 0 }
   }
+  if (patch.length > 0) return patchLines(patch)
 
-  return { added, removed }
+  const original = structured['originalFile']
+
+  return typeof original === 'string' && original === structured['content']
+    ? { added: 0, removed: 0 }
+    : 'uncounted'
 }
 
 /**
@@ -98,9 +106,10 @@ export const buildToolResult = (
 
   if (patch && patch.length > 0) result.patch = patch
 
-  const counts = countPatch(structured['structuredPatch'])
+  const counts = countChange(structured)
 
-  if (counts) result.changeCounts = counts
+  if (counts === 'uncounted') result.uncounted = true
+  else if (counts) result.changeCounts = counts
   if (structured['type'] === 'create') result.created = true
 
   return result

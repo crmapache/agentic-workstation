@@ -87,30 +87,43 @@
   color: var(--color-fg-muted);
 }
 
+// Маркер - своя колонка общей сетки списка (subgrid), как в IDE: её ширина - самый широкий
+// маркер, так что «9.» и «10.» стоят ровно, а перенесённые строки пункта - под текстом.
 .list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .listItem {
-  display: flex;
-  gap: var(--space-2);
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
 }
 
 .marker {
-  flex: none;
-  min-width: var(--space-4);
-  color: var(--color-fg-subtle);
+  color: var(--color-fg-muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Точка пункта - кружок, а не знак «•»: знак шрифта на телефоне выходил крошкой. Середина
+// кружка - по середине строчных букв первой строки.
+.bullet {
+  display: inline-block;
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  border-radius: var(--radius-full);
+  background-color: var(--color-fg-muted);
+  vertical-align: middle;
 }
 
 .listBody {
   display: flex;
-  flex: 1;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;

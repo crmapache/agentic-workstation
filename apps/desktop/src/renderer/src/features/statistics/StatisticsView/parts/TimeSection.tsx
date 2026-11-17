@@ -16,11 +16,12 @@ import { FactGrid } from './FactGrid'
 import { StatisticsHelp } from './StatisticsHelp'
 
 /**
- * Время: присутствие человека и настенное время агентов одним столбцом - меньшее снизу, из него
- * растёт большее, видно, где агенты работали, пока человека не было. Не стопкой: минуты одного
- * часа идут одновременно и не складываются, столбец высотой с большее. График - во всю ширину (неделя по часам - 168 шагов), под
- * ним своей карточкой - сколько так набралось, сумма ходов (параллельные складываются),
- * настенное и доля оценки по транскриптам.
+ * Время: присутствие человека и настенное время агентов одним столбцом - стопкой из двух
+ * частей, которые не пересекаются: снизу всегда присутствие, сверху - агенты, пока человека не
+ * было. Столбец высотой с время, когда был кто-то из них, и не больше шага; сколько агенты
+ * работали в шаге всего - строкой в подсказке. График - во всю ширину (неделя по часам - 168
+ * шагов), под ним своей карточкой - сколько так набралось, сумма ходов (параллельные
+ * складываются), настенное и доля оценки по транскриптам.
  */
 export const TimeSection = ({ data, chart, labels }: SectionProps) => {
   const { t } = useTranslation()
@@ -41,15 +42,25 @@ export const TimeSection = ({ data, chart, labels }: SectionProps) => {
             label={t('statistics.time.chart')}
             series={[
               { key: 'you', label: t('statistics.time.present'), tone: YOU_TONE },
-              { key: 'agents', label: t('statistics.time.working'), tone: AGENTS_TONE },
+              { key: 'agents', label: t('statistics.time.away'), tone: AGENTS_TONE },
             ]}
-            points={barPointsOf(chart, labels, (point) => [
-              (point.presenceMinutes * MINUTE_MS) / unit,
-              (point.agentMinutes * MINUTE_MS) / unit,
-            ])}
+            points={barPointsOf(
+              chart,
+              labels,
+              (point) => [
+                (point.presenceMinutes * MINUTE_MS) / unit,
+                (point.agentsWithoutYouMinutes * MINUTE_MS) / unit,
+              ],
+              (point) =>
+                point.agentMinutes > 0
+                  ? t('statistics.time.workingTotal', {
+                      duration: formatDuration(point.agentMinutes * MINUTE_MS),
+                    })
+                  : undefined,
+            )}
             formatValue={formatValue}
             emptyLabel={t('statistics.time.empty')}
-            layout="overlaid"
+            layout="stacked"
           />
         </Card>
         <Card>

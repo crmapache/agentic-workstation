@@ -4,13 +4,14 @@ import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 import type { StepLogWire } from '@agentic-workstation/remote-protocol/scenario-wire-types'
 
+import { withFiles } from './attached-files'
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
+import { tailWindow } from './feed-window'
 import type { Redact } from './fit'
-import { tailThatFits } from './fit'
 import { done, fail, scenarioOutcome } from './outcomes'
 import type { ProjectKeys } from './project-keys'
-import { PAGE_ITEMS, pageBefore, READ_BUDGET } from './reads-fit'
+import { PAGE_ROWS, pageBefore, READ_BUDGET, feedWithRowAbove } from './reads-fit'
 import { runProjectPath } from './scenario-wire'
 import { ShelfCommands } from './shelf-commands'
 
@@ -50,8 +51,9 @@ export class ScenarioCommands {
         return scenarioOutcome(await scenarios.carryOn(command.args.runId))
       case 'scenarios.control':
       case 'scenarios.answer':
-      case 'scenarios.tell':
         return this.runCommand(command, view)
+      case 'scenarios.tell':
+        return this.tell(command.args, view)
       case 'scenarios.log':
         return this.log(command.args, view)
       case 'scenarios.starRun': {
@@ -89,6 +91,24 @@ export class ScenarioCommands {
       : fail('refused', started.code)
   }
 
+  /** Слова голове прогона; файлы с телефона - в каталог вставок IDE и ссылками в текст. */
+  private async tell(
+    args: CommandArgs<'scenarios.tell'>,
+    view: ScenarioQueuesView,
+  ): Promise<Outcome> {
+    const path = runProjectPath(view, args.runId)
+
+    if (!path) return fail('notFound')
+
+    const text = await withFiles(args.text, args.files ?? [], this.ports.conversations.saveFile)
+
+    if (text === null) return fail('refused', 'fileNotSaved')
+
+    return this.ports.scenarios.tell(path, args.runId, text, args.images ?? [])
+      ? done()
+      : fail('refused', 'runOver')
+  }
+
   /** Команды идущему прогону: проект находит IDE по очереди прогона. */
   private runCommand(command: ScenarioCommand, view: ScenarioQueuesView): Outcome {
     const { scenarios } = this.ports
@@ -108,19 +128,16 @@ export class ScenarioCommands {
 
         return scenarios.answer(path, runId, allow, text, question) ? done() : fail('questionGone')
       }
-      case 'scenarios.tell':
-        return scenarios.tell(path, runId, command.args.text, command.args.images ?? [])
-          ? done()
-          : fail('refused', 'runOver')
       default:
         return fail('unknownCommand')
     }
   }
 
   /**
-   * Журнал шага - разговор карточки (или головы) той же лентой, что разговор: конец, сколько
-   * влезло в кадр, или страница выше before. before - первый и в журнале IDE, а выше есть
-   * транскрипт - сначала страница транскрипта, как «load earlier» окна прогона.
+   * Журнал шага - разговор карточки (или головы) той же лентой, что разговор: конец строками,
+   * сколько влезло в кадр, или страница строк выше before; шаги субагентов - счётом. Выше
+   * before в журнале IDE строк нет, а есть транскрипт - сначала его страницы, как «load
+   * earlier» окна прогона.
    */
   private async log(
     args: CommandArgs<'scenarios.log'>,
@@ -132,23 +149,28 @@ export class ScenarioCommands {
 
     const { scenarios } = this.ports
     const redact = this.redact()
-    let page = await scenarios.log(path, args.runId, args.key, false)
+    const page = await scenarios.log(path, args.runId, args.key, false)
 
     if (!page.found || !page.feed) return done(NO_LOG)
 
     if (args.before === undefined) {
-      const tail = tailThatFits(page.feed.items, READ_BUDGET, PAGE_ITEMS, redact)
+      const tail = tailWindow(page.feed.items, READ_BUDGET, PAGE_ROWS, redact)
 
-      return done({ found: true, items: tail.items, hasEarlier: tail.cut || page.feed.hasEarlier })
+      return done({
+        found: true,
+        items: tail.items,
+        steps: tail.steps,
+        hasEarlier: tail.cut || page.feed.hasEarlier,
+      })
     }
 
     const before = args.before
-
-    if (page.feed.items[0]?.id === before && page.feed.hasEarlier) {
-      page = await scenarios.log(path, args.runId, args.key, true)
-    }
-
-    const above = page.feed && pageBefore(page.feed.items, before, page.feed.hasEarlier, redact)
+    const feed = await feedWithRowAbove(
+      page.feed,
+      before,
+      async () => (await scenarios.log(path, args.runId, args.key, true)).feed,
+    )
+    const above = feed && pageBefore(feed.items, before, feed.hasEarlier, redact)
 
     return above ? done({ found: true, ...above }) : fail('notFound')
   }

@@ -41,6 +41,8 @@ const queue = (id: string, patch: Partial<ScenarioQueue> = {}): ScenarioQueue =>
   stopAfterItemId: '',
   hold: null,
   acknowledgedItemId: '',
+  hours: null,
+  nap: null,
   ...patch,
 })
 

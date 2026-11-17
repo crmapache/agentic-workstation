@@ -7,6 +7,7 @@ import {
   toolLabel,
   editCounts,
   innerSteps,
+  stepCounts,
   runningTask,
   toolSummary,
 } from './Feed.utils'
@@ -22,6 +23,34 @@ describe('лента телефона: чтение элементов', () => {
 
     expect(topLevel(items).map((item) => item.id)).toEqual(['agent-1', 'a'])
     expect(innerSteps(items).get('agent-1')).toBe(2)
+  })
+
+  // Лента из одних шагов, чей вызов выше загруженного, была пустой: «Load earlier» - без толку.
+  it('шаг, чья строка вызова не загружена, - обычная строка, как в окне IDE', () => {
+    const items = [
+      { id: 'x', kind: 'tool', parentToolUseId: 'agent-above' },
+      { id: 'y', kind: 'assistant', parentToolUseId: 'agent-above' },
+    ]
+
+    expect(topLevel(items).map((item) => item.id)).toEqual(['x', 'y'])
+    // Пришла страница со строкой вызова - шаги ушли в число на ней.
+    expect(
+      topLevel([{ id: 'agent-above', kind: 'tool', parentToolUseId: null }, ...items]).map(
+        (item) => item.id,
+      ),
+    ).toEqual(['agent-above'])
+  })
+
+  it('число шагов - счёт IDE по всей ленте; без счёта (IDE постарше) - по загруженным', () => {
+    const items = [
+      { id: 'agent-1', kind: 'tool', parentToolUseId: null },
+      { id: 'x', kind: 'tool', parentToolUseId: 'agent-1' },
+    ]
+
+    expect(stepCounts({ items, steps: { 'agent-1': 400, odd: Number.NaN } })).toEqual(
+      new Map([['agent-1', 400]]),
+    )
+    expect(stepCounts({ items })).toEqual(new Map([['agent-1', 1]]))
   })
 
   it('о чём вызов - по инструменту', () => {
@@ -51,6 +80,36 @@ describe('лента телефона: чтение элементов', () => {
       removed: 0,
     })
     expect(editCounts('Bash', {}, null)).toBeNull()
+  })
+
+  // Новый файл CLI отдаёт пустым диффом: строка была «+59 -0», пока шла, и «+0 -0» после.
+  it('новый файл - цифры IDE по содержимому, пока идёт - без лишней строки за переводом', () => {
+    const content = 'one\ntwo\n'
+    const created = { created: true, changeCounts: { added: 2, removed: 0 } }
+
+    expect(editCounts('Write', { content }, null)).toEqual({ added: 2, removed: 0 })
+    expect(editCounts('Write', { content }, created)).toEqual({ added: 2, removed: 0 })
+    expect(editCounts('Write', { content: '' }, null)).toEqual({ added: 0, removed: 0 })
+  })
+
+  it('старая IDE прислала новому файлу «+0 -0» - строки по содержимому', () => {
+    const stale = { created: true, changeCounts: { added: 0, removed: 0 } }
+
+    expect(editCounts('Write', { content: 'a\nb\nc\n' }, stale)).toEqual({ added: 3, removed: 0 })
+    // Перезапись тем же текстом - настоящий ноль, его не пересчитывать.
+    expect(
+      editCounts('Write', { content: 'a\n' }, { changeCounts: { added: 0, removed: 0 } }),
+    ).toEqual({
+      added: 0,
+      removed: 0,
+    })
+  })
+
+  it('большая правка без диффа CLI - «не посчитать», а не ноль', () => {
+    expect(editCounts('Edit', { old_string: 'a', new_string: 'b' }, { uncounted: true })).toBe(
+      'uncounted',
+    )
+    expect(editCounts('Write', { content: 'x\n' }, { uncounted: true })).toBe('uncounted')
   })
 
   it('остановить можно только идущую задачу с id, который CLI примет', () => {

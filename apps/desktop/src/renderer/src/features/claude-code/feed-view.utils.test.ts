@@ -4,7 +4,15 @@ import { it, expect, describe } from 'vitest'
 import type { Conversation } from '@shared/claude'
 import type { FeedItem, ToolFeedItem } from '@shared/claude-feed'
 
-import { toolMeta, editAnchor, fileTarget, toolDetail, toolTarget } from './tool-summary.utils'
+import { editRows } from './diff.utils'
+import {
+  editMeta,
+  toolMeta,
+  editAnchor,
+  fileTarget,
+  toolDetail,
+  toolTarget,
+} from './tool-summary.utils'
 import { rowAtEdge, streamStatus } from './Feed/Feed.utils'
 import { compactText, compactProgress } from './NoticeRow/NoticeRow.utils'
 import { planSteps } from './PlanCard/PlanCard.utils'
@@ -54,6 +62,25 @@ describe('шапка вызова', () => {
       kind: 'closed',
       reason: 'stopped',
     })
+  })
+
+  // Большую правку CLI шлёт с пустым диффом: «+0 −0» сказало бы, что ничего не изменилось.
+  it('итог правки: цифры CLI, без них - по строкам диффа, большая правка - «±»', () => {
+    const input = { old_string: 'a', new_string: 'b\nc' }
+    const result = (extra: object) => ({ text: '', isError: false, truncated: false, ...extra })
+    const meta = (extra: object) => {
+      const edit = tool('Edit', input, { result: result(extra) })
+
+      return editMeta(edit.result, editRows(edit))
+    }
+
+    expect(meta({ changeCounts: { added: 40, removed: 3 } })).toEqual({
+      kind: 'diff',
+      added: 40,
+      removed: 3,
+    })
+    expect(meta({})).toEqual({ kind: 'diff', added: 2, removed: 1 })
+    expect(meta({ uncounted: true })).toEqual({ kind: 'uncounted' })
   })
 
   it('вывод: не больше 60 строк, ✓ зелёным, ошибка красным, stderr красным', () => {

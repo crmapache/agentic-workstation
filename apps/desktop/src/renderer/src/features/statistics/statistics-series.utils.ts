@@ -26,6 +26,7 @@ const SUMMED = [
   'manualLinesAdded',
   'manualLinesRemoved',
   'agentMinutes',
+  'agentsWithoutYouMinutes',
   'presenceMinutes',
 ] as const satisfies readonly (keyof StatsSeriesPoint)[]
 

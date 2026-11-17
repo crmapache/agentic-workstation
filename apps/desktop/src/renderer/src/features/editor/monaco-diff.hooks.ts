@@ -18,6 +18,7 @@ import type { SelectionWatch } from './editor-selection'
 import { DIFF_ACTIONS } from './editor.constants'
 import { useEditorStore } from './editor.store'
 import { monaco } from './monaco-setup'
+import { normalizePastedLineBreaks } from './paste-line-breaks'
 import { hasClassicScrollbars } from './CodeEditor/CodeEditor.utils'
 
 type Diff = editor.IStandaloneDiffEditor
@@ -61,6 +62,7 @@ const useMonacoDiff = (isShown: RefObject<boolean>) => {
 
     hideFindFromPalette(original)
     hideFindFromPalette(modified)
+    normalizePastedLineBreaks(modified)
     focusOnRevert(diff)
     modified.onDidBlurEditorText(() => void shownDocument()?.save())
     remeasureWhenLoaded()

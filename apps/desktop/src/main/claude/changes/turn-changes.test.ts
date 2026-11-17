@@ -60,26 +60,22 @@ describe('файлы хода', () => {
     ])
   })
 
-  // Большую правку CLI присылает с пустым structuredPatch - файл раньше выпадал из списка.
+  // Большую правку CLI присылает с пустым structuredPatch, лента помечает её `uncounted` -
+  // файл раньше выпадал из списка.
   it('большая правка с пустым диффом остаётся в списке - «±» без кнопки', () => {
     const changes = turnChanges([
       edit(
         '1',
         'Edit',
         { file_path: '/p/big.js', old_string: 'foo(', new_string: 'bar(', replace_all: true },
-        { changeCounts: { added: 0, removed: 0 } },
+        { uncounted: true },
       ),
-      edit(
-        '2',
-        'Write',
-        { file_path: '/p/over.js', content: 'x' },
-        { changeCounts: { added: 0, removed: 0 } },
-      ),
+      edit('2', 'Write', { file_path: '/p/over.js', content: 'x' }, { uncounted: true }),
       edit(
         '3',
         'Edit',
         { file_path: '/p/one.js', old_string: 'a', new_string: 'b\nc' },
-        { changeCounts: { added: 0, removed: 0 } },
+        { uncounted: true },
       ),
     ])
 
@@ -89,6 +85,20 @@ describe('файлы хода', () => {
       // Одиночная замена считается по вызову, но точного диффа нет - кнопки нет.
       row('/p/one.js', { added: 2, removed: 1, undoable: false }),
     ])
+  })
+
+  // Пустой дифф у Write того же текста лента считает настоящим нулём, а не «±».
+  it('запись того же текста строки не даёт и без учёта правок', () => {
+    const changes = turnChanges([
+      edit(
+        '1',
+        'Write',
+        { file_path: '/p/same.ts', content: 'x' },
+        { changeCounts: { added: 0, removed: 0 } },
+      ),
+    ])
+
+    expect(changes).toEqual([])
   })
 
   it('с учётом правок: запись того же текста строки не даёт, кнопка - только с правкой', () => {

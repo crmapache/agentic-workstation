@@ -7,11 +7,13 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import styles from '../Feed.module.scss'
 import type { OpenPhoto } from '../Feed.types'
 import { flag, list, text, canRewind } from '../Feed.utils'
+import { splitQuotes } from '../../../../lib/quotes.utils'
 
 /**
  * Сообщение человека справа; фото - миниатюрами, что пришли из IDE. Миниатюра нажимается: фото
- * открывается крупно, а целиком (или уменьшенным под экран) его приносит IDE. Сообщение, с
- * которого начинался ход, можно откатить - кнопка слева от него, у нижнего края.
+ * открывается крупно, а целиком (или уменьшенным под экран) его приносит IDE. Цитаты сверху
+ * («> ») - строками с чертой, как над полем. Сообщение, с которого начинался ход, можно откатить
+ * - кнопка слева от него, у нижнего края.
  */
 export const UserItem = ({
   item,
@@ -27,6 +29,7 @@ export const UserItem = ({
     typeof image === 'object' && image && 'thumbnail' in image ? String(image.thumbnail) : '',
   )
   const auto = text(item, 'auto')
+  const { quotes, body } = splitQuotes(text(item, 'text'))
 
   return (
     <div className={styles.userRow}>
@@ -68,7 +71,12 @@ export const UserItem = ({
             })}
           </div>
         )}
-        {text(item, 'text') && <p className={styles.userText}>{text(item, 'text')}</p>}
+        {quotes.map((quote, index) => (
+          <p key={index} className={styles.userQuote}>
+            {quote}
+          </p>
+        ))}
+        {body && <p className={styles.userText}>{body}</p>}
       </div>
     </div>
   )

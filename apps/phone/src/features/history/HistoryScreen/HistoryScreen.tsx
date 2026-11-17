@@ -29,7 +29,6 @@ export const HistoryScreen = ({ route }: { route: RouteOf<'history'> }) => {
       title={t('history.title')}
       subtitle={project?.name}
       agentId={agentId}
-      help={{ title: t('history.help.title'), text: t('history.help.text') }}
       footer={
         project && !project.open && <OpenInIdeButton agentId={agentId} projectKey={projectKey} />
       }>

@@ -7,7 +7,7 @@
   @include overlay-in-visible-area;
 
   // Не шире окна с полями, как Modal: окно IDE бывает уже диалога (от 422).
-  width: min(var(--size-dialog), 100vw - 2 * var(--space-6));
+  width: min(var(--size-dialog), 100vw - 2 * var(--offset-overlay-side));
   padding: 0;
   border-radius: var(--radius-xl);
   color: var(--color-fg);

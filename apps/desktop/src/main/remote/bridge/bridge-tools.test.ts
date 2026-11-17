@@ -37,6 +37,19 @@ const callsOf = (ide: ReturnType<typeof bridgeSetup>['ide'], name: string) =>
   ide.calls.filter((call) => call.name === name).map((call) => call.args)
 
 describe('очередь разговора с телефона', () => {
+  it('файл с телефона - в каталог вставок IDE и ссылкой в текст, как у отправки', async () => {
+    const { ide, command } = bridgeSetup()
+    const file = { name: 'report.pdf', data: 'JVBERi0x' }
+
+    expect(
+      await command('conversation.enqueue', { conversationId, text: 'read this', files: [file] }),
+    ).toMatchObject({ ok: true })
+    expect(callsOf(ide, 'saveFile')).toEqual([['report.pdf', 'JVBERi0x']])
+    expect(callsOf(ide, 'enqueue')).toEqual([
+      [conversationId, { text: 'read this @/ide/pasted/report.pdf', images: [] }],
+    ])
+  })
+
   it('отложить - с фото, убрать и отправить сейчас - только то, что стоит в очереди', async () => {
     const { ide, command } = bridgeSetup()
     const image = { mediaType: 'image/png' as const, data: 'AAAA' }

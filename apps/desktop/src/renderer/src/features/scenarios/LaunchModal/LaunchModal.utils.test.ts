@@ -46,6 +46,8 @@ const queue = (id: string): ScenarioQueue => ({
   stopAfterItemId: '',
   hold: null,
   acknowledgedItemId: '',
+  hours: null,
+  nap: null,
 })
 
 describe('выбор сценария', () => {

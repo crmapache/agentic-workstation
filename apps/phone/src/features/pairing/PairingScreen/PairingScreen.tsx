@@ -19,12 +19,11 @@ export const PairingScreen = () => {
   const take = usePairingStore((state) => state.take)
   const pairing = usePairing()
   const { taken } = pairing
-  const help = { title: t('pairing.help.title'), text: t('pairing.help.text') }
   const handleText = (text: string) => take(codeFromLink(text, window.location.origin))
 
   if (taken.kind !== 'code') {
     return (
-      <Screen title={t('pairing.title')} help={help}>
+      <Screen title={t('pairing.title')}>
         <QrCamera
           onText={handleText}
           notice={taken.kind === 'invalid' ? t('pairing.invalid') : null}
@@ -34,7 +33,7 @@ export const PairingScreen = () => {
   }
 
   return (
-    <Screen title={t('pairing.title')} help={help} footer={<PairingFooter pairing={pairing} />}>
+    <Screen title={t('pairing.title')} footer={<PairingFooter pairing={pairing} />}>
       <PairingKeys pairing={pairing} code={taken.code} />
     </Screen>
   )

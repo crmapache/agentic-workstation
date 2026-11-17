@@ -68,7 +68,7 @@ export const buildReport = (
       start.all !== null && length > 0 && previousFrom >= start.all
         ? queryTotals(db, { ...scope, from: previousFrom, to: scope.from })
         : null,
-    series: querySeries(db, scope, starts, size, time.wall),
+    series: querySeries(db, scope, starts, size, time),
     models: queryModels(db, scope),
     projects: queryProjects(db, scope, rows),
     tools,

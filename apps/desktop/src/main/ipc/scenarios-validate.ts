@@ -1,6 +1,7 @@
 import type { ProviderId } from '@shared/providers'
 import { PROVIDER_IDS } from '@shared/providers'
-import type { QueueAction, QueueTarget, WorktreeAction } from '@shared/scenario-queues'
+import { DAY_MINUTES } from '@shared/queue-hours'
+import type { QueueHours, QueueAction, QueueTarget, WorktreeAction } from '@shared/scenario-queues'
 import type { ScenarioRunControl, ScenarioHourRequest } from '@shared/scenario-view'
 import { SCENARIO_REPEATS } from '@shared/scenarios'
 import type { RunPlace } from '@shared/ipc/scenarios.contract'
@@ -63,11 +64,28 @@ export const parseTarget = (value: unknown): QueueTarget => {
   return { kind: 'queue', queueId: assertId(record.queueId, 'queueId') }
 }
 
+/** Рабочие часы очереди: минуты в пределах суток, хотя бы один день недели. */
+const parseHours = (value: unknown): QueueHours | null => {
+  if (value === null) return null
+
+  const record = asRecord(value, 'hours')
+
+  if (!Array.isArray(record.days) || record.days.length === 0 || record.days.length > 7) {
+    throw new Error('Ожидались дни недели в поле days')
+  }
+
+  return {
+    from: assertCount(record.from, 'from', 0, DAY_MINUTES - 1),
+    to: assertCount(record.to, 'to', 0, DAY_MINUTES - 1),
+    days: record.days.map((day: unknown) => assertCount(day, 'days', 1, 7)),
+  }
+}
+
 export const parseQueueAction = (value: unknown): QueueAction => {
   const record = asRecord(value, 'action')
   const kind = assertOneOf(
     record.kind,
-    ['remove', 'move', 'mode', 'stopAfter', 'resume', 'rename', 'clear', 'close'] as const,
+    ['remove', 'move', 'mode', 'stopAfter', 'resume', 'rename', 'clear', 'hours', 'close'] as const,
     'kind',
   )
 
@@ -92,6 +110,8 @@ export const parseQueueAction = (value: unknown): QueueAction => {
       assertString(record.name, 'name')
 
       return { kind, name: record.name.slice(0, 200) }
+    case 'hours':
+      return { kind, hours: parseHours(record.hours) }
     case 'resume':
     case 'clear':
     case 'close':

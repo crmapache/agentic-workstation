@@ -10,7 +10,7 @@ import { PhotoViewer } from '../PhotoViewer/PhotoViewer'
 import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import styles from './Feed.module.scss'
 import type { FeedProps, OpenPhoto } from './Feed.types'
-import { topLevel, innerSteps } from './Feed.utils'
+import { topLevel, stepCounts } from './Feed.utils'
 import { FeedItemView } from './parts/FeedItemView'
 import { TaskList } from './parts/TaskList'
 
@@ -32,7 +32,7 @@ export const Feed = ({
   const { t } = useTranslation()
   const [photo, setPhoto] = useState<OpenPhoto | null>(null)
   const items = useMemo(() => (view ? topLevel(view.items) : []), [view])
-  const steps = useMemo(() => (view ? innerSteps(view.items) : new Map<string, number>()), [view])
+  const steps = useMemo(() => (view ? stepCounts(view) : new Map<string, number>()), [view])
   // Стабильная ссылка: строки ленты - memo, и новая функция перерисовала бы каждую.
   const handleOpenPhoto = useCallback((opened: OpenPhoto) => setPhoto(opened), [])
 
@@ -44,7 +44,8 @@ export const Feed = ({
 
   return (
     <div className={styles.feed}>
-      {view.hasEarlier && view.items.length > 0 && (
+      {/* Страницу просят от самой ранней строки: без строк просить не от чего. */}
+      {view.hasEarlier && items.length > 0 && (
         <div className={styles.earlier}>
           <Button
             size="touch"

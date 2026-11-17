@@ -7,7 +7,7 @@ import type {
 } from '@agentic-workstation/remote-protocol/scenario-wire-types'
 
 /**
- * Модель, усилие и режим одной строкой: «opus · High effort · Plan first». Пустое - как у
+ * Модель, усилие и режим одной строкой: «opus · High effort · Plan mode». Пустое - как у
  * головы (у карточки) или как в настройках (у головы), и в строку не идёт.
  */
 export const runFacts = (

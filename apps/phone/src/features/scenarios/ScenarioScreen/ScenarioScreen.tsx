@@ -30,7 +30,6 @@ export const ScenarioScreen = ({ route }: { route: RouteOf<'scenario'> }) => {
       title={scenario.data?.name ?? t('scenario.title')}
       subtitle={t(`start.shelf.${route.scope}`)}
       agentId={route.agentId}
-      help={{ title: t('scenario.help.title'), text: t('scenario.help.text') }}
       actions={
         scenario.data && (
           <>

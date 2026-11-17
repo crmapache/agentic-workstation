@@ -2,22 +2,69 @@ import { useRef, useState, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { PreparedFile } from '../../lib/attachments'
+import {
+  isPicture,
+  MAX_FILES,
+  prepareFile,
+  attachmentsFit,
+  MAX_FILE_BYTES,
+} from '../../lib/attachments'
 import type { PreparedImage } from '../../lib/images'
-import { imagesFit, MAX_IMAGES, prepareImage } from '../../lib/images'
+import { MAX_IMAGES, prepareImage } from '../../lib/images'
+import { messageText } from '../../lib/quotes.utils'
 import { useDraftsStore } from '../../state/drafts.store'
 import { useToastStore } from '../../state/toast.store'
 import type { ComposerProps } from './Composer.types'
 
+const NO_QUOTES: string[] = []
+
+/** Что из выбранного системой вышло: фото, файлы и почему что-то не взято. */
+type Picked = {
+  images: PreparedImage[]
+  files: PreparedFile[]
+  skipped: 'tooMany' | 'tooBig' | null
+}
+
 /**
- * Поле сообщения: черновик живёт в сторе (ушёл с экрана - не пропал), фото - здесь, ужатые до
- * отправки. Поле растёт с текстом до своего потолка.
+ * Выбранное системой - во вложения: картинка ужимается в фото, а картинка, которую не прочесть
+ * (SVG, редкий формат), и всё прочее уходят файлом. Лишнее сверх потолков не берётся.
+ */
+const pick = async (chosen: File[], images: number, files: number): Promise<Picked> => {
+  const picked: Picked = { images: [], files: [], skipped: null }
+
+  for (const file of chosen) {
+    const image =
+      isPicture(file) && images + picked.images.length < MAX_IMAGES
+        ? await prepareImage(file)
+        : null
+
+    if (image) {
+      picked.images.push(image)
+    } else if (file.size > MAX_FILE_BYTES) {
+      picked.skipped = 'tooBig'
+    } else if (files + picked.files.length >= MAX_FILES) {
+      picked.skipped = 'tooMany'
+    } else {
+      picked.files.push(await prepareFile(file))
+    }
+  }
+
+  return picked
+}
+
+/**
+ * Поле сообщения: черновик и цитаты живут в сторе (ушёл с экрана - не пропали), фото и файлы -
+ * здесь, готовые к отправке. Поле растёт с текстом до своего потолка.
  */
 export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey' | 'onSend'>) => {
   const { t } = useTranslation()
   const text = useDraftsStore((state) => state.drafts[draftKey] ?? '')
+  const quotes = useDraftsStore((state) => state.quotes[draftKey] ?? NO_QUOTES)
   const setDraft = useDraftsStore((state) => state.setDraft)
   const show = useToastStore((state) => state.show)
   const [images, setImages] = useState<PreparedImage[]>([])
+  const [files, setFiles] = useState<PreparedFile[]>([])
   const [isBusy, setIsBusy] = useState(false)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -34,20 +81,26 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
 
   const setText = (value: string) => setDraft(draftKey, value)
 
-  const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = [...(event.target.files ?? [])].slice(0, MAX_IMAGES - images.length)
+  const handlePick = async (event: ChangeEvent<HTMLInputElement>) => {
+    const chosen = [...(event.target.files ?? [])]
 
+    // Сброс сразу: тот же файл, выбранный второй раз подряд, снова даст change.
     event.target.value = ''
 
-    const prepared = (await Promise.all(files.map(prepareImage))).filter(
-      (image): image is PreparedImage => image !== null,
-    )
-    const next = [...images, ...prepared]
+    const picked = await pick(chosen, images.length, files.length)
+    const nextImages = [...images, ...picked.images]
+    const nextFiles = [...files, ...picked.files]
 
-    if (prepared.length < files.length) show(t('composer.photoUnreadable'))
-    if (!imagesFit(next)) return show(t('composer.photosTooBig'))
+    if (picked.skipped) show(t(`composer.${picked.skipped}`))
 
-    setImages(next)
+    if (!attachmentsFit(nextImages, nextFiles)) {
+      for (const image of picked.images) URL.revokeObjectURL(image.preview)
+
+      return show(t('composer.tooBig'))
+    }
+
+    setImages(nextImages)
+    setFiles(nextFiles)
   }
 
   const removeImage = (id: string) => {
@@ -58,13 +111,17 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
     setImages(images.filter((one) => one.id !== id))
   }
 
+  const removeFile = (id: string) => setFiles(files.filter((one) => one.id !== id))
+
+  const isEmpty = !text.trim() && images.length === 0 && files.length === 0 && quotes.length === 0
+
   const send = async () => {
-    if (isBusy || (!text.trim() && images.length === 0)) return
+    if (isBusy || isEmpty) return
 
     setIsBusy(true)
 
-    const sending = text
-    const sent = await onSend(text.trim(), images)
+    const sending = { text, quotes, images, files }
+    const sent = await onSend({ text: messageText(quotes, text.trim()), images, files })
 
     setIsBusy(false)
 
@@ -73,9 +130,27 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
     for (const image of images) URL.revokeObjectURL(image.preview)
 
     // Пока сообщение уходило, человек мог начать следующее: стирается только отправленное.
-    if (useDraftsStore.getState().drafts[draftKey] === sending) setDraft(draftKey, '')
-    setImages((current) => current.filter((image) => !images.includes(image)))
+    const store = useDraftsStore.getState()
+
+    if (store.drafts[draftKey] === sending.text) setDraft(draftKey, '')
+    store.dropQuotes(draftKey, sending.quotes)
+    setImages((current) => current.filter((image) => !sending.images.includes(image)))
+    setFiles((current) => current.filter((file) => !sending.files.includes(file)))
   }
 
-  return { text, setText, images, removeImage, handleFiles, send, isBusy, fieldRef, fileRef }
+  return {
+    text,
+    setText,
+    quotes,
+    images,
+    files,
+    removeImage,
+    removeFile,
+    handlePick,
+    send,
+    isBusy,
+    isEmpty,
+    fieldRef,
+    fileRef,
+  }
 }

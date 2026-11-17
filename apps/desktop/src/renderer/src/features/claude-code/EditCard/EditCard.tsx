@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from 'react'
 
-import { editRows, diffStats, trimHunks, hunksOfRows } from '../diff.utils'
-import { toolMeta, toolDetail } from '../tool-summary.utils'
+import { editRows, trimHunks, hunksOfRows } from '../diff.utils'
+import { editMeta, toolMeta, toolDetail } from '../tool-summary.utils'
 import { DiffView } from '../DiffView/DiffView'
 import { DIFF_COLLAPSE_SLACK, DIFF_COLLAPSED_ROWS } from '../DiffView/DiffView.constants'
 import { ToolHead } from '../ToolHead/ToolHead'
@@ -23,8 +23,7 @@ export const EditCard = memo(({ tool }: EditCardProps) => {
   const { hidden } = trimHunks(hunksOfRows(rows), DIFF_COLLAPSED_ROWS, DIFF_COLLAPSE_SLACK)
   const detail = toolDetail(tool)
   const canOpen = showDiff ? hidden > 0 : detail.lines.length > 0
-  const counts = tool.result?.changeCounts ?? diffStats(rows)
-  const meta = isRefused || !showDiff ? toolMeta(tool) : { kind: 'diff' as const, ...counts }
+  const meta = isRefused || !showDiff ? toolMeta(tool) : editMeta(tool.result, rows)
 
   const handleToggle = () => setIsOpen((value) => !value)
 

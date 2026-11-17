@@ -1,5 +1,5 @@
 import type { HistoryEntry } from '@shared/claude'
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
 
 import type {
   HistoryWire,
@@ -7,13 +7,14 @@ import type {
   MessageImageWire,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
+import { hasRowBefore, windowBefore } from './feed-window'
 import type { Redact } from './fit'
-import { sizeOf, BODY_BUDGET, tailThatFits } from './fit'
+import { sizeOf, BODY_BUDGET } from './fit'
 
 /**
  * Ответы на чтение по просьбе телефона - историю, страницу ленты выше и картинку - в один кадр.
  * Ответ команды на провод частями не режется (части - только от телефона), поэтому каждый
- * меряется здесь и урезается честно: история - свежими, страница - ближними к ленте элементами,
+ * меряется здесь и урезается честно: история - свежими, страница - ближними к ленте строками,
  * картинка - уменьшенной копией с пометкой reduced.
  */
 
@@ -23,8 +24,19 @@ export const READ_BUDGET = BODY_BUDGET - 512
 /** Сколько прошлых разговоров уходит телефону: свежие, старее - «есть ещё». */
 export const HISTORY_ENTRIES = 100
 
-/** Сколько элементов в странице ленты выше: экран-другой, а не вся история. */
-export const PAGE_ITEMS = 60
+/**
+ * Сколько строк в странице ленты выше: экран-другой, а не вся история. Строк, а не элементов:
+ * шаги субагентов идут счётом (feed-window.ts).
+ */
+export const PAGE_ROWS = 60
+
+/**
+ * Сколько страниц транскрипта подряд IDE дочитывает в свою ленту, ища строку выше before.
+ * Страница - 30 сообщений, и строка в ней есть почти всегда; предел - против транскрипта, где
+ * их нет совсем: каждая страница читает файл целиком. Не нашлась и за предел - страница выйдет
+ * пустой, но лента IDE уже ушла вверх, и следующая просьба продолжит оттуда.
+ */
+export const TRANSCRIPT_PAGES = 20
 
 /**
  * Ступени уменьшения картинки: длинная сторона и качество JPEG. Экран телефона - около 1200
@@ -61,9 +73,9 @@ export const historyThatFits = (
 }
 
 /**
- * Страница перед элементом before: ближние к нему элементы, сколько влезло. null - такого
- * элемента в ленте IDE нет (откат его убрал, у телефона чужая лента): страницу ставить некуда.
- * hasEarlier - выше осталось в ленте IDE или в транскрипте.
+ * Страница перед элементом before: ближние к нему строки, сколько влезло, и счёт шагов их
+ * вызовов. null - такого элемента в ленте IDE нет (откат его убрал, у телефона чужая лента):
+ * страницу ставить некуда. hasEarlier - выше осталось в ленте IDE или в транскрипте.
  */
 export const pageBefore = (
   items: readonly FeedItem[],
@@ -72,13 +84,34 @@ export const pageBefore = (
   redact: Redact,
   budget = READ_BUDGET,
 ): FeedPageWire | null => {
-  const at = items.findIndex((item) => item.id === before)
+  const page = windowBefore(items, before, budget, PAGE_ROWS, redact)
 
-  if (at === -1) return null
+  return (
+    page && { items: page.items, steps: page.steps, hasEarlier: page.cut || transcriptHasEarlier }
+  )
+}
 
-  const tail = tailThatFits(items.slice(0, at), budget, PAGE_ITEMS, redact)
+/**
+ * Лента IDE, в которой выше before есть строка: пока её нет, а выше есть транскрипт, - его
+ * страницы в ленту IDE, как «load earlier» окна (лента растёт вверх, и следующая просьба, как и
+ * окна, пойдёт уже от неё). Иначе страница телефону вышла бы пустой с «есть ещё», и кнопка
+ * ничего бы не приносила. before в ленте нет - лента как есть: ответ будет «не найдено».
+ * more - следующая страница транскрипта; null - ленты больше нет.
+ */
+export const feedWithRowAbove = async (
+  feed: ConversationFeed,
+  before: string,
+  more: () => Promise<ConversationFeed | null>,
+): Promise<ConversationFeed | null> => {
+  let current: ConversationFeed | null = feed
 
-  return { items: tail.items, hasEarlier: tail.cut || transcriptHasEarlier }
+  for (let pages = 0; pages < TRANSCRIPT_PAGES; pages += 1) {
+    if (!current?.hasEarlier || hasRowBefore(current.items, before) !== false) break
+
+    current = await more()
+  }
+
+  return current
 }
 
 /**

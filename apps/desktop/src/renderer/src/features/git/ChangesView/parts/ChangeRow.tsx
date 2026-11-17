@@ -15,7 +15,8 @@ import { useActiveTab, useSelectionStore } from '../../../../state/selection.sto
 
 /**
  * Строка изменённого файла: иконка типа, имя цветом вида изменения (как в дереве), папка
- * (теряет начало, а не конец), откуда переименован, буква вида справа. Нажатие - разница в
+ * (теряет начало, а не конец), откуда переименован, буква вида справа. Тесно - сначала уходят
+ * папка и «откуда», имя режется последним: по нему файл и узнают. Нажатие - разница в
  * середине окна; двойное нажатие и F4 - сам файл, как Jump to Source в WebStorm; правая
  * кнопка - меню. Строку можно бросить в поле Claude Code, как строку дерева.
  */
@@ -68,13 +69,19 @@ export const ChangeRow = ({ projectId, change, onMenu }: ChangeRowProps) => {
         onContextMenu={handleContextMenu}>
         <FileIcon path={change.path} kind="file" size="sm" />
         <span className={clsx(styles.name, styles[change.kind])}>{name}</span>
-        {folder && (
-          <span className={styles.folder}>
-            <span className={styles.folderText}>{folder}</span>
+        {(folder || change.origin !== null) && (
+          <span className={styles.details}>
+            {folder && (
+              <span className={styles.folder}>
+                <span className={styles.folderText}>{folder}</span>
+              </span>
+            )}
+            {change.origin !== null && (
+              <span className={styles.origin}>
+                {t('changes.renamedFrom', { path: change.origin })}
+              </span>
+            )}
           </span>
-        )}
-        {change.origin !== null && (
-          <span className={styles.origin}>{t('changes.renamedFrom', { path: change.origin })}</span>
         )}
         <span className={clsx(styles.letter, styles[change.kind])} aria-hidden>
           {CHANGE_LETTERS[change.kind]}

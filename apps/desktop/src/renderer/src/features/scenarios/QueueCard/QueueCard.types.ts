@@ -1,6 +1,7 @@
 import type { QueueHold, QueueItem, ScenarioQueue } from '@shared/scenario-queues'
 import type { RunSummary } from '@shared/scenario-runs'
 
+import type { QueueRest } from '../scenarios-queue-hours.utils'
 import type { QueueStatus } from '../scenarios-queues.utils'
 
 export type QueueCardProps = {
@@ -52,6 +53,8 @@ export type QueueRunningProps = { queue: ScenarioQueue; live: RunSummary }
 export type RunReadingsProps = { live: RunSummary }
 
 export type QueueHoldProps = { queue: ScenarioQueue; hold: QueueHold }
+
+export type QueueRestProps = { queueId: string; why: QueueRest }
 
 export type QueueControlsProps = { queue: ScenarioQueue; live: RunSummary | undefined }
 

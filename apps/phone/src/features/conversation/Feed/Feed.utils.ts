@@ -1,7 +1,8 @@
 import { TASK_ID, MESSAGE_ID } from '@agentic-workstation/remote-protocol/command-fields'
+import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 
-import type { RunningTask } from './Feed.types'
+import type { EditCounts, RunningTask } from './Feed.types'
 
 /**
  * Элемент ленты на проводе - вид (kind) и поля по виду, как их собирает IDE для своей панели
@@ -42,24 +43,57 @@ export const list = (item: Fields, key: string): unknown[] => {
   return Array.isArray(value) ? value : []
 }
 
-/**
- * Верхний уровень ленты: то, что случилось внутри субагента, IDE прячет в его карточку, а
- * телефон - в число шагов на строке его вызова.
- */
-export const topLevel = (items: FeedItemWire[]): FeedItemWire[] =>
-  items.filter((item) => typeof item['parentToolUseId'] !== 'string')
+/** Вызов субагента, внутри которого случился элемент; null - верхний уровень разговора. */
+const parentOf = (item: FeedItemWire): string | null => {
+  const parent = item['parentToolUseId']
 
-/** Сколько шагов внутри каждого вызова субагента: id вызова - число. */
+  return typeof parent === 'string' && parent !== '' ? parent : null
+}
+
+/**
+ * Строки ленты - как у окна IDE (buildFeedRows): то, что случилось внутри субагента, прячется в
+ * число шагов на строке его вызова, но только если сама строка вызова загружена. Шаг без неё
+ * (вызов выше загруженного, агент скилла) - обычная строка: иначе лента из одних таких шагов
+ * была бы пустой, а «Load earlier» подгружал бы невидимое.
+ */
+export const topLevel = (items: FeedItemWire[]): FeedItemWire[] => {
+  const ids = new Set(items.map((item) => item.id))
+
+  return items.filter((item) => {
+    const parent = parentOf(item)
+
+    return parent === null || !ids.has(parent)
+  })
+}
+
+/** Сколько шагов внутри каждого вызова субагента по загруженным: id вызова - число. */
 export const innerSteps = (items: FeedItemWire[]): Map<string, number> => {
   const steps = new Map<string, number>()
 
   for (const item of items) {
-    const parent = item['parentToolUseId']
+    const parent = parentOf(item)
 
-    if (typeof parent === 'string') steps.set(parent, (steps.get(parent) ?? 0) + 1)
+    if (parent !== null) steps.set(parent, (steps.get(parent) ?? 0) + 1)
   }
 
   return steps
+}
+
+/**
+ * Шагов в каждом вызове субагента: счёт IDE по всей её ленте - сами шаги на телефон не идут.
+ * IDE постарше счёта не шлёт, а шлёт шаги - тогда по загруженным. Поле не проверено схемой:
+ * не число - вызова в счёте нет.
+ */
+export const stepCounts = (view: Pick<FeedView, 'items' | 'steps'>): Map<string, number> => {
+  if (!isFields(view.steps)) return innerSteps(view.items)
+
+  const counts = new Map<string, number>()
+
+  for (const [call, value] of Object.entries(view.steps)) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) counts.set(call, value)
+  }
+
+  return counts
 }
 
 /** Путь коротко: папка и имя файла. Полный путь в строке телефона не влезает. */
@@ -100,17 +134,37 @@ export const toolSummary = (name: string, input: Fields): string => {
   }
 }
 
-/** Правка файла итогом: сколько строк добавлено и убрано; null - вызов не правка. */
+/** Строки записанного файла, как их считает IDE: перевод строки в конце - не лишняя строка. */
+const writtenLines = (content: string): number => {
+  const trimmed = content.replace(/\n+$/, '')
+
+  return trimmed === '' ? 0 : trimmed.split('\n').length
+}
+
+/**
+ * Правка файла итогом: сколько строк добавлено и убрано или «не посчитать»; null - вызов не
+ * правка. Цифры берутся у IDE (changeCounts): она считает по всему диффу и по содержимому
+ * нового файла, а готовое число не задевает обрезка дороги до телефона. Свой счёт - пока
+ * вызов идёт или IDE цифр не прислала.
+ */
 export const editCounts = (
   name: string,
   input: Fields,
   result: Fields | null,
-): { added: number; removed: number } | null => {
+): EditCounts | null => {
   if (!['Edit', 'MultiEdit', 'Write', 'NotebookEdit'].includes(name)) return null
+  if (result && flag(result, 'uncounted')) return 'uncounted'
 
   const counted = result ? fields(result, 'changeCounts') : null
+  // IDE по 0.1.19 включительно слала новому файлу «+0 -0» (CLI отдаёт его пустым диффом):
+  // строки - по содержимому, как у статистики IDE. Телефон выкладывается отдельно от IDE и
+  // застаёт старые.
+  const staleCreate =
+    counted !== null && result !== null && flag(result, 'created') && count(counted, 'added') === 0
 
-  if (counted) return { added: count(counted, 'added'), removed: count(counted, 'removed') }
+  if (counted && !staleCreate) {
+    return { added: count(counted, 'added'), removed: count(counted, 'removed') }
+  }
 
   const hunks = result ? list(result, 'patch') : []
 
@@ -129,7 +183,7 @@ export const editCounts = (
     return { added, removed }
   }
 
-  if (name === 'Write') return { added: text(input, 'content').split('\n').length, removed: 0 }
+  if (name === 'Write') return { added: writtenLines(text(input, 'content')), removed: 0 }
 
   return null
 }

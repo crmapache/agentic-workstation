@@ -1,25 +1,4 @@
-import type { Conversation, RefusedModes, PermissionMode } from '@shared/claude'
-import { modeModel } from '@shared/claude'
-
-/** Какие из необязательных режимов доступны разговору: bypass - запрет слоёв, auto - отказ CLI. */
-export type ModeAvailability = { bypass: boolean; auto: boolean }
-
-/**
- * Доступность режимов (как в ACC): bypass - пока его не запретили слои настроек проекта
- * (неизвестно - недоступен) и CLI не отказал; auto - пока CLI не отказал на этой модели.
- */
-export const modeAvailability = (
-  refused: RefusedModes,
-  bypassDisabled: boolean | undefined,
-  conversation: Pick<Conversation, 'model' | 'activeModel'> | null,
-): ModeAvailability => ({
-  bypass: bypassDisabled === false && !refused.bypass,
-  auto: !conversation || !refused.autoModels.includes(modeModel(conversation)),
-})
-
-/** Режим есть в меню, но выбрать его нельзя: недоступный ведёт только к отказу CLI. */
-export const isModeOff = (mode: PermissionMode, available: ModeAvailability): boolean =>
-  (mode === 'bypassPermissions' && !available.bypass) || (mode === 'auto' && !available.auto)
+import type { PermissionMode, ModeAvailability } from '@shared/claude'
 
 /**
  * Следующий режим по Shift+Tab - круг терминального Claude Code (как в ACC): спрашивать →

@@ -1,5 +1,7 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
+import type { FeedItem } from '@shared/claude-feed'
+
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { FRAME_SEALED } from '@agentic-workstation/remote-protocol/frame'
@@ -131,6 +133,51 @@ describe('ядро телефона против настоящей IDE', () => 
       'patch after the page',
     )
     expect(client.watches.feedOf(agentId, CONVERSATION_ID)?.items[0]?.id).toBe('e0')
+  })
+
+  // Был баг: окно из одних шагов долгого субагента - телефон их прячет, «Load earlier» пустой.
+  it('долгий субагент: строка вызова со счётом шагов, новый шаг - только счёт, без вставки', async () => {
+    const ide = await harness()
+    const { client, inbox, code } = await pairPhone(ide)
+    const agentId = code.agentId
+    const stepOf = (index: number): FeedItem => ({
+      ...itemOf(`s${index}`, 'x'.repeat(10_000)),
+      parentToolUseId: 'agent',
+    })
+
+    await until(() => lastOf(inbox, 'inventory'), 'inventory')
+    ide.ide.feed.items.push(
+      {
+        kind: 'tool',
+        id: 'agent',
+        parentToolUseId: null,
+        name: 'Agent',
+        input: { description: 'long job' },
+        status: 'running',
+        result: null,
+        startedAt: 0,
+        endedAt: 0,
+        closedReason: null,
+      },
+      ...Array.from({ length: 400 }, (_, index) => stepOf(index)),
+    )
+    client.watch(agentId, { kind: 'conversation', conversationId: CONVERSATION_ID })
+
+    const snapshot = await until(() => inbox.feeds.at(-1), 'feed snapshot')
+
+    expect(snapshot.items.map((item) => item.id)).toEqual(['u1', 'a1', 'agent'])
+    expect(snapshot.steps).toEqual({ agent: 400 })
+
+    ide.push(stepOf(400))
+    await until(
+      () => client.watches.feedOf(agentId, CONVERSATION_ID)?.steps?.['agent'] === 401,
+      'the step count patch',
+    )
+    expect(client.watches.feedOf(agentId, CONVERSATION_ID)?.items.map((item) => item.id)).toEqual([
+      'u1',
+      'a1',
+      'agent',
+    ])
   })
 
   it('история проекта и продолжение прошлого разговора', async () => {

@@ -8,12 +8,24 @@ const t = ((key: string, values: Record<string, unknown> = {}) =>
   `${key}${JSON.stringify(values)}`) as unknown as TFunction
 
 describe('время коротко', () => {
-  it('секунды, минуты с секундами, часы, дни', () => {
+  it('длительность работы - всегда с секундами, как в IDE', () => {
     expect(durationText(t, 40_000)).toBe('time.seconds{"count":40}')
-    expect(durationText(t, 160_000)).toBe('time.minutesSeconds{"minutes":2,"seconds":40}')
-    expect(durationText(t, 15 * 60_000)).toBe('time.minutes{"count":15}')
-    expect(durationText(t, 65 * 60_000)).toBe('time.hoursMinutes{"hours":1,"minutes":5}')
-    expect(durationText(t, 26 * 3_600_000)).toBe('time.daysHours{"days":1,"hours":2}')
+    expect(durationText(t, 160_000)).toBe('time.minutesSeconds{"minutes":2,"seconds":"40"}')
+    expect(durationText(t, 33 * 60_000 + 5_000)).toBe(
+      'time.minutesSeconds{"minutes":33,"seconds":"05"}',
+    )
+    expect(durationText(t, 3 * 3_600_000 + 16 * 60_000 + 7_000)).toBe(
+      'time.hoursMinutesSeconds{"hours":3,"minutes":"16","seconds":"07"}',
+    )
+    expect(durationText(t, 26 * 3_600_000)).toBe(
+      'time.hoursMinutesSeconds{"hours":26,"minutes":"00","seconds":"00"}',
+    )
+  })
+
+  it('как давно - грубо, без секунд после минуты', () => {
+    expect(sinceText(t, 0, 15 * 60_000 + 30_000, 0)).toBe('time.minutes{"count":15}')
+    expect(sinceText(t, 0, 65 * 60_000, 0)).toBe('time.hoursMinutes{"hours":1,"minutes":5}')
+    expect(sinceText(t, 0, 26 * 3_600_000, 0)).toBe('time.daysHours{"days":1,"hours":2}')
   })
 
   it('отрицательное (часы разошлись) - ноль, а не «-3s»', () => {

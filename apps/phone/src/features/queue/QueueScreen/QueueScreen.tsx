@@ -14,22 +14,22 @@ import { TextDialog } from '../../../shell/TextDialog/TextDialog'
 import { useQueueScreen } from './QueueScreen.hooks'
 import { CurrentRun } from './parts/CurrentRun'
 import { QueueItems } from './parts/QueueItems'
+import { QueueRest } from './parts/QueueRest'
 
 /**
  * Очередь сценариев: идущий прогон (пауза, продолжить, стоп, остановиться после него), элементы
- * по порядку, ждущие - переставить, убрать, остановиться после них. Закрыть очередь и удалить её
- * worktree с телефона нельзя.
+ * по порядку, ждущие - переставить, убрать, остановиться после них; спит ли она вне рабочих часов.
+ * Закрыть очередь, удалить её worktree и поменять рабочие часы с телефона нельзя.
  */
 export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
   const { t } = useTranslation()
   const screen = useQueueScreen(route)
   const { message, queue, run } = screen
   const [isRenaming, setIsRenaming] = useState(false)
-  const help = { title: t('queue.help.title'), text: t('queue.help.text') }
 
   if (!message || !queue) {
     return (
-      <Screen title={t('queue.title')} agentId={route.agentId} help={help}>
+      <Screen title={t('queue.title')} agentId={route.agentId}>
         {message ? (
           <EmptyState icon={ListX} title={t('queue.gone')} />
         ) : (
@@ -47,7 +47,7 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
       title={queue.name}
       subtitle={where}
       agentId={route.agentId}
-      help={help}
+
       actions={
         <IconButton
           icon={Pencil}
@@ -69,6 +69,7 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
           </Button>
         </Card>
       )}
+      {queue.nap && <QueueRest nap={queue.nap} queue={queue} offset={screen.offset} />}
       {run && <CurrentRun route={route} queue={queue} run={run} screen={screen} />}
       <QueueItems route={route} queue={queue} screen={screen} />
       <TextDialog

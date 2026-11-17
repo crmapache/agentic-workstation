@@ -37,4 +37,4 @@ export type ProjectTabProps = {
 
 export type CallDotsProps = { calls: readonly ProjectCall[] }
 
-export type WorkMarkProps = { work: readonly ProjectWork[]; size: 'sm' | 'around' }
+export type WorkMarkProps = { work: readonly ProjectWork[] }

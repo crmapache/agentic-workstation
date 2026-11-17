@@ -35,6 +35,18 @@
   user-select: text;
 }
 
+// Цитата сверху сообщения - строкой с чертой, как над полем, а не сырым «> ».
+.userQuote {
+  @include truncate;
+
+  margin: 0;
+  padding-left: var(--space-2);
+  border-left: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  user-select: text;
+}
+
 .userMark {
   @include caps-label;
 
@@ -73,10 +85,15 @@
   font-size: var(--font-size-xs);
 }
 
+// Строка журнала стоит на том же поле, что и текст ответа: вложенности нет. Внутреннее поле
+// строки (подсветка нажатия) выходит в боковое поле экрана. Слева - ещё на space-1: столько
+// пустого внутри самого значка стрелки, и без этого штрих стоял правее края текста.
 .toolItem {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-right: calc(var(--space-1-5) * -1);
+  margin-left: calc((var(--space-1-5) + var(--space-1)) * -1);
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
 }
@@ -135,6 +152,11 @@
 .removed,
 .failed {
   color: var(--color-danger);
+}
+
+// «±» большой правки без диффа CLI - тихо, как в списке файлов хода IDE: это не ноль и не тревога.
+.uncounted {
+  color: var(--color-fg-subtle);
 }
 
 .done,

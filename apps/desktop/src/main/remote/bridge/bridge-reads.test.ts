@@ -171,6 +171,38 @@ describe('страница ленты выше', () => {
     })
     expect(pageBefore(feed, 'nope', false, (text) => text)).toBeNull()
   })
+
+  it('долгий субагент: страница - строки со счётом шагов вызова, а не его шаги', async () => {
+    const { ide, command } = bridgeSetup()
+    const agent = {
+      kind: 'tool',
+      id: 'agent',
+      parentToolUseId: null,
+      name: 'Agent',
+      input: { description: 'long job' },
+      status: 'running',
+      result: null,
+      startedAt: 0,
+      endedAt: 0,
+      closedReason: null,
+    } as const
+    const steps = Array.from({ length: 400 }, (_, index): FeedItem => ({
+      ...itemOf(`s${index}`, 'x'.repeat(10_000)),
+      parentToolUseId: 'agent',
+    }))
+
+    ide.feed.items = [...items(5), agent, ...steps, itemOf('last', 'Halfway there')]
+
+    const outcome = await command('conversation.earlier', {
+      conversationId: CONVERSATION_ID,
+      before: 'last',
+    })
+    const page = (outcome as { data: FeedPageWire }).data
+
+    expect(page.items.map((item) => item.id)).toEqual(['i0', 'i1', 'i2', 'i3', 'i4', 'agent'])
+    expect(page.steps).toEqual({ agent: 400 })
+    expect(page.hasEarlier).toBe(false)
+  })
 })
 
 describe('картинка сообщения на телефон', () => {

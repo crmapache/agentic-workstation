@@ -37,7 +37,10 @@ export type ProviderCaps = {
   /** Пусто - каталог ещё не спрашивали: телефон показывает «как в настройках». */
   models: ProviderModel[]
   efforts: string[]
-  /** Режимы, которые телефон может выбрать новому разговору (без bypass и auto). */
+  /**
+   * Режимы разрешений провайдера, которые телефон может выбрать (ADR 0076: те же, что в меню
+   * окна). Старая IDE называет только default, acceptEdits и plan.
+   */
   permissionModes: string[]
 }
 
@@ -63,6 +66,12 @@ export type InventoryProject = {
   open: boolean
   conversations: ConversationSummary[]
   queues: QueuesSummary
+  /**
+   * Режимы, в которых новый разговор этого проекта не начнётся, - по id провайдера, как меню новой
+   * вкладки окна: bypass под запретом настроек проекта или после отказа CLI. Только у открытого
+   * проекта; нет поля - IDE старше (телефон предлагает все, отказ IDE - последнее слово).
+   */
+  unavailableModes?: Record<string, string[]> | undefined
 }
 
 export type Machine = { label: string; ideVersion: string }
@@ -137,6 +146,12 @@ export type ConversationWire = ConversationSummary & {
   queueHold?: string | null | undefined
   carryOn?: CarryOnWire | null | undefined
   fast?: FastWire | undefined
+  /**
+   * Режимы, которые окно IDE гасит этому разговору в меню MODE (ADR 0076): bypass - запрет
+   * настроек проекта или отказ CLI, auto - отказ CLI на модели разговора. Нет поля - IDE старше:
+   * телефон предлагает все, отказ IDE - последнее слово.
+   */
+  unavailableModes?: string[] | undefined
 }
 
 /**
@@ -157,6 +172,14 @@ export type FeedStubWire = { id: string; kind: string; stub: true } & Record<
 >
 
 export const isFeedStub = (item: FeedItemWire): item is FeedStubWire => item['stub'] === true
+
+/**
+ * Сколько шагов внутри вызова субагента: id вызова - число. Шаги, чей вызов есть в ленте IDE,
+ * на телефон не идут: телефон рисует их числом на строке вызова, и сотни шагов долгого
+ * субагента вытесняли бы из снимка и страницы сами строки. Счёт - по всей ленте IDE, а не по
+ * тому, что влезло в кадр. Нет поля - IDE постарше: шаги идут элементами, телефон считает сам.
+ */
+export type FeedStepsWire = Record<string, number>
 
 export type FeedTaskWire = { id: string; subject: string; activeForm: string; state: string }
 
@@ -190,6 +213,13 @@ export type QueueWire = {
   stopAfterItemId: string
   hold: { reason: string; itemId: string; at: number } | null
   acknowledgedItemId: string
+  /**
+   * Рабочие часы очереди - окно по дням недели в местном времени машины; null - работает в
+   * любое время. Нет поля - IDE старше рабочих часов.
+   */
+  hours?: { from: number; to: number; days: number[] } | null | undefined
+  /** Спит вне рабочих часов и проснётся в until (часы IDE); null или нет поля - не спит. */
+  nap?: { until: number; runId: string } | null | undefined
 }
 
 export type RoadmapStopWire = { state: string; stage: number; pass: number; title: string }
@@ -224,6 +254,14 @@ export type RunSummaryWire = {
    * ни звезды, ни удаления, ни продолжения). Нет поля - IDE старше: прогон её.
    */
   origin?: string | undefined
+  /**
+   * Учёт времени работы, как в IDE (мс): idle - промежутки между концом и «продолжить», rested
+   * - паузы и вопросы человеку, restingSince - начало идущей паузы (0 - не стоит). Время работы
+   * прогона - от startedAt до конца (или сейчас) без них. Нет полей - IDE старше: без вычетов.
+   */
+  idle?: number | undefined
+  rested?: number | undefined
+  restingSince?: number | undefined
 }
 
 export type RunStepWire = {
@@ -240,9 +278,21 @@ export type RunStepWire = {
   failure: string
   error: string
   cost: number
+  /** Сколько шаг стоял на паузах и вопросах человеку (мс); нет поля - IDE старше. */
+  rested?: number | undefined
 }
 
-export type RunNoteWire = { at: number; stepKey: string; text: string; who: string }
+export type RunNoteWire = {
+  at: number
+  stepKey: string
+  text: string
+  who: string
+  /**
+   * Слова человека дошли до головы (мс, часы IDE); 0 - ждут, пока голова освободится. Нет поля -
+   * IDE старше: телефон не знает и молчит.
+   */
+  deliveredAt?: number | undefined
+}
 
 /**
  * Вопрос прогона человеку. stepKey и askedAt - его опознание: ответ телефона несёт их, и IDE
@@ -299,10 +349,15 @@ export type OpenedConversationWire = { conversationId: string }
 export type HistoryWire = { entries: HistoryEntryWire[]; more: boolean }
 
 /**
- * Страница ленты выше того, что у телефона (conversation.earlier): элементы перед before по
- * порядку, сколько влезло в кадр. hasEarlier - выше этой страницы есть ещё.
+ * Страница ленты выше того, что у телефона (conversation.earlier): строки перед before по
+ * порядку, сколько влезло в кадр, и счёт шагов их вызовов субагентов (FeedStepsWire).
+ * hasEarlier - выше этой страницы есть ещё; тогда строка на странице есть хотя бы одна.
  */
-export type FeedPageWire = { items: FeedItemWire[]; hasEarlier: boolean }
+export type FeedPageWire = {
+  items: FeedItemWire[]
+  steps?: FeedStepsWire | undefined
+  hasEarlier: boolean
+}
 
 /**
  * Картинка сообщения для просмотра на телефоне (conversation.image): data URL. Целиком она

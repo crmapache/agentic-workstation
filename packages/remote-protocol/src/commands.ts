@@ -8,7 +8,7 @@ import {
 import { MACHINE_ARGS, MACHINE_LIMITS } from './machine-commands'
 import { SCENARIO_ARGS, SCENARIO_LIMITS, SCENARIO_IN_PARTS } from './scenario-commands'
 
-export { EFFORTS, IMAGE_TYPES, SEEN_RUN_STATES, PHONE_PERMISSION_MODES } from './command-fields'
+export { EFFORTS, IMAGE_TYPES, SEEN_RUN_STATES, PERMISSION_MODES } from './command-fields'
 
 /**
  * Что можно попросить с телефона - белый список. Канал пишет агенту, у которого шелл на
@@ -16,7 +16,7 @@ export { EFFORTS, IMAGE_TYPES, SEEN_RUN_STATES, PHONE_PERMISSION_MODES } from '.
  * существует. Решение по каждой команде ACC - таблица в ADR 0041 («Команды телефона»).
  *
  * Нельзя с телефона (решение владельца): терминал и `!`, правка файлов, плагины, настройки IDE
- * и провайдеров (режим по умолчанию, модель по умолчанию), режимы bypass, auto и dontAsk,
+ * и провайдеров (режим по умолчанию, модель по умолчанию), режим dontAsk (его нет и у окна),
  * «разрешать всегда», пара и сам удалённый доступ, вход, которому нужен браузер на Mac
  * (аккаунт, коннектор), добавить и убрать коннектор, закрыть очередь, удалить worktree.
  */
@@ -52,7 +52,6 @@ export const COMMAND_LIMITS: Readonly<Record<CommandName, number>> = {
  */
 export const REFUSED_COMMANDS: readonly string[] = [
   'conversation.allowAlways',
-  'conversation.setMode',
   'conversation.setDefaultMode',
   'conversation.close',
   'conversation.shell',

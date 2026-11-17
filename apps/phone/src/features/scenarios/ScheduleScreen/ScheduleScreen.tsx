@@ -28,7 +28,6 @@ export const ScheduleScreen = ({ route }: { route: RouteOf<'schedule'> }) => {
       title={t('schedule.title')}
       subtitle={scenario?.name}
       agentId={route.agentId}
-      help={{ title: t('schedule.help.title'), text: t('schedule.help.text') }}
       footer={
         <Button
           size="touch"

@@ -10,11 +10,24 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../RunScreen.module.scss'
 import { begun, stagesOf, stepWords } from '../RunScreen.utils'
+import { stepWorked } from '../../../../lib/scenarios.utils'
 import { STEP_TONES } from '../../../../lib/status.constants'
-import { costText } from '../../../../lib/time.utils'
+import { costText, durationText } from '../../../../lib/time.utils'
 
-/** Шаг дорожки: заголовок с состоянием, итог по нажатию и журнал карточки - у начатого шага. */
-const Step = ({ step, onOpenLog }: { step: RunStepWire; onOpenLog: (key: string) => void }) => {
+/**
+ * Шаг дорожки: заголовок, сколько работал, цена и состояние; итог по нажатию и журнал карточки -
+ * у начатого шага.
+ */
+const Step = ({
+  step,
+  worked,
+  onOpenLog,
+}: {
+  step: RunStepWire
+  /** Сколько шаг работает или работал; не начат - null. */
+  worked: number | null
+  onOpenLog: (key: string) => void
+}) => {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const words = stepWords(step)
@@ -31,6 +44,7 @@ const Step = ({ step, onOpenLog }: { step: RunStepWire; onOpenLog: (key: string)
             <span className={styles.stepTitle}>
               {step.pass > 1 ? t('run.pass', { title: step.title, pass: step.pass }) : step.title}
             </span>
+            {worked !== null && <span className={styles.stepCost}>{durationText(t, worked)}</span>}
             {step.cost > 0 && <span className={styles.stepCost}>{costText(step.cost)}</span>}
             <Badge tone={STEP_TONES[step.state] ?? 'neutral'}>
               {t(`stepState.${step.state}`, { defaultValue: step.state })}
@@ -57,9 +71,12 @@ const Step = ({ step, onOpenLog }: { step: RunStepWire; onOpenLog: (key: string)
  */
 export const RunSteps = ({
   run,
+  now,
   onOpenLog,
 }: {
   run: RunWire
+  /** Сейчас по часам IDE: время идущего шага. */
+  now: number
   onOpenLog: (key: string) => void
 }) => {
   const { t } = useTranslation()
@@ -77,7 +94,14 @@ export const RunSteps = ({
             {stage.steps.length === 0 ? (
               <p className={styles.muted}>{t('run.stageWaiting')}</p>
             ) : (
-              stage.steps.map((step) => <Step key={step.key} step={step} onOpenLog={onOpenLog} />)
+              stage.steps.map((step) => (
+                <Step
+                  key={step.key}
+                  step={step}
+                  worked={step.startedAt > 0 ? stepWorked(step, now, run) : null}
+                  onOpenLog={onOpenLog}
+                />
+              ))
             )}
           </div>
         ))}

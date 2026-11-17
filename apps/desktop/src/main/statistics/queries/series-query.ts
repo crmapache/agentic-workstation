@@ -4,6 +4,7 @@ import type { StatsSeries, StatsBucketSize, StatsSeriesPoint } from '@shared/sta
 import { HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
 import { SLOT_MS, HOURLY_PERIOD_MAX_MS } from '../stats.constants'
+import type { AgentTime } from './agent-time'
 import type { Scope } from './query-scope'
 import { agentWhere, humanWhere } from './query-scope'
 import type { Interval } from './time-math'
@@ -62,19 +63,22 @@ const emptyPoint = (start: number): StatsSeriesPoint => ({
   manualLinesAdded: 0,
   manualLinesRemoved: 0,
   agentMinutes: 0,
+  agentsWithoutYouMinutes: 0,
   presenceMinutes: 0,
 })
 
 /**
  * График периода. SQL складывает по четвертям часа (SLOT_MS), JS раскладывает четверти по
- * местным часам и дням: перевод в местное время в SQLite не знает о переводе часов.
+ * местным часам и дням: перевод в местное время в SQLite не знает о переводе часов. Время
+ * агентов - по уже объединённым отрезкам (wall и away из agentTime), чтобы шаги графика в
+ * сумме сходились со сводкой.
  */
 export const querySeries = (
   db: DatabaseSync,
   scope: Scope,
   starts: readonly number[],
   size: StatsBucketSize,
-  wall: readonly Interval[],
+  time: Pick<AgentTime, 'wall' | 'away'>,
 ): StatsSeries => {
   const points = starts.map(emptyPoint)
   const agent = agentWhere(scope)
@@ -128,13 +132,19 @@ export const querySeries = (
     },
   )
 
-  for (const interval of wall) spread(points, starts, interval)
+  for (const interval of time.wall) spread(points, starts, interval, 'agentMinutes')
+  for (const interval of time.away) spread(points, starts, interval, 'agentsWithoutYouMinutes')
 
   return { bucket: size, points }
 }
 
-/** Отрезок работы агентов - минутами по шагам, через которые он прошёл. */
-const spread = (points: StatsSeriesPoint[], starts: readonly number[], interval: Interval) => {
+/** Отрезок работы агентов - минутами в поле field шагов, через которые он прошёл. */
+const spread = (
+  points: StatsSeriesPoint[],
+  starts: readonly number[],
+  interval: Interval,
+  field: 'agentMinutes' | 'agentsWithoutYouMinutes',
+) => {
   let cursor = interval.start
 
   for (let index = Math.max(0, bucketIndex(starts, cursor)); cursor < interval.end; index += 1) {
@@ -144,7 +154,7 @@ const spread = (points: StatsSeriesPoint[], starts: readonly number[], interval:
 
     const end = Math.min(interval.end, starts[index + 1] ?? Infinity)
 
-    if (end > cursor) point.agentMinutes += (end - cursor) / MINUTE_MS
+    if (end > cursor) point[field] += (end - cursor) / MINUTE_MS
 
     cursor = Math.max(cursor, end)
   }

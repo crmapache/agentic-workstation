@@ -1,7 +1,6 @@
 import { ChevronLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { LinkBanner } from '../LinkBanner/LinkBanner'
@@ -11,7 +10,7 @@ import styles from './Screen.module.scss'
 import type { ScreenProps } from './Screen.types'
 
 /**
- * Экран телефона: шапка (назад, заголовок, «?»), полоса связи с IDE экрана, прокручиваемое тело
+ * Экран телефона: шапка (назад, заголовок, настройки предмета), полоса связи с IDE экрана, прокручиваемое тело
  * и низ над полосой «домой» - главные действия под большим пальцем. Уведомления встают сразу
  * над низом и не закрывают его кнопки. Высота - по видимой части экрана (dvh): клавиатура и
  * панели браузера её не перекрывают.
@@ -22,8 +21,8 @@ export const Screen = ({
   back = true,
   agentId,
   actions,
-  help,
   banner,
+  overlay,
   footer,
   bodyRef,
   children,
@@ -52,20 +51,14 @@ export const Screen = ({
           )}
         </div>
         {actions && <div className={styles.actions}>{actions}</div>}
-        {help && (
-          <HelpButton
-            size="touch"
-            label={t('common.help')}
-            title={help.title}
-            text={help.text}
-            closeLabel={t('common.close')}
-          />
-        )}
       </header>
       {agentId && <LinkBanner agentId={agentId} />}
       {banner}
-      <div ref={bodyRef} className={styles.body}>
-        {children}
+      <div className={styles.frame}>
+        <div ref={bodyRef} className={styles.body}>
+          {children}
+        </div>
+        {overlay}
       </div>
       {footer ? (
         <footer className={styles.footer}>

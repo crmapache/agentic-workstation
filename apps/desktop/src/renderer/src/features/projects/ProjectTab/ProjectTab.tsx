@@ -56,7 +56,7 @@ export const ProjectTab = ({
       hint={tabHint(project.rootPath, work, calls)}
       active={isActive}
       closeLabel={t('projects.close', { name: project.name })}
-      leading={work.length > 0 && <WorkMark work={work} size="sm" />}
+      leading={work.length > 0 && <WorkMark work={work} />}
       trailing={calls.length > 0 && <CallDots calls={calls} />}
       lifted={lifted}
       offset={offset === null ? null : { x: offset, y: 0 }}

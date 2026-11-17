@@ -1,0 +1,18 @@
+// Над лентой по центру, на месте при прокрутке: внизу у поля или наверху, если выделено у низа.
+// Это всплывающий слой над текстом - отсюда тень всплывающего.
+.quoteButton {
+  position: absolute;
+  left: 50%;
+  z-index: var(--z-overlay);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-overlay);
+  translate: -50% 0;
+}
+
+.bottom {
+  bottom: var(--space-4);
+}
+
+.top {
+  top: var(--space-4);
+}

@@ -29,7 +29,6 @@ export const ScenariosScreen = ({ route }: { route: RouteOf<'scenarios'> }) => {
       title={t('scenarios.title')}
       subtitle={screen.project?.name}
       agentId={agentId}
-      help={{ title: t('scenarios.help.title'), text: t('scenarios.help.text') }}
       footer={
         <div className={styles.footer}>
           <Button size="touch" onClick={() => navigate({ name: 'draft', agentId, projectKey })}>

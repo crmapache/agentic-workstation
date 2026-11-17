@@ -2,9 +2,9 @@ import type { FeedItem, ToolInput, FileChange, ToolFeedItem } from '@shared/clau
 
 import { isRecord } from '../cli/cli-messages'
 import { EDIT_TOOL_PATH_FIELD } from './changes.constants'
+import { patchLines, writtenLines } from './line-counts'
 import { lineDiff } from './line-diff'
 import type { EditEntry } from './turn-edits'
-import { hunkCounts } from './turn-settle'
 
 /** Что одна правка дала строке файла - без отметок отката. */
 type ToolChange = Omit<FileChange, 'reverted' | 'refusal'>
@@ -22,14 +22,12 @@ const text = (input: ToolInput, key: string) => {
   return typeof value === 'string' ? value : ''
 }
 
-const lineCount = (value: string) => (value ? value.replace(/\n+$/, '').split('\n').length : 0)
-
 /** Пара «было - стало» правки, посчитанная так же, как её дифф на карточке. */
 const pairCounts = (pair: ToolInput): Counts => {
   if (pair['replace_all'] === true) return UNCOUNTED
 
   return {
-    ...hunkCounts(lineDiff(text(pair, 'old_string'), text(pair, 'new_string')) ?? []),
+    ...patchLines(lineDiff(text(pair, 'old_string'), text(pair, 'new_string')) ?? []),
     created: false,
     counted: true,
   }
@@ -49,11 +47,11 @@ const callCounts = (tool: ToolFeedItem, undiffed: boolean): Counts => {
   if (name === 'Write') {
     const created = CREATED_TEXT.test((tool.result?.text ?? '').trim())
 
-    return { added: lineCount(text(input, 'content')), removed: 0, created, counted: true }
+    return { added: writtenLines(text(input, 'content')), removed: 0, created, counted: true }
   }
 
   if (name === 'NotebookEdit') {
-    const added = input['edit_mode'] === 'delete' ? 0 : lineCount(text(input, 'new_source'))
+    const added = input['edit_mode'] === 'delete' ? 0 : writtenLines(text(input, 'new_source'))
 
     return { added, removed: 0, created: false, counted: true }
   }
@@ -75,9 +73,9 @@ const callCounts = (tool: ToolFeedItem, undiffed: boolean): Counts => {
 /**
  * Строки одной правки - по диффу CLI, а не по вызову: replace_all меняет текст столько
  * раз, сколько он встречается, а Write поверх файла удаляет строки, которых вызов не
- * называет. Созданный файл - по аргументу вызова: весь он и добавлен. Большую правку CLI
- * присылает с пустым диффом - она остаётся в списке (без цифр, пока сверка в конце хода
- * не посчитает её по копии), а не выпадает из него.
+ * называет. Созданный файл - по его строкам: весь он и добавлен. Большую правку CLI
+ * присылает с пустым диффом (`uncounted`) - она остаётся в списке (без цифр, пока сверка в
+ * конце хода не посчитает её по копии), а не выпадает из него.
  *
  * ledger - точные правки главного процесса по id вызова: с ним запись того же текста не
  * даёт строки, а кнопка отката есть, только если правка там есть.
@@ -97,20 +95,19 @@ const changeOf = (
   const exact = !ledger || typeof entry?.edit === 'object'
 
   if (result.created) {
-    const added = lineCount(text(tool.input, 'content'))
+    const added = result.changeCounts?.added ?? writtenLines(text(tool.input, 'content'))
 
     return { path, added, removed: 0, created: true, counted: true, undoable: exact }
   }
 
   if (entry?.edit === 'unchanged') return null
 
-  const counts = result.changeCounts
-
-  if (counts && counts.added + counts.removed > 0) {
-    return { path, ...counts, created: false, counted: true, undoable: exact }
+  // Цифры CLI точные, и ноль тоже: Write записал тот же текст - строки файл не даёт.
+  if (result.changeCounts) {
+    return { path, ...result.changeCounts, created: false, counted: true, undoable: exact }
   }
 
-  return { path, ...callCounts(tool, counts !== undefined), undoable: false }
+  return { path, ...callCounts(tool, result.uncounted === true), undoable: false }
 }
 
 /** Вторая правка того же файла - в его строку: сумма, созданный остаётся созданным. */

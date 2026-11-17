@@ -166,6 +166,23 @@ export class ScenarioEngine {
     deliverTold(e)
   }
 
+  /**
+   * Рабочие часы очереди кончились (ADR 0074) - та же пауза, что у человека. Прогон, стоящий
+   * на лимите или переезде, тоже встаёт: сам он проснулся бы посреди ночи. false - паузу
+   * ставить не пришлось: прогон кончился или уже стоит на паузе человека.
+   */
+  pauseForHours(): boolean {
+    const { e } = this
+    const restsByItself =
+      e.restingOnLimit || e.pendingSwap?.thenResume === true || e.pendingRelief?.thenResume === true
+
+    if (e.phase === 'over' || (e.phase === 'paused' && !restsByItself)) return false
+
+    this.pause()
+
+    return true
+  }
+
   resume(): void {
     const { e } = this
 

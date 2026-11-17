@@ -15,7 +15,10 @@ export const openQueues = (queues: QueueWire[], live: RunSummaryWire[]): QueueWi
 export const waitingCount = (queue: QueueWire): number =>
   queue.items.filter((item) => item.state === 'waiting').length
 
-/** Строка очереди под её именем: папка, идущий прогон с долей шагов, сколько ждёт. */
+/**
+ * Строка очереди под её именем: папка, идущий прогон с долей шагов, сколько ждёт и спит ли она
+ * вне рабочих часов.
+ */
 export const queueFacts = (
   t: TFunction,
   queue: QueueWire,
@@ -25,6 +28,7 @@ export const queueFacts = (
     queue.workdir.kind === 'worktree' ? queue.workdir.gitBranch : t('queue.projectFolder'),
     run ? `${run.scenarioName} ${run.done}/${run.total}` : null,
     t('project.waitingItems', { count: waitingCount(queue) }),
+    queue.nap ? t('queue.restFact') : null,
   ]
     .filter(Boolean)
     .join(' · ')

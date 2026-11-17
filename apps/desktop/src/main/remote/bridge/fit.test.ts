@@ -18,7 +18,8 @@ import {
 } from '../__fixtures__/fake-ide'
 import { FeedDesk, JOURNAL_IDLE_MS } from './feed-desk'
 import { emptyFold, foldPatch, FeedJournal } from './feed-journal'
-import { asIs, fitItem, fitValue, cutStrings, PHONE_NOTE, packsThatFit, tailThatFits } from './fit'
+import { tailWindow } from './feed-window'
+import { asIs, fitItem, fitValue, cutStrings, PHONE_NOTE, packsThatFit } from './fit'
 import { pathRedactor, PROJECT_LABEL, WORKTREE_LABEL } from './redact'
 
 afterEach(stopBridges)
@@ -73,7 +74,7 @@ describe('кадр', () => {
     const items = Array.from({ length: 50 }, (_, index) =>
       wire(itemOf(`i${index}`, 'x'.repeat(20_000))),
     )
-    const tail = tailThatFits(items, 200_000, 120)
+    const tail = tailWindow(items, 200_000, 120)
 
     expect(tail.cut).toBe(true)
     expect(tail.items.at(-1)?.id).toBe('i49')
@@ -97,6 +98,41 @@ describe('кадр', () => {
     expect(fitted?.lines.at(-1)).toBe(`${'z'.repeat(200)}${PHONE_NOTE}`)
   })
 
+  // Счёт по тексту на телефоне видел бы только начало файла: строки правки - готовым числом.
+  it('файл больше кадра режется, а строки правки доходят целыми', () => {
+    // 6000 строк по ~60 знаков - больше кадра релея (256 КБ).
+    const content = Array.from(
+      { length: 6000 },
+      (_, index) => `export const value${index} = 'generated line of code number ${index}'\n`,
+    )
+    const write = wire({
+      kind: 'tool',
+      id: 'w1',
+      parentToolUseId: null,
+      name: 'Write',
+      input: { file_path: '/p/big.ts', content: content.join('') },
+      status: 'done',
+      result: {
+        text: 'File created successfully at: /p/big.ts',
+        isError: false,
+        truncated: false,
+        changeCounts: { added: 6000, removed: 0 },
+        created: true,
+      },
+      startedAt: 0,
+      endedAt: 0,
+      closedReason: null,
+    })
+    const fitted = fitItem(write) as unknown as {
+      input: { content: string }
+      result: { changeCounts: unknown; created: unknown }
+    }
+
+    expect(fitted.input.content.endsWith(PHONE_NOTE)).toBe(true)
+    expect(fitted.result.changeCounts).toEqual({ added: 6000, removed: 0 })
+    expect(fitted.result.created).toBe(true)
+  })
+
   it('элемент, не влезающий и урезанным, становится карточкой, а не пропадает', () => {
     const huge = wire({
       ...itemOf('t1', 'short text'),
@@ -113,7 +149,7 @@ describe('кадр', () => {
         .flat()
         .map((item) => item.id),
     ).toEqual(['t1'])
-    expect(tailThatFits([huge], 50_000, 10).items.map((item) => item.id)).toEqual(['t1'])
+    expect(tailWindow([huge], 50_000, 10).items.map((item) => item.id)).toEqual(['t1'])
   })
 })
 

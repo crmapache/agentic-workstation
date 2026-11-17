@@ -27,3 +27,11 @@ export const fastStateKey = (fast: FastWire | undefined): string | null => {
 
   return null
 }
+
+/**
+ * Режим разрешений меняется с телефона у IDE, которая говорит, что гасит этой вкладке
+ * (unavailableModes, ADR 0076): та же версия принимает и conversation.setMode. Старая IDE поля
+ * не шлёт и команду отказала бы целиком - раздела у неё нет.
+ */
+export const modesOffered = (conversation: ConversationWire): boolean =>
+  conversation.unavailableModes !== undefined

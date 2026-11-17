@@ -85,6 +85,8 @@ const openQueue = async (
     stopAfterItemId: '',
     hold: null,
     acknowledgedItemId: '',
+    hours: null,
+    nap: null,
   }
 
   host.book.put(queue)

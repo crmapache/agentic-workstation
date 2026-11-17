@@ -75,6 +75,8 @@ export type StatsSeriesPoint = {
   manualLinesRemoved: number
   /** Настенные минуты агентов в шаге (дробные). */
   agentMinutes: number
+  /** Из agentMinutes - вне минут присутствия человека (agentsWithoutYouMs по шагам). */
+  agentsWithoutYouMinutes: number
   presenceMinutes: number
 }
 

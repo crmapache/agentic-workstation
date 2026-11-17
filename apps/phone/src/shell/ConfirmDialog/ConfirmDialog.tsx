@@ -6,15 +6,17 @@ import { Dialog } from '@agentic-workstation/ui/Dialog'
 import styles from './ConfirmDialog.module.scss'
 
 /**
- * «Точно?» перед тем, что не отменить: остановить прогон, убрать элемент очереди, забыть
- * аккаунт. text - чем это кончится, если по заголовку не ясно (вход уходит с Mac, процесс
- * гаснет): человек решает, видя последствие, а не догадываясь о нём.
+ * «Точно?» перед тем, что не отменить (остановить прогон, убрать элемент очереди, забыть
+ * аккаунт) или что легко задеть пальцем случайно (переставить элемент очереди). text - чем это
+ * кончится, если по заголовку не ясно: человек решает, видя последствие, а не догадываясь о нём.
+ * tone primary - для действия, которое ничего не уничтожает: красная кнопка там пугала бы зря.
  */
 export const ConfirmDialog = ({
   open,
   title,
   text,
   confirmLabel,
+  tone = 'danger',
   onConfirm,
   onClose,
 }: {
@@ -22,6 +24,7 @@ export const ConfirmDialog = ({
   title: string
   text?: string | undefined
   confirmLabel: string
+  tone?: 'danger' | 'primary' | undefined
   onConfirm: () => void
   onClose: () => void
 }) => {
@@ -43,7 +46,7 @@ export const ConfirmDialog = ({
           <Button size="touch" variant="ghost" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button size="touch" variant="danger" type="submit">
+          <Button size="touch" variant={tone} type="submit">
             {confirmLabel}
           </Button>
         </>

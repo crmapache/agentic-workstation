@@ -10,30 +10,42 @@ const DAY = 24 * HOUR
 
 const WEEK = 7 * DAY
 
-/** Сколько прошло - коротко, двумя единицами: «40s», «2m 40s», «1h 5m», «3d 4h». */
+/**
+ * Сколько длится работа - как в IDE: «12s», «3m 05s», «1h 02m 05s». Секунды остаются и после
+ * часа: по ним видно, что ход или прогон идёт, а не стоит. Отрицательное (часы разошлись) -
+ * ноль, а не минус.
+ */
 export const durationText = (t: TFunction, ms: number): string => {
-  const safe = Math.max(0, ms)
+  const total = Math.floor(Math.max(0, ms) / SECOND)
+  const pad = (part: number) => String(part).padStart(2, '0')
 
-  if (safe < MINUTE) return t('time.seconds', { count: Math.floor(safe / SECOND) })
-  if (safe < HOUR) {
-    const minutes = Math.floor(safe / MINUTE)
-    const seconds = Math.floor((safe % MINUTE) / SECOND)
-
-    return seconds > 0 && minutes < 10
-      ? t('time.minutesSeconds', { minutes, seconds })
-      : t('time.minutes', { count: minutes })
+  if (total < 60) return t('time.seconds', { count: total })
+  if (total < 3600) {
+    return t('time.minutesSeconds', { minutes: Math.floor(total / 60), seconds: pad(total % 60) })
   }
 
-  if (safe < DAY) {
+  return t('time.hoursMinutesSeconds', {
+    hours: Math.floor(total / 3600),
+    minutes: pad(Math.floor(total / 60) % 60),
+    seconds: pad(total % 60),
+  })
+}
+
+/** Как давно - грубо, двумя единицами: «40s», «15m», «1h 5m», «3d 4h». Секунды здесь шум. */
+const agoText = (t: TFunction, ms: number): string => {
+  if (ms < MINUTE) return t('time.seconds', { count: Math.floor(ms / SECOND) })
+  if (ms < HOUR) return t('time.minutes', { count: Math.floor(ms / MINUTE) })
+
+  if (ms < DAY) {
     return t('time.hoursMinutes', {
-      hours: Math.floor(safe / HOUR),
-      minutes: Math.floor((safe % HOUR) / MINUTE),
+      hours: Math.floor(ms / HOUR),
+      minutes: Math.floor((ms % HOUR) / MINUTE),
     })
   }
 
   return t('time.daysHours', {
-    days: Math.floor(safe / DAY),
-    hours: Math.floor((safe % DAY) / HOUR),
+    days: Math.floor(ms / DAY),
+    hours: Math.floor((ms % DAY) / HOUR),
   })
 }
 
@@ -47,7 +59,7 @@ export const sinceText = (t: TFunction, since: number, now: number, offset: numb
   if (elapsed < 45 * SECOND) return t('time.justNow')
 
   // Дольше недели - дата, а не «23d 4h»: так давно считают днями календаря, а не часами.
-  return elapsed < WEEK ? durationText(t, elapsed) : dateText(since - offset)
+  return elapsed < WEEK ? agoText(t, elapsed) : dateText(since - offset)
 }
 
 /** День по часам телефона: «Nov 3». */

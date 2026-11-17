@@ -16,7 +16,8 @@ import { UserItem } from './UserItem'
 /**
  * Элемент ленты по виду. Карточка (stub: элемент не влез в кадр и урезанным) - своя строка, а не
  * элемент своего вида без полей. Незнакомый вид (IDE новее телефона) не рисуется вовсе.
- * Действия (остановить задачу, откатить к сообщению) - только у ленты живого разговора.
+ * Действия (остановить задачу, откатить к сообщению, цитировать ответ) - только у ленты живого
+ * разговора.
  */
 export const FeedItemView = memo(
   ({
@@ -36,7 +37,7 @@ export const FeedItemView = memo(
       case 'user':
         return <UserItem item={item} onOpenPhoto={onOpenPhoto} onRewind={actions?.onRewind} />
       case 'assistant':
-        return <Markdown text={text(item, 'text')} />
+        return <Markdown text={text(item, 'text')} quotable={!!actions} />
       case 'thinking':
         return <ThinkingItem item={item} />
       case 'tool':

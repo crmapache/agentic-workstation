@@ -34,7 +34,6 @@ export const MachinesScreen = () => {
     <Screen
       title={t('machines.title')}
       back={false}
-      help={{ title: t('machines.help.title'), text: t('machines.help.text') }}
       banner={!client.persistent && <Banner tone="warning" text={t('machines.notPersistent')} />}>
       {machines.length === 0 ? (
         <EmptyState

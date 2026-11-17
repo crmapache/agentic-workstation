@@ -76,6 +76,15 @@ export const MONACO_FIND_COMMANDS: ReadonlySet<string> = new Set([
   'editor.action.selectAllMatches',
 ])
 
+/** Обработчик Monaco, через который идёт любая вставка текста: ⌘V, пункт меню, «вставить как». */
+export const PASTE_HANDLER = 'paste'
+
+/**
+ * Разделители строк и абзацев Юникода и NEL. Таким переносом текст кладут в буфер Notes,
+ * Telegram и часть сайтов, а Monaco концом строки их не считает и рисует ромбом с вопросом.
+ */
+export const UNUSUAL_LINE_TERMINATORS = /[\u2028\u2029\u0085]/g
+
 /**
  * Действия разницы (с коммитом и в локальной истории) на клавишах WebStorm: F7 и Shift+F7 - к
  * следующей и предыдущей правке, F4 - сам файл в редакторе (Jump to Source, у разницы с

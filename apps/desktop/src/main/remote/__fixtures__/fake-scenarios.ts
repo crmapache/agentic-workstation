@@ -82,6 +82,8 @@ export const QUEUE: ScenarioQueue = {
   stopAfterItemId: '',
   hold: null,
   acknowledgedItemId: '',
+  hours: null,
+  nap: null,
 }
 
 export const RUN: ScenarioRun = {

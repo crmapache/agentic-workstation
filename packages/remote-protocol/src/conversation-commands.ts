@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   ID,
   TEXT,
+  FILES,
   MODEL,
   QUERY,
   IMAGES,
@@ -15,7 +16,7 @@ import {
   SESSION_ID,
   PROJECT_KEY,
   CONVERSATION_ID,
-  PHONE_PERMISSION_MODES,
+  PERMISSION_MODES,
 } from './command-fields'
 
 /** Сообщение в очереди разговора - UUID, который дала ему IDE. */
@@ -38,15 +39,27 @@ const DECISION = z.discriminatedUnion('kind', [
  * дня: сообщение агенту, у которого шелл на машине, - самая широкая дверь канала. Очередь - то
  * же сообщение, сказанное позже; вопрос сбоку - вопрос без инструментов и без записи в
  * транскрипт; откат - то, что меняет и сообщение, а код откатывается только тот, что писали
- * инструменты агента. Режим разговора («ask», bypass, auto) с телефона не меняется вовсе.
+ * инструменты агента. Режим разговора - любой из тех, что окно IDE даёт этому разговору (ADR
+ * 0076): на каждый вопрос разрешения телефон и так отвечает сам, а недоступный у окна режим
+ * (bypass под запретом настроек, auto, от которого CLI отказался) IDE отказывает и телефону.
  *
  * Ответ на вопрос несёт его опознание (requestId вопроса CLI): ответ на снятый или сменившийся
  * вопрос IDE отказывает (questionGone), а не кладёт на следующий.
  */
 export const CONVERSATION_ARGS = {
-  'conversation.send': z.object({ conversationId: CONVERSATION_ID, text: TEXT, images: IMAGES }),
+  'conversation.send': z.object({
+    conversationId: CONVERSATION_ID,
+    text: TEXT,
+    images: IMAGES,
+    files: FILES,
+  }),
   /** Отложить до конца хода; разговор свободен - уходит сразу, ждать нечего. */
-  'conversation.enqueue': z.object({ conversationId: CONVERSATION_ID, text: TEXT, images: IMAGES }),
+  'conversation.enqueue': z.object({
+    conversationId: CONVERSATION_ID,
+    text: TEXT,
+    images: IMAGES,
+    files: FILES,
+  }),
   'conversation.unqueue': z.object({ conversationId: CONVERSATION_ID, queuedId: QUEUED_ID }),
   /** Переставить отложенное на место toIndex (как перетаскивание в окне IDE). */
   'conversation.moveQueued': z.object({
@@ -75,7 +88,7 @@ export const CONVERSATION_ARGS = {
     provider: PROVIDER,
     model: MODEL.optional(),
     effort: z.enum(EFFORTS).nullable().optional(),
-    permissionMode: z.enum(PHONE_PERMISSION_MODES).optional(),
+    permissionMode: z.enum(PERMISSION_MODES).optional(),
   }),
   'conversation.rename': z.object({
     conversationId: CONVERSATION_ID,
@@ -88,6 +101,11 @@ export const CONVERSATION_ARGS = {
   }),
   /** Быстрый режим этого разговора: просьба CLI, настроек машины не пишет. */
   'conversation.setFast': z.object({ conversationId: CONVERSATION_ID, fast: z.boolean() }),
+  /** Режим разрешений этого разговора, как меню MODE окна; настроек машины не пишет. */
+  'conversation.setMode': z.object({
+    conversationId: CONVERSATION_ID,
+    mode: z.enum(PERMISSION_MODES),
+  }),
   /**
    * Вопрос сбоку (/btw): askId называет телефон, по нему же отмена. Итог команды - ответ,
    * когда он пришёл (до 11 минут): он уходит только спросившему телефону.
@@ -156,6 +174,7 @@ export const CONVERSATION_LIMITS: Readonly<Record<keyof typeof CONVERSATION_ARGS
   'conversation.setModel': 20,
   'conversation.setEffort': 20,
   'conversation.setFast': 20,
+  'conversation.setMode': 20,
   'conversation.aside': 10,
   'conversation.asideCancel': 20,
   'conversation.history': 20,

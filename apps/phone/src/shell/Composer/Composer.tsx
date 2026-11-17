@@ -1,4 +1,4 @@
-import { ArrowUp, ImagePlus } from 'lucide-react'
+import { ArrowUp, Paperclip } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -6,62 +6,74 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { useComposer } from './Composer.hooks'
 import styles from './Composer.module.scss'
 import type { ComposerProps } from './Composer.types'
-import { ImageStrip } from './parts/ImageStrip'
+import { AttachmentStrip } from './parts/AttachmentStrip'
+import { QuoteList } from './parts/QuoteList'
 
 /**
- * Поле сообщения с фото: камера или галерея одним выбором системы, отправка кнопкой - Enter на
- * телефоне переносит строку. Пока ход идёт, сообщение встаёт в очередь IDE, а перед «отправить»
- * стоит то, что даёт экран (Stop хода).
+ * Поле сообщения во всю ширину, под ним ряд кнопок, как в ACC: скрепка слева, справа - то, что
+ * даёт экран (Stop хода), и «отправить». Скрепка открывает выбор самой системы: фото, камера,
+ * файлы. Над полем - цитаты из ленты и вложения. Enter на телефоне переносит строку, отправка -
+ * кнопкой. Пока ход идёт, сообщение встаёт в очередь IDE.
  */
 export const Composer = ({
   draftKey,
   placeholder,
   sendLabel,
-  allowImages = true,
+  allowAttachments = true,
   disabled = false,
   actions,
   onSend,
 }: ComposerProps) => {
   const { t } = useTranslation()
   const composer = useComposer({ draftKey, onSend })
-  const { text, setText, images, isBusy, fieldRef, fileRef } = composer
-  const canSend = !disabled && !isBusy && (text.trim() !== '' || images.length > 0)
+  const { text, setText, images, files, isBusy, fieldRef, fileRef } = composer
+  const canSend = !disabled && !isBusy && !composer.isEmpty
 
   return (
     <div className={styles.composer}>
-      {images.length > 0 && <ImageStrip images={images} onRemove={composer.removeImage} />}
-      <div className={styles.row}>
-        {allowImages && (
+      {composer.quotes.length > 0 && <QuoteList draftKey={draftKey} quotes={composer.quotes} />}
+      {(images.length > 0 || files.length > 0) && (
+        <AttachmentStrip
+          images={images}
+          files={files}
+          onRemoveImage={composer.removeImage}
+          onRemoveFile={composer.removeFile}
+        />
+      )}
+      <textarea
+        ref={fieldRef}
+        className={styles.field}
+        rows={1}
+        value={text}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        enterKeyHint="enter"
+        disabled={disabled}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <div className={styles.tools}>
+        {allowAttachments && (
           <>
             <IconButton
-              icon={ImagePlus}
+              icon={Paperclip}
               size="touch"
-              label={t('composer.addPhoto')}
+              label={t('composer.attach')}
               disabled={disabled}
               onClick={() => fileRef.current?.click()}
             />
+            {/* Без accept: система сама предлагает фото, камеру и файлы. */}
             <input
               ref={fileRef}
               className={styles.file}
               type="file"
-              accept="image/*"
               multiple
               tabIndex={-1}
               aria-hidden
-              onChange={(event) => void composer.handleFiles(event)}
+              onChange={(event) => void composer.handlePick(event)}
             />
           </>
         )}
-        <textarea
-          ref={fieldRef}
-          className={styles.field}
-          rows={1}
-          value={text}
-          placeholder={placeholder}
-          aria-label={placeholder}
-          disabled={disabled}
-          onChange={(event) => setText(event.target.value)}
-        />
+        <span className={styles.toolsGap} />
         {actions}
         <IconButton
           icon={ArrowUp}

@@ -27,7 +27,6 @@ export const StepLogScreen = ({ route }: { route: RouteOf<'stepLog'> }) => {
       title={screen.title}
       subtitle={screen.scenarioName}
       agentId={route.agentId}
-      help={{ title: t('stepLog.help.title'), text: t('stepLog.help.text') }}
       actions={
         <IconButton
           icon={RefreshCw}

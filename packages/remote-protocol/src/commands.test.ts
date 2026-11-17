@@ -3,6 +3,8 @@ import { it, expect, describe } from 'vitest'
 import {
   parseCommand,
   COMMAND_NAMES,
+  COMMAND_LIMITS,
+  PERMISSION_MODES,
   REFUSED_COMMANDS,
   COMMAND_PATIENCE_MS,
   MAY_ARRIVE_IN_PARTS,
@@ -39,6 +41,24 @@ describe('команды телефона уровня ACC', () => {
       false,
     )
     expect(ok('conversation.cancelCarryOn', { conversationId: CONVERSATION })).toBe(true)
+  })
+
+  it('режим разговора - любой из пяти режимов окна IDE, и ничего сверх них', () => {
+    const setMode = (mode: unknown) =>
+      ok('conversation.setMode', { conversationId: CONVERSATION, mode })
+
+    for (const mode of PERMISSION_MODES) expect(setMode(mode)).toBe(true)
+    expect(PERMISSION_MODES).toEqual([
+      'default',
+      'acceptEdits',
+      'plan',
+      'auto',
+      'bypassPermissions',
+    ])
+    expect(setMode('dontAsk')).toBe(false)
+    expect(setMode('manual')).toBe(false)
+    expect(ok('conversation.setMode', { conversationId: '../x', mode: 'plan' })).toBe(false)
+    expect(COMMAND_LIMITS['conversation.setMode']).toBe(COMMAND_LIMITS['conversation.setModel'])
   })
 
   it('быстрый режим - флагом, вопрос сбоку - со своим id и непустым вопросом', () => {

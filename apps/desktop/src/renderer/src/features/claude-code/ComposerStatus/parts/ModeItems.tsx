@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { PERMISSION_MODES } from '@shared/claude'
+import { isModeOff, PERMISSION_MODES } from '@shared/claude'
 
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
@@ -8,7 +8,6 @@ import { MODE_ICONS } from '../ComposerStatus.constants'
 import type { PickerProps } from '../ComposerStatus.types'
 import { useClaudeActions } from '../../claude-actions.hooks'
 import { useModeAvailability } from '../../modes.hooks'
-import { isModeOff } from '../../pane-keys.utils'
 import { useActiveProject } from '../../../../state/workspace.queries'
 
 /**

@@ -206,6 +206,16 @@ export const startHarness = async (
     unqueue: thenChanged(base.unqueue),
     moveQueued: thenChanged(base.moveQueued),
     sendQueued: thenChanged(base.sendQueued),
+    // Режим ложится на вкладку сразу, как у ClaudeService, - телефон видит его в своей строке.
+    setOptions: (id, options) => {
+      const result = base.setOptions(id, options)
+
+      if (id === CONVERSATION_ID && options.permissionMode) {
+        update({ permissionMode: options.permissionMode })
+      }
+
+      return result
+    },
     send: (id, message) => {
       ide.calls.push({ name: 'send', args: [id, message] })
       push({

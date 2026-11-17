@@ -64,23 +64,26 @@ describe('белый список команд', () => {
     for (const name of REFUSED_COMMANDS) expect(parseCommand(name, {}).ok).toBe(false)
   })
 
-  it('«разрешать всегда», bypass и закрытие очереди не выражаются вовсе', () => {
+  it('«разрешать всегда», dontAsk и закрытие очереди не выражаются вовсе', () => {
     const respond = (decision: object) =>
       parseCommand('conversation.respond', {
         conversationId: CONVERSATION,
         requestId: 'r1',
         decision,
       })
-
-    expect(respond({ kind: 'permission', allow: true }).ok).toBe(true)
-    expect(respond({ kind: 'permission', behavior: 'allowAlways' }).ok).toBe(false)
-    expect(
+    const newIn = (permissionMode: string) =>
       parseCommand('conversation.new', {
         projectKey: `p-${AGENT}`,
         provider: 'claude',
-        permissionMode: 'bypassPermissions',
-      }).ok,
-    ).toBe(false)
+        permissionMode,
+      }).ok
+
+    expect(respond({ kind: 'permission', allow: true }).ok).toBe(true)
+    expect(respond({ kind: 'permission', behavior: 'allowAlways' }).ok).toBe(false)
+    // Режимы - все пять, что у окна IDE (ADR 0076); доступность решает IDE, а не протокол.
+    expect(newIn('bypassPermissions')).toBe(true)
+    expect(newIn('auto')).toBe(true)
+    expect(newIn('dontAsk')).toBe(false)
     expect(parseCommand('scenarios.queue', { queueId: 'q1', action: { kind: 'close' } }).ok).toBe(
       false,
     )
@@ -342,5 +345,39 @@ describe('лента на телефоне', () => {
     expect(applyFeedPatch(view, patch(4, [item('z', '1')]))).toBe(view)
     expect(applyFeedPatch(view, patch(7, []))).toBeNull()
     expect(applyFeedPatch(view, { ...patch(5, []), epoch: 'other' })).toBeNull()
+  })
+
+  it('счёт шагов субагентов: снимок задаёт, заплатка меняет числом, страница не перебивает живой', () => {
+    // IDE постарше счёта не шлёт - у ленты его нет, телефон считает шаги в items сам.
+    expect(view.steps).toBeUndefined()
+
+    const counted = feedFromSnapshot({
+      p: 1,
+      k: 'feed',
+      conversationId: 'c',
+      epoch: 'e',
+      seq: 4,
+      items: [item('call', '1')],
+      tasks: [],
+      steps: { call: 400 },
+      hasEarlier: true,
+    })
+    const stepped = applyFeedPatch(counted, { ...patch(5, []), steps: { call: 401, far: 9 } })
+
+    // Новый шаг - новое число вызова, элементов не прибавилось.
+    expect(stepped?.items.map((one) => one.id)).toEqual(['call'])
+    expect(stepped?.steps).toEqual({ call: 401, far: 9 })
+    // Заплатка без счёта его не трогает.
+    expect(stepped && applyFeedPatch(stepped, patch(6, [item('a', '2')]))?.steps).toEqual({
+      call: 401,
+      far: 9,
+    })
+
+    const page = { items: [item('far', '1')], steps: { far: 7, old: 3 }, hasEarlier: false }
+    const prepended = stepped && prependFeedPage(stepped, 'call', page)
+
+    // «far» уже считали заплатки - их число живое; «old» знает только страница.
+    expect(prepended?.steps).toEqual({ call: 401, far: 9, old: 3 })
+    expect(prepended?.items.map((one) => one.id)).toEqual(['far', 'call'])
   })
 })

@@ -45,6 +45,8 @@ export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): Qu
   stopAfterItemId: queue.stopAfterItemId,
   hold: queue.hold,
   acknowledgedItemId: queue.acknowledgedItemId,
+  hours: queue.hours,
+  nap: queue.nap && { until: queue.nap.until, runId: queue.nap.runId },
 })
 
 export const runSummaryWire = (run: RunSummary, keyOf: KeyOf): RunSummaryWire => ({
@@ -69,6 +71,9 @@ export const runSummaryWire = (run: RunSummary, keyOf: KeyOf): RunSummaryWire =>
   limit: run.limit,
   starred: run.starred,
   origin: run.origin,
+  idle: run.idle,
+  rested: run.rested,
+  restingSince: run.restingSince,
 })
 
 /** Прогон целиком: дорожка, шаги, заметки, вопрос головы. Промпты шагов остаются в IDE. */
@@ -88,6 +93,9 @@ export const runWire = (run: ScenarioRun, keyOf: KeyOf): RunWire => ({
   cost: run.cost,
   limit: run.limit,
   origin: run.origin,
+  idle: run.idle,
+  rested: run.rested,
+  restingSince: run.restingSince,
   stages: run.snapshot.stages.map((stage) => ({ id: stage.id, title: stage.title })),
   steps: run.steps.map((step) => ({
     key: step.key,
@@ -103,12 +111,14 @@ export const runWire = (run: ScenarioRun, keyOf: KeyOf): RunWire => ({
     failure: step.failure,
     error: step.error,
     cost: step.cost,
+    rested: step.rested,
   })),
   notes: run.notes.map((note) => ({
     at: note.at,
     stepKey: note.stepKey,
     text: note.text,
     who: note.who,
+    deliveredAt: note.deliveredAt,
   })),
   question: run.question && { ...run.question, truncated: run.question.truncated === true },
   error: run.error,
