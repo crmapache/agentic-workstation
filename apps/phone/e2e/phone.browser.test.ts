@@ -16,6 +16,7 @@ import {
   PROJECT_PATH,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import { pointCameraAt } from './fake-camera'
 import type { Harness } from './ide-harness'
 import { until, PERMISSION, startHarness } from './ide-harness'
 import { latencyFrom } from './latency-proxy'
@@ -564,11 +565,13 @@ describe('телефон в мобильном Chromium против насто�
   })
 
   it('IDE не отвечает: пусто с «переподключить», потом устаревшее с полосой; отпустила - полоса', async () => {
-    // Пара вставленным адресом - как у приложения с экрана «Домой»: камера адрес ему не отдаёт.
+    // Пара камерой страницы - как у приложения с экрана «Домой»: камера системы адрес ему не
+    // отдаёт. Чужой код - строка под видоискателем, камера ищет дальше; код IDE - отпечатки.
+    await pointCameraAt(page, 'https://example.com/not-a-pairing-code')
     await page.getByRole('button', { name: 'Pair an IDE' }).click()
-    await page.getByLabel('Pairing link').fill(ide.pairingUrl())
-    await shot('19b-pair-link')
-    await page.getByRole('button', { name: 'Pair with this link' }).click()
+    await page.getByText('This code is not from Agentic Workstation', { exact: false }).waitFor()
+    await shot('19b-pair-camera')
+    await pointCameraAt(page, ide.pairingUrl())
     await expect
       .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
       .toBe(true)
@@ -622,7 +625,7 @@ describe('телефон в мобильном Chromium против насто�
   }, 240_000)
 
   it('уровень ACC: аккаунты, коннекторы, поиск, очередь, стоп, вопрос сбоку, откат, сценарии, недавний проект', async () => {
-    // Прошлый тест оставил IDE отпустившей телефон: забыть её здесь и спарить заново адресом.
+    // Прошлый тест оставил IDE отпустившей телефон: забыть её здесь и спарить заново камерой.
     await page.goto(ide.pageUrl)
     await page.getByRole('heading', { name: 'My IDEs' }).waitFor()
 
@@ -633,9 +636,8 @@ describe('телефон в мобильном Chromium против насто�
       await page.getByRole('dialog').getByRole('button', { name: 'Forget' }).click()
     }
 
+    await pointCameraAt(page, ide.pairingUrl())
     await page.getByRole('button', { name: 'Pair an IDE' }).click()
-    await page.getByLabel('Pairing link').fill(ide.pairingUrl())
-    await page.getByRole('button', { name: 'Pair with this link' }).click()
     await expect
       .poll(() => page.getByRole('button', { name: 'Pair' }).isEnabled(), { timeout: 10_000 })
       .toBe(true)

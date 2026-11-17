@@ -9,6 +9,8 @@ import type { ClaudeService } from './claude/claude-service'
 import type { ConnectorsService } from './connectors/connectors-service'
 import type { DefinitionService } from './definitions/definition-service'
 import { createDefinitionService } from './definitions/definition-setup'
+import type { InboxLink } from './inbox/inbox-agent'
+import type { InboxService } from './inbox/inbox-service'
 import { broadcast } from './ipc/broadcast'
 import { ProviderWatch } from './providers/provider-registry'
 import type { RemoteService } from './remote/remote-service'
@@ -18,6 +20,8 @@ import type { ScenarioTaps } from './scenarios/scenarios-setup'
 import { startScenarios } from './scenarios/scenarios-setup'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
+import type { TaskService } from './tasks/task-service'
+import { startTasks } from './tasks/tasks-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
 import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
@@ -34,6 +38,9 @@ export type IdeFeatures = {
   scenarios: ScenarioService
   statistics: Statistics
   remote: RemoteService
+  /** Задания по расписанию и уведомления IDE (ADR 0069). */
+  tasks: TaskService
+  inbox: InboxService
   /**
    * «Где определено» для редактора (ADR 0061). Процесс с компилятором TypeScript поднимется первым
    * ⌘ + наведением в коде, а не со стартом IDE.
@@ -53,8 +60,9 @@ export type IdeFeatures = {
 
 /**
  * Возможности уровня IDE поверх провайдеров: сценарии (ADR 0039), статистика и Remote Control
- * (ADR 0041), переход к определению в редакторе (ADR 0061). Статистика слушает сценарии (итоги прогонов), Remote Control - сценарии и
- * разговоры, поэтому оба поднимаются после сценариев.
+ * (ADR 0041), задания и уведомления (ADR 0069), переход к определению в редакторе (ADR 0061).
+ * Статистика слушает сценарии (итоги прогонов), Remote Control - сценарии и разговоры, поэтому
+ * оба поднимаются после сценариев; задания пишут свои сессии в статистику - после неё.
  */
 export const startIdeFeatures = async (setup: {
   claude: ClaudeService
@@ -65,12 +73,23 @@ export const startIdeFeatures = async (setup: {
   dataDir: string
   version: string
   getWindow: () => BrowserWindow | null
+  /** Связь коннектора уведомлений: в неё встанут уведомления IDE (ADR 0069). */
+  inboxLink: InboxLink
 }): Promise<IdeFeatures> => {
   const { workspace, claude } = setup
   const taps: ScenarioTaps = { onQueues: () => undefined, onRun: () => undefined }
   const scenarios = await startScenarios({ ...setup, taps })
   const statistics = await startStatistics({ dataDir: setup.dataDir, scenarios, workspace })
   const remote = await startRemote({ ...setup, scenarios })
+  // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
+  const automation = await startTasks({
+    claude,
+    workspace,
+    stats: statistics.stats,
+    dataDir: setup.dataDir,
+    getWindow: setup.getWindow,
+    inboxLink: setup.inboxLink,
+  })
   const definitions = createDefinitionService()
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
   const providers = new ProviderWatch((list) => broadcast('providers:changed', list))
@@ -90,6 +109,8 @@ export const startIdeFeatures = async (setup: {
     scenarios,
     statistics,
     remote,
+    tasks: automation.tasks,
+    inbox: automation.inbox,
     definitions,
     observeClaude: (state) => {
       statistics.observeClaude(state)
@@ -117,6 +138,7 @@ export const startIdeFeatures = async (setup: {
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
         await definitions.close().catch(warnShutdown)
+        automation.shutdown()
         await remote.shutdown().catch(warnShutdown)
         await scenarios.shutdown().catch(warnShutdown)
         await statistics.stats.close().catch(warnShutdown)

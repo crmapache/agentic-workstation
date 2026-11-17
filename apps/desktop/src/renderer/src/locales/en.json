@@ -129,6 +129,11 @@
         "name": "Create with AI",
         "hint": "Describe a service: the AI finds how to connect it",
         "short": "API"
+      },
+      "notifications": {
+        "name": "Notifications",
+        "hint": "Built in: any chat or task can notify you here, with buttons and reminders",
+        "short": "Notifications"
       }
     },
     "status": {
@@ -614,6 +619,12 @@
     "home": "Home",
     "moreCalls": "+{{count}}",
     "call": "{{chat}} · {{reason}}",
+    "scenarioCall": "{{name}} · scenario waiting for you",
+    "work": {
+      "chat": "{{name}} · working",
+      "scenario": "{{name}} · scenario running",
+      "task": "{{name}} · task running"
+    },
     "openEllipsis": "Open Project…",
     "noProject": "No project",
     "switcherLabel": "Switch project",
@@ -633,8 +644,10 @@
     "label": "Main area views",
     "file": "File",
     "scenarios": "Scenarios",
+    "tasks": "Tasks",
     "statistics": "Statistics",
-    "connectors": "Connectors"
+    "connectors": "Connectors",
+    "inbox": "Notifications"
   },
   "providerViews": {
     "label": "LLM providers",
@@ -839,6 +852,16 @@
       "outside": "The file is outside the project.",
       "unknown": "The file didn't open. Try opening it again."
     },
+    "image": {
+      "toolbar": "Image view",
+      "info": "{{width}} × {{height}} · {{size}}",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out",
+      "fit": "Fit to Window",
+      "actualSize": "Actual Size",
+      "brokenTitle": "Can't show this image",
+      "brokenText": "The file isn't a valid image, or its format isn't supported."
+    },
     "notice": {
       "conflict": "This file changed on disk while you were editing it.",
       "deleted": "This file was deleted on disk. Your text is still here.",
@@ -1015,11 +1038,6 @@
       "emptyText": "Run a scenario: it starts a queue of its own.",
       "run": "Run scenario",
       "listLabel": "Queues of this project",
-      "others": {
-        "title": "Other projects",
-        "open": "Go to project",
-        "openQueue": "Go to this queue in its project"
-      },
       "name": {
         "label": "Queue name",
         "hint": "Double-click to rename. Leave it empty to let the AI name it."
@@ -1048,9 +1066,7 @@
         "stopMark": "The queue stops after this one",
         "afterSuccess": "after success",
         "afterAny": "after any end",
-        "refused": "Would not start: {{why}}",
-        "dot": "{{number}}. {{name}} · {{state}}",
-        "dotStop": "{{number}}. {{name}} · {{state}} · the queue stops after it"
+        "refused": "Would not start: {{why}}"
       },
       "itemMenu": {
         "label": "Actions for {{name}}",
@@ -3248,7 +3264,11 @@
     "longQuery": "The text is too long: search takes up to {{count}} characters."
   },
   "activityBar": {
-    "waiting": "{{label}} - {{count}} waiting for you"
+    "waiting": "{{label}} - {{count}} waiting for you",
+    "changes": {
+      "modified": "Changes - uncommitted changes",
+      "conflict": "Changes - merge conflict"
+    }
   },
   "remote": {
     "title": "Remote Control",
@@ -3303,6 +3323,274 @@
       "label": "What the phone can do",
       "title": "What the phone can do",
       "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort or fast mode.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", turn on bypass or auto mode, close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
+    }
+  },
+  "tasks": {
+    "title": "Tasks",
+    "help": {
+      "label": "About tasks",
+      "title": "Tasks",
+      "text": "A task is a prompt Claude Code runs on its own, on a schedule, in a project folder - with the project's CLAUDE.md, hooks and connectors.\n\nEach run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done.\n\nIf the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
+    },
+    "tabs": {
+      "label": "Tasks sections",
+      "tasks": "Tasks",
+      "runs": "Runs"
+    },
+    "actions": {
+      "new": "New task",
+      "runNow": "Run now",
+      "edit": "Edit",
+      "stop": "Stop",
+      "openChat": "Open in chat",
+      "runAgain": "Run again",
+      "enable": "Run on schedule"
+    },
+    "empty": {
+      "title": "No tasks yet",
+      "note": "A task runs Claude Code on its own on a schedule: a monthly invoice, a morning digest, a weekly check."
+    },
+    "runsEmpty": {
+      "title": "No runs yet",
+      "note": "Runs of every task show up here, newest first."
+    },
+    "row": {
+      "next": "Next {{when}}",
+      "paused": "Paused",
+      "lastRun": "Last run {{when}}",
+      "neverRun": "Not run yet",
+      "home": "Home"
+    },
+    "schedule": {
+      "manual": "Only when started by hand",
+      "once": "Once, {{date}} at {{time}}",
+      "hourly": "Every hour at :{{minute}}",
+      "daily": "Every day at {{time}}",
+      "weekdays": "Weekdays at {{time}}",
+      "weekly": "Every {{days}} at {{time}}",
+      "everyDay": "Every day at {{time}}",
+      "monthly": "Monthly on day {{day}} at {{time}}",
+      "monthlyLast": "Monthly on the last day at {{time}}"
+    },
+    "states": {
+      "running": "Running",
+      "waiting": "Waiting for you",
+      "done": "Done",
+      "failed": "Failed",
+      "stopped": "Stopped",
+      "skipped": "Skipped"
+    },
+    "triggers": {
+      "schedule": "On schedule",
+      "catchUp": "Catch-up",
+      "manual": "By hand",
+      "reply": "Continued"
+    },
+    "skips": {
+      "busy": "The previous run was still going",
+      "missed": "The computer was off at the due time"
+    },
+    "failures": {
+      "noClaude": "Claude Code is not installed or not found.",
+      "untrusted": "The project folder is not trusted yet. Trust it to let tasks run there.",
+      "folderMissing": "The project folder is gone.",
+      "startFailed": "Claude Code did not start.",
+      "crashed": "Claude Code stopped unexpectedly.",
+      "turnError": "The run ended with an error.",
+      "tooLong": "The run worked for more than 3 hours and was stopped.",
+      "ideClosed": "The run was interrupted when the IDE closed."
+    },
+    "codes": {
+      "taskGone": "The task is gone.",
+      "runGone": "The run is gone.",
+      "runBusy": "The run is still going - stop it first.",
+      "runIdle": "The run is not going.",
+      "noName": "Give the task a name.",
+      "noPrompt": "Write what the task should do.",
+      "badFolder": "Pick one of your projects.",
+      "badSchedule": "The date and time are in the past.",
+      "notWritten": "Tasks could not be saved to disk.",
+      "noTranscript": "The conversation of this run is not on disk.",
+      "noClaude": "Claude Code is not installed or not found.",
+      "untrusted": "The project folder is not trusted yet.",
+      "folderMissing": "The project folder is gone.",
+      "startFailed": "Claude Code did not start.",
+      "crashed": "Claude Code stopped unexpectedly.",
+      "turnError": "The run ended with an error.",
+      "tooLong": "The run took too long.",
+      "ideClosed": "The run was interrupted.",
+      "unknown": "Something went wrong."
+    },
+    "form": {
+      "newTitle": "New task",
+      "editTitle": "Edit task",
+      "name": "Name",
+      "namePlaceholder": "ReClick invoice",
+      "project": "Project",
+      "prompt": "What to do",
+      "promptPlaceholder": "Generate the monthly invoice and tell me where it is.",
+      "repeat": "Repeat",
+      "repeats": {
+        "manual": "By hand",
+        "once": "Once",
+        "hourly": "Hourly",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      },
+      "date": "Date",
+      "at": "At",
+      "hour": "Hour",
+      "minute": "Minute",
+      "days": "Days",
+      "monthDay": "Day of month",
+      "lastDay": "Last day",
+      "next": "Next run: {{when}}",
+      "noNext": "No next run",
+      "model": "Model",
+      "defaultModel": "Default model",
+      "mode": "Permissions",
+      "modes": {
+        "default": "Ask me in Notifications",
+        "acceptEdits": "Accept file edits",
+        "auto": "Auto (Claude decides what is safe)",
+        "bypassPermissions": "Allow everything"
+      },
+      "enabled": "Run on schedule",
+      "enabledHint": "Off - the task runs only when you start it.",
+      "catchUp": "Catch up missed runs",
+      "catchUpHint": "Due while the computer was asleep or the IDE was closed - run once when it is back.",
+      "report": "Report to Notifications",
+      "reportHint": "A short report of every finished run. Failures always come.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "remove": "Delete task",
+      "help": {
+        "label": "About the task form",
+        "text": "The task runs as a new Claude Code conversation in the project folder, with its CLAUDE.md, hooks and connectors, on the model you pick.\n\nPermissions: “Ask me” sends every permission request to Notifications and the run waits for your button. The other modes let Claude act on its own - pick them for tasks you trust.\n\nTimes are this computer's local time."
+      },
+      "removeSure": "Delete for good"
+    },
+    "run": {
+      "tabs": {
+        "label": "Run sections",
+        "report": "Report",
+        "log": "Conversation"
+      },
+      "noReport": "No report yet.",
+      "working": "Working…",
+      "loading": "Loading the conversation…",
+      "missing": "The conversation is not on disk yet.",
+      "cost": "${{cost}}",
+      "tell": "Tell the task",
+      "tellPlaceholder": "Answer or ask for more…",
+      "send": "Send"
+    }
+  },
+  "inbox": {
+    "title": "Notifications",
+    "help": {
+      "label": "About notifications",
+      "title": "Notifications",
+      "text": "Everything that needs you lands here: questions and permission requests of task runs, their reports and failures, and notifications or reminders Claude sends you from any chat or task.\n\nButtons answer right here: allow a command, pick an option, open the file, or send your choice back into the conversation that asked.\n\nWhen the IDE is in the background, a system banner shows up too. Sounds follow Settings → Sounds."
+    },
+    "tabs": {
+      "label": "Notifications sections",
+      "open": "Inbox",
+      "scheduled": "Scheduled",
+      "done": "Done"
+    },
+    "actions": {
+      "remind": "Remind me",
+      "clearDone": "Clear",
+      "dismiss": "Dismiss",
+      "open": "Open",
+      "reply": "Reply",
+      "allow": "Allow",
+      "deny": "Deny",
+      "approve": "Approve plan",
+      "revise": "Keep planning",
+      "answer": "Send answer",
+      "showRun": "Show run",
+      "openChat": "Open in chat",
+      "runAgain": "Run again",
+      "resume": "Continue",
+      "trust": "Trust folder and run",
+      "dismissRead": "Dismiss read"
+    },
+    "kinds": {
+      "question": "Question",
+      "permission": "Permission",
+      "plan": "Plan",
+      "report": "Report",
+      "failure": "Failed",
+      "message": "Message",
+      "reminder": "Reminder"
+    },
+    "empty": {
+      "open": "Nothing needs you right now.",
+      "scheduled": "No reminders ahead.",
+      "done": "Nothing here yet."
+    },
+    "meta": {
+      "due": "Due {{when}}",
+      "outcome": "Closed: {{outcome}}"
+    },
+    "outcomes": {
+      "dismissed": "dismissed",
+      "withdrawn": "no longer asked",
+      "cancelled": "cancelled",
+      "answered": "answered"
+    },
+    "question": {
+      "other": "Your own answer",
+      "otherPlaceholder": "Type an answer instead…"
+    },
+    "permission": {
+      "run": "Wants to use",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "plan": {
+      "feedback": "What to change",
+      "feedbackPlaceholder": "Optional: what to change in the plan"
+    },
+    "codes": {
+      "itemGone": "This notification is already closed.",
+      "actionGone": "This button is no longer there.",
+      "runGone": "The run that asked is no longer waiting.",
+      "chatGone": "The chat that sent this is gone.",
+      "openFailed": "Could not open it.",
+      "notWritten": "Notifications could not be saved.",
+      "badTime": "Pick a time in the future.",
+      "noTitle": "Write what to remind you about.",
+      "failed": "Pick an answer first.",
+      "runBusy": "This task is already running."
+    },
+    "remind": {
+      "title": "Remind me",
+      "what": "What",
+      "whatPlaceholder": "Send the invoice to Corey",
+      "note": "Note",
+      "notePlaceholder": "Optional details",
+      "date": "Date",
+      "at": "At",
+      "hour": "Hour",
+      "minute": "Minute",
+      "save": "Remind me",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "more": "Open notifications"
+    },
+    "dates": {
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
+    },
+    "nearDays": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday"
     }
   }
 }

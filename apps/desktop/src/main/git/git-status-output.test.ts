@@ -64,14 +64,18 @@ describe('GitStatusParser', () => {
     const status = parse([ordinary('.D', 'docs/old/gone.md')])
 
     expect(status.files).toEqual({})
-    expect(status.changedFolders).toEqual({ docs: 'modified', 'docs/old': 'modified' })
+    expect(status.changedFolders).toEqual({
+      '': 'modified',
+      docs: 'modified',
+      'docs/old': 'modified',
+    })
   })
 
   it('переименование: новый путь изменён, папка старого - тоже изменена', () => {
     const status = parse([renamed('R.', 'lib/new.ts'), 'old/place.ts'])
 
     expect(status.files).toEqual({ 'lib/new.ts': 'modified' })
-    expect(status.changedFolders).toEqual({ lib: 'modified', old: 'modified' })
+    expect(status.changedFolders).toEqual({ '': 'modified', lib: 'modified', old: 'modified' })
   })
 
   it('новые и игнорируемые: файлы и папки целиком', () => {
@@ -79,6 +83,20 @@ describe('GitStatusParser', () => {
 
     expect(status.files).toEqual({ 'notes.txt': 'untracked', '.env': 'ignored' })
     expect(status.folders).toEqual({ drafts: 'untracked', node_modules: 'ignored' })
+  })
+
+  it('корень проекта - папка над всеми: удалённый файл в корне тоже его помечает', () => {
+    expect(parse([ordinary('.D', 'README.md')]).changedFolders).toEqual({ '': 'modified' })
+    expect(parse(['? notes.txt']).changedFolders).toEqual({ '': 'modified' })
+  })
+
+  it('конфликт в корне сильнее изменения, в любом порядке', () => {
+    expect(parse([unmerged('a.ts'), ordinary('.M', 'b.ts')]).changedFolders).toEqual({
+      '': 'conflict',
+    })
+    expect(parse([ordinary('.M', 'b.ts'), unmerged('a.ts')]).changedFolders).toEqual({
+      '': 'conflict',
+    })
   })
 
   it('игнорируемое не помечает папки над собой изменёнными', () => {
@@ -93,7 +111,7 @@ describe('GitStatusParser', () => {
       ordinary('.M', 'a/c.ts'),
     ])
 
-    expect(status.changedFolders).toEqual({ a: 'conflict', 'a/b': 'conflict' })
+    expect(status.changedFolders).toEqual({ '': 'conflict', a: 'conflict', 'a/b': 'conflict' })
   })
 
   it('проект - подпапка репозитория: пути от корня проекта, чужие выпадают', () => {
@@ -104,7 +122,7 @@ describe('GitStatusParser', () => {
 
     expect(status.files).toEqual({ 'src/a.ts': 'modified' })
     expect(status.folders).toEqual({ '': 'untracked' })
-    expect(status.changedFolders).toEqual({ src: 'modified' })
+    expect(status.changedFolders).toEqual({ '': 'modified', src: 'modified' })
   })
 
   it('имена в NFD приходят в NFC, как в дереве', () => {

@@ -22,6 +22,7 @@ import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
 import { GitStatusService } from './git/git-status-service'
 import { LocalHistory } from './history/local-history'
+import { InboxLink } from './inbox/inbox-agent'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
@@ -146,6 +147,9 @@ const bootstrap = async () => {
   // Дом - папка, которую создала сама IDE, чужих хуков и настроек в ней нет: вопроса о доверии
   // на первом сообщении дома не будет (ADR 0059).
   void claude.trustProject(homeFolderPath(PROFILE_DIR))
+  // Уведомления IDE поднимутся с заданиями, а коннектор уведомлений нужен шлюзу уже сейчас:
+  // связь между ними ставится заранее (ADR 0069).
+  const inboxLink = new InboxLink()
   // Коннекторы к приложениям держит IDE, а не провайдер (ADR 0028): шлюз - до первого
   // процесса разговора, его серверы процессы получают файлом --mcp-config.
   const connectors = await startConnectors({
@@ -157,6 +161,7 @@ const bootstrap = async () => {
     projectPaths: () => workspace.getState().projects.map((project) => project.rootPath),
     isTrusted: (projectPath) => claude.isTrusted(projectPath),
     chats: connectorChats(claude, join(app.getPath('userData'), AI_CHATS_DIR)),
+    inbox: inboxLink,
   })
 
   claude.connectors.configFor = (projectPath) => connectors.mcpConfigFor(projectPath)
@@ -226,8 +231,8 @@ const bootstrap = async () => {
   // Терминалы под панелью Claude Code (ADR 0037): закрытый проект гасит свои (onWorkspace ниже).
   const terminals = createTerminalService(app.getPath('userData'), app.getVersion())
 
-  // Сценарии (ADR 0039), статистика и Remote Control (ADR 0041) - возможности всей IDE поверх
-  // провайдеров.
+  // Сценарии (ADR 0039), статистика, Remote Control (ADR 0041), задания и уведомления (ADR 0069) -
+  // возможности всей IDE поверх провайдеров.
   const features = await startIdeFeatures({
     claude,
     workspace,
@@ -236,6 +241,7 @@ const bootstrap = async () => {
     dataDir: app.getPath('userData'),
     version: app.getVersion(),
     getWindow: () => mainWindow,
+    inboxLink,
   })
 
   observeClaude = features.observeClaude
@@ -266,6 +272,8 @@ const bootstrap = async () => {
     scenarios: features.scenarios,
     stats: features.statistics.stats,
     remote: features.remote,
+    tasks: features.tasks,
+    inbox: features.inbox,
     history,
     sounds,
     definitions: features.definitions,

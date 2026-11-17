@@ -15,7 +15,7 @@ import { useSelectionStore } from '../../state/selection.store'
 import { useActiveProject } from '../../state/workspace.queries'
 import { requestCloseTabs } from './editor-close'
 import { useEditorStore } from './editor.store'
-import { usePreviewImageSync } from './markdown-preview.queries'
+import { useImageFileSync } from './image-file.queries'
 
 const saveAll = () => editorDocuments()?.saveAll() ?? Promise.resolve()
 
@@ -100,7 +100,7 @@ export const useEditorSync = () => {
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitHeadFiles(change.projectId) })
     }
   })
-  usePreviewImageSync()
+  useImageFileSync()
 
   useEffect(() => {
     if (!projectId) return

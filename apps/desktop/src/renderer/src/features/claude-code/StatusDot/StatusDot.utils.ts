@@ -29,3 +29,10 @@ export const dotState = (conversation: DotSource, isActive: boolean): DotState =
 
   return conversation.outcome === 'none' ? 'idle' : 'done'
 }
+
+/**
+ * Агент работает сам, человека не ждёт: вкладка разговора горит «running» (без поломки,
+ * разрешения и вопроса). Этим же правилом вкладка проекта показывает, что в нём идёт работа.
+ */
+export const worksOnItsOwn = (conversation: DotSource): boolean =>
+  dotState(conversation, true) === 'running'

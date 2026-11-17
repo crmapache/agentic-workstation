@@ -1,0 +1,55 @@
+// Тело окна прогона: вопросы сверху, под ними разделы.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.asking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.picker {
+  display: flex;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.text {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+}
+
+.failure {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// Подвал: поле «сказать заданию» растёт, кнопки - по своей ширине справа.
+.footer {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tell {
+  flex: 1;
+  min-width: 0;
+}

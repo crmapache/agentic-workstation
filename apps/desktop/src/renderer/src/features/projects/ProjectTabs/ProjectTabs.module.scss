@@ -40,3 +40,20 @@
 .tabList[data-landing] > * {
   transition: none;
 }
+
+// Знак дома в коробке чуть больше себя: в ней кольцо работы (Spinner around) обходит знак с
+// зазором, а не режет его. Знак и кольцо постоянного размера, как иконки.
+.homeMark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--size-icon-md) + var(--space-2));
+  height: calc(var(--size-icon-md) + var(--space-2));
+}
+
+.homeRing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}

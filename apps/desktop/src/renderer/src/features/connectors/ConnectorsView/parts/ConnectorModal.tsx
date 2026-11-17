@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import { BUILT_IN_KINDS } from '@shared/connectors'
+
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { Modal } from '@agentic-workstation/ui/Modal'
 import { Switch } from '@agentic-workstation/ui/Switch'
@@ -74,7 +76,8 @@ export const ConnectorModal = ({
       footer={
         <>
           <ConnectorSignIn connector={connector} />
-          <RemoveConnector connector={connector} />
+          {/* Встроенный (уведомления IDE) не удаляется: IDE завела бы его снова. */}
+          {!BUILT_IN_KINDS.includes(kind) && <RemoveConnector connector={connector} />}
         </>
       }
       closeLabel={t('connectors.modal.close')}
@@ -100,7 +103,7 @@ export const ConnectorModal = ({
             )}
             {kind === 'browser' && <BrowserSetup browser={browser} />}
             {kind === 'computer' && <ComputerSetup computer={computer} />}
-            {kind !== 'browser' && kind !== 'computer' && (
+            {kind !== 'browser' && kind !== 'computer' && kind !== 'notifications' && (
               <ConnectorConnection connector={connector} google={google} />
             )}
             <ProjectsPicker connector={connector} projects={projects} />

@@ -47,3 +47,24 @@
   text-align: center;
   pointer-events: none;
 }
+
+// Что-то изменилось, но ничего не ждёт ответа (изменения в проекте) - точка без числа во
+// внутреннем углу кнопки, в пустом месте над иконкой: у Changes это загнутый угол листа.
+// Цвет - тот же, что у папки с изменениями в дереве, чтобы точка читалась без подсказки.
+.mark {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+}
+
+.modified {
+  background-color: var(--color-vcs-modified);
+}
+
+.conflict {
+  background-color: var(--color-vcs-conflict);
+}

@@ -7,7 +7,7 @@ import type {
   ConversationOptions,
 } from '../claude'
 import type { EditorRef, MessageDraft } from '../claude-draft'
-import type { FeedPatch, FleetTranscript, ConversationFeed } from '../claude-feed'
+import type { FeedItem, FeedPatch, FleetTranscript, ConversationFeed } from '../claude-feed'
 import type { PanelPrefsPatch, ConversationCall } from '../claude-prefs'
 import type { RewindScope, RewindOutcome, RewindPreview } from '../claude-rewind'
 import type { PluginScope, PluginAction, PluginCatalog, PluginsOutcome } from '../claude-tools'
@@ -128,6 +128,22 @@ export type InvokeContract = {
    * загруженного встают перед лентой. Ответ - лента целиком.
    */
   'claude:loadEarlier': { request: ConversationRequest; response: ConversationFeed }
+  /**
+   * Страницы выше загруженного - до элемента itemId (прыжок к закреплённому сообщению):
+   * одним шагом, сколько бы страниц ни было. Ответ - лента целиком.
+   */
+  'claude:loadThrough': {
+    request: ConversationRequest & { itemId: string }
+    response: ConversationFeed
+  }
+  /**
+   * Элементы ленты по id - загруженные и выше загруженного (полка закреплённых), в порядке
+   * разговора. Чего нет в ответе, нет и в разговоре; null - транскрипт не прочитался.
+   */
+  'claude:feedItems': {
+    request: ConversationRequest & { itemIds: string[] }
+    response: FeedItem[] | null
+  }
   /** /status: строка SESSION в ленте - id разговора и как продолжить его в терминале. */
   'claude:showSessionInfo': { request: ConversationRequest; response: ClaudeState }
   'claude:newConversation': { request: ProjectRequest; response: ClaudeState }
@@ -328,6 +344,8 @@ export const INVOKE_CHANNELS = Object.keys({
   'claude:getState': true,
   'claude:getFeed': true,
   'claude:loadEarlier': true,
+  'claude:loadThrough': true,
+  'claude:feedItems': true,
   'claude:showSessionInfo': true,
   'claude:newConversation': true,
   'claude:activateConversation': true,

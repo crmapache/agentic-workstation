@@ -4,9 +4,9 @@ import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import styles from '../AuthorModal.module.scss'
 import type { DraftWaitProps } from '../AuthorModal.types'
-import { useNow } from '../../scenarios-clock.hooks'
 import { waitClock } from '../../scenarios-forms.utils'
 import { CLOCK_TICK_MS } from '../../scenarios.constants'
+import { useNow } from '../../../../lib/now.hooks'
 
 /**
  * Модель пишет сценарий: полоса без доли под полем и мерцающие слова с часами ожидания. Нажатие

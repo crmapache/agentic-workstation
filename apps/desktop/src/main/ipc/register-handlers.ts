@@ -7,11 +7,13 @@ import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
 import type { LocalHistory } from '../history/local-history'
+import type { InboxService } from '../inbox/inbox-service'
 import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
 import type { SoundsService } from '../sounds/sounds-service'
 import type { StatsService } from '../statistics/stats-service'
+import type { TaskService } from '../tasks/task-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
@@ -31,6 +33,7 @@ import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
+import { createInboxHandlers } from './inbox-handlers'
 import { createLocalHistoryHandlers } from './local-history-handlers'
 import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createRemoteHandlers } from './remote-handlers'
@@ -38,6 +41,7 @@ import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
 import { createSoundsHandlers } from './sounds-handlers'
 import { createStatisticsHandlers } from './statistics-handlers'
+import { createTasksHandlers } from './tasks-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createWindowHandlers } from './window-handlers'
 import { createWorkspaceHandlers } from './workspace-handlers'
@@ -69,6 +73,10 @@ type Services = HandlerContext & {
   sounds: SoundsService
   /** «Где определено» для редактора (ADR 0061): компилятор TypeScript в своём процессе. */
   definitions: DefinitionService
+  /** Задания по расписанию (ADR 0069): задания, прогоны, их журналы. */
+  tasks: TaskService
+  /** Уведомления IDE (ADR 0069): вопросы прогонов, отчёты, напоминания от ИИ. */
+  inbox: InboxService
 }
 
 /**
@@ -93,6 +101,8 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ),
     ...createLocalHistoryHandlers(workspace, history),
     ...createSoundsHandlers(services.sounds),
+    ...createTasksHandlers(services.tasks),
+    ...createInboxHandlers(services.inbox),
     ...createEditorHandlers(workspace, history, services.definitions),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),

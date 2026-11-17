@@ -17,7 +17,8 @@ import { CallLight } from './parts/CallLight'
  * крестика. Закреплённая (pinned, домашний проект) - квадрат со знаком вместо подписи, тоже без
  * крестика. В полосе разговоров (width grow)
  * растёт в свободное место и режет подпись посередине; несёт отступ форка и свет
- * позвавшей (CallLight), справа у крестика - свои знаки (trailing). Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
+ * позвавшей (CallLight), справа у крестика - свои знаки (trailing). В ряду fill знак
+ * слева (leading) и знаки справа подпись не сдвигают: она стоит по центру, пока есть место. Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
  */
 export const ClosableTab = ({
   label,
@@ -92,7 +93,7 @@ export const ClosableTab = ({
             className={styles.label}
             onClick={onActivate}
             onAuxClick={handleAuxClick}>
-            {leading}
+            {leading && <span className={styles.leading}>{leading}</span>}
             {pinned ? null : isGrow ? (
               <span ref={boxRef} className={styles.cut}>
                 <span ref={wholeRef} className={styles.cutWhole}>

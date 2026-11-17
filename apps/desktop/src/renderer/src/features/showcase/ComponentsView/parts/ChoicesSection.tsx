@@ -11,6 +11,7 @@ import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
 import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 import { TextField } from '@agentic-workstation/ui/TextField'
 import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 
@@ -111,6 +112,7 @@ export const ChoicesSection = () => {
             label={t('samples.otherItem')}
             hint={t('samples.otherPath')}
             active={false}
+            leading={<Spinner tone="warning" />}
             trailing={
               <span className={styles.tabBeacons} aria-hidden>
                 <CallBeacon tone="success" since={0} />

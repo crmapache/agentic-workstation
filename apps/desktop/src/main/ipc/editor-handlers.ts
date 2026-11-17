@@ -5,7 +5,7 @@ import { app } from 'electron'
 import type { EditorInvokeContract } from '@shared/ipc/editor.contract'
 
 import type { DefinitionService } from '../definitions/definition-service'
-import { readImageFile } from '../fs/image-file'
+import { readImageFile, readOutsideImageFile } from '../fs/image-file'
 import { resolveInsideRoot } from '../fs/project-paths'
 import { readTextFile, readOutsideTextFile } from '../fs/text-file'
 import { writeTextFile, writeOutsideTextFile } from '../fs/text-write'
@@ -143,14 +143,13 @@ export const createEditorHandlers = (
       text === undefined ? question : { ...question, text },
     )
   },
-  'fs:readImage': ({ projectId, relativePath, known }) => {
-    assertString(relativePath, 'relativePath')
+  'fs:readImage': (request) => {
+    const target = fileTarget(workspace, request)
+    const known = versionOrNull(request.known, 'known')
 
-    return readImageFile(
-      projectRootOf(workspace, projectId),
-      relativePath,
-      versionOrNull(known, 'known'),
-    )
+    if ('absolutePath' in target) return readOutsideImageFile(target.absolutePath, known)
+
+    return readImageFile(target.rootPath, target.relativePath, known)
   },
   'preview:readWebImage': ({ url }) => {
     assertString(url, 'url')

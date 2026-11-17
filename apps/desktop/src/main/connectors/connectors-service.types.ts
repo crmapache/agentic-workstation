@@ -3,6 +3,7 @@ import type { ConnectorsState } from '@shared/connectors'
 
 import type { BrowserRuntime } from '../browser/browser-runtime'
 import type { ComputerRuntime } from '../computer/computer-runtime'
+import type { InboxLink } from '../inbox/inbox-agent'
 import type { JsonFile } from '../storage/json-file'
 import type { StoredConnectors } from './connector-store'
 import type { Vault } from './vault'
@@ -29,6 +30,8 @@ export type ConnectorsPlaces = {
   browser: BrowserRuntime
   /** Мышь, клавиатура, экран и капсула для коннектора Computer (ADR 0057). */
   computer: ComputerRuntime
+  /** Уведомления IDE для встроенного коннектора уведомлений (ADR 0069). */
+  inbox: InboxLink
 }
 
 export type ConnectorsEvents = {

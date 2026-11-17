@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { CUSTOM_KINDS, CONNECTOR_KINDS } from '@shared/connectors'
+import { CUSTOM_KINDS, BUILT_IN_KINDS, CONNECTOR_KINDS } from '@shared/connectors'
 
 import { APP_KINDS, EMPTY_ADD_FIELDS } from './ConnectorsView.constants'
 import {
@@ -187,7 +187,9 @@ describe('connectionsOf', () => {
 
 describe('группы каталога', () => {
   it('каждый тип - ровно в одной группе', () => {
-    expect([...APP_KINDS, ...CUSTOM_KINDS].toSorted()).toEqual([...CONNECTOR_KINDS].toSorted())
+    expect([...APP_KINDS, ...CUSTOM_KINDS, ...BUILT_IN_KINDS].toSorted()).toEqual(
+      [...CONNECTOR_KINDS].toSorted(),
+    )
   })
 })
 

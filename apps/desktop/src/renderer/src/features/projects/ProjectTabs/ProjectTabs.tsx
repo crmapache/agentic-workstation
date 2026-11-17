@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { ProjectTab } from '../ProjectTab/ProjectTab'
-import { NO_CALLS } from '../ProjectTab/ProjectTab.constants'
+import { NO_WORK, NO_CALLS } from '../ProjectTab/ProjectTab.constants'
 import { useWheelToSide } from '../../../lib/wheel-to-side.hooks'
 import { useWorkspace, useWorkspaceActions } from '../../../state/workspace.queries'
 import { useProjectTabDrag } from './ProjectTabs.hooks'
@@ -15,9 +15,10 @@ import { HomeTab } from './parts/HomeTab'
  * проектов) - ряд проектов листается вбок, колесом тоже, а дом остаётся на месте. Сама полоса
  * стоит всегда, даже до загрузки списка, - иначе первый ответ сдвигал бы всё окно вниз. Открыть
  * проект - переключатель в шапке. У каждой вкладки - точки разговоров проекта, которые позвали
- * человека (callsOf). Порядок проектов меняют перетаскиванием (useProjectTabDrag), дом не двигается.
+ * человека (callsOf), и знак работы, которая в нём идёт сама (workOf). Порядок проектов меняют
+ * перетаскиванием (useProjectTabDrag), дом не двигается.
  */
-export const ProjectTabs = ({ callsOf }: ProjectTabsProps) => {
+export const ProjectTabs = ({ callsOf, workOf }: ProjectTabsProps) => {
   const { t } = useTranslation()
   const { data } = useWorkspace()
   const { closeProject, activateProject, moveProject } = useWorkspaceActions()
@@ -40,6 +41,7 @@ export const ProjectTabs = ({ callsOf }: ProjectTabsProps) => {
               project={home}
               isActive={home.id === data?.activeProjectId}
               calls={callsOf?.(home.rootPath) ?? NO_CALLS}
+              work={workOf?.(home.rootPath) ?? NO_WORK}
               onActivate={activateProject}
             />
           )}
@@ -55,6 +57,7 @@ export const ProjectTabs = ({ callsOf }: ProjectTabsProps) => {
                   project={project}
                   isActive={project.id === data?.activeProjectId}
                   calls={callsOf?.(project.rootPath) ?? NO_CALLS}
+                  work={workOf?.(project.rootPath) ?? NO_WORK}
                   lifted={view.draggedId === project.id}
                   offset={
                     view.draggedId === project.id ? view.offset : (view.shifts[project.id] ?? null)

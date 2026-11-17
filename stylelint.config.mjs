@@ -143,8 +143,35 @@ export default {
       },
     },
     {
+      // Сайт продукта (ADR 0068): те же правила, что у окна IDE. Токены - общие из tokens.css
+      // и свои из site-tokens.css (крупные кегли, ритм страницы, свет за снимком окна). Тени у
+      // страницы нет совсем, градиент - только свет за снимком.
+      files: ['apps/site/src/**/*.{css,scss}'],
+      rules: {
+        'csstools/value-no-unknown-custom-properties': [
+          true,
+          {
+            importFrom: [
+              'packages/ui/src/styles/tokens.css',
+              'apps/site/src/styles/site-tokens.css',
+            ],
+          },
+        ],
+        'declaration-property-value-allowed-list': [
+          {
+            'box-shadow': ['none'],
+            'background-image': ['none', '/^var\\(--site-gradient-[a-z-]+\\)$/'],
+          },
+          {
+            message:
+              'Объёма нет (ADR 0006): на сайте нет теней, градиент - только свет за снимком окна (ADR 0068)',
+          },
+        ],
+      },
+    },
+    {
       // Здесь токены и объявляются: сырые значения тут на своём месте.
-      files: ['packages/ui/src/styles/tokens.css'],
+      files: ['packages/ui/src/styles/tokens.css', 'apps/site/src/styles/site-tokens.css'],
       rules: {
         'color-no-hex': null,
         'function-disallowed-list': null,

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy: Agentic Workstation</title>
+    <meta
+      name="description"
+      content="What Agentic Workstation and its website do with your data: what stays on your computer, what goes to the AI provider and the apps you connect, and what the Remote Control relay can see." />
+    <link rel="canonical" href="https://agentic-workstation.mzpizote.com/privacy/" />
+    <meta name="theme-color" content="#040405" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script type="module" src="/src/static-page.ts"></script>
+  </head>
+
+  <body>
+    <header class="header">
+      <div class="headerInner">
+        <a class="brand" href="/">
+          <img class="brandIcon" src="../src/assets/icon-128.webp" width="28" height="28" alt="" />
+          <span>Agentic Workstation</span>
+        </a>
+        <nav class="nav" aria-label="Main">
+          <a class="navLink" href="/#features">Features</a>
+          <a class="navLink" href="/#install">Install</a>
+          <a class="button buttonTinted buttonSmall" href="/#install">Download</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="legal">
+      <h1 class="legalTitle">Privacy policy</h1>
+      <p class="legalDate">Effective November 16, 2026.</p>
+
+      <p>
+        Agentic Workstation is a desktop app for macOS and Windows. It runs on your computer and
+        works with the files and apps you give it. This policy explains where your data goes when
+        you use the app and this website.
+      </p>
+
+      <h2>Your code and conversations</h2>
+      <p>
+        Conversations with the AI are run by the AI tool installed on your computer, such as Claude
+        Code. That tool sends your messages, the files it reads and the results of its commands to
+        its AI provider, for example Anthropic for Claude, under that provider's terms. Conversation
+        history is kept by that tool on your computer.
+      </p>
+      <p>
+        The app does not send your code, files or conversations to the developer. Statistics, local
+        file history and settings are stored only on your computer.
+      </p>
+
+      <h2>Apps you connect</h2>
+      <p>
+        Gmail, Google Calendar, Notion, Slack, Jira and Confluence, Todoist and other MCP servers
+        are reached only after you connect them in the app. Requests go directly from your computer
+        to each service. Google accounts sign in through a Google app that you create yourself.
+      </p>
+      <ul>
+        <li>
+          Sign-in tokens and keys are stored on your computer, encrypted with the system's key
+          storage: the Keychain on macOS, DPAPI on Windows.
+        </li>
+        <li>
+          Whatever the AI reads from a connected app becomes part of the conversation and is sent to
+          your AI provider.
+        </li>
+        <li>
+          Actions that send something to other people, such as sending mail or inviting guests, stay
+          off until you turn them on.
+        </li>
+        <li>Removing a connector deletes its tokens from your computer.</li>
+      </ul>
+
+      <h2>Browser and Computer Use</h2>
+      <p>
+        The Browser connector works through an extension in your Chrome that talks only to the app
+        on your computer. Pages the AI opens and reads become part of the conversation.
+      </p>
+      <p>
+        Computer Use takes screenshots of your screen and sends them to your AI provider as part of
+        the conversation. It does this only while a conversation is using it, and Pause and Stop
+        stay on screen the whole time it works.
+      </p>
+
+      <h2>Remote Control</h2>
+      <p>
+        Remote Control is off until you pair a phone. Then the app and your phone connect through
+        the developer's relay at agentic-workstation-relay.mzpizote.com. Everything between them is
+        end-to-end encrypted, and the relay has no keys to read it. The relay sees device addresses
+        made from random keys, the size and time of each message and the IP address of each
+        connection. It stores nothing on disk, and its logs are deleted after 7 days. Notifications
+        reach your phone through its browser's push service, encrypted so that only your phone can
+        read them. The details are on the
+        <a href="https://agentic-workstation-relay.mzpizote.com/privacy">relay's privacy page</a>.
+      </p>
+
+      <h2>Updates</h2>
+      <p>
+        Every four hours the app checks GitHub for a new version, and it downloads updates from
+        GitHub. GitHub sees your IP address when this happens.
+      </p>
+
+      <h2>What the app does not do</h2>
+      <p>
+        No analytics, no tracking, no crash reports and no ads. The developer does not sell your
+        data and does not use it to train AI models.
+      </p>
+
+      <h2>This website</h2>
+      <p>
+        No cookies, no analytics and nothing loaded from other sites. The server keeps no access
+        logs. Its error log, used only to fix problems, can include the IP address of a request that
+        failed. The version number on the home page comes from GitHub through this server, so your
+        browser contacts GitHub only when you download the app.
+      </p>
+
+      <h2>Children</h2>
+      <p>The app is not meant for children under 13.</p>
+
+      <h2>Changes</h2>
+      <p>If this policy changes, the new version is published on this page with a new date.</p>
+
+      <h2>Contact</h2>
+      <p><a href="mailto:mzpizote@gmail.com">mzpizote@gmail.com</a></p>
+    </main>
+
+    <footer class="footer">
+      <div class="footerInner">
+        <a class="brand brandSmall" href="/">
+          <img class="brandIcon" src="../src/assets/icon-128.webp" width="28" height="28" alt="" />
+          <span>Agentic Workstation</span>
+        </a>
+        <nav class="footerNav" aria-label="Footer">
+          <a class="navLink" href="/#features">Features</a>
+          <a class="navLink" href="/#install">Install</a>
+          <a
+            class="navLink"
+            href="https://github.com/crmapache/agentic-workstation-releases/releases"
+            >Release notes</a
+          >
+          <a class="navLink" href="https://github.com/crmapache/agentic-workstation">Source code</a>
+          <a class="navLink" href="/privacy/" aria-current="page">Privacy</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

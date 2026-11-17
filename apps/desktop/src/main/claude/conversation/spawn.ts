@@ -87,6 +87,7 @@ export const spawnConversationProcess = async (
         permissionMode: meta.permissionMode,
         fork: meta.fork,
         mcpConfig: connectors?.path ?? null,
+        allowedTools: connectors?.allowed,
         extraBriefing: releasedBriefing(meta.sessionId),
       },
       cli.features,

@@ -1,0 +1,158 @@
+// Герой: заголовок, кнопки скачивания и снимок окна. Снимок - главное на странице: настоящее
+// окно IDE с разговором, а за ним тлеет тот же уголь, что в значке приложения.
+
+.hero {
+  padding-top: var(--site-space-hero-top);
+  text-align: center;
+}
+
+// Страница 404 - тот же герой без снимка окна.
+.notFound {
+  padding-bottom: var(--site-space-section);
+}
+
+.heroText,
+.window {
+  animation: intro var(--site-duration-intro) var(--site-ease-intro) both;
+}
+
+.window {
+  animation-delay: calc(var(--site-duration-intro) / 5);
+}
+
+@keyframes intro {
+  from {
+    opacity: 0;
+    transform: translateY(var(--site-offset-intro));
+  }
+}
+
+.heroTitle {
+  max-width: 15ch;
+  margin-inline: auto;
+  color: var(--color-fg-strong);
+  font-size: var(--site-font-display);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-display);
+  letter-spacing: var(--site-tracking-display);
+  text-wrap: balance;
+}
+
+.heroLead {
+  max-width: var(--site-width-lead);
+  margin: var(--space-6) auto 0;
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-lead);
+  text-wrap: pretty;
+}
+
+.downloads {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-10);
+}
+
+// На телефоне кнопки друг под другом и одной ширины: разная длина подписей не дробит столбик.
+@media (width <= 560px) {
+  .downloads {
+    flex-direction: column;
+    max-width: var(--site-width-buttons);
+    margin-inline: auto;
+  }
+}
+
+.heroMeta {
+  max-width: var(--site-width-lead);
+  margin: var(--space-5) auto 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--site-font-small);
+  text-wrap: balance;
+
+  a {
+    color: var(--color-fg-muted);
+    text-decoration-color: var(--color-border-strong);
+  }
+
+  a:hover {
+    color: var(--color-fg-strong);
+  }
+}
+
+// Номер версии и ссылка на установку - второй строкой, вплотную к первой.
+.heroMetaLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-1);
+}
+
+// Подсказка для телефона и Linux - видна только им (data-platform у html).
+.platformNote {
+  display: none;
+  max-width: var(--site-width-lead);
+  margin: var(--space-5) auto 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-small);
+}
+
+:root[data-platform='mobile'] .platformNote[data-note='mobile'],
+:root[data-platform='linux'] .platformNote[data-note='linux'] {
+  display: block;
+}
+
+// Свет живёт внутри своего слоя: z-index ниже снимка, но не под фоном страницы.
+.window {
+  position: relative;
+  isolation: isolate;
+  margin-top: var(--site-space-hero-shot);
+}
+
+.windowGlow {
+  position: absolute;
+  inset: -14% 6% auto;
+  z-index: var(--z-under);
+  height: 64%;
+  background-image: var(--site-gradient-glow);
+  filter: blur(var(--site-blur-glow));
+  pointer-events: none;
+}
+
+.windowFrame {
+  position: relative;
+  overflow: hidden;
+  border: var(--border-width) solid var(--site-color-window-border);
+  border-radius: var(--site-radius-window);
+  background-color: var(--color-surface-chrome);
+}
+
+.windowImage {
+  width: 100%;
+}
+
+// «Светофор» в координатах снимка (1600x1000): там, где macOS ставит его окну IDE
+// (trafficLightPosition: x 16, y 13, кнопки по 12).
+.trafficLights {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.trafficClose {
+  fill: var(--site-color-traffic-close);
+}
+
+.trafficMinimize {
+  fill: var(--site-color-traffic-minimize);
+}
+
+.trafficZoom {
+  fill: var(--site-color-traffic-zoom);
+}

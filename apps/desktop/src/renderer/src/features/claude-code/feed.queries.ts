@@ -19,22 +19,48 @@ export const useLoadEarlier = (conversationId: string) => {
   const [pages, setPages] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
 
+  const accept = useCallback(
+    (feed: ConversationFeed) => {
+      queryClient.setQueryData<ConversationFeed>(QUERY_KEYS.claudeFeed(conversationId), feed)
+      setPages((count) => count + 1)
+    },
+    [conversationId, queryClient],
+  )
+
   const loadEarlier = useCallback(() => {
     if (inFlight.current) return
 
     inFlight.current = true
     setIsLoading(true)
     invoke('claude:loadEarlier', { conversationId })
-      .then((feed) => {
-        queryClient.setQueryData<ConversationFeed>(QUERY_KEYS.claudeFeed(conversationId), feed)
-        setPages((count) => count + 1)
-      })
+      .then(accept)
       .catch((error: unknown) => console.warn('[claude-code] ранние сообщения не пришли:', error))
       .finally(() => {
         inFlight.current = false
         setIsLoading(false)
       })
-  }, [conversationId, queryClient])
+  }, [conversationId, accept])
 
-  return { pages, isLoading, loadEarlier }
+  /**
+   * Лента до элемента выше загруженного (закреплённое): страницы главный процесс ставит
+   * одним шагом. Ответ - пришедшая лента или null; повторная просьба безвредна - элемент
+   * уже на месте, и вторая ничего не тянет.
+   */
+  const loadThrough = useCallback(
+    (itemId: string) =>
+      invoke('claude:loadThrough', { conversationId, itemId })
+        .then((feed) => {
+          accept(feed)
+
+          return feed
+        })
+        .catch((error: unknown) => {
+          console.warn('[claude-code] лента до закреплённого не пришла:', error)
+
+          return null
+        }),
+    [conversationId, accept],
+  )
+
+  return { pages, isLoading, loadEarlier, loadThrough }
 }

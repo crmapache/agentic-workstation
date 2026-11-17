@@ -1,16 +1,19 @@
-import type { QueueItem, ScenarioQueue, QueueHoldReason } from '@shared/scenario-queues'
+import type {
+  QueueItem,
+  ScenarioQueue,
+  QueueHoldReason,
+  ScenarioQueuesView,
+} from '@shared/scenario-queues'
 import type { RunState, RunSummary } from '@shared/scenario-runs'
-import type { Project, ProjectRef } from '@shared/workspace'
+import { isRunAsking } from '@shared/scenario-runs'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
-import { splitPath } from '../../lib/path.utils'
 import type { RoadMood } from './ScenarioRoadmap/ScenarioRoadmap.types'
 
 /**
  * Очереди на экране: что очередь делает сейчас (по самой очереди и сводке её идущего прогона),
- * какой у этого тон, как очереди группируются по проектам и что сказать окну запуска о
- * соседях в той же папке. Всё здесь - арифметика без React: проверяется тестом.
+ * какой у этого тон, чьи они и что сказать окну запуска о соседях в той же папке. Всё здесь - арифметика без React: проверяется тестом.
  */
 
 /** Что очередь делает сейчас - одно слово для метки и тона. */
@@ -44,10 +47,6 @@ export const liveOf = (
   )
 }
 
-/** Прогон ждёт человека: стоит на вопросе или спрашивает разрешения. */
-export const isAsking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
-  run.state === 'blocked' || run.asking !== ''
-
 /**
  * Состояние очереди. Идущий элемент главнее остановки: остановка ставится, только когда
  * элемент кончился, и пока что-то идёт, её нет. Пауза поверх вопроса - вопрос: на него можно
@@ -56,7 +55,7 @@ export const isAsking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
 export const queueStatus = (queue: ScenarioQueue, live: RunSummary | undefined): QueueStatus => {
   if (queue.closedAt > 0) return { kind: 'closed' }
   if (runningItemOf(queue)) {
-    if (live && isAsking(live)) return { kind: 'asking' }
+    if (live && isRunAsking(live)) return { kind: 'asking' }
 
     return live?.state === 'paused' ? { kind: 'paused' } : { kind: 'running' }
   }
@@ -83,24 +82,6 @@ export const statusTone = (status: QueueStatus): BadgeTone => {
   }
 }
 
-/** Тон точки элемента в плотной карточке; waiting - пустой кружок: ещё не начинался. */
-export type ItemDotTone = BadgeTone | 'waiting'
-
-export const itemDotTone = (item: QueueItem, live: RunSummary | undefined): ItemDotTone => {
-  switch (item.state) {
-    case 'running':
-      return live && isAsking(live) ? 'accent' : 'warning'
-    case 'done':
-      return 'success'
-    case 'failed':
-      return 'danger'
-    case 'stopped':
-      return 'neutral'
-    case 'waiting':
-      return item.refusal ? 'danger' : 'waiting'
-  }
-}
-
 /** Что делает дорога карточек: работает, ждёт ответа, стоит на паузе. */
 export const roadMood = (state: RunState): RoadMood => {
   if (state === 'blocked') return 'asking'
@@ -116,54 +97,11 @@ export const waitingItems = (queue: ScenarioQueue): QueueItem[] =>
 export const holdItemOf = (queue: ScenarioQueue): QueueItem | null =>
   (queue.hold && queue.items.find((item) => item.id === queue.hold?.itemId)) || null
 
-/** Проект с очередями: его очереди, имя и открыт ли он (без id - вкладка проекта закрыта). */
-export type QueueGroup = {
-  projectPath: string
-  projectId: string | null
-  name: string
-  isCurrent: boolean
-  queues: ScenarioQueue[]
-}
-
-/**
- * Очереди по проектам: текущий первым, дальше в порядке вкладок проектов, проекты без
- * вкладки (очередь пережила закрытие проекта) - в конце по имени.
- */
-export const queueGroups = (
-  queues: readonly ScenarioQueue[],
-  projects: readonly Project[],
-  currentPath: string,
-): QueueGroup[] => {
-  const paths = [...new Set(queues.map((queue) => queue.projectPath))]
-  const tabOf = (path: string) => projects.findIndex((project) => project.rootPath === path)
-  const groups = paths.map((path): QueueGroup => {
-    const project = projects.find((one) => one.rootPath === path)
-
-    return {
-      projectPath: path,
-      projectId: project?.id ?? null,
-      name: project?.name ?? splitPath(path).name,
-      isCurrent: path === currentPath,
-      queues: queues.filter((queue) => queue.projectPath === path),
-    }
-  })
-  const rank = (group: QueueGroup) =>
-    group.isCurrent ? -1 : group.projectId ? tabOf(group.projectPath) : projects.length
-
-  return groups.sort(
-    (left, right) => rank(left) - rank(right) || left.name.localeCompare(right.name),
-  )
-}
-
-/**
- * Можно ли перейти к проекту группы: открытый - да, закрытый - только из недавних (главный
- * процесс открывает по пути лишь их: окно не может так открыть произвольную папку).
- */
-export const canGoTo = (
-  group: Pick<QueueGroup, 'projectId' | 'projectPath'>,
-  recent: readonly ProjectRef[],
-): boolean =>
-  group.projectId !== null || recent.some((project) => project.rootPath === group.projectPath)
+/** Очереди одного проекта: вид сценариев показывает только их (ADR 0072). */
+export const projectQueues = (
+  view: Pick<ScenarioQueuesView, 'queues'> | undefined,
+  projectPath: string,
+): ScenarioQueue[] => view?.queues.filter((queue) => queue.projectPath === projectPath) ?? []
 
 /**
  * Другие очереди проекта, что работают прямо в его папке и ещё не кончили: новая очередь без

@@ -1,0 +1,75 @@
+// Шапка: стекло поверх страницы, как рама окна IDE.
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-overlay);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background-color: var(--site-color-header);
+  backdrop-filter: blur(var(--site-blur-header));
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: var(--site-header-height);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-none);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--color-fg-strong);
+  }
+}
+
+.brandIcon {
+  flex: none;
+  width: var(--site-size-logo);
+  height: var(--site-size-logo);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.navLink {
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-small);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-fg-strong);
+  }
+}
+
+// На телефоне в шапке остаются знак и кнопка: разделы и так в одну прокрутку.
+@media (width <= 560px) {
+  .nav .navLink {
+    display: none;
+  }
+}
+
+// Самые узкие телефоны (320): название в одну строку рядом с кнопкой.
+@media (width <= 380px) {
+  .header .brand {
+    gap: var(--space-2);
+    font-size: var(--site-font-small);
+  }
+
+  .header .buttonSmall {
+    padding: 0 var(--space-3);
+  }
+}

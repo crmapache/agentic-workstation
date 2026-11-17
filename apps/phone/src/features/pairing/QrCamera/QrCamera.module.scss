@@ -1,0 +1,56 @@
+// Видоискатель занимает всё тело экрана: кроме камеры, на экране пары ничего нет.
+.camera {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+// Контейнер размеров: рамка-прицел квадратная по меньшей стороне и в портрете, и в ландшафте.
+.viewfinder {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface-sunken);
+  container-type: size;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// Куда навести код. Разбирается весь кадр, рамка - только подсказка глазу.
+.aim {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(70cqw, 70cqh);
+  aspect-ratio: 1;
+  border: calc(var(--border-width) * 2) solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  translate: -50% -50%;
+}
+
+.starting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice {
+  flex: none;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}

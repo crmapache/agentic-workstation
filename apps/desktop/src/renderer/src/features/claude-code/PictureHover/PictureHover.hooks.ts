@@ -78,7 +78,10 @@ export const usePictureHover = (source: PictureSource) => {
     const popover = popoverRef.current
     const anchor = anchorRef.current
 
-    if (!popover || !anchor) return
+    // Чип в поле ввода - узел поля, а не React: отправка убирает его со страницы раньше, чем
+    // React снимет портал, а «курсор ушёл» удалённому узлу не приходит. Показ вне страницы
+    // браузер отвергает исключением, и оно роняет всю панель. Снятое браузер прячет сам.
+    if (!popover?.isConnected || !anchor) return
 
     const isOpen = popover.matches(':popover-open')
 

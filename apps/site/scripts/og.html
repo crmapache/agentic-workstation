@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+  Картинка превью ссылки (og:image, 1200x630). Не часть сайта: её снимает scripts/make-og.mjs
+  в public/og.png. Цвета - палитра IDE (packages/ui/src/styles/tokens.css), снимок окна - тот же,
+  что на странице.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        margin: 0;
+        overflow: hidden;
+        background: #040405;
+        color: #fafafa;
+        font-family:
+          system-ui,
+          -apple-system,
+          'SF Pro Text',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .text {
+        position: absolute;
+        top: 64px;
+        left: 80px;
+        right: 80px;
+        text-align: center;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        color: #abadb2;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+      }
+
+      h1 {
+        margin: 22px 0 0;
+        font-size: 60px;
+        font-weight: 600;
+        line-height: 1.04;
+        letter-spacing: -0.032em;
+      }
+
+      .glow {
+        position: absolute;
+        top: 250px;
+        left: 140px;
+        width: 920px;
+        height: 300px;
+        background: radial-gradient(
+          closest-side,
+          rgb(242 106 46 / 34%),
+          rgb(242 106 46 / 10%) 55%,
+          transparent
+        );
+        filter: blur(40px);
+      }
+
+      .window {
+        position: absolute;
+        top: 300px;
+        left: 120px;
+        width: 960px;
+        border: 1px solid rgb(255 255 255 / 12%);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #040405;
+      }
+
+      .window img {
+        display: block;
+        width: 100%;
+      }
+
+      .lights {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="text">
+      <div class="brand">
+        <img src="../src/assets/icon-128.webp" alt="" />
+        Agentic Workstation
+      </div>
+      <h1>A lightweight IDE built<br />around Claude Code</h1>
+    </div>
+    <div class="glow"></div>
+    <div class="window">
+      <img src="../src/assets/shots/window-2400.webp" alt="" />
+      <svg class="lights" viewBox="0 0 1600 1000">
+        <circle cx="22" cy="19" r="6" fill="#ff5f57" />
+        <circle cx="42" cy="19" r="6" fill="#febc2e" />
+        <circle cx="62" cy="19" r="6" fill="#28c840" />
+      </svg>
+    </div>
+  </body>
+</html>

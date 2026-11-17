@@ -29,6 +29,8 @@ export type SessionSpec = {
    * провайдер при подъёме: движок о коннекторах не знает.
    */
   mcpConfig?: string | null
+  /** Разрешено без вопроса (`--allowedTools`): свои серверы IDE из того же конфига шлюза. */
+  allowedTools?: readonly string[] | undefined
 }
 
 export type SessionWires = {

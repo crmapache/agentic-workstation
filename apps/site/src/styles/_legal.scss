@@ -1,0 +1,49 @@
+// Страница политики: одна колонка текста для чтения, без снимков и карточек.
+
+.legal {
+  width: min(100% - 2 * var(--site-gutter), var(--site-width-legal));
+  margin-inline: auto;
+  padding-top: var(--site-space-hero-top);
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-copy);
+
+  h2 {
+    margin-top: var(--space-10);
+    color: var(--color-fg-strong);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  p,
+  ul {
+    margin-top: var(--space-3);
+    text-wrap: pretty;
+  }
+
+  ul {
+    display: grid;
+    gap: var(--space-2);
+    padding-left: var(--space-5);
+  }
+
+  li::marker {
+    color: var(--color-accent);
+  }
+}
+
+.legalTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--site-font-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-title);
+  letter-spacing: var(--site-tracking-title);
+}
+
+// Дата - сразу под заголовком и тише текста: это пометка, а не абзац.
+.legal .legalDate {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-8);
+  color: var(--color-fg-subtle);
+  font-size: var(--site-font-small);
+}

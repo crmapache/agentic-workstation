@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 import type { DraftToken } from '@shared/claude-draft'
 
 import { headText, chipBesideCaret, scrollCaretIntoView } from './field-caret'
-import { removeChip, ChipRegistry, relabelImages } from './field-chips'
+import { removeChip, ChipRegistry, relabelImages, relabelQuotes } from './field-chips'
 import { rebuildDom, extractTokens, placeCaretBefore, placeCaretBeside } from './field-dom'
 import { MODIFIER_KEYS, UNDO_COALESCE_MS } from './field.constants'
 import type { Field, FieldOptions } from './field.types'
@@ -27,6 +27,8 @@ export const useField = (options: FieldOptions): Field => {
   const redoStack = useRef<DraftToken[][]>([])
   const lastEditAt = useRef(0)
   const selectedChip = useRef<HTMLElement | null>(null)
+  /** Где каретка стояла в поле последний раз: выделение в ленте её сбивает, а вставка - нет. */
+  const lastCaret = useRef<Range | null>(null)
 
   useLayoutEffect(() => {
     latest.current = options
@@ -38,6 +40,7 @@ export const useField = (options: FieldOptions): Field => {
     if (!root) return latest.current.tokens
 
     relabelImages(root, latest.current.imageBase, registry)
+    relabelQuotes(root, registry)
 
     const tokens = extractTokens(root, registry.chipOf)
 
@@ -79,8 +82,11 @@ export const useField = (options: FieldOptions): Field => {
     if (!root) return
 
     clearChipSelection()
+    // Пересборка сдвинула бы запомненную каретку в начало поля: после неё - конец.
+    lastCaret.current = null
     rebuildDom(root, tokens, registry.make)
     relabelImages(root, latest.current.imageBase, registry)
+    relabelQuotes(root, registry)
     registry.prune()
     lastReported.current = tokens
   }
@@ -170,6 +176,24 @@ export const useField = (options: FieldOptions): Field => {
     latest.current.onChange(next)
   }, [options.imageBase, registry])
 
+  // Выделение на странице одно: выделили текст в ленте - каретка поля пропала. Запоминаем её
+  // живым Range (он сам едет за правками вокруг), чтобы цитата встала туда, а не в конец.
+  useEffect(() => {
+    const remember = () => {
+      const root = fieldRef.current
+      const selection = window.getSelection()
+      const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+
+      if (root && range && root.contains(range.startContainer)) {
+        lastCaret.current = range.cloneRange()
+      }
+    }
+
+    document.addEventListener('selectionchange', remember)
+
+    return () => document.removeEventListener('selectionchange', remember)
+  }, [])
+
   // Отмена из меню (Edit → Undo, контекстное меню) запускает браузерную: уводим в свою.
   useEffect(() => {
     const field = fieldRef.current
@@ -244,6 +268,7 @@ export const useField = (options: FieldOptions): Field => {
   return {
     fieldRef,
     registry,
+    lastCaret,
     applyTokens,
     commit: (boundary = true) => report(readTokens(), boundary),
     refresh: () => {

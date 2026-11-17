@@ -9,9 +9,9 @@ import { SelectField } from '@agentic-workstation/ui/SelectField'
 import { DUE_TICK_MS, TIME_SEPARATOR } from '../ScheduleModal.constants'
 import styles from '../ScheduleModal.module.scss'
 import type { HourPickerProps } from '../ScheduleModal.types'
-import { useNow } from '../../scenarios-clock.hooks'
 import { hourOf, minuteOf, withHour, withMinute } from '../../scenarios-forms.utils'
 import { pad2, HOURS, MINUTES, nextDue, countdown, whenLabel } from '../../scenarios-hours.utils'
+import { useNow } from '../../../../lib/now.hooks'
 
 /**
  * Час формы - двумя меню, а не полем type="time": браузер рисует его своей системной панелью,

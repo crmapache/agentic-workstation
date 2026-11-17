@@ -2,7 +2,6 @@ import { Import } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { CUSTOM_KINDS } from '@shared/connectors'
-import type { ConnectorKind } from '@shared/connectors'
 
 import { Section } from '@agentic-workstation/ui/Section'
 import { Tile } from '@agentic-workstation/ui/Tile'
@@ -11,7 +10,7 @@ import { APP_KINDS, KIND_ICONS, KIND_TONES } from '../ConnectorsView.constants'
 import styles from '../ConnectorsView.module.scss'
 import type { AddCatalogProps } from '../ConnectorsView.types'
 import { useConnectorsStore } from '../../connectors.store'
-import type { AddTarget } from '../../connectors.types'
+import type { AddKind, AddTarget } from '../../connectors.types'
 
 /**
  * Каталог нового коннектора под подключёнными, двумя группами плиток с пунктирной рамкой:
@@ -26,7 +25,7 @@ export const AddCatalog = ({ types }: AddCatalogProps) => {
   const openType = useConnectorsStore((store) => store.openType)
   const isOpen = (target: AddTarget) => panel?.kind === 'add' && panel.target === target
 
-  const kindTile = (kind: ConnectorKind) => (
+  const kindTile = (kind: AddKind) => (
     <Tile
       key={kind}
       variant="dashed"

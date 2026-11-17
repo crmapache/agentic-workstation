@@ -1,4 +1,4 @@
-import { Link2, Smartphone } from 'lucide-react'
+import { ScanQrCode, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
@@ -42,7 +42,7 @@ export const MachinesScreen = () => {
           title={t('machines.empty.title')}
           description={t('machines.empty.description')}
           action={
-            <Button size="touch" variant="primary" icon={Link2} onClick={handlePair}>
+            <Button size="touch" variant="primary" icon={ScanQrCode} onClick={handlePair}>
               {t('machines.pairIde')}
             </Button>
           }
@@ -56,7 +56,7 @@ export const MachinesScreen = () => {
           <ListGroup label={t('machines.pairAnother')}>
             <ListRow
               title={t('machines.pairAnother')}
-              leading={<Link2 className={styles.rowIcon} aria-hidden />}
+              leading={<ScanQrCode className={styles.rowIcon} aria-hidden />}
               onClick={handlePair}
             />
           </ListGroup>

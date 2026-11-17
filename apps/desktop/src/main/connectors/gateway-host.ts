@@ -81,6 +81,18 @@ export class GatewayHost {
         : []
     })
 
-    return entries.length ? this.launches.issue(projectPath, entries) : Promise.resolve(null)
+    // Уведомления самому человеку (ADR 0069) - без вопроса «разрешить?»: правило на весь сервер.
+    const allowed = this.registry.connectors
+      .filter(
+        (connector) =>
+          connector.kind === 'notifications' &&
+          connector.enabled &&
+          entries.some((entry) => entry.name === connector.serverName),
+      )
+      .map((connector) => `mcp__${connector.serverName}`)
+
+    return entries.length
+      ? this.launches.issue(projectPath, entries, allowed)
+      : Promise.resolve(null)
   }
 }

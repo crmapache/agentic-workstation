@@ -2,18 +2,15 @@ import { it, expect, describe } from 'vitest'
 
 import type { QueueItem, ScenarioQueue } from '@shared/scenario-queues'
 import type { RunSummary } from '@shared/scenario-runs'
-import type { Project } from '@shared/workspace'
 
 import {
   liveOf,
-  canGoTo,
   roadMood,
   holdItemOf,
   statusTone,
-  itemDotTone,
-  queueGroups,
   queueStatus,
   waitingItems,
+  projectQueues,
   folderNeighbours,
 } from './scenarios-queues.utils'
 
@@ -78,8 +75,6 @@ const run = (id: string, patch: Partial<RunSummary> = {}): RunSummary => ({
   ...patch,
 })
 
-const project = (id: string, rootPath: string, name: string): Project => ({ id, rootPath, name })
-
 describe('живой прогон очереди', () => {
   it('по runId идущего элемента, пока его нет - по очереди', () => {
     const going = queue('q', { items: [item('a', { state: 'running', runId: 'r1' })] })
@@ -127,20 +122,6 @@ describe('состояние очереди', () => {
   })
 })
 
-describe('точки элементов в плотной карточке', () => {
-  it('по исходу, идущий с вопросом - акцентом, отказ - красным', () => {
-    expect(itemDotTone(item('a', { state: 'done' }), undefined)).toBe('success')
-    expect(itemDotTone(item('a', { state: 'failed' }), undefined)).toBe('danger')
-    expect(itemDotTone(item('a', { state: 'stopped' }), undefined)).toBe('neutral')
-    expect(itemDotTone(item('a'), undefined)).toBe('waiting')
-    expect(itemDotTone(item('a', { refusal: 'untrusted' }), undefined)).toBe('danger')
-    expect(itemDotTone(item('a', { state: 'running' }), run('r'))).toBe('warning')
-    expect(itemDotTone(item('a', { state: 'running' }), run('r', { asking: 'Allow?' }))).toBe(
-      'accent',
-    )
-  })
-})
-
 describe('дорога и часы', () => {
   it('настроение дороги по состоянию прогона', () => {
     expect(roadMood('blocked')).toBe('asking')
@@ -163,34 +144,19 @@ describe('элементы очереди', () => {
   })
 })
 
-describe('очереди по проектам', () => {
-  const projects = [project('p1', '/work/app', 'app'), project('p2', '/work/site', 'site')]
-
-  it('текущий проект первым, дальше по вкладкам, без вкладки - в конце по имени', () => {
-    const groups = queueGroups(
-      [
-        queue('a', { projectPath: '/old/zeta' }),
+describe('очереди проекта', () => {
+  it('только очереди этого проекта, в их порядке; снимка ещё нет - пусто', () => {
+    const view = {
+      queues: [
+        queue('a', { projectPath: '/work/site' }),
         queue('b', { projectPath: '/work/app' }),
-        queue('c', { projectPath: '/old/alpha' }),
-        queue('d', { projectPath: '/work/site' }),
-        queue('e', { projectPath: '/work/site' }),
+        queue('c', { projectPath: '/work/site' }),
       ],
-      projects,
-      '/work/site',
-    )
+    }
 
-    expect(groups.map((group) => group.name)).toEqual(['site', 'app', 'alpha', 'zeta'])
-    expect(groups[0]?.isCurrent).toBe(true)
-    expect(groups[0]?.queues.map((one) => one.id)).toEqual(['d', 'e'])
-    expect(groups[2]?.projectId).toBeNull()
-  })
-
-  it('к закрытому проекту можно перейти, только если он в недавних', () => {
-    const recent = [{ rootPath: '/old/alpha', name: 'alpha' }]
-
-    expect(canGoTo({ projectId: 'p1', projectPath: '/work/app' }, [])).toBe(true)
-    expect(canGoTo({ projectId: null, projectPath: '/old/alpha' }, recent)).toBe(true)
-    expect(canGoTo({ projectId: null, projectPath: '/old/zeta' }, recent)).toBe(false)
+    expect(projectQueues(view, '/work/site').map((one) => one.id)).toEqual(['a', 'c'])
+    expect(projectQueues(view, '/work/other')).toEqual([])
+    expect(projectQueues(undefined, '/work/site')).toEqual([])
   })
 })
 

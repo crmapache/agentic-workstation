@@ -561,7 +561,14 @@ describe('конец хода', () => {
     const idle = vi.fn()
     const result = { type: 'result', num_turns: 1, result: 'hi', total_cost_usd: 0 }
 
-    runtime.connectors = { path: '', own: vi.fn(), release: vi.fn(), idle, end: vi.fn() }
+    runtime.connectors = {
+      path: '',
+      allowed: [],
+      own: vi.fn(),
+      release: vi.fn(),
+      idle,
+      end: vi.fn(),
+    }
     nextProcess(fake)
     await runtime.send(msg('hello'))
     expect(idle).not.toHaveBeenCalled()

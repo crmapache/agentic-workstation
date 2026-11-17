@@ -11,7 +11,6 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import styles from '../StatisticsView.module.scss'
 import type { PeriodNavigatorProps } from '../StatisticsView.types'
 import { periodLabelOf } from '../StatisticsView.utils'
-import { fullDayLabel, weekdayNames, monthYearLabel } from '../../statistics-dates.utils'
 import {
   startOfDay,
   hasEarlierOf,
@@ -20,6 +19,7 @@ import {
 } from '../../statistics-period.utils'
 import { PERIOD_DAYS } from '../../statistics.constants'
 import { useStatisticsStore } from '../../statistics.store'
+import { fullDayLabel, weekdayNames, monthYearLabel } from '../../../../lib/dates.utils'
 
 /**
  * Листание периода рядом с его выбором: стрелки - соседний период той же длины, дата -

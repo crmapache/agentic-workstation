@@ -1,0 +1,72 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Содержимое карточки уведомления: суть, ответ и кнопки - сверху вниз.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+// Подсвечено: к нему привёл баннер ОС.
+.highlighted {
+  border-radius: var(--radius-lg);
+  outline: var(--border-width) solid var(--color-accent-border);
+}
+
+.title {
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text {
+  min-width: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.questionText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.outcome {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.failure {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}

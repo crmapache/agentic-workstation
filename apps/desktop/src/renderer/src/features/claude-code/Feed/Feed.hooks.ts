@@ -130,7 +130,11 @@ export const useFeedScroll = (
     if (scroller) scroller.scrollTop = scroller.scrollHeight
   }, [setStick])
 
-  /** Прыжок к строке (булавка на полке): строка - в верхнюю треть, на миг подсвечена. */
+  /**
+   * Прыжок к строке (булавка на полке, находка поиска): строка - в верхнюю треть, на миг
+   * подсвечена. Там она и держится HOLD_MS: строки над ней, только что пришедшие страницей,
+   * раскладываются своей настоящей высотой уже после прыжка и увели бы её под полку.
+   */
   const goToRow = useCallback(
     (rowId: string) => {
       const scroller = scrollerRef.current
@@ -138,12 +142,16 @@ export const useFeedScroll = (
 
       if (!scroller || !row) return
 
-      held.current = null
       setStick(false)
       scroller.scrollTop +=
         row.getBoundingClientRect().top -
         scroller.getBoundingClientRect().top -
         scroller.clientHeight * JUMP_TOP_SHARE
+      held.current = {
+        row,
+        top: row.getBoundingClientRect().top,
+        until: performance.now() + HOLD_MS,
+      }
       setLit(rowId)
     },
     [setStick],

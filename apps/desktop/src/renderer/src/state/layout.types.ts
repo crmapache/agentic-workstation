@@ -2,7 +2,7 @@
 export type SideViewId = 'files' | 'changes'
 
 /** Виды зоны 6 (середина окна), переключаются иконками полосы слева от неё. */
-export type MainViewId = 'file' | 'scenarios' | 'statistics' | 'connectors'
+export type MainViewId = 'file' | 'scenarios' | 'tasks' | 'statistics' | 'connectors' | 'inbox'
 
 /** GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3. */
 export type ProviderViewId = 'claude-code'

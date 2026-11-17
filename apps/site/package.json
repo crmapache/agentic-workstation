@@ -1,0 +1,25 @@
+{
+  "name": "@agentic-workstation/site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Сайт Agentic Workstation (ADR 0068): одна страница со ссылками на установщики и инструкцией по установке. Статика из Vite, в бою её раздаёт nginx.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "og": "node scripts/make-og.mjs",
+    "check:layout": "node scripts/check-layout.mjs",
+    "deploy": "bash scripts/site-deploy.sh"
+  },
+  "devDependencies": {
+    "@agentic-workstation/ui": "workspace:*",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@types/node": "24.13.3",
+    "playwright-core": "1.65.0",
+    "sass": "1.105.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.4"
+  }
+}

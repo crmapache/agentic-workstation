@@ -58,6 +58,8 @@ const ELEMENTS = [
   // поднимают настоящий релей и RemoteService главного процесса с подделками сервисов IDE.
   { type: 'phone', pattern: 'apps/phone/src/**', partialMatch: false },
   { type: 'phone-e2e', pattern: 'apps/phone/e2e/**', partialMatch: false },
+  // Сайт продукта (ADR 0068): статическая страница. Из общего - только стили дизайн-системы.
+  { type: 'site', pattern: 'apps/site/src/**', partialMatch: false },
 ]
 
 /** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
@@ -181,6 +183,7 @@ export default defineConfig(
       'apps/relay/src/**/*.ts',
       'apps/phone/src/**/*.{ts,tsx}',
       'apps/phone/e2e/**/*.ts',
+      'apps/site/src/**/*.ts',
     ],
     plugins: { boundaries },
     settings: {
@@ -195,6 +198,7 @@ export default defineConfig(
         'apps/relay/src/**/*',
         'apps/phone/src/**/*',
         'apps/phone/e2e/**/*',
+        'apps/site/src/**/*',
       ],
       'import/resolver': {
         typescript: {
@@ -209,6 +213,7 @@ export default defineConfig(
             'apps/relay/tsconfig.json',
             'apps/phone/tsconfig.app.json',
             'apps/phone/tsconfig.node.json',
+            'apps/site/tsconfig.json',
           ],
         },
       },
@@ -253,6 +258,8 @@ export default defineConfig(
             },
             // Сквозная проверка телефона: настоящий релей, RemoteService главного процесса с
             // подделками сервисов IDE (их общий контракт - shared) и ядро телефона.
+            // Сайт: себя и стили дизайн-системы (токены), к IDE и её частям - ничего.
+            { from: { element: { type: 'site' } }, allow: allowTo('site', 'ui') },
             {
               from: { element: { type: 'phone-e2e' } },
               allow: allowTo('phone-e2e', 'phone', 'main', 'shared', 'relay', 'remote-protocol'),

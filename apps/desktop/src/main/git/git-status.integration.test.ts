@@ -67,7 +67,7 @@ describe('readGitStatus', () => {
         'debug.log': 'ignored',
       },
       folders: { drafts: 'untracked', out: 'ignored' },
-      changedFolders: { src: 'modified' },
+      changedFolders: { '': 'modified', src: 'modified' },
       truncated: false,
       ignoreCase: true,
     })
@@ -79,7 +79,7 @@ describe('readGitStatus', () => {
     expect(await readGitStatus(join(repo, 'web'))).toEqual({
       files: { 'page.ts': 'modified' },
       folders: {},
-      changedFolders: {},
+      changedFolders: { '': 'modified' },
       truncated: false,
       ignoreCase: true,
     })

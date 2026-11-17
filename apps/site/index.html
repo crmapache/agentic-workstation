@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en" data-platform="other">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agentic Workstation: a lightweight IDE built around Claude Code</title>
+    <meta
+      name="description"
+      content="A lightweight desktop IDE for macOS and Windows with Claude Code at its center: files, git and a terminal in one window, a real interface for the agent, and connectors to Gmail, Calendar, Notion and Slack." />
+    <link rel="canonical" href="https://agentic-workstation.mzpizote.com/" />
+    <meta name="theme-color" content="#040405" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Agentic Workstation" />
+    <meta
+      property="og:title"
+      content="Agentic Workstation: a lightweight IDE built around Claude Code" />
+    <meta
+      property="og:description"
+      content="Files, git and a terminal in one fast window, with a real interface for Claude Code and the apps it can work with. For macOS and Windows." />
+    <meta property="og:url" content="https://agentic-workstation.mzpizote.com/" />
+    <meta property="og:image" content="https://agentic-workstation.mzpizote.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!--
+      Платформа посетителя - до первой отрисовки, иначе главная кнопка скачивания
+      перепрыгнула бы с Mac на Windows уже на глазах. Стили читают data-platform у html.
+      Смотрим и платформу, и строку браузера: одно из двух бывает пустым или урезанным.
+      iPad в настольном режиме называет себя Mac - его выдаёт сенсорный экран.
+    -->
+    <script>
+      ;(function () {
+        var nav = navigator
+        var ua = nav.userAgent
+        var platform = (nav.userAgentData && nav.userAgentData.platform) || nav.platform || ''
+        var both = platform + ' ' + ua
+        var mobile =
+          /iPhone|iPad|iPod|Android/i.test(ua) || (/Mac/i.test(platform) && nav.maxTouchPoints > 1)
+        document.documentElement.dataset.platform = mobile
+          ? 'mobile'
+          : /Win/i.test(both)
+            ? 'windows'
+            : /Mac/i.test(both)
+              ? 'mac'
+              : /Linux|CrOS|X11/i.test(both)
+                ? 'linux'
+                : 'other'
+      })()
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Agentic Workstation",
+        "url": "https://agentic-workstation.mzpizote.com/",
+        "image": "https://agentic-workstation.mzpizote.com/og.png",
+        "description": "A lightweight desktop IDE with Claude Code at its center: files, git and a terminal in one window, a real interface for the agent, and connectors to the apps it can work with.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS 13 or later (Apple Silicon), Windows 10 or later (64-bit)",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+
+  <body>
+    <header class="header">
+      <div class="headerInner">
+        <a class="brand" href="#top">
+          <img class="brandIcon" src="./src/assets/icon-128.webp" width="28" height="28" alt="" />
+          <span>Agentic Workstation</span>
+        </a>
+        <nav class="nav" aria-label="Main">
+          <a class="navLink" href="#features">Features</a>
+          <a class="navLink" href="#install">Install</a>
+          <a class="button buttonTinted buttonSmall" href="#install">Download</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="heroText">
+          <h1 class="heroTitle" id="hero-title">A lightweight IDE built around Claude Code</h1>
+          <p class="heroLead">
+            Files, git and a terminal in one fast window, with a real interface for the agent: every
+            step it takes, every file it changes, and the apps it can work with.
+          </p>
+
+          <div class="downloads">
+            <a
+              class="button download"
+              data-os="mac"
+              href="https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-mac-arm64.dmg">
+              <svg class="buttonIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M16.4 1.6c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.3 2.7-1.4zM19 17.3c-.5 1.1-.7 1.6-1.3 2.6-.9 1.4-2.1 3.1-3.6 3.1-1.3 0-1.7-.9-3.5-.8-1.8 0-2.2.8-3.5.8-1.5 0-2.6-1.6-3.5-2.9C1.5 16.7 1.2 12.2 3 9.8c1-1.4 2.5-2.2 3.9-2.2 1.5 0 2.4.8 3.6.8 1.2 0 1.9-.8 3.6-.8 1.3 0 2.6.7 3.6 1.9-3.2 1.7-2.7 6.3.3 7.8z" />
+              </svg>
+              <span>Download for Mac</span>
+            </a>
+            <a
+              class="button download"
+              data-os="windows"
+              href="https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-win-x64.exe">
+              <svg class="buttonIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M3 5.4l7.5-1v8.1H3zM11.6 4.3L21 3v9.5h-9.4zM3 13.5h7.5v8.1L3 20.6zM11.6 13.5H21V23l-9.4-1.3z" />
+              </svg>
+              <span>Download for Windows</span>
+            </a>
+          </div>
+
+          <p class="heroMeta">For macOS 13 or later on Apple Silicon and Windows 10 or 11.</p>
+          <p class="heroMeta heroMetaLinks">
+            <span data-release-version hidden></span>
+            <a href="#install">How to install</a>
+          </p>
+          <p class="platformNote" data-note="mobile">
+            Agentic Workstation is a desktop app. Open this page on your Mac or Windows PC to
+            install it.
+          </p>
+          <p class="platformNote" data-note="linux">There is no Linux version yet.</p>
+        </div>
+
+        <div class="window">
+          <div class="windowGlow" aria-hidden="true"></div>
+          <div class="windowFrame">
+            <img
+              class="windowImage"
+              src="./src/assets/shots/window-1200.webp"
+              srcset="
+                ./src/assets/shots/window-1200.webp 1200w,
+                ./src/assets/shots/window-1800.webp 1800w,
+                ./src/assets/shots/window-2400.webp 2400w
+              "
+              sizes="(min-width: 1280px) 1200px, calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="1600"
+              height="1000"
+              fetchpriority="high"
+              alt="The Agentic Workstation window: a file tree, http-check.ts open in the editor, and Claude Code adding retries to an HTTP check, with its edits and test runs listed step by step." />
+            <svg class="trafficLights" viewBox="0 0 1600 1000" aria-hidden="true">
+              <circle class="trafficClose" cx="22" cy="19" r="6" />
+              <circle class="trafficMinimize" cx="42" cy="19" r="6" />
+              <circle class="trafficZoom" cx="62" cy="19" r="6" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="features" id="features" aria-label="Features">
+        <article class="feature">
+          <div class="featureText">
+            <h2 class="featureTitle">Claude Code, with an interface made for it</h2>
+            <p class="featureBody">
+              Claude works in the panel on the right, and every step shows up as it happens: the
+              files it reads, its edits as diffs, the commands it runs and their output. When a turn
+              ends, you see the files it changed and can roll back one of them or the whole turn.
+            </p>
+            <ul class="featurePoints">
+              <li>
+                Write while it works: your message waits in a queue or reaches Claude at its next
+                step
+              </li>
+              <li>Several conversations per project in tabs, with search across all of them</li>
+              <li>Permission requests, questions and plans answered with a click</li>
+            </ul>
+          </div>
+          <div class="shot">
+            <img
+              src="./src/assets/shots/claude-532.webp"
+              srcset="
+                ./src/assets/shots/claude-532.webp   532w,
+                ./src/assets/shots/claude-1064.webp 1064w
+              "
+              sizes="(min-width: 960px) 532px, calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="532"
+              height="688"
+              loading="lazy"
+              alt="The Claude Code panel: the request, a short progress note, a file write and an edit shown as a diff, then a message that all 11 tests pass." />
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="featureText">
+            <h2 class="featureTitle">See what changed before you commit</h2>
+            <p class="featureBody">
+              The Changes panel lists every file that differs from the last commit. Open one for a
+              side-by-side or inline diff, step through the differences and fix things right there.
+            </p>
+            <ul class="featurePoints">
+              <li>
+                Local history keeps every version of every file for 30 days, whoever made the edit:
+                you, Claude, the terminal or git
+              </li>
+              <li>Switch and create branches from the title bar</li>
+              <li>An editor with highlighting, go to definition, Markdown preview and autosave</li>
+            </ul>
+          </div>
+          <picture class="shot">
+            <source
+              media="(max-width: 600px)"
+              srcset="
+                ./src/assets/shots/changes-diff-616.webp   616w,
+                ./src/assets/shots/changes-diff-1232.webp 1232w
+              "
+              sizes="calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="616"
+              height="568" />
+            <img
+              src="./src/assets/shots/changes-960.webp"
+              srcset="
+                ./src/assets/shots/changes-960.webp   960w,
+                ./src/assets/shots/changes-1920.webp 1920w
+              "
+              sizes="(min-width: 960px) 640px, calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="960"
+              height="568"
+              loading="lazy"
+              alt="The Changes panel with four modified files, and the diff of http-check.ts with the new retry policy highlighted." />
+          </picture>
+        </article>
+
+        <article class="feature">
+          <div class="featureText">
+            <h2 class="featureTitle">Your apps, connected once</h2>
+            <p class="featureBody">
+              Gmail, Google Calendar, Notion, Slack, Jira and Confluence, Todoist or any MCP server.
+              You sign in once in the IDE and choose which projects can use each connector.
+            </p>
+            <ul class="featurePoints">
+              <li>Several accounts of one kind side by side, like work and personal mail</li>
+              <li>Anything that sends to other people stays off until you turn it on</li>
+              <li>Describe a service, and Claude works out how to connect it</li>
+            </ul>
+          </div>
+          <div class="shot">
+            <img
+              src="./src/assets/shots/connectors-620.webp"
+              srcset="
+                ./src/assets/shots/connectors-620.webp   620w,
+                ./src/assets/shots/connectors-1240.webp 1240w
+              "
+              sizes="(min-width: 960px) 580px, calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="620"
+              height="580"
+              loading="lazy"
+              alt="The connector catalog: Gmail, Google Calendar, Notion, Slack, Jira and Confluence, Todoist, Playwright, Browser Use and Computer Use." />
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="featureText">
+            <h2 class="featureTitle">A terminal right under the conversation</h2>
+            <p class="featureBody">
+              Run the tests yourself, keep a dev server going, open as many shells as you need. The
+              terminal sits under the Claude Code panel, so the conversation and the output stay
+              side by side.
+            </p>
+          </div>
+          <div class="shot">
+            <img
+              src="./src/assets/shots/terminal-532.webp"
+              srcset="
+                ./src/assets/shots/terminal-532.webp   532w,
+                ./src/assets/shots/terminal-1064.webp 1064w
+              "
+              sizes="(min-width: 960px) 532px, calc(100vw - 2 * clamp(16px, 5vw, 40px))"
+              width="532"
+              height="437"
+              loading="lazy"
+              alt="The terminal under the Claude Code panel, with npm test reporting 11 passing tests." />
+          </div>
+        </article>
+      </section>
+
+      <section class="more" aria-labelledby="more-title">
+        <h2 class="sectionTitle" id="more-title">Also built in</h2>
+        <ul class="moreGrid">
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
+            <h3 class="moreTitle">A browser for the AI</h3>
+            <p class="moreBody">
+              Claude works in your real Chrome through a small extension, in its own tab group, with
+              a cursor you can watch.
+            </p>
+          </li>
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14 4.1 12 6" />
+              <path d="m5.1 8-2.9-.8" />
+              <path d="m6 12-1.9 2" />
+              <path d="M7.2 2.2 8 5.1" />
+              <path
+                d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z" />
+            </svg>
+            <h3 class="moreTitle">Computer Use</h3>
+            <p class="moreBody">
+              For apps outside the browser, Claude uses the real mouse and keyboard. While it works,
+              Pause and Stop stay on screen.
+            </p>
+          </li>
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="8" height="8" x="3" y="3" rx="2" />
+              <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+              <rect width="8" height="8" x="13" y="13" rx="2" />
+            </svg>
+            <h3 class="moreTitle">Scenarios</h3>
+            <p class="moreBody">
+              Queue up tasks and let them run one after another, each in its own git worktree, right
+              away or on a schedule.
+            </p>
+          </li>
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+              <path d="M12 18h.01" />
+            </svg>
+            <h3 class="moreTitle">Remote Control</h3>
+            <p class="moreBody">
+              Follow conversations, answer Claude and run scenarios from your phone. Everything on
+              the way is end-to-end encrypted.
+            </p>
+          </li>
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+              <path d="M18 17V9" />
+              <path d="M13 17V5" />
+              <path d="M8 17v-3" />
+            </svg>
+            <h3 class="moreTitle">Statistics</h3>
+            <p class="moreBody">
+              How long agents worked, how many tokens they used, and how much of the code you wrote
+              yourself.
+            </p>
+          </li>
+          <li class="moreItem">
+            <svg class="moreIcon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+            <h3 class="moreTitle">Updates itself</h3>
+            <p class="moreBody">
+              New versions arrive as a notification inside the app, and installing one takes a
+              click.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="install" id="install" aria-labelledby="install-title">
+        <div class="installIntro">
+          <h2 class="sectionTitle" id="install-title">Install</h2>
+          <p class="installLead">
+            Agentic Workstation works with the Claude Code already on your computer. If you don't
+            have it yet, install it and sign in once:
+            <a href="https://code.claude.com/docs/en/setup" rel="noopener"
+              >Claude Code setup guide</a
+            >.
+          </p>
+        </div>
+
+        <div class="platforms">
+          <article class="platform" data-os="mac" aria-labelledby="install-mac">
+            <div class="platformHead">
+              <svg class="platformIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M16.4 1.6c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.3 2.7-1.4zM19 17.3c-.5 1.1-.7 1.6-1.3 2.6-.9 1.4-2.1 3.1-3.6 3.1-1.3 0-1.7-.9-3.5-.8-1.8 0-2.2.8-3.5.8-1.5 0-2.6-1.6-3.5-2.9C1.5 16.7 1.2 12.2 3 9.8c1-1.4 2.5-2.2 3.9-2.2 1.5 0 2.4.8 3.6.8 1.2 0 1.9-.8 3.6-.8 1.3 0 2.6.7 3.6 1.9-3.2 1.7-2.7 6.3.3 7.8z" />
+              </svg>
+              <div>
+                <h3 class="platformTitle" id="install-mac">macOS</h3>
+                <p class="platformMeta">macOS 13 Ventura or later, Apple Silicon (M1 or newer)</p>
+              </div>
+            </div>
+
+            <a
+              class="button buttonPrimary platformButton"
+              href="https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-mac-arm64.dmg">
+              <span>Download for Mac</span>
+              <span class="buttonNote" data-release-size="mac" hidden></span>
+            </a>
+
+            <ol class="steps">
+              <li class="step">
+                <p class="stepTitle">Open the disk image</p>
+                <p class="stepBody">Drag Agentic Workstation into the Applications folder.</p>
+              </li>
+              <li class="step">
+                <p class="stepTitle">Allow it to open</p>
+                <p class="stepBody">
+                  The app isn't notarized by Apple yet, so macOS blocks its first launch. Open
+                  Terminal, paste this command and press Return:
+                </p>
+                <div class="command">
+                  <code class="commandText" id="mac-command"
+                    >xattr -cr "/Applications/<wbr />Agentic Workstation.app"</code
+                  >
+                  <button
+                    class="commandCopy"
+                    type="button"
+                    data-copy-target="mac-command"
+                    aria-label="Copy command">
+                    <svg
+                      class="commandCopyIcon"
+                      data-copy-icon="idle"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                    </svg>
+                    <svg
+                      class="commandCopyIcon"
+                      data-copy-icon="done"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </button>
+                </div>
+              </li>
+              <li class="step">
+                <p class="stepTitle">Launch it</p>
+                <p class="stepBody">
+                  Open Agentic Workstation from Applications. The command is needed only once:
+                  updates install without it.
+                </p>
+              </li>
+            </ol>
+          </article>
+
+          <article class="platform" data-os="windows" aria-labelledby="install-windows">
+            <div class="platformHead">
+              <svg class="platformIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M3 5.4l7.5-1v8.1H3zM11.6 4.3L21 3v9.5h-9.4zM3 13.5h7.5v8.1L3 20.6zM11.6 13.5H21V23l-9.4-1.3z" />
+              </svg>
+              <div>
+                <h3 class="platformTitle" id="install-windows">Windows</h3>
+                <p class="platformMeta">Windows 10 or 11, 64-bit</p>
+              </div>
+            </div>
+
+            <a
+              class="button buttonPrimary platformButton"
+              href="https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-win-x64.exe">
+              <span>Download for Windows</span>
+              <span class="buttonNote" data-release-size="windows" hidden></span>
+            </a>
+
+            <ol class="steps">
+              <li class="step">
+                <p class="stepTitle">Run the installer</p>
+                <p class="stepBody">
+                  It installs for your account only and doesn't ask for administrator rights.
+                </p>
+              </li>
+              <li class="step">
+                <p class="stepTitle">Get past SmartScreen</p>
+                <p class="stepBody">
+                  The installer isn't code-signed yet, so Windows may say it protected your PC.
+                  Click More info, then Run anyway.
+                </p>
+              </li>
+              <li class="step">
+                <p class="stepTitle">Start working</p>
+                <p class="stepBody">
+                  The app opens when the install is done, with shortcuts on the desktop and in the
+                  Start menu. Claude Code for Windows uses its native installer, and its Bash tool
+                  needs Git for Windows.
+                </p>
+              </li>
+            </ol>
+          </article>
+        </div>
+
+        <p class="installFoot">
+          After the first install, new versions arrive inside the app.
+          <a
+            href="https://github.com/crmapache/agentic-workstation-releases/releases"
+            rel="noopener"
+            >Release notes and older versions</a
+          >
+          are on GitHub.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footerInner">
+        <a class="brand brandSmall" href="#top">
+          <img class="brandIcon" src="./src/assets/icon-128.webp" width="28" height="28" alt="" />
+          <span>Agentic Workstation</span>
+        </a>
+        <nav class="footerNav" aria-label="Footer">
+          <a class="navLink" href="#features">Features</a>
+          <a class="navLink" href="#install">Install</a>
+          <a
+            class="navLink"
+            href="https://github.com/crmapache/agentic-workstation-releases/releases"
+            rel="noopener"
+            >Release notes</a
+          >
+          <a class="navLink" href="https://github.com/crmapache/agentic-workstation">Source code</a>
+          <a class="navLink" href="/privacy/">Privacy</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

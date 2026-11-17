@@ -3,15 +3,11 @@ import { join } from 'node:path'
 import type { ScenarioProvider } from '../scenario-provider'
 import type { ClaudeService } from '../../claude/claude-service'
 import { askStructured } from '../../claude/structured-ask'
-import { scenarioArgs } from '../../scenarios/scenario-launch'
-import type { ClaudeCli } from '../../claude/cli/cli-locator'
-import { CliProcess } from '../../claude/cli/cli-process'
-import { CLI_ENV_OVERRIDES } from '../../claude/cli/cli.constants'
 import { releaseHead } from '../../claude/history/released-heads'
 import { claudeHome, transcriptDirs } from '../../claude/history/transcript-paths'
 import { ScenarioAuthor } from '../../scenarios/author/scenario-author'
-import { scenarioEnv, scenarioAccounts } from './claude-scenario-accounts'
-import { DeferredProcess } from './deferred-process'
+import { scenarioAccounts } from './claude-scenario-accounts'
+import { claudeSessions } from './claude-sessions'
 
 /** Имя очереди - короткий ответ дешёвой модели; дольше минуты ждать нечего. */
 const TITLE_MS = 60_000
@@ -31,15 +27,14 @@ const titlePrompt = (description: string) =>
   ].join('\n')
 
 /**
- * Claude Code как исполнитель сценариев: процессы `claude -p` движка сценариев, аккаунты
- * панели с выручкой на лимите, коннекторы IDE по исходному проекту, имя очереди от haiku.
- * CLI ищется на каждом prepare - его могли поставить или обновить, пока IDE открыта.
+ * Claude Code как исполнитель сценариев: процессы `claude -p` движка сценариев (claude-sessions),
+ * аккаунты панели с выручкой на лимите, имя очереди от haiku.
  */
 export const claudeScenarioProvider = (
   claude: ClaudeService,
   dataDir: string,
 ): ScenarioProvider => {
-  let cli: ClaudeCli | null = null
+  const sessions = claudeSessions(claude)
   const defaults = () => {
     const prefs = claude.panel.newTabPrefs(claude.settings.prefs)
 
@@ -59,65 +54,8 @@ export const claudeScenarioProvider = (
 
   return {
     id: 'claude',
-    prepare: async (projectPath) => {
-      cli = await claude.cli.locate()
-
-      if (!cli) return 'noClaude'
-      if (!(await claude.isTrusted(projectPath))) return 'untrusted'
-
-      return null
-    },
-    spawn: (spec, place, wires) => {
-      const located = cli
-      const env = located && scenarioEnv(claude, spec.accountId, located.env)
-
-      if (!located || !env) return null
-
-      return new DeferredProcess(async (wanted) => {
-        const connectors = await claude.connectors.configFor(place.projectPath).catch(() => null)
-
-        // Сессия сценария - свой разговор: процессы одной сессии делят вкладки браузера, а
-        // файлы с диска инструменты берут только из её папки (worktree очереди).
-        connectors?.own({ conversationId: spec.sessionId, workDir: place.cwd })
-
-        // Сессию остановили, пока писался конфиг шлюза: CLI с хуками проекта не нужен вовсе.
-        if (!wanted()) {
-          connectors?.release()
-
-          return null
-        }
-
-        try {
-          return new CliProcess(
-            {
-              binary: located.binary,
-              args: scenarioArgs(
-                { ...spec, mcpConfig: connectors?.path ?? null },
-                located.features,
-              ),
-              cwd: place.cwd,
-              env: { ...env, ...CLI_ENV_OVERRIDES },
-            },
-            {
-              onMessage: (message) => {
-                // Ход кончился: курсор агента в Chrome и капсула Computer не ждут конца сессии.
-                if (message.type === 'result') connectors?.idle()
-
-                wires.onMessage(message)
-              },
-              onControlRequest: wires.onControlRequest,
-              onExit: (code, stderrTail) => {
-                connectors?.release()
-                wires.onExit(code, stderrTail)
-              },
-            },
-          )
-        } catch (error) {
-          connectors?.release()
-          throw error
-        }
-      }, wires)
-    },
+    prepare: sessions.prepare,
+    spawn: sessions.spawn,
     transcriptDirs: (cwd) => transcriptDirs(cwd).catch(() => []),
     defaults,
     accounts: scenarioAccounts(claude),

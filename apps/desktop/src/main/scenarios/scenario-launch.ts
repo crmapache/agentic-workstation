@@ -47,6 +47,7 @@ export const scenarioArgs = (spec: SessionSpec, features: CliFeatures): string[]
     // шлюза выдан на исходный проект, а не на папку worktree.
     '--strict-mcp-config',
     ...(spec.mcpConfig ? ['--mcp-config', spec.mcpConfig] : []),
+    ...(spec.allowedTools?.length ? ['--allowedTools', spec.allowedTools.join(',')] : []),
   ]
 }
 

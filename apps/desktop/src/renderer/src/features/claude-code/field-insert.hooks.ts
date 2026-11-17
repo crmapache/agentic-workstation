@@ -24,7 +24,8 @@ const selectRange = (range: Range) => {
 /**
  * Вставка в место каретки - так же, как в ACC: вложение встаёт там, где была каретка, а
  * не в конце, с пробелом по краям (иначе слипнется со словами в одно нечитаемое слово),
- * и каждая вставка - свой шаг отмены.
+ * и каждая вставка - свой шаг отмены. Фокус ушёл из поля (цитата из ленты, кнопка) - туда,
+ * где каретку оставили.
  */
 export const useFieldInsert = (field: Field): FieldInsert => {
   const { fieldRef, registry } = field
@@ -45,7 +46,7 @@ export const useFieldInsert = (field: Field): FieldInsert => {
 
     if (!root) return
 
-    const range = currentRange(root)
+    const range = currentRange(root, field.lastCaret.current)
 
     range.deleteContents()
 
@@ -63,7 +64,7 @@ export const useFieldInsert = (field: Field): FieldInsert => {
 
     if (!root) return
 
-    const range = currentRange(root)
+    const range = currentRange(root, field.lastCaret.current)
     const node = document.createTextNode(text)
 
     range.deleteContents()
@@ -77,7 +78,7 @@ export const useFieldInsert = (field: Field): FieldInsert => {
 
     if (!root) return
 
-    const range = currentRange(root)
+    const range = currentRange(root, field.lastCaret.current)
     let tail: Node | null = null
 
     range.deleteContents()

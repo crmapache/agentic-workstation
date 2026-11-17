@@ -19,7 +19,8 @@ import type { ComputerState } from './computer'
  * Тип коннектора. atlassian - Jira и Confluence в облаке Atlassian, todoist - Todoist по
  * личному токену, оба через официальные MCP (ADR 0036); playwright - браузер Playwright MCP
  * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); computer -
- * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); mcp - любой
+ * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); notifications -
+ * уведомления и напоминания IDE самому человеку (ADR 0069, встроенный); mcp - любой
  * MCP-сервер по адресу (Linear, Sentry, свой); command - MCP-сервер командой на этой машине
  * (npx, node); http - описанный ИИ по документации сервиса (ADR 0029).
  */
@@ -33,6 +34,7 @@ export type ConnectorKind =
   | 'playwright'
   | 'browser'
   | 'computer'
+  | 'notifications'
   | 'mcp'
   | 'command'
   | 'http'
@@ -47,10 +49,20 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'playwright',
   'browser',
   'computer',
+  'notifications',
   'mcp',
   'command',
   'http',
 ]
+
+/**
+ * Встроенные коннекторы, которые есть всегда: IDE заводит их сама и в каталоге нового их нет.
+ * Уведомления IDE (ADR 0069) - то, чем любой разговор зовёт человека кнопками и напоминаниями.
+ */
+export const BUILT_IN_KINDS: readonly ConnectorKind[] = ['notifications']
+
+/** Имя сервера уведомлений IDE: тип в начале, как у всех (ADR 0028). */
+export const NOTIFICATIONS_SERVER_NAME = 'notifications'
 
 /**
  * Работает командой на этой машине: своя MCP-команда и Playwright. Своя копия на каждый

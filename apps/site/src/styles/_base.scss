@@ -1,0 +1,97 @@
+// База страницы: сброс, шрифт, ссылки, фокус, общая ширина колонки. base.css дизайн-системы
+// сюда не подключается: он для окна приложения (нет прокрутки страницы, текст не выделяется,
+// кольца фокуса нет - ADR 0023). Страницу листают, текст с неё копируют, по ней ходят Tab.
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--color-bg-app);
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--site-header-height) + var(--space-6));
+  text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-app);
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  font-size: var(--site-font-body);
+  line-height: var(--site-line-body);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+a {
+  color: var(--color-fg-accent);
+  text-decoration-color: var(--color-accent-border);
+  text-decoration-thickness: var(--border-width);
+  text-underline-offset: 0.2em;
+  transition-property: color, text-decoration-color;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--site-ease-hover);
+}
+
+a:hover {
+  color: var(--color-accent-strong);
+  text-decoration-color: currentcolor;
+}
+
+// Кольцо фокуса - только с клавиатуры: мышью по ссылке его не видно.
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+
+::selection {
+  background-color: var(--color-selection);
+}
+
+// Одна колонка страницы на всех разделах: ширина и поля по бокам.
+.headerInner,
+.hero,
+.features,
+.more,
+.install,
+.footerInner {
+  width: min(100% - 2 * var(--site-gutter), var(--site-width-page));
+  margin-inline: auto;
+}
+
+.sectionTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--site-font-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-title);
+  letter-spacing: var(--site-tracking-title);
+  text-wrap: balance;
+}

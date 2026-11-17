@@ -5,7 +5,8 @@ import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
 import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
 
 import { clockLabel, weekdayDayLabel } from '../../lib/dates.utils'
-import { dayLabel, monthLabel, weekdayNames } from './statistics-dates.utils'
+import { weekdayNames } from '../../lib/dates.utils'
+import { dayLabel, monthLabel } from './statistics-dates.utils'
 import { startOfDay } from './statistics-period.utils'
 import {
   AXIS_LABELS,

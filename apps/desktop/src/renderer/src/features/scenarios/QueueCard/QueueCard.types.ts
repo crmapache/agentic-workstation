@@ -7,10 +7,6 @@ export type QueueCardProps = {
   queue: ScenarioQueue
   /** Сводка идущего прогона очереди (liveOf); нет - ничего не идёт или сводка ещё не пришла. */
   live?: RunSummary | undefined
-  /** Плотная карточка очереди другого проекта: шапка, элементы точками, этап и дорога идущего. */
-  compact?: boolean | undefined
-  /** Плотная карточка: перейти к проекту очереди - там её полоса целиком. */
-  onOpen?: (() => void) | undefined
 }
 
 export type QueueHeaderProps = {
@@ -67,12 +63,3 @@ export type StopRunDialogProps = {
 }
 
 export type CloseQueueDialogProps = { queue: ScenarioQueue; onClose: () => void }
-
-export type QueueCompactProps = {
-  queue: ScenarioQueue
-  live: RunSummary | undefined
-  status: QueueStatus
-  onOpen: (() => void) | undefined
-}
-
-export type QueueDotsProps = { queue: ScenarioQueue; live: RunSummary | undefined }

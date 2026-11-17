@@ -9,6 +9,8 @@ import {
   parseOutgoing,
   assertSessionId,
   parseQueuePlace,
+  assertFeedItemId,
+  parseFeedItemIds,
   parseRewindScope,
   assertShellCommand,
   parseRequestResponse,
@@ -46,6 +48,10 @@ export const createClaudeHandlers = (
     'claude:getState': () => claude.getState(),
     'claude:getFeed': ({ conversationId }) => claude.getFeed(id(conversationId)),
     'claude:loadEarlier': ({ conversationId }) => claude.actions.loadEarlier(id(conversationId)),
+    'claude:loadThrough': ({ conversationId, itemId }) =>
+      claude.actions.loadThrough(id(conversationId), assertFeedItemId(itemId)),
+    'claude:feedItems': ({ conversationId, itemIds }) =>
+      claude.actions.feedItems(id(conversationId), parseFeedItemIds(itemIds)),
     'claude:showSessionInfo': ({ conversationId }) =>
       claude.actions.showSessionInfo(id(conversationId)),
     'claude:newConversation': ({ projectId }) => claude.newConversation(root(projectId)),

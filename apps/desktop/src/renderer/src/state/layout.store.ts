@@ -44,6 +44,8 @@ type LayoutStore = Layout & {
    */
   showMainView: (viewId: MainViewId) => void
   selectProviderView: (viewId: ProviderViewId) => void
+  /** Показать вид правой панели, откуда бы ни позвали: уже показанный не прячется. */
+  showProviderView: (viewId: ProviderViewId) => void
   /** Сдвинуть ширину панели на delta пикселей с учётом пределов и места в окне. */
   resizePanel: (side: PanelSide, delta: number) => void
   /** Терминал внизу правой колонки (ADR 0037): показать или спрятать. */
@@ -113,6 +115,12 @@ export const useLayoutStore = create<LayoutStore>()(
         ),
       selectProviderView: (viewId) =>
         set((state) => ({ provider: select(state.provider, viewId) })),
+      showProviderView: (viewId) =>
+        set((state) =>
+          state.provider.isOpen && state.provider.activeViewId === viewId
+            ? state
+            : { provider: { ...state.provider, activeViewId: viewId, isOpen: true } },
+        ),
       resizePanel: (side, delta) => set((state) => resizedPanels(state, state.room, side, delta)),
       toggleTerminal: () =>
         set((state) => ({ terminal: { ...state.terminal, isOpen: !state.terminal.isOpen } })),

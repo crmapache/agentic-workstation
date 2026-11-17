@@ -69,6 +69,19 @@ describe('аргументы запуска', () => {
     )
   })
 
+  it('allows the IDE notifications without a question, only when the gateway says so', () => {
+    expect(buildLaunchArgs({ ...base, resume: false }, features)).not.toContain('--allowedTools')
+    expect(
+      valueOf(
+        buildLaunchArgs(
+          { ...base, resume: false, allowedTools: ['mcp__notifications', 'mcp__x'] },
+          features,
+        ),
+        '--allowedTools',
+      ),
+    ).toBe('mcp__notifications,mcp__x')
+  })
+
   it('adds the released head briefing after the panel one, on one line', () => {
     const args = buildLaunchArgs(
       { ...base, resume: false, extraBriefing: 'Role is over.' },

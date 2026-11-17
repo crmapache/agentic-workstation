@@ -99,7 +99,7 @@ export class ScenarioService {
       dataDir: options.dataDir,
       onShelves: (path) => this.sendShelves(path),
     })
-    setHiddenConversations((path) => this.hiddenFor(path))
+    setHiddenConversations('scenarios', (path) => this.hiddenFor(path))
     this.clock = setInterval(() => void this.beat(), BEAT_MS)
     this.clock.unref()
   }

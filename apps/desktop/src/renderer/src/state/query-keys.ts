@@ -106,7 +106,22 @@ export const QUERY_KEYS = {
   claudeState: ['claude', 'state'],
   /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
   soundPrefs: ['sounds', 'prefs'],
+  /** Задания по расписанию и сводки их прогонов (ADR 0069) - одним снимком. */
+  tasks: ['tasks', 'state'],
+  /** Прогон задания целиком, с отчётом. */
+  taskRun: (runId: string) => ['tasks', 'run', runId],
+  /** Журнал прогона - лентой разговора. */
+  taskLog: (runId: string) => ['tasks', 'log', runId],
+  /** Уведомления IDE (ADR 0069). */
+  inbox: ['inbox'],
   claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],
+  /** Элементы ленты по id выше загруженного - для полки закреплённых. */
+  claudeFeedItems: (conversationId: string, itemIds: readonly string[]) => [
+    'claude',
+    'feed-items',
+    conversationId,
+    ...itemIds,
+  ],
   claudeHistory: (projectId: string) => ['claude', 'history', projectId],
   claudeTodayTokens: ['claude', 'todayTokens'],
   /** Вопросы сбоку (/btw) вкладки: цепочку держит главный процесс, ответы - событием. */

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import { isAvailableIn } from '@shared/connector-availability'
-import { runsCommand } from '@shared/connectors'
+import { runsCommand, BUILT_IN_KINDS } from '@shared/connectors'
 import type {
   ConnectorsState,
   AddToTypeRequest,
@@ -255,7 +255,8 @@ export class ConnectorsService {
   async remove(id: string): Promise<ConnectorsState> {
     const connector = this.registry.find(id)
 
-    if (!connector) return this.getState()
+    // Встроенный (уведомления IDE, ADR 0069) не удаляется: IDE завела бы его снова на запуске.
+    if (!connector || BUILT_IN_KINDS.includes(connector.kind)) return this.getState()
 
     const removing = this.registry.remove(id)
 

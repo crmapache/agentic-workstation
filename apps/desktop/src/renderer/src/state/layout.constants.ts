@@ -5,8 +5,10 @@ export const SIDE_VIEW_IDS: readonly SideViewId[] = ['files', 'changes']
 export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'file',
   'scenarios',
+  'tasks',
   'statistics',
   'connectors',
+  'inbox',
 ]
 export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code']
 

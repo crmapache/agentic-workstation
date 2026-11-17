@@ -46,6 +46,11 @@ describe('scenario launch', () => {
     const args = scenarioArgs({ ...spec, mcpConfig: '/tmp/gateway.json' }, features)
 
     expect(args[args.indexOf('--mcp-config') + 1]).toBe('/tmp/gateway.json')
+    expect(args).not.toContain('--allowedTools')
+
+    const allowing = scenarioArgs({ ...spec, allowedTools: ['mcp__notifications'] }, features)
+
+    expect(allowing[allowing.indexOf('--allowedTools') + 1]).toBe('mcp__notifications')
   })
 
   it('drops a model or effort that is not a name, and keeps the briefing on one line', () => {

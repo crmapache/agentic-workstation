@@ -65,13 +65,13 @@ export class LiveNotes {
     return place
   }
 
-  /** Сессия сценария остаётся сценарием, даже если её потом открыли в панели. */
+  /** Сессия сценария или задания остаётся своей, даже если её потом открыли в панели. */
   private ideSession(note: Extract<LiveNote, { kind: 'ideSession' }>) {
     this.store.db
       .prepare(
         `INSERT INTO sessions (uuid, provider, ide_kind, ide_seen_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(uuid) DO UPDATE SET
-           ide_kind = CASE WHEN ide_kind = 'scenario' THEN ide_kind ELSE excluded.ide_kind END,
+           ide_kind = CASE WHEN ide_kind IN ('scenario', 'task') THEN ide_kind ELSE excluded.ide_kind END,
            ide_seen_at = max(coalesce(ide_seen_at, 0), excluded.ide_seen_at)`,
       )
       .run(note.session, note.provider, note.ideKind, note.at)

@@ -1,31 +1,19 @@
-import { useState } from 'react'
 import { GitBranch, CircleCheck, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { GitChange } from '@shared/git'
-
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
-import styles from '../ChangesView.module.scss'
-import type { ChangeMenuTarget, ProjectChangesProps } from '../ChangesView.types'
-import { groupChanges } from '../ChangesView.utils'
+import type { ProjectChangesProps } from '../ChangesView.types'
 import { useGitChanges } from '../../../../state/git-changes.queries'
-import { ChangeGroup } from './ChangeGroup'
-import { ChangeMenu } from './ChangeMenu'
+import { ChangeList } from './ChangeList'
 
 /**
- * Изменения одного проекта по группам. Пока список читается - пусто; папка не в git, git не
- * ответил и «всё как в коммите» - словами. Список больше предела - строка о том, что он не
- * весь.
+ * Изменения одного проекта. Пока список читается - пусто; папка не в git, git не ответил и
+ * «всё как в коммите» - словами; иначе - сам список.
  */
 export const ProjectChanges = ({ projectId }: ProjectChangesProps) => {
   const { t } = useTranslation()
   const changes = useGitChanges(projectId)
-  const [menu, setMenu] = useState<ChangeMenuTarget>(null)
-
-  const handleMenu = (change: GitChange, anchor: HTMLElement) => setMenu({ change, anchor })
-
-  const handleMenuClosed = () => setMenu(null)
 
   if (changes === undefined) return null
 
@@ -59,20 +47,5 @@ export const ProjectChanges = ({ projectId }: ProjectChangesProps) => {
     )
   }
 
-  // Файл ушёл из списка, пока меню было открыто (откатили, закоммитили), - меню уходит с ним.
-  const target = menu && changes.files.includes(menu.change) ? menu : null
-
-  return (
-    <div className={styles.changes}>
-      {groupChanges(changes.files).map((group) => (
-        <ChangeGroup key={group.id} projectId={projectId} group={group} onMenu={handleMenu} />
-      ))}
-      {changes.truncated && (
-        <p className={styles.truncated}>
-          {t('changes.truncated', { count: changes.files.length })}
-        </p>
-      )}
-      <ChangeMenu projectId={projectId} target={target} onClose={handleMenuClosed} />
-    </div>
-  )
+  return <ChangeList projectId={projectId} changes={changes} />
 }

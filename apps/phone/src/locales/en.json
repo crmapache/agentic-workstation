@@ -154,7 +154,7 @@
     "title": "Pair with your IDE",
     "help": {
       "title": "Pairing",
-      "text": "The QR code in the IDE's Remote Control window opens this page with a one-time code. The code never leaves the phone: it is removed from the address at once.\n\nCompare the keys before you pair. The IDE key here must match the key in the Remote Control window. When the IDE asks you to approve this phone, it shows the phone key - it must match the one here.\n\nAfter you approve, the phone and the IDE talk end-to-end encrypted through the relay, which only passes frames and cannot read them. Several IDEs can be paired with one phone.\n\nAn app added to the Home Screen keeps its own pairings, apart from Safari. To pair it, press and hold the link of the QR code in the camera, choose Copy Link and paste it on this screen."
+      "text": "Point the camera at the QR code in the IDE's Remote Control window. The code in it works once and never leaves the phone.\n\nCompare the keys before you pair. The IDE key here must match the key in the Remote Control window. When the IDE asks you to approve this phone, it shows the phone key - it must match the one here.\n\nAfter you approve, the phone and the IDE talk end-to-end encrypted through the relay, which only passes frames and cannot read them. Several IDEs can be paired with one phone.\n\nAn app added to the Home Screen keeps its own pairings, apart from Safari: pair it with the camera on this screen."
     },
     "ideKey": "IDE key",
     "ideKeyHint": "Must match the key in the IDE's Remote Control window",
@@ -171,18 +171,31 @@
       "android": "Android phone",
       "other": "Phone"
     },
-    "noCode": {
-      "title": "Scan the code in your IDE",
-      "description": "Open Remote Control in Agentic Workstation and point the phone camera at the QR code."
-    },
-    "invalid": {
-      "title": "This code does not work",
-      "description": "It is not from Agentic Workstation or it is damaged. Show a new code in the IDE and scan it again."
-    },
-    "link": {
-      "label": "Pairing link",
-      "hint": "In the camera, press and hold the link of the QR code, choose Copy Link and paste it here.",
-      "submit": "Pair with this link"
+    "invalid": "This code is not from Agentic Workstation or it is damaged. Show a new code in the IDE.",
+    "camera": {
+      "label": "Camera",
+      "starting": "Opening the camera",
+      "retry": "Try again",
+      "denied": {
+        "title": "The camera is not allowed",
+        "description": "Allow the camera for this page in the browser settings, then try again."
+      },
+      "missing": {
+        "title": "No camera found",
+        "description": "This device has no camera the page can use."
+      },
+      "busy": {
+        "title": "The camera is busy",
+        "description": "Another app is using the camera. Close it and try again."
+      },
+      "failed": {
+        "title": "The camera did not start",
+        "description": "Try again. If it does not help, reload the page."
+      },
+      "unsupported": {
+        "title": "This browser cannot open the camera",
+        "description": "Open this page in Safari or Chrome."
+      }
     },
     "failed": {
       "proof": "The answer did not match the code. Show a new code in the IDE and scan it again.",
@@ -199,11 +212,11 @@
     "title": "My IDEs",
     "help": {
       "title": "Remote Control",
-      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nAll queues, Accounts and Connectors belong to the whole IDE, not to one project.\n\nTo add an IDE, open Remote Control in Agentic Workstation and scan its QR code with the phone camera, or tap Pair another IDE at the end of the list and paste the link of the code.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
+      "text": "Each IDE paired with this phone is listed here with its open and recent projects. Project folders never leave the computer: the phone knows a project by a key.\n\nAll queues, Accounts and Connectors belong to the whole IDE, not to one project.\n\nTo add an IDE, open Remote Control in Agentic Workstation, tap Pair another IDE at the end of the list and point the camera at the QR code.\n\nForget removes the pairing keys from this phone and tells the IDE to release it, if the IDE is reachable now. Otherwise revoke the phone in the IDE's Remote Control window."
     },
     "empty": {
       "title": "No IDE paired yet",
-      "description": "Open Remote Control in Agentic Workstation and scan the QR code with the phone camera."
+      "description": "Open Remote Control in Agentic Workstation, tap Pair an IDE and point the camera at the QR code."
     },
     "pairIde": "Pair an IDE",
     "pairAnother": "Pair another IDE",

@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import { isCustomKind } from '@shared/connectors'
+import { isCustomKind, NOTIFICATIONS_SERVER_NAME } from '@shared/connectors'
 
 import { commandForStore } from './connector-command'
 import type { ConnectorRegistry } from './connector-registry'
 import { SecretsOf, typeSecretsKey, definitionSecrets } from './connector-secrets'
+import { blankConnector } from './connector-store'
 import type { StoredConnector } from './connector-store'
 import { planTypes } from './connector-types'
 import { publicUrl } from './connector-url'
@@ -118,6 +119,29 @@ export const adoptPlaywright = async (registry: ConnectorRegistry, vault: Vault)
 }
 
 /**
+ * Встроенные коннекторы, которые есть всегда (BUILT_IN_KINDS): уведомления IDE (ADR 0069).
+ * Нет в реестре - заводятся, во всех проектах. Человек может выключить их или сузить проекты,
+ * но не удалить: удалённый вернулся бы на следующем запуске, а окно кнопки удаления не даёт.
+ */
+export const ensureBuiltIns = async (registry: ConnectorRegistry, newId: () => string) => {
+  if (registry.connectors.some((connector) => connector.kind === 'notifications')) return
+
+  // Имя занято своим сервером человека - встроенный встаёт рядом с меткой.
+  const serverName = registry.serverNames().has(NOTIFICATIONS_SERVER_NAME)
+    ? `${NOTIFICATIONS_SERVER_NAME}-ide`
+    : NOTIFICATIONS_SERVER_NAME
+
+  await registry.add(
+    blankConnector({
+      id: newId(),
+      kind: 'notifications',
+      label: 'Agentic Workstation',
+      serverName,
+    }),
+  )
+}
+
+/**
  * Все переносы прежнего реестра при загрузке, по порядку: ключи - в хранилище, своя команда
  * Playwright - встроенным Playwright (ADR 0035), остальные свои коннекторы - своими типами
  * (ADR 0034). Сбой одного переноса не мешает следующим и загрузке.
@@ -131,5 +155,8 @@ export const migrateRegistry = async (registry: ConnectorRegistry, vault: Vault)
   })
   await assignCustomTypes(registry, vault, randomUUID).catch((error: unknown) => {
     console.warn('[connectors] свои коннекторы не получили типы', error)
+  })
+  await ensureBuiltIns(registry, randomUUID).catch((error: unknown) => {
+    console.warn('[connectors] встроенные коннекторы не заведены', error)
   })
 }

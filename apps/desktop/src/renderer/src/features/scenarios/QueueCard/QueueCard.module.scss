@@ -2,16 +2,11 @@
 @use '../scenarios' as *;
 
 // Полоса очереди внутри карточки: шапка, остановка, элементы, идущий, кнопки - сверху вниз.
-.lane,
-.compact {
+.lane {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-width: 0;
-}
-
-.compact {
-  gap: var(--space-2);
 }
 
 // Шапка: имя забирает свободное место и режется, метки и меню - справа.
@@ -280,88 +275,4 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-// Доска: имя - кнопка к очереди в её проекте для клавиатуры. Мышью нажимается вся карточка, и
-// подложки наведения у имени нет - светлеет карточка.
-.compactName {
-  @include button-reset;
-  @include truncate;
-
-  color: var(--color-fg-strong);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--size-control-sm);
-  text-align: left;
-}
-
-.compactItems {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-// Элементы точками: точка ростом с метку состояния, место вокруг - чтобы в неё попадали мышью.
-// Ряд сдвинут влево на это место: первая точка стоит по одной линии с текстом карточки.
-.dots {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-0-5);
-  margin: 0 0 0 calc((var(--size-control-xs) - var(--size-status-dot)) / -2);
-  padding: 0;
-  list-style: none;
-}
-
-.dotPlace {
-  display: inline-flex;
-  align-items: center;
-}
-
-.dot {
-  --tone: var(--color-fg-subtle);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-control-xs);
-  height: var(--size-control-xs);
-  border-radius: var(--radius-full);
-
-  &::before {
-    @include scenario-dot;
-
-    content: '';
-  }
-}
-
-.dotButton {
-  @include button-reset;
-  @include interactive-surface;
-}
-
-.warning {
-  --tone: var(--color-warning);
-}
-
-.accent {
-  --tone: var(--color-accent);
-}
-
-.success {
-  --tone: var(--color-success);
-}
-
-.danger {
-  --tone: var(--color-danger);
-}
-
-.neutral {
-  --tone: var(--color-fg-subtle);
-}
-
-// Ещё не начинался - пустой кружок.
-.waiting::before {
-  @include scenario-dot-unstarted;
 }

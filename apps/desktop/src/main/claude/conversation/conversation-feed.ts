@@ -1,11 +1,12 @@
 import { setImmediate as nextTick } from 'node:timers/promises'
 
 import type { ForkOrigin, ImageAttachment } from '@shared/claude'
-import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
+import type { FeedItem, FeedPatch, ConversationFeed } from '@shared/claude-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { stringField, parseCliLine } from '../cli/cli-messages'
 import { FeedBuilder } from '../feed/feed-builder'
+import { sourceLineOf, itemsFromLines } from '../feed/feed-lookup'
 import { PAGE_MESSAGES, OPENING_PAGE_MESSAGES } from '../history/history.constants'
 import {
   readTranscriptTail,
@@ -85,14 +86,50 @@ export class ConversationFeedSync {
   async loadEarlier(): Promise<ConversationFeed> {
     await this.loading
 
-    if (this.hasEarlier && this.readAll) {
-      this.paging ??= this.readPage(this.readAll).finally(() => {
-        this.paging = null
-      })
-      await this.paging
+    if (this.hasEarlier && this.readAll) await this.page(this.readAll, null)
+
+    return this.snapshot()
+  }
+
+  /**
+   * Страницы выше - до элемента itemId (прыжок к закреплённому выше загруженного): одним
+   * чтением файла, а не страницей за страницей. Ответ - лента целиком; элемента в
+   * транскрипте нет - встаёт обычная страница.
+   */
+  async loadThrough(itemId: string): Promise<ConversationFeed> {
+    await this.loading
+    // Идущая страница могла уже принести его - вторую тянуть незачем.
+    await this.paging
+
+    if (!this.has(itemId) && this.hasEarlier && this.readAll) {
+      await this.page(this.readAll, itemId)
     }
 
     return this.snapshot()
+  }
+
+  /**
+   * Элементы по id для полки закреплённых: загруженные - из ленты, что выше - прямо из
+   * транскрипта, без страниц. Чего нет в ответе, нет и в разговоре (откат, /clear). null -
+   * транскрипт не прочитался: тогда про отсутствующие ничего не известно. Файл читается и
+   * при «выше ничего нет»: это знание из прочитанного на открытии, а открытие могло не
+   * прочитать файл - снятые по нему закрепы пропали бы зря.
+   */
+  async itemsById(itemIds: readonly string[]): Promise<FeedItem[] | null> {
+    await this.loading
+
+    const loaded = this.builder.items.filter((item) => itemIds.includes(item.id))
+    const above = itemIds.filter((id) => !loaded.some((item) => item.id === id))
+
+    if (above.length === 0 || !this.readAll) return loaded
+
+    try {
+      return [...itemsFromLines(await this.readAll(), above), ...loaded]
+    } catch (error) {
+      console.warn('[claude] закреплённые не нашлись в транскрипте:', error)
+
+      return null
+    }
   }
 
   /** /clear: начался новый разговор - выше нечего подгружать. */
@@ -205,14 +242,28 @@ export class ConversationFeedSync {
     return { lines: [], hasEarlier: false }
   }
 
+  private has(itemId: string): boolean {
+    return this.builder.items.some((item) => item.id === itemId)
+  }
+
+  /** Одна страница за раз: просьба, пока страница едет, получает её же, а не вторую. */
+  private async page(readAll: ReadAll, through: string | null) {
+    this.paging ??= this.readPage(readAll, through).finally(() => {
+      this.paging = null
+    })
+    await this.paging
+  }
+
   /**
-   * Страница перед якорем. Якоря в файле больше нет (его отрезал откат) - последняя
-   * страница файла: то, что уже в ленте, второй раз не встанет (те же id).
+   * Страница перед якорем; through - id элемента, до которого она тянется (прыжок к
+   * закреплённому). Якоря в файле больше нет (его отрезал откат) - последняя страница
+   * файла: то, что уже в ленте, второй раз не встанет (те же id).
    */
-  private async readPage(readAll: ReadAll) {
+  private async readPage(readAll: ReadAll, through: string | null) {
     const lines = await readAll()
+    const target = through === null ? -1 : sourceLineOf(lines, through)
     const page =
-      (this.anchor ? pageBefore(lines, this.anchor, PAGE_MESSAGES) : null) ??
+      (this.anchor ? pageBefore(lines, this.anchor, PAGE_MESSAGES, target) : null) ??
       lastPage(lines, PAGE_MESSAGES, true)
     const fork = this.fork
 

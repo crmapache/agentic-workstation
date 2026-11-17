@@ -48,6 +48,21 @@ describe('страницы транскрипта', () => {
     expect(top?.hasEarlier).toBe(false)
   })
 
+  it('страница до строки выше обычной тянется к началу её хода, а ниже якоря - не тянется', () => {
+    const lines = turns(5)
+    const deep = pageBefore(lines, 'u4', 4, uuids(lines).indexOf('b1'))
+
+    expect(uuids(deep?.lines ?? [])).toEqual([
+      ...['u1', 'a1', 'r1', 'b1', '-'],
+      ...['u2', 'a2', 'r2', 'b2', '-'],
+      ...['u3', 'a3', 'r3', 'b3', '-'],
+    ])
+    expect(deep?.hasEarlier).toBe(true)
+    expect(pageBefore(lines, 'u4', 4, uuids(lines).indexOf('b4'))).toEqual(
+      pageBefore(lines, 'u4', 4),
+    )
+  })
+
   it('якоря нет (отрезан откатом) - null', () => {
     expect(pageBefore(turns(2), 'gone', 30)).toBeNull()
   })

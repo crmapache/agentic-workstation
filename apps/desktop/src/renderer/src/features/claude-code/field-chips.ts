@@ -165,6 +165,33 @@ export const relabelImages = (root: HTMLElement, base: number, registry: ChipReg
   return changed
 }
 
+/**
+ * Номера цитат из ленты (ref1, ref2…) - по их месту в поле, как их пронумерует и лента
+ * отправленного сообщения: цитату могли вставить перед уже вставленной. Модели номер не
+ * уходит - только подпись чипа. true - что-то поменялось.
+ */
+export const relabelQuotes = (root: HTMLElement, registry: ChipRegistry): boolean => {
+  let ordinal = 0
+  let changed = false
+
+  for (const node of Array.from(root.childNodes)) {
+    const chip = registry.chipOf(node)
+
+    if (chip?.kind !== 'quote') continue
+
+    ordinal += 1
+
+    const value = `ref${ordinal}`
+
+    if (chip.value === value) continue
+
+    registry.update(node, { ...chip, value })
+    changed = true
+  }
+
+  return changed
+}
+
 /** Куда записались байты вставленной картинки - на её чип в поле (по байтам, не по месту). */
 export const notePastedPath = (
   root: HTMLElement,

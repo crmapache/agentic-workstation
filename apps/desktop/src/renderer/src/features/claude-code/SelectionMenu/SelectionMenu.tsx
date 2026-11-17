@@ -27,7 +27,7 @@ const keepSelection = (event: MouseEvent) => event.preventDefault()
 export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuProps) => {
   const { t } = useTranslation()
   const { fork } = useClaudeActions()
-  const appendChip = useClaudeCodeStore((store) => store.appendChip)
+  const insertChip = useClaudeCodeStore((store) => store.insertChip)
   const { selection, clear } = useFeedSelection(areaRef)
   const menuRef = useRef<HTMLDivElement>(null)
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
@@ -52,8 +52,10 @@ export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuPro
       draft.tokens.filter((token) => token.kind === 'chip' && token.chip.kind === 'quote').length +
       1
 
-    appendChip(conversation.id, { kind: 'quote', value: `ref${number}`, text: selection.text })
+    // Сначала снять выделение в ленте: вставка ставит каретку в поле, и снятое после
+    // выделение увело бы её в конец.
     window.getSelection()?.removeAllRanges()
+    insertChip(conversation.id, { kind: 'quote', value: `ref${number}`, text: selection.text })
     clear()
   }
 

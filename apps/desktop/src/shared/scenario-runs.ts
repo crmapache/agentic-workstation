@@ -210,6 +210,10 @@ export type RunSummary = {
   origin: RunOrigin
 }
 
+/** Прогон ждёт человека: стоит на вопросе или спрашивает разрешения. */
+export const isRunAsking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
+  run.state === 'blocked' || run.asking !== ''
+
 export const isRunFinished = (state: RunState): boolean =>
   state === 'done' || state === 'failed' || state === 'stopped'
 

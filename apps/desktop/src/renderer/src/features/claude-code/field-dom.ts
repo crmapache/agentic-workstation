@@ -122,26 +122,51 @@ export const placeCaretBefore = (root: HTMLElement, index: number): void => {
   else placeCaretAtEnd(root)
 }
 
-/** Каретка в поле, а без фокуса - конец набранного (перед запасным переносом). */
-export const currentRange = (root: HTMLElement): Range => {
+/**
+ * Каретка в поле. Выделение ушло из поля (выделяли текст в ленте, жали кнопку) - место, где
+ * каретку оставили (kept), свёрнутое к концу: прежнее выделение вставка не стирает. Не
+ * оставляли - конец набранного (перед запасным переносом).
+ */
+export const currentRange = (root: HTMLElement, kept: Range | null = null): Range => {
   const selection = window.getSelection()
   const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
 
-  return range && root.contains(range.startContainer)
-    ? range
-    : (padTrailingBreak(root) ?? endRange(root))
+  if (range && root.contains(range.startContainer)) return range
+
+  if (kept?.startContainer.isConnected && root.contains(kept.startContainer)) {
+    const caret = kept.cloneRange()
+
+    caret.collapse(false)
+
+    return caret
+  }
+
+  return padTrailingBreak(root) ?? endRange(root)
+}
+
+/**
+ * Текстовый узел рядом с диапазоном, который стоит между узлами (сразу после вставленного):
+ * иначе пробел за вложением ставился бы и перед словом, которое уже начинается с пробела.
+ */
+const textBeside = (range: Range, side: 'before' | 'after'): string => {
+  const { startContainer: container, startOffset: offset } = range
+  const node = container.childNodes[side === 'before' ? offset - 1 : offset]
+
+  return node?.nodeType === Node.TEXT_NODE ? (node.textContent ?? '') : ''
 }
 
 /** Символ перед и после свёрнутого диапазона; не текст - пусто. */
 export const charBefore = (range: Range): string =>
-  range.startContainer.nodeType === Node.TEXT_NODE && range.startOffset > 0
-    ? (range.startContainer.textContent ?? '').charAt(range.startOffset - 1)
-    : ''
+  range.startContainer.nodeType === Node.TEXT_NODE
+    ? range.startOffset > 0
+      ? (range.startContainer.textContent ?? '').charAt(range.startOffset - 1)
+      : ''
+    : textBeside(range, 'before').slice(-1)
 
 export const charAfter = (range: Range): string =>
   range.startContainer.nodeType === Node.TEXT_NODE
     ? (range.startContainer.textContent ?? '').charAt(range.startOffset)
-    : ''
+    : textBeside(range, 'after').charAt(0)
 
 /** Перед вложением пробел нужен, только если там не пробел; после - всегда: каретке надо где-то стоять. */
 export const needsLeadingSpace = (char: string): boolean => char.length > 0 && !/\s/.test(char)

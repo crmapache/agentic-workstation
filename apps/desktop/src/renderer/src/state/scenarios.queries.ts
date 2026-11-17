@@ -1,6 +1,6 @@
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
-import { isRunFinished } from '@shared/scenario-runs'
+import { isRunAsking, isRunFinished } from '@shared/scenario-runs'
 import type { ScenarioShelvesView } from '@shared/scenario-view'
 import type { WorkspaceState } from '@shared/workspace'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -60,9 +60,15 @@ export const useScenarioRun = (place: RunPlace | null, runId: string | null) =>
 export const useProviders = () =>
   useQuery({ queryKey: QUERY_KEYS.providers, queryFn: () => invoke('providers:list') })
 
-/** Сколько прогонов сейчас ждут человека - число на иконке вида сценариев. */
-export const askingCount = (view: ScenarioQueuesView | undefined): number =>
-  view?.live.filter((run) => run.asking !== '' || run.state === 'blocked').length ?? 0
+/**
+ * Сколько прогонов проекта ждут человека - число на иконке вида сценариев. Вид показывает только
+ * свой проект (ADR 0072): прогон другого проекта зовёт точкой на вкладке своего проекта.
+ */
+export const askingCount = (
+  view: ScenarioQueuesView | undefined,
+  projectPath: string | undefined,
+): number =>
+  view?.live.filter((run) => run.projectPath === projectPath && isRunAsking(run)).length ?? 0
 
 const projectIdOf = (workspace: WorkspaceState | undefined, projectPath: string) =>
   workspace?.projects.find((project) => project.rootPath === projectPath)?.id ?? null

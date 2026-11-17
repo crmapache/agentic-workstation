@@ -54,7 +54,7 @@ class Documents {
     this.open.set(document.key, document)
     useEditorStore.getState().setStatus(document.key, document.status)
     void document.load()
-    watchOutsideFiles([...this.open.values()])
+    watchOutsideFiles('documents', [...this.open.values()])
 
     return document
   }
@@ -148,7 +148,7 @@ class Documents {
       this.open.delete(document.key)
       useEditorStore.getState().setStatus(document.key, null)
       this.publishHeld(document.projectId)
-      watchOutsideFiles([...this.open.values()])
+      watchOutsideFiles('documents', [...this.open.values()])
     } else if (!isOpenTab(useSelectionStore.getState().tabsByProject, document)) {
       useSelectionStore.getState().selectFile(document.projectId, document.path)
     }

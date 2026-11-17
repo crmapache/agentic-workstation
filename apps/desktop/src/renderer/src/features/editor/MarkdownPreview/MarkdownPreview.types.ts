@@ -2,7 +2,7 @@ import type { Ref, ReactNode } from 'react'
 
 import type { WebImageRead } from '@shared/preview-images'
 
-import type { ProjectImage } from '../markdown-preview.queries'
+import type { ImageFile } from '../image-file.queries'
 import type { PreviewImageData } from '../markdown-preview.types'
 
 export type MarkdownPreviewProps = {
@@ -35,7 +35,7 @@ export type ShownImageProps = { src: string; image: PreviewImageData }
  * картинка с сайта, которую ещё не разрешили показать (hidden).
  */
 export type ImageProblem =
-  | Exclude<ProjectImage, { kind: 'image' }>
+  | Exclude<ImageFile, { kind: 'image' }>
   | Exclude<WebImageRead, { kind: 'image' }>
   | { kind: 'hidden' }
 

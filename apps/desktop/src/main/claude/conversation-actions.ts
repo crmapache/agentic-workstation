@@ -1,5 +1,5 @@
 import type { ClaudeState, RequestResponse, ConversationOptions } from '@shared/claude'
-import type { FleetTranscript, ConversationFeed } from '@shared/claude-feed'
+import type { FeedItem, FleetTranscript, ConversationFeed } from '@shared/claude-feed'
 import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/claude-rewind'
 
 import type { ClaudeService } from './claude-service'
@@ -96,6 +96,24 @@ export class ConversationActions {
     await runtime.loadFeed()
 
     return runtime.feed.loadEarlier()
+  }
+
+  /** Страницы выше - до элемента ленты (прыжок к закреплённому): лента целиком. */
+  async loadThrough(conversationId: string, itemId: string): Promise<ConversationFeed> {
+    const runtime = this.service.runtime(conversationId)
+
+    await runtime.loadFeed()
+
+    return runtime.feed.loadThrough(itemId)
+  }
+
+  /** Элементы ленты по id, загруженные и выше загруженного (полка закреплённых). */
+  async feedItems(conversationId: string, itemIds: readonly string[]): Promise<FeedItem[] | null> {
+    const runtime = this.service.runtime(conversationId)
+
+    await runtime.loadFeed()
+
+    return runtime.feed.itemsById(itemIds)
   }
 
   setOptions(conversationId: string, options: ConversationOptions): ClaudeState {

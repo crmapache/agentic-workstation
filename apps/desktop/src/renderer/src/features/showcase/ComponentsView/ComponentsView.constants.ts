@@ -220,6 +220,9 @@ export const ROLLING_SAMPLE_KEYS = ['rolling1', 'rolling2', 'rolling3'] as const
 /** Календарь выбора дня: «сегодня» образца, начало данных и подписи - данные, а не текст. */
 export const DATE_SAMPLE_TODAY = new Date(2026, 10, 14).getTime()
 
+/** Время образца поля времени: 09:30 - минуты от полуночи. */
+export const TIME_SAMPLE_AT = 9 * 60 + 30
+
 export const DATE_SAMPLE_MIN = new Date(2026, 9, 20).getTime()
 
 const DATE_SAMPLE_MONTH = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })

@@ -1,0 +1,102 @@
+/*
+ * Токены сайта (ADR 0068). Палитра, роли, шрифты и малые шкалы - общие с IDE
+ * (packages/ui/src/styles/tokens.css): сайт выглядит как само приложение. Здесь только то,
+ * чего у окна IDE нет: крупные кегли и ритм страницы, ширины колонок, свет за снимком окна,
+ * «светофор» macOS на снимке. Сырые значения живут только здесь - правила stylelint те же,
+ * что у IDE (override для apps/site в stylelint.config.mjs).
+ *
+ * Плавные величины - clamp() от ширины экрана: одна запись вместо лестницы media-запросов,
+ * и между точками перелома ничего не прыгает.
+ */
+
+:root {
+  /* Ширины: страница, абзац крупного текста, поле по бокам */
+  --site-width-page: 1200px;
+  --site-width-lead: 640px;
+  --site-width-prose: 480px;
+  --site-width-buttons: 360px;
+  --site-width-legal: 680px;
+  --site-gutter: clamp(16px, 5vw, 40px);
+
+  /* Шапка страницы: высота нужна и якорям, чтобы раздел не уезжал под неё */
+  --site-header-height: 64px;
+  --site-color-header: rgb(4 4 5 / 72%);
+  --site-blur-header: 16px;
+
+  /* Ритм: между разделами, между блоками «текст + снимок», между блоками раздела */
+  --site-space-section: clamp(96px, 12vw, 168px);
+  --site-space-feature: clamp(72px, 9vw, 128px);
+  --site-space-block: clamp(48px, 7vw, 96px);
+
+  /* Герой: на ноутбуке с экраном 768 по высоте снимок окна должен выглядывать из-под кнопок */
+  --site-space-hero-top: clamp(48px, 7vw, 96px);
+  --site-space-hero-shot: clamp(40px, 5vw, 72px);
+
+  /* Кегли страницы. Шкала IDE кончается на 32px - для окна этого хватает, для страницы нет */
+  --site-font-display: clamp(40px, 6.6vw, 76px);
+  --site-font-title: clamp(30px, 3.6vw, 44px);
+  --site-font-lead: clamp(17px, 1.6vw, 20px);
+  --site-font-copy: 17px;
+  --site-font-body: 16px;
+  --site-font-small: 14px;
+  --site-font-button: 16px;
+  --site-line-display: 1.04;
+  --site-line-title: 1.12;
+  --site-line-body: 1.6;
+  --site-line-none: 1;
+  --site-tracking-display: -0.032em;
+  --site-tracking-title: -0.025em;
+
+  /* Колонки раздела «текст + снимок»: зазор растёт с экраном */
+  --site-space-columns: clamp(32px, 5vw, 80px);
+
+  /* Кнопки скачивания: крупнее любой кнопки окна IDE */
+  --site-size-button: 50px;
+  --site-size-button-sm: 34px;
+  --site-size-button-icon: 18px;
+  --site-size-logo: 28px;
+  --site-size-platform-icon: 28px;
+  --site-size-feature-icon: 22px;
+  --site-size-bullet: 7px;
+
+  /* Номер шага установки: кружок той же высоты, что строка заголовка шага, - центры совпадают */
+  --site-size-step: 28px;
+  --site-ease-hover: ease-out;
+
+  /* Сплошная оранжевая кнопка - единственное место со сплошной заливкой акцентом: текст на
+     ней тёмный, белый на #f26a2e не дотягивает до 4.5:1 */
+  --site-color-on-accent: var(--palette-graphite-1000);
+  --site-color-accent-hover: var(--palette-orange-300);
+
+  /* Снимок окна: скругление окна macOS, рамка чуть светлее рамок IDE - на чёрной странице
+     иначе край окна теряется */
+  --site-radius-window: 14px;
+  --site-radius-frame: 12px;
+  --site-color-window-border: rgb(255 255 255 / 11%);
+
+  /* Свет за снимком окна - тот же уголь, что тлеет в значке приложения. Это подложка
+     страницы, а не объём контрола (ADR 0006) */
+  --site-gradient-glow: radial-gradient(
+    closest-side,
+    rgb(242 106 46 / 30%),
+    rgb(242 106 46 / 9%) 55%,
+    transparent
+  );
+  --site-blur-glow: 48px;
+
+  /* «Светофор» macOS поверх снимка: CDP снимает только содержимое окна, кнопок на кадре нет */
+  --site-color-traffic-close: #ff5f57;
+  --site-color-traffic-minimize: #febc2e;
+  --site-color-traffic-zoom: #28c840;
+
+  /* Появление героя при загрузке - единственная анимация, которую никто не просил */
+  --site-duration-intro: 700ms;
+  --site-ease-intro: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --site-offset-intro: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --site-duration-intro: 0ms;
+  }
+}

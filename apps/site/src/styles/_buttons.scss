@@ -1,0 +1,91 @@
+// Кнопки страницы - ссылки, одетые кнопками: скачивание - это переход по адресу, и «сохранить
+// как», средний клик и копирование адреса обязаны работать. Плоские (ADR 0006): заливка или
+// рамка, без бликов и теней.
+
+@mixin primary {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--site-color-on-accent);
+
+  &:hover {
+    border-color: var(--site-color-accent-hover);
+    background-color: var(--site-color-accent-hover);
+    color: var(--site-color-on-accent);
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--site-size-button);
+  padding: 0 var(--space-6);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: transparent;
+  color: var(--color-fg-strong);
+  font-size: var(--site-font-button);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-none);
+  text-decoration: none;
+  white-space: nowrap;
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--site-ease-hover);
+
+  &:hover {
+    border-color: var(--color-border-strong);
+    background-color: var(--color-bg-hover);
+    color: var(--color-fg-strong);
+  }
+}
+
+// Знак платформы в кнопке: свой бокс, иначе svg садится на базовую линию ниже центра.
+.buttonIcon {
+  flex: none;
+  width: var(--site-size-button-icon);
+  height: var(--site-size-button-icon);
+}
+
+.buttonPrimary {
+  @include primary;
+}
+
+// Тонированная, как главное действие в окне IDE: для шапки, где сплошная заливка спорила бы
+// с кнопкой героя.
+.buttonTinted {
+  border-color: var(--color-accent-border);
+  background-color: var(--color-accent-soft);
+  color: var(--color-fg-accent);
+
+  &:hover {
+    border-color: var(--color-accent-border);
+    background-color: var(--color-accent-soft-hover);
+    color: var(--color-fg-accent);
+  }
+}
+
+.buttonSmall {
+  min-height: var(--site-size-button-sm);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--site-font-small);
+}
+
+// Размер файла в кнопке скачивания - тише подписи.
+.buttonNote {
+  font-weight: var(--font-weight-regular);
+  opacity: 0.7;
+}
+
+// Пара кнопок героя: главная - под систему посетителя (data-platform у html ставит скрипт
+// в head до первой отрисовки). Без скрипта и на Linux главной остаётся Mac.
+:root:not([data-platform='windows']) .download[data-os='mac'],
+:root[data-platform='windows'] .download[data-os='windows'] {
+  @include primary;
+}
+
+:root[data-platform='windows'] .download[data-os='windows'] {
+  order: -1;
+}

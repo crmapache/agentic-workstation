@@ -77,12 +77,15 @@ export const lastPage = (
 
 /**
  * Страница перед строкой с uuid anchor (самой ранней в ленте). Якоря нет в файле (его
- * отрезал откат) - null: что брать вместо, решает зовущий.
+ * отрезал откат) - null: что брать вместо, решает зовущий. through - номер строки, которую
+ * страница обязана захватить (прыжок к закреплённому сообщению выше): тогда она тянется
+ * вверх до начала хода этой строки, сколько бы сообщений ни набралось.
  */
 export const pageBefore = (
   lines: readonly string[],
   anchor: string,
   count: number,
+  through = -1,
 ): TranscriptPage | null => {
   const end = lines.findIndex(
     (line) => line.includes(anchor) && stringField(parseCliLine(line) ?? {}, 'uuid') === anchor,
@@ -91,7 +94,8 @@ export const pageBefore = (
   if (end === -1) return null
   if (end === 0) return { lines: [], hasEarlier: false }
 
-  const start = pageStart(lines, end, count)
+  const reach = through >= 0 && through < end ? pageStart(lines, through + 1, 1) : end
+  const start = Math.min(pageStart(lines, end, count), reach)
 
   return { lines: lines.slice(start, end), hasEarlier: hasMessagesBefore(lines, start) }
 }

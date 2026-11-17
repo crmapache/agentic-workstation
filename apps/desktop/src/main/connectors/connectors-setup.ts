@@ -5,6 +5,7 @@ import type { BrowserWindow } from 'electron'
 
 import { createBrowserRuntime } from '../browser/browser-setup'
 import { ComputerRuntime } from '../computer/computer-runtime'
+import type { InboxLink } from '../inbox/inbox-agent'
 import { broadcast } from '../ipc/broadcast'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
@@ -39,6 +40,8 @@ export type ProviderLinks = {
   chats: OpenAiChat
   /** Откуда грузить страницы IDE (в dev - Vite): капсула Computer - своя страница. */
   rendererUrl: string | undefined
+  /** Уведомления IDE: они поднимутся позже коннекторов и встанут в эту связь (ADR 0069). */
+  inbox: InboxLink
 }
 
 /**
@@ -71,6 +74,7 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       version: app.getVersion(),
       browser,
       computer,
+      inbox: links.inbox,
     },
     {
       onState: (state) => broadcast('connectors:state', state),

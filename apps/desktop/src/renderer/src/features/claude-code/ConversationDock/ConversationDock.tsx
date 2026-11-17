@@ -26,8 +26,9 @@ export const ConversationDock = ({ project, conversation, tasks }: ConversationD
   const isEditingQueued = useComposerStore(
     (store) => store.queueEdits[conversation.id] !== undefined,
   )
-  const hasOpenTasks = tasks.some((task) => task.state !== 'completed')
-  const showTasks = tasks.length > 0 && (hasOpenTasks || conversation.status !== 'idle')
+  // Закрытый список уходит сразу, как в ACC: трекер CLI держит его до конца сессии, и иначе
+  // сделанное вчера вставало бы над полем на каждом следующем ходе.
+  const showTasks = tasks.some((task) => task.state !== 'completed')
   const showQueue =
     conversation.queue.length > 0 || (isEditingQueued && conversation.status !== 'idle')
   // Моды и вопросы сбоку - после задач и перед очередью, ближе всех к полю (как в ACC).

@@ -2,11 +2,13 @@ import { Suspense } from 'react'
 import { FolderOpen, MousePointerClick } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { opensAsImage } from '@shared/preview-images'
+
 import { Button } from '@agentic-workstation/ui/Button'
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import { EditorTabs } from '../EditorTabs/EditorTabs'
-import { tabTarget } from '../../../state/editor-tabs.utils'
+import { ImageView } from '../ImageView/ImageView'
 import {
   useActiveTab,
   useRecentTab,
@@ -16,11 +18,12 @@ import {
 import { useActiveProject, useWorkspaceActions } from '../../../state/workspace.queries'
 import { CodeEditor, DiffEditor, LocalHistoryView } from './EditorArea.constants'
 import styles from './EditorArea.module.scss'
+import { shownView, opensAsCode } from './EditorArea.utils'
 
 /**
- * Зона 6, вид «файл»: вкладки проекта, под ними - редактор файла, разница файла с последним
- * коммитом или локальная история, смотря какая вкладка активна. Все, раз показанные, остаются
- * на месте и прячутся: переход между ними не создаёт Monaco заново и не теряет прокрутку.
+ * Зона 6, вид «файл»: вкладки проекта, под ними - редактор файла, картинка, разница файла с
+ * последним коммитом или локальная история, смотря какая вкладка активна. Все, раз показанные,
+ * остаются на месте и прячутся: переход между ними не создаёт Monaco заново и не теряет прокрутку.
  * История другого файла или проекта - заново: выбранная версия от прежнего не подходит. Без проекта -
  * приглашение открыть, без вкладок - выбрать файл в дереве.
  */
@@ -29,7 +32,8 @@ export const EditorArea = () => {
   const project = useActiveProject()
   const tabs = useEditorTabs(project?.id)
   const activeKey = useActiveTab(project?.id)
-  const file = useRecentTab(project?.id, 'file')
+  const file = useRecentTab(project?.id, 'file', opensAsCode)
+  const image = useRecentTab(project?.id, 'file', opensAsImage)
   const diff = useRecentTab(project?.id, 'diff')
   const history = useRecentTab(project?.id, 'history')
   const place = useSelectedPlace(project?.id)
@@ -60,7 +64,7 @@ export const EditorArea = () => {
     )
   }
 
-  const shown = tabTarget(activeKey).kind
+  const shown = shownView(activeKey)
 
   return (
     <div className={styles.editorArea}>
@@ -80,6 +84,11 @@ export const EditorArea = () => {
               isActive={shown === 'file'}
             />
           </Suspense>
+        </div>
+      )}
+      {image !== undefined && (
+        <div className={styles.view} hidden={shown !== 'image'}>
+          <ImageView key={`${project.id}\u0000${image}`} projectId={project.id} path={image} />
         </div>
       )}
       {diff !== undefined && (

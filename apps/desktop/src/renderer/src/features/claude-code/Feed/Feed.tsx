@@ -6,6 +6,7 @@ import { useConversationFeed } from '../claude.queries'
 import { buildFeedRows } from '../feed-rows.utils'
 import { PendingContext, FeedScopeContext } from '../feed-scope.context'
 import { useLoadEarlier } from '../feed.queries'
+import { usePinJump } from '../pins.hooks'
 import { useSearchJump, useSearchPaint } from '../search-feed.hooks'
 import { useSelectedStream } from '../streams.hooks'
 import { AgentStreamView } from '../AgentStreamView/AgentStreamView'
@@ -38,7 +39,7 @@ export const Feed = ({ conversation, items }: FeedProps) => {
   const hasEarlier = useConversationFeed(conversation.id).data?.hasEarlier ?? false
   const selected = useSelectedStream(conversation.id)
   const [pinsHeight, setPinsHeight] = useState(0)
-  const { pages, isLoading, loadEarlier } = useLoadEarlier(conversation.id)
+  const { pages, isLoading, loadEarlier, loadThrough } = useLoadEarlier(conversation.id)
   const lastUserId = items.findLast((item) => item.kind === 'user')?.id
   const {
     lit,
@@ -53,6 +54,7 @@ export const Feed = ({ conversation, items }: FeedProps) => {
     handlePointerDown,
   } = useFeedScroll(conversation.id, lastUserId, pages, pinsHeight)
   const unread = useUnread(rows, isAway)
+  const jumpToPin = usePinJump(items, goToRow, loadThrough)
 
   // Поиск по разговорам: прыжок к выбранной находке и подсветка найденных слов.
   useSearchJump({
@@ -80,7 +82,7 @@ export const Feed = ({ conversation, items }: FeedProps) => {
               <PinnedBar
                 conversationId={conversation.id}
                 items={items}
-                onJump={goToRow}
+                onJump={jumpToPin}
                 onHeight={setPinsHeight}
               />
             )}

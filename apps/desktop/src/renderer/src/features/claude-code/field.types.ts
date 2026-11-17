@@ -21,6 +21,8 @@ export type FieldOptions = {
 export type Field = {
   fieldRef: RefObject<HTMLDivElement | null>
   registry: ChipRegistry
+  /** Где каретка стояла в поле последний раз: вставка без фокуса в поле встаёт туда. */
+  lastCaret: RefObject<Range | null>
   /** Заменить содержимое целиком - шагом истории отмен. */
   applyTokens: (next: DraftToken[]) => void
   /** Прочитать поле (с перенумерацией картинок) и сообщить правку. */

@@ -12,6 +12,7 @@ import { PROGRESS_SAMPLES } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { DateTimeFieldsSpecimen } from './DateTimeFieldsSpecimen'
 import { RollingLineSpecimen } from './RollingLineSpecimen'
 import { SearchListSpecimen } from './SearchListSpecimen'
 import { SelectFieldSpecimen } from './SelectFieldSpecimen'
@@ -85,6 +86,8 @@ export const FieldsSection = () => {
       </Specimen>
 
       <SelectFieldSpecimen />
+
+      <DateTimeFieldsSpecimen />
 
       <SearchListSpecimen />
 

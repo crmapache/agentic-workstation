@@ -58,6 +58,6 @@ export const scenarioWhere = (scope: Scope): Where => ({
   params: { from: scope.from, to: scope.to, ...projectParams(scope.filter) },
 })
 
-/** Сообщения человека: без шагов сценариев - их пишет движок, а не человек. */
+/** Сообщения человека: без шагов сценариев и прогонов заданий - их пишет IDE, а не человек. */
 export const HUMAN_PROMPTS =
-  "human = 1 AND session NOT IN (SELECT id FROM sessions WHERE ide_kind = 'scenario')"
+  "human = 1 AND session NOT IN (SELECT id FROM sessions WHERE ide_kind IN ('scenario', 'task'))"

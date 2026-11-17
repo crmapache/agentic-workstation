@@ -23,6 +23,11 @@ export type LaunchOptions = {
    */
   mcpConfig: string | null
   /**
+   * Инструменты, разрешённые без вопроса (`--allowedTools`): серверы IDE, о которых спрашивать
+   * незачем, - уведомления самому человеку (ADR 0069). Пусто - флага нет.
+   */
+  allowedTools?: readonly string[] | undefined
+  /**
    * Добавка к пояснению панели: у головы прогона сценария, открытой чатом, - что роль
    * главного потока снята (history/released-heads.ts). Пусто - ничего.
    */
@@ -83,4 +88,5 @@ export const buildLaunchArgs = (options: LaunchOptions, features: CliFeatures): 
   // Claude, а серверы из конфига человека и плагинов ломались бы на каждой смене аккаунта.
   '--strict-mcp-config',
   ...(options.mcpConfig ? ['--mcp-config', options.mcpConfig] : []),
+  ...(options.allowedTools?.length ? ['--allowedTools', options.allowedTools.join(',')] : []),
 ]

@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -10,6 +11,8 @@ import type { ActivityBarProps } from './ActivityBar.types'
  * провайдеров LLM справа, зона 8 - виды середины окна. Один компонент на все три.
  * Подсказка встаёт в сторону от края полосы, чтобы не закрыть соседние иконки. Внизу
  * полосы - то, что открывается под областью (терминал под панелью провайдера, ADR 0037).
+ * На углу иконки - число того, что ждёт человека, или, когда его нет, точка: у вида что-то
+ * изменилось.
  */
 export const ActivityBar = <ViewId extends string>({
   views,
@@ -19,6 +22,7 @@ export const ActivityBar = <ViewId extends string>({
   label,
   footer,
   badges,
+  marks,
   onSelect,
 }: ActivityBarProps<ViewId>) => {
   const { t } = useTranslation()
@@ -28,6 +32,7 @@ export const ActivityBar = <ViewId extends string>({
     <nav aria-label={label} className={styles.activityBar}>
       {views.map((view) => {
         const count: number = badges?.[view.id] ?? 0
+        const mark = count > 0 ? undefined : marks?.[view.id]
 
         return (
           <span key={view.id} className={styles.item}>
@@ -36,7 +41,7 @@ export const ActivityBar = <ViewId extends string>({
               label={
                 count > 0
                   ? t('activityBar.waiting', { label: t(view.labelKey), count })
-                  : t(view.labelKey)
+                  : (mark?.label ?? t(view.labelKey))
               }
               active={isPanelOpen && view.id === activeViewId}
               tooltipPlacement={tooltipPlacement}
@@ -47,6 +52,7 @@ export const ActivityBar = <ViewId extends string>({
                 {count > 9 ? '9+' : count}
               </span>
             )}
+            {mark && <span className={clsx(styles.mark, styles[mark.tone])} aria-hidden="true" />}
           </span>
         )
       })}

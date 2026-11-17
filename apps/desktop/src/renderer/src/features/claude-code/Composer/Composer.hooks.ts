@@ -11,7 +11,7 @@ import { useComposerSend } from '../composer-send.hooks'
 import { useComposerStore } from '../composer.store'
 import { hasContent, EMPTY_DRAFT } from '../draft.utils'
 import { editorRefOf } from '../editor-context.utils'
-import { registerFieldApplier } from '../field-bus'
+import { registerField } from '../field-bus'
 import { useFieldClipboard } from '../field-clipboard.hooks'
 import { chipOfPath } from '../field-clipboard.utils'
 import { takeKeyboard } from '../field-dom'
@@ -104,23 +104,27 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
     keyQueues: queueEdit !== undefined,
     isRunning,
   })
-  const applier = useRef(field.applyTokens)
+  const port = useRef({ applyTokens: field.applyTokens, insertChip: insert.insertChip })
 
   useLayoutEffect(() => {
-    applier.current = field.applyTokens
+    port.current = { applyTokens: field.applyTokens, insertChip: insert.insertChip }
   })
 
-  // Черновик извне (вернуть сообщение, вынутое из очереди) - шагом отмены поля.
+  // Куски извне - шагом отмены поля: черновик (вернуть сообщение, вынутое из очереди)
+  // целиком, чип (цитата из ленты, кусок из редактора) - на место каретки.
   useEffect(
     () =>
-      registerFieldApplier(draftKey, (next) => {
-        const store = useComposerStore.getState()
+      registerField(draftKey, {
+        apply: (next) => {
+          const store = useComposerStore.getState()
 
-        store.setDraft(draftKey, {
-          tokens: store.drafts[draftKey]?.tokens ?? [],
-          quotes: next.quotes,
-        })
-        applier.current(next.tokens)
+          store.setDraft(draftKey, {
+            tokens: store.drafts[draftKey]?.tokens ?? [],
+            quotes: next.quotes,
+          })
+          port.current.applyTokens(next.tokens)
+        },
+        insertChip: (chip) => port.current.insertChip(chip),
       }),
     [draftKey],
   )

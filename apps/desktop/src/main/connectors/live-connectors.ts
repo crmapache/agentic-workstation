@@ -41,6 +41,7 @@ export class LiveConnectors {
         version: this.places.version,
         browser: this.places.browser.hub,
         computer: this.places.computer,
+        inbox: this.places.inbox,
         openBrowserProfile: (name) => this.places.browser.openProfile(name),
       },
       {

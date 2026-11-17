@@ -1,0 +1,114 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид середины окна: шапка с вкладками прибита сверху, прокручивается только страница под ней.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--size-panel-gutter);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Строка задания: суть и сроки слева, переключатель и кнопки справа.
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+}
+
+.paused {
+  opacity: var(--opacity-muted);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.name {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.line {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Ритм и срок задания переносятся, а не режутся: «Next Tue, Dec 1, 09:00» нужен целиком.
+.schedule {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.when {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+// Прогон - строкой-кнопкой: нажатие открывает его окно.
+.runRow {
+  @include button-reset;
+  @include interactive-surface;
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.runMeta {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.lastRun {
+  @include button-reset;
+
+  display: inline-flex;
+  align-self: flex-start;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  align-items: center;
+  gap: var(--space-1-5);
+}

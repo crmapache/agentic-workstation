@@ -76,7 +76,7 @@ export type TypePartProps = { type: CustomType; connections: number }
 export type AddToTypeFormProps = { type: CustomType; onAdded: OnAdded; onCancel: () => void }
 
 /** Тип коннектора с обычной формой; коннектор от ИИ добавляет свой поток (AiConnectorFlow). */
-export type FormKind = Exclude<ConnectorKind, 'http'>
+export type FormKind = Exclude<ConnectorKind, 'http' | 'notifications'>
 
 /** Добавлен - id нового (окно покажет его); null - добавлено несколько или ничего. */
 export type OnAdded = (id: string | null) => void

@@ -36,6 +36,11 @@ export type LaunchOwner = { conversationId: string; workDir: string }
  */
 export type McpLaunch = {
   path: string
+  /**
+   * Правила «разрешено всегда» для CLI (`--allowedTools`): серверы IDE, о которых человека
+   * спрашивать незачем, - уведомления самому себе (ADR 0069).
+   */
+  allowed: readonly string[]
   own: (owner: LaunchOwner) => void
   release: () => void
   idle: () => void
@@ -70,7 +75,11 @@ export class GatewayLaunches {
   }
 
   /** Выдать процессу ключ и записать его конфиг. Не записался - ключ не выдан. */
-  async issue(projectPath: string, entries: readonly GatewayEntry[]): Promise<McpLaunch> {
+  async issue(
+    projectPath: string,
+    entries: readonly GatewayEntry[],
+    allowed: readonly string[] = [],
+  ): Promise<McpLaunch> {
     const token = randomToken()
     const key = digest(token)
     const id = randomUUID()
@@ -95,6 +104,7 @@ export class GatewayLaunches {
 
     return {
       path: file,
+      allowed,
       own: ({ conversationId, workDir }) => {
         launch.conversationId = conversationId
         launch.workDir = workDir

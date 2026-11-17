@@ -21,10 +21,10 @@ export type PathLocation =
   | { kind: 'projectFile'; relativePath: string }
   | { kind: 'projectFolder'; relativePath: string }
   /**
-   * editable - текст, который откроет редактор IDE (вкладкой вне проекта); нет - картинка,
-   * PDF, архив: их честнее отдать своей программе.
+   * opensInTab - откроет ли его вкладка IDE: текст - редактором, картинка - картинкой; нет -
+   * PDF, архив, большая картинка: их честнее отдать своей программе.
    */
-  | { kind: 'outsideFile'; absolutePath: string; editable: boolean }
+  | { kind: 'outsideFile'; absolutePath: string; opensInTab: boolean }
   | { kind: 'outsideFolder'; absolutePath: string }
   | { kind: 'choose'; candidates: string[] }
   | { kind: 'missing' }

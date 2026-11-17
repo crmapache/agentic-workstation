@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next'
 
+import { isRunAsking } from '@shared/scenario-runs'
+
 import { Button } from '@agentic-workstation/ui/Button'
 import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import { useOpenRun } from '../QueueCard.hooks'
 import styles from '../QueueCard.module.scss'
 import type { QueueRunningProps } from '../QueueCard.types'
-import { isAsking, roadMood } from '../../scenarios-queues.utils'
+import { roadMood } from '../../scenarios-queues.utils'
 import { ScenarioRoadmap } from '../../ScenarioRoadmap/ScenarioRoadmap'
 import { RunReadings } from './RunReadings'
 
@@ -39,7 +41,7 @@ export const QueueRunning = ({ queue, live }: QueueRunningProps) => {
         </div>
       )}
       <RunReadings live={live} />
-      {isAsking(live) && (
+      {isRunAsking(live) && (
         <div className={styles.ask}>
           <span className={styles.askLabel}>{t('scenarios.queues.running.asking')}</span>
           <span className={styles.askText}>

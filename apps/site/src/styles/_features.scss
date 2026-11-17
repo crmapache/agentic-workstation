@@ -1,0 +1,149 @@
+// Разделы «текст + снимок» и сетка «Also built in».
+
+.features {
+  display: grid;
+  gap: var(--site-space-feature);
+  padding-top: var(--site-space-section);
+}
+
+// Снимку - широкая колонка: в нечётных разделах он справа, в чётных - слева.
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: var(--site-space-columns);
+}
+
+.feature:nth-child(even) {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.feature:nth-child(even) .featureText {
+  order: 2;
+}
+
+.featureTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--site-font-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-line-title);
+  letter-spacing: var(--site-tracking-title);
+  text-wrap: balance;
+}
+
+.featureBody {
+  max-width: var(--site-width-prose);
+  margin-top: var(--space-5);
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-copy);
+  text-wrap: pretty;
+}
+
+.featurePoints {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--site-width-prose);
+  margin-top: var(--space-6);
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    padding-left: var(--space-6);
+    text-wrap: pretty;
+  }
+
+  // Маркер по центру первой строки пункта, а не по верху строки.
+  li::before {
+    position: absolute;
+    top: calc(var(--site-line-body) * 0.5em - var(--site-size-bullet) / 2);
+    left: 0;
+    width: var(--site-size-bullet);
+    height: var(--site-size-bullet);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-accent);
+    content: '';
+  }
+}
+
+.shot {
+  justify-self: end;
+  overflow: hidden;
+  border: var(--border-width) solid var(--site-color-window-border);
+  border-radius: var(--site-radius-frame);
+  background-color: var(--color-surface-chrome);
+}
+
+.feature:nth-child(even) .shot {
+  justify-self: start;
+}
+
+@media (width <= 900px) {
+  .feature,
+  .feature:nth-child(even) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feature:nth-child(even) .featureText {
+    order: 0;
+  }
+
+  .shot,
+  .feature:nth-child(even) .shot {
+    justify-self: start;
+  }
+}
+
+.more {
+  padding-top: var(--site-space-section);
+}
+
+.moreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-10) var(--space-8);
+  margin-top: var(--space-10);
+  padding: 0;
+  list-style: none;
+}
+
+.moreItem {
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border-strong);
+}
+
+.moreIcon {
+  width: var(--site-size-feature-icon);
+  height: var(--site-size-feature-icon);
+  fill: none;
+  stroke: var(--color-fg-accent);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.moreTitle {
+  margin-top: var(--space-4);
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.moreBody {
+  margin-top: var(--space-2);
+  color: var(--color-fg-muted);
+  text-wrap: pretty;
+}
+
+@media (width <= 900px) {
+  .moreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 560px) {
+  .moreGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

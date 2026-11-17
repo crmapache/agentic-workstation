@@ -251,5 +251,5 @@ export type StatsScenarioRunNote = {
   activeMs: number
 }
 
-/** Сессия, которую запустила IDE: разговор панели или сессия сценария. */
-export type StatsIdeSessionKind = 'panel' | 'scenario'
+/** Сессия, которую запустила IDE: разговор панели, сессия сценария или прогон задания. */
+export type StatsIdeSessionKind = 'panel' | 'scenario' | 'task'

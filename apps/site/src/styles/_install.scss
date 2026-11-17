@@ -1,0 +1,204 @@
+// Установка: по карточке на систему, в каждой - кнопка и шаги. Карточка - лист графитового
+// стекла, как панель окна IDE.
+
+.install {
+  padding-top: var(--site-space-section);
+}
+
+.installIntro {
+  max-width: var(--site-width-lead);
+}
+
+.installLead {
+  margin-top: var(--space-5);
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-copy);
+  text-wrap: pretty;
+}
+
+.platforms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-10);
+}
+
+.platform {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--site-radius-window);
+  background-color: var(--color-surface-panel);
+}
+
+// Карточка системы посетителя - первой (data-platform у html, как у кнопок героя).
+:root[data-platform='windows'] .platform[data-os='windows'] {
+  order: -1;
+}
+
+.platformHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.platformIcon {
+  flex: none;
+  width: var(--site-size-platform-icon);
+  height: var(--site-size-platform-icon);
+  color: var(--color-fg-strong);
+}
+
+.platformTitle {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.platformMeta {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--site-font-small);
+}
+
+.platformButton {
+  align-self: flex-start;
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-6);
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.step {
+  position: relative;
+  padding-left: calc(var(--site-size-step) + var(--space-4));
+  counter-increment: step;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: var(--site-size-step);
+    height: var(--site-size-step);
+    border: var(--border-width) solid var(--color-accent-border);
+    border-radius: var(--radius-full);
+    background-color: var(--color-accent-soft);
+    color: var(--color-fg-accent);
+    font-family: var(--font-code);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    content: counter(step);
+  }
+}
+
+// Строка заголовка шага - высотой с кружок номера: их центры совпадают.
+.stepTitle {
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--site-size-step);
+}
+
+.stepBody {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-lg);
+  text-wrap: pretty;
+}
+
+.command {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+}
+
+// Длинный путь переносится по словам, а не уезжает за край карточки на телефоне.
+.commandText {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  overflow-wrap: anywhere;
+}
+
+.commandCopy {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition-property: background-color, color;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--site-ease-hover);
+
+  &:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-fg-strong);
+  }
+}
+
+.commandCopyIcon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.commandCopyIcon[data-copy-icon='done'] {
+  display: none;
+  color: var(--color-success);
+}
+
+.commandCopy[data-copied] .commandCopyIcon[data-copy-icon='idle'] {
+  display: none;
+}
+
+.commandCopy[data-copied] .commandCopyIcon[data-copy-icon='done'] {
+  display: block;
+}
+
+.installFoot {
+  margin-top: var(--space-8);
+  color: var(--color-fg-subtle);
+  font-size: var(--site-font-small);
+}
+
+@media (width <= 900px) {
+  .platforms {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (width <= 560px) {
+  .platform {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .platformButton {
+    align-self: stretch;
+  }
+}

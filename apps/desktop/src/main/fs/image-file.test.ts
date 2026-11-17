@@ -6,7 +6,7 @@ import { it, expect, afterAll, describe, beforeAll } from 'vitest'
 
 import type { ProjectImageRead } from '@shared/preview-images'
 
-import { readImageFile } from './image-file'
+import { fitsImageTab, readImageFile, readOutsideImageFile } from './image-file'
 import { IMAGE_FILE_MAX_BYTES } from './image-file.constants'
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -39,10 +39,10 @@ afterAll(async () => {
 })
 
 describe('readImageFile', () => {
-  it('картинка проекта - data URL с типом по расширению и версией', async () => {
+  it('картинка проекта - data URL с типом по расширению, размер и версия', async () => {
     const read = await readImageFile(root, 'docs/shot.png')
 
-    expect(read).toMatchObject({ kind: 'image', data: PNG_URL, realPath: null })
+    expect(read).toMatchObject({ kind: 'image', data: PNG_URL, size: PNG.length, realPath: null })
     expect(versionOf(read)).toEqual(expect.any(String))
   })
 
@@ -90,5 +90,48 @@ describe('readImageFile', () => {
       size: IMAGE_FILE_MAX_BYTES + 1,
       limit: IMAGE_FILE_MAX_BYTES,
     })
+  })
+})
+
+describe('readOutsideImageFile', () => {
+  it('картинка вне проекта по абсолютному пути - data URL, размер и версия', async () => {
+    const read = await readOutsideImageFile(join(base, 'secret.png'))
+
+    expect(read).toMatchObject({ kind: 'image', data: PNG_URL, size: PNG.length, realPath: null })
+    expect(await readOutsideImageFile(join(base, 'secret.png'), versionOf(read))).toEqual({
+      kind: 'unchanged',
+    })
+  })
+
+  it('не картинка - ни по имени, ни по настоящему файлу', async () => {
+    expect(await readOutsideImageFile(join(root, '.env'))).toEqual({ kind: 'notImage' })
+    expect(await readOutsideImageFile(join(root, 'docs', 'logo.png'))).toEqual({
+      kind: 'notImage',
+    })
+  })
+
+  it('нет файла - missing; путь не абсолютный или сетевой - отказ', async () => {
+    expect(await readOutsideImageFile(join(base, 'gone.png'))).toEqual({ kind: 'missing' })
+    expect(await readOutsideImageFile('docs/shot.png')).toEqual({
+      kind: 'failed',
+      reason: 'outside',
+    })
+    expect(await readOutsideImageFile('//server/share/shot.png')).toEqual({
+      kind: 'failed',
+      reason: 'outside',
+    })
+  })
+
+  it('больше потолка - tooLarge', async () => {
+    expect(await readOutsideImageFile(join(root, 'huge.png'))).toMatchObject({ kind: 'tooLarge' })
+  })
+})
+
+describe('fitsImageTab', () => {
+  it('обычный файл до потолка - да; больше потолка, папка, нет файла - нет', async () => {
+    expect(await fitsImageTab(join(base, 'secret.png'))).toBe(true)
+    expect(await fitsImageTab(join(root, 'huge.png'))).toBe(false)
+    expect(await fitsImageTab(join(root, 'folder.png'))).toBe(false)
+    expect(await fitsImageTab(join(base, 'gone.png'))).toBe(false)
   })
 })

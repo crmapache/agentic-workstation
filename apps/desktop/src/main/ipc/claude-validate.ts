@@ -116,6 +116,34 @@ export const assertIndex = (value: unknown): number => {
   return value
 }
 
+/**
+ * id элемента ленты: uuid сообщения, «id сообщения:номер блока», id вызова. Главный
+ * процесс ищет его подстрокой в транскрипте - пустой или чужой формы id совпал бы с чем
+ * угодно.
+ */
+const FEED_ITEM_ID_PATTERN = /^[\w-]+(?::[\w-]+)*$/
+const MAX_FEED_ITEM_ID_CHARS = 200
+/** Элементов за один запрос: полке закреплённых нужны единицы. */
+const MAX_FEED_ITEMS = 20
+
+export const assertFeedItemId = (value: unknown, name = 'itemId'): string => {
+  assertString(value, name)
+
+  if (value.length > MAX_FEED_ITEM_ID_CHARS || !FEED_ITEM_ID_PATTERN.test(value)) {
+    throw new Error(`Недопустимый id в поле ${name}`)
+  }
+
+  return value
+}
+
+export const parseFeedItemIds = (value: unknown): string[] => {
+  if (!Array.isArray(value) || value.length > MAX_FEED_ITEMS) {
+    throw new Error('Ожидался список id в поле itemIds')
+  }
+
+  return value.map((item) => assertFeedItemId(item, 'itemIds'))
+}
+
 /** Потолок команды «!»: это строка терминала, а не файл. */
 const MAX_SHELL_CHARS = 10_000
 

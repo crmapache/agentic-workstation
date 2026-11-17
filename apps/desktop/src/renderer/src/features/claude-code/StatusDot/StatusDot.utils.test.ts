@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { Conversation } from '@shared/claude'
 
-import { dotState, isWorking } from './StatusDot.utils'
+import { dotState, isWorking, worksOnItsOwn } from './StatusDot.utils'
 
 type Source = Parameters<typeof dotState>[0]
 
@@ -40,5 +40,20 @@ describe('точка состояния вкладки', () => {
     expect(dotState(tab({ outcome: 'error' }), false)).toBe('attention')
     expect(dotState(tab({ outcome: 'error' }), true)).toBe('done')
     expect(dotState(tab({ outcome: 'crashed', pending: permission }), true)).toBe('crashed')
+  })
+})
+
+describe('работает сам - знак работы на вкладке проекта', () => {
+  it('идёт ход или фоновые субагенты - да', () => {
+    expect(worksOnItsOwn(tab({ status: 'running', turnStartedAt: 1 }))).toBe(true)
+    expect(worksOnItsOwn(tab({ outcome: 'done', backgroundWork: true }))).toBe(true)
+  })
+
+  it('ждёт человека, сломался или стоит - нет, и ошибка фоновой вкладки этого не меняет', () => {
+    expect(worksOnItsOwn(tab({ status: 'running', pending: permission }))).toBe(false)
+    expect(worksOnItsOwn(tab({ status: 'waiting', turnStartedAt: 1 }))).toBe(false)
+    expect(worksOnItsOwn(tab({ status: 'running', outcome: 'crashed' }))).toBe(false)
+    expect(worksOnItsOwn(tab({ outcome: 'done' }))).toBe(false)
+    expect(worksOnItsOwn(tab({ status: 'running', outcome: 'error', turnStartedAt: 1 }))).toBe(true)
   })
 })

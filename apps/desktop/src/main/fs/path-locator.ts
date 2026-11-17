@@ -2,7 +2,9 @@ import { stat, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 
 import type { PathLocation } from '@shared/fs'
+import { opensAsImage } from '@shared/preview-images'
 
+import { fitsImageTab } from './image-file'
 import { insideRoot, rankByName, readWrittenPath } from './path-location'
 import { toWindowPath } from './project-paths'
 import { opensAsText } from './text-file'
@@ -51,9 +53,13 @@ const projectPathOf = async (rootPath: string, absolutePath: string): Promise<st
   return real ?? insideRoot(rootPath, absolutePath)
 }
 
+/** Откроет ли вкладка IDE файл вне проекта: картинку - картинкой, остальное - если это текст. */
+const opensInTab = (absolute: string): Promise<boolean> =>
+  opensAsImage(absolute) ? fitsImageTab(absolute) : opensAsText(absolute)
+
 /**
  * Куда ведёт путь из текста ленты: файл или папка проекта, что-то вне проекта (у файла -
- * откроет ли его редактор), выбор из нескольких одноимённых или ничего. Сначала - как написан (от корня или
+ * откроет ли его вкладка IDE), выбор из нескольких одноимённых или ничего. Сначала - как написан (от корня или
  * абсолютный), потом, если относительный и там пусто, - по имени среди файлов проекта
  * (listFiles - тот же список, что кормит «@»; спрашиваем его только на промахе).
  */
@@ -82,7 +88,7 @@ export const locatePath = async (
     const absolutePath = toWindowPath(target.absolutePath)
 
     return kind === 'file'
-      ? { kind: 'outsideFile', absolutePath, editable: await opensAsText(target.absolutePath) }
+      ? { kind: 'outsideFile', absolutePath, opensInTab: await opensInTab(target.absolutePath) }
       : { kind: 'outsideFolder', absolutePath }
   }
 

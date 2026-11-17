@@ -243,12 +243,21 @@ export const useSelectedFile = (projectId: string | undefined) =>
 
 /**
  * Файл последней выбранной вкладки этого вида: какой файл стоит в редакторе кода и какой - в
- * разнице, даже когда активна вкладка другого вида. undefined - таких вкладок нет.
+ * разнице, даже когда активна вкладка другого вида. accepts - только такие файлы этого вида
+ * (вкладка картинки и вкладка кода - обе вида file). undefined - таких вкладок нет.
  */
-export const useRecentTab = (projectId: string | undefined, kind: TabTarget['kind']) =>
+export const useRecentTab = (
+  projectId: string | undefined,
+  kind: TabTarget['kind'],
+  accepts: (path: string) => boolean = () => true,
+) =>
   useSelectionStore((state) => {
     const recent = (projectId && state.tabsByProject[projectId]?.recent) || NO_KEYS
-    const key = recent.findLast((open) => tabTarget(open).kind === kind)
+    const key = recent.findLast((open) => {
+      const target = tabTarget(open)
+
+      return target.kind === kind && accepts(target.path)
+    })
 
     return key === undefined ? undefined : tabTarget(key).path
   })

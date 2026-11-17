@@ -7,6 +7,7 @@ import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { PageHeader } from '@agentic-workstation/ui/PageHeader'
 import { Tabs } from '@agentic-workstation/ui/Tabs'
 
+import { projectQueues } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import { useScenarioQueues, useScenarioShelves } from '../../../state/scenarios.queries'
 import { useActiveProject } from '../../../state/workspace.queries'
@@ -38,7 +39,11 @@ export const ScenariosView = () => {
     )
   }
 
-  const items = tabItems((id) => t(`scenarios.tabs.${id}`), queues, shelves)
+  const items = tabItems(
+    (id) => t(`scenarios.tabs.${id}`),
+    projectQueues(queues, project.rootPath),
+    shelves,
+  )
   const handleRun = () => open({ kind: 'launch' })
   const handleNew = () => open({ kind: 'author' })
 

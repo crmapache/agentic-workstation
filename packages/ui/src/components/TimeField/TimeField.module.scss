@@ -1,0 +1,28 @@
+// Подпись над полями - как у SelectField и TextField: поле времени стоит с ними в одной форме.
+.timeField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.label {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.colon {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

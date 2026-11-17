@@ -1,0 +1,11 @@
+// Стили страницы по разделам. Токены (tokens.css IDE и site-tokens.css) подключает main.ts до
+// этого файла.
+
+@use 'base';
+@use 'buttons';
+@use 'header';
+@use 'hero';
+@use 'features';
+@use 'install';
+@use 'legal';
+@use 'footer';

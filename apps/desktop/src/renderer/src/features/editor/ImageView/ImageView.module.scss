@@ -1,0 +1,96 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../layout-switch' as *;
+
+// Лист картинки на всё место вкладки; панель масштаба плавает над ним в правом верхнем углу.
+.canvas {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+// Своя прокрутка: картинка крупнее места прокручивается, меньше - стоит по центру (margin:
+// auto, а не центрирование флексом - иначе её край уехал бы за начало прокрутки). Поле
+// вокруг - чтобы вписанная картинка не липла к краям и к панели сверху.
+.scroll {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: calc(#{$layout-switch-top} * 2 + var(--size-control-sm)) var(--space-6) var(--space-6);
+  overflow: auto;
+}
+
+// Рамка видна и у прозрачной картинки - где она кончается. Рамка снаружи размера: ширина и
+// высота в style - это пиксели самой картинки.
+.image {
+  box-sizing: content-box;
+  flex-shrink: 0;
+  margin: auto;
+  border: var(--border-width) solid var(--color-border-strong);
+}
+
+// Пока не разжалась или место не измерено - невидима, чтобы не мигнуть чужим размером.
+.measuring {
+  visibility: hidden;
+}
+
+// Крупно картинку смотрят ради пикселей: квадратами, а не размытыми.
+.pixelated {
+  image-rendering: pixelated;
+}
+
+// Как панель вида Markdown (_layout-switch.scss): в том же углу, той же высоты и стекла.
+.toolbar {
+  @include glass-overlay;
+
+  position: absolute;
+  z-index: var(--z-sticky);
+  top: $layout-switch-top;
+  right: $layout-switch-right;
+  display: flex;
+  align-items: center;
+  gap: $layout-switch-gap;
+  padding: $layout-switch-padding;
+  border-radius: $layout-switch-radius;
+  opacity: var(--opacity-muted);
+  transition: opacity var(--duration-normal) var(--easing-standard);
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  &:focus-within {
+    opacity: 1;
+  }
+}
+
+// Размер картинки и файла - числа: моно с ровными цифрами, как время в ленте.
+.info,
+.percent {
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.info {
+  padding: 0 var(--space-2);
+}
+
+// Масштаб между «мельче» и «крупнее»: ширина под «3200%», чтобы кнопки не прыгали.
+.percent {
+  min-width: var(--size-control-lg);
+  text-align: center;
+}
+
+.separator {
+  align-self: stretch;
+  width: var(--border-width);
+  margin: var(--space-1) var(--space-0-5);
+  background-color: var(--color-border);
+}

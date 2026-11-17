@@ -33,6 +33,7 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   playwright: 'playwright',
   browser: 'browser',
   computer: 'computer',
+  notifications: 'notifications',
   mcp: '',
   command: '',
   http: '',

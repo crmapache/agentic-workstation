@@ -156,6 +156,7 @@ export class FeedBuilder {
 
     this.turns.begin(id, steering)
     this.tasksBefore.set(id, this.taskList.tasks)
+    this.taskList.markCarried()
     this.store.put({
       kind: 'user',
       id,
@@ -378,7 +379,10 @@ export class FeedBuilder {
 
     for (const item of replayed?.items ?? []) this.store.put(item)
 
-    if (replayed?.messageId) this.tasksBefore.set(replayed.messageId, this.taskList.tasks)
+    if (!replayed?.messageId) return
+
+    this.tasksBefore.set(replayed.messageId, this.taskList.tasks)
+    this.taskList.markCarried()
   }
 
   /** Написанное посреди хода из транскрипта; живое лента держит с отправки. */
@@ -386,6 +390,9 @@ export class FeedBuilder {
     const queued = replayedQueued(message, at, (images) => this.thumbnails(images))
 
     for (const item of queued?.items ?? []) this.store.put(item)
+
+    // Написанное посреди хода - тоже сообщение человека, как в живом addUserMessage.
+    if (queued?.items.length) this.taskList.markCarried()
   }
 
   private applySystem(message: CliMessage, at: number) {

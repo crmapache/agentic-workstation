@@ -1,13 +1,13 @@
 import { lazy } from 'react'
-import { Plug, FileCode, Workflow, ChartColumn } from 'lucide-react'
+import { Bell, Plug, FileCode, Workflow, ChartColumn, CalendarClock } from 'lucide-react'
 
 import type { MainViewId } from '../../state/layout.types'
 import type { ViewDescriptor } from './views.types'
 
 /**
  * Виды середины окна (зона 6) в порядке иконок полосы слева от неё. Файл - то, что
- * открыли из левой панели; сценарии, статистика и коннекторы (ADR 0029) - возможности
- * всей IDE, а не одного провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
+ * открыли из левой панели; сценарии, задания по расписанию, статистика, коннекторы (ADR 0029) и
+ * уведомления (ADR 0069) - возможности всей IDE, а не одного провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
  * фиче, запись здесь.
  */
 export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
@@ -32,6 +32,17 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     ),
   },
   {
+    id: 'tasks',
+    icon: CalendarClock,
+    labelKey: 'mainViews.tasks',
+    keywords: ['schedule', 'scheduled', 'cron', 'routine', 'recurring', 'timer'],
+    Component: lazy(() =>
+      import('../../features/tasks/TasksView/TasksView').then((module) => ({
+        default: module.TasksView,
+      })),
+    ),
+  },
+  {
     id: 'statistics',
     icon: ChartColumn,
     labelKey: 'mainViews.statistics',
@@ -49,6 +60,17 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     Component: lazy(() =>
       import('../../features/connectors/ConnectorsView/ConnectorsView').then((module) => ({
         default: module.ConnectorsView,
+      })),
+    ),
+  },
+  {
+    id: 'inbox',
+    icon: Bell,
+    labelKey: 'mainViews.inbox',
+    keywords: ['inbox', 'reminders', 'remind', 'alerts', 'questions'],
+    Component: lazy(() =>
+      import('../../features/inbox/InboxView/InboxView').then((module) => ({
+        default: module.InboxView,
       })),
     ),
   },

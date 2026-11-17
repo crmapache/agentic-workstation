@@ -23,6 +23,8 @@ import type { FsPathsInvokeContract } from './fs-paths.contract'
 import { FS_PATHS_CHANNELS } from './fs-paths.contract'
 import type { GitChangesEventContract, GitChangesInvokeContract } from './git-changes.contract'
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
+import type { InboxEventContract, InboxInvokeContract } from './inbox.contract'
+import { INBOX_EVENTS, INBOX_CHANNELS } from './inbox.contract'
 import type {
   LocalHistoryEventContract,
   LocalHistoryInvokeContract,
@@ -38,6 +40,8 @@ import type { SoundsEventContract, SoundsInvokeContract } from './sounds.contrac
 import { SOUNDS_EVENTS, SOUNDS_CHANNELS } from './sounds.contract'
 import type { StatisticsEventContract, StatisticsInvokeContract } from './statistics.contract'
 import { STATISTICS_EVENTS, STATISTICS_CHANNELS } from './statistics.contract'
+import type { TasksEventContract, TasksInvokeContract } from './tasks.contract'
+import { TASKS_EVENTS, TASKS_CHANNELS } from './tasks.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
@@ -66,7 +70,9 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   ScenariosInvokeContract &
   StatisticsInvokeContract &
   RemoteInvokeContract &
-  SoundsInvokeContract
+  SoundsInvokeContract &
+  TasksInvokeContract &
+  InboxInvokeContract
 
 export type AreaEventContract = ClaudeTabsEventContract &
   ClaudePanelEventContract &
@@ -82,7 +88,9 @@ export type AreaEventContract = ClaudeTabsEventContract &
   ScenariosEventContract &
   StatisticsEventContract &
   RemoteEventContract &
-  SoundsEventContract
+  SoundsEventContract &
+  TasksEventContract &
+  InboxEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -105,6 +113,8 @@ export const AREA_CHANNELS = {
   ...STATISTICS_CHANNELS,
   ...REMOTE_CHANNELS,
   ...SOUNDS_CHANNELS,
+  ...TASKS_CHANNELS,
+  ...INBOX_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -124,4 +134,6 @@ export const AREA_EVENTS = {
   ...STATISTICS_EVENTS,
   ...REMOTE_EVENTS,
   ...SOUNDS_EVENTS,
+  ...TASKS_EVENTS,
+  ...INBOX_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

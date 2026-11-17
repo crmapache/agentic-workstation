@@ -1,4 +1,5 @@
 import {
+  Bell,
   Mail,
   Plug,
   Drama,
@@ -26,6 +27,7 @@ import { MCP_AUTHS } from '@shared/connectors'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
+import type { AddKind } from '../connectors.types'
 import type { AddFormFields } from './ConnectorsView.types'
 
 export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
@@ -38,6 +40,7 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   playwright: Drama,
   browser: Globe,
   computer: MousePointerClick,
+  notifications: Bell,
   mcp: Plug,
   command: SquareTerminal,
   http: WandSparkles,
@@ -47,7 +50,7 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
  * Коннекторы к известным приложениям: имя сервиса - имя типа, его видно заголовком плитки.
  * Computer Use - на обеих системах IDE, мак и Windows (ADR 0057, 0058).
  */
-export const APP_KINDS: readonly ConnectorKind[] = [
+export const APP_KINDS: readonly AddKind[] = [
   'gmail',
   'calendar',
   'notion',
@@ -79,6 +82,7 @@ export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   playwright: 'success',
   browser: 'accent',
   computer: 'info',
+  notifications: 'accent',
   mcp: 'accent',
   command: 'neutral',
   http: 'success',

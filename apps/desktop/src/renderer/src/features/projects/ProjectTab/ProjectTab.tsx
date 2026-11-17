@@ -7,18 +7,21 @@ import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
 import type { ProjectTabProps } from './ProjectTab.types'
 import { tabHint } from './ProjectTab.utils'
 import { CallDots } from './parts/CallDots'
+import { WorkMark } from './parts/WorkMark'
 
 /**
  * Вкладка одного проекта в верхней полосе. Клик - переключиться, крестик или
  * средняя кнопка мыши - закрыть, нажатие с движением - перетащить на другое место. Выбранная
  * сама встаёт в виду, если ряд листается. Полный путь - в подсказке. Разговоры проекта, которые
  * позвали человека, - точками справа и строками в подсказке: со звуком из фонового проекта
- * сразу видно, откуда он.
+ * сразу видно, откуда он. Работа, которая идёт сама, - спиннером слева от имени: знак другой
+ * формы и в другом месте, с точками не спорит.
  */
 export const ProjectTab = ({
   project,
   isActive,
   calls,
+  work,
   lifted,
   offset,
   register,
@@ -50,9 +53,10 @@ export const ProjectTab = ({
     <ClosableTab
       ref={handleRef}
       label={project.name}
-      hint={tabHint(project.rootPath, calls)}
+      hint={tabHint(project.rootPath, work, calls)}
       active={isActive}
       closeLabel={t('projects.close', { name: project.name })}
+      leading={work.length > 0 && <WorkMark work={work} size="sm" />}
       trailing={calls.length > 0 && <CallDots calls={calls} />}
       lifted={lifted}
       offset={offset === null ? null : { x: offset, y: 0 }}

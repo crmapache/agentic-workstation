@@ -143,8 +143,9 @@ export class GitStatusParser {
   }
 
   /**
-   * Папки над путём - «внутри есть изменения». Папка уже помечена так же или конфликтом -
-   * значит, и все над ней: дальше не идём.
+   * Папки над путём - «внутри есть изменения», вплоть до корня проекта (пустой строкой): по
+   * нему видно, есть ли изменения вообще, а удалённый файл в корне иначе не оставил бы
+   * следа. Папка уже помечена так же или конфликтом - значит, и все над ней: дальше не идём.
    */
   private markAncestors(path: string, change: GitFolderChange): void {
     const { changedFolders } = this.status
@@ -157,6 +158,8 @@ export class GitStatusParser {
 
       changedFolders[folder] = change
     }
+
+    if (changedFolders[''] !== 'conflict') changedFolders[''] = change
   }
 }
 

@@ -11,11 +11,19 @@ import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
  */
 export type ProjectCall = { id: string; tone: ClosableTabCall; at: number; text: string }
 
+/**
+ * Работа, которая идёт в проекте сама, без человека: разговор, прогон сценария. Что сказать
+ * словами - строка подсказки. Что работает, проекты не знают: список собирает workbench.
+ */
+export type ProjectWork = { id: string; text: string }
+
 export type ProjectTabProps = {
   project: Project
   isActive: boolean
   /** Позвавшие разговоры проекта, от старого к новому; пусто - точек нет. */
   calls: readonly ProjectCall[]
+  /** Что в проекте сейчас работает само; пусто - знака работы нет. */
+  work: readonly ProjectWork[]
   /** Вкладку несут рукой: поднята над соседями и едет за курсором без задержки. */
   lifted: boolean
   /** Сдвиг от своего места на время перетаскивания, в пикселях; null - на месте. */
@@ -28,3 +36,5 @@ export type ProjectTabProps = {
 }
 
 export type CallDotsProps = { calls: readonly ProjectCall[] }
+
+export type WorkMarkProps = { work: readonly ProjectWork[]; size: 'sm' | 'around' }

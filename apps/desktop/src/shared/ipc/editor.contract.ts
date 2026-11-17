@@ -2,9 +2,6 @@ import type { DefinitionAnswer } from '../definitions'
 import type { FileRead, TextHash, FileWrite, FileVersion, EditorCommand } from '../fs'
 import type { WebImageRead, ProjectImageRead } from '../preview-images'
 
-/** Файл проекта: путь от корня через «/». */
-type ProjectFileRequest = { projectId: string; relativePath: string }
-
 /**
  * Файл редактора: файл проекта (relativePath) или файл вне проекта по абсолютному пути
  * (absolutePath) - его открыли ссылкой. Ровно одно из двух: путь от корня никогда не
@@ -53,12 +50,13 @@ export type EditorInvokeContract = {
     response: DefinitionAnswer
   }
   /**
-   * Картинка проекта для просмотра Markdown. Путь - из текста файла, то есть чужой:
-   * читается только картинка, только внутри проекта и не больше потолка. known - версия,
-   * которую окно уже держит: та же - unchanged, без байтов.
+   * Картинка для просмотра Markdown и вкладки картинки: файл проекта или вне проекта, как у
+   * fs:readFile. Путь просмотру - из текста файла, то есть чужой: читается только картинка,
+   * путь от корня - только внутри проекта, и не больше потолка. known - версия, которую окно
+   * уже держит: та же - unchanged, без байтов.
    */
   'fs:readImage': {
-    request: ProjectFileRequest & { known?: FileVersion | null }
+    request: FileRequest & { known?: FileVersion | null }
     response: ProjectImageRead
   }
   /**
