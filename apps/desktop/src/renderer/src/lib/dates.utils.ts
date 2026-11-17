@@ -77,3 +77,18 @@ export const daysBetween = (from: number, to: number): number => {
 
   return Math.round((end.getTime() - start.getTime()) / DAY_MS)
 }
+
+const pad = (value: number): string => String(value).padStart(2, '0')
+
+/**
+ * Сколько уже ждём - «0:42», «12:05», «1:02:03». Показание прибора, а не слова: строка, которая
+ * на десятой и на девяностой секунде читается одинаково, неотличима от зависшей.
+ */
+export const waitClock = (ms: number): string => {
+  const total = Math.floor(Math.max(0, ms) / 1000)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
+}

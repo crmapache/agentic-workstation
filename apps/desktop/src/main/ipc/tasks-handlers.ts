@@ -1,9 +1,13 @@
 import type { TaskDraft } from '@shared/tasks'
 import type { TasksInvokeContract } from '@shared/ipc/tasks.contract'
 
+import type { TaskAuthor } from '../tasks/task-author'
 import type { TaskService } from '../tasks/task-service'
+import type { WorkspaceService } from '../workspace/workspace-service'
 import type { InvokeHandlers } from './handle'
+import { assertId } from './scenarios-validate'
 import { assertString } from './validate'
+import { projectRootOf } from './workspace-handlers'
 
 type TasksChannels = keyof TasksInvokeContract
 
@@ -24,8 +28,24 @@ const draftOf = (value: unknown): TaskDraft => {
   return value as TaskDraft
 }
 
-/** Каналы заданий по расписанию (ADR 0069): проверить запрос и позвать сервис. */
-export const createTasksHandlers = (tasks: TaskService): Pick<InvokeHandlers, TasksChannels> => ({
+/** Слова человека для автора заданий: не пусто и не больше текста задания. */
+const descriptionOf = (value: unknown): string => {
+  assertString(value, 'description')
+
+  if (!value.trim()) throw new Error('Пустое описание задания')
+
+  return value.slice(0, 20_000)
+}
+
+/**
+ * Каналы заданий по расписанию (ADR 0069): проверить запрос и позвать сервис. Автор пишет
+ * задание для открытого проекта - папку берём у проекта, а не из окна.
+ */
+export const createTasksHandlers = (
+  workspace: WorkspaceService,
+  tasks: TaskService,
+  author: TaskAuthor,
+): Pick<InvokeHandlers, TasksChannels> => ({
   'tasks:get': () => tasks.view(),
   'tasks:save': ({ task }) => tasks.save(draftOf(task)),
   'tasks:remove': ({ taskId }) => {
@@ -79,4 +99,11 @@ export const createTasksHandlers = (tasks: TaskService): Pick<InvokeHandlers, Ta
 
     return tasks.openChat(runId)
   },
+  'tasks:author': ({ projectId, authorId, description }) =>
+    author.write(
+      projectRootOf(workspace, projectId),
+      assertId(authorId, 'authorId'),
+      descriptionOf(description),
+    ),
+  'tasks:cancelAuthor': ({ authorId }) => author.cancel(assertId(authorId, 'authorId')),
 })

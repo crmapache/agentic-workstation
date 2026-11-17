@@ -22,8 +22,8 @@ describe('точки зова на вкладке проекта', () => {
   it('подсказка - путь, под ним что работает, потом каждый позвавший разговор', () => {
     expect(tabHint('~/p', [], [])).toBe('~/p')
     expect(tabHint('~/p', [], [call('a'), call('b')])).toBe('~/p\nchat a: done\nchat b: done')
-    expect(tabHint('~/p', [{ id: 'w', text: 'chat w · working' }], [call('a')])).toBe(
-      '~/p\nchat w · working\nchat a: done',
-    )
+    expect(
+      tabHint('~/p', [{ id: 'w', text: 'chat w · working', background: false }], [call('a')]),
+    ).toBe('~/p\nchat w · working\nchat a: done')
   })
 })

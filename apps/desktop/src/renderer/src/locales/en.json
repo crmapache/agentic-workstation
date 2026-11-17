@@ -3493,6 +3493,26 @@
     "form": {
       "newTitle": "New task",
       "editTitle": "Edit task",
+      "ways": {
+        "label": "How to create the task",
+        "ai": "With AI",
+        "form": "Manual"
+      },
+      "author": {
+        "what": "Describe the task",
+        "placeholder": "Every weekday at 9, go through my mail and send me a short list of what needs an answer.",
+        "write": "Write task",
+        "stop": "Stop",
+        "writing": "Writing the task…",
+        "writingLabel": "AI is writing the task",
+        "noDetail": "no details",
+        "errors": {
+          "noClaude": "Claude Code is not found. Install it, then try again.",
+          "timeout": "AI took too long. Try again or fill in the form by hand.",
+          "unreadable": "AI did not answer with a task. Try again or say it differently.",
+          "failed": "AI could not write the task: {{detail}}"
+        }
+      },
       "kind": "Kind",
       "kinds": {
         "schedule": "On schedule",
@@ -3562,7 +3582,7 @@
       "remove": "Delete task",
       "help": {
         "label": "About the task form",
-        "text": "The task runs as a new Claude Code conversation in the project folder, with its CLAUDE.md, hooks and connectors, on the model you pick.\n\nUntil done: the goal keeps going over days. Its checks run on Haiku with low effort - only the real work uses the model you pick. Writing to people: by default every message waits for your Allow.\n\nPermissions: “Ask me” sends every permission request to Notifications and the run waits for your button. The other modes let Claude act on its own - pick them for tasks you trust.\n\nTimes are this computer's local time."
+        "text": "With AI: say in your own words what to do and when. AI writes the name, the instruction for the run and the schedule, then opens the form - check it and save. The model and permissions stay yours to pick.\n\nThe task runs as a new Claude Code conversation in the project folder, with its CLAUDE.md, hooks and connectors, on the model you pick.\n\nUntil done: the goal keeps going over days. Its checks run on Haiku with low effort - only the real work uses the model you pick. Writing to people: by default every message waits for your Allow.\n\nPermissions: “Ask me” sends every permission request to Notifications and the run waits for your button. The other modes let Claude act on its own - pick them for tasks you trust.\n\nTimes are this computer's local time."
       },
       "removeSure": "Delete for good"
     },

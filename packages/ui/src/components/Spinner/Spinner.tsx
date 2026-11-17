@@ -8,9 +8,10 @@ import type { SpinnerProps } from './Spinner.types'
  * Знак «идёт работа» на месте иконки: бледное кольцо, по которому бежит дуга тона - то
  * вытягивается, то догоняет себя. Вращается весь рисунок вокруг центра своего поля, поэтому
  * ось не гуляет ни на каком размере. around - то же кольцо вокруг знака (номер остановки),
- * на всю коробку родителя. Когда доля известна - ProgressBar или RingMeter.
+ * на всю коробку родителя. quiet - та же работа фоном, приглушённо. Когда доля известна -
+ * ProgressBar или RingMeter.
  */
-export const Spinner = ({ size = 'sm', tone = 'accent', label }: SpinnerProps) => {
+export const Spinner = ({ size = 'sm', tone = 'accent', label, quiet = false }: SpinnerProps) => {
   const { radius, stroke } = SPINNER_RING[size]
 
   return (
@@ -18,7 +19,7 @@ export const Spinner = ({ size = 'sm', tone = 'accent', label }: SpinnerProps) =
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      className={clsx(styles.spinner, styles[size], styles[tone])}>
+      className={clsx(styles.spinner, styles[size], styles[tone], quiet && styles.quiet)}>
       {/* eslint-disable-next-line no-restricted-syntax -- знак рисуется дугой с анимацией длины, а не иконкой */}
       <svg className={styles.ring} viewBox={`0 0 ${SPINNER_BOX} ${SPINNER_BOX}`} aria-hidden>
         <circle

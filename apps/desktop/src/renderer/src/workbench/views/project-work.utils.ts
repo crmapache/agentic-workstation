@@ -22,8 +22,8 @@ export const runWorks = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
 
 /**
  * Что в проекте работает само, без человека: разговоры, чья вкладка горит «работает»
- * (worksOnItsOwn), и идущие прогоны сценариев (их worktree - тоже работа проекта). Разговоры -
- * первыми, в порядке состояния.
+ * (worksOnItsOwn), и идущие прогоны сценариев (их worktree - тоже работа проекта, но фоновая).
+ * Разговоры - первыми, в порядке состояния.
  */
 export const projectWork = <C extends WorkingConversation, R extends WorkingRun>(
   conversations: readonly C[],
@@ -33,10 +33,14 @@ export const projectWork = <C extends WorkingConversation, R extends WorkingRun>
 ): ProjectWork[] => [
   ...conversations
     .filter((conversation) => conversation.projectPath === rootPath && worksOnItsOwn(conversation))
-    .map((conversation) => ({ id: conversation.id, text: text.chat(conversation) })),
+    .map((conversation) => ({
+      id: conversation.id,
+      text: text.chat(conversation),
+      background: false,
+    })),
   ...runs
     .filter((run) => run.projectPath === rootPath && runWorks(run))
-    .map((run) => ({ id: run.id, text: text.run(run) })),
+    .map((run) => ({ id: run.id, text: text.run(run), background: true })),
 ]
 
 /**
@@ -50,4 +54,4 @@ export const taskWork = <T extends Pick<TaskRunSummary, 'id' | 'projectPath' | '
 ): ProjectWork[] =>
   runs
     .filter((run) => run.projectPath === rootPath && run.state === 'running')
-    .map((run) => ({ id: run.id, text: text(run) }))
+    .map((run) => ({ id: run.id, text: text(run), background: true }))

@@ -4,8 +4,8 @@ import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import styles from '../AuthorModal.module.scss'
 import type { DraftWaitProps } from '../AuthorModal.types'
-import { waitClock } from '../../scenarios-forms.utils'
 import { CLOCK_TICK_MS } from '../../scenarios.constants'
+import { waitClock } from '../../../../lib/dates.utils'
 import { useNow } from '../../../../lib/now.hooks'
 
 /**

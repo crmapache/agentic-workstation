@@ -20,6 +20,7 @@ import type { ScenarioTaps } from './scenarios/scenarios-setup'
 import { startScenarios } from './scenarios/scenarios-setup'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
+import type { TaskAuthor } from './tasks/task-author'
 import type { TaskService } from './tasks/task-service'
 import { startTasks } from './tasks/tasks-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
@@ -41,6 +42,8 @@ export type IdeFeatures = {
   /** Задания по расписанию и уведомления IDE (ADR 0069). */
   tasks: TaskService
   inbox: InboxService
+  /** ИИ пишет задание из слов человека. */
+  taskAuthor: TaskAuthor
   /**
    * «Где определено» для редактора (ADR 0061). Процесс с компилятором TypeScript поднимется первым
    * ⌘ + наведением в коде, а не со стартом IDE.
@@ -112,6 +115,7 @@ export const startIdeFeatures = async (setup: {
     remote,
     tasks: automation.tasks,
     inbox: automation.inbox,
+    taskAuthor: automation.author,
     definitions,
     observeClaude: (state) => {
       statistics.observeClaude(state)

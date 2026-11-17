@@ -25,6 +25,8 @@ import { openExternalWeb } from '../window/open-external'
 import type { WorkspaceService } from '../workspace/workspace-service'
 import { claudeGoalChecks } from '../providers/claude/claude-goal-checks'
 import { claudeSessions } from '../providers/claude/claude-sessions'
+import { claudeTaskAuthor } from '../providers/claude/claude-task-author'
+import type { TaskAuthor } from './task-author'
 import { TaskBook } from './task-book'
 import type { StoredTasks } from './task-book'
 import { TaskService } from './task-service'
@@ -47,7 +49,13 @@ export type TasksSetup = {
   inboxLink: InboxLink
 }
 
-export type Tasks = { tasks: TaskService; inbox: InboxService; shutdown: () => void }
+export type Tasks = {
+  tasks: TaskService
+  inbox: InboxService
+  /** ИИ пишет задание из слов человека - для формы, без сохранения. */
+  author: TaskAuthor
+  shutdown: () => void
+}
 
 /** Окно на виду - баннер ОС не нужен: карточка уже в углу окна. */
 const showBanner = (item: InboxItem, getWindow: () => BrowserWindow | null) => {
@@ -220,6 +228,7 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
   return {
     tasks,
     inbox,
+    author: claudeTaskAuthor(claude, connectors, setup.dataDir),
     shutdown: () => {
       clearInterval(clock)
       clearTimeout(first)

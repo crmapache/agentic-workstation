@@ -40,7 +40,7 @@ export const ChangesList = ({ turn }: ChangesListProps) => {
 
   return (
     <div className={styles.changesList}>
-      {/* Шапка разложена строкой списка: её цифры стоят в столбце цифр строк. */}
+      {/* Итог хода - у правого края шапки: над кнопками отката места под них не держим. */}
       {changes.length > 1 && (
         <div className={clsx(styles.line, styles.head)}>
           <div
@@ -53,7 +53,6 @@ export const ChangesList = ({ turn }: ChangesListProps) => {
             <span className={styles.added}>{`+${totals.added}`}</span>
             <span className={styles.removed}>{`−${totals.removed}`}</span>
           </div>
-          {hasButtons && <span className={styles.slot} />}
         </div>
       )}
       <ul aria-label={t('claudeCode.changes.label')} className={styles.rows}>

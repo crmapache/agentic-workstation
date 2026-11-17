@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { useClock } from '../QueueCard.hooks'
 import type { RunReadingsProps } from '../QueueCard.types'
 import { formatCost, formatTokens } from '../../scenarios-format.utils'
-import { waitClock } from '../../scenarios-forms.utils'
 import { runWorked } from '../../scenarios-timeline.utils'
 import { CLOCK_TICK_MS } from '../../scenarios.constants'
 import { ScenarioReadings } from '../../ScenarioReadings/ScenarioReadings'
+import { waitClock } from '../../../../lib/dates.utils'
 
 /**
  * Показания идущего прогона: сколько он на самом деле работал (пауза и вопрос человеку часы не

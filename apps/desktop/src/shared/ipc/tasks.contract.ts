@@ -1,5 +1,6 @@
 import type { GoalLife } from '../goals'
 import type { StepLogPage } from '../scenario-view'
+import type { TaskAuthorOutcome } from '../task-author'
 import type { TaskRun, TaskDraft, TaskSaved, TasksState, TaskOutcome, TaskStarted } from '../tasks'
 
 type RunRequest = { runId: string }
@@ -37,6 +38,15 @@ export type TasksInvokeContract = {
   'tasks:wake': { request: RunRequest; response: TaskOutcome }
   /** Разговор прогона - обычной вкладкой панели его проекта (проект откроется). */
   'tasks:openChat': { request: RunRequest; response: TaskOutcome }
+  /**
+   * ИИ пишет задание из слов человека для проекта; не сохраняет - написанное открывает форма.
+   * authorId - номер запроса: по нему отменяют.
+   */
+  'tasks:author': {
+    request: { projectId: string; authorId: string; description: string }
+    response: TaskAuthorOutcome
+  }
+  'tasks:cancelAuthor': { request: { authorId: string }; response: void }
 }
 
 export type TasksEventContract = {
@@ -57,6 +67,8 @@ export const TASKS_CHANNELS = {
   'tasks:goal': true,
   'tasks:wake': true,
   'tasks:openChat': true,
+  'tasks:author': true,
+  'tasks:cancelAuthor': true,
 } satisfies Record<keyof TasksInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

@@ -12,10 +12,11 @@ import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 export type ProjectCall = { id: string; tone: ClosableTabCall; at: number; text: string }
 
 /**
- * Работа, которая идёт в проекте сама, без человека: разговор, прогон сценария. Что сказать
- * словами - строка подсказки. Что работает, проекты не знают: список собирает workbench.
+ * Работа, которая идёт в проекте сама, без человека: разговор, прогон сценария или задания. Что
+ * сказать словами - строка подсказки; background - фоновая автоматика (сценарий, задание), а не
+ * разговор в чате. Что работает, проекты не знают: список собирает workbench.
  */
-export type ProjectWork = { id: string; text: string }
+export type ProjectWork = { id: string; text: string; background: boolean }
 
 export type ProjectTabProps = {
   project: Project

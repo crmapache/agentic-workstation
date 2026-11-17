@@ -1,3 +1,6 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@include breathing-keyframes;
+
 // Поля одно под другим, у каждого своя подпись - как в окне расписания сценария.
 .body {
   display: flex;
@@ -51,4 +54,43 @@
   align-items: center;
   gap: var(--space-2);
   margin-left: auto;
+}
+
+// Вкладка «With AI»: поле слов и под ним, пока ИИ пишет, полоса и часы.
+.author {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wait {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.waitLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+// Тот же язык, что у «работа идёт» в панели: подпись медленно мерцает.
+.writing {
+  @include breathing;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// Часы ожидания - показание прибора: консольный шрифт, ровные цифры.
+.elapsed {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
 }

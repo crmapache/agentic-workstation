@@ -50,9 +50,9 @@ describe('что работает в проекте', () => {
     const runs = [run('r1', '/p', 'running'), run('r2', '/other', 'running')]
 
     expect(projectWork(conversations, runs, '/p', TEXT)).toEqual([
-      { id: 'a', text: 'chat a' },
-      { id: 'd', text: 'chat d' },
-      { id: 'r1', text: 'run r1' },
+      { id: 'a', text: 'chat a', background: false },
+      { id: 'd', text: 'chat d', background: false },
+      { id: 'r1', text: 'run r1', background: true },
     ])
   })
 
@@ -72,6 +72,8 @@ describe('taskWork', () => {
       { id: 't4', projectPath: '/a', state: 'done' as const },
     ]
 
-    expect(taskWork(runs, '/a', (one) => `task ${one.id}`)).toEqual([{ id: 't1', text: 'task t1' }])
+    expect(taskWork(runs, '/a', (one) => `task ${one.id}`)).toEqual([
+      { id: 't1', text: 'task t1', background: true },
+    ])
   })
 })

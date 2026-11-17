@@ -13,6 +13,7 @@ import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
 import type { SoundsService } from '../sounds/sounds-service'
 import type { StatsService } from '../statistics/stats-service'
+import type { TaskAuthor } from '../tasks/task-author'
 import type { TaskService } from '../tasks/task-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
@@ -75,6 +76,8 @@ type Services = HandlerContext & {
   definitions: DefinitionService
   /** Задания по расписанию (ADR 0069): задания, прогоны, их журналы. */
   tasks: TaskService
+  /** ИИ пишет задание из слов человека - для формы, без сохранения. */
+  taskAuthor: TaskAuthor
   /** Уведомления IDE (ADR 0069): вопросы прогонов, отчёты, напоминания от ИИ. */
   inbox: InboxService
 }
@@ -101,7 +104,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ),
     ...createLocalHistoryHandlers(workspace, history),
     ...createSoundsHandlers(services.sounds),
-    ...createTasksHandlers(services.tasks),
+    ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),
     ...createInboxHandlers(services.inbox),
     ...createEditorHandlers(workspace, history, services.definitions),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),

@@ -93,7 +93,8 @@ export const connectorView = (
   }
 }
 
-const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
+/** Что за сервис у коннектора каждого вида - словами модели: пояснение шлюза, автор заданий. */
+export const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   gmail: 'Gmail mailbox',
   calendar: 'Google Calendar',
   notion: 'Notion workspace',

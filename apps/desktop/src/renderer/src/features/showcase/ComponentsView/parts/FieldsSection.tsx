@@ -118,6 +118,7 @@ export const FieldsSection = () => {
         <Spinner size="md" tone="neutral" label={t('samples.spinnerLabel')} />
         <Spinner tone="warning" label={t('samples.spinnerLabel')} />
         <Spinner size="md" tone="warning" label={t('samples.spinnerLabel')} />
+        <Spinner tone="warning" quiet label={t('samples.spinnerLabel')} />
         <span className={styles.spinnerSign}>
           {t('samples.spinnerStop')}
           <span className={styles.spinnerAround}>

@@ -5,8 +5,8 @@ import { MARK_CHARS } from './scenarios.constants'
 
 /**
  * Арифметика форм хаба и полос очереди и расписания (то, что в ACC жило внутри QueueBand,
- * ScheduleBand, WhenForm и NewScenarioForm): номер черновика, часы ожидания, чьи слова у причины
- * остановки, ответы чипами, час формы по частям.
+ * ScheduleBand, WhenForm и NewScenarioForm): номер черновика, чьи слова у причины остановки,
+ * ответы чипами, час формы по частям.
  */
 
 const DRAFT_ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -18,21 +18,6 @@ export const freshDraftId = (): string =>
   [...crypto.getRandomValues(new Uint8Array(DRAFT_ID_LENGTH))]
     .map((byte) => DRAFT_ID_ALPHABET[byte % DRAFT_ID_ALPHABET.length] ?? '')
     .join('')
-
-const pad = (value: number): string => String(value).padStart(2, '0')
-
-/**
- * Сколько уже ждём - «0:42», «12:05», «1:02:03». Показание прибора, а не слова: строка, которая
- * на десятой и на девяностой секунде читается одинаково, неотличима от зависшей.
- */
-export const waitClock = (ms: number): string => {
-  const total = Math.floor(Math.max(0, ms) / 1000)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const seconds = total % 60
-
-  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
-}
 
 /** Отказ писателя сценариев словом, на которое у окна есть текст; всё прочее - слова самого CLI. */
 export type DraftErrorCode =

@@ -275,6 +275,7 @@ const bootstrap = async () => {
     stats: features.statistics.stats,
     remote: features.remote,
     tasks: features.tasks,
+    taskAuthor: features.taskAuthor,
     inbox: features.inbox,
     history,
     sounds,
