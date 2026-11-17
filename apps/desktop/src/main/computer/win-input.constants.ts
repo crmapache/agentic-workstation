@@ -52,3 +52,22 @@ export const VK_RBUTTON = 0x02
 
 /** Старший бит ответа GetAsyncKeyState - клавиша зажата сейчас. */
 export const KEY_DOWN_BIT = 0x8000
+
+/**
+ * Системные курсоры (OCR_*), которые на время работы ИИ подменяются пустыми (ADR 0079): стрелка,
+ * текст, ожидание, крест, стрелка вверх, четыре размера, перенос, запрет, рука, фоновая работа,
+ * справка. Чужое окно ставит любой из них - пустыми должны быть все.
+ */
+export const SYSTEM_CURSORS = [
+  32512, 32513, 32514, 32515, 32516, 32642, 32643, 32644, 32645, 32646, 32648, 32649, 32650, 32651,
+] as const
+
+/** Пустой курсор: сторона в пикселях и маски - AND вся в единицах (прозрачно), XOR - в нулях. */
+export const BLANK_CURSOR_SIDE = 32
+export const BLANK_CURSOR_MASK_BYTES = (BLANK_CURSOR_SIDE * BLANK_CURSOR_SIDE) / 8
+
+/** CopyImage: копия курсора. */
+export const IMAGE_CURSOR = 2
+
+/** SystemParametersInfoW: перечитать курсоры человека из реестра - вернуть его схему. */
+export const SPI_SETCURSORS = 0x0057

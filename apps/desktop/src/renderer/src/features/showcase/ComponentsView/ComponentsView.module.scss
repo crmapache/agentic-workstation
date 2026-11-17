@@ -227,3 +227,10 @@
   color: var(--color-fg-strong);
   font-size: var(--font-size-sm);
 }
+
+// Поле под стрелкой ИИ: стрелка - точка привязки нулевого размера в левом верхнем углу поля,
+// место вокруг - под её свечение и круг нажатия.
+.pointerSample {
+  display: block;
+  padding: var(--space-3) var(--space-8) var(--space-8) var(--space-3);
+}

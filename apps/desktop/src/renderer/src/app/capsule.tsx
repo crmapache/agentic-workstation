@@ -1,6 +1,6 @@
 import '@agentic-workstation/ui/tokens.css'
 import '@agentic-workstation/ui/base.css'
-import './capsule.css'
+import './overlay.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@agentic-workstation/browser-protocol": "workspace:*",
+    "@agentic-workstation/ui": "workspace:*",
     "@types/chrome": "0.3.7",
     "@types/node": "24.13.3",
     "typescript": "6.0.3",

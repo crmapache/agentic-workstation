@@ -1,26 +1,26 @@
 import { release } from 'node:os'
-import { join } from 'node:path'
 
-import { screen, BrowserWindow } from 'electron'
+import { screen } from 'electron'
+import type { BrowserWindow } from 'electron'
 
 import type { CapsuleView } from '@shared/computer'
 
-import { IS_MAC, IS_WINDOWS } from '../platform'
-import { markOverlay } from '../window/overlay-windows'
-import { isCapsuleInShots } from './capsule-capture'
+import { IS_WINDOWS } from '../platform'
+import { isOverlayInShots } from './capsule-capture'
 import { CAPSULE_WIDTH, CAPSULE_HEIGHT, CAPSULE_BOTTOM_GAP } from './computer.constants'
 import type { Point } from './computer.types'
+import { withoutOverlay, createOverlayWindow } from './overlay-window'
 
 /**
  * Капсула внизу по центру экрана (ADR 0057, 0058), пока ИИ держит компьютер: что он делает,
- * пауза и остановка. Окно поверх всех без фокуса - иначе оно забирало бы ввод у приложения, в
- * котором работает ИИ. Из снимков экрана исключено.
+ * пауза и остановка. Накладное окно поверх всех без фокуса (createOverlayWindow), из снимков
+ * экрана исключено.
  */
 export class ComputerCapsule {
   private window: BrowserWindow | null = null
   private current: CapsuleView | null = null
 
-  private readonly isInShots = isCapsuleInShots(IS_WINDOWS, release())
+  private readonly isInShots = isOverlayInShots(IS_WINDOWS, release())
 
   constructor(private readonly rendererUrl: string | undefined) {}
 
@@ -50,18 +50,8 @@ export class ComputerCapsule {
    * Снимок без капсулы там, где система не умеет исключить её из захвата (старый Windows 10):
    * капсула прозрачна на время снимка. Где умеет - снимок как есть.
    */
-  async hiddenFromShot<T>(shoot: () => Promise<T>): Promise<T> {
-    const window = this.window
-
-    if (!this.isInShots || !window?.isVisible()) return shoot()
-
-    window.setOpacity(0)
-
-    try {
-      return await shoot()
-    } finally {
-      if (!window.isDestroyed()) window.setOpacity(1)
-    }
+  hiddenFromShot<T>(shoot: () => Promise<T>): Promise<T> {
+    return withoutOverlay(this.window, this.isInShots, shoot)
   }
 
   /** Рука бьёт в точку под капсулой: её клики проходят сквозь капсулу к приложению под ней. */
@@ -84,54 +74,14 @@ export class ComputerCapsule {
   }
 
   private create(): BrowserWindow {
-    const window = new BrowserWindow({
+    const window = createOverlayWindow(this.rendererUrl, 'capsule', {
       width: CAPSULE_WIDTH,
       height: CAPSULE_HEIGHT,
-      // Мак: панель поверх и полноэкранных приложений. Windows: toolbar - без кнопки на панели
-      // задач и без места в Alt+Tab.
-      type: IS_MAC ? 'panel' : 'toolbar',
-      show: false,
-      frame: false,
-      transparent: true,
-      hasShadow: false,
-      resizable: false,
-      movable: false,
-      minimizable: false,
-      maximizable: false,
-      fullscreenable: false,
-      focusable: false,
-      skipTaskbar: true,
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        sandbox: true,
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
     })
 
-    markOverlay(window)
-    window.setAlwaysOnTop(true, 'screen-saver')
-    // Без skipTransformProcessType Electron зовёт app.dock.hide(): IDE пропадала из Dock и меню
-    // до перезапуска. Поверх полноэкранных приложений панель встаёт и так - это даёт тип panel.
-    if (IS_MAC) {
-      window.setVisibleOnAllWorkspaces(true, {
-        visibleOnFullScreen: true,
-        skipTransformProcessType: true,
-      })
-    }
-
-    // Модель капсулу не видит: на снимке она не отличила бы её от кнопок приложения. На Windows
-    // это WDA_EXCLUDEFROMCAPTURE (Windows 10 2004 и новее).
-    window.setContentProtection(true)
-    window.webContents.on('will-navigate', (event) => event.preventDefault())
-    window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.on('closed', () => {
       this.window = null
     })
-
-    if (this.rendererUrl) void window.loadURL(new URL('capsule.html', this.rendererUrl).href)
-    else void window.loadFile(join(__dirname, '../renderer/capsule.html'))
-
     this.window = window
 
     return window

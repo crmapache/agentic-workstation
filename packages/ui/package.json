@@ -13,6 +13,7 @@
     "./*.types": "./src/components/*/*.types.ts",
     "./*.hooks": "./src/components/*/*.hooks.ts",
     "./*.utils": "./src/components/*/*.utils.ts",
+    "./*.constants": "./src/components/*/*.constants.ts",
     "./*": "./src/components/*/*.tsx"
   },
   "scripts": {

@@ -379,7 +379,10 @@ iframe под их строкой и ссылками `f2e7` (`page-frames.ts`: 
 ([ADR 0065](adr/0065-agent-marks-only-while-working.md)). Пока разговор держит компьютер, внизу по центру экрана капсула -
 окно-панель без фокуса поверх всех, закрытое от захвата экрана (`computer-capsule.ts`, страница
 `capsule.html` и `features/computer`, каналы `computer:*`); накладные окна не получают событий
-окна IDE (`window/overlay-windows.ts`). На виде Connectors - разрешения macOS «Универсальный
+окна IDE (`window/overlay-windows.ts`), общее у них - `overlay-window.ts`. Пока ИИ держит мышь,
+системная стрелка спрятана, а вместо неё стрелка ИИ стального синего - маленькое окно, которое
+едет за рукой (`computer-pointer.ts`, `computer-pointer-window.ts`, страница `pointer.html`;
+[ADR 0079](adr/0079-computer-use-pointer.md)); двинул мышь человек - сразу его стрелка. На виде Connectors - разрешения macOS «Универсальный
 доступ» и «Запись экрана», главный процесс перечитывает их при возврате в IDE.
 
 **Терминал** ([ADR 0037](adr/0037-terminal.md)) - как окно Terminal в WebStorm: кнопка внизу

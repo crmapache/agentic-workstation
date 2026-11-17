@@ -265,9 +265,11 @@ export default defineConfig(
               allow: allowTo('phone-e2e', 'phone', 'main', 'shared', 'relay', 'remote-protocol'),
             },
             { from: { element: { type: 'browser-protocol' } }, allow: allowTo('browser-protocol') },
+            // Расширение рисует стрелку ИИ тем же силуэтом, что и IDE (AgentPointer): из дизайн-
+            // системы берёт только постоянные, React в страницу не идёт.
             {
               from: { element: { type: 'browser-extension' } },
-              allow: allowTo('browser-extension', 'browser-protocol'),
+              allow: allowTo('browser-extension', 'browser-protocol', 'ui'),
             },
             {
               from: { element: { type: 'native-host' } },

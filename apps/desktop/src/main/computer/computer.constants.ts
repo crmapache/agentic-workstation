@@ -90,3 +90,19 @@ export const ACCESSIBILITY_SETTINGS_URL =
   'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility'
 export const SCREEN_SETTINGS_URL =
   'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+
+/**
+ * Стрелка ИИ Computer Use (ADR 0079): окно стрелки - квадрат с острием в середине, с местом под
+ * свечение и круг нажатия.
+ */
+export const POINTER_WINDOW_SIZE = 80
+
+/**
+ * Пока стрелка ИИ на экране, мышь проверяется так часто: двинул её человек - системная стрелка
+ * возвращается сразу. Сразу после шага руки не проверяется: система догоняет курсор с задержкой.
+ */
+export const POINTER_WATCH_MS = 50
+export const POINTER_MOTION_GRACE_MS = 150
+
+/** Метка в папке состояния IDE: курсоры Windows подменены пустыми (win-cursor.ts). */
+export const CURSOR_MARK_FILE = 'computer-cursor-hidden'

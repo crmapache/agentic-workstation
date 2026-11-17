@@ -1,4 +1,4 @@
-import { SHOT_MAX_SIDE, SHOT_MAX_PIXELS } from './computer.constants'
+import { HAND_DRIFT_PT, SHOT_MAX_SIDE, SHOT_MAX_PIXELS } from './computer.constants'
 import type { Point } from './computer.types'
 
 /** Прямоугольник в точках экрана macOS. */
@@ -12,6 +12,13 @@ export type Display = { id: number; bounds: Rect; scaleFactor: number; isMain: b
  * Координаты её действий - пиксели этого снимка; рука переводит их в точки экрана.
  */
 export type ShotFrame = { display: Display; width: number; height: number }
+
+/**
+ * Точки курсора разошлись больше, чем система сдвигает его сама (округление до пикселя, прижим к
+ * краю дисплея): значит, мышь двигал не тот, кто ставил.
+ */
+export const isApart = (a: Point, b: Point): boolean =>
+  Math.hypot(a.x - b.x, a.y - b.y) > HAND_DRIFT_PT
 
 /** Размер снимка дисплея для модели: по пропорциям дисплея, в пределах SHOT_MAX_*. */
 export const shotSize = (bounds: Rect): { width: number; height: number } => {

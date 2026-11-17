@@ -8,12 +8,12 @@ import {
   doubleGapMs,
 } from '../browser/human-motion'
 import { ComputerError, asComputerError } from './computer-error'
+import { isApart } from './computer-geometry'
 import type { Rect } from './computer-geometry'
 import { parseChord, PLATFORM_KEYMAP } from './computer-keys'
 import type { KeyChord } from './computer-keys'
 import {
   STILL_MS,
-  HAND_DRIFT_PT,
   STILL_POLL_MS,
   TYPE_RHYTHM_MAX,
   MODIFIER_LEAD_MS,
@@ -66,8 +66,6 @@ export const LIVE_MOTION: Motion = {
     }),
 }
 
-const far = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) > HAND_DRIFT_PT
-
 const inside = (rect: Rect, point: Point) =>
   point.x >= rect.x &&
   point.y >= rect.y &&
@@ -109,7 +107,7 @@ export class ComputerHand {
     const { now, sleep } = this.motion
     const isHolding = () => this.input.isButtonHeld() || this.input.heldFlags() !== 0
     let at = this.input.cursor()
-    const isMovedByPerson = this.placed !== null && far(at, this.placed)
+    const isMovedByPerson = this.placed !== null && isApart(at, this.placed)
 
     if (!isMovedByPerson && !isHolding()) return
 
@@ -123,7 +121,7 @@ export class ComputerHand {
 
       const next = this.input.cursor()
 
-      if (far(next, at) || isHolding()) quietFrom = now()
+      if (isApart(next, at) || isHolding()) quietFrom = now()
 
       at = next
     }
@@ -388,7 +386,7 @@ export class ComputerHand {
 
     const at = this.input.cursor()
 
-    if (far(at, this.placed) && (!this.previous || far(at, this.previous))) {
+    if (isApart(at, this.placed) && (!this.previous || isApart(at, this.previous))) {
       this.placed = null
       throw new ComputerError('interrupted', INTERRUPTED)
     }

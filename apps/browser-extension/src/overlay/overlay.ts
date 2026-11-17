@@ -1,8 +1,13 @@
 import type { CursorPath, CursorAction } from '@agentic-workstation/browser-protocol/protocol'
+import {
+  AGENT_POINTER_RIM,
+  AGENT_POINTER_PATH,
+  AGENT_POINTER_SIZE,
+} from '@agentic-workstation/ui/AgentPointer.constants'
 
 import type { OverlayCommand } from '../common/messages'
 import styles from './overlay.css?inline'
-import { CURSOR_PATH, CURSOR_SIZE, moveDuration } from './overlay.utils'
+import { moveDuration } from './overlay.utils'
 
 /**
  * Курсор и рамка агента в странице (ADR 0040). Скрипт внедряет сервис-воркер по требованию
@@ -179,11 +184,11 @@ const arrow = (): SVGSVGElement => {
   const path = document.createElementNS(SVG, 'path')
 
   svg.setAttribute('class', 'arrow')
-  svg.setAttribute('width', String(CURSOR_SIZE))
-  svg.setAttribute('height', String(CURSOR_SIZE))
-  svg.setAttribute('viewBox', `0 0 ${CURSOR_SIZE} ${CURSOR_SIZE}`)
-  path.setAttribute('d', CURSOR_PATH)
-  path.setAttribute('stroke-width', '1.25')
+  svg.setAttribute('width', String(AGENT_POINTER_SIZE))
+  svg.setAttribute('height', String(AGENT_POINTER_SIZE))
+  svg.setAttribute('viewBox', `0 0 ${AGENT_POINTER_SIZE} ${AGENT_POINTER_SIZE}`)
+  path.setAttribute('d', AGENT_POINTER_PATH)
+  path.setAttribute('stroke-width', String(AGENT_POINTER_RIM))
   svg.append(path)
 
   return svg

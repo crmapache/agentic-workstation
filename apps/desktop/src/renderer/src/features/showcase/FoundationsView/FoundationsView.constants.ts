@@ -47,6 +47,7 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       '--color-danger-soft',
       '--color-info',
       '--color-agent',
+      '--color-computer-cursor',
     ],
   },
   {

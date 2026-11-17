@@ -58,3 +58,18 @@ export const MODIFIER_FLAGS = FLAG.shift | FLAG.control | FLAG.option | FLAG.com
  * молча режет длиннее).
  */
 export const UNICODE_CHUNK = 20
+
+/** CGError: вызов удался. */
+export const CG_SUCCESS = 0
+
+/** kCGNullDirectDisplay: скрытие стрелки действует на всех дисплеях, номер не важен. */
+export const ANY_DISPLAY = 0
+
+/**
+ * Свойство соединения с оконным сервером (закрытое, ADR 0079): процесс может прятать стрелку и не
+ * будучи на переднем плане. Без него macOS возвращает стрелку, как только она над чужим окном.
+ */
+export const CURSOR_IN_BACKGROUND = 'SetsCursorInBackground'
+
+/** kCFStringEncodingUTF8. */
+export const CF_STRING_UTF8 = 0x08000100

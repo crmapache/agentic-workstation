@@ -1,42 +1,84 @@
+import { join } from 'node:path'
+
 import { app } from 'electron'
 
 import type { CapsuleView, CapsuleAction, ComputerState } from '@shared/computer'
 
 import { IS_WINDOWS } from '../platform'
+import { macCursor } from './cg-cursor'
 import { macInput } from './cg-events'
 import { readComputerState } from './computer-access'
 import { ComputerAgent } from './computer-agent'
 import { ComputerCapsule } from './computer-capsule'
 import { ComputerDesk } from './computer-desk'
 import { ComputerHand } from './computer-hand'
+import { withPointer, ComputerPointer } from './computer-pointer'
+import { ComputerPointerWindow } from './computer-pointer-window'
+import { CURSOR_MARK_FILE } from './computer.constants'
+import type { SystemCursor } from './computer.types'
+import {
+  fileMark,
+  createWindowsCursor,
+  loadWinCursorNative,
+  recoverWindowsCursor,
+} from './win-cursor'
 import { windowsInput } from './win-input'
 
 /**
- * Computer Use в IDE (ADR 0057): один стол и одна рука на всю машину, капсула и разрешения
- * macOS. Разрешения перечитываются, когда человек возвращается в IDE, - выдают их в Системных
- * настройках, и macOS о выдаче не сообщает.
+ * Системная стрелка этой машины. Windows: прошлый запуск мог упасть с подменёнными курсорами -
+ * вернуть их человеку сразу на старте.
+ */
+const systemCursor = (): SystemCursor => {
+  if (!IS_WINDOWS) return macCursor
+
+  const mark = fileMark(join(app.getPath('userData'), CURSOR_MARK_FILE))
+
+  recoverWindowsCursor(loadWinCursorNative, mark)
+
+  return createWindowsCursor(loadWinCursorNative, mark)
+}
+
+/**
+ * Computer Use в IDE (ADR 0057): один стол и одна рука на всю машину, капсула, стрелка ИИ (ADR
+ * 0079) и разрешения macOS. Разрешения перечитываются, когда человек возвращается в IDE, - выдают
+ * их в Системных настройках, и macOS о выдаче не сообщает.
  */
 export class ComputerRuntime {
   readonly agent: ComputerAgent
   private readonly desk: ComputerDesk
   private readonly capsule: ComputerCapsule
+  private readonly pointerWindow: ComputerPointerWindow
+  private readonly pointer: ComputerPointer
   private access: ComputerState = readComputerState()
 
   constructor(
     rendererUrl: string | undefined,
     private readonly changed: () => void,
   ) {
+    const input = IS_WINDOWS ? windowsInput : macInput
+
     this.capsule = new ComputerCapsule(rendererUrl)
-    this.desk = new ComputerDesk((view) => this.capsule.show(view))
+    this.pointerWindow = new ComputerPointerWindow(rendererUrl)
+    this.pointer = new ComputerPointer({
+      cursor: () => input.cursor(),
+      system: systemCursor(),
+      mark: this.pointerWindow,
+    })
+    // Мышь у ИИ, пока стол держит компьютер; на паузе она у человека.
+    this.desk = new ComputerDesk((view) => {
+      this.capsule.show(view)
+      this.pointer.setActive(view !== null && view.state !== 'paused')
+    })
     this.agent = new ComputerAgent({
       desk: this.desk,
-      hand: new ComputerHand(IS_WINDOWS ? windowsInput : macInput),
+      hand: new ComputerHand(withPointer(input, this.pointer)),
       // Каждый вызов - свежие разрешения: человек мог снять их посреди работы, а macOS тогда
       // молча выбрасывает события, и рука думала бы, что действует.
       access: () => this.recheck(),
       passThrough: (isOn) => this.capsule.passThrough(isOn),
       covers: (point) => this.capsule.covers(point),
-      hiddenFromShot: (shoot) => this.capsule.hiddenFromShot(shoot),
+      hiddenFromShot: (shoot) =>
+        this.capsule.hiddenFromShot(() => this.pointerWindow.hiddenFromShot(shoot)),
     })
 
     app.on('browser-window-focus', () => this.recheck())
@@ -97,6 +139,8 @@ export class ComputerRuntime {
 
   stop(): void {
     this.desk.dispose()
+    this.pointer.dispose()
+    this.pointerWindow.destroy()
     this.capsule.destroy()
   }
 }

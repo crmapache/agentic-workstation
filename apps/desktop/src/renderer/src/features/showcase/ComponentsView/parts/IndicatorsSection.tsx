@@ -25,10 +25,11 @@ import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { useGrowthFlash } from '../../../../lib/growth-flash.hooks'
 import { splitPath } from '../../../../lib/path.utils'
+import { AgentPointerSpecimen } from './AgentPointerSpecimen'
 
 /**
  * Раздел «Индикаторы»: значки проектов, иконки файлов, метки состояния, сочетания
- * клавиш, вкладки.
+ * клавиш, вкладки, стрелки ИИ.
  */
 export const IndicatorsSection = () => {
   const { t } = useTranslation('showcase')
@@ -108,6 +109,8 @@ export const IndicatorsSection = () => {
         <IconPlaque icon={Mail} tone="danger" muted />
         <IconPlaque icon={Plug} tone="accent" size="lg" />
       </Specimen>
+
+      <AgentPointerSpecimen />
 
       <Specimen label={t('specimens.kbd')}>
         {KBD_SAMPLES.map((keys) => (

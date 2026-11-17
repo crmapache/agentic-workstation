@@ -1,8 +1,9 @@
 import type { CapsuleView, CapsuleAction, ComputerPermission } from '../computer'
 
 /**
- * Часть контракта (contract.ts) про Computer Use (ADR 0057): капсула внизу экрана спрашивает,
- * что показать, и жмёт паузу и остановку; окно коннекторов просит разрешения macOS.
+ * Часть контракта (contract.ts) про Computer Use (ADR 0057, 0079): капсула внизу экрана
+ * спрашивает, что показать, и жмёт паузу и остановку; окно коннекторов просит разрешения macOS;
+ * окно стрелки ИИ узнаёт о нажатиях руки.
  */
 export type ComputerInvokeContract = {
   /** Что показывает капсула сейчас; компьютер свободен - null. */
@@ -19,6 +20,8 @@ export type ComputerInvokeContract = {
 export type ComputerEventContract = {
   /** Капсула поменялась - только самой капсуле, окну IDE это не нужно. */
   'computer:capsuleChanged': CapsuleView | null
+  /** Рука ИИ нажала кнопку мыши; номер нажатия - круг от острия. Только окну стрелки ИИ. */
+  'computer:pointerPressed': number
 }
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
@@ -31,4 +34,5 @@ export const COMPUTER_CHANNELS = {
 /** События этой части: их разворачивает EVENT_CHANNELS. */
 export const COMPUTER_EVENTS = {
   'computer:capsuleChanged': true,
+  'computer:pointerPressed': true,
 } satisfies Record<keyof ComputerEventContract, true>

@@ -1,0 +1,55 @@
+// Точка привязки нулевого размера: стрелка и круг висят от неё, острие - ровно в ней. Тон и
+// свечение - переменными, у каждой стрелки свои.
+.pointer {
+  --agent-pointer-tone: var(--color-accent);
+  --agent-pointer-glow: var(--glow-agent-cursor);
+
+  position: relative;
+  display: block;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.computer {
+  --agent-pointer-tone: var(--color-computer-cursor);
+  --agent-pointer-glow: var(--glow-computer-cursor);
+}
+
+// Острие - около (2, 2) поля: поле сдвинуто на столько же. Светлый тонкий контур читается и на
+// белой странице, и на тёмной, свечение тона - знак «тут работает ИИ».
+.arrow {
+  position: absolute;
+  top: calc(-1 * var(--space-0-5));
+  left: calc(-1 * var(--space-0-5));
+  display: block;
+  fill: var(--agent-pointer-tone);
+  stroke: var(--color-fg-strong);
+  stroke-linejoin: round;
+  filter: var(--agent-pointer-glow);
+}
+
+.ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border: var(--focus-ring-width) solid var(--agent-pointer-tone);
+  border-radius: var(--radius-full);
+  filter: var(--agent-pointer-glow);
+  translate: -50% -50%;
+  animation: agent-pointer-ripple var(--duration-reveal) var(--easing-out) both;
+}
+
+@keyframes agent-pointer-ripple {
+  from {
+    opacity: 1;
+    scale: 0.3;
+  }
+
+  to {
+    opacity: 0;
+    scale: 1.3;
+  }
+}
