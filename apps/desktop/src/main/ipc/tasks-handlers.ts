@@ -59,10 +59,20 @@ export const createTasksHandlers = (tasks: TaskService): Pick<InvokeHandlers, Ta
 
     return tasks.run(runId)
   },
-  'tasks:log': ({ runId, earlier }) => {
+  'tasks:log': ({ runId, earlier, chapter }) => {
     assertString(runId, 'runId')
 
-    return tasks.log(runId, earlier === true)
+    return tasks.log(runId, earlier === true, typeof chapter === 'number' ? chapter : null)
+  },
+  'tasks:goal': ({ runId }) => {
+    assertString(runId, 'runId')
+
+    return tasks.goal(runId)
+  },
+  'tasks:wake': ({ runId }) => {
+    assertString(runId, 'runId')
+
+    return tasks.wake(runId)
   },
   'tasks:openChat': ({ runId }) => {
     assertString(runId, 'runId')

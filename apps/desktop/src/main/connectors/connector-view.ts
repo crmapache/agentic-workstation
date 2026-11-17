@@ -4,9 +4,11 @@ import type {
   ConnectorStatus,
   ConnectorFailure,
 } from '@shared/connectors'
+import type { GoalOutbound } from '@shared/goals'
 
 import { maskArgs } from '../claude/tools/secret-mask'
 import type { StoredTool, StoredType, StoredConnector } from './connector-store'
+import { toolOpenFor, CONFIRM_NOTE } from './outbound-gate'
 import type { ServiceAnswer } from './service-answer'
 import { isToolEnabled } from './tool-access'
 import { signsInWithBrowser } from './kinds/sources'
@@ -91,12 +93,6 @@ export const connectorView = (
   }
 }
 
-/** Инструменты, которые модель увидит: включённые человеком или по умолчанию. */
-export const enabledTools = <T extends Pick<StoredTool, 'name' | 'access'>>(
-  tools: readonly T[],
-  overrides: Record<string, boolean>,
-): T[] => tools.filter((tool) => isToolEnabled(tool.access, overrides[tool.name]))
-
 const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   gmail: 'Gmail mailbox',
   calendar: 'Google Calendar',
@@ -125,7 +121,12 @@ export const connectorTitle = (connector: StoredConnector, name: string | null):
  * Что это за коннектор и в каком он состоянии - первая часть пояснения для модели. name -
  * имя своего типа (Playwright), у встроенных - null.
  */
-const stateFor = (connector: StoredConnector, live: LiveFacts, name: string | null): string => {
+const stateFor = (
+  connector: StoredConnector,
+  live: LiveFacts,
+  name: string | null,
+  outbound: GoalOutbound | null,
+): string => {
   const owner = connector.account ? ` ${connector.account}` : ''
   const service = name ? `${name} (${SERVICE_NAME[connector.kind]})` : SERVICE_NAME[connector.kind]
   const label = connector.label ? ` ("${connector.label}")` : ''
@@ -138,14 +139,17 @@ const stateFor = (connector: StoredConnector, live: LiveFacts, name: string | nu
     return `${head} It is not signed in, so it has no tools. Ask the user to sign in: ${where}.`
   }
 
-  const outboundOff = connector.tools.some(
-    (tool) =>
-      tool.access === 'outbound' && !isToolEnabled(tool.access, connector.toolOverrides[tool.name]),
+  const sends = connector.tools.filter((tool) => tool.access === 'outbound')
+  const outboundOff = sends.some(
+    (tool) => !toolOpenFor(tool.access, connector.toolOverrides[tool.name], outbound),
   )
 
-  return outboundOff
-    ? `${head} Tools that send anything to other people are turned off by the user: prepare drafts and let the user send them.`
-    : head
+  if (outboundOff) {
+    return `${head} Tools that send anything to other people are turned off by the user: prepare drafts and let the user send them.`
+  }
+
+  // Поручение, где каждое сообщение людям ждёт кнопки человека (ADR 0080), - так и сказать.
+  return outbound === 'confirm' && sends.length > 0 ? `${head} ${CONFIRM_NOTE}` : head
 }
 
 /** Как работать с коннектором, когда это не видно из самих инструментов. */
@@ -196,8 +200,9 @@ const projectNotes = (connector: StoredConnector, projectPath: string | null): s
  * человек запретил, как с ним работать, как человек сам его описал и что сказал про него в
  * проекте разговора (projectPath), и что ему поручают соседние коннекторы проекта (neighbours).
  * Модель видит его у каждого сервера - по нему она отличает рабочую почту от своей, выбирает
- * нужный из похожих и не пытается обойти выключенную отправку. Claude Code режет пояснение до
- * 2048 знаков: слова человека идут раньше заметок о соседях, чтобы под нож уходили заметки.
+ * нужный из похожих и не пытается обойти выключенную отправку. outbound - правило отправки
+ * поручения (ADR 0080), у обычного разговора null. Claude Code режет пояснение до 2048 знаков:
+ * слова человека идут раньше заметок о соседях, чтобы под нож уходили заметки.
  */
 export const instructionsFor = (
   connector: StoredConnector,
@@ -205,13 +210,14 @@ export const instructionsFor = (
   name: string | null,
   projectPath: string | null = null,
   neighbours: readonly StoredConnector['kind'][] = [],
+  outbound: GoalOutbound | null = null,
 ): string => {
   const isWorking = connector.enabled && live.signedIn
   const guide = isWorking ? KIND_GUIDE[connector.kind] : undefined
   const note = connector.description.trim()
 
   return [
-    stateFor(connector, live, name),
+    stateFor(connector, live, name, outbound),
     guide ?? '',
     note ? `The user describes this connector: ${note}` : '',
     ...(isWorking ? neighbourNotes(connector.kind, neighbours) : []),

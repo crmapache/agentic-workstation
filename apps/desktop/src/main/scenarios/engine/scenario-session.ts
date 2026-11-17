@@ -31,6 +31,11 @@ export type SessionSpec = {
   mcpConfig?: string | null
   /** Разрешено без вопроса (`--allowedTools`): свои серверы IDE из того же конфига шлюза. */
   allowedTools?: readonly string[] | undefined
+  /**
+   * Свои серверы IDE, которые нужны только этому процессу (инструменты поручения, ADR 0080):
+   * провайдер просит их у шлюза вместе с коннекторами проекта.
+   */
+  ideServers?: readonly string[] | undefined
 }
 
 export type SessionWires = {

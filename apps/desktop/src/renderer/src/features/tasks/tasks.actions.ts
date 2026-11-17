@@ -46,6 +46,9 @@ export const useTaskActions = () => {
   const tell = async (runId: string, text: string) =>
     took(await invoke('tasks:tell', { runId, text }))
 
+  /** Разбудить спящее поручение сейчас (ADR 0080). */
+  const wake = async (runId: string) => took(await invoke('tasks:wake', { runId }))
+
   /** Разговор прогона - вкладкой панели его проекта; окно прогона закрывается. */
   const openChat = async (runId: string) => {
     if (!took(await invoke('tasks:openChat', { runId }))) return
@@ -54,5 +57,5 @@ export const useTaskActions = () => {
     useLayoutStore.getState().showProviderView('claude-code')
   }
 
-  return { save, remove, setEnabled, runNow, stop, tell, openChat }
+  return { save, remove, setEnabled, runNow, stop, tell, wake, openChat }
 }

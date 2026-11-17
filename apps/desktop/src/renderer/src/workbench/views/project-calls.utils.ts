@@ -1,6 +1,7 @@
 import type { Conversation } from '@shared/claude'
 import type { RunSummary } from '@shared/scenario-runs'
 import { isRunAsking } from '@shared/scenario-runs'
+import type { TaskRunSummary } from '@shared/tasks'
 
 import type { TabCall } from '../../features/claude-code/claude.types'
 import type { ProjectCall } from '../../features/projects/ProjectTab/ProjectTab.types'
@@ -54,3 +55,22 @@ export const projectCalls = (
 
   return [...chats, ...asking].sort((a, b) => a.at - b.at)
 }
+
+/** Прогон задания, каким его видит зов: чей, ждёт ли человека и с какого момента. */
+export type CallingTaskRun = Pick<
+  TaskRunSummary,
+  'id' | 'projectPath' | 'state' | 'updatedAt' | 'taskName'
+>
+
+/**
+ * Зов прогонов заданий проекта: тот, что стоит на вопросе к человеку. Вид заданий показывает
+ * только открытый проект (как очереди, ADR 0072), и вопрос другого проекта виден отсюда.
+ */
+export const taskCalls = (
+  runs: readonly CallingTaskRun[],
+  rootPath: string,
+  text: (run: CallingTaskRun) => string,
+): ProjectCall[] =>
+  runs
+    .filter((run) => run.projectPath === rootPath && run.state === 'waiting')
+    .map((run) => ({ id: run.id, tone: 'attention', at: run.updatedAt, text: text(run) }))

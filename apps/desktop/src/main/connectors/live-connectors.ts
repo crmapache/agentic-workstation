@@ -6,6 +6,7 @@ import type { ConnectorRegistry } from './connector-registry'
 import { SecretsOf } from './connector-secrets'
 import type { StoredConnector } from './connector-store'
 import type { ConnectorsPlaces } from './connectors-service.types'
+import type { OutboundGate } from './outbound-gate'
 import type { Launch } from './gateway/launches'
 import { browserAccount } from './kinds/browser/browser-desk'
 
@@ -21,6 +22,8 @@ export class LiveConnectors {
     private readonly places: ConnectorsPlaces,
     private readonly access: () => ConnectorAccess,
     private readonly changed: () => void,
+    /** Правило отправки людям у поручений (ADR 0080); ставят задания, когда поднимутся. */
+    private readonly gate: () => OutboundGate | null = () => null,
   ) {}
 
   get(id: string): LiveConnector | null {
@@ -64,6 +67,7 @@ export class LiveConnectors {
                 isAvailableIn(other.availability, projectPath),
             )
             .map((other) => other.kind),
+        gate: this.gate,
         ...(connector.kind === 'browser'
           ? { account: () => browserAccount(this.places.browser.state()) }
           : {}),

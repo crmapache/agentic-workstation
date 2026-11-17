@@ -14,29 +14,31 @@ import { TaskRunModal } from '../TaskRunModal/TaskRunModal'
 import { useNow } from '../../../lib/now.hooks'
 import { useTaskRunStore } from '../../../state/task-run.store'
 import { useTasks } from '../../../state/tasks.queries'
-import { useWorkspace } from '../../../state/workspace.queries'
+import { useActiveProject } from '../../../state/workspace.queries'
 import styles from './TasksView.module.scss'
-import { groupsOf } from './TasksView.utils'
 import { RunList } from './parts/RunList'
 import { TaskList } from './parts/TaskList'
 
 /**
- * Задания по расписанию (ADR 0069) - вид середины окна: задания всех проектов IDE разделами по
- * проектам и их прогоны. Задание правится окном по центру, прогон - своим окном с отчётом и
- * разговором.
+ * Задания (ADR 0069) и поручения (ADR 0080) - вид середины окна: задания открытого проекта и их
+ * прогоны. Задание принадлежит проекту, как очередь (ADR 0072): чужие здесь не видны, а идут
+ * сами. Задание правится окном по центру, прогон - своим окном с отчётом и разговором.
  */
 export const TasksView = () => {
   const { t } = useTranslation()
   const { data } = useTasks()
-  const { data: workspace } = useWorkspace()
+  const project = useActiveProject()
   const tab = useTasksStore((state) => state.tab)
   const setTab = useTasksStore((state) => state.setTab)
   const editing = useTasksStore((state) => state.editing)
   const edit = useTasksStore((state) => state.edit)
   const runId = useTaskRunStore((state) => state.runId)
   const now = useNow(true, CLOCK_TICK_MS)
-  const tasks = data?.tasks ?? []
-  const runs = data?.runs ?? []
+  const root = project?.rootPath
+  const tasks = (data?.tasks ?? [])
+    .filter((task) => task.projectPath === root)
+    .sort((left, right) => left.name.localeCompare(right.name))
+  const runs = (data?.runs ?? []).filter((run) => run.projectPath === root)
   const counts = { tasks: tasks.length, runs: runs.length }
   const tabs = TASK_TABS.map((id) => ({ id, label: t(`tasks.tabs.${id}`), count: counts[id] }))
   const newButton = (
@@ -73,11 +75,7 @@ export const TasksView = () => {
               action={newButton}
             />
           ) : (
-            <TaskList
-              groups={groupsOf(tasks, workspace, t('tasks.row.home'))}
-              runs={runs}
-              now={now}
-            />
+            <TaskList tasks={tasks} runs={runs} goals={data?.goals ?? []} now={now} />
           )}
         </div>
       </div>

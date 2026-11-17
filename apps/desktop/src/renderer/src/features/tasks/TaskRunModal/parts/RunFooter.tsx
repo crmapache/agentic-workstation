@@ -12,14 +12,16 @@ import type { RunPartProps } from '../TaskRunModal.types'
 import { useTaskActions } from '../../tasks.actions'
 
 /**
- * Подвал прогона: свои слова прогону (идущему - следующим сообщением, законченному -
- * продолжением разговора), остановка идущего, разговор вкладкой панели и запуск заново.
+ * Подвал прогона: свои слова прогону (идущему - следующим сообщением, спящему поручению -
+ * пробуждением, законченному - продолжением разговора), разбудить и остановить спящее, остановка
+ * идущего, разговор вкладкой панели и запуск заново.
  */
 export const RunFooter = ({ run }: RunPartProps) => {
   const { t } = useTranslation()
   const actions = useTaskActions()
   const [text, setText] = useState('')
   const live = isRunLive(run.state)
+  const sleeping = run.state === 'sleeping'
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -48,7 +50,12 @@ export const RunFooter = ({ run }: RunPartProps) => {
           {t('tasks.run.send')}
         </Button>
       )}
-      {live ? (
+      {sleeping && (
+        <Button type="button" variant="ghost" onClick={() => void actions.wake(run.id)}>
+          {t('tasks.actions.wake')}
+        </Button>
+      )}
+      {live || sleeping ? (
         <Button type="button" variant="danger" onClick={() => void actions.stop(run.id)}>
           {t('tasks.actions.stop')}
         </Button>

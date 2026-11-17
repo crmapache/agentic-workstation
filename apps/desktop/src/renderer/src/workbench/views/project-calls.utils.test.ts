@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { TabCall } from '../../features/claude-code/claude.types'
 import type { CallingRun } from './project-calls.utils'
-import { projectCalls } from './project-calls.utils'
+import { taskCalls, projectCalls } from './project-calls.utils'
 
 const conversations = [
   { id: 'a', projectPath: '/p' },
@@ -60,5 +60,17 @@ describe('зов проекта', () => {
 
   it('никто не звал - пусто', () => {
     expect(projectCalls(conversations, {}, [run('r')], '/p', text)).toEqual([])
+  })
+
+  it('прогон задания зовёт, пока ждёт человека, - только свой проект', () => {
+    const runs = [
+      { id: 't1', projectPath: '/p', state: 'waiting' as const, updatedAt: 7, taskName: 'Corey' },
+      { id: 't2', projectPath: '/p', state: 'sleeping' as const, updatedAt: 8, taskName: 'Nap' },
+      { id: 't3', projectPath: '/x', state: 'waiting' as const, updatedAt: 9, taskName: 'Other' },
+    ]
+
+    expect(taskCalls(runs, '/p', (one) => one.taskName)).toEqual([
+      { id: 't1', tone: 'attention', at: 7, text: 'Corey' },
+    ])
   })
 })

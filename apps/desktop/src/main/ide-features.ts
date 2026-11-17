@@ -84,6 +84,7 @@ export const startIdeFeatures = async (setup: {
   // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
   const automation = await startTasks({
     claude,
+    connectors: setup.connectors,
     workspace,
     stats: statistics.stats,
     dataDir: setup.dataDir,

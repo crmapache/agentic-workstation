@@ -620,6 +620,7 @@
     "moreCalls": "+{{count}}",
     "call": "{{chat}} · {{reason}}",
     "scenarioCall": "{{name}} · scenario waiting for you",
+    "taskCall": "{{name}} · task waiting for you",
     "work": {
       "chat": "{{name}} · working",
       "scenario": "{{name}} · scenario running",
@@ -3375,7 +3376,7 @@
     "help": {
       "label": "About tasks",
       "title": "Tasks",
-      "text": "A task is a prompt Claude Code runs on its own, on a schedule, in a project folder - with the project's CLAUDE.md, hooks and connectors.\n\nEach run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done.\n\nIf the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
+      "text": "A task is a prompt Claude Code runs on its own in this project - with its CLAUDE.md, hooks and connectors. Tasks belong to their project: you see here the tasks of the project that is open.\n\nOn schedule: each run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done. If the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nUntil done: a goal that may take days - write to someone, wait for the reply, go on. Claude works, then goes to sleep and says what it waits for. The IDE watches for it without a model, asks a cheap model only when something changed, and wakes Claude when the awaited thing happens. A goal survives an IDE restart and stops at its budget or after its days.\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
     },
     "tabs": {
       "label": "Tasks sections",
@@ -3389,11 +3390,13 @@
       "stop": "Stop",
       "openChat": "Open in chat",
       "runAgain": "Run again",
-      "enable": "Run on schedule"
+      "enable": "Run on schedule",
+      "start": "Start",
+      "wake": "Wake now"
     },
     "empty": {
       "title": "No tasks yet",
-      "note": "A task runs Claude Code on its own on a schedule: a monthly invoice, a morning digest, a weekly check."
+      "note": "A task runs Claude Code on its own: on a schedule (a monthly invoice, a morning digest) or until done (agree on a call with someone, get an answer from support)."
     },
     "runsEmpty": {
       "title": "No runs yet",
@@ -3404,7 +3407,13 @@
       "paused": "Paused",
       "lastRun": "Last run {{when}}",
       "neverRun": "Not run yet",
-      "home": "Home"
+      "untilDone": "Until done",
+      "notStarted": "Not started",
+      "working": "Working",
+      "waitingYou": "Waiting for you",
+      "sleeping": "Waiting: {{reason}}",
+      "nextCheck": "next check {{when}}",
+      "wakesAt": "wakes {{when}}"
     },
     "schedule": {
       "manual": "Only when started by hand",
@@ -3423,7 +3432,8 @@
       "done": "Done",
       "failed": "Failed",
       "stopped": "Stopped",
-      "skipped": "Skipped"
+      "skipped": "Skipped",
+      "sleeping": "Sleeping"
     },
     "triggers": {
       "schedule": "On schedule",
@@ -3443,7 +3453,11 @@
       "crashed": "Claude Code stopped unexpectedly.",
       "turnError": "The run ended with an error.",
       "tooLong": "The run worked for more than 3 hours and was stopped.",
-      "ideClosed": "The run was interrupted when the IDE closed."
+      "ideClosed": "The run was interrupted when the IDE closed.",
+      "overBudget": "The goal reached its budget. Raise it in the task and continue.",
+      "wakeLimit": "The goal woke up too many times today and was stopped.",
+      "expired": "The goal ran out of its days without a result.",
+      "gaveUp": "The goal could not be reached."
     },
     "codes": {
       "taskGone": "The task is gone.",
@@ -3464,16 +3478,25 @@
       "turnError": "The run ended with an error.",
       "tooLong": "The run took too long.",
       "ideClosed": "The run was interrupted.",
+      "overBudget": "The goal reached its budget - raise it in the task first.",
+      "wakeLimit": "The goal woke up too many times today.",
+      "expired": "The goal ran out of its days.",
+      "gaveUp": "The goal could not be reached.",
       "unknown": "Something went wrong."
     },
     "form": {
       "newTitle": "New task",
       "editTitle": "Edit task",
+      "kind": "Kind",
+      "kinds": {
+        "schedule": "On schedule",
+        "goal": "Until done"
+      },
       "name": "Name",
       "namePlaceholder": "ReClick invoice",
-      "project": "Project",
       "prompt": "What to do",
       "promptPlaceholder": "Generate the monthly invoice and tell me where it is.",
+      "goalPlaceholder": "Agree with Corey on a call next week: write to him, wait for the reply, offer times from my calendar.",
       "repeat": "Repeat",
       "repeats": {
         "manual": "By hand",
@@ -3507,18 +3530,40 @@
       "catchUpHint": "Due while the computer was asleep or the IDE was closed - run once when it is back.",
       "report": "Report to Notifications",
       "reportHint": "A short report of every finished run. Failures always come.",
+      "outbound": "Writing to people",
+      "outbounds": {
+        "confirm": {
+          "label": "Ask me before each message",
+          "note": "Every message waits for your Allow in Notifications."
+        },
+        "drafts": {
+          "label": "Drafts only",
+          "note": "Claude prepares drafts, you send them."
+        },
+        "free": {
+          "label": "Send on its own",
+          "note": "Claude writes to people without asking."
+        }
+      },
+      "budget": "Budget",
+      "budgetValue": "${{amount}} for work and checks",
+      "lifeDays": "Give up after",
+      "lifeDaysValue_one": "{{count}} day",
+      "lifeDaysValue_other": "{{count}} days",
+      "goalNote": "Claude works, then sleeps until what it waits for happens. The IDE watches without a model and asks a cheap one only when something changed.",
       "save": "Save",
       "cancel": "Cancel",
       "remove": "Delete task",
       "help": {
         "label": "About the task form",
-        "text": "The task runs as a new Claude Code conversation in the project folder, with its CLAUDE.md, hooks and connectors, on the model you pick.\n\nPermissions: “Ask me” sends every permission request to Notifications and the run waits for your button. The other modes let Claude act on its own - pick them for tasks you trust.\n\nTimes are this computer's local time."
+        "text": "The task runs as a new Claude Code conversation in the project folder, with its CLAUDE.md, hooks and connectors, on the model you pick.\n\nUntil done: the goal keeps going over days. Its checks run on Haiku with low effort - only the real work uses the model you pick. Writing to people: by default every message waits for your Allow.\n\nPermissions: “Ask me” sends every permission request to Notifications and the run waits for your button. The other modes let Claude act on its own - pick them for tasks you trust.\n\nTimes are this computer's local time."
       },
       "removeSure": "Delete for good"
     },
     "run": {
       "tabs": {
         "label": "Run sections",
+        "goal": "Goal",
         "report": "Report",
         "log": "Conversation"
       },
@@ -3529,7 +3574,40 @@
       "cost": "${{cost}}",
       "tell": "Tell the task",
       "tellPlaceholder": "Answer or ask for more…",
-      "send": "Send"
+      "send": "Send",
+      "chapter": "Session {{number}}",
+      "chapters": "Sessions",
+      "spent": "Work ${{work}} · checks ${{checks}}"
+    },
+    "goal": {
+      "waitingFor": "Waiting for",
+      "working": "Working now.",
+      "person": "Your answer - write it below or press a button in Notifications.",
+      "until": "Wakes up {{when}} at the latest",
+      "tool": "Reads {{what}} every {{every}} min",
+      "look": "Looks: {{what}}",
+      "next": "next check {{when}}",
+      "failing": "failing: {{error}}",
+      "journal": "Journal",
+      "journalEmpty": "No notes yet.",
+      "history": "History",
+      "events": {
+        "started": "Started",
+        "slept": "Went to sleep",
+        "changed": "Something changed",
+        "noise": "Checked: nothing important",
+        "watchFailed": "A check kept failing",
+        "woke": "Woke up",
+        "chapter": "New session",
+        "resumed": "Continued",
+        "retry": "Will try again",
+        "nudged": "Asked to decide",
+        "confirmAsked": "Asked you to confirm a message",
+        "confirmed": "You allowed the message",
+        "refused": "You did not allow the message",
+        "finished": "Finished",
+        "limit": "Reached a limit"
+      }
     }
   },
   "inbox": {

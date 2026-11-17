@@ -164,7 +164,8 @@ const bootstrap = async () => {
     inbox: inboxLink,
   })
 
-  claude.connectors.configFor = (projectPath) => connectors.mcpConfigFor(projectPath)
+  claude.connectors.configFor = (projectPath, ideServers) =>
+    connectors.mcpConfigFor(projectPath, ideServers)
   // Поиск по разговорам панели - своим модулем (main/claude/search): индекс по проекту,
   // первая сборка - через 20 секунд после открытия проекта, поиск модели - на аккаунте панели.
   const conversationSearch = new SearchDesk({

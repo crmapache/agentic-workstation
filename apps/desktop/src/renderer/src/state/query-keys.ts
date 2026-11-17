@@ -110,8 +110,11 @@ export const QUERY_KEYS = {
   tasks: ['tasks', 'state'],
   /** Прогон задания целиком, с отчётом. */
   taskRun: (runId: string) => ['tasks', 'run', runId],
-  /** Журнал прогона - лентой разговора. */
-  taskLog: (runId: string) => ['tasks', 'log', runId],
+  /** Журнал прогона - лентой разговора; у поручения - по главам (null - текущая). */
+  taskLog: (runId: string, chapter: number | null = null) => ['tasks', 'log', runId, chapter],
+  /** Жизнь поручения (ADR 0080): журнал модели, сон, история. Префикс - все жизни разом. */
+  taskGoals: ['tasks', 'goal'],
+  taskGoal: (runId: string) => ['tasks', 'goal', runId],
   /** Уведомления IDE (ADR 0069). */
   inbox: ['inbox'],
   claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],

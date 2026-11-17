@@ -1,9 +1,14 @@
 import type { SessionSpec, SessionWires, SessionProcess } from '../scenario-session'
 import type { CliMessage } from '../../../claude/cli/cli-messages'
 
-/** Что подделка отвечает на сообщение: текст хода, вопрос разрешения или ничего (молчит). */
+/**
+ * Что подделка отвечает на сообщение: текст хода, вопрос разрешения или ничего (молчит). after -
+ * сначала дождаться работы (вызов инструмента IDE посреди хода), потом сказать текст.
+ */
 export type FakeReply =
   | { kind: 'say'; text: string; cost?: number }
+  | { kind: 'after'; work: () => Promise<unknown>; text: string; cost?: number }
+  | { kind: 'fail'; text: string }
   | { kind: 'ask'; tool: string; input: Record<string, unknown>; then: string }
   | { kind: 'refuseLimit' }
   | { kind: 'silent' }
@@ -127,7 +132,21 @@ export class FakeCli implements SessionProcess {
       return
     }
 
+    if (reply.kind === 'fail') {
+      return this.emit({ type: 'result', result: reply.text, is_error: true, num_turns: 1 })
+    }
+
     this.cost += reply.cost ?? 0.01
+
+    if (reply.kind === 'after') {
+      void reply.work().then(
+        () => this.finish(reply.text),
+        () => this.finish(reply.text),
+      )
+
+      return
+    }
+
     this.finish(reply.text)
   }
 

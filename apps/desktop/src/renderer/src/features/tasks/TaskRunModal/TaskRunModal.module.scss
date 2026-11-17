@@ -53,3 +53,46 @@
   flex: 1;
   min-width: 0;
 }
+
+// Раздел поручения: расход, чего ждёт, журнал и история - блоками одно под другим.
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.caption {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+
+.reason {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Строка истории: время узкой колонкой, событие - остальное.
+.event {
+  display: grid;
+  grid-template-columns: var(--size-fact-min) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.eventWhen {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}

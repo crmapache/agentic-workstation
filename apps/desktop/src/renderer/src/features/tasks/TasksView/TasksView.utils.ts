@@ -1,47 +1,4 @@
-import type { Task, TaskRunSummary } from '@shared/tasks'
-import type { WorkspaceState } from '@shared/workspace'
-
-import { baseName } from '../../../lib/path.utils'
-import type { TaskGroup } from './TasksView.types'
-
-/**
- * Задания по проектам: сначала проекты открытых вкладок в их порядке, потом остальные по имени;
- * внутри - по имени задания. Дом - словом «Home», а не именем своей папки.
- */
-export const groupsOf = (
-  tasks: readonly Task[],
-  workspace: WorkspaceState | undefined,
-  homeName: string,
-): TaskGroup[] => {
-  const open = workspace?.projects ?? []
-  const known = [...open, ...(workspace?.recentProjects ?? [])]
-  const nameOf = (path: string) => {
-    const project = open.find((one) => one.rootPath === path)
-
-    if (project?.home) return homeName
-
-    return known.find((one) => one.rootPath === path)?.name ?? baseName(path)
-  }
-  const rank = (path: string) => {
-    const at = open.findIndex((one) => one.rootPath === path)
-
-    return at < 0 ? open.length : at
-  }
-  const paths = [...new Set(tasks.map((task) => task.projectPath))]
-
-  return paths
-    .map((projectPath) => ({
-      projectPath,
-      name: nameOf(projectPath),
-      tasks: tasks
-        .filter((task) => task.projectPath === projectPath)
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    }))
-    .sort(
-      (left, right) =>
-        rank(left.projectPath) - rank(right.projectPath) || left.name.localeCompare(right.name),
-    )
-}
+import type { TaskRunSummary } from '@shared/tasks'
 
 /** Последний прогон задания (сводки уже новые первыми); пропущенный - тоже прогон. */
 export const lastRunOf = (runs: readonly TaskRunSummary[], taskId: string) =>

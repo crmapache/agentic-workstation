@@ -11,9 +11,12 @@ import type { ConversationRuntime } from './conversation/conversation-runtime'
 export class ConnectorsBridge {
   /**
    * Конфиг шлюза для нового процесса в проекте; null - коннекторов в нём нет или шлюз не
-   * поднялся. Ставит index.ts.
+   * поднялся. ideServers - свои серверы IDE только этому процессу (поручение). Ставит index.ts.
    */
-  configFor: (projectPath: string) => Promise<ConnectorsLaunch | null> = () => Promise.resolve(null)
+  configFor: (
+    projectPath: string,
+    ideServers?: readonly string[],
+  ) => Promise<ConnectorsLaunch | null> = () => Promise.resolve(null)
 
   constructor(private readonly runtimes: () => Iterable<ConversationRuntime>) {}
 

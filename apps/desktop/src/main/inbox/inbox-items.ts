@@ -130,10 +130,17 @@ export const askItem = (run: TaskRun, ask: CardAsk): InboxItem => {
   })
 }
 
+/** Пределы поручения: продолжить можно, когда человек поднял предел или решил, что пора. */
+const GOAL_LIMITS: readonly (TaskFailure | null)[] = ['overBudget', 'wakeLimit', 'expired']
+
 /** Кнопки сбоя по причине: довериться папке, продолжить оборванное, запустить заново. */
 const failureActions = (failure: TaskFailure | null): InboxAction[] => {
   if (failure === 'untrusted') return [action('trust', { primary: true }), SHOW_RUN]
-  if (failure === 'ideClosed') return [action('resume', { primary: true }), SHOW_RUN]
+  if (failure === 'ideClosed' || GOAL_LIMITS.includes(failure)) {
+    return [action('resume', { primary: true }), SHOW_RUN]
+  }
+  // Поручение само сказало, что цели не достичь: отчёт - его слова, кнопки - посмотреть.
+  if (failure === 'gaveUp') return [SHOW_RUN, action('openChat')]
   if (failure === 'crashed' || failure === 'turnError' || failure === 'tooLong') {
     return [action('resume', { primary: true }), action('runAgain'), SHOW_RUN]
   }
@@ -166,7 +173,10 @@ export const finishItem = (run: TaskRun, task: Task | undefined): InboxItem | nu
     })
   }
 
-  if (run.state !== 'done' || run.notified || task?.report === false) return null
+  // Итог поручения приходит всегда, даже если по дороге оно писало человеку само.
+  const notified = run.notified && task?.kind !== 'goal'
+
+  if (run.state !== 'done' || notified || task?.report === false) return null
 
   return blankItem({
     ...base,
@@ -176,3 +186,19 @@ export const finishItem = (run: TaskRun, task: Task | undefined): InboxItem | nu
     actions: [SHOW_RUN, action('openChat')],
   })
 }
+
+/**
+ * Поручение встало без решения: ждёт слова человека. Слово пишется в окне прогона («сказать
+ * заданию») - оно и будит поручение.
+ */
+export const goalWaitsItem = (run: TaskRun): InboxItem =>
+  blankItem({
+    kind: 'message',
+    tone: 'attention',
+    title: run.taskName,
+    body: run.report.slice(0, BODY_MAX),
+    source: run.taskName,
+    projectPath: run.projectPath,
+    origin: { kind: 'task', taskId: run.taskId, runId: run.id },
+    actions: [action('showRun', { primary: true })],
+  })

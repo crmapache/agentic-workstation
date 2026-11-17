@@ -3,6 +3,7 @@ import { isAvailableIn } from '@shared/connector-availability'
 import type { LiveConnector } from './connector-live'
 import type { ConnectorRegistry } from './connector-registry'
 import { ConnectorGateway } from './gateway/gateway'
+import type { GatewayServer } from './gateway/gateway'
 import { GatewayLaunches } from './gateway/launches'
 import type { Launch, McpLaunch } from './gateway/launches'
 
@@ -21,9 +22,17 @@ export type LaunchEnds = {
  * получает только коннекторы своего проекта, а шлюз по ключу процесса не пускает к
  * выключенному там коннектору - даже процесс, поднятый до выключения.
  */
+/** Свой сервер IDE для процесса разговора; не его процесс - null (шлюз ответит 404). */
+export type IdeServer = (launch: Launch) => GatewayServer | null
+
 export class GatewayHost {
   private readonly gateway: ConnectorGateway<Launch>
   private readonly launches: GatewayLaunches
+  /**
+   * Свои серверы IDE, которых нет в реестре коннекторов (инструменты поручения, ADR 0080): процесс
+   * получает их, только если попросил при подъёме, и шлюз всё равно спрашивает, его ли это процесс.
+   */
+  private readonly ide = new Map<string, IdeServer>()
 
   constructor(
     private readonly registry: ConnectorRegistry,
@@ -43,6 +52,10 @@ export class GatewayHost {
       {
         authorize: (token) => this.launches.find(token),
         resolve: (name, launch) => {
+          const own = this.ide.get(name)
+
+          if (own) return own(launch)
+
           const connector = registry.byServer(name)
 
           if (!connector || !isAvailableIn(connector.availability, launch.projectPath)) {
@@ -67,12 +80,22 @@ export class GatewayHost {
     return this.gateway.stop()
   }
 
+  /** Завести свой сервер IDE под именем, которое реестр коннекторам не отдаёт. */
+  serveIde(name: string, server: IdeServer): void {
+    this.ide.set(name, server)
+  }
+
   /**
-   * Конфиг для нового процесса разговора в этом проекте: коннекторы, видимые в нём, со
-   * своим ключом. Шлюз не поднят или коннекторов в проекте нет - null, флага не нужно.
+   * Конфиг для нового процесса разговора в этом проекте: коннекторы, видимые в нём, и
+   * попрошенные свои серверы IDE, со своим ключом. Шлюз не поднят или коннекторов в проекте нет - null, флага не нужно.
    * Файл не записался - ошибка: процесс поднимется без коннекторов и скажет об этом.
    */
-  open(projectPath: string): Promise<McpLaunch | null> {
+  open(projectPath: string, ideServers: readonly string[] = []): Promise<McpLaunch | null> {
+    const own = ideServers.flatMap((name) => {
+      const url = this.ide.has(name) ? this.gateway.urlOf(name) : null
+
+      return url ? [{ name, url }] : []
+    })
     const entries = this.registry.connectors.flatMap((connector) => {
       const url = this.gateway.urlOf(connector.serverName)
 
@@ -90,9 +113,14 @@ export class GatewayHost {
           entries.some((entry) => entry.name === connector.serverName),
       )
       .map((connector) => `mcp__${connector.serverName}`)
+    // Свои серверы IDE работают на сам разговор и разрешены без вопроса, как уведомления.
+    const all = [...own, ...entries]
 
-    return entries.length
-      ? this.launches.issue(projectPath, entries, allowed)
+    return all.length
+      ? this.launches.issue(projectPath, all, [
+          ...allowed,
+          ...own.map((entry) => `mcp__${entry.name}`),
+        ])
       : Promise.resolve(null)
   }
 }

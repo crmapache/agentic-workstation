@@ -7,7 +7,12 @@ import type { InboxItem } from '@shared/inbox'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from '../claude/claude-service'
+import type { ConnectorsService } from '../connectors/connectors-service'
 import { openOutside } from '../fs/outside-open'
+import { GoalBook } from '../goals/goal-book'
+import type { StoredGoals } from '../goals/goal-book'
+import { GOAL_SERVER } from '../goals/goal-briefing'
+import { goalServer } from '../goals/goal-tools'
 import { InboxAgent } from '../inbox/inbox-agent'
 import type { InboxLink, AgentCaller, AgentOrigin } from '../inbox/inbox-agent'
 import { bannerOf } from '../inbox/inbox-banner'
@@ -18,6 +23,7 @@ import type { StatsService } from '../statistics/stats-service'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import { claudeGoalChecks } from '../providers/claude/claude-goal-checks'
 import { claudeSessions } from '../providers/claude/claude-sessions'
 import { TaskBook } from './task-book'
 import type { StoredTasks } from './task-book'
@@ -31,6 +37,8 @@ const FIRST_TICK_MS = 5 * SECOND_MS
 
 export type TasksSetup = {
   claude: ClaudeService
+  /** Коннекторы: сторожа поручений, свой сервер поручения и правило отправки (ADR 0080). */
+  connectors: ConnectorsService
   workspace: WorkspaceService
   stats: StatsService
   dataDir: string
@@ -67,10 +75,16 @@ const showBanner = (item: InboxItem, getWindow: () => BrowserWindow | null) => {
  * ещё раз, когда машина проснулась: срок, проспанный в сне, наверстывается сразу.
  */
 export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
-  const { claude, workspace, getWindow } = setup
+  const { claude, workspace, getWindow, connectors } = setup
   const { book, interrupted } = await TaskBook.load(
     new JsonFile<StoredTasks>(join(setup.dataDir, 'tasks.json')),
   )
+  const goalBook = await GoalBook.load(
+    new JsonFile<StoredGoals>(join(setup.dataDir, 'goals.json'), { mode: 0o600 }),
+  )
+
+  // Жизни, чьих прогонов книга заданий уже не помнит, - не нужны.
+  goalBook.keepOnly(new Set(book.runs.map((run) => run.id)))
   const knownFolders = () => {
     const state = workspace.getState()
 
@@ -111,7 +125,24 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
     onRunFinished: (run) => {
       if (run.sessionId) setup.stats.noteIdeSession('claude', run.sessionId, 'task')
     },
+    goals: {
+      book: goalBook,
+      probe: (projectPath, server, tool, args, signal) =>
+        connectors.goals.probe({ projectPath, server, tool, args, signal }),
+      checker: claudeGoalChecks(claude, connectors, setup.dataDir),
+    },
   })
+  const goals = tasks.goals.desk
+
+  // Свой сервер поручения - только процессам живых поручений; правило отправки людям - шлюзу.
+  connectors.goals.serveIde(
+    GOAL_SERVER,
+    goalServer(goals, (sessionId) => goals.outboundOf(sessionId) !== null),
+  )
+  connectors.goals.gate = {
+    outboundOf: (sessionId) => goals.outboundOf(sessionId),
+    confirm: (sessionId, call, signal) => tasks.goals.confirm(sessionId, call, signal),
+  }
   const inbox = await InboxService.load(
     new JsonFile<StoredInbox>(join(setup.dataDir, 'inbox.json')),
     {
@@ -170,8 +201,10 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
     if (origin.kind === 'task') tasks.noteNotified(origin.runId)
   })
 
-  // Прогоны, которые оборвала закрытая IDE, - уведомлением: продолжить ли.
+  // Прогоны, которые оборвала закрытая IDE, - уведомлением: продолжить ли. Поручения
+  // продолжаются сами (ADR 0080).
   for (const run of interrupted) inbox.finished(run, tasks.task(run.taskId))
+  tasks.restoreGoals()
 
   const tick = () => {
     inbox.tick()
@@ -192,6 +225,7 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
       clearTimeout(first)
       powerMonitor.off('resume', tick)
       tasks.shutdown()
+      connectors.goals.gate = null
       setup.inboxLink.agent = null
     },
   }

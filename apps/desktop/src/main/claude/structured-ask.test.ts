@@ -30,4 +30,25 @@ describe('askArgs', () => {
       '{"type":"object"}',
     ])
   })
+
+  it('проверка поручения: конфиг шлюза и только названные инструменты из него, своё усилие', () => {
+    const look = askArgs({
+      schema: { type: 'object' },
+      tools: ['WebFetch'],
+      model: 'haiku',
+      effort: 'low',
+      mcpConfig: '/tmp/gateway.json',
+      mcpTools: ['mcp__gmail-work__search_threads'],
+    })
+
+    expect(look[look.indexOf('--mcp-config') + 1]).toBe('/tmp/gateway.json')
+    expect(look.slice(look.indexOf('--allowedTools') + 1, look.indexOf('--model'))).toEqual([
+      'WebFetch',
+      'mcp__gmail-work__search_threads',
+    ])
+    expect(look[look.indexOf('--effort') + 1]).toBe('low')
+    expect(askArgs({ schema: {}, tools: [], mcpTools: ['mcp__x__y'] })).not.toContain(
+      '--allowedTools',
+    )
+  })
 })

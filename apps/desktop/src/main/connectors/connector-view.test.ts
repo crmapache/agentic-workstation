@@ -4,7 +4,8 @@ import { EVERYWHERE } from '@shared/connector-availability'
 import { CONNECTOR_DESCRIPTION_MAX } from '@shared/connectors'
 
 import type { StoredConnector } from './connector-store'
-import { statusOf, enabledTools, connectorView, instructionsFor } from './connector-view'
+import { statusOf, connectorView, instructionsFor } from './connector-view'
+import { toolOpenFor } from './outbound-gate'
 import { computerGuide, COMPUTER_GUIDE } from './kinds/computer/computer-guide'
 
 const connector: StoredConnector = {
@@ -47,12 +48,29 @@ describe('statusOf', () => {
   })
 })
 
-describe('enabledTools', () => {
+describe('toolOpenFor', () => {
   it('отправка выключена, пока человек её не включил', () => {
-    expect(enabledTools(connector.tools, {}).map((tool) => tool.name)).toEqual(['search_threads'])
-    expect(enabledTools(connector.tools, { send_draft: true, search_threads: false })).toEqual([
-      connector.tools[1],
-    ])
+    expect(toolOpenFor('outbound', undefined, null)).toBe(false)
+    expect(toolOpenFor('outbound', true, null)).toBe(true)
+    expect(toolOpenFor('read', false, null)).toBe(false)
+  })
+
+  it('у поручения отправка открыта правилом, кроме выключенной поштучно и черновиков', () => {
+    expect(toolOpenFor('outbound', undefined, 'confirm')).toBe(true)
+    expect(toolOpenFor('outbound', undefined, 'free')).toBe(true)
+    expect(toolOpenFor('outbound', false, 'confirm')).toBe(false)
+    expect(toolOpenFor('outbound', true, 'drafts')).toBe(false)
+    expect(toolOpenFor('read', undefined, 'drafts')).toBe(true)
+  })
+
+  it('пояснение поручения говорит о подтверждении, а не о выключенной отправке', () => {
+    const text = instructionsFor(connector, live, null, null, [], 'confirm')
+
+    expect(text).toContain('waits for the user to confirm')
+    expect(text).not.toContain('turned off by the user')
+    expect(instructionsFor(connector, live, null, null, [], 'drafts')).toContain(
+      'turned off by the user',
+    )
   })
 })
 

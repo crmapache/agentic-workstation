@@ -1,3 +1,4 @@
+import { DEFAULT_GOAL } from '@shared/goals'
 import { parseDay } from '@shared/task-clock'
 import type { Task, TaskDraft, TaskSchedule } from '@shared/tasks'
 import { LAST_MONTH_DAY } from '@shared/tasks'
@@ -85,9 +86,13 @@ export const scheduleOf = ({ day, ...schedule }: ScheduleForm): TaskSchedule => 
   date: schedule.repeat === 'once' ? dayKey(day) : schedule.date,
 })
 
-/** Новое задание: папка - выбранный проект, каждый день в девять, вопросы - в уведомления. */
+/**
+ * Новое задание: папка - открытый проект (задание принадлежит ему), каждый день в девять,
+ * вопросы - в уведомления; поручение - с подтверждением каждого сообщения людям.
+ */
 export const blankDraft = (projectPath: string): TaskDraft => ({
   id: null,
+  kind: 'schedule',
   name: '',
   projectPath,
   prompt: '',
@@ -99,6 +104,7 @@ export const blankDraft = (projectPath: string): TaskDraft => ({
   model: '',
   effort: '',
   permissionMode: 'default',
+  goal: DEFAULT_GOAL,
 })
 
 export const draftOf = ({ createdAt: _c, updatedAt: _u, nextAt: _n, ...task }: Task): TaskDraft =>

@@ -1,113 +1,29 @@
-import { rm, mkdtemp } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import type { InboxItem } from '@shared/inbox'
 import type { ScenarioCode } from '@shared/scenarios'
-import type { TaskDraft } from '@shared/tasks'
 import { MINUTE_MS } from '@shared/time-units'
 
 import { InboxAgent } from '../inbox/inbox-agent'
-import { InboxService } from '../inbox/inbox-service'
-import type { StoredInbox } from '../inbox/inbox-service'
-import { JsonFile } from '../storage/json-file'
-import { settle, FakeCli } from '../scenarios/engine/__fixtures__/fake-cli'
-import type { FakeScript } from '../scenarios/engine/__fixtures__/fake-cli'
-import { TaskBook } from './task-book'
-import type { StoredTasks } from './task-book'
-import { TaskService } from './task-service'
+import { settle } from '../scenarios/engine/__fixtures__/fake-cli'
+import type { FakeCli } from '../scenarios/engine/__fixtures__/fake-cli'
+import { TaskHarness } from './__fixtures__/task-harness'
 
+const harness = new TaskHarness()
 let dir = ''
 let clis: FakeCli[] = []
 let arrived: InboxItem[] = []
 
-const draft = (patch: Partial<TaskDraft> = {}): TaskDraft => ({
-  id: null,
-  name: 'Invoice',
-  projectPath: dir,
-  prompt: 'Make the monthly invoice',
-  schedule: { repeat: 'manual', at: 9 * 60, days: [], monthDay: 1, date: '' },
-  enabled: true,
-  catchUp: true,
-  report: true,
-  provider: 'claude',
-  model: '',
-  effort: '',
-  permissionMode: 'default',
-  ...patch,
-})
+const start = (...args: Parameters<TaskHarness['start']>) => harness.start(...args)
 
-/** Задания и уведомления на подделке CLI, связанные так же, как в tasks-setup. */
-const start = async (
-  script: FakeScript,
-  {
-    prepare = () => Promise.resolve(null),
-    chat = () => Promise.resolve(false),
-  }: {
-    prepare?: () => Promise<ScenarioCode | null>
-    chat?: (sessionId: string, text: string) => Promise<boolean>
-  } = {},
-) => {
-  const { book } = await TaskBook.load(new JsonFile<StoredTasks>(join(dir, 'tasks.json')))
-  const tasks = new TaskService(book, {
-    dataDir: dir,
-    host: {
-      sessions: {
-        prepare,
-        spawn: (spec, _place, wires) => {
-          const cli = new FakeCli(spec, wires, script)
-
-          clis.push(cli)
-
-          return cli
-        },
-      },
-      defaults: () => ({ model: 'sonnet', effort: '' }),
-      accountId: () => '',
-    },
-    folderKnown: (path) => path === dir,
-    openChat: () => Promise.resolve(true),
-    sendToChat: chat,
-    onState: () => undefined,
-    onRunFinished: () => undefined,
-  })
-  const inbox = await InboxService.load(new JsonFile<StoredInbox>(join(dir, 'inbox.json')), {
-    onState: () => undefined,
-    onArrived: (item) => arrived.push(item),
-  })
-
-  inbox.routes = {
-    tasks,
-    sendToChat: () => Promise.resolve(false),
-    trust: () => Promise.resolve(),
-    openPath: () => Promise.resolve(true),
-    openUrl: () => true,
-  }
-  tasks.inbox = inbox
-
-  return { tasks, inbox, book }
-}
-
-const saved = async (tasks: TaskService, patch: Partial<TaskDraft> = {}) => {
-  const result = await tasks.save(draft(patch))
-
-  if (!result.ok) throw new Error(result.code)
-
-  return result.taskId
-}
+const saved = (...args: Parameters<TaskHarness['saved']>) => harness.saved(...args)
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'tasks-'))
-  clis = []
-  arrived = []
+  await harness.open()
+  ;({ dir, clis, arrived } = harness)
 })
 
-afterEach(async () => {
-  await settle()
-  await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 })
-})
+afterEach(() => harness.close())
 
 describe('TaskService', () => {
   it('runs a task and reports its last words to the notifications', async () => {
@@ -466,10 +382,10 @@ describe('TaskService', () => {
   it('refuses a task outside the known folders', async () => {
     const { tasks } = await start(() => ({ kind: 'say', text: 'ok' }))
 
-    expect(await tasks.save(draft({ projectPath: '/nowhere' }))).toEqual({
+    expect(await tasks.save(harness.draft({ projectPath: '/nowhere' }))).toEqual({
       ok: false,
       code: 'badFolder',
     })
-    expect(await tasks.save(draft({ name: ' ' }))).toEqual({ ok: false, code: 'noName' })
+    expect(await tasks.save(harness.draft({ name: ' ' }))).toEqual({ ok: false, code: 'noName' })
   })
 })

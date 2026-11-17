@@ -1,5 +1,5 @@
 import type { Task, TaskRun } from '@shared/tasks'
-import { isRunLive } from '@shared/tasks'
+import { isRunLive, isRunOpen } from '@shared/tasks'
 
 import type { JsonFile } from '../storage/json-file'
 import { runOf, taskOf } from './task-parse'
@@ -14,7 +14,8 @@ export type StoredTasks = { tasks: Task[]; runs: TaskRun[] }
 
 /**
  * Новейшие прогоны каждого задания, новые первыми: RUNS_PER_TASK настоящих и SKIPS_PER_TASK
- * пропусков. Идущий прогон не выбрасывается никогда - его ждут ответ, остановка и уведомление.
+ * пропусков. Идущий прогон и спящее поручение не выбрасываются никогда - их ждут ответ,
+ * остановка, уведомление и пробуждение.
  */
 export const keepRuns = (runs: readonly TaskRun[]): TaskRun[] => {
   const counted = new Map<string, number>()
@@ -22,7 +23,7 @@ export const keepRuns = (runs: readonly TaskRun[]): TaskRun[] => {
   return [...runs]
     .sort((left, right) => right.startedAt - left.startedAt)
     .filter((run) => {
-      if (isRunLive(run.state)) return true
+      if (isRunOpen(run.state)) return true
 
       const skipped = run.state === 'skipped'
       const key = `${run.taskId}:${skipped ? 'skip' : 'run'}`
@@ -35,19 +36,22 @@ export const keepRuns = (runs: readonly TaskRun[]): TaskRun[] => {
 }
 
 /**
- * Прогон, который шёл, когда IDE закрылась: его процесса больше нет. Он остановлен с причиной -
- * уведомление предложит продолжить разговор.
+ * Прогон, который шёл, когда IDE закрылась: его процесса больше нет. Прогон по расписанию
+ * остановлен с причиной - уведомление предложит продолжить разговор. Поручение засыпает: его
+ * жизнь продолжит сама IDE (ADR 0080, GoalDesk.restore).
  */
-export const settleInterrupted = (run: TaskRun): TaskRun =>
-  isRunLive(run.state)
-    ? {
-        ...run,
-        state: 'stopped',
-        failure: 'ideClosed',
-        endedAt: run.updatedAt || run.startedAt,
-        asking: 0,
-      }
-    : run
+export const settleInterrupted = (run: TaskRun, goal: boolean): TaskRun => {
+  if (!isRunLive(run.state)) return run
+  if (goal) return { ...run, state: 'sleeping', asking: 0 }
+
+  return {
+    ...run,
+    state: 'stopped',
+    failure: 'ideClosed',
+    endedAt: run.updatedAt || run.startedAt,
+    asking: 0,
+  }
+}
 
 /**
  * Задания и их прогоны в памяти и одним файлом в userData (`tasks.json`). Запись - по очереди:
@@ -68,11 +72,15 @@ export class TaskBook {
     const raw = (await file.read()) as Partial<Record<keyof StoredTasks, unknown>> | null
     const tasks = Array.isArray(raw?.tasks) ? raw.tasks.flatMap((one) => taskOf(one) ?? []) : []
     const stored = Array.isArray(raw?.runs) ? raw.runs.flatMap((one) => runOf(one) ?? []) : []
-    const interrupted = stored.filter((run) => isRunLive(run.state)).map(settleInterrupted)
-    const runs = keepRuns(stored.map(settleInterrupted))
+    const goals = new Set(tasks.filter((task) => task.kind === 'goal').map((task) => task.id))
+    const settle = (run: TaskRun) => settleInterrupted(run, goals.has(run.taskId))
+    const interrupted = stored
+      .filter((run) => isRunLive(run.state) && !goals.has(run.taskId))
+      .map(settle)
+    const runs = keepRuns(stored.map(settle))
     const book = new TaskBook(file, tasks, runs)
 
-    if (interrupted.length > 0) await book.save()
+    if (stored.some((run) => isRunLive(run.state))) await book.save()
 
     return { book, interrupted }
   }

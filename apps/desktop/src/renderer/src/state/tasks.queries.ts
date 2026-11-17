@@ -9,8 +9,8 @@ import { QUERY_KEYS } from './query-keys'
 const LIVE_LOG_MS = 3_000
 
 /**
- * Задания по расписанию (ADR 0069). Владелец - главный процесс: задания и сводки прогонов
- * всех проектов IDE. Здесь зеркало в кэше - его читают вид заданий, число на его иконке и
+ * Задания по расписанию (ADR 0069) и поручения (ADR 0080). Владелец - главный процесс: задания и
+ * сводки прогонов всех проектов IDE. Здесь зеркало в кэше - его читают вид заданий, число на его иконке и
  * уведомления (прогон по кнопке).
  */
 export const useTasks = () =>
@@ -29,18 +29,30 @@ export const useTaskRun = (runId: string | null) =>
     staleTime: Infinity,
   })
 
-/** Журнал прогона: идущий перечитывается, законченный - один раз. */
-export const useTaskLog = (runId: string, live: boolean) =>
+/** Журнал прогона: идущий перечитывается, законченный - один раз; chapter - глава поручения. */
+export const useTaskLog = (runId: string, live: boolean, chapter: number | null = null) =>
   useQuery({
-    queryKey: QUERY_KEYS.taskLog(runId),
-    queryFn: () => invoke('tasks:log', { runId, earlier: false }),
-    staleTime: live ? 0 : Infinity,
-    refetchInterval: live ? LIVE_LOG_MS : false,
+    queryKey: QUERY_KEYS.taskLog(runId, chapter),
+    queryFn: () => invoke('tasks:log', { runId, earlier: false, chapter }),
+    staleTime: live && chapter === null ? 0 : Infinity,
+    refetchInterval: live && chapter === null ? LIVE_LOG_MS : false,
   })
 
-/** Сколько прогонов ждут человека - число на иконке вида заданий. */
-export const waitingCount = (state: TasksState | undefined): number =>
-  state?.runs.filter((run) => run.state === 'waiting').length ?? 0
+/** Жизнь поручения (ADR 0080); перечитывается с каждым tasks:changed (сторожа, сон). */
+export const useTaskGoal = (runId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: QUERY_KEYS.taskGoal(runId),
+    queryFn: () => invoke('tasks:goal', { runId }),
+    enabled,
+    staleTime: Infinity,
+  })
+
+/**
+ * Сколько прогонов этого проекта ждут человека - число на иконке вида заданий: вид показывает
+ * задания только открытого проекта, как очереди (ADR 0072).
+ */
+export const waitingCount = (state: TasksState | undefined, rootPath: string | undefined): number =>
+  state?.runs.filter((run) => run.state === 'waiting' && run.projectPath === rootPath).length ?? 0
 
 export const useTasksSync = () => {
   const queryClient = useQueryClient()
@@ -57,5 +69,8 @@ export const useTasksSync = () => {
         void queryClient.invalidateQueries({ queryKey: key, exact: true })
       }
     }
+
+    // Жизнь поручения меняется и без перемены прогона: сторож проверил, судья сказал «шум».
+    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.taskGoals })
   })
 }

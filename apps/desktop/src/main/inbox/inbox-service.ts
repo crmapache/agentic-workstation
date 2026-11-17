@@ -14,7 +14,7 @@ import { pressedNote } from '../tasks/task-briefing'
 import type { TaskAnswer } from '../tasks/task-desk'
 import type { TaskService, TaskInboxPort } from '../tasks/task-service'
 import type { CardAsk } from '../scenarios/engine/run-mail'
-import { askItem, blankItem, finishItem } from './inbox-items'
+import { askItem, blankItem, finishItem, goalWaitsItem } from './inbox-items'
 import { BODY_MAX, TITLE_MAX } from './inbox-notice'
 import { itemOf, closeItem, pruneItems, settleStale } from './inbox-rules'
 
@@ -129,6 +129,10 @@ export class InboxService implements TaskInboxPort {
     const item = finishItem(run, task)
 
     if (item) this.post(item)
+  }
+
+  goalWaits(run: TaskRun): void {
+    this.post(goalWaitsItem(run))
   }
 
   markRead(ids: readonly string[]): InboxState {

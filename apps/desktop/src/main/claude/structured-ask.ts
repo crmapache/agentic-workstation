@@ -3,9 +3,10 @@ import { mkdir } from 'node:fs/promises'
 import type { ClaudeCli } from './cli/cli-locator'
 import { runCli } from './tools/cli-run'
 
-/** Чем кончился разовый вопрос к Claude Code. */
+/** Чем кончился разовый вопрос к Claude Code; costUsd - по ценам API, 0 - CLI не сказал. */
 export type AskResult =
-  { output: unknown } | { failure: 'cli-missing' | 'cancelled' | 'failed'; detail: string }
+  | { output: unknown; costUsd: number }
+  | { failure: 'cli-missing' | 'cancelled' | 'failed'; detail: string; costUsd: number }
 
 export type AskRequest = {
   prompt: string
@@ -18,6 +19,14 @@ export type AskRequest = {
   tools: string[]
   /** Модель вопроса; нет - та, что CLI берёт по умолчанию. */
   model?: string
+  /** Усилие (`--effort`); нет - как у CLI. Проверкам поручений хватает low. */
+  effort?: string
+  /**
+   * Конфиг шлюза коннекторов (`--mcp-config`) и инструменты из него, разрешённые поимённо
+   * (mcp__сервер__инструмент): всё прочее из конфига - отказ без вопроса. Нет - без MCP.
+   */
+  mcpConfig?: string
+  mcpTools?: readonly string[]
   /** Пустая своя папка: без хуков и CLAUDE.md чужого проекта. */
   cwd: string
   timeoutMs: number
@@ -45,28 +54,33 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * вопроса (`dontAsk`): спросить тут некого. Общая у разового вопроса и у разговора о
  * коннекторе (connector-chat).
  */
-export const fenceArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
-  '--json-schema',
-  JSON.stringify(request.schema),
-  '--safe-mode',
-  '--restricted',
-  '--strict-mcp-config',
-  '--permission-mode',
-  'dontAsk',
-  // Пустой список `--tools` CLI понимает как «никаких инструментов» только пустой строкой.
-  ...(request.tools.length > 0
-    ? ['--tools', ...request.tools, '--allowedTools', ...request.tools]
-    : ['--tools', '']),
-  ...(request.model ? ['--model', request.model] : []),
-]
+export const fenceArgs = (
+  request: Pick<AskRequest, 'schema' | 'tools' | 'model' | 'effort' | 'mcpConfig' | 'mcpTools'>,
+): string[] => {
+  const mcpTools = request.mcpConfig ? (request.mcpTools ?? []) : []
+  const allowed = [...request.tools, ...mcpTools]
+
+  return [
+    '--json-schema',
+    JSON.stringify(request.schema),
+    '--safe-mode',
+    '--restricted',
+    '--strict-mcp-config',
+    ...(request.mcpConfig ? ['--mcp-config', request.mcpConfig] : []),
+    '--permission-mode',
+    'dontAsk',
+    // Пустой список `--tools` CLI понимает как «никаких инструментов» только пустой строкой.
+    ...(request.tools.length > 0 ? ['--tools', ...request.tools] : ['--tools', '']),
+    ...(allowed.length > 0 ? ['--allowedTools', ...allowed] : []),
+    ...(request.model ? ['--model', request.model] : []),
+    ...(request.effort ? ['--effort', request.effort] : []),
+  ]
+}
 
 /** Аргументы разового вопроса: один JSON на выходе и ограда (fenceArgs). */
-export const askArgs = (request: Pick<AskRequest, 'schema' | 'tools' | 'model'>): string[] => [
-  '-p',
-  '--output-format',
-  'json',
-  ...fenceArgs(request),
-]
+export const askArgs = (
+  request: Pick<AskRequest, 'schema' | 'tools' | 'model' | 'effort' | 'mcpConfig' | 'mcpTools'>,
+): string[] => ['-p', '--output-format', 'json', ...fenceArgs(request)]
 
 /**
  * Разовый вопрос к Claude Code без разговора и без MCP: `claude -p` с ответом по
@@ -80,9 +94,11 @@ export const askStructured = async (cli: ClaudeCli, request: AskRequest): Promis
     signal: request.signal,
   })
 
-  if (request.signal.aborted) return { failure: 'cancelled', detail: '' }
+  if (request.signal.aborted) return { failure: 'cancelled', detail: '', costUsd: 0 }
 
   const parsed = parseJson(run.stdout)
+  const cost = isRecord(parsed) ? parsed['total_cost_usd'] : null
+  const costUsd = typeof cost === 'number' && Number.isFinite(cost) ? cost : 0
 
   if (
     !isRecord(parsed) ||
@@ -92,8 +108,8 @@ export const askStructured = async (cli: ClaudeCli, request: AskRequest): Promis
     const detail =
       isRecord(parsed) && typeof parsed['result'] === 'string' ? parsed['result'] : run.stderr
 
-    return { failure: 'failed', detail: detail.slice(0, 2000) }
+    return { failure: 'failed', detail: detail.slice(0, 2000), costUsd }
   }
 
-  return { output: parsed['structured_output'] }
+  return { output: parsed['structured_output'], costUsd }
 }

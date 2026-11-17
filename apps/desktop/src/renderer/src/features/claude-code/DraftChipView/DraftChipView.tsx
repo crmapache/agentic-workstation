@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react'
+import clsx from 'clsx'
 import { X, PencilLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -24,6 +25,7 @@ export const DraftChipView = ({
   chip,
   picture,
   opens = false,
+  contained = false,
   onRemove,
   onExpand,
 }: DraftChipViewProps) => {
@@ -38,7 +40,7 @@ export const DraftChipView = ({
   )
 
   return (
-    <span className={styles.draftChip} data-kind={chip.kind}>
+    <span className={clsx(styles.draftChip, contained && styles.contained)} data-kind={chip.kind}>
       {picture ? (
         <PictureHover source={picture} opens={opens}>
           {body}

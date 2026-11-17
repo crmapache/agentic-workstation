@@ -1,5 +1,6 @@
 import type { JsonFile } from '../storage/json-file'
 import type { StoredTool, StoredType, StoredConnector, StoredConnectors } from './connector-store'
+import { IDE_SERVER_NAMES } from './connectors.constants'
 
 /**
  * Реестр коннекторов: список, поиск и запись на диск. Каждое изменение - новый объект и
@@ -48,8 +49,12 @@ export class ConnectorRegistry {
     return this.stored.connectors.find((connector) => connector.serverName === serverName) ?? null
   }
 
+  /** Занятые имена серверов: коннекторов и свои серверы IDE (их новому коннектору не взять). */
   serverNames(): Set<string> {
-    return new Set(this.stored.connectors.map((connector) => connector.serverName))
+    return new Set([
+      ...IDE_SERVER_NAMES,
+      ...this.stored.connectors.map((connector) => connector.serverName),
+    ])
   }
 
   /** Коннектор и, если он первый у нового своего типа, - сам тип, одной записью. */

@@ -1,3 +1,4 @@
+import type { GoalSummary, GoalSettings } from './goals'
 import type { ProviderId } from './providers'
 
 /**
@@ -50,8 +51,17 @@ export const TASK_MODES: readonly TaskMode[] = [
   'bypassPermissions',
 ]
 
+/**
+ * Вид задания: schedule - прогон на срок ритма, каждый своим разговором; goal - поручение «до
+ * результата» (ADR 0080): одна жизнь, которая работает, засыпает до события и просыпается.
+ */
+export type TaskKind = 'schedule' | 'goal'
+
+export const TASK_KINDS: readonly TaskKind[] = ['schedule', 'goal']
+
 export type Task = {
   id: string
+  kind: TaskKind
   name: string
   /** Папка, в которой идёт разговор: её CLAUDE.md, хуки и коннекторы проекта. */
   projectPath: string
@@ -71,9 +81,11 @@ export type Task = {
   model: string
   effort: string
   permissionMode: TaskMode
+  /** Пределы поручения; у задания по расписанию не читаются. */
+  goal: GoalSettings
   createdAt: number
   updatedAt: number
-  /** Ближайший срок (мс); 0 - нет (вручную, выключено, разовый прошёл). */
+  /** Ближайший срок (мс); 0 - нет (вручную, выключено, разовый прошёл, поручение). */
   nextAt: number
 }
 
@@ -83,10 +95,12 @@ export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'nextAt'> 
 }
 
 /**
- * Где прогон. running - модель работает; waiting - стоит на вопросе к человеку; skipped -
- * срок пришёл, а прогона не было (прежний ещё идёт, срок пропущен без наверстывания).
+ * Где прогон. running - модель работает; waiting - стоит на вопросе к человеку; sleeping -
+ * поручение спит до события, процесса нет; skipped - срок пришёл, а прогона не было (прежний
+ * ещё идёт, срок пропущен без наверстывания).
  */
-export type TaskRunState = 'running' | 'waiting' | 'done' | 'failed' | 'stopped' | 'skipped'
+export type TaskRunState =
+  'running' | 'waiting' | 'sleeping' | 'done' | 'failed' | 'stopped' | 'skipped'
 
 /** Что подняло прогон: срок, наверстывание пропущенного, человек, ответ на уведомление. */
 export type TaskTrigger = 'schedule' | 'catchUp' | 'manual' | 'reply'
@@ -101,6 +115,10 @@ export type TaskFailure =
   | 'turnError'
   | 'tooLong'
   | 'ideClosed'
+  | 'overBudget'
+  | 'wakeLimit'
+  | 'expired'
+  | 'gaveUp'
 
 export type TaskSkip = 'busy' | 'missed'
 
@@ -140,6 +158,8 @@ export type TasksState = {
   tasks: Task[]
   /** Прогоны всех заданий, новые первыми. */
   runs: TaskRunSummary[]
+  /** Жизни поручений, которые ещё не кончились, - сводкой. */
+  goals: GoalSummary[]
 }
 
 /** Отказ главного процесса словом, на которое у окна есть текст. */
@@ -167,3 +187,6 @@ export type TaskStarted =
 /** Прогон ещё идёт: работает или ждёт человека. */
 export const isRunLive = (state: TaskRunState): boolean =>
   state === 'running' || state === 'waiting'
+
+/** Прогон не кончился: идёт или поручение спит до события. */
+export const isRunOpen = (state: TaskRunState): boolean => isRunLive(state) || state === 'sleeping'

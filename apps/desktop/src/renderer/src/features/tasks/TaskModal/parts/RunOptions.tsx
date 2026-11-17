@@ -10,8 +10,9 @@ import { useProviders } from '../../../../state/scenarios.queries'
 import { ChoiceField } from './ChoiceField'
 
 /**
- * Как задание идёт: модель (каталог провайдера и свои модели человека), режим разрешений и
- * переключатели - по расписанию, наверстывать пропуск, отчёт в уведомления.
+ * Как задание идёт: модель (каталог провайдера и свои модели человека; у поручения - рабочая,
+ * проверки идут на дешёвой), режим разрешений и переключатели - по расписанию, наверстывать
+ * пропуск, отчёт в уведомления.
  */
 export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
   const { t } = useTranslation()
@@ -29,6 +30,8 @@ export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
     value: mode,
     label: t(`tasks.form.modes.${mode}`),
   }))
+  // Ритм и наверстывание - только у задания по расписанию: поручение живёт до результата.
+  const scheduled = draft.kind === 'schedule' && draft.schedule.repeat !== 'manual'
 
   return (
     <>
@@ -44,7 +47,7 @@ export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
         choices={modeChoices}
         onPick={(mode) => onChange({ permissionMode: mode as TaskMode })}
       />
-      {draft.schedule.repeat !== 'manual' && (
+      {scheduled && (
         <Switch
           label={t('tasks.form.enabled')}
           description={t('tasks.form.enabledHint')}
@@ -52,7 +55,7 @@ export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
           onChange={(enabled) => onChange({ enabled })}
         />
       )}
-      {draft.schedule.repeat !== 'manual' && (
+      {scheduled && (
         <Switch
           label={t('tasks.form.catchUp')}
           description={t('tasks.form.catchUpHint')}

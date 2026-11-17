@@ -4,12 +4,14 @@ import { stat } from 'node:fs/promises'
 import type { Task, TaskRun, TaskCode, TaskFailure, TaskTrigger } from '@shared/tasks'
 import { HOUR_MS } from '@shared/time-units'
 
+import { GOAL_SERVER, goalBriefing } from '../goals/goal-briefing'
 import { findTranscript } from '../claude/history/transcript-paths'
 import type { ClaudeSessions } from '../providers/claude/claude-sessions'
 import type { CardAsk } from '../scenarios/engine/run-mail'
 import type { SessionSpec } from '../scenarios/engine/scenario-session'
 import { taskBriefing } from './task-briefing'
 import { LiveRun } from './task-run'
+import type { LiveRunHost } from './task-run'
 
 /** Потолок работы прогона без ожидания человека: задание, которое крутится полдня, - сбой. */
 export const RUN_CEILING_MS = 3 * HOUR_MS
@@ -29,6 +31,8 @@ export type TaskDeskEvents = {
   finished: (run: TaskRun) => void
   /** Разговор прогона - в книжку скрытых его проекта (история и поиск панели). */
   hide: (projectPath: string, sessionId: string) => void
+  /** Поручения (ADR 0080): конец хода, сбой хода, сон - решает стол поручений. */
+  goal: Pick<LiveRunHost, 'afterTurn' | 'afterFailure' | 'slept'>
 }
 
 /** Ответ человека на вопрос прогона. */
@@ -96,6 +100,13 @@ export class TaskDesk {
 
   ask(runId: string, requestId: string): CardAsk | undefined {
     return this.live.get(runId)?.ask(requestId)
+  }
+
+  /** Вопрос, который держит сама IDE, идущему прогону этого разговора; нет прогона - нет. */
+  hold(sessionId: string, ask: CardAsk, signal?: AbortSignal): Promise<boolean> {
+    const live = [...this.live.values()].find((one) => one.run.sessionId === sessionId)
+
+    return live ? live.hold(ask, signal) : Promise.resolve(false)
   }
 
   /**
@@ -217,25 +228,43 @@ export class TaskDesk {
     if (this.dropped.has(run.taskId)) return this.ended({ ...run, sessionId: '' }, null)
 
     const defaults = this.host.defaults()
+    const goal = task?.kind === 'goal' ? task : null
     const spec: SessionSpec = {
       sessionId: run.sessionId,
       resume,
       model: task?.model || defaults.model,
       effort: task?.effort || defaults.effort,
       permissionMode: task?.permissionMode ?? 'default',
-      briefing: taskBriefing(task?.name ?? run.taskName, run.trigger, run.dueAt, Date.now()),
+      briefing: goal
+        ? goalBriefing(goal.name, goal.goal.outbound, Date.now())
+        : taskBriefing(task?.name ?? run.taskName, run.trigger, run.dueAt, Date.now()),
       accountId: this.host.accountId(),
+      // Инструменты поручения - своим сервером IDE, только этому процессу (ADR 0080).
+      ideServers: goal ? [GOAL_SERVER] : [],
     }
     const place = { cwd: run.projectPath, projectPath: run.projectPath }
-    const live = new LiveRun(run, spec, {
+    const gone = (over: TaskRun) => {
+      if (this.live.get(over.id) === live) this.live.delete(over.id)
+    }
+    const live: LiveRun = new LiveRun(run, spec, {
       spawn: (wanted, wires) => this.host.sessions.spawn(wanted, place, wires),
       changed: (changed) => this.events.changed(changed),
       asked: (asking, ask) => this.events.asked(asking, ask),
       withdrawn: (asking, requestId) => this.events.withdrawn(asking, requestId),
       finished: (finished) => {
-        if (this.live.get(finished.id) === live) this.live.delete(finished.id)
+        gone(finished)
         this.events.finished(finished)
       },
+      ...(goal
+        ? {
+            afterTurn: this.events.goal.afterTurn,
+            afterFailure: this.events.goal.afterFailure,
+            slept: (sleeping: TaskRun) => {
+              gone(sleeping)
+              this.events.goal.slept?.(sleeping)
+            },
+          }
+        : {}),
     })
 
     this.live.set(run.id, live)

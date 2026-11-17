@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { TaskRun } from '@shared/tasks'
 
-import { keepRuns, RUNS_PER_TASK, SKIPS_PER_TASK } from './task-book'
+import { keepRuns, RUNS_PER_TASK, SKIPS_PER_TASK, settleInterrupted } from './task-book'
 
 const run = (index: number, patch: Partial<TaskRun> = {}): TaskRun => ({
   id: `r${index}`,
@@ -47,5 +47,31 @@ describe('keepRuns', () => {
 
     expect(kept.filter((one) => one.state === 'done')).toHaveLength(RUNS_PER_TASK)
     expect(kept[0]?.id).toBe('r119')
+  })
+
+  it('never drops a sleeping goal', () => {
+    const sleeping = run(0, { state: 'sleeping' })
+    const later = Array.from({ length: RUNS_PER_TASK + 5 }, (_, index) => run(index + 1))
+
+    expect(keepRuns([sleeping, ...later])).toContain(sleeping)
+  })
+})
+
+describe('settleInterrupted', () => {
+  it('stops a scheduled run cut by a closed IDE, but puts a goal to sleep', () => {
+    const working = run(1, { state: 'running', endedAt: 0, asking: 1 })
+
+    expect(settleInterrupted(working, false)).toMatchObject({
+      state: 'stopped',
+      failure: 'ideClosed',
+      endedAt: 1,
+    })
+    expect(settleInterrupted(working, true)).toMatchObject({
+      state: 'sleeping',
+      failure: null,
+      endedAt: 0,
+      asking: 0,
+    })
+    expect(settleInterrupted(run(2), true).state).toBe('done')
   })
 })

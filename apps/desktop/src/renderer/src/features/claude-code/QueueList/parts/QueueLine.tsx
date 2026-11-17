@@ -52,10 +52,10 @@ export const QueueLine = ({ item, conversationId, onOpenPicture }: QueueLineProp
             className={styles.chipButton}
             aria-label={t('claudeCode.picture.open', { name: chipLabel(token.chip) })}
             onClick={() => onOpenPicture(picture, token.chip)}>
-            <DraftChipView chip={token.chip} picture={picture} opens />
+            <DraftChipView chip={token.chip} picture={picture} opens contained />
           </button>
         ) : (
-          <DraftChipView key={index} chip={token.chip} />
+          <DraftChipView key={index} chip={token.chip} contained />
         )
       })}
     </span>

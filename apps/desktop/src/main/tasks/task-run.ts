@@ -9,6 +9,16 @@ import type { SessionSpec, SessionSpawn } from '../scenarios/engine/scenario-ses
 import { TurnEndings, BackgroundWork } from '../scenarios/engine/stream-reading'
 import { REPORT_MAX } from './task-parse'
 
+/**
+ * Чем кончить ход поручения (ADR 0080): done - обычный конец прогона; sleep - уснуть до события,
+ * процесс гаснет; nudge - сказать модели ещё слово в том же процессе; end - конец с отчётом модели.
+ */
+export type TurnVerdict =
+  | { kind: 'done' }
+  | { kind: 'sleep' }
+  | { kind: 'nudge'; text: string }
+  | { kind: 'end'; state: 'done' | 'failed'; failure: TaskFailure | null; report: string }
+
 /** Что идущему прогону нужно от сервиса: процесс, отметки о переменах и вопросы человеку. */
 export type LiveRunHost = {
   spawn: SessionSpawn
@@ -16,6 +26,12 @@ export type LiveRunHost = {
   asked: (run: TaskRun, ask: CardAsk) => void
   withdrawn: (run: TaskRun, requestId: string) => void
   finished: (run: TaskRun) => void
+  /** Поручение: решение по концу хода; нет - прогон по расписанию, конец хода - конец прогона. */
+  afterTurn?: (run: TaskRun, result: CliMessage) => TurnVerdict
+  /** Поручение: сбой хода - уснуть и повторить позже (true) или кончиться сбоем. */
+  afterFailure?: (run: TaskRun, failure: TaskFailure, detail: string) => boolean
+  /** Поручение уснуло: процесса больше нет, запись открыта. */
+  slept?: (run: TaskRun) => void
 }
 
 const reportOf = (endings: readonly string[]) => endings.join('\n\n').trim().slice(0, REPORT_MAX)
@@ -31,6 +47,8 @@ export class LiveRun {
   private readonly endings = new TurnEndings()
   private readonly helpers = new BackgroundWork()
   private readonly asks = new Map<string, CardAsk>()
+  /** Вопросы, которые держит сама IDE (отправка людям у поручения), а не CLI. */
+  private readonly held = new Map<string, (allow: boolean) => void>()
   private costBefore = 0
   /** Когда поднят этот процесс: продолжение старого прогона считает работу от него. */
   private readonly raisedAt = Date.now()
@@ -50,7 +68,7 @@ export class LiveRun {
       onAsk: (ask) => this.asked(ask),
       onWithdrawn: (requestId) => this.withdrawn(requestId),
       onError: (message) => this.end('failed', 'startFailed', message),
-      onCrashed: () => this.end('failed', 'crashed', ''),
+      onCrashed: () => this.failed('crashed', ''),
     })
   }
 
@@ -73,10 +91,37 @@ export class LiveRun {
   answer(requestId: string, allow: boolean, message: string, input: Record<string, unknown>) {
     if (this.over || !this.asks.has(requestId)) return false
 
-    this.session.answer(requestId, allow, message, input)
+    const held = this.held.get(requestId)
+
+    if (held) {
+      this.held.delete(requestId)
+      held(allow)
+    } else {
+      this.session.answer(requestId, allow, message, input)
+    }
+
     this.withdrawn(requestId)
 
     return true
+  }
+
+  /**
+   * Вопрос, который держит сама IDE: вызов инструмента ждёт кнопки человека (отправка людям у
+   * поручения). Ответ - да или нет; кончившийся прогон и отмена вызова - нет.
+   */
+  hold(ask: CardAsk, signal?: AbortSignal): Promise<boolean> {
+    if (this.over) return Promise.resolve(false)
+
+    return new Promise((resolve) => {
+      this.held.set(ask.requestId, resolve)
+      signal?.addEventListener('abort', () => {
+        if (this.held.delete(ask.requestId)) {
+          resolve(false)
+          this.withdrawn(ask.requestId)
+        }
+      })
+      this.asked(ask)
+    })
   }
 
   /** Отметка на записи идущего прогона (прислал уведомление): иначе следующая перемена её затрёт. */
@@ -121,14 +166,62 @@ export class LiveRun {
     this.update({ costUsd: this.run.costUsd + spent, report: reportOf(this.endings.last) })
 
     if (result['is_error'] === true) {
-      return this.end(
-        'failed',
+      return this.failed(
         'turnError',
         stringField(result, 'result') || stringField(result, 'subtype'),
       )
     }
 
-    if (!this.helpers.busy()) this.end('done', null, '')
+    if (this.helpers.busy()) return
+
+    const verdict = this.host.afterTurn?.(this.run, result) ?? { kind: 'done' }
+
+    switch (verdict.kind) {
+      case 'done':
+        return this.end('done', null, '')
+      case 'sleep':
+        return this.sleep()
+      case 'nudge':
+        if (!this.session.sendPrompt(verdict.text)) this.end('failed', 'startFailed', '')
+
+        return
+      case 'end':
+        this.update({ report: verdict.report.trim().slice(0, REPORT_MAX) })
+
+        return this.end(verdict.state, verdict.failure, '')
+    }
+  }
+
+  /** Сбой хода: поручение может уснуть и попробовать позже, прогон по расписанию кончается. */
+  private failed(failure: TaskFailure, detail: string) {
+    if (this.over) return
+    if (this.host.afterFailure?.(this.run, failure, detail)) return this.sleep()
+
+    this.end('failed', failure, detail)
+  }
+
+  /** Поручение уснуло до события: процесс гаснет, запись остаётся открытой. */
+  private sleep() {
+    if (this.over) return
+
+    this.over = true
+    this.session.stop()
+    this.dropAsks()
+    this.run = { ...this.run, state: 'sleeping', asking: 0, updatedAt: Date.now() }
+    this.host.slept?.(this.run)
+  }
+
+  /** Снять все вопросы: держанные IDE получают «нет», окну - что вопроса больше нет. */
+  private dropAsks() {
+    const asks = [...this.asks.keys()]
+
+    this.asks.clear()
+
+    for (const resolve of this.held.values()) resolve(false)
+
+    this.held.clear()
+
+    for (const requestId of asks) this.host.withdrawn(this.run, requestId)
   }
 
   private asked(ask: CardAsk) {
@@ -163,10 +256,8 @@ export class LiveRun {
     if (this.over) return
 
     const now = Date.now()
-    const asks = [...this.asks.keys()]
 
     this.over = true
-    this.asks.clear()
     this.session.stop()
     this.run = {
       ...this.run,
@@ -177,9 +268,7 @@ export class LiveRun {
       endedAt: now,
       updatedAt: now,
     }
-
-    for (const requestId of asks) this.host.withdrawn(this.run, requestId)
-
+    this.dropAsks()
     this.host.finished(this.run)
   }
 }

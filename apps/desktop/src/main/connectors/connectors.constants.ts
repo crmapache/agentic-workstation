@@ -39,6 +39,15 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   http: '',
 }
 
+/**
+ * Свой сервер IDE с инструментами поручения (ADR 0080): его шлюз отдаёт только процессам
+ * поручений, и имя занято навсегда - коннектор с таким именем встал бы ему поперёк.
+ */
+export const GOAL_SERVER_NAME = 'ide-goal'
+
+/** Имена своих серверов IDE вне реестра коннекторов. */
+export const IDE_SERVER_NAMES: readonly string[] = [GOAL_SERVER_NAME]
+
 /** Длина подписи в имени сервера: имя инструмента у провайдера ограничено (64 у Claude). */
 export const LABEL_SLUG_MAX = 24
 

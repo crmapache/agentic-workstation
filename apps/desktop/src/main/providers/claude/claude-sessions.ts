@@ -47,7 +47,9 @@ export const claudeSessions = (claude: ClaudeService): ClaudeSessions => {
       if (!located || !env) return null
 
       return new DeferredProcess(async (wanted) => {
-        const connectors = await claude.connectors.configFor(place.projectPath).catch(() => null)
+        const connectors = await claude.connectors
+          .configFor(place.projectPath, spec.ideServers ?? [])
+          .catch(() => null)
 
         // Сессия - свой разговор: процессы одной сессии делят вкладки браузера, а файлы с диска
         // инструменты берут только из её папки (worktree очереди).

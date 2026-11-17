@@ -1,14 +1,16 @@
 import { it, expect, describe } from 'vitest'
 
+import { DEFAULT_GOAL } from '@shared/goals'
 import type { Task, TaskDraft } from '@shared/tasks'
 import { MINUTE_MS } from '@shared/time-units'
 
-import { draftToTask } from './task-parse'
+import { goalOf, draftToTask } from './task-parse'
 
 const now = new Date(2026, 11, 1, 9, 0, 10).getTime()
 
 const task = (patch: Partial<Task> = {}): Task => ({
   id: 't1',
+  kind: 'schedule',
   name: 'Invoice',
   projectPath: '/p',
   prompt: 'Do it',
@@ -20,6 +22,7 @@ const task = (patch: Partial<Task> = {}): Task => ({
   model: '',
   effort: '',
   permissionMode: 'auto',
+  goal: DEFAULT_GOAL,
   createdAt: 1,
   updatedAt: 1,
   nextAt: new Date(2026, 11, 1, 9, 0).getTime(),
@@ -77,5 +80,34 @@ describe('draftToTask', () => {
     expect(typeof draftToTask(draftOf(previous), previous, () => false, now + MINUTE_MS)).toBe(
       'object',
     )
+  })
+
+  it('keeps the project of an edited task: a task belongs to its project', () => {
+    const previous = task()
+    const saved = draftToTask({ ...draftOf(previous), projectPath: '/other' }, previous, known, now)
+
+    expect(saved).toMatchObject({ projectPath: '/p' })
+  })
+
+  it('gives a goal no due time: it lives until it is done', () => {
+    const saved = draftToTask({ ...draftOf(task({ kind: 'goal' })), id: null }, null, known, now)
+
+    expect(saved).toMatchObject({ kind: 'goal', nextAt: 0 })
+  })
+})
+
+describe('goalOf', () => {
+  it('falls back to the defaults and clamps limits', () => {
+    expect(goalOf(null)).toEqual(DEFAULT_GOAL)
+    expect(goalOf({ outbound: 'spam', budgetUsd: -3, lifeDays: 900 })).toEqual({
+      outbound: 'confirm',
+      budgetUsd: 0.01,
+      lifeDays: 365,
+    })
+    expect(goalOf({ outbound: 'free', budgetUsd: 12.345, lifeDays: 3 })).toEqual({
+      outbound: 'free',
+      budgetUsd: 12.35,
+      lifeDays: 3,
+    })
   })
 })

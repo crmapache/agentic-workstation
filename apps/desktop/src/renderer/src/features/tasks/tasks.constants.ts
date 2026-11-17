@@ -10,6 +10,7 @@ export const TASK_TABS: readonly TasksTab[] = ['tasks', 'runs']
 export const STATE_TONES: Record<TaskRunState, BadgeTone> = {
   running: 'info',
   waiting: 'accent',
+  sleeping: 'neutral',
   done: 'success',
   failed: 'danger',
   stopped: 'neutral',

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
+import type { GoalLife } from '@shared/goals'
 import type { StepLogPage } from '@shared/scenario-view'
 import { afterDue, dueVerdict } from '@shared/task-clock'
 import type {
@@ -22,13 +23,17 @@ import type { TaskBook } from './task-book'
 import { RESUME_NOTE } from './task-briefing'
 import { TaskDesk } from './task-desk'
 import type { TaskAnswer, TaskDeskHost } from './task-desk'
-import { summaryOf, draftToTask } from './task-parse'
+import { TaskGoals } from './task-goals'
+import type { GoalParts } from './task-goals'
+import { summaryOf, skippedRun, draftToTask } from './task-parse'
 
 /** Что задания говорят уведомлениям: вопрос прогона, вопрос снят, прогон кончился. */
 export type TaskInboxPort = {
   asked: (run: TaskRun, ask: CardAsk) => void
   withdrawn: (run: TaskRun, requestId: string) => void
   finished: (run: TaskRun, task: Task | undefined) => void
+  /** Поручение встало без решения и ждёт слова человека (ADR 0080). */
+  goalWaits: (run: TaskRun) => void
 }
 
 export type TaskServiceOptions = {
@@ -46,6 +51,8 @@ export type TaskServiceOptions = {
   onState: (state: TasksState) => void
   /** Прогон кончился - статистике (сессия IDE, не человек). */
   onRunFinished: (run: TaskRun) => void
+  /** Поручения (ADR 0080): книга жизней, вызов коннектора без модели, дешёвая модель. */
+  goals: GoalParts
 }
 
 /**
@@ -56,6 +63,8 @@ export type TaskServiceOptions = {
 export class TaskService {
   /** Ставят уведомления, когда поднимутся (они строятся после заданий). */
   inbox: TaskInboxPort | null = null
+  /** Поручения «до результата» (ADR 0080): сон, сторожа, пробуждение. */
+  readonly goals: TaskGoals
   private readonly desk: TaskDesk
   private readonly hidden = new Map<string, HiddenBook>()
   private readonly logs = new StepLogs()
@@ -65,22 +74,46 @@ export class TaskService {
     private readonly book: TaskBook,
     private readonly options: TaskServiceOptions,
   ) {
+    this.goals = new TaskGoals(
+      {
+        book,
+        desk: () => this.desk,
+        changed: (run) => this.runChanged(run),
+        finished: (run) => this.finished(run),
+        askPerson: (run) => this.inbox?.goalWaits(run),
+        view: () => this.view(),
+        sendState: () => this.sendState(),
+      },
+      options.goals,
+    )
     this.desk = new TaskDesk(options.host, {
       changed: (run) => this.runChanged(run),
       asked: (run, ask) => this.inbox?.asked(run, ask),
       withdrawn: (run, requestId) => this.inbox?.withdrawn(run, requestId),
-      finished: (run) => {
-        this.runChanged(run)
-        this.options.onRunFinished(run)
-        this.inbox?.finished(run, this.book.task(run.taskId))
-      },
+      finished: (run) => this.finished(run),
       hide: (projectPath, sessionId) => void this.hiddenOf(projectPath).note(sessionId),
+      goal: this.goals.hooks,
     })
     setHiddenConversations('tasks', (path) => this.hiddenOf(path).all())
   }
 
   view(): TasksState {
-    return { tasks: this.book.tasks, runs: this.book.runs.map(summaryOf) }
+    return {
+      tasks: this.book.tasks,
+      runs: this.book.runs.map(summaryOf),
+      goals: this.goals.desk.summaries(),
+    }
+  }
+
+  /** Жизнь поручения целиком (ADR 0080); у прогона по расписанию - null. */
+  goal(runId: string): GoalLife | null {
+    return this.goals.desk.life(runId)
+  }
+
+  /** После перезапуска IDE: решения посреди хода применяются, оборванное - продолжается. */
+  restoreGoals(): void {
+    this.goals.desk.restore()
+    this.sendState()
   }
 
   run(runId: string): TaskRun | null {
@@ -104,6 +137,10 @@ export class TaskService {
     const previous = draft.id ? this.book.task(draft.id) : undefined
 
     if (draft.id && !previous) return { ok: false, code: 'taskGone' }
+    // Вид живого поручения не меняется: его жизнь спит и проснётся поручением.
+    if (previous && previous.kind !== draft.kind && this.goals.openOf(previous.id)) {
+      return { ok: false, code: 'runBusy' }
+    }
 
     const checked = draftToTask(draft, previous ?? null, this.options.folderKnown, Date.now())
 
@@ -122,6 +159,10 @@ export class TaskService {
     if (!this.book.task(taskId)) return { ok: false, code: 'taskGone' }
 
     this.desk.drop(taskId)
+
+    const sleeping = this.goals.openOf(taskId)
+
+    if (sleeping?.state === 'sleeping') this.goals.stopSleeping(sleeping)
 
     return this.written(await this.book.removeTask(taskId))
   }
@@ -143,15 +184,39 @@ export class TaskService {
     const task = this.book.task(taskId)
 
     if (!task) return { ok: false, code: 'taskGone' }
+
+    // У поручения одна жизнь: идёт или спит - её и показать, вторую не поднимать.
+    const open = task.kind === 'goal' ? this.goals.openOf(task.id) : null
+
+    if (open) return { ok: true, state: this.view(), runId: open.id }
+
     const run = await this.desk.start(task, 'manual', 0)
+
+    if (run && task.kind === 'goal' && run.state !== 'failed') this.goals.desk.begin(run)
 
     return run ? { ok: true, state: this.view(), runId: run.id } : { ok: false, code: 'runBusy' }
   }
 
   stop(runId: string): TaskOutcome {
-    if (!this.book.run(runId)) return { ok: false, code: 'runGone' }
+    const run = this.book.run(runId)
+
+    if (!run) return { ok: false, code: 'runGone' }
+
+    // Спящее поручение: процесса нет - жизнь кончается записью.
+    if (run.state === 'sleeping') {
+      this.goals.stopSleeping(run)
+
+      return { ok: true, state: this.view() }
+    }
 
     return this.desk.stop(runId) ? { ok: true, state: this.view() } : { ok: false, code: 'runIdle' }
+  }
+
+  /** Разбудить спящее поручение сейчас. */
+  wake(runId: string): Promise<TaskOutcome> {
+    const run = this.book.run(runId)
+
+    return run ? this.goals.wake(run) : Promise.resolve({ ok: false, code: 'runGone' })
   }
 
   /** Свои слова прогону - идущему или продолжением законченного. */
@@ -160,6 +225,13 @@ export class TaskService {
 
     if (!run) return { ok: false, code: 'runGone' }
     if (!text.trim()) return { ok: true, state: this.view() }
+
+    // Поручение: спящее будится словом, кончившееся - продолжает жизнь (ADR 0080).
+    if (this.book.task(run.taskId)?.kind === 'goal') {
+      const woke = await this.goals.tell(run, text)
+
+      if (woke) return woke
+    }
 
     // Прогон открыли чатом - он теперь разговор панели: второй процесс писал бы в него наперегонки.
     if (
@@ -207,15 +279,18 @@ export class TaskService {
     if (run && !run.notified) this.runChanged({ ...run, notified: true })
   }
 
-  async log(runId: string, earlier: boolean): Promise<StepLogPage> {
+  /** Журнал прогона; chapter - глава поручения с нуля (null - текущая). */
+  async log(runId: string, earlier: boolean, chapter: number | null = null): Promise<StepLogPage> {
     const run = this.book.run(runId)
+    const past = chapter === null ? undefined : this.goals.desk.life(runId)?.chapters[chapter]
+    const sessionId = past ?? run?.sessionId
 
-    if (!run?.sessionId) return { found: false, feed: null }
+    if (!run || !sessionId) return { found: false, feed: null }
 
     // Идущий прогон читают заново: его транскрипт растёт.
-    if (this.desk.isLive(runId)) this.logs.forget(run.sessionId)
+    if (this.desk.isLive(runId) && !past) this.logs.forget(sessionId)
 
-    return this.logs.page(run.projectPath, run.sessionId, earlier)
+    return this.logs.page(run.projectPath, sessionId, earlier)
   }
 
   /** Разговор прогона - обычной вкладкой панели; идущий не отдаётся: CLI на нём уже есть. */
@@ -223,7 +298,8 @@ export class TaskService {
     const run = this.book.run(runId)
 
     if (!run?.sessionId) return { ok: false, code: 'runGone' }
-    if (this.desk.isLive(runId)) return { ok: false, code: 'runBusy' }
+    // Спящее поручение проснётся само своим процессом - вкладка на том же разговоре мешала бы ему.
+    if (this.desk.isLive(runId) || run.state === 'sleeping') return { ok: false, code: 'runBusy' }
 
     await this.hiddenOf(run.projectPath).release(run.sessionId)
 
@@ -274,6 +350,7 @@ export class TaskService {
           await this.skip(task, due, 'busy')
       }
 
+      this.goals.patrol.tick(now)
       this.sendState()
     } finally {
       this.ticking = false
@@ -281,33 +358,19 @@ export class TaskService {
   }
 
   shutdown(): void {
+    this.goals.patrol.shutdown()
     this.desk.shutdown()
     setHiddenConversations('tasks', null)
   }
 
   private async skip(task: Task, dueAt: number, skip: 'busy' | 'missed') {
-    const now = Date.now()
+    await this.book.putRun(skippedRun(task, randomUUID(), dueAt, skip, Date.now()))
+  }
 
-    await this.book.putRun({
-      id: randomUUID(),
-      taskId: task.id,
-      taskName: task.name,
-      projectPath: task.projectPath,
-      sessionId: '',
-      trigger: 'schedule',
-      state: 'skipped',
-      dueAt,
-      startedAt: now,
-      endedAt: now,
-      updatedAt: now,
-      report: '',
-      failure: null,
-      skip,
-      detail: '',
-      costUsd: 0,
-      asking: 0,
-      notified: false,
-    })
+  private finished(run: TaskRun) {
+    this.runChanged(run)
+    this.options.onRunFinished(run)
+    this.inbox?.finished(run, this.book.task(run.taskId))
   }
 
   private runChanged(run: TaskRun) {

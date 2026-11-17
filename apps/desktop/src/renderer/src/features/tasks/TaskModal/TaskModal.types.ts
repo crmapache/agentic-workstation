@@ -23,3 +23,5 @@ export type RunOptionsProps = {
   draft: TaskDraft
   onChange: (patch: Partial<TaskDraft>) => void
 }
+
+export type GoalFieldsProps = RunOptionsProps

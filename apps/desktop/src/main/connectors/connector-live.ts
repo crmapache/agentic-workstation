@@ -6,8 +6,10 @@ import type { SecretsOf } from './connector-secrets'
 import { toolError, SignedOutError } from './connector-source'
 import type { SourceTool, SourceLaunch, ConnectorSource } from './connector-source'
 import type { StoredTool, StoredConnector } from './connector-store'
-import { enabledTools, instructionsFor, disabledToolText } from './connector-view'
+import { connectorTitle, instructionsFor, disabledToolText } from './connector-view'
 import type { LiveFacts } from './connector-view'
+import type { OutboundGate } from './outbound-gate'
+import { toolOpenFor, REFUSED_TEXT, DRAFTS_ONLY_TEXT } from './outbound-gate'
 import type { ServiceAnswer } from './service-answer'
 import { serviceAnswer } from './service-answer'
 import type { GatewayServer } from './gateway/gateway'
@@ -32,6 +34,8 @@ export type LiveHost = {
   account?: () => string | null
   /** Типы других включённых коннекторов, видных в проекте: пояснение говорит о соседях. */
   neighbours?: (projectPath: string) => StoredConnector['kind'][]
+  /** Правило отправки людям у поручений (ADR 0080); не поставлено - разговоры обычные. */
+  gate?: () => OutboundGate | null
 }
 
 const toMcpTool = ({ access: _access, ...tool }: SourceTool): Tool => tool
@@ -205,6 +209,35 @@ export class LiveConnector {
     this.source.endConversation?.(conversationId)
   }
 
+  /**
+   * Вызов самой IDE, без процесса разговора (сторож поручения, ADR 0080). У команды - разовым
+   * процессом в папке проекта, который сразу гаснет, как при чтении списка инструментов.
+   */
+  async callDirect(
+    name: string,
+    args: Record<string, unknown>,
+    projectPath: string,
+    signal: AbortSignal,
+  ): Promise<CallToolResult> {
+    const connector = this.host.stored()
+
+    if (this.disposed || !connector?.enabled) throw new Error('The connector is turned off.')
+
+    const once = isPerLaunch(connector)
+      ? createSource(connector, this.secrets, this.deps, projectPath)
+      : null
+
+    try {
+      return await (once ?? this.source).callTool(name, args, signal)
+    } catch (error) {
+      this.signedOutOr(error, null)
+      this.host.changed()
+      throw error
+    } finally {
+      void once?.dispose()
+    }
+  }
+
   /** Сервер этого коннектора на шлюзе для процесса разговора launch. */
   gatewayServer(launch: Launch): GatewayServer {
     return {
@@ -218,6 +251,7 @@ export class LiveConnector {
               this.host.typeName(),
               launch.projectPath,
               this.host.neighbours?.(launch.projectPath) ?? [],
+              this.outboundOf(launch),
             )
           : ''
       },
@@ -281,7 +315,18 @@ export class LiveConnector {
       await this.listing
     }
 
-    return enabledTools(this.tools, connector.toolOverrides).map(toMcpTool)
+    const outbound = this.outboundOf(launch)
+
+    return this.tools
+      .filter((tool) => toolOpenFor(tool.access, connector.toolOverrides[tool.name], outbound))
+      .map(toMcpTool)
+  }
+
+  /** Правило отправки людям, если процесс - поручение (ADR 0080); иначе null. */
+  private outboundOf(launch: Launch) {
+    return launch.conversationId
+      ? (this.host.gate?.()?.outboundOf(launch.conversationId) ?? null)
+      : null
   }
 
   private async call(
@@ -296,14 +341,35 @@ export class LiveConnector {
       return toolError('This connector is turned off in Agentic Workstation.')
 
     const tool = connector.tools.find((candidate) => candidate.name === name)
+    const outbound = this.outboundOf(launch)
 
-    if (!tool || !enabledTools([tool], connector.toolOverrides).length) {
-      return toolError(disabledToolText(connector, tool, this.host.typeName()))
+    if (!tool || !toolOpenFor(tool.access, connector.toolOverrides[name], outbound)) {
+      return toolError(
+        tool?.access === 'outbound' && outbound === 'drafts'
+          ? DRAFTS_ONLY_TEXT
+          : disabledToolText(connector, tool, this.host.typeName()),
+      )
     }
 
     const source = this.sourceFor(launch)
 
     if (!source) return toolError('This conversation has ended.')
+
+    // Поручение пишет людям только с кнопки человека: вызов ждёт её здесь, в IDE (ADR 0080).
+    if (tool.access === 'outbound' && outbound === 'confirm' && launch.conversationId) {
+      const confirmed = await this.host.gate?.()?.confirm(
+        launch.conversationId,
+        {
+          server: connector.serverName,
+          tool: name,
+          title: connectorTitle(connector, this.host.typeName()),
+          args,
+        },
+        signal,
+      )
+
+      if (!confirmed) return toolError(REFUSED_TEXT)
+    }
 
     try {
       const result = await source.callTool(name, args, signal, sourceLaunch(launch))

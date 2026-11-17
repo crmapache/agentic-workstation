@@ -19,7 +19,7 @@ export const useMainViewBadges = (): Partial<Record<MainViewId, number>> => {
 
   return {
     scenarios: askingCount(queues, project?.rootPath),
-    tasks: waitingCount(tasks),
+    tasks: waitingCount(tasks, project?.rootPath),
     inbox: inbox ? inboxCount(inbox) : 0,
   }
 }

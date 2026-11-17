@@ -20,6 +20,7 @@ import { newConnector } from './connector-add'
 import type { NewConnector } from './connector-add'
 import { withInProject } from './connector-in-project'
 import { migrateRegistry } from './connector-migrate'
+import { GoalConnectors } from './connector-probe'
 import { ConnectorRegistry } from './connector-registry'
 import { SecretsOf, secretsKey, typeSecretsKey } from './connector-secrets'
 import { parseStoredConnectors } from './connector-store'
@@ -42,6 +43,8 @@ import { BrowserDesk } from './kinds/browser/browser-desk'
  * изменения. Ни один вход не связан с аккаунтом провайдера.
  */
 export class ConnectorsService {
+  /** Что нужно поручениям (ADR 0080): свой сервер на шлюзе, сторожа, правило отправки. */
+  readonly goals: GoalConnectors
   private readonly live: LiveConnectors
   private readonly access: ConnectorAccess
   private readonly gateway: GatewayHost
@@ -62,6 +65,7 @@ export class ConnectorsService {
       places,
       () => this.access,
       () => this.broadcast(),
+      () => this.goals.gate,
     )
     this.access = new ConnectorAccess({
       registry,
@@ -79,6 +83,7 @@ export class ConnectorsService {
       places.version,
       this.live,
     )
+    this.goals = new GoalConnectors(registry, (id) => this.live.get(id), this.gateway)
 
     this.imports = new ImportDesk({
       serverNames: () => registry.serverNames(),
@@ -157,8 +162,8 @@ export class ConnectorsService {
    * own - чей это разговор, release - процесс кончился, end - разговор закрыт. Не записался -
    * ошибка: разговор поднимется без коннекторов.
    */
-  mcpConfigFor(projectPath: string): Promise<McpLaunch | null> {
-    return this.gateway.open(projectPath)
+  mcpConfigFor(projectPath: string, ideServers: readonly string[] = []): Promise<McpLaunch | null> {
+    return this.gateway.open(projectPath, ideServers)
   }
 
   getState(): ConnectorsState {

@@ -1,5 +1,7 @@
 import { EFFORT_LEVELS } from '@shared/claude'
 import { MODEL_NAME_PATTERN } from '@shared/claude-prefs'
+import { DEFAULT_GOAL, GOAL_OUTBOUNDS } from '@shared/goals'
+import type { GoalSettings } from '@shared/goals'
 import { isProviderId } from '@shared/providers'
 import { nextDue, parseDay } from '@shared/task-clock'
 import type {
@@ -10,7 +12,7 @@ import type {
   TaskSchedule,
   TaskRunSummary,
 } from '@shared/tasks'
-import { TASK_MODES, TASK_REPEATS, LAST_MONTH_DAY } from '@shared/tasks'
+import { TASK_KINDS, TASK_MODES, TASK_REPEATS, LAST_MONTH_DAY } from '@shared/tasks'
 
 /** Пределы: имя - строка списка, текст - задание, отчёт - концовка разговора. */
 export const NAME_MAX = 120
@@ -42,6 +44,18 @@ export const scheduleOf = (raw: unknown): TaskSchedule => {
   }
 }
 
+/** Пределы поручения: деньги - от цента до тысячи, дни жизни - от одного до года. */
+export const goalOf = (raw: unknown): GoalSettings => {
+  const stored = isRecord(raw) ? raw : {}
+  const budget = number(stored['budgetUsd'], DEFAULT_GOAL.budgetUsd)
+
+  return {
+    outbound: GOAL_OUTBOUNDS.find((one) => one === stored['outbound']) ?? DEFAULT_GOAL.outbound,
+    budgetUsd: Math.min(1000, Math.max(0.01, Math.round(budget * 100) / 100)),
+    lifeDays: clamp(stored['lifeDays'], 1, 365, DEFAULT_GOAL.lifeDays),
+  }
+}
+
 const modelOf = (value: unknown) => {
   const model = text(value, 120).trim()
 
@@ -56,6 +70,7 @@ export const taskOf = (raw: unknown): Task | null => {
 
   return {
     id: raw['id'],
+    kind: TASK_KINDS.find((kind) => kind === raw['kind']) ?? 'schedule',
     name: text(raw['name'], NAME_MAX),
     projectPath: text(raw['projectPath'], 4096),
     prompt: text(raw['prompt'], PROMPT_MAX),
@@ -67,13 +82,22 @@ export const taskOf = (raw: unknown): Task | null => {
     model: modelOf(raw['model']),
     effort: effortOf(raw['effort']),
     permissionMode: TASK_MODES.find((mode) => mode === raw['permissionMode']) ?? 'default',
+    goal: goalOf(raw['goal']),
     createdAt: number(raw['createdAt']),
     updatedAt: number(raw['updatedAt']),
     nextAt: number(raw['nextAt']),
   }
 }
 
-const RUN_STATES = ['running', 'waiting', 'done', 'failed', 'stopped', 'skipped'] as const
+const RUN_STATES = [
+  'running',
+  'waiting',
+  'sleeping',
+  'done',
+  'failed',
+  'stopped',
+  'skipped',
+] as const
 const TRIGGERS = ['schedule', 'catchUp', 'manual', 'reply'] as const
 const FAILURES = [
   'noClaude',
@@ -84,6 +108,10 @@ const FAILURES = [
   'turnError',
   'tooLong',
   'ideClosed',
+  'overBudget',
+  'wakeLimit',
+  'expired',
+  'gaveUp',
 ] as const
 const SKIPS = ['busy', 'missed'] as const
 
@@ -136,9 +164,11 @@ export const draftToTask = (
   folderKnown: (path: string) => boolean,
   now: number,
 ): Task | TaskCode => {
+  // Задание принадлежит своему проекту, как очередь: правка его туда не переносит.
   const task = taskOf({
     ...draft,
     id: previous?.id ?? 'new',
+    projectPath: previous?.projectPath ?? draft.projectPath,
     createdAt: previous?.createdAt ?? now,
   })
 
@@ -150,9 +180,10 @@ export const draftToTask = (
   if (!name) return 'noName'
   if (!prompt) return 'noPrompt'
   // Папка прежнего задания остаётся его папкой, даже если ушла из недавних проектов.
-  if (!folderKnown(task.projectPath) && task.projectPath !== previous?.projectPath) {
-    return 'badFolder'
-  }
+  if (!previous && !folderKnown(task.projectPath)) return 'badFolder'
+
+  // Поручение сроков не знает: идёт, пока не добьётся своего (ADR 0080).
+  if (task.kind === 'goal') return { ...task, name, prompt, updatedAt: now, nextAt: 0 }
 
   const sameRhythm =
     previous !== null && JSON.stringify(previous.schedule) === JSON.stringify(task.schedule)
@@ -175,3 +206,31 @@ export const draftToTask = (
     nextAt: task.enabled ? kept : 0,
   }
 }
+
+/** Срок пришёл, а прогона не было: запись пропуска без разговора. */
+export const skippedRun = (
+  task: Task,
+  id: string,
+  dueAt: number,
+  skip: 'busy' | 'missed',
+  now: number,
+): TaskRun => ({
+  id,
+  taskId: task.id,
+  taskName: task.name,
+  projectPath: task.projectPath,
+  sessionId: '',
+  trigger: 'schedule',
+  state: 'skipped',
+  dueAt,
+  startedAt: now,
+  endedAt: now,
+  updatedAt: now,
+  report: '',
+  failure: null,
+  skip,
+  detail: '',
+  costUsd: 0,
+  asking: 0,
+  notified: false,
+})
