@@ -1067,7 +1067,10 @@
         "stopMark": "The queue stops after this one",
         "afterSuccess": "after success",
         "afterAny": "after any end",
-        "refused": "Would not start: {{why}}"
+        "refused": "Would not start: {{why}}",
+        "markDone": "Mark done",
+        "markDoneHint": "You finished this work yourself. The queue counts it as done and does not start the next one on its own.",
+        "doneByHand": "marked done by hand"
       },
       "itemMenu": {
         "label": "Actions for {{name}}",
@@ -1093,6 +1096,8 @@
         "failed": "{{name}} did not finish. Nothing after it starts until you resume.",
         "refused": "{{name}} would not start: {{why}}",
         "interrupted": "The IDE closed while {{name}} was running.",
+        "doneByHand": "{{name}} is marked done by hand. Nothing after it starts until you resume.",
+        "markDone": "Mark done",
         "someone": "A scenario",
         "resume": "Resume",
         "dismiss": "Dismiss",

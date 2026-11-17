@@ -326,6 +326,8 @@ export class QueueRunner {
         return rules.setStopAfter(queue, action.itemId)
       case 'resume':
         return rules.resumeQueue(queue)
+      case 'markDone':
+        return rules.markDoneByHand(queue, action.itemId, Date.now())
       case 'rename':
         return rules.renameQueue(queue, action.name, 'user')
       case 'clear':

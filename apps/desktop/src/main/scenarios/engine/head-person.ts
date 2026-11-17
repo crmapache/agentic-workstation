@@ -59,7 +59,7 @@ export const relayedWords = (words: string): string =>
 
 /** Голова ответила без объекта - один раз сказано прямо. */
 export const NO_OBJECT =
-  'Your answer had no json object in it, so the panel has nothing to act on and the run cannot move. Answer again now, with the object the previous message asked for and nothing else.'
+  'Your answer had no json object the panel could read, so the panel has nothing to act on and the run cannot move. Answer again now, with the object the previous message asked for and nothing else. Inside a string value, quote names with « » or escape the double quote as \\".'
 
 export const CARRY_ON = 'Carry on from where you stopped.'
 

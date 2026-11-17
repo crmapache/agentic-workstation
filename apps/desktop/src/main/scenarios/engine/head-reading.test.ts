@@ -20,6 +20,29 @@ describe('head reply', () => {
     })
   })
 
+  it('reads an object whose value quotes a name with plain double quotes', () => {
+    // Дословная форма ответа, на котором 17.11.2026 упал прогон: имя карточки в прямых кавычках.
+    const reply = readReply(
+      'Беру вариант с модулем окна.\n```json\n{"allow": true, "answer": "Он нужен карточке "Save conversions by the day they happened". Остальное не трогай."}\n```',
+    )
+
+    expect(reply.words).toBe('Беру вариант с модулем окна.')
+    expect(reply.body).toEqual({
+      allow: true,
+      answer: 'Он нужен карточке "Save conversions by the day they happened". Остальное не трогай.',
+    })
+  })
+
+  it('reads an odd quote and a line break inside a fenced value', () => {
+    const reply = readReply('```json\n{"answer": "a 27" screen\nand more", "done": true}\n```')
+
+    expect(reply.body).toEqual({ answer: 'a 27" screen\nand more', done: true })
+  })
+
+  it('still finds no object in plain prose', () => {
+    expect(readReply('I looked, "nothing" to add.').body).toBeNull()
+  })
+
   it('reads fields forgivingly', () => {
     expect(replyText({ a: { nested: 1 } }, 'a')).toBe('')
     expect(replyFlag({ a: 'yes' }, 'a')).toBe(true)

@@ -18,6 +18,7 @@ import {
   fallbackName,
   recoverQueue,
   setStopAfter,
+  markDoneByHand,
   holdBeforeFailure,
 } from './queue-rules'
 
@@ -274,5 +275,39 @@ describe('queue rules', () => {
     )
     expect(fallbackName('Review PR', { a: ' ', b: 'auth module' })).toBe('Review PR · auth module')
     expect(fallbackName('Tidy', {})).toBe('Tidy')
+  })
+})
+
+describe('marking a failed item done by hand', () => {
+  it('turns a failed run into a success and keeps the queue waiting for Resume', () => {
+    const held = settleItem(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a', 'failed', 5)
+    const marked = markDoneByHand(held, 'a', 7)
+
+    expect(marked.items[0]).toMatchObject({ state: 'done', doneByHand: true })
+    expect(marked.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 7 })
+    expect(nextToStart(marked, NOW)).toBeNull()
+    expect(nextToStart(resumeQueue(marked), NOW)?.id).toBe('b')
+  })
+
+  it('drops the hold when nothing waits, and leaves a hold on another item alone', () => {
+    const alone = settleItem(markStarted(queueOf(item('a')), 'a', 'r'), 'a', 'stopped', 5)
+
+    expect(
+      markDoneByHand({ ...alone, hold: { reason: 'failed', itemId: 'a', at: 5 } }, 'a', 7).hold,
+    ).toBeNull()
+
+    const two = queueOf(item('a', { state: 'failed' }), item('b', { state: 'failed' }), item('c'))
+    const heldOnB = { ...two, hold: { reason: 'failed' as const, itemId: 'b', at: 5 } }
+
+    expect(markDoneByHand(heldOnB, 'a', 7).hold).toEqual(heldOnB.hold)
+  })
+
+  it('touches only an item that failed or was stopped', () => {
+    const queue = queueOf(item('a', { state: 'done' }), item('b', { state: 'running' }), item('c'))
+
+    expect(markDoneByHand(queue, 'a', 7)).toBe(queue)
+    expect(markDoneByHand(queue, 'b', 7)).toBe(queue)
+    expect(markDoneByHand(queue, 'c', 7)).toBe(queue)
+    expect(markDoneByHand(queue, 'missing', 7)).toBe(queue)
   })
 })

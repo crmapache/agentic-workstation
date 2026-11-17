@@ -135,6 +135,31 @@ export const resumeQueue = (queue: ScenarioQueue): ScenarioQueue => {
 }
 
 /**
+ * Пометить выполненным руками: прогон упал или его остановили, а работу человек доделал сам (в
+ * разговоре головы, в своей вкладке). Дальше элемент - успех: «только после успеха» за ним больше
+ * не ждёт. Но очередь сама не трогается: стояла на нём - встаёт «после него» и ждёт Resume, как
+ * после остановки рукой; человек мог ещё не решить, что запускать следом. Прогон в истории
+ * остаётся каким был.
+ */
+export const markDoneByHand = (
+  queue: ScenarioQueue,
+  itemId: string,
+  now: number,
+): ScenarioQueue => {
+  const item = queue.items.find((one) => one.id === itemId)
+
+  if (!item || (item.state !== 'failed' && item.state !== 'stopped')) return queue
+
+  const marked = patchItem(queue, itemId, { state: 'done', doneByHand: true })
+
+  if (queue.hold?.itemId !== itemId) return marked
+
+  const waiting = marked.items.some((one) => one.state === 'waiting')
+
+  return { ...marked, hold: waiting ? { reason: 'stopAfter', itemId, at: now } : null }
+}
+
+/**
  * «Остановить после»: идущего («после текущего») или ждущего («после этого»). Прошедший
  * элемент остановкой не помечается - после него уже идёт следующий. null снимает отметку.
  */

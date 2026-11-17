@@ -59,6 +59,7 @@ const parseItem = (value: unknown): QueueItem | null => {
     state: oneOf(value.state, STATES, 'waiting'),
     // Причина отказа - код окна; старый код, которого окно не знает, покажется общим текстом.
     refusal: (text(value.refusal) || null) as QueueItem['refusal'],
+    ...(value.doneByHand === true && { doneByHand: true }),
   }
 }
 

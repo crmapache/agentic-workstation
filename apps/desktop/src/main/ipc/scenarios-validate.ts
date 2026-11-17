@@ -85,12 +85,24 @@ export const parseQueueAction = (value: unknown): QueueAction => {
   const record = asRecord(value, 'action')
   const kind = assertOneOf(
     record.kind,
-    ['remove', 'move', 'mode', 'stopAfter', 'resume', 'rename', 'clear', 'hours', 'close'] as const,
+    [
+      'remove',
+      'move',
+      'mode',
+      'stopAfter',
+      'resume',
+      'markDone',
+      'rename',
+      'clear',
+      'hours',
+      'close',
+    ] as const,
     'kind',
   )
 
   switch (kind) {
     case 'remove':
+    case 'markDone':
       return { kind, itemId: assertId(record.itemId, 'itemId') }
     case 'move':
       return {

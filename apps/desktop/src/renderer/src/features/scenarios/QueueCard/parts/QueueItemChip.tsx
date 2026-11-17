@@ -1,8 +1,9 @@
 import type { MouseEvent } from 'react'
 import clsx from 'clsx'
-import { OctagonPause } from 'lucide-react'
+import { CheckCheck, OctagonPause } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@agentic-workstation/ui/Button'
 import { isAreaPress } from '@agentic-workstation/ui/Card.utils'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
@@ -12,6 +13,7 @@ import styles from '../QueueCard.module.scss'
 import type { QueueItemChipProps } from '../QueueCard.types'
 import { answerChips } from '../../scenarios-forms.utils'
 import { waitingItems } from '../../scenarios-queues.utils'
+import { useScenarioActions } from '../../scenarios.actions'
 import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
@@ -21,12 +23,14 @@ import { QueueItemMenu } from './QueueItemMenu'
  * Один сценарий очереди строкой во всю ширину: место, имя, состояние, метка «встанет после него»,
  * ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
  * говорит, чего ждёт (успеха предыдущего или любого конца), и носит меню у правого края:
- * сдвинуть, остановить после, убрать. Отказ старта - под именем, если его не сказала полоса
- * остановки.
+ * сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
+ * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Отказ старта - под
+ * именем, если его не сказала полоса остановки.
  */
 export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps) => {
   const { t } = useTranslation()
   const openRun = useOpenRun(queue.id)
+  const actions = useScenarioActions()
   const waiting = waitingItems(queue)
   const place = waiting.findIndex((one) => one.id === item.id)
   const isWaiting = item.state === 'waiting'
@@ -38,13 +42,18 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
           why: t(`scenarios.codes.${item.refusal}`, { defaultValue: t('scenarios.codes.unknown') }),
         })
       : ''
+  const canMarkDone = item.state === 'failed' || item.state === 'stopped'
   const condition =
     isWaiting && number > 1
       ? t(`scenarios.queues.items.${item.afterSuccess ? 'afterSuccess' : 'afterAny'}`)
-      : ''
+      : item.doneByHand
+        ? t('scenarios.queues.items.doneByHand')
+        : ''
   const hasAnswers = answerChips(item.inputs).length > 0
 
   const handleOpen = () => openRun(item.runId)
+
+  const handleMarkDone = () => void actions.queue(queue.id, { kind: 'markDone', itemId: item.id })
 
   const handleAreaClick = (event: MouseEvent<HTMLLIElement>) => {
     if (isAreaPress(event)) handleOpen()
@@ -92,6 +101,15 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
               aria-label={t('scenarios.queues.items.stopMark')}
             />
           </Tooltip>
+        )}
+        {canMarkDone && (
+          <span className={styles.itemEnd}>
+            <Tooltip label={t('scenarios.queues.items.markDoneHint')}>
+              <Button size="sm" variant="ghost" icon={CheckCheck} onClick={handleMarkDone}>
+                {t('scenarios.queues.items.markDone')}
+              </Button>
+            </Tooltip>
+          </span>
         )}
         {isWaiting && (
           <span className={styles.itemEnd}>

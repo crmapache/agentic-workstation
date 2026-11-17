@@ -40,6 +40,73 @@ const lastObject = (text: string): [number, number] | null => {
   return last
 }
 
+// После закрывающей кавычки строки в JSON стоит только одно из этого (или конец объекта).
+const AFTER_STRING = new Set([',', '}', ']', ':'])
+
+/**
+ * Строки объекта, которые голова написала по-человечески: «карточке "Save conversions"» с
+ * прямыми кавычками внутри значения или перенос строки прямо в тексте. Строгий JSON на этом
+ * падает, и прогон умирал на втором переспросе (17.11.2026: голова дважды процитировала имя
+ * карточки). Кавычка закрывает строку, только если за ней идёт то, что в JSON идёт после
+ * строки; остальные экранируются. Кавычка с запятой сразу за ней внутри значения так и
+ * остаётся поломкой - её от конца строки не отличить.
+ */
+const mendStrings = (text: string): string => {
+  let mended = ''
+  let inString = false
+  let escaped = false
+
+  for (let at = 0; at < text.length; at += 1) {
+    const character = text[at] ?? ''
+
+    if (!inString) {
+      if (character === '"') inString = true
+      mended += character
+    } else if (escaped) {
+      escaped = false
+      mended += character
+    } else if (character === '\\') {
+      escaped = true
+      mended += character
+    } else if (character === '\n') mended += '\\n'
+    else if (character === '\r') mended += '\\r'
+    else if (character === '\t') mended += '\\t'
+    else if (character === '"') {
+      const next = text.slice(at + 1).trimStart()[0]
+      const closes = next === undefined || AFTER_STRING.has(next)
+
+      if (closes) inString = false
+      mended += closes ? '"' : '\\"'
+    } else mended += character
+  }
+
+  return mended
+}
+
+/**
+ * Последний объект в ограде ```json: с непарной кавычкой внутри значения границы объекта
+ * по скобкам не найти, а ограда их даёт. Возвращает начало ограды и её содержимое.
+ */
+const fencedObject = (text: string): [number, string] | null => {
+  const fences = [...text.matchAll(/```(?:json|JSON)?[ \t]*\n([\s\S]*?)\n?[ \t]*```/g)]
+  const last = fences.findLast((fence) => (fence[1] ?? '').trim().startsWith('{'))
+
+  return last ? [last.index, (last[1] ?? '').trim()] : null
+}
+
+/** Объект из текста, если это объект; иначе null. */
+const asBody = (raw: string): ReplyBody | null => {
+  try {
+    const body = JSON.parse(raw) as unknown
+
+    return typeof body === 'object' && body !== null && !Array.isArray(body)
+      ? (body as ReplyBody)
+      : null
+  } catch {
+    return null
+  }
+}
+
 /** Слова без открывающей ограды перед объектом: лишняя ``` в таймлайне читалась бы поломкой. */
 const tidy = (words: string): string =>
   words
@@ -50,20 +117,19 @@ const tidy = (words: string): string =>
 /** Ответ одного хода. */
 export const readReply = (text: string): HeadReply => {
   const span = lastObject(text)
+  const strict = span && asBody(text.slice(span[0], span[1] + 1))
 
-  if (!span) return { words: tidy(text), body: null }
+  if (span && strict) return { words: tidy(text.slice(0, span[0])), body: strict }
 
-  try {
-    const body = JSON.parse(text.slice(span[0], span[1] + 1)) as unknown
+  // Строгий JSON не прочёлся - тот же объект с починенными строками: из ограды, если она
+  // есть, иначе по скобкам.
+  const fenced = fencedObject(text)
+  const [start, raw] = fenced ?? (span ? [span[0], text.slice(span[0], span[1] + 1)] : [0, ''])
+  const mended = raw ? asBody(mendStrings(raw)) : null
 
-    if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-      return { words: tidy(text), body: null }
-    }
-
-    return { words: tidy(text.slice(0, span[0])), body: body as ReplyBody }
-  } catch {
-    return { words: tidy(text), body: null }
-  }
+  return mended
+    ? { words: tidy(text.slice(0, start)), body: mended }
+    : { words: tidy(text), body: null }
 }
 
 /**
