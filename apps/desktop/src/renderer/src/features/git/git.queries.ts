@@ -33,6 +33,29 @@ export const useGitHeadSync = () => {
 }
 
 /**
+ * Сколько строк добавлено и удалено с последнего коммита - счёт в шапке. Владелец - главный
+ * процесс: с первого вопроса он пересчитывает сам при изменениях на диске и в .git и
+ * присылает счёт (git:lineStats). Спрашиваем ещё при возврате в окно - на случай, если что-то
+ * прошло мимо слежения.
+ */
+export const useGitLineStats = (projectId: string) =>
+  useQuery({
+    queryKey: QUERY_KEYS.gitLineStats(projectId),
+    queryFn: () => invoke('git:getLineStats', { projectId }),
+    staleTime: Infinity,
+    refetchOnWindowFocus: 'always',
+  })
+
+/** Новый счёт строк от главного процесса - в кэш. Подключается один раз, в корне окна. */
+export const useGitLineStatsSync = () => {
+  const queryClient = useQueryClient()
+
+  useIpcEvent('git:lineStats', ({ projectId, stats }) => {
+    queryClient.setQueryData(QUERY_KEYS.gitLineStats(projectId), stats)
+  })
+}
+
+/**
  * PR ветки через gh. Ключ - с веткой: переключили ветку - спрашивается её PR, а не
  * показывается чужой. Заново при возврате в окно (PR создают и сливают в браузере),
  * но не чаще раза в минуту: gh ходит в сеть.
@@ -75,7 +98,7 @@ const useGitAction = <Input>(
 
 /**
  * Действия git над проектом. После любого - перечитать ветку, ветки, сведения для
- * push, дерево файлов и статусы git. Слежение за диском сказало бы о том же, но
+ * push, дерево файлов, статусы git и счёт строк. Слежение за диском сказало бы о том же, но
  * чуть позже: итог действия человек ждёт сразу. Итог
  * возвращается тому, кто звал: диалоги показывают ошибку у себя.
  */
@@ -91,6 +114,7 @@ export const useGitActions = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitPushInfo(projectId) }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectDirectories(projectId) }),
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitStatus(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitLineStats(projectId) }),
     ])
 
   const switchBranch = useGitAction(

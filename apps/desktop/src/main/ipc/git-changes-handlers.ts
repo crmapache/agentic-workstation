@@ -8,8 +8,8 @@ import { assertString } from './validate'
 import { projectRootOf } from './workspace-handlers'
 
 /**
- * Каналы списка изменений и разницы файла. Список держит сервис статуса (он же его и
- * перечитывает), версия из HEAD читается напрямую: путь проверяется до git.
+ * Каналы списка изменений, счёта строк и разницы файла. Список и счёт держит сервис статуса
+ * (он же их и перечитывает), версия из HEAD читается напрямую: путь проверяется до git.
  */
 export const createGitChangesHandlers = (
   workspace: WorkspaceService,
@@ -17,6 +17,8 @@ export const createGitChangesHandlers = (
 ): Pick<InvokeHandlers, keyof GitChangesInvokeContract> => ({
   'git:getChanges': ({ projectId }) =>
     gitStatus.getChanges(projectId, projectRootOf(workspace, projectId)),
+  'git:getLineStats': ({ projectId }) =>
+    gitStatus.getLineStats(projectId, projectRootOf(workspace, projectId)),
   'git:readHeadFile': ({ projectId, path }) => {
     assertString(path, 'path')
 

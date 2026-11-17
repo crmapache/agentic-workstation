@@ -42,6 +42,13 @@ export const GIT_STATUS_ENTRIES_LIMIT = 20_000
  */
 export const GIT_CHANGES_LIMIT = 5_000
 
+/**
+ * Новый файл крупнее этого в счёт строк не идёт, как двоичный: git и сам считает огромные
+ * файлы двоичными (core.bigFileThreshold). Предел ниже, чем у git: счёт перечитывает новый
+ * файл при каждой его правке, а лог без .gitignore дописывается без перерыва.
+ */
+export const GIT_LINES_FILE_MAX_BYTES = 8 * 1024 * 1024
+
 /** Статус огромного репозитория - секунды; дольше - отдаём, что успели, обрезанным. */
 export const GIT_STATUS_TIMEOUT_MS = 10_000
 

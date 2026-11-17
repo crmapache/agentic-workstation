@@ -11,6 +11,7 @@ import { useGitDialogsStore } from '../git-dialogs.store'
 import { useGitHead, useGitActions } from '../git.queries'
 import { BranchMenu } from '../BranchMenu/BranchMenu'
 import { GitInputDialog } from '../GitInputDialog/GitInputDialog'
+import { LineStats } from '../LineStats/LineStats'
 import { PullRequestLink } from '../PullRequestLink/PullRequestLink'
 import { PushDialog } from '../PushDialog/PushDialog'
 import { useActiveProject } from '../../../state/workspace.queries'
@@ -20,8 +21,8 @@ import styles from './BranchSwitcher.module.scss'
 type BranchSwitcherBodyProps = { projectId: string }
 
 /**
- * Ветка активного проекта в шапке, меню ветки, как в WebStorm, и PR ветки справа от
- * неё. Диалоги (новая ветка, тег или коммит, push) живут здесь, снаружи всплывающей
+ * Ветка активного проекта в шапке, меню ветки, как в WebStorm, справа от неё - счёт строк с
+ * последнего коммита и PR ветки. Диалоги (новая ветка, тег или коммит, push) живут здесь, снаружи всплывающей
  * панели: она закрывается при выборе пункта. Папка не репозиторий git - кнопки нет
  * вовсе.
  */
@@ -75,6 +76,7 @@ const BranchSwitcherBody = ({ projectId }: BranchSwitcherBodyProps) => {
           />
         )}
       </Popover>
+      <LineStats projectId={projectId} />
       {head.kind === 'branch' && <PullRequestLink projectId={projectId} branch={head.name} />}
       <GitInputDialog
         open={dialog === 'newBranch'}

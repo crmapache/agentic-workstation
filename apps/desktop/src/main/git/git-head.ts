@@ -27,3 +27,19 @@ export const readHead = async (rootPath: string): Promise<GitHead | null> => {
     return null
   }
 }
+
+/**
+ * Есть ли коммит: у нового репозитория HEAD ещё никуда не указывает (код 1 при -q). Другой
+ * отказ git - исключение: «коммитов нет» он не значит.
+ */
+export const hasCommits = async (rootPath: string): Promise<boolean> => {
+  try {
+    await git(rootPath, ['rev-parse', '--verify', '-q', 'HEAD^{commit}'])
+
+    return true
+  } catch (error) {
+    if (exitCodeOf(error) === 1) return false
+
+    throw error
+  }
+}

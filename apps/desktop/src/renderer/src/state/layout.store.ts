@@ -36,6 +36,12 @@ type LayoutStore = Layout & {
    * сворачиваются (makeRoomForMain); левой панели уступает правая колонка (makeRoomForSide).
    */
   selectSideView: (viewId: SideViewId) => void
+  /**
+   * Показать вид левой панели, откуда бы ни позвали (дерево для найденного файла, Changes из
+   * счёта строк в шапке): уже видный не трогается - повторный выбор вида свернул бы панель.
+   * Развёрнутую, но спрятанную узким окном - показывает, как клик по иконке.
+   */
+  showSideView: (viewId: SideViewId) => void
   selectMainView: (viewId: MainViewId) => void
   /**
    * Показать вид в середине, откуда бы ни позвали (файл из дерева, коннекторы из меню
@@ -58,6 +64,16 @@ type LayoutStore = Layout & {
   resizeTerminal: (delta: number, room: number) => void
   setRoom: (room: number) => void
 }
+
+/** Левая панель с видом viewId - развёрнутая, с местом рядом с правой колонкой. */
+const openSide = (state: LayoutStore, viewId: SideViewId): Partial<LayoutStore> => {
+  const side = { ...state.side, activeViewId: viewId, isOpen: true }
+
+  return { side, ...makeRoomForSide({ ...state, side }, state.room) }
+}
+
+const isSideViewShown = (state: LayoutStore, viewId: SideViewId) =>
+  state.side.activeViewId === viewId && isSideShown(state, state.room)
 
 const select = <Area extends ViewAreaState<string>>(
   area: Area,
@@ -82,15 +98,13 @@ export const useLayoutStore = create<LayoutStore>()(
       room: Number.POSITIVE_INFINITY,
 
       selectSideView: (viewId) =>
-        set((state) => {
-          if (state.side.activeViewId === viewId && isSideShown(state, state.room)) {
-            return { side: { ...state.side, isOpen: false } }
-          }
-
-          const side = { ...state.side, activeViewId: viewId, isOpen: true }
-
-          return { side, ...makeRoomForSide({ ...state, side }, state.room) }
-        }),
+        set((state) =>
+          isSideViewShown(state, viewId)
+            ? { side: { ...state.side, isOpen: false } }
+            : openSide(state, viewId),
+        ),
+      showSideView: (viewId) =>
+        set((state) => (isSideViewShown(state, viewId) ? state : openSide(state, viewId))),
       selectMainView: (viewId) =>
         set((state) => {
           const { isMainShown } = arrangeLayout(state, state.room)

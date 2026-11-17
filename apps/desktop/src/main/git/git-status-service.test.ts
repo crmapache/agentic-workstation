@@ -1,6 +1,6 @@
 import { it, vi, expect, describe } from 'vitest'
 
-import type { GitStatus, GitChanges } from '@shared/git'
+import type { GitStatus, GitChanges, GitLineStats } from '@shared/git'
 
 import { GitStatusService } from './git-status-service'
 import type { GitStatusReader } from './git-status-service'
@@ -19,9 +19,16 @@ const changesWith = (...paths: string[]): GitChanges => ({
   truncated: false,
 })
 
+const linesWith = (added: number, deleted = 0): GitLineStats => ({
+  added,
+  deleted,
+  files: 1,
+  partial: false,
+})
+
 /**
  * Чтение без git: проект в корне репозитория, статусы - по очереди из списка, список
- * изменений - всегда один и тот же, если его не подменить.
+ * изменений и счёт строк - всегда одни и те же, если их не подменить.
  */
 const fakeReader = (...statuses: (GitStatus | null)[]) => {
   const scope = vi.fn<GitStatusReader['scope']>(() =>
@@ -29,12 +36,17 @@ const fakeReader = (...statuses: (GitStatus | null)[]) => {
   )
   const status = vi.fn<GitStatusReader['status']>(() => Promise.resolve(statuses.shift() ?? null))
   const changes = vi.fn<GitStatusReader['changes']>(() => Promise.resolve(changesWith('a.ts')))
+  const lines = vi.fn<GitStatusReader['lines']>(() => Promise.resolve(linesWith(1)))
 
-  return { scope, status, changes }
+  return { scope, status, changes, lines }
 }
 
-/** Слушатели: статус - заданный, список изменений - молча. */
-const listen = (status = vi.fn(), changes = vi.fn()) => ({ status, changes })
+/** Слушатели: заданные, остальные - молча. */
+const listen = (status = vi.fn(), changes = vi.fn(), lines = vi.fn()) => ({
+  status,
+  changes,
+  lines,
+})
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -107,8 +119,10 @@ describe('GitStatusService', () => {
 
     expect(await service.get('p1', '/plain')).toBeNull()
     expect(await service.getChanges('p1', '/plain')).toEqual({ kind: 'notGit' })
+    expect(await service.getLineStats('p1', '/plain')).toBeNull()
     expect(reader.status).not.toHaveBeenCalled()
     expect(reader.changes).not.toHaveBeenCalled()
+    expect(reader.lines).not.toHaveBeenCalled()
   })
 
   it('закрытый во время чтения проект окну не рассылается', async () => {
@@ -118,6 +132,7 @@ describe('GitStatusService', () => {
       scope: () => Promise.resolve({ prefix: '', ignoreCase: false }),
       status: () => new Promise((resolve) => (finish = resolve)),
       changes: () => Promise.resolve({ kind: 'failed' }),
+      lines: () => Promise.resolve(null),
     })
     const pending = service.get('p1', '/repo')
 
@@ -162,5 +177,64 @@ describe('GitStatusService', () => {
       ['p1', changesWith('a.ts')],
       ['p1', changesWith('a.ts', 'b.ts')],
     ])
+  })
+
+  it('счёт строк читается только после вопроса окна и дальше - с каждым статусом', async () => {
+    const reader = fakeReader()
+    const service = new GitStatusService(listen(), reader)
+
+    await service.get('p1', '/repo')
+    expect(reader.lines).not.toHaveBeenCalled()
+
+    expect(await service.getLineStats('p1', '/repo')).toEqual(linesWith(1))
+    expect(reader.lines.mock.calls[0]?.[1]).toEqual(changesWith('a.ts'))
+
+    service.changed('p1', { git: false, paths: ['src/app.ts'] })
+    await settle()
+    expect(reader.lines).toHaveBeenCalledTimes(2)
+  })
+
+  it('список изменений ради счёта строк читается, но окну не рассылается', async () => {
+    const onChanges = vi.fn()
+    const onLines = vi.fn()
+    const reader = fakeReader()
+    const service = new GitStatusService(listen(vi.fn(), onChanges, onLines), reader)
+
+    await service.getLineStats('p1', '/repo')
+
+    expect(reader.changes).toHaveBeenCalledTimes(1)
+    expect(onChanges).not.toHaveBeenCalled()
+    expect(onLines.mock.calls).toEqual([['p1', linesWith(1)]])
+  })
+
+  it('рассылает счёт строк, только когда он стал другим', async () => {
+    const onLines = vi.fn()
+    const reader = fakeReader()
+    const service = new GitStatusService(listen(vi.fn(), vi.fn(), onLines), reader)
+
+    reader.lines
+      .mockResolvedValueOnce(linesWith(3))
+      .mockResolvedValueOnce(linesWith(3))
+      .mockResolvedValueOnce(linesWith(3, 1))
+
+    await service.getLineStats('p1', '/repo')
+    await service.getLineStats('p1', '/repo')
+    await service.getLineStats('p1', '/repo')
+
+    expect(onLines.mock.calls).toEqual([
+      ['p1', linesWith(3)],
+      ['p1', linesWith(3, 1)],
+    ])
+  })
+
+  it('git не ответил списком изменений - счёта строк нет', async () => {
+    const reader = fakeReader()
+
+    reader.changes.mockResolvedValue({ kind: 'failed' })
+
+    const service = new GitStatusService(listen(), reader)
+
+    expect(await service.getLineStats('p1', '/repo')).toBeNull()
+    expect(reader.lines).not.toHaveBeenCalled()
   })
 })

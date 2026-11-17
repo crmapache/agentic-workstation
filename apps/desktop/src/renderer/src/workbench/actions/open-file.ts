@@ -4,7 +4,7 @@ import type { PathLocation } from '@shared/fs'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
-import { useLayoutStore, isSidePanelShown } from '../../state/layout.store'
+import { useLayoutStore } from '../../state/layout.store'
 import type { OpenFile, OpenFileOutcome } from '../../state/open-file.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 import type { FilePlace } from '../../state/selection.store'
@@ -49,14 +49,9 @@ const openOutside = async (
 
 /**
  * Показать папку - значит открыть левую панель с деревом: просьба, выполненная за
- * спрятанной панелью, не выполнена. Уже видную не трогаем - повторный выбор вида
- * её бы свернул. Развёрнутую, но спрятанную узким окном - показываем.
+ * спрятанной панелью, не выполнена.
  */
-const showFileTree = () => {
-  const state = useLayoutStore.getState()
-
-  if (state.side.activeViewId !== 'files' || !isSidePanelShown(state)) state.selectSideView('files')
-}
+const showFileTree = () => useLayoutStore.getState().showSideView('files')
 
 /**
  * Открыть путь, названный не в дереве (поиском, лентой Claude Code): файл проекта -

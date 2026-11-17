@@ -2,7 +2,7 @@ import type { GitHeadFile } from '@shared/git'
 
 import { TEXT_FILE_MAX_BYTES } from '../fs/text-file.constants'
 import { errorCode, decodeText, insideRoot, relativeInside } from '../fs/text-file.utils'
-import { exitCodeOf } from './git-output'
+import { hasCommits } from './git-head'
 import { git, gitBytes } from './git-runner'
 import { parseTreeEntries } from './git-tree-output'
 import type { TreeEntry } from './git-tree-output'
@@ -11,19 +11,6 @@ const MISSING: GitHeadFile = { kind: 'missing' }
 
 /** Ответ execFile, когда вывод вырос за maxBuffer. */
 const OVER_BUFFER = 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
-
-/** Есть ли коммит: у нового репозитория HEAD ещё никуда не указывает (код 1 при -q). */
-const hasCommits = async (rootPath: string): Promise<boolean> => {
-  try {
-    await git(rootPath, ['rev-parse', '--verify', '-q', 'HEAD^{commit}'])
-
-    return true
-  } catch (error) {
-    if (exitCodeOf(error) === 1) return false
-
-    throw error
-  }
-}
 
 /** Записи дерева: путь - буквально, без шаблонов (`[id].tsx` - имя, а не набор букв). */
 const listTree = async (rootPath: string, args: string[]): Promise<TreeEntry[]> => {

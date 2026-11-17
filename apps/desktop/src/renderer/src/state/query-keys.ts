@@ -46,6 +46,8 @@ export const QUERY_KEYS = {
   gitStatus: (projectId: string) => ['git', 'status', projectId],
   /** Список изменений относительно HEAD (вид Changes); свежий присылает главный процесс. */
   gitChanges: (projectId: string) => ['git', 'changes', projectId],
+  /** Счёт строк с последнего коммита (шапка); свежий присылает главный процесс. */
+  gitLineStats: (projectId: string) => ['git', 'line-stats', projectId],
   /** Локальная история файла или папки ('' - проект): события, новые сверху (ADR 0045). */
   localHistory: (projectId: string, path: string) => ['history', 'list', projectId, path],
   /** Все истории проекта разом: сбросить, когда главный процесс сказал history:changed. */

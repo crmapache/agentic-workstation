@@ -14,7 +14,7 @@ import { useClaudeSearchSync } from '../../features/claude-code/search.queries'
 import { useEditorSync } from '../../features/editor/editor-sync.hooks'
 import { useLocalHistorySync } from '../../features/editor/local-history.queries'
 import { useDirectorySync } from '../../features/file-tree/file-tree.queries'
-import { useGitHeadSync } from '../../features/git/git.queries'
+import { useGitHeadSync, useGitLineStatsSync } from '../../features/git/git.queries'
 import { useRemoteSync } from '../../features/remote/remote.queries'
 import { useTerminalSync } from '../../features/terminal/terminal.queries'
 
@@ -33,6 +33,7 @@ export const MainProcessSync = () => {
   useGitStatusSync()
   useGitChangesSync()
   useGitHeadSync()
+  useGitLineStatsSync()
   useEditorSync()
   useLocalHistorySync()
   useConnectorsSync()

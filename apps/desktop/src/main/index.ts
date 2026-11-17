@@ -199,11 +199,12 @@ const bootstrap = async () => {
   // Точные правки агентов из потоков CLI - «до» правки, если снимок истории опоздал.
   watchAgentEdits((edit) => history.agentEdited(edit))
   // Слежение за диском открытых проектов: окну - что перечитать в дереве и в редакторе и
-  // что .git поменялся (ветка), статусу git и списку изменений - повод перечитаться и
+  // что .git поменялся (ветка), статусу git, списку изменений и счёту строк - повод перечитаться и
   // разослать себя, если стали другими; истории - что сверить.
   const gitStatus = new GitStatusService({
     status: (projectId, status) => broadcast('git:status', { projectId, status }),
     changes: (projectId, changes) => broadcast('git:changes', { projectId, changes }),
+    lines: (projectId, stats) => broadcast('git:lineStats', { projectId, stats }),
   })
   const watchers = new ProjectWatchers((projectId, { directories, renamed, paths, git }) => {
     if (paths === null || paths.length > 0 || git) {

@@ -3236,6 +3236,12 @@
     "pushPublish": "Publish {{branch}} to {{remote}}. It will track the new remote branch.",
     "pushNoRemote": "This repository has no remote to push to.",
     "pushNotOnBranch": "Push works only on a branch, not on a detached commit.",
+    "lineStats": {
+      "files_one": "{{shown}} file changed",
+      "files_other": "{{shown}} files changed",
+      "label": "{{files}} since the last commit: {{added}} lines added, {{deleted}} removed. Opens Changes",
+      "labelPartial": "Too many changes to count them all. At least {{files}} since the last commit: {{added}} lines added, {{deleted}} removed. Opens Changes"
+    },
     "pullRequest": {
       "number": "#{{number}}",
       "label": "Pull request #{{number}}, {{state}}. Opens in the browser",

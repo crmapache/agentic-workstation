@@ -77,3 +77,26 @@ describe('середина, которой не хватает места', () =
     expect(isMainShown(useLayoutStore.getState())).toBe(false)
   })
 })
+
+describe('показать вид левой панели откуда угодно', () => {
+  it('показывает другой вид и разворачивает свёрнутую панель', () => {
+    useLayoutStore.getState().selectSideView('files')
+    expect(useLayoutStore.getState().side.isOpen).toBe(false)
+
+    useLayoutStore.getState().showSideView('changes')
+    expect(useLayoutStore.getState().side).toMatchObject({ activeViewId: 'changes', isOpen: true })
+  })
+
+  it('уже видный вид не сворачивает, в отличие от клика по иконке', () => {
+    useLayoutStore.getState().showSideView('files')
+    expect(isSidePanelShown(useLayoutStore.getState())).toBe(true)
+  })
+
+  it('в узком окне спрятанную за разговором панель показывает', () => {
+    useLayoutStore.getState().setRoom(400)
+    useLayoutStore.getState().showSideView('files')
+
+    expect(useLayoutStore.getState().provider.isOpen).toBe(false)
+    expect(isSidePanelShown(useLayoutStore.getState())).toBe(true)
+  })
+})
