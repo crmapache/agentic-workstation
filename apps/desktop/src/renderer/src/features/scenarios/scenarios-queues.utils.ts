@@ -1,4 +1,5 @@
 import type {
+  QueueHold,
   QueueItem,
   ScenarioQueue,
   QueueHoldReason,
@@ -28,6 +29,9 @@ export type QueueStatus =
   | { kind: 'idle' }
   /** Закрыта человеком, но её worktree ещё живёт - карточка ради него. */
   | { kind: 'closed' }
+
+/** Ключ слов остановки в `scenarios.queues.hold`: причина или её уточнение по элементу. */
+export type HoldWords = QueueHoldReason | 'doneByHand' | 'interruptedDone'
 
 /** Элемент, который идёт сейчас; в очереди он один или его нет. */
 export const runningItemOf = (queue: ScenarioQueue): QueueItem | null =>
@@ -101,6 +105,22 @@ export const waitingItems = (queue: ScenarioQueue): QueueItem[] =>
 /** Элемент, на котором очередь встала; нет остановки или элемент убран - null. */
 export const holdItemOf = (queue: ScenarioQueue): QueueItem | null =>
   (queue.hold && queue.items.find((item) => item.id === queue.hold?.itemId)) || null
+
+/** Элемент кончился несделанным: упал или остановлен. Мимо него очередь не идёт (ADR 0082). */
+export const isUnfinished = (item: QueueItem | null): boolean =>
+  item?.state === 'failed' || item?.state === 'stopped'
+
+/**
+ * Какими словами сказать об остановке (ключ в `scenarios.queues.hold`). Помеченный руками стоит
+ * «после него», но «как вы просили» тут неправда; оборванный выходом IDE, но успевший кончиться,
+ * ничего не ждёт, кроме Resume.
+ */
+export const holdWords = (hold: QueueHold, item: QueueItem | null): HoldWords => {
+  if (hold.reason === 'stopAfter' && item?.doneByHand) return 'doneByHand'
+  if (hold.reason === 'interrupted' && item?.state === 'done') return 'interruptedDone'
+
+  return hold.reason
+}
 
 /** Очереди одного проекта: вид сценариев показывает только их (ADR 0072). */
 export const projectQueues = (

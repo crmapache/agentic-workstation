@@ -8,22 +8,13 @@ import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 /**
  * Что решается вместе с «куда». Новая очередь - отдельный ли worktree: без него две очереди в
  * папке проекта правят одни файлы, с ним - незакоммиченное в нём не окажется; о том и другом
- * сказано, только когда это правда сейчас. Существующая - ждать ли успеха предыдущего
- * (включено: цепочка работ обычно стоит на самой себе).
+ * сказано, только когда это правда сейчас. У существующей решать нечего: сценарий встаёт в конец
+ * и стартует, когда предыдущий сделан (ADR 0082).
  */
 export const WhereOptions = ({ form }: LaunchPartProps) => {
   const { t } = useTranslation()
 
-  if (form.target.kind === 'queue') {
-    return (
-      <Switch
-        label={t('scenarios.launch.afterSuccess')}
-        description={t('scenarios.launch.afterSuccessNote')}
-        checked={form.afterSuccess}
-        onChange={form.setAfterSuccess}
-      />
-    )
-  }
+  if (form.target.kind === 'queue') return null
 
   return (
     <>

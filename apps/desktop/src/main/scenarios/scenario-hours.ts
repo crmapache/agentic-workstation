@@ -88,7 +88,6 @@ export const tickHours = async (desk: RunDesk, runner: QueueRunner): Promise<boo
               inputs: hour.inputs,
               provider: hour.provider,
               target: { kind: 'new', worktree: hour.worktree },
-              afterSuccess: true,
             },
             hour.id,
           )

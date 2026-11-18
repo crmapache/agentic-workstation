@@ -24,7 +24,7 @@ const BOUNDARY_SLACK_MS = 1_000
 
 /** Утром прогон не продолжился - что сказать: очередь встала или ждущих за ним нет. */
 const MISSED_HELD =
-  '%s could not pick up where it paused for the night. Nothing after it starts until you resume.'
+  '%s could not pick up where it paused for the night. Nothing after it starts until you continue it or mark it done.'
 const MISSED_ALONE =
   '%s could not pick up where it paused for the night. Open its run to continue it.'
 

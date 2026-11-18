@@ -88,7 +88,6 @@ export const parseQueueAction = (value: unknown): QueueAction => {
     [
       'remove',
       'move',
-      'mode',
       'stopAfter',
       'resume',
       'markDone',
@@ -109,12 +108,6 @@ export const parseQueueAction = (value: unknown): QueueAction => {
         kind,
         itemId: assertId(record.itemId, 'itemId'),
         by: assertCount(record.by, 'by', -100, 100),
-      }
-    case 'mode':
-      return {
-        kind,
-        itemId: assertId(record.itemId, 'itemId'),
-        afterSuccess: record.afterSuccess === true,
       }
     case 'stopAfter':
       return { kind, itemId: record.itemId === null ? null : assertId(record.itemId, 'itemId') }

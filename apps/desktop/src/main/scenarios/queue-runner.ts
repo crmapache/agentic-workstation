@@ -48,7 +48,7 @@ const workdirOf = (queue: ScenarioQueue): string | null => {
 /** Что сказать человеку, когда очередь встала сама. */
 const HOLD_WORDS: Record<string, string> = {
   stopAfter: 'stopped after %s, as you asked',
-  failed: '%s did not finish. Nothing after it starts until you resume.',
+  failed: '%s did not finish. Nothing after it starts until you continue it or mark it done.',
   refused: '%s would not start. It is still first in line.',
 }
 
@@ -200,6 +200,12 @@ export class QueueRunner {
 
     if (!queue) return 'queueGone'
 
+    // Resume над недоделанным - продолжить его прогон с карточки, где он встал: мимо него очередь
+    // не идёт (ADR 0082).
+    const stuck = action.kind === 'resume' ? rules.resumeTarget(queue) : null
+
+    if (stuck) return stuck.runId ? this.carryOn(stuck.runId) : 'runGone'
+
     const changed = this.applied(queue, action)
 
     if (!changed) return action.kind === 'close' ? 'queueBusy' : null
@@ -215,8 +221,8 @@ export class QueueRunner {
 
     // Человек стёр имя - имя снова за ИИ.
     if (action.kind === 'rename' && changed.nameSource === 'fallback') void this.name(queueId)
-    // Правка могла снять остановку (убран отказавший элемент) или поменять часы (уснуть,
-    // проснуться) - шаг сразу, а не по таймеру.
+    // Правка могла снять остановку (убран отказавший элемент, помечен выполненным) или поменять
+    // часы (уснуть, проснуться) - шаг сразу, а не по таймеру.
     await this.step(queueId)
 
     return null
@@ -320,8 +326,6 @@ export class QueueRunner {
         return rules.removeItem(queue, action.itemId)
       case 'move':
         return rules.moveItem(queue, action.itemId, action.by)
-      case 'mode':
-        return rules.setAfterSuccess(queue, action.itemId, action.afterSuccess)
       case 'stopAfter':
         return rules.setStopAfter(queue, action.itemId)
       case 'resume':

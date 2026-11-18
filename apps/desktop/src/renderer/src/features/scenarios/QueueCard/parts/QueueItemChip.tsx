@@ -22,8 +22,7 @@ import { QueueItemMenu } from './QueueItemMenu'
 /**
  * Один сценарий очереди строкой во всю ширину: место, имя, состояние, метка «встанет после него»,
  * ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
- * говорит, чего ждёт (успеха предыдущего или любого конца), и носит меню у правого края:
- * сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
+ * носит меню у правого края: сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
  * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Отказ старта - под
  * именем, если его не сказала полоса остановки.
  */
@@ -43,12 +42,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         })
       : ''
   const canMarkDone = item.state === 'failed' || item.state === 'stopped'
-  const condition =
-    isWaiting && number > 1
-      ? t(`scenarios.queues.items.${item.afterSuccess ? 'afterSuccess' : 'afterAny'}`)
-      : item.doneByHand
-        ? t('scenarios.queues.items.doneByHand')
-        : ''
+  const condition = item.doneByHand ? t('scenarios.queues.items.doneByHand') : ''
   const hasAnswers = answerChips(item.inputs).length > 0
 
   const handleOpen = () => openRun(item.runId)

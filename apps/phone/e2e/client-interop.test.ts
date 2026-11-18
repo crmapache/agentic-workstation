@@ -280,7 +280,6 @@ describe('ядро телефона против настоящей IDE', () => 
       inputs: { what: 'src' },
       provider: 'claude',
       target: { kind: 'new', worktree: true },
-      afterSuccess: false,
     })
 
     expect(started).toEqual({ ok: true, data: { queueId: 'q2', itemId: 'i2' } })

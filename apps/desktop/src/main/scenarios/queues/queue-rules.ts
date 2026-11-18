@@ -10,10 +10,13 @@ import { isResting, forgetNapRun } from './queue-nap'
  * она меняется от каждого события. Так каждое правило проверяется тестом, а сервис только
  * исполняет решения.
  *
- * Главное правило: внутри очереди одновременно идёт не больше одного сценария, и ничего не
- * стартует, пока очередь стоит (`hold`). Встаёт она сама в трёх случаях - кончился элемент с
- * «остановить после», провал перед элементом «только после успеха», элемент не стартовал - и
- * четвёртый при перезапуске IDE посреди прогона. Дальше решает человек: Resume.
+ * Главное правило: внутри очереди одновременно идёт не больше одного сценария, и следующий
+ * стартует только после сделанного - предыдущий кончился успехом или человек пометил его
+ * выполненным (ADR 0082). Упавший или остановленный держит всех за собой, пока его прогон не
+ * продолжат с места или не пометят выполненным. Ничего не стартует и пока очередь стоит
+ * (`hold`). Встаёт она сама в трёх случаях - кончился элемент с «остановить после», элемент
+ * кончился несделанным, элемент не стартовал - и четвёртый при перезапуске IDE посреди
+ * прогона. Дальше решает человек.
  */
 
 /** Чем кончился прогон элемента - его состояние в очереди. */
@@ -23,52 +26,57 @@ export type ItemOutcome = 'done' | 'failed' | 'stopped'
 export const runningItem = (queue: ScenarioQueue): QueueItem | null =>
   queue.items.find((item) => item.state === 'running') ?? null
 
-/** Последний прошедший элемент - тот, чей исход решает за следующего «только после успеха». */
+/** Последний прошедший элемент - тот, чей исход решает, можно ли начинать следующий. */
 const lastOver = (queue: ScenarioQueue): QueueItem | null =>
   queue.items.filter((item) => isItemOver(item.state)).at(-1) ?? null
 
-/**
- * Следующий ждёт успеха, а прошедший перед ним не удался и человек его не отпускал. Так
- * бывает, когда элемент поставили уже после провала: в момент провала ждущих не было, и
- * очередь не встала.
- */
-const blockedByFailure = (queue: ScenarioQueue, next: QueueItem): QueueItem | null => {
-  const before = lastOver(queue)
+const hasWaiting = (queue: ScenarioQueue): boolean =>
+  queue.items.some((item) => item.state === 'waiting')
 
-  return next.afterSuccess &&
-    before &&
-    before.state !== 'done' &&
-    before.id !== queue.acknowledgedItemId
-    ? before
-    : null
+/**
+ * Последний прошедший, если он не сделан (упал, остановлен): мимо него очередь не идёт, пока его
+ * не продолжат с места или не пометят выполненным. Следующий работает в той же папке - начать
+ * после недоделанного значит начать поверх чужой незаконченной работы.
+ */
+const stuckItem = (queue: ScenarioQueue): QueueItem | null => {
+  const last = lastOver(queue)
+
+  return last && last.state !== 'done' ? last : null
 }
 
 /**
- * Следующий, кто стартует сейчас; null - очередь стоит, занята, закрыта, пуста или отдыхает
- * вне рабочих часов.
+ * Следующий, кто стартует сейчас; null - очередь стоит, занята, закрыта, пуста, отдыхает вне
+ * рабочих часов или перед ждущими недоделанный.
  */
 export const nextToStart = (queue: ScenarioQueue, now: number): QueueItem | null => {
   if (queue.closedAt > 0 || queue.hold || runningItem(queue) || isResting(queue, now)) return null
+  if (stuckItem(queue)) return null
 
-  const next = queue.items.find((item) => item.state === 'waiting') ?? null
-
-  return next && !blockedByFailure(queue, next) ? next : null
+  return queue.items.find((item) => item.state === 'waiting') ?? null
 }
 
 /**
- * Очередь свободна, а следующий не может стартовать из-за неуспеха перед ним - встать с той
- * же причиной, что при провале: человек решает, идти ли дальше. Иначе - та же очередь.
- * Отдыхающая вне рабочих часов не решает ничего: за ней может ждать прогон, оборванный выходом
- * IDE, - его продолжат утром, и это не провал.
+ * Очередь свободна, ждущий есть, а перед ним недоделанный - встать с той же причиной, что при
+ * провале: так бывает, когда элемент поставили уже после провала (в момент провала ждущих не
+ * было, и очередь не встала). Иначе - та же очередь. Отдыхающая вне рабочих часов не решает
+ * ничего: за ней может ждать прогон, оборванный выходом IDE, - его продолжат утром, и это не
+ * провал.
  */
 export const holdBeforeFailure = (queue: ScenarioQueue, now: number): ScenarioQueue => {
   if (queue.closedAt > 0 || queue.hold || runningItem(queue) || isResting(queue, now)) return queue
 
-  const next = queue.items.find((item) => item.state === 'waiting')
-  const failed = next && blockedByFailure(queue, next)
+  const stuck = hasWaiting(queue) ? stuckItem(queue) : null
 
-  return failed ? { ...queue, hold: { reason: 'failed', itemId: failed.id, at: now } } : queue
+  return stuck ? { ...queue, hold: { reason: 'failed', itemId: stuck.id, at: now } } : queue
 }
+
+/**
+ * Кого поднимает Resume: недоделанный, за которым ждут, - его прогон продолжается с карточки, где
+ * встал. Ждущих нет - очереди идти некуда, Resume только убирает полосу, а сам прогон продолжают
+ * из его окна.
+ */
+export const resumeTarget = (queue: ScenarioQueue): QueueItem | null =>
+  queue.closedAt === 0 && hasWaiting(queue) ? stuckItem(queue) : null
 
 const patchItem = (
   queue: ScenarioQueue,
@@ -98,9 +106,10 @@ export const markRefused = (
 })
 
 /**
- * Прогон элемента кончился. Остановка «после этого» срабатывает при любом исходе: человек
- * хотел, чтобы после него ничего не начиналось. Провал останавливает очередь, только если
- * следующий ждёт успеха, - иначе он и не просил ждать.
+ * Прогон элемента кончился. Несделанный, за которым ждут, ставит очередь: дальше - только после
+ * продолжения или отметки «выполнено». Его отметка «остановить после» остаётся за ним:
+ * продолженный и доделанный, он остановит очередь, как человек и просил. Сделанный с отметкой
+ * останавливает очередь после себя.
  */
 export const settleItem = (
   queue: ScenarioQueue,
@@ -110,34 +119,33 @@ export const settleItem = (
 ): ScenarioQueue => {
   const settled = patchItem(queue, itemId, { state: outcome })
 
-  if (queue.stopAfterItemId === itemId) {
-    return { ...settled, stopAfterItemId: '', hold: { reason: 'stopAfter', itemId, at: now } }
+  if (outcome !== 'done' && hasWaiting(settled)) {
+    return { ...settled, hold: { reason: 'failed', itemId, at: now } }
   }
 
-  const next = settled.items.find((item) => item.state === 'waiting')
-
-  if (outcome !== 'done' && next?.afterSuccess) {
-    return { ...settled, hold: { reason: 'failed', itemId, at: now } }
+  if (queue.stopAfterItemId === itemId) {
+    return { ...settled, stopAfterItemId: '', hold: { reason: 'stopAfter', itemId, at: now } }
   }
 
   return settled
 }
 
-/** Resume: снять остановку; отказ старта первого ждущего забывается - пусть попробует снова. */
+/**
+ * Resume: снять остановку; отказ старта первого ждущего забывается - пусть попробует снова. Мимо
+ * недоделанного Resume не ведёт: его прогон продолжает исполнитель (resumeTarget), а снятая здесь
+ * остановка встала бы снова на следующем шаге.
+ */
 export const resumeQueue = (queue: ScenarioQueue): ScenarioQueue => {
   const first = queue.items.find((item) => item.state === 'waiting')
-  // Resume после неуспеха - «иди дальше всё равно»: элемент «после успеха» за ним не ждёт.
-  const acknowledgedItemId =
-    queue.hold && queue.hold.reason !== 'refused' ? queue.hold.itemId : queue.acknowledgedItemId
-  const resumed = { ...queue, hold: null, acknowledgedItemId }
+  const resumed = { ...queue, hold: null }
 
   return first ? patchItem(resumed, first.id, { refusal: null }) : resumed
 }
 
 /**
  * Пометить выполненным руками: прогон упал или его остановили, а работу человек доделал сам (в
- * разговоре головы, в своей вкладке). Дальше элемент - успех: «только после успеха» за ним больше
- * не ждёт. Но очередь сама не трогается: стояла на нём - встаёт «после него» и ждёт Resume, как
+ * разговоре головы, в своей вкладке). Дальше элемент - успех: после него можно начинать следующий.
+ * Но очередь сама не трогается: стояла на нём - встаёт «после него» и ждёт Resume, как
  * после остановки рукой; человек мог ещё не решить, что запускать следом. Прогон в истории
  * остаётся каким был.
  */
@@ -150,13 +158,16 @@ export const markDoneByHand = (
 
   if (!item || (item.state !== 'failed' && item.state !== 'stopped')) return queue
 
-  const marked = patchItem(queue, itemId, { state: 'done', doneByHand: true })
+  const marked = {
+    ...patchItem(queue, itemId, { state: 'done', doneByHand: true }),
+    // Отметка «остановить после» на прошедшем уже ничего не остановит: очередь, стоявшая на нём,
+    // встаёт после него и без неё.
+    stopAfterItemId: queue.stopAfterItemId === itemId ? '' : queue.stopAfterItemId,
+  }
 
   if (queue.hold?.itemId !== itemId) return marked
 
-  const waiting = marked.items.some((one) => one.state === 'waiting')
-
-  return { ...marked, hold: waiting ? { reason: 'stopAfter', itemId, at: now } : null }
+  return { ...marked, hold: hasWaiting(marked) ? { reason: 'stopAfter', itemId, at: now } : null }
 }
 
 /**
@@ -229,12 +240,6 @@ export const moveItem = (queue: ScenarioQueue, itemId: string, by: number): Scen
 
   return { ...queue, items: [...queue.items.filter((one) => one.state !== 'waiting'), ...moved] }
 }
-
-export const setAfterSuccess = (
-  queue: ScenarioQueue,
-  itemId: string,
-  afterSuccess: boolean,
-): ScenarioQueue => patchItem(queue, itemId, { afterSuccess })
 
 /** Имя от человека главнее имени от ИИ; ИИ не перебивает человека. Пустое - вернуть ИИ. */
 export const renameQueue = (

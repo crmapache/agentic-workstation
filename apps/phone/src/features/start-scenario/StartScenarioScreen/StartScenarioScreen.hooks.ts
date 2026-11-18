@@ -24,7 +24,6 @@ export const useStartScenario = (route: RouteOf<'startScenario'>) => {
     inputs: {},
     target: { kind: 'new' },
     worktree: true,
-    afterSuccess: false,
     provider: '',
   })
   const scenario = shelves.data?.scenarios.find((one) => scenarioKey(one) === form.scenario)

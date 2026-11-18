@@ -37,7 +37,6 @@ const START_ARGS = {
   inputs: { what: 'docs' },
   provider: 'claude',
   target: { kind: 'new', worktree: true },
-  afterSuccess: false,
 }
 
 /** Транскрипт, который поднимается, пока тест не отпустит: очередь телефона стоит на нём. */

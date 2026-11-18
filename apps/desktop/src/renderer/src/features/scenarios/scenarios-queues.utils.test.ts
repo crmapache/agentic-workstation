@@ -6,9 +6,11 @@ import type { RunSummary } from '@shared/scenario-runs'
 import {
   liveOf,
   roadMood,
+  holdWords,
   holdItemOf,
   statusTone,
   queueStatus,
+  isUnfinished,
   waitingItems,
   projectQueues,
   folderNeighbours,
@@ -21,7 +23,6 @@ const item = (id: string, patch: Partial<QueueItem> = {}): QueueItem => ({
   scenarioName: `Scenario ${id}`,
   inputs: {},
   provider: 'claude',
-  afterSuccess: true,
   addedAt: 0,
   runId: '',
   state: 'waiting',
@@ -40,7 +41,6 @@ const queue = (id: string, patch: Partial<ScenarioQueue> = {}): ScenarioQueue =>
   items: [],
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   hours: null,
   nap: null,
   ...patch,
@@ -143,6 +143,31 @@ describe('элементы очереди', () => {
     expect(holdItemOf(held)?.id).toBe('a')
     expect(holdItemOf(queue('q'))).toBeNull()
     expect(holdItemOf({ ...held, hold: { reason: 'refused', itemId: 'gone', at: 1 } })).toBeNull()
+  })
+
+  it('несделанный - только упавший или остановленный', () => {
+    expect(isUnfinished(item('a', { state: 'failed' }))).toBe(true)
+    expect(isUnfinished(item('a', { state: 'stopped' }))).toBe(true)
+    expect(isUnfinished(item('a', { state: 'done' }))).toBe(false)
+    expect(isUnfinished(item('a'))).toBe(false)
+    expect(isUnfinished(null)).toBe(false)
+  })
+
+  it('слова остановки', () => {
+    const at = 1
+
+    expect(holdWords({ reason: 'failed', itemId: 'a', at }, item('a', { state: 'stopped' }))).toBe(
+      'failed',
+    )
+    expect(
+      holdWords({ reason: 'stopAfter', itemId: 'a', at }, item('a', { doneByHand: true })),
+    ).toBe('doneByHand')
+    expect(
+      holdWords({ reason: 'interrupted', itemId: 'a', at }, item('a', { state: 'done' })),
+    ).toBe('interruptedDone')
+    expect(
+      holdWords({ reason: 'interrupted', itemId: 'a', at }, item('a', { state: 'stopped' })),
+    ).toBe('interrupted')
   })
 })
 

@@ -10,7 +10,7 @@ const NEW = 'new'
 
 /**
  * Куда поставить: новая очередь (своя worktree - работа не трогает файлы проекта) или в конец
- * открытой очереди (и запускать ли только после успеха предыдущего). И провайдер, если их больше
+ * открытой очереди - там сценарий стартует, когда предыдущий сделан. И провайдер, если их больше
  * одного.
  */
 export const TargetPicker = ({ start }: { start: ReturnType<typeof useStartScenario> }) => {
@@ -42,25 +42,21 @@ export const TargetPicker = ({ start }: { start: ReturnType<typeof useStartScena
               })
             }
           />
-          <OptionList
-            label={t('start.options')}
-            shape="square"
-            options={[
-              form.target.kind === 'new'
-                ? {
-                    value: 'worktree',
-                    label: t('start.worktree'),
-                    description: t('start.worktreeHint'),
-                  }
-                : { value: 'afterSuccess', label: t('queue.afterSuccess') },
-            ]}
-            isSelected={(value) => (value === 'worktree' ? form.worktree : form.afterSuccess)}
-            onSelect={(value) =>
-              value === 'worktree'
-                ? update({ worktree: !form.worktree })
-                : update({ afterSuccess: !form.afterSuccess })
-            }
-          />
+          {form.target.kind === 'new' && (
+            <OptionList
+              label={t('start.options')}
+              shape="square"
+              options={[
+                {
+                  value: 'worktree',
+                  label: t('start.worktree'),
+                  description: t('start.worktreeHint'),
+                },
+              ]}
+              isSelected={() => form.worktree}
+              onSelect={() => update({ worktree: !form.worktree })}
+            />
+          )}
         </div>
       </Section>
       {providers.length > 1 && (

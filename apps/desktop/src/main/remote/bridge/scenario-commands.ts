@@ -78,7 +78,8 @@ export class ScenarioCommands {
   }
 
   private async start(args: CommandArgs<'scenarios.start'>): Promise<Outcome> {
-    const { projectKey, provider, ...rest } = args
+    // afterSuccess - поле для IDE постарше: очередь идёт дальше только после сделанного (ADR 0082).
+    const { projectKey, provider, afterSuccess, ...rest } = args
     const path = this.keys().openPathOf(projectKey)
 
     if (!path) return fail('notOpen')

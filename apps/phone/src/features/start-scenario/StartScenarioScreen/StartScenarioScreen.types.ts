@@ -8,6 +8,5 @@ export type StartForm = {
   inputs: Record<string, string>
   target: TargetChoice
   worktree: boolean
-  afterSuccess: boolean
   provider: string
 }

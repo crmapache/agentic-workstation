@@ -45,7 +45,6 @@ const queue = (id: string): ScenarioQueue => ({
   items: [],
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   hours: null,
   nap: null,
 })

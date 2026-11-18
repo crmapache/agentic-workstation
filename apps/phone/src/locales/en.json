@@ -479,11 +479,12 @@
     "heldTitle": "The queue is waiting",
     "holdReason": {
       "stopAfter": "It stopped where you asked.",
-      "failed": "The item before failed.",
+      "failed": "An item did not finish. Nothing after it starts until you continue its run, or mark it done in the IDE.",
       "refused": "The IDE could not start the next item.",
       "interrupted": "The IDE was closed during a run."
     },
     "resume": "Resume the queue",
+    "carryOn": "Continue the run",
     "restTitle": "Outside working hours",
     "restUntil": "Resumes {{when}}",
     "restPaused": "{{name}} is paused until then. Resume it here to go on now.",
@@ -501,7 +502,6 @@
     "stopAfterThis": "Stop the queue after this item",
     "keepGoing": "Keep going after this",
     "stopsHere": "Stops here",
-    "afterSuccess": "Run only if the one before succeeded",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "moveUpConfirm": "Move {{name}} up the queue?",

@@ -36,7 +36,6 @@ export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): Qu
     scenarioName: item.scenarioName,
     inputs: item.inputs,
     provider: item.provider,
-    afterSuccess: item.afterSuccess,
     addedAt: item.addedAt,
     runId: item.runId,
     state: item.state,
@@ -44,7 +43,6 @@ export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): Qu
   })),
   stopAfterItemId: queue.stopAfterItemId,
   hold: queue.hold,
-  acknowledgedItemId: queue.acknowledgedItemId,
   hours: queue.hours,
   nap: queue.nap && { until: queue.nap.until, runId: queue.nap.runId },
 })

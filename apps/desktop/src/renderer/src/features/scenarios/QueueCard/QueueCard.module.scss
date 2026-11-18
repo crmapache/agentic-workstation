@@ -74,12 +74,14 @@
 
 // Очередь встала (или спит вне рабочих часов): полоса с причиной и действием. Остановка рукой
 // человека и сон - серые, провал и отказ - тоном ошибки; текст обычный, цветом говорит плашка.
+// Узкая колонка - кнопки уходят под текст, а не сжимают его в столбик по слову.
 .hold {
   --tone: var(--color-fg-subtle);
 
   @include scenario-plaque(var(--tone));
 
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   color: var(--color-fg);
@@ -90,7 +92,7 @@
 }
 
 .holdText {
-  flex: 1;
+  flex: 1 1 var(--size-text-narrow);
   min-width: 0;
   line-height: var(--line-height-snug);
 }
@@ -100,6 +102,7 @@
   flex-shrink: 0;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
 }
 
 // Элементы - строками во всю ширину одна под другой: порядок читается сверху вниз.

@@ -15,13 +15,13 @@ import {
 
 /**
  * Действие над очередью. clear - убрать все ждущие элементы разом («drop what is left»): идущий
- * прогон и прошедшие остаются, сама очередь не закрывается. Закрыть очередь и удалить её
+ * прогон и прошедшие остаются, сама очередь не закрывается. resume перед ждущими недоделанного
+ * продолжает его прогон с места, а не пропускает его (ADR 0082). Закрыть очередь и удалить её
  * worktree с телефона нельзя.
  */
 const QUEUE_ACTION = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('remove'), itemId: ID }),
   z.object({ kind: z.literal('move'), itemId: ID, by: z.int().min(-100).max(100) }),
-  z.object({ kind: z.literal('mode'), itemId: ID, afterSuccess: z.boolean() }),
   z.object({ kind: z.literal('stopAfter'), itemId: ID.nullable() }),
   z.object({ kind: z.literal('resume') }),
   z.object({ kind: z.literal('rename'), name: z.string().trim().min(1).max(80) }),
@@ -77,7 +77,11 @@ export const SCENARIO_ARGS = {
     inputs: INPUTS,
     provider: PROVIDER,
     target: TARGET,
-    afterSuccess: z.boolean(),
+    /**
+     * Старое поле: IDE до 0.1.26 требует его. Новая не читает - очередь всегда идёт дальше только
+     * после сделанного (ADR 0082); телефон шлёт true, пока в ходу IDE постарше.
+     */
+    afterSuccess: z.boolean().optional(),
   }),
   /** Отложенный запуск: час (минуты от полуночи), ритм, день недели; scheduleId пусто - новый. */
   'scenarios.schedule': z.object({

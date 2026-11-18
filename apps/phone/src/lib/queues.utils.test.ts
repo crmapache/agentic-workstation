@@ -21,7 +21,6 @@ const queue = (id: string, over: Partial<QueueWire> = {}): QueueWire => ({
       scenarioName: 'S',
       inputs: {},
       provider: 'claude',
-      afterSuccess: false,
       addedAt: 0,
       runId: '',
       state: 'waiting',
@@ -30,7 +29,6 @@ const queue = (id: string, over: Partial<QueueWire> = {}): QueueWire => ({
   ],
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   ...over,
 })
 

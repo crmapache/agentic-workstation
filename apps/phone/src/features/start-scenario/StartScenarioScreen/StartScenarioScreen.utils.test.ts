@@ -20,12 +20,11 @@ const form: StartForm = {
   inputs: { what: ' src ', stray: 'x' },
   target: { kind: 'new' },
   worktree: true,
-  afterSuccess: true,
   provider: 'claude',
 }
 
 describe('запуск сценария с телефона', () => {
-  it('новая очередь: worktree по галочке, «только после успеха» не к месту', () => {
+  it('новая очередь: worktree по галочке; afterSuccess - всегда true для IDE постарше', () => {
     expect(startArgs('p-x', scenario, form)).toEqual({
       projectKey: 'p-x',
       scenarioId: 'tidy',
@@ -33,11 +32,11 @@ describe('запуск сценария с телефона', () => {
       inputs: { what: 'src', how: '' },
       provider: 'claude',
       target: { kind: 'new', worktree: true },
-      afterSuccess: false,
+      afterSuccess: true,
     })
   })
 
-  it('существующая очередь - по id, с «только после успеха»', () => {
+  it('существующая очередь - по id', () => {
     expect(
       startArgs('p-x', scenario, { ...form, target: { kind: 'queue', queueId: 'q1' } }),
     ).toMatchObject({

@@ -316,7 +316,6 @@ describe('команды телефона', () => {
       inputs: { what: 'docs' },
       provider: 'claude',
       target: { kind: 'new', worktree: true },
-      afterSuccess: false,
     })
 
     expect(started).toMatchObject({ ok: true, data: { queueId: 'q2', itemId: 'i2' } })

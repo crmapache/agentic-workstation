@@ -12,6 +12,7 @@ import { LinkWait } from '../../../shell/LinkWait/LinkWait'
 import { Screen } from '../../../shell/Screen/Screen'
 import { TextDialog } from '../../../shell/TextDialog/TextDialog'
 import { useQueueScreen } from './QueueScreen.hooks'
+import { holdCarriesOn } from './QueueScreen.utils'
 import { CurrentRun } from './parts/CurrentRun'
 import { QueueItems } from './parts/QueueItems'
 import { QueueRest } from './parts/QueueRest'
@@ -65,7 +66,7 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
             variant="primary"
             disabled={screen.busy}
             onClick={() => screen.queueAction({ kind: 'resume' })}>
-            {t('queue.resume')}
+            {t(holdCarriesOn(queue) ? 'queue.carryOn' : 'queue.resume')}
           </Button>
         </Card>
       )}

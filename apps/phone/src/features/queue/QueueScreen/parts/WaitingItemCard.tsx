@@ -12,11 +12,10 @@ import styles from '../QueueScreen.module.scss'
 import type { Confirmation } from '../QueueScreen.types'
 import { itemFacts } from '../QueueScreen.utils'
 import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
-import { OptionList } from '../../../../shell/OptionList/OptionList'
 
 /**
- * Ждущий элемент очереди: сценарий и ответы на его вопросы, «только после успеха», переставить,
- * остановить очередь после него, убрать. Каждое действие кнопкой - через «точно?»: значки стоят
+ * Ждущий элемент очереди: сценарий и ответы на его вопросы, переставить, остановить очередь после
+ * него, убрать. Каждое действие кнопкой - через «точно?»: значки стоят
  * плотно, и палец, листающий карточки, задевал их случайно.
  */
 export const WaitingItemCard = ({
@@ -70,16 +69,6 @@ export const WaitingItemCard = ({
       description={itemFacts(t, item) || undefined}
       actions={stopsAfter && <Badge tone="warning">{t('queue.stopsHere')}</Badge>}>
       <div className={styles.waiting}>
-        <OptionList
-          label={t('queue.afterSuccess')}
-          shape="square"
-          disabled={busy}
-          options={[{ value: 'afterSuccess', label: t('queue.afterSuccess') }]}
-          isSelected={() => item.afterSuccess}
-          onSelect={() =>
-            queueAction({ kind: 'mode', itemId: item.id, afterSuccess: !item.afterSuccess })
-          }
-        />
         <div className={styles.itemActions}>
           <IconButton
             icon={ArrowUp}

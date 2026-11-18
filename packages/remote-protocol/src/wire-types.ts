@@ -190,7 +190,6 @@ export type QueueItemWire = {
   scenarioName: string
   inputs: Record<string, string>
   provider: string
-  afterSuccess: boolean
   addedAt: number
   runId: string
   state: 'waiting' | 'running' | 'done' | 'failed' | 'stopped'
@@ -212,7 +211,6 @@ export type QueueWire = {
   items: QueueItemWire[]
   stopAfterItemId: string
   hold: { reason: string; itemId: string; at: number } | null
-  acknowledgedItemId: string
   /**
    * Рабочие часы очереди - окно по дням недели в местном времени машины; null - работает в
    * любое время. Нет поля - IDE старше рабочих часов.

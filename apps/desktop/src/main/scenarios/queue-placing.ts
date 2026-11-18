@@ -39,7 +39,6 @@ export const placeItem = async (
     scenarioName: scenario.name,
     inputs: answersOf(scenario, request.inputs),
     provider: request.provider,
-    afterSuccess: request.afterSuccess,
     addedAt: Date.now(),
     runId: '',
     state: 'waiting',
@@ -84,7 +83,6 @@ const openQueue = async (
     items: [item],
     stopAfterItemId: '',
     hold: null,
-    acknowledgedItemId: '',
     hours: null,
     nap: null,
   }

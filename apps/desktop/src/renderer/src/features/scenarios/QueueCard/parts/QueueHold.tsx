@@ -6,14 +6,15 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { useOpenRun } from '../QueueCard.hooks'
 import styles from '../QueueCard.module.scss'
 import type { QueueHoldProps } from '../QueueCard.types'
-import { holdItemOf, waitingItems } from '../../scenarios-queues.utils'
+import { holdWords, holdItemOf, isUnfinished, waitingItems } from '../../scenarios-queues.utils'
 import { useScenarioActions } from '../../scenarios.actions'
 
 /**
- * Очередь встала - почему и что дальше. Пустить её может только человек: Resume снимает
- * остановку и берёт следующий; ждущих нет - та же кнопка просто убирает полосу (Dismiss).
- * Провал и IDE, закрытая посреди прогона, - ещё и «Open run»: первый вопрос - что там было, - и
- * «Mark done»: работу доделали руками, очередь считает элемент сделанным и ждёт Resume.
+ * Очередь встала - почему и что дальше. Пустить её может только человек. Встала на несделанном
+ * (упал, остановлен, оборван выходом IDE) - мимо него очередь не идёт (ADR 0082): главная кнопка
+ * продолжает его прогон с карточки, где он встал, рядом «Open run» - что там было - и «Mark
+ * done»: работу доделали руками. Иначе Resume снимает остановку и берёт следующий; ждущих нет -
+ * та же кнопка просто убирает полосу (Dismiss).
  */
 export const QueueHold = ({ queue, hold }: QueueHoldProps) => {
   const { t } = useTranslation()
@@ -22,14 +23,13 @@ export const QueueHold = ({ queue, hold }: QueueHoldProps) => {
   const item = holdItemOf(queue)
   const name = item?.scenarioName ?? t('scenarios.queues.hold.someone')
   const isDanger = hold.reason === 'failed' || hold.reason === 'refused'
-  const canOpen =
-    Boolean(item?.runId) && (hold.reason === 'failed' || hold.reason === 'interrupted')
-  const canMarkDone =
-    (hold.reason === 'failed' || hold.reason === 'interrupted') &&
-    (item?.state === 'failed' || item?.state === 'stopped')
+  const isCut = hold.reason === 'failed' || hold.reason === 'interrupted'
+  const canOpen = Boolean(item?.runId) && isCut
+  const canMarkDone = isCut && isUnfinished(item)
   const canGoOn = waitingItems(queue).length > 0
-  // Помеченный руками стоит «после него», но говорить «как вы просили» тут неправда.
-  const reason = hold.reason === 'stopAfter' && item?.doneByHand ? 'doneByHand' : hold.reason
+  // Resume над несделанным главный процесс понимает как «продолжить его прогон» - так и сказано.
+  const isCarryOn = canGoOn && isUnfinished(item)
+  const goOn = isCarryOn ? 'carryOn' : canGoOn ? 'resume' : 'dismiss'
   const why = t(`scenarios.codes.${item?.refusal ?? 'unknown'}`, {
     defaultValue: t('scenarios.codes.unknown'),
   })
@@ -46,7 +46,9 @@ export const QueueHold = ({ queue, hold }: QueueHoldProps) => {
 
   return (
     <div role="status" className={clsx(styles.hold, isDanger && styles.holdDanger)}>
-      <span className={styles.holdText}>{t(`scenarios.queues.hold.${reason}`, { name, why })}</span>
+      <span className={styles.holdText}>
+        {t(`scenarios.queues.hold.${holdWords(hold, item)}`, { name, why })}
+      </span>
       <span className={styles.holdActions}>
         {canOpen && (
           <Button size="sm" variant="ghost" onClick={handleOpen}>
@@ -59,7 +61,7 @@ export const QueueHold = ({ queue, hold }: QueueHoldProps) => {
           </Button>
         )}
         <Button size="sm" variant={canGoOn ? 'primary' : 'secondary'} onClick={handleResume}>
-          {canGoOn ? t('scenarios.queues.hold.resume') : t('scenarios.queues.hold.dismiss')}
+          {t(`scenarios.queues.hold.${goOn}`)}
         </Button>
       </span>
     </div>

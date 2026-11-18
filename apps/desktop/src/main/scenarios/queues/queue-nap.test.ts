@@ -28,7 +28,6 @@ const item = (id: string, patch: Partial<QueueItem> = {}): QueueItem => ({
   scenarioName: `Scenario ${id}`,
   inputs: {},
   provider: 'claude',
-  afterSuccess: true,
   addedAt: 1,
   runId: '',
   state: 'waiting',
@@ -47,7 +46,6 @@ const queueOf = (patch: Partial<ScenarioQueue>, ...items: QueueItem[]): Scenario
   items,
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   hours: HOURS,
   nap: null,
   ...patch,
@@ -123,7 +121,7 @@ describe('queue naps', () => {
     expect(recovered.hold).toBeNull()
     expect(recovered.items[0]?.state).toBe('stopped')
     expect(recovered.nap?.runId).toBe('r1')
-    // Ночью за ним «только после успеха» - это не провал: очередь не встаёт, а ждёт утра.
+    // Ночью несделанный перед ждущим - это не провал: очередь не встаёт, а ждёт утра.
     expect(holdBeforeFailure(recovered, at(16, 23))).toBe(recovered)
 
     // IDE упала, а не вышла: запись прогона - «упал», но спавший прогон всё равно продолжат.

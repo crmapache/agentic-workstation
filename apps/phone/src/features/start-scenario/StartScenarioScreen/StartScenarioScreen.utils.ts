@@ -19,5 +19,6 @@ export const startArgs = (
     form.target.kind === 'new'
       ? { kind: 'new', worktree: form.worktree }
       : { kind: 'queue', queueId: form.target.queueId },
-  afterSuccess: form.target.kind === 'queue' && form.afterSuccess,
+  // IDE до 0.1.26 требует поле; новая его не читает: очередь всегда ждёт сделанного (ADR 0082).
+  afterSuccess: true,
 })

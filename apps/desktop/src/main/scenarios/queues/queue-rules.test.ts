@@ -17,6 +17,7 @@ import {
   clearWaiting,
   fallbackName,
   recoverQueue,
+  resumeTarget,
   setStopAfter,
   markDoneByHand,
   holdBeforeFailure,
@@ -29,7 +30,6 @@ const item = (id: string, patch: Partial<QueueItem> = {}): QueueItem => ({
   scenarioName: `Scenario ${id}`,
   inputs: {},
   provider: 'claude',
-  afterSuccess: true,
   addedAt: 1,
   runId: '',
   state: 'waiting',
@@ -48,7 +48,6 @@ const queueOf = (...items: QueueItem[]): ScenarioQueue => ({
   items,
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   hours: null,
   nap: null,
 })
@@ -70,41 +69,48 @@ describe('queue rules', () => {
     expect(nextToStart(started, NOW)).toBeNull()
   })
 
-  it('moves on after a success and after a failure the next one does not wait for', () => {
+  it('moves on after a success', () => {
     const done = settleItem(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a', 'done', 5)
 
     expect(done.hold).toBeNull()
     expect(nextToStart(done, NOW)?.id).toBe('b')
-
-    const failed = settleItem(
-      markStarted(queueOf(item('a'), item('b', { afterSuccess: false })), 'a', 'r'),
-      'a',
-      'failed',
-      5,
-    )
-
-    expect(failed.hold).toBeNull()
-    expect(nextToStart(failed, NOW)?.id).toBe('b')
   })
 
-  it('holds on a failure when the next item waits for success, until Resume', () => {
-    const held = settleItem(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a', 'failed', 5)
+  it('holds on an item that failed or was stopped, and Resume does not go past it', () => {
+    for (const outcome of ['failed', 'stopped'] as const) {
+      const held = settleItem(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a', outcome, 5)
 
-    expect(held.hold).toEqual({ reason: 'failed', itemId: 'a', at: 5 })
+      expect(held.hold).toEqual({ reason: 'failed', itemId: 'a', at: 5 })
+      expect(nextToStart(held, NOW)).toBeNull()
+      expect(resumeTarget(held)?.id).toBe('a')
+      // Снятая остановка ничего не пускает: перед ждущим всё ещё недоделанный.
+      expect(nextToStart(resumeQueue(held), NOW)).toBeNull()
+    }
+  })
+
+  it('stops after the current item when it is done, and forgets the mark', () => {
+    const running = markStarted(queueOf(item('a'), item('b')), 'a', 'r')
+    const held = settleItem(setStopAfter(running, 'a'), 'a', 'done', 9)
+
+    expect(held.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 9 })
+    expect(held.stopAfterItemId).toBe('')
     expect(nextToStart(held, NOW)).toBeNull()
+    expect(resumeTarget(held)).toBeNull()
     expect(nextToStart(resumeQueue(held), NOW)?.id).toBe('b')
   })
 
-  it('stops after the current item whatever its outcome, and forgets the mark', () => {
-    for (const outcome of ['done', 'failed', 'stopped'] as const) {
-      const running = markStarted(queueOf(item('a'), item('b', { afterSuccess: false })), 'a', 'r')
-      const held = settleItem(setStopAfter(running, 'a'), 'a', outcome, 9)
+  it('keeps the stop mark on an unfinished item and stops after it once it is done', () => {
+    const running = markStarted(queueOf(item('a'), item('b')), 'a', 'r')
+    const failed = settleItem(setStopAfter(running, 'a'), 'a', 'failed', 9)
 
-      expect(held.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 9 })
-      expect(held.stopAfterItemId).toBe('')
-      expect(nextToStart(held, NOW)).toBeNull()
-      expect(nextToStart(resumeQueue(held), NOW)?.id).toBe('b')
-    }
+    expect(failed.hold).toEqual({ reason: 'failed', itemId: 'a', at: 9 })
+    expect(failed.stopAfterItemId).toBe('a')
+
+    const reopened = reopenItem(failed, 'a')
+    const done = reopened && settleItem(reopened, 'a', 'done', 10)
+
+    expect(done?.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 10 })
+    expect(done && nextToStart(done, NOW)).toBeNull()
   })
 
   it('stops after a chosen waiting item, not before it', () => {
@@ -196,10 +202,11 @@ describe('queue rules', () => {
     expect(renameQueue(cleared, 'From AI', 'ai').name).toBe('From AI')
   })
 
-  it('does not start an after-success item added after a failure, and holds instead', () => {
+  it('does not start an item added after a failure, and holds on the failed one instead', () => {
     const failed = settleItem(markStarted(queueOf(item('a')), 'a', 'r1'), 'a', 'failed', 1)
 
     expect(failed.hold).toBeNull()
+    expect(resumeTarget(failed)).toBeNull()
 
     const added = addItem(failed, item('b'))
 
@@ -208,28 +215,41 @@ describe('queue rules', () => {
     const held = holdBeforeFailure(added, 5)
 
     expect(held.hold).toEqual({ reason: 'failed', itemId: 'a', at: 5 })
-    expect(nextToStart(resumeQueue(held), NOW)?.id).toBe('b')
-    expect(nextToStart(addItem(failed, item('c', { afterSuccess: false })), NOW)?.id).toBe('c')
+    expect(resumeTarget(held)?.id).toBe('a')
+    expect(nextToStart(resumeQueue(held), NOW)).toBeNull()
   })
 
-  it('keeps the stop mark when the run it stopped after is continued', () => {
+  it('keeps the stop mark when a run stopped with nothing waiting is continued', () => {
     const stopped = settleItem(
-      setStopAfter(
-        markStarted(queueOf(item('a'), item('b', { afterSuccess: false })), 'a', 'r'),
-        'a',
-      ),
+      setStopAfter(markStarted(queueOf(item('a')), 'a', 'r'), 'a'),
       'a',
       'stopped',
       1,
     )
+
+    expect(stopped.hold?.reason).toBe('stopAfter')
+
     const reopened = reopenItem(stopped, 'a')
 
     expect(reopened?.stopAfterItemId).toBe('a')
 
-    const again = reopened && settleItem(reopened, 'a', 'done', 2)
+    const again = reopened && settleItem(addItem(reopened, item('b')), 'a', 'done', 2)
 
     expect(again?.hold?.reason).toBe('stopAfter')
     expect(again && nextToStart(again, NOW)).toBeNull()
+  })
+
+  it('goes on after a continued run is done, and not before', () => {
+    const held = settleItem(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a', 'stopped', 1)
+    const reopened = reopenItem(held, 'a')
+
+    expect(reopened?.hold).toBeNull()
+    expect(reopened && nextToStart(reopened, NOW)).toBeNull()
+
+    const done = reopened && settleItem(reopened, 'a', 'done', 2)
+
+    expect(done?.hold).toBeNull()
+    expect(done && nextToStart(done, NOW)?.id).toBe('b')
   })
 
   it('closes only an idle queue and takes nothing more into it', () => {
@@ -250,7 +270,7 @@ describe('queue rules', () => {
     expect(reopenItem(queue, 'a')?.items[0]?.state).toBe('running')
     expect(reopenItem(queue, 'a')?.hold).toBeNull()
 
-    queue = settleItem(markStarted(resumeQueue(queue), 'b', 'r2'), 'b', 'done', 2)
+    queue = settleItem(markStarted(markDoneByHand(queue, 'a', 2), 'b', 'r2'), 'b', 'done', 3)
     expect(reopenItem(queue, 'a')).toBeNull()
     expect(reopenItem(queue, 'b')).toBeNull()
   })
@@ -261,6 +281,8 @@ describe('queue rules', () => {
 
     expect(recovered.items[0]?.state).toBe('stopped')
     expect(recovered.hold).toEqual({ reason: 'interrupted', itemId: 'a', at: 7 })
+    // Resume после выхода IDE продолжает оборванный, а не берёт следующий.
+    expect(resumeTarget(recovered)?.id).toBe('a')
 
     const alone = recoverQueue(markStarted(queueOf(item('a')), 'a', 'r1'), () => 'done', 7)
 
@@ -286,7 +308,16 @@ describe('marking a failed item done by hand', () => {
     expect(marked.items[0]).toMatchObject({ state: 'done', doneByHand: true })
     expect(marked.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 7 })
     expect(nextToStart(marked, NOW)).toBeNull()
+    expect(resumeTarget(marked)).toBeNull()
     expect(nextToStart(resumeQueue(marked), NOW)?.id).toBe('b')
+  })
+
+  it('drops the stop mark the unfinished item kept', () => {
+    const running = setStopAfter(markStarted(queueOf(item('a'), item('b')), 'a', 'r'), 'a')
+    const marked = markDoneByHand(settleItem(running, 'a', 'failed', 5), 'a', 7)
+
+    expect(marked.stopAfterItemId).toBe('')
+    expect(marked.hold).toEqual({ reason: 'stopAfter', itemId: 'a', at: 7 })
   })
 
   it('drops the hold when nothing waits, and leaves a hold on another item alone', () => {

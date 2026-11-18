@@ -72,7 +72,6 @@ export const QUEUE: ScenarioQueue = {
       scenarioName: 'Tidy up',
       inputs: { what: 'src' },
       provider: 'claude',
-      afterSuccess: false,
       addedAt: 11,
       runId: 'r1',
       state: 'running',
@@ -81,7 +80,6 @@ export const QUEUE: ScenarioQueue = {
   ],
   stopAfterItemId: '',
   hold: null,
-  acknowledgedItemId: '',
   hours: null,
   nap: null,
 }

@@ -27,7 +27,6 @@ export const useScheduleActions = (project: ScenariosProject) => {
       inputs: schedule.inputs,
       provider: schedule.provider,
       target: { kind: 'new', worktree: schedule.worktree },
-      afterSuccess: true,
     })
 
     if (!outcome.ok) {

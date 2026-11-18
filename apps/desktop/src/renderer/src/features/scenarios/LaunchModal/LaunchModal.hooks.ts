@@ -27,8 +27,8 @@ import {
 } from './LaunchModal.utils'
 
 /**
- * Состояние окна запуска: что выбрано (сценарий, ответы, провайдер, куда, worktree, «после
- * успеха») и что из этого следует (можно ли запускать, о чём предупредить). Черновик формы -
+ * Состояние окна запуска: что выбрано (сценарий, ответы, провайдер, куда, worktree) и что из
+ * этого следует (можно ли запускать, о чём предупредить). Черновик формы -
  * здесь, данные главного процесса - из кэша. Запуск встал - окно закрывается на вкладку очередей,
  * нет - причина остаётся в окне: человек поправит и запустит снова.
  */
@@ -44,7 +44,6 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
   const [providerId, setProviderId] = useState<ProviderId | null>(null)
   const [where, setWhere] = useState(() => initialWhere(request))
   const [isWorktree, setIsWorktree] = useState(false)
-  const [afterSuccess, setAfterSuccess] = useState(true)
   const start = useMutation({
     mutationFn: (next: StartRequest) => invoke('scenarios:start', next),
     onSuccess: (outcome) => {
@@ -92,8 +91,6 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
       inputs: answersOf(scenario, values),
       provider: provider.id,
       target: target.kind === 'new' ? { kind: 'new', worktree } : target,
-      // Первому в новой очереди ждать некого.
-      afterSuccess: target.kind === 'new' || afterSuccess,
     })
   }
 
@@ -112,7 +109,6 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
     isNotGit,
     uncommitted: uncommittedCount(changes),
     neighbour,
-    afterSuccess,
     canRun,
     failure: launchFailure(start.data, start.isError),
     choose,
@@ -120,7 +116,6 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
     setProviderId,
     setWhere,
     setIsWorktree,
-    setAfterSuccess,
     submit,
     close,
   }

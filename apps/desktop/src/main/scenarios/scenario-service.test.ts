@@ -26,6 +26,8 @@ const head: FakeScript = (said) => {
   return { kind: 'say', text: '{}' }
 }
 const card: FakeScript = () => ({ kind: 'say', text: 'Done the work.' })
+/** Карточки этого теста: по умолчанию делают всё сразу, тест может придержать их. */
+let cards: FakeScript = card
 
 const scenario = (id: string): Scenario => ({
   version: 1,
@@ -74,7 +76,9 @@ const provider = (fakes: FakeCli[], titles: string[]): ScenarioProvider => ({
     const fake = new FakeCli(
       spec,
       wires,
-      spec.briefing.includes('main thread of a scenario') ? head : card,
+      spec.briefing.includes('main thread of a scenario')
+        ? head
+        : (said, spec) => cards(said, spec),
     )
 
     fakes.push(fake)
@@ -131,7 +135,6 @@ const start = (
     inputs: {},
     provider: 'claude',
     target,
-    afterSuccess: true,
   })
 
 const queue = (id: string): ScenarioQueue =>
@@ -143,6 +146,7 @@ beforeEach(async () => {
   fakes = []
   titles = []
   notes = []
+  cards = card
 
   const shelf = join(project, '.claude', 'scenarios')
 
@@ -221,6 +225,37 @@ describe('scenario service', () => {
     await until(() => queue(queueId).items.every((item) => item.state === 'done'))
 
     expect(queue(queueId).hold).toBeNull()
+  })
+
+  it('holds behind a stopped run and Resume continues that run, not the next one', async () => {
+    const scenarios = service as ScenarioService
+    let isHolding = true
+
+    cards = () => (isHolding ? { kind: 'silent' } : { kind: 'say', text: 'Done the work.' })
+
+    const started = await start('a', { kind: 'new', worktree: false })
+
+    if (!started.ok) throw new Error('did not start')
+
+    const { queueId } = started
+
+    await start('b', { kind: 'queue', queueId })
+    await until(() => scenarios.queuesView().live.some((run) => run.state === 'running'))
+
+    const runId = queue(queueId).items[0]?.runId ?? ''
+
+    scenarios.control(project, runId, 'stop')
+    await until(() => queue(queueId).hold?.reason === 'failed')
+
+    expect(queue(queueId).items.map((item) => item.state)).toEqual(['stopped', 'waiting'])
+    expect(notes.some((note) => note.includes('continue it or mark it done'))).toBe(true)
+
+    isHolding = false
+    expect(await scenarios.act(queueId, { kind: 'resume' })).toBeNull()
+    await until(() => queue(queueId).items.every((item) => item.state === 'done'))
+
+    expect(queue(queueId).items[0]?.runId).toBe(runId)
+    expect((await scenarios.run(project, runId))?.state).toBe('done')
   })
 
   it('a button or an answer for a run that is not going any more is refused, not done', async () => {

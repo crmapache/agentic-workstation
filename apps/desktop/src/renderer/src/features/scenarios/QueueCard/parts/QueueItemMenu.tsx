@@ -14,9 +14,8 @@ import type { QueueItemMenuProps } from '../QueueCard.types'
 import { useScenarioActions } from '../../scenarios.actions'
 
 /**
- * Дела над ждущим сценарием: сдвинуть среди ждущих, остановить очередь после него, ждать ли
- * успеха предыдущего, убрать. «Чего ждать» - вариант с отметкой: меню не закрывается, видно,
- * что переключилось. Прошедшие и идущий не двигаются - их место уже случилось.
+ * Дела над ждущим сценарием: сдвинуть среди ждущих, остановить очередь после него, убрать.
+ * Прошедшие и идущий не двигаются - их место уже случилось.
  */
 export const QueueItemMenu = ({ queue, item, isFirst, isLast }: QueueItemMenuProps) => {
   const { t } = useTranslation()
@@ -32,8 +31,6 @@ export const QueueItemMenu = ({ queue, item, isFirst, isLast }: QueueItemMenuPro
   const handleDown = () => act({ kind: 'move', itemId: item.id, by: 1 })
 
   const handleStopAfter = () => act({ kind: 'stopAfter', itemId: isMarked ? null : item.id })
-
-  const handleMode = () => act({ kind: 'mode', itemId: item.id, afterSuccess: !item.afterSuccess })
 
   const handleRemove = () => act({ kind: 'remove', itemId: item.id })
 
@@ -70,12 +67,6 @@ export const QueueItemMenu = ({ queue, item, isFirst, isLast }: QueueItemMenuPro
                   : t('scenarios.queues.itemMenu.stopAfter')
               }
               onSelect={handleStopAfter}
-            />
-            <MenuItem
-              label={t('scenarios.queues.itemMenu.afterSuccess')}
-              selection="multiple"
-              checked={item.afterSuccess}
-              onSelect={handleMode}
             />
             <MenuSeparator />
             <MenuItem

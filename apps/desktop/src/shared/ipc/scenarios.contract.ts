@@ -71,7 +71,6 @@ export type ScenariosInvokeContract = {
       inputs: Record<string, string>
       provider: ProviderId
       target: QueueTarget
-      afterSuccess: boolean
     }
     response: ScenarioStartOutcome
   }

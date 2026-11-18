@@ -6,7 +6,7 @@ import type { ScenarioCode, ScenarioScope } from './scenarios'
  * Очередь сценариев («ветка» в словах владельца, Queue в интерфейсе): именованная линия
  * работы проекта со своей очередью и своей папкой - самим проектом или отдельным worktree.
  * Очередей в проекте сколько угодно, и идут они параллельно; внутри очереди - по одному
- * сценарию за раз, следующий видит результат предыдущего.
+ * сценарию за раз, следующий видит результат предыдущего и стартует, только когда тот сделан.
  */
 
 /** Ждёт, идёт, прошёл (как кончился его прогон). */
@@ -20,8 +20,6 @@ export type QueueItem = {
   scenarioName: string
   inputs: Record<string, string>
   provider: ProviderId
-  /** Начинать, только если предыдущий кончился успехом (иначе - после любого конца). */
-  afterSuccess: boolean
   addedAt: number
   /** Прогон этого элемента; пусто - ещё не стартовал. */
   runId: string
@@ -58,8 +56,8 @@ export type QueueWorkdir =
     }
 
 /**
- * Почему очередь стоит, хотя в ней есть ждущие: остановка после выбранного сценария,
- * провал перед элементом «только после успеха», отказ старта, IDE закрыли посреди прогона.
+ * Почему очередь стоит, хотя в ней есть ждущие: остановка после выбранного сценария, элемент
+ * кончился несделанным (упал, остановлен), отказ старта, IDE закрыли посреди прогона.
  */
 export type QueueHoldReason = 'stopAfter' | 'failed' | 'refused' | 'interrupted'
 
@@ -111,11 +109,6 @@ export type ScenarioQueue = {
   /** «Остановить после» этого элемента; пусто - не останавливать. */
   stopAfterItemId: string
   hold: QueueHold | null
-  /**
-   * Прошедший элемент, чей неуспех человек уже отпустил (Resume): элемент «только после
-   * успеха» за ним больше не ждёт. Пусто - ничего не отпускали.
-   */
-  acknowledgedItemId: string
   /** Рабочие часы; null - очередь работает в любое время. */
   hours: QueueHours | null
   /** Спит вне рабочих часов; null - не спит. */
@@ -138,7 +131,6 @@ export type ScenarioStartRequest = {
   inputs: Record<string, string>
   provider: ProviderId
   target: QueueTarget
-  afterSuccess: boolean
 }
 
 export type ScenarioStartOutcome =
@@ -148,9 +140,9 @@ export type ScenarioStartOutcome =
 export type QueueAction =
   | { kind: 'remove'; itemId: string }
   | { kind: 'move'; itemId: string; by: number }
-  | { kind: 'mode'; itemId: string; afterSuccess: boolean }
   /** Остановить после этого элемента; null - снять остановку. */
   | { kind: 'stopAfter'; itemId: string | null }
+  /** Снять остановку; перед ждущими недоделанный - продолжить его прогон с места (ADR 0082). */
   | { kind: 'resume' }
   /** Упавший или остановленный элемент доделан руками: считать его выполненным. */
   | { kind: 'markDone'; itemId: string }

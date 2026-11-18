@@ -997,7 +997,7 @@
     "help": {
       "label": "About scenarios",
       "title": "Scenarios",
-      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. Queues run side by side, so start a new one for unrelated work.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
+      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. The next one starts only when the one before it is done: if a run fails or is stopped, nothing after it starts until you continue that run from where it stopped or mark it done. Queues run side by side, so start a new one for unrelated work.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
     },
     "actions": {
       "new": "New scenario",
@@ -1070,8 +1070,6 @@
         "label": "Scenarios in this queue",
         "open": "Open this run",
         "stopMark": "The queue stops after this one",
-        "afterSuccess": "after success",
-        "afterAny": "after any end",
         "refused": "Would not start: {{why}}",
         "markDone": "Mark done",
         "markDoneHint": "You finished this work yourself. The queue counts it as done and does not start the next one on its own.",
@@ -1083,7 +1081,6 @@
         "moveDown": "Move down",
         "stopAfter": "Stop after this",
         "keepGoing": "Don't stop after this",
-        "afterSuccess": "Start only after success",
         "remove": "Remove from queue"
       },
       "running": {
@@ -1098,12 +1095,14 @@
       },
       "hold": {
         "stopAfter": "Stopped after {{name}}, as you asked.",
-        "failed": "{{name}} did not finish. Nothing after it starts until you resume.",
+        "failed": "{{name}} did not finish. Nothing after it starts until you continue it or mark it done.",
         "refused": "{{name}} would not start: {{why}}",
-        "interrupted": "The IDE closed while {{name}} was running.",
+        "interrupted": "The IDE closed while {{name}} was running. Nothing after it starts until you continue it or mark it done.",
+        "interruptedDone": "The IDE closed just as {{name}} finished.",
         "doneByHand": "{{name}} is marked done by hand. Nothing after it starts until you resume.",
         "markDone": "Mark done",
         "someone": "A scenario",
+        "carryOn": "Continue the run",
         "resume": "Resume",
         "dismiss": "Dismiss",
         "openRun": "Open run"
@@ -1119,9 +1118,7 @@
       },
       "stopDialog": {
         "title": "Stop {{name}}?",
-        "text": "It stops now. You can continue it later from its run.",
-        "hold": "Hold the queue after it",
-        "holdNote": "Nothing after it starts until you resume.",
+        "text": "It stops now. Nothing after it starts until you continue it from where it stopped or mark it done.",
         "confirm": "Stop"
       },
       "menu": {
@@ -1250,8 +1247,6 @@
       "uncommitted_one": "1 uncommitted file stays in the project folder: the worktree will not have it.",
       "uncommitted_other": "{{count}} uncommitted files stay in the project folder: the worktree will not have them.",
       "sharedFolder": "{{name}} already works in the project folder: both queues would change the same files.",
-      "afterSuccess": "Start only after the previous one succeeds",
-      "afterSuccessNote": "If it fails or is stopped, the queue stops here and waits for you.",
       "queueFacts": "{{place}} · {{state}}",
       "run": "Run",
       "add": "Add to queue"

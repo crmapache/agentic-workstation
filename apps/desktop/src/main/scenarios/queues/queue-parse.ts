@@ -53,7 +53,6 @@ const parseItem = (value: unknown): QueueItem | null => {
     scenarioName: text(value.scenarioName),
     inputs: answers(value.inputs),
     provider: isProviderId(value.provider) ? value.provider : 'claude',
-    afterSuccess: value.afterSuccess !== false,
     addedAt: count(value.addedAt),
     runId: text(value.runId),
     state: oneOf(value.state, STATES, 'waiting'),
@@ -121,7 +120,6 @@ export const parseQueue = (value: unknown): ScenarioQueue | null => {
     items,
     stopAfterItemId: text(value.stopAfterItemId),
     hold: parseHold(value.hold),
-    acknowledgedItemId: text(value.acknowledgedItemId),
     // Очередь старого выпуска часов не знала: работает в любое время.
     hours: parseHours(value.hours),
     nap: parseNap(value.nap),

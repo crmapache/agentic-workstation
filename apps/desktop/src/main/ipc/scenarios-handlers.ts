@@ -94,7 +94,6 @@ export const createScenariosHandlers = (
         inputs: parseInputs(request.inputs),
         provider: parseProvider(request.provider),
         target: parseTarget(request.target),
-        afterSuccess: request.afterSuccess === true,
       }),
     'scenarios:queue': async ({ queueId, action }) =>
       outcome(await scenarios.act(assertId(queueId, 'queueId'), parseQueueAction(action))),
