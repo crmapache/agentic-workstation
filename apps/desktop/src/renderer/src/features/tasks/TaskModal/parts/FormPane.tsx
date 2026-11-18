@@ -10,15 +10,16 @@ import { TextField } from '@agentic-workstation/ui/TextField'
 import styles from '../TaskModal.module.scss'
 import type { FormPaneProps } from '../TaskModal.types'
 import { GoalFields } from './GoalFields'
+import { ProjectField } from './ProjectField'
 import { RunOptions } from './RunOptions'
 import { ScheduleFields } from './ScheduleFields'
 
 /**
  * Форма задания: имя, вид (по расписанию или до результата), что делать, ритм или пределы
  * поручения и как идёт. Её заполняет человек или ИИ со вкладки «With AI» - тогда человек
- * проверяет написанное здесь же.
+ * проверяет написанное здесь же. Проект выбирается только при правке: новое встаёт в открытый.
  */
-export const FormPane = ({ draft, schedule, onChange, onChangeSchedule }: FormPaneProps) => {
+export const FormPane = ({ task, draft, schedule, onChange, onChangeSchedule }: FormPaneProps) => {
   const { t } = useTranslation()
   const kinds = TASK_KINDS.map((id) => ({ id, label: t(`tasks.form.kinds.${id}`) }))
   const isGoal = draft.kind === 'goal'
@@ -56,6 +57,13 @@ export const FormPane = ({ draft, schedule, onChange, onChangeSchedule }: FormPa
         <GoalFields draft={draft} onChange={onChange} />
       ) : (
         <ScheduleFields schedule={schedule} onChange={onChangeSchedule} />
+      )}
+      {task && (
+        <ProjectField
+          task={task}
+          value={draft.projectPath}
+          onPick={(projectPath) => onChange({ projectPath })}
+        />
       )}
       <RunOptions draft={draft} onChange={onChange} />
     </>

@@ -24,6 +24,8 @@ export type HarnessOptions = {
   chat?: (sessionId: string, text: string) => Promise<boolean>
   probe?: GoalProbe
   checker?: GoalChecker
+  /** Ещё проекты, которые IDE знает, кроме временной папки: куда переносить задание. */
+  folders?: readonly string[]
 }
 
 const NO_CHECKS: GoalChecker = {
@@ -90,7 +92,7 @@ export class TaskHarness {
         defaults: () => ({ model: 'sonnet', effort: '' }),
         accountId: () => '',
       },
-      folderKnown: (path) => path === this.dir,
+      folderKnown: (path) => path === this.dir || Boolean(options.folders?.includes(path)),
       openChat: () => Promise.resolve(true),
       sendToChat: options.chat ?? (() => Promise.resolve(false)),
       onState: () => undefined,

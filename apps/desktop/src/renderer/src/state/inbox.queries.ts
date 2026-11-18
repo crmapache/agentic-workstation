@@ -9,7 +9,7 @@ import { soundOfItem } from './inbox.utils'
 import { useLayoutStore } from './layout.store'
 import { QUERY_KEYS } from './query-keys'
 import { useSoundPrefs } from './sounds.queries'
-import { volumeOf, isSoundOn } from './sounds.utils'
+import { volumeOf, isAudible } from './sounds.utils'
 
 /**
  * Уведомления IDE (ADR 0069). Владелец - главный процесс; здесь зеркало в кэше - его читают
@@ -41,7 +41,7 @@ export const useInboxSync = () => {
     const sound = soundOfItem(item)
 
     if (!watching) useInboxUiStore.getState().pushToast(item.id)
-    if (!watching && isSoundOn(sounds, sound)) playSound(sound, volumeOf(sounds, sound))
+    if (!watching && isAudible(sounds, sound)) playSound(sound, volumeOf(sounds, sound))
   })
   useIpcEvent('inbox:reveal', ({ itemId }) => {
     useInboxUiStore.getState().reveal(itemId)

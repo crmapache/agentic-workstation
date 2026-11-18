@@ -243,6 +243,7 @@ const bootstrap = async () => {
     dataDir: app.getPath('userData'),
     version: app.getVersion(),
     getWindow: () => mainWindow,
+    silent: () => sounds.prefs.muteAll,
     inboxLink,
   })
 

@@ -28,7 +28,11 @@ const volumes = (value: unknown): SoundPrefs['volumes'] =>
 export const parseSoundPrefs = (value: unknown): SoundPrefs => {
   const input = record(value)
 
-  return { muted: muted(input['muted']), volumes: volumes(input['volumes']) }
+  return {
+    muteAll: input['muteAll'] === true,
+    muted: muted(input['muted']),
+    volumes: volumes(input['volumes']),
+  }
 }
 
 /**
@@ -41,5 +45,9 @@ export const legacySoundPrefs = (claudeFile: unknown): SoundPrefs | null => {
 
   if (!('mutedSounds' in prefs) && !('soundVolumes' in prefs)) return null
 
-  return { muted: muted(prefs['mutedSounds']), volumes: volumes(prefs['soundVolumes']) }
+  return {
+    muteAll: false,
+    muted: muted(prefs['mutedSounds']),
+    volumes: volumes(prefs['soundVolumes']),
+  }
 }

@@ -8,6 +8,10 @@ export const volumeOf = (prefs: SoundPrefs, event: SoundEvent): number =>
 export const isSoundOn = (prefs: SoundPrefs, event: SoundEvent): boolean =>
   !prefs.muted.includes(event)
 
+/** Звук повода слышен: повод не выключен и все звуки IDE не выключены разом (шапка окна). */
+export const isAudible = (prefs: SoundPrefs, event: SoundEvent): boolean =>
+  !prefs.muteAll && isSoundOn(prefs, event)
+
 const withVolume = (
   volumes: SoundPrefs['volumes'],
   event: SoundEvent,
@@ -27,6 +31,7 @@ export const toggleSound = (prefs: SoundPrefs, event: SoundEvent): SoundPrefs =>
   if (isSoundOn(prefs, event)) return { ...prefs, muted: [...prefs.muted, event] }
 
   return {
+    ...prefs,
     muted: prefs.muted.filter((item) => item !== event),
     volumes: volumeOf(prefs, event) === 0 ? withVolume(prefs.volumes, event, null) : prefs.volumes,
   }
@@ -46,6 +51,7 @@ export const setSoundVolume = (
   const others = prefs.muted.filter((item) => item !== event)
 
   return {
+    ...prefs,
     muted: value === 0 ? [...others, event] : others,
     volumes: withVolume(prefs.volumes, event, value === DEFAULT_SOUND_VOLUME ? null : value),
   }

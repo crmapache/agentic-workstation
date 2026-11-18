@@ -82,11 +82,12 @@ describe('draftToTask', () => {
     )
   })
 
-  it('keeps the project of an edited task: a task belongs to its project', () => {
+  it('moves an edited task only into a project the IDE knows', () => {
     const previous = task()
-    const saved = draftToTask({ ...draftOf(previous), projectPath: '/other' }, previous, known, now)
+    const moved = { ...draftOf(previous), projectPath: '/other' }
 
-    expect(saved).toMatchObject({ projectPath: '/p' })
+    expect(draftToTask(moved, previous, known, now)).toMatchObject({ projectPath: '/other' })
+    expect(draftToTask(moved, previous, (path) => path === '/p', now)).toBe('badFolder')
   })
 
   it('gives a goal no due time: it lives until it is done', () => {

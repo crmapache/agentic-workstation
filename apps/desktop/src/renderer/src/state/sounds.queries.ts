@@ -38,3 +38,20 @@ export const useSetSoundPrefs = (): ((prefs: SoundPrefs) => Promise<SoundPrefs>)
 
   return save.mutateAsync
 }
+
+/**
+ * Все звуки IDE разом (кнопка в шапке окна, действие поиска): выключены или нет и переключить.
+ * Остальная настройка звуков пишется как была.
+ */
+export const useMuteAllSounds = () => {
+  const prefs = useSoundPrefs()
+  const save = useSetSoundPrefs()
+
+  const toggle = () => {
+    save({ ...prefs, muteAll: !prefs.muteAll }).catch((error: unknown) =>
+      console.warn('[sounds] звуки не переключились:', error),
+    )
+  }
+
+  return { muteAll: prefs.muteAll, toggle }
+}

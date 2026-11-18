@@ -141,6 +141,15 @@ export class TaskService {
     if (previous && previous.kind !== draft.kind && this.goals.openOf(previous.id)) {
       return { ok: false, code: 'runBusy' }
     }
+    // Разговор идущего прогона и спящего поручения лежит в папке прежнего проекта: переносу
+    // дождаться их конца (ADR 0081). Кончившиеся прогоны остаются там, где шли.
+    if (
+      previous &&
+      previous.projectPath !== draft.projectPath &&
+      (this.desk.busyTask(previous.id) || this.goals.openOf(previous.id))
+    ) {
+      return { ok: false, code: 'moveBusy' }
+    }
 
     const checked = draftToTask(draft, previous ?? null, this.options.folderKnown, Date.now())
 

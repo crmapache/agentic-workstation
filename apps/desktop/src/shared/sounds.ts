@@ -41,9 +41,15 @@ export const DEFAULT_SOUND_VOLUME = 70
  * точкой на вкладке проекта: видно только то, что прозвучало бы.
  */
 export type SoundPrefs = {
+  /**
+   * Все звуки IDE выключены разом - кнопкой в шапке окна или в Settings → Sounds. Поводы зовут
+   * по-прежнему светом вкладки и точкой на вкладке проекта, только молча, и баннер ОС - без
+   * звука. Выключенные поводы и громкости не трогаются: включил звук - вернулись как были.
+   */
+  muteAll: boolean
   muted: SoundEvent[]
   /** Громкость по поводу, проценты; нет записи - DEFAULT_SOUND_VOLUME. */
   volumes: Partial<Record<SoundEvent, number>>
 }
 
-export const DEFAULT_SOUND_PREFS: SoundPrefs = { muted: [], volumes: {} }
+export const DEFAULT_SOUND_PREFS: SoundPrefs = { muteAll: false, muted: [], volumes: {} }

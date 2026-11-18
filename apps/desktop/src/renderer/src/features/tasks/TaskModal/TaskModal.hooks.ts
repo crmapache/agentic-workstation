@@ -15,8 +15,8 @@ import type { AuthorFailure, AuthorWriting } from './TaskModal.types'
 
 /**
  * Форма задания: черновик и ритм формы, сохранить и удалить. Задание принадлежит проекту, как
- * очередь: новое встаёт в проект открытой вкладки, правка его не переносит. Удаление - вторым
- * нажатием.
+ * очередь: новое встаёт в проект открытой вкладки, правка может перенести его в другой (ADR
+ * 0081). Удаление - вторым нажатием.
  */
 export const useTaskForm = (taskId: string | null) => {
   const task = useTasks().data?.tasks.find((one) => one.id === taskId) ?? null

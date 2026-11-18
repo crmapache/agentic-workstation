@@ -6,6 +6,7 @@ import { SOUND_EVENTS } from '@shared/sounds'
 import { Card } from '@agentic-workstation/ui/Card'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Section } from '@agentic-workstation/ui/Section'
+import { Switch } from '@agentic-workstation/ui/Switch'
 
 import styles from '../SettingsDialog.module.scss'
 import { SLIDER_SAVE_MS } from '../../../../lib/delayed-save.constants'
@@ -13,18 +14,22 @@ import { useDelayedSave } from '../../../../lib/delayed-save.hooks'
 import { playSound } from '../../../../lib/sound-player'
 import { useSoundPrefs, useSetSoundPrefs } from '../../../../state/sounds.queries'
 import { volumeOf, isSoundOn, toggleSound, setSoundVolume } from '../../../../state/sounds.utils'
+import { SettingRow } from './SettingRow'
 import { SoundRow } from './SoundRow'
 
 /**
- * Раздел «Sounds» (ADR 0046): семь поводов, когда разговор зовёт человека, строкой каждый -
- * громкость, проба и переключатель. Ноль и «выключено» - одно и то же, громкость
- * выключенного запоминается. Ползунок пишется с паузой, на экране - сразу.
+ * Раздел «Sounds» (ADR 0046): сверху - все звуки IDE разом (то же, что кнопка в шапке окна),
+ * ниже семь поводов, когда разговор зовёт человека, строкой каждый - громкость, проба и
+ * переключатель. Ноль и «выключено» - одно и то же, громкость выключенного запоминается.
+ * Ползунок пишется с паузой, на экране - сразу.
  */
 export const SoundsPane = () => {
   const { t } = useTranslation()
   const saved = useSoundPrefs()
   const save = useSetSoundPrefs()
   const [sounds, setSounds] = useDelayedSave<SoundPrefs>(saved, save, SLIDER_SAVE_MS)
+
+  const handleMuteAll = (muteAll: boolean) => setSounds({ ...sounds, muteAll })
 
   const handleToggle = (event: SoundEvent) => setSounds(toggleSound(sounds, event))
 
@@ -45,6 +50,18 @@ export const SoundsPane = () => {
           closeLabel={t('common.close')}
         />
       }>
+      <Card>
+        <SettingRow
+          label={t('settings.sounds.muteAllLabel')}
+          description={t('settings.sounds.muteAllHint')}>
+          <Switch
+            label={t('settings.sounds.muteAllLabel')}
+            labelHidden
+            checked={sounds.muteAll}
+            onChange={handleMuteAll}
+          />
+        </SettingRow>
+      </Card>
       <Card>
         <div className={styles.rows}>
           {SOUND_EVENTS.map((event) => (

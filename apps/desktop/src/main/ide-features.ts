@@ -76,6 +76,8 @@ export const startIdeFeatures = async (setup: {
   dataDir: string
   version: string
   getWindow: () => BrowserWindow | null
+  /** Все звуки IDE выключены: уведомления ОС сценариев и заданий - без звука. */
+  silent: () => boolean
   /** Связь коннектора уведомлений: в неё встанут уведомления IDE (ADR 0069). */
   inboxLink: InboxLink
 }): Promise<IdeFeatures> => {
@@ -92,6 +94,7 @@ export const startIdeFeatures = async (setup: {
     stats: statistics.stats,
     dataDir: setup.dataDir,
     getWindow: setup.getWindow,
+    silent: setup.silent,
     inboxLink: setup.inboxLink,
   })
   const definitions = createDefinitionService()

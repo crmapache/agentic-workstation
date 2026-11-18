@@ -36,9 +36,13 @@ describe('звуки IDE', () => {
 
     const sounds = await load()
 
-    expect(sounds.prefs).toEqual({ muted: ['plan'], volumes: { turnDone: 10 } })
+    expect(sounds.prefs).toEqual({ muteAll: false, muted: ['plan'], volumes: { turnDone: 10 } })
     expect(sounds.isMuted('plan')).toBe(true)
-    expect(await files().own.read()).toEqual({ muted: ['plan'], volumes: { turnDone: 10 } })
+    expect(await files().own.read()).toEqual({
+      muteAll: false,
+      muted: ['plan'],
+      volumes: { turnDone: 10 },
+    })
   })
 
   it('перенос не записался - запуск не падает, звуки из настроек панели в памяти', async () => {
@@ -50,32 +54,36 @@ describe('звуки IDE', () => {
 
     const sounds = await SoundsService.load(unwritable, claude, () => undefined)
 
-    expect(sounds.prefs).toEqual({ muted: ['plan'], volumes: {} })
+    expect(sounds.prefs).toEqual({ muteAll: false, muted: ['plan'], volumes: {} })
   })
 
   it('свой файл главнее старых настроек панели', async () => {
-    await files().own.write({ muted: [], volumes: { error: 40 } })
+    await files().own.write({ muteAll: false, muted: [], volumes: { error: 40 } })
     await files().claude.write({ prefs: { mutedSounds: ['error'] } })
 
-    expect((await load()).prefs).toEqual({ muted: [], volumes: { error: 40 } })
+    expect((await load()).prefs).toEqual({ muteAll: false, muted: [], volumes: { error: 40 } })
   })
 
   it('правки подряд пишутся по очереди, на диске - последняя', async () => {
     const sounds = await load()
 
     await Promise.all([
-      sounds.set({ muted: ['plan'], volumes: {} }),
-      sounds.set({ muted: ['error'], volumes: {} }),
+      sounds.set({ muteAll: false, muted: ['plan'], volumes: {} }),
+      sounds.set({ muteAll: false, muted: ['error'], volumes: {} }),
     ])
 
-    expect(await files().own.read()).toEqual({ muted: ['error'], volumes: {} })
+    expect(await files().own.read()).toEqual({ muteAll: false, muted: ['error'], volumes: {} })
   })
 
   it('правка из окна разбирается, пишется и уходит окну событием', async () => {
     const sounds = await load()
-    const next = await sounds.set({ muted: ['turnDone', 'bogus'], volumes: { question: 250 } })
+    const next = await sounds.set({
+      muteAll: false,
+      muted: ['turnDone', 'bogus'],
+      volumes: { question: 250 },
+    })
 
-    expect(next).toEqual({ muted: ['turnDone'], volumes: { question: 100 } })
+    expect(next).toEqual({ muteAll: false, muted: ['turnDone'], volumes: { question: 100 } })
     expect(changes).toEqual([next])
     expect((await load()).isMuted('turnDone')).toBe(true)
   })

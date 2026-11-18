@@ -3,9 +3,9 @@ import { it, expect, describe } from 'vitest'
 import type { SoundPrefs } from '@shared/sounds'
 import { DEFAULT_SOUND_VOLUME } from '@shared/sounds'
 
-import { volumeOf, toggleSound, setSoundVolume } from './sounds.utils'
+import { volumeOf, isAudible, toggleSound, setSoundVolume } from './sounds.utils'
 
-const none: SoundPrefs = { muted: [], volumes: {} }
+const none: SoundPrefs = { muteAll: false, muted: [], volumes: {} }
 
 describe('галочка и громкость звука', () => {
   it('выключенный помнит громкость и включается на ней', () => {
@@ -35,5 +35,15 @@ describe('галочка и громкость звука', () => {
   it('громкость по умолчанию не хранится, края прижимаются', () => {
     expect(setSoundVolume(none, 'plan', DEFAULT_SOUND_VOLUME).volumes).toEqual({})
     expect(volumeOf(setSoundVolume(none, 'plan', 140), 'plan')).toBe(100)
+  })
+
+  it('все звуки разом молчат, а свои галочки и громкости помнят', () => {
+    const quiet = setSoundVolume(none, 'plan', 30)
+    const silent = { ...quiet, muteAll: true }
+
+    expect(isAudible(silent, 'turnDone')).toBe(false)
+    expect(toggleSound(silent, 'error').muteAll).toBe(true)
+    expect(isAudible({ ...silent, muteAll: false }, 'turnDone')).toBe(true)
+    expect(volumeOf({ ...silent, muteAll: false }, 'plan')).toBe(30)
   })
 })

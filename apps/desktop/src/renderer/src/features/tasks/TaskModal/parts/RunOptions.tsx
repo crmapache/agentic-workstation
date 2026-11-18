@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { EFFORT_LEVELS } from '@shared/claude'
 import { TASK_MODES } from '@shared/tasks'
 import type { TaskMode } from '@shared/tasks'
 
@@ -11,8 +12,8 @@ import { ChoiceField } from './ChoiceField'
 
 /**
  * Как задание идёт: модель (каталог провайдера и свои модели человека; у поручения - рабочая,
- * проверки идут на дешёвой), режим разрешений и переключатели - по расписанию, наверстывать
- * пропуск, отчёт в уведомления.
+ * проверки идут на дешёвой) и усилие (пусто - как у новой вкладки), режим разрешений и
+ * переключатели - по расписанию, наверстывать пропуск, отчёт в уведомления.
  */
 export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
   const { t } = useTranslation()
@@ -24,6 +25,14 @@ export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
       value: model.value,
       label: model.displayName,
       description: model.description,
+    })),
+  ]
+  const effortChoices = [
+    { value: '', label: t('tasks.form.defaultEffort') },
+    ...EFFORT_LEVELS.map((level) => ({
+      value: level,
+      label: t(`tasks.form.efforts.${level}`),
+      description: t(`tasks.form.effortHints.${level}`),
     })),
   ]
   const modeChoices = TASK_MODES.map((mode) => ({
@@ -40,6 +49,12 @@ export const RunOptions = ({ draft, onChange }: RunOptionsProps) => {
         value={draft.model}
         choices={modelChoices}
         onPick={(model) => onChange({ model })}
+      />
+      <ChoiceField
+        label={t('tasks.form.effort')}
+        value={draft.effort}
+        choices={effortChoices}
+        onPick={(effort) => onChange({ effort })}
       />
       <ChoiceField
         label={t('tasks.form.mode')}

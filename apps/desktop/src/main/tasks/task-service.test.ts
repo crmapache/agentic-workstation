@@ -379,6 +379,37 @@ describe('TaskService', () => {
     ).toEqual({ ok: false, code: 'runBusy' })
   })
 
+  it('moves a task to another project only when no run of it is going', async () => {
+    const other = `${dir}/other`
+    const { tasks } = await start(
+      () => ({ kind: 'ask', tool: 'Bash', input: { command: 'ls' }, then: 'ok' }),
+      { folders: [other] },
+    )
+    const taskId = await saved(tasks)
+    const started = await tasks.runNow(taskId)
+    const runId = started.ok ? started.runId : ''
+    const moved = harness.draft({ id: taskId, projectPath: other })
+
+    await settle()
+
+    expect(await tasks.save(moved)).toEqual({ ok: false, code: 'moveBusy' })
+    expect(await tasks.save(harness.draft({ id: taskId, name: 'Invoice 2' }))).toMatchObject({
+      ok: true,
+    })
+
+    tasks.stop(runId)
+    await settle()
+
+    expect(await tasks.save(moved)).toMatchObject({ ok: true })
+    expect(tasks.task(taskId)?.projectPath).toBe(other)
+    // Разговор прогона лежит в папке, где он шёл: прогон с заданием не переезжает.
+    expect(tasks.run(runId)?.projectPath).toBe(dir)
+    expect(await tasks.save({ ...moved, projectPath: '/nowhere' })).toEqual({
+      ok: false,
+      code: 'badFolder',
+    })
+  })
+
   it('refuses a task outside the known folders', async () => {
     const { tasks } = await start(() => ({ kind: 'say', text: 'ok' }))
 

@@ -30,6 +30,8 @@ export type ScenariosSetup = {
   workspace: WorkspaceService
   dataDir: string
   getWindow: () => BrowserWindow | null
+  /** Все звуки IDE выключены (кнопка в шапке окна): уведомление ОС - без своего звука. */
+  silent: () => boolean
   taps?: ScenarioTaps | undefined
 }
 
@@ -43,7 +45,7 @@ export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioSer
   const notify = (title: string, body: string) => {
     if (!Notification.isSupported()) return
 
-    const note = new Notification({ title, body })
+    const note = new Notification({ title, body, silent: setup.silent() })
 
     note.on('click', () => {
       const window = getWindow()

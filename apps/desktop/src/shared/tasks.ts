@@ -167,6 +167,8 @@ export type TaskCode =
   | 'taskGone'
   | 'runGone'
   | 'runBusy'
+  /** Перенос в другой проект, пока прогон идёт или поручение спит (ADR 0081). */
+  | 'moveBusy'
   | 'runIdle'
   | 'noName'
   | 'noPrompt'

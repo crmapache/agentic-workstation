@@ -1,5 +1,5 @@
 import type { TaskAuthorError } from '@shared/task-author'
-import type { TaskDraft } from '@shared/tasks'
+import type { Task, TaskDraft } from '@shared/tasks'
 
 import type { Choice, ScheduleForm } from '../tasks.types'
 
@@ -45,7 +45,16 @@ export type AuthorPaneProps = {
 
 export type AuthorWaitProps = { since: number }
 
+export type ProjectFieldProps = {
+  /** Задание, как оно сохранено: его проект - откуда перенос. */
+  task: Task
+  value: string
+  onPick: (projectPath: string) => void
+}
+
 export type FormPaneProps = {
+  /** Сохранённое задание при правке; null - новое, его проект - открытый. */
+  task: Task | null
   draft: TaskDraft
   schedule: ScheduleForm
   onChange: (patch: Partial<TaskDraft>) => void

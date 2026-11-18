@@ -45,6 +45,8 @@ export type TasksSetup = {
   stats: StatsService
   dataDir: string
   getWindow: () => BrowserWindow | null
+  /** Все звуки IDE выключены (кнопка в шапке окна): баннер ОС - без своего звука. */
+  silent: () => boolean
   /** Связь коннектора уведомлений: сюда встаёт агент уведомлений (ADR 0069). */
   inboxLink: InboxLink
 }
@@ -57,14 +59,17 @@ export type Tasks = {
   shutdown: () => void
 }
 
-/** Окно на виду - баннер ОС не нужен: карточка уже в углу окна. */
-const showBanner = (item: InboxItem, getWindow: () => BrowserWindow | null) => {
+/**
+ * Окно на виду - баннер ОС не нужен: карточка уже в углу окна. Все звуки IDE выключены -
+ * баннер приходит молча.
+ */
+const showBanner = (item: InboxItem, getWindow: () => BrowserWindow | null, silent: boolean) => {
   const window = getWindow()
 
   if (!Notification.isSupported() || window?.isFocused()) return
 
   const { title, subtitle, body } = bannerOf(item)
-  const note = new Notification({ title, subtitle, body })
+  const note = new Notification({ title, subtitle, body, silent })
 
   note.on('click', () => {
     const shown = getWindow()
@@ -157,7 +162,7 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
       onState: (state) => broadcast('inbox:changed', state),
       onArrived: (item) => {
         broadcast('inbox:arrived', item)
-        showBanner(item, getWindow)
+        showBanner(item, getWindow, setup.silent())
       },
     },
   )

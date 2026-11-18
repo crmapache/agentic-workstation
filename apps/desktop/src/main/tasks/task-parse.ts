@@ -156,7 +156,7 @@ export const summaryOf = ({ report, ...run }: TaskRun): TaskRunSummary => {
 /**
  * Задание из окна, проверенное: имя и текст есть, ритм встаёт в календарь (разовый - в
  * будущем), папка - одна из известных IDE. Окну не верим: всё, кроме этих полей, считает
- * главный процесс.
+ * главный процесс. Другая папка у прежнего задания - перенос в другой проект (ADR 0081).
  */
 export const draftToTask = (
   draft: TaskDraft,
@@ -164,11 +164,9 @@ export const draftToTask = (
   folderKnown: (path: string) => boolean,
   now: number,
 ): Task | TaskCode => {
-  // Задание принадлежит своему проекту, как очередь: правка его туда не переносит.
   const task = taskOf({
     ...draft,
     id: previous?.id ?? 'new',
-    projectPath: previous?.projectPath ?? draft.projectPath,
     createdAt: previous?.createdAt ?? now,
   })
 
@@ -179,8 +177,11 @@ export const draftToTask = (
 
   if (!name) return 'noName'
   if (!prompt) return 'noPrompt'
-  // Папка прежнего задания остаётся его папкой, даже если ушла из недавних проектов.
-  if (!previous && !folderKnown(task.projectPath)) return 'badFolder'
+  // Папка прежнего задания остаётся его папкой, даже если ушла из недавних проектов; новая
+  // папка (новое задание или перенос) - только проект, который IDE знает.
+  if (task.projectPath !== previous?.projectPath && !folderKnown(task.projectPath)) {
+    return 'badFolder'
+  }
 
   // Поручение сроков не знает: идёт, пока не добьётся своего (ADR 0080).
   if (task.kind === 'goal') return { ...task, name, prompt, updatedAt: now, nextAt: 0 }
