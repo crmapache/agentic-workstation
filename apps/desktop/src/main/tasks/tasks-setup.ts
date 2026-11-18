@@ -45,10 +45,12 @@ export type TasksSetup = {
   stats: StatsService
   dataDir: string
   getWindow: () => BrowserWindow | null
-  /** Все звуки IDE выключены (кнопка в шапке окна): баннер ОС - без своего звука. */
+  /** Все звуки IDE выключены (кнопка в строке состояния): баннер ОС - без своего звука. */
   silent: () => boolean
   /** Связь коннектора уведомлений: сюда встаёт агент уведомлений (ADR 0069). */
   inboxLink: InboxLink
+  /** Задания или прогоны поменялись - кроме окна, это видит телефон Remote Control. */
+  onTasks: () => void
 }
 
 export type Tasks = {
@@ -134,7 +136,10 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
 
       return true
     },
-    onState: (state) => broadcast('tasks:changed', state),
+    onState: (state) => {
+      broadcast('tasks:changed', state)
+      setup.onTasks()
+    },
     onRunFinished: (run) => {
       if (run.sessionId) setup.stats.noteIdeSession('claude', run.sessionId, 'task')
     },

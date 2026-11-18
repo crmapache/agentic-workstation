@@ -8,7 +8,7 @@ export const volumeOf = (prefs: SoundPrefs, event: SoundEvent): number =>
 export const isSoundOn = (prefs: SoundPrefs, event: SoundEvent): boolean =>
   !prefs.muted.includes(event)
 
-/** Звук повода слышен: повод не выключен и все звуки IDE не выключены разом (шапка окна). */
+/** Звук повода слышен: повод не выключен и все звуки IDE не выключены разом (строка состояния). */
 export const isAudible = (prefs: SoundPrefs, event: SoundEvent): boolean =>
   !prefs.muteAll && isSoundOn(prefs, event)
 

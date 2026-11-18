@@ -41,7 +41,10 @@ describe('инвентарь', () => {
         waiting: null,
       },
     ])
-    expect(open?.queues).toEqual({ open: 1, running: 1, asking: 1 })
+    // Прогон с вопросом идёт, но сам не работает: знак работы на телефоне не горит.
+    expect(open?.queues).toEqual({ open: 1, running: 1, asking: 1, working: 0 })
+    // Задания: работает только идущий прогон, ждущий ответа - нет.
+    expect(open?.tasks).toEqual({ working: 1 })
     // Новый разговор открытого проекта - во всех режимах окна: bypass здесь не запрещён.
     expect(open?.unavailableModes).toEqual({ claude: [] })
     expect(recent).toMatchObject({ open: false, conversations: [] })

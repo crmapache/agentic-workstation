@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import {
   Pin,
   Mail,
   Plus,
   FilePlus,
+  FileCheck2,
   FolderOpen,
   MoreHorizontal,
   SquareTerminal,
@@ -31,11 +33,12 @@ import { PageToolbarSpecimen } from './PageToolbarSpecimen'
 import { PanelHeaderSpecimen } from './PanelHeaderSpecimen'
 
 /**
- * Раздел «Поверхности»: вид с шапкой и разделами, шапка с нижним рядом вкладок, карточка,
- * плитки сеткой, пустое состояние и меню вне всплывающей панели.
+ * Раздел «Поверхности»: вид с шапкой и разделами, шапка с нижним рядом вкладок, карточка (и
+ * свёрнутая до шапки), плитки сеткой, пустое состояние и меню вне всплывающей панели.
  */
 export const SurfacesSection = () => {
   const { t } = useTranslation('showcase')
+  const [isCardExpanded, setIsCardExpanded] = useState(false)
 
   return (
     <ShowcaseSection title={t('sections.surfaces')}>
@@ -61,6 +64,18 @@ export const SurfacesSection = () => {
         {/* Нажимается вся (onPress): под курсором светлеет, кнопки внутри - сами по себе. */}
         <Card size="sm" title={t('samples.cardPressTitle')} onPress={() => undefined}>
           {t('samples.cardPressBody')}
+        </Card>
+        {/* Сворачивается до шапки (collapse): стрелка и щелчок по шапке. */}
+        <Card
+          icon={FileCheck2}
+          title={t('samples.cardCollapseTitle')}
+          description={t('samples.cardCollapseDescription')}
+          collapse={{
+            expanded: isCardExpanded,
+            label: isCardExpanded ? t('samples.cardCollapse') : t('samples.cardExpand'),
+            onToggle: () => setIsCardExpanded((value) => !value),
+          }}>
+          {t('samples.cardCollapseBody')}
         </Card>
       </Specimen>
 

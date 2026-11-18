@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ResourceUsage } from '../ResourceUsage/ResourceUsage'
@@ -14,7 +15,7 @@ import type { StatusBarProps } from './StatusBar.types'
  * своим путём через ~), справа - кнопки других фич (items), процессор и память IDE и её версия,
  * через черту и с одинаковыми полями.
  */
-export const StatusBar = ({ items }: StatusBarProps) => {
+export const StatusBar = ({ items = [] }: StatusBarProps) => {
   const { t } = useTranslation()
   const project = useActiveProject()
   const selectedFile = useSelectedPath(project?.id)
@@ -30,8 +31,13 @@ export const StatusBar = ({ items }: StatusBarProps) => {
     <footer className={styles.statusBar}>
       <span className={styles.path}>{path}</span>
       <div className={styles.segments}>
-        {items}
-        <StatusDivider />
+        {/* Кнопки фич стоят по порядку и не меняются - ключом им служит место. */}
+        {items.map((item, index) => (
+          <Fragment key={index}>
+            {item}
+            <StatusDivider />
+          </Fragment>
+        ))}
         <ResourceUsage />
         <StatusDivider />
         {appInfo && (

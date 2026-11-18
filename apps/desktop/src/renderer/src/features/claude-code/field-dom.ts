@@ -88,8 +88,10 @@ const select = (range: Range) => {
   selection?.addRange(range)
 }
 
-export const placeCaretAtEnd = (root: HTMLElement): void =>
-  select(padTrailingBreak(root) ?? endRange(root))
+/** Конец набранного - перед запасным переносом, если поле кончается переносом. */
+export const fieldEnd = (root: HTMLElement): Range => padTrailingBreak(root) ?? endRange(root)
+
+export const placeCaretAtEnd = (root: HTMLElement): void => select(fieldEnd(root))
 
 /**
  * Клавиатура полю извне (смена вкладки, приветствие): каретка там, где её оставили, или в
@@ -141,7 +143,7 @@ export const currentRange = (root: HTMLElement, kept: Range | null = null): Rang
     return caret
   }
 
-  return padTrailingBreak(root) ?? endRange(root)
+  return fieldEnd(root)
 }
 
 /** Текст узла рядом с местом вставки; не текст (чип, <br>) или нет узла - пусто. */

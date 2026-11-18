@@ -28,6 +28,7 @@ import type {
   ScenarioDraftOutcome,
 } from '@shared/scenario-view'
 import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
+import type { TaskRunSummary } from '@shared/tasks'
 import type { WorkspaceState } from '@shared/workspace'
 
 /**
@@ -189,6 +190,12 @@ export type ScenariosPort = {
   unschedule: (projectPath: string, scheduleId: string) => Promise<ScenarioCode | null>
 }
 
+/** Задания по расписанию (TaskService, ADR 0069): их прогоны - работа проекта на телефоне. */
+export type TasksPort = {
+  /** Прогоны всех заданий, как у tasks:get окна. */
+  runs: () => readonly Pick<TaskRunSummary, 'projectPath' | 'state'>[]
+}
+
 export type WorkspacePort = {
   getState: () => WorkspaceState
   /** Открыть недавний проект вкладкой в окне IDE (workspace:openRecentProject). */
@@ -198,6 +205,7 @@ export type WorkspacePort = {
 export type BridgePorts = {
   conversations: ConversationsPort
   scenarios: ScenariosPort
+  tasks: TasksPort
   workspace: WorkspacePort
   pictures: PicturesPort
   search: SearchPort

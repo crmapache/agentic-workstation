@@ -9,7 +9,7 @@ import { headText, splitTokens, wrappedLineCount } from './field-caret'
 import { notePastedPath } from './field-chips'
 import { base64Of, chipOfPath, carriesFiles, chipOfProjectPath } from './field-clipboard.utils'
 import { placeCaretAtEnd, placeCaretBefore } from './field-dom'
-import type { Field, FieldInsert } from './field.types'
+import type { Field, ChipSpot, FieldInsert } from './field.types'
 import { MAX_IMAGES } from './images.constants'
 import { prepareImage } from './images.utils'
 import { captureWrittenCommand } from './slash-capture.utils'
@@ -58,8 +58,8 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
     placeCaretAtEnd(root)
   }
 
-  /** Скриншот байтами: картинка в месте каретки сразу, путь на диске - мгновением позже. */
-  const pasteImage = async (file: File) => {
+  /** Скриншот байтами: картинка в своём месте сразу, путь на диске - мгновением позже. */
+  const pasteImage = async (file: File, spot: ChipSpot) => {
     const inField = countImages(field.readTokens())
     // Больше картинок в одном сообщении API не примет - лишняя ушла бы отказом целиком.
     const image = inField < MAX_IMAGES ? await prepareImage(file) : null
@@ -69,7 +69,7 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
 
     const value = `Image #${options.imageBase + inField + 1}`
 
-    insert.insertChip({ kind: 'img', value, data: image.preview })
+    insert.insertChip({ kind: 'img', value, data: image.preview }, spot)
 
     const path = await invoke('claude:savePasted', { name: file.name, data: image.data }).catch(
       () => null,
@@ -79,7 +79,7 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
   }
 
   /** Документ без пути (байты из буфера) - файлом в каталоге IDE, потом чипом. */
-  const pasteDocument = async (file: File) => {
+  const pasteDocument = async (file: File, spot: ChipSpot) => {
     const path = await invoke('claude:savePasted', {
       name: file.name,
       data: await base64Of(file),
@@ -92,11 +92,15 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
       paths: [path],
     })
 
-    if (described) insert.insertChip(chipOfPath(described))
+    if (described) insert.insertChip(chipOfPath(described), spot)
   }
 
-  /** Файлы: со своим путём (Finder) - чипами пути, без пути - картинкой или записанным файлом. */
-  const attachFiles = async (files: readonly File[]) => {
+  /**
+   * Файлы: со своим путём (Finder) - чипами пути, без пути - картинкой или записанным файлом.
+   * Чип встаёт после ожидания (путь, сжатие картинки), поэтому место - словом, а не выделением:
+   * щелчок в текст за это время не уводит брошенный файл в середину фразы.
+   */
+  const attachFiles = async (files: readonly File[], spot: ChipSpot) => {
     const paths = files.map((file) => pathForFile(file))
     const real = paths.filter(Boolean)
 
@@ -106,13 +110,13 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
         paths: real,
       })
 
-      for (const item of described) insert.insertChip(chipOfPath(item))
+      for (const item of described) insert.insertChip(chipOfPath(item), spot)
     }
 
     for (const [index, file] of files.entries()) {
       if (paths[index]) continue
-      if (file.type.startsWith('image/')) await pasteImage(file)
-      else await pasteDocument(file)
+      if (file.type.startsWith('image/')) await pasteImage(file, spot)
+      else await pasteDocument(file, spot)
     }
   }
 
@@ -126,7 +130,7 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
 
     if (restored) return insert.insertTokens(restored)
     if (files.length > 0) {
-      void attachFiles(files)
+      void attachFiles(files, 'caret')
 
       // Рядом с картинкой из Office лежит и текст ячеек; у файла из Finder текст - его имя.
       if (files.some((file) => pathForFile(file))) return
@@ -166,29 +170,24 @@ export const useFieldClipboard = (options: ClipboardOptions) => {
     placeCaretBefore(root, caret)
   }
 
-  /** Брошенное - в точку броска: файлы из Finder и пути из дерева файлов IDE. */
+  /**
+   * Брошенные файлы и картинки (Finder, браузер, дерево файлов и список изменений IDE) - в конец
+   * набранного, а не в точку броска: мышь при броске стоит где придётся, и файл вставал посреди
+   * фразы. Брошенный текст сюда не доходит (carriesFiles) - его браузер ставит в точку броска сам.
+   */
   const handleDrop = (event: DragEvent<HTMLElement>) => {
     const root = field.fieldRef.current
 
     if (!root || !carriesFiles(event.dataTransfer)) return
 
     event.preventDefault()
-
-    const point = document.caretRangeFromPoint(event.clientX, event.clientY)
-
-    // Над текстом - в точку броска; мимо текста (поля, пустое место) - в конец.
-    if (point && point.startContainer !== root && root.contains(point.startContainer)) {
-      window.getSelection()?.removeAllRanges()
-      window.getSelection()?.addRange(point)
-    } else {
-      placeCaretAtEnd(root)
-    }
+    placeCaretAtEnd(root)
 
     for (const path of readProjectPaths(event.dataTransfer)) {
-      insert.insertChip(chipOfProjectPath(path))
+      insert.insertChip(chipOfProjectPath(path), 'end')
     }
 
-    void attachFiles(Array.from(event.dataTransfer.files))
+    void attachFiles(Array.from(event.dataTransfer.files), 'end')
     root.focus()
   }
 

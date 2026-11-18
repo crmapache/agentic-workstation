@@ -44,11 +44,30 @@ export const projectNeedsYou = (project: InventoryProject): boolean =>
   project.queues.asking > 0 ||
   project.conversations.some((conversation) => conversation.status === 'waiting-for-you')
 
+/** Идёт ли ход разговора проекта - работа, за которой следят. */
+const chatWorks = (project: InventoryProject): boolean =>
+  project.conversations.some((conversation) => conversation.status === 'running')
+
 /**
- * Работает ли в проекте что-то само: разговор с идущим ходом или прогон сценария, который идёт и
- * ни о чём не спрашивает, - как знак работы на вкладке проекта в IDE (ADR 0071). Ждущее человека
- * - не работа: о нём говорит метка «Needs you».
+ * Сколько фоновой работы идёт само: прогоны сценариев и заданий. IDE старше не шлёт working
+ * сценариев - тогда идущие без вопроса, хоть в них и попадают пауза и упор в лимит; заданий не
+ * шлёт вовсе.
+ */
+const backgroundWorking = (project: InventoryProject): number =>
+  (project.queues.working ?? project.queues.running - project.queues.asking) +
+  (project.tasks?.working ?? 0)
+
+/**
+ * Работает ли в проекте что-то само: разговор с идущим ходом или прогон сценария или задания,
+ * который идёт и ни о чём не спрашивает, - как знак работы на вкладке проекта в IDE (ADR 0071).
+ * Ждущее человека - не работа: о нём говорит метка «Needs you».
  */
 export const projectWorks = (project: InventoryProject): boolean =>
-  project.queues.running - project.queues.asking > 0 ||
-  project.conversations.some((conversation) => conversation.status === 'running')
+  backgroundWorking(project) > 0 || chatWorks(project)
+
+/**
+ * Работает только фон - прогоны сценариев и заданий, без хода разговора: знак работы приглушён,
+ * как на вкладке проекта в IDE.
+ */
+export const projectWorksInBackground = (project: InventoryProject): boolean =>
+  backgroundWorking(project) > 0 && !chatWorks(project)

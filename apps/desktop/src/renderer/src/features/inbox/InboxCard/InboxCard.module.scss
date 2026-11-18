@@ -8,6 +8,11 @@
   min-width: 0;
 }
 
+// Прокрутка к уведомлению оставляет над ним то же поле, что над первым в списке.
+.item {
+  scroll-margin-top: var(--space-4);
+}
+
 // Подсвечено: к нему привёл баннер ОС.
 .highlighted {
   border-radius: var(--radius-lg);

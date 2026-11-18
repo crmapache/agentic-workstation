@@ -8,6 +8,7 @@ import {
   projectWorks,
   projectNeedsYou,
   conversationCounts,
+  projectWorksInBackground,
 } from './projects.utils'
 
 const project = (over: Partial<InventoryProject> = {}): InventoryProject => ({
@@ -65,5 +66,34 @@ describe('проекты на телефоне', () => {
     expect(
       projectWorks(project({ conversations: idle, queues: { open: 1, running: 1, asking: 1 } })),
     ).toBe(false)
+  })
+
+  it('IDE шлёт, сколько прогонов работает само: пауза и упор в лимит - не работа', () => {
+    const idle = project().conversations.map((one) => ({ ...one, status: 'idle' as const }))
+    const paused = { open: 1, running: 1, asking: 0, working: 0 }
+
+    expect(projectWorks(project({ conversations: idle, queues: paused }))).toBe(false)
+    expect(
+      projectWorks(project({ conversations: idle, queues: { ...paused, running: 2, working: 1 } })),
+    ).toBe(true)
+  })
+
+  it('знак приглушён, когда идут одни сценарии, а ход разговора не идёт', () => {
+    const idle = project().conversations.map((one) => ({ ...one, status: 'idle' as const }))
+    const runs = { open: 1, running: 1, asking: 0, working: 1 }
+
+    expect(projectWorksInBackground(project({ conversations: idle, queues: runs }))).toBe(true)
+    expect(projectWorksInBackground(project({ queues: runs }))).toBe(false)
+    expect(projectWorksInBackground(project())).toBe(false)
+  })
+
+  it('идущий прогон задания - тоже работа, фоновая; IDE старше заданий не шлёт', () => {
+    const idle = project().conversations.map((one) => ({ ...one, status: 'idle' as const }))
+    const quiet = { open: 0, running: 0, asking: 0, working: 0 }
+    const task = project({ conversations: idle, queues: quiet, tasks: { working: 1 } })
+
+    expect(projectWorks(task)).toBe(true)
+    expect(projectWorksInBackground(task)).toBe(true)
+    expect(projectWorks(project({ conversations: idle, queues: quiet }))).toBe(false)
   })
 })

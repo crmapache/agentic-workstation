@@ -186,6 +186,12 @@ export type TaskSaved =
 export type TaskStarted =
   { ok: true; state: TasksState; runId: string } | { ok: false; code: TaskCode }
 
+/**
+ * Прогон задания работает сам: идёт и ни о чём не спрашивает - знак работы проекта в окне и на
+ * телефоне. Ждущий ответа - не работа: о нём говорят уведомления.
+ */
+export const isTaskRunWorking = (state: TaskRunState): boolean => state === 'running'
+
 /** Прогон ещё идёт: работает или ждёт человека. */
 export const isRunLive = (state: TaskRunState): boolean =>
   state === 'running' || state === 'waiting'

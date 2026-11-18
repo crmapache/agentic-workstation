@@ -162,6 +162,11 @@ export class Bridge {
     this.watches.runChanged(run)
   }
 
+  /** Прогоны заданий поменялись: на телефоне знак работы проекта мог зажечься или погаснуть. */
+  tasksChanged(): void {
+    this.inventory.schedule()
+  }
+
   /** Открыли или закрыли проект: ключи другие, разговоры закрытого телефону больше не видны. */
   workspaceChanged(): void {
     this.lensCache = null

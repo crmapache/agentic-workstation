@@ -1,9 +1,10 @@
 import { it, expect, describe } from 'vitest'
 
 import type { Conversation } from '@shared/claude'
+import { isRunWorking } from '@shared/scenario-runs'
 import type { RunState } from '@shared/scenario-runs'
 
-import { runWorks, taskWork, projectWork } from './project-work.utils'
+import { taskWork, projectWork } from './project-work.utils'
 
 const chat = (id: string, projectPath: string, change: Partial<Conversation> = {}) => ({
   id,
@@ -30,12 +31,12 @@ const TEXT = {
 
 describe('прогон сценария работает сам', () => {
   it('начинается или идёт - да; спрашивает, на паузе, упёрся, кончился - нет', () => {
-    expect(runWorks(run('a', '/p', 'starting'))).toBe(true)
-    expect(runWorks(run('a', '/p', 'running'))).toBe(true)
-    expect(runWorks(run('a', '/p', 'running', 'Which branch?'))).toBe(false)
-    expect(runWorks(run('a', '/p', 'paused'))).toBe(false)
-    expect(runWorks(run('a', '/p', 'blocked'))).toBe(false)
-    expect(runWorks(run('a', '/p', 'done'))).toBe(false)
+    expect(isRunWorking(run('a', '/p', 'starting'))).toBe(true)
+    expect(isRunWorking(run('a', '/p', 'running'))).toBe(true)
+    expect(isRunWorking(run('a', '/p', 'running', 'Which branch?'))).toBe(false)
+    expect(isRunWorking(run('a', '/p', 'paused'))).toBe(false)
+    expect(isRunWorking(run('a', '/p', 'blocked'))).toBe(false)
+    expect(isRunWorking(run('a', '/p', 'done'))).toBe(false)
   })
 })
 

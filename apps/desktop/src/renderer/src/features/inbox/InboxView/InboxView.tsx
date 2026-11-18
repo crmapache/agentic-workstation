@@ -19,7 +19,7 @@ import styles from './InboxView.module.scss'
 
 /**
  * Уведомления IDE (ADR 0069) - вид середины окна: всё, что ждёт человека, карточками с кнопками
- * ответа. Вкладки - входящие, запланированные напоминания и закрытые; «Remind me» - напоминание
+ * ответа, свёрнутыми до шапки (ждущие ответа - раскрыты). Вкладки - входящие, запланированные напоминания и закрытые; «Remind me» - напоминание
  * себе без ИИ.
  */
 export const InboxView = () => {
@@ -79,7 +79,7 @@ export const InboxView = () => {
             <EmptyState icon={Bell} title={t(`inbox.empty.${tab}`)} />
           ) : (
             items.map((item) => (
-              <InboxCard key={item.id} item={item} highlighted={item.id === revealed} />
+              <InboxCard key={item.id} item={item} highlighted={item.id === revealed} collapsible />
             ))
           )}
         </div>

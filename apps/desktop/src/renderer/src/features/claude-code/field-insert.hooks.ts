@@ -2,6 +2,7 @@ import type { DraftChip, DraftToken } from '@shared/claude-draft'
 
 import { atQueryAt } from './field-caret'
 import {
+  fieldEnd,
   charAfter,
   charBefore,
   currentRange,
@@ -11,7 +12,7 @@ import {
   needsLeadingSpace,
   needsTrailingSpace,
 } from './field-dom'
-import type { Field, FieldInsert } from './field.types'
+import type { Field, ChipSpot, FieldInsert } from './field.types'
 import { kindOfPath } from './message-replay.utils'
 
 const selectRange = (range: Range) => {
@@ -25,7 +26,7 @@ const selectRange = (range: Range) => {
  * Вставка в место каретки - так же, как в ACC: вложение встаёт там, где была каретка, а
  * не в конце, с пробелом по краям (иначе слипнется со словами в одно нечитаемое слово),
  * и каждая вставка - свой шаг отмены. Фокус ушёл из поля (цитата из ленты, кнопка) - туда,
- * где каретку оставили.
+ * где каретку оставили. Брошенные файлы - в конец (spot 'end').
  */
 export const useFieldInsert = (field: Field): FieldInsert => {
   const { fieldRef, registry } = field
@@ -41,12 +42,12 @@ export const useFieldInsert = (field: Field): FieldInsert => {
     field.commit(true)
   }
 
-  const insertChip = (chip: DraftChip) => {
+  const insertChip = (chip: DraftChip, spot: ChipSpot = 'caret') => {
     const root = fieldRef.current
 
     if (!root) return
 
-    const range = currentRange(root, field.lastCaret.current)
+    const range = spot === 'end' ? fieldEnd(root) : currentRange(root, field.lastCaret.current)
 
     range.deleteContents()
 

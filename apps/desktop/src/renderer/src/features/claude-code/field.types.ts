@@ -41,9 +41,15 @@ export type Field = {
   handleCompositionEnd: () => void
 }
 
+/**
+ * Куда встаёт чип: в место каретки (буфер, цитата, скрепка) или в конец набранного (файл и
+ * картинка, брошенные в поле: точка броска мышью - случайное место посреди фразы).
+ */
+export type ChipSpot = 'caret' | 'end'
+
 /** Вставка в место каретки: чип, текст или куски из буфера. */
 export type FieldInsert = {
-  insertChip: (chip: DraftChip) => void
+  insertChip: (chip: DraftChip, spot?: ChipSpot) => void
   insertText: (text: string) => void
   insertTokens: (tokens: readonly DraftToken[]) => void
   /** Подстановка из подсказки «@»: «@запрос» заменяется чипом файла или папки. */

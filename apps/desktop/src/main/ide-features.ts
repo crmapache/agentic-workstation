@@ -26,6 +26,7 @@ import { startTasks } from './tasks/tasks-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
 import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
+import type { TasksPort } from './remote/bridge/bridge-ports'
 
 /** Сколько выход из IDE ждёт возможности IDE поверх провайдеров. */
 const FEATURES_SHUTDOWN_MAX_MS = 10 * SECOND_MS
@@ -83,9 +84,11 @@ export const startIdeFeatures = async (setup: {
 }): Promise<IdeFeatures> => {
   const { workspace, claude } = setup
   const taps: ScenarioTaps = { onQueues: () => undefined, onRun: () => undefined }
+  // Прогоны заданий телефону: задания встают позже Remote Control, ручка заполняется после них.
+  const taskRuns: TasksPort = { runs: () => [] }
   const scenarios = await startScenarios({ ...setup, taps })
   const statistics = await startStatistics({ dataDir: setup.dataDir, scenarios, workspace })
-  const remote = await startRemote({ ...setup, scenarios })
+  const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns })
   // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
   const automation = await startTasks({
     claude,
@@ -96,6 +99,7 @@ export const startIdeFeatures = async (setup: {
     getWindow: setup.getWindow,
     silent: setup.silent,
     inboxLink: setup.inboxLink,
+    onTasks: () => remote.tasksChanged(),
   })
   const definitions = createDefinitionService()
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
@@ -108,6 +112,9 @@ export const startIdeFeatures = async (setup: {
       claude.actions.interrupt(key)
     }
   }
+  // Прогоны, поднятые до этой строки (наверстывание при старте), телефон узнаёт сразу.
+  taskRuns.runs = () => automation.tasks.view().runs
+  remote.tasksChanged()
   taps.onQueues = () => remote.queuesChanged()
   taps.onRun = (run) => remote.runChanged(run)
   statistics.observeClaude(claude.getState())

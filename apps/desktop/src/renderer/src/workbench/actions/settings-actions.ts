@@ -10,7 +10,7 @@ import { useSettingsStore } from '../../features/settings/settings.store'
  * Настройки IDE и размер текста в поиске везде - те же команды, что в меню приложения
  * (⌘,, ⌘+, ⌘-, ⌘0), с теми же клавишами в подсказке. Слова «font» и «zoom» - потому что
  * так ищут размер текста по привычке из других программ. Все звуки разом - то же, что кнопка
- * в шапке окна.
+ * в строке состояния.
  */
 export const useSettingsActions = (): SearchAction[] => {
   const { t } = useTranslation()

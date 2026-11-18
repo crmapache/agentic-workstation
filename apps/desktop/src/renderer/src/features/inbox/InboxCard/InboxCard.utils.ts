@@ -1,3 +1,4 @@
+import { isInboxAsking } from '@shared/inbox'
 import type { InboxItem } from '@shared/inbox'
 
 /** Слова закрытия, у которых есть свой текст; остальное - подпись нажатой кнопки как есть. */
@@ -16,6 +17,19 @@ export const outcomeOf = (
 
   return pressed ? { kind: 'action', key: pressed.kind } : { kind: 'text', text: item.outcome }
 }
+
+/**
+ * Своя тема уведомления - заголовок, который стоит строкой над сутью. У прогона заголовок - имя
+ * задания, оно уже стоит строкой «от кого»; у отчёта и сбоя его нет. Пусто - своей темы нет.
+ */
+export const subjectOf = (item: InboxItem): string =>
+  item.kind === 'report' || item.kind === 'failure' || item.title === item.source ? '' : item.title
+
+/**
+ * Раскрыта ли карточка, пока человек её не трогал: ждущая ответа (вопрос, разрешение, план) -
+ * да, свёрнутая прятала бы то, на чём стоит прогон; остальное - одна шапка.
+ */
+export const expandedByDefault = (item: InboxItem): boolean => isInboxAsking(item)
 
 /** Кнопки под содержимым: ответ на вопросы рисует свою часть. */
 export const buttonsOf = (item: InboxItem) => item.actions.filter((one) => one.kind !== 'answer')

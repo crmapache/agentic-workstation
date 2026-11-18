@@ -1,13 +1,15 @@
 import type { ClaudeState } from '@shared/claude'
 import type { ProviderInfo } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
+import type { TaskRunSummary } from '@shared/tasks'
+import { isTaskRunWorking } from '@shared/tasks'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { InventoryMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { CAP_PUSH, CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
 import { EFFORTS, PERMISSION_MODES } from '@agentic-workstation/remote-protocol/commands'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
-import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
+import type { ProviderCaps, TasksSummary } from '@agentic-workstation/remote-protocol/wire-types'
 
 import { summaryOf, CLAUDE_PROVIDER } from './conversation-wire'
 import type { StatusClock } from './conversation-wire'
@@ -18,6 +20,7 @@ export type InventoryInput = {
   workspace: WorkspaceState
   claude: ClaudeState
   queues: ScenarioQueuesView
+  taskRuns: readonly Pick<TaskRunSummary, 'projectPath' | 'state'>[]
   providers: ProviderInfo[]
   keys: ProjectKeys
   clock: StatusClock
@@ -46,12 +49,18 @@ const capsOf = (provider: ProviderInfo, claude: ClaudeState): ProviderCaps => ({
   permissionModes: [...PERMISSION_MODES],
 })
 
+/** Задания проекта коротко: сколько прогонов работает само - знак работы на телефоне. */
+const tasksSummary = (runs: InventoryInput['taskRuns'], rootPath: string): TasksSummary => ({
+  working: runs.filter((run) => run.projectPath === rootPath && isTaskRunWorking(run.state)).length,
+})
+
 /**
- * Что есть на машине - открытые проекты с разговорами и очередями и недавние закрытые (у них -
- * только очереди: сценарии живут на уровне IDE, ADR 0039). Путей нет: проект - ключом.
+ * Что есть на машине - открытые проекты с разговорами, очередями и заданиями и недавние закрытые
+ * (у них - только очереди и задания: те живут на уровне IDE, ADR 0039 и 0069). Путей нет: проект
+ * - ключом.
  */
 export const inventoryOf = (input: InventoryInput): InventoryMessage => {
-  const { workspace, claude, queues, keys, clock, now } = input
+  const { workspace, claude, queues, taskRuns, keys, clock, now } = input
   const open = workspace.projects.map((project) => ({
     key: keys.keyOf(project.rootPath),
     name: project.name,
@@ -60,6 +69,7 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
       .filter((conversation) => conversation.projectPath === project.rootPath)
       .map((conversation) => summaryOf(conversation, clock.since(conversation, now))),
     queues: queuesSummary(queues, project.rootPath),
+    tasks: tasksSummary(taskRuns, project.rootPath),
     unavailableModes: { [CLAUDE_PROVIDER]: [...input.newModesOff(project.rootPath)] },
   }))
   const recent = workspace.recentProjects
@@ -70,6 +80,7 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
       open: false,
       conversations: [],
       queues: queuesSummary(queues, project.rootPath),
+      tasks: tasksSummary(taskRuns, project.rootPath),
     }))
 
   return {

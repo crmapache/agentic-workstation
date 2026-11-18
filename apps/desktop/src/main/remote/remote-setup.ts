@@ -17,6 +17,7 @@ import { relayUrlFor } from './relay-url'
 import { RemoteService } from './remote-service'
 import { REMOTE_FILE } from './remote.constants'
 import type {
+  TasksPort,
   SearchPort,
   AccountsPort,
   ScenariosPort,
@@ -139,6 +140,11 @@ export const scenariosPort = (scenarios: ScenarioService): ScenariosPort => ({
 export type RemoteSetup = {
   claude: ClaudeService
   scenarios: ScenarioService
+  /**
+   * Прогоны заданий. Задания поднимаются после Remote Control (им нужна статистика), поэтому
+   * порт - позже заполняемая ручка, как taps сценариев.
+   */
+  tasks: TasksPort
   workspace: WorkspaceService
   search: SearchDesk
   connectors: ConnectorsService
@@ -162,6 +168,7 @@ export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
     ports: {
       conversations: claudePort(setup.claude),
       scenarios: scenariosPort(setup.scenarios),
+      tasks: setup.tasks,
       workspace: workspacePort(setup.workspace),
       pictures: { shrink: shrinkPicture },
       search: searchPort(setup.search),

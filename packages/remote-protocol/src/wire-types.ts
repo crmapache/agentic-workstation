@@ -56,7 +56,19 @@ export type ConversationSummary = {
 }
 
 /** Очереди сценариев проекта коротко: открытые, идущие прогоны, прогоны с вопросом к человеку. */
-export type QueuesSummary = { open: number; running: number; asking: number }
+export type QueuesSummary = {
+  open: number
+  running: number
+  asking: number
+  /**
+   * Прогоны, которые работают сами: начинаются или идут и ни о чём не спрашивают. В running
+   * стоят и прогоны на паузе и в упоре в лимит. Нет - IDE старше, работа - running минус asking.
+   */
+  working?: number | undefined
+}
+
+/** Задания по расписанию проекта коротко: прогоны, что работают сами (идут без вопроса). */
+export type TasksSummary = { working: number }
 
 export type InventoryProject = {
   /** Один и тот же, открыт проект или закрыт (project-key.ts). */
@@ -66,6 +78,8 @@ export type InventoryProject = {
   open: boolean
   conversations: ConversationSummary[]
   queues: QueuesSummary
+  /** Нет - IDE старше: прогонов заданий она телефону не шлёт. */
+  tasks?: TasksSummary | undefined
   /**
    * Режимы, в которых новый разговор этого проекта не начнётся, - по id провайдера, как меню новой
    * вкладки окна: bypass под запретом настроек проекта или после отказа CLI. Только у открытого

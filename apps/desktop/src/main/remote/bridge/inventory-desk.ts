@@ -106,6 +106,7 @@ export class InventoryDesk {
       workspace: ports.workspace.getState(),
       claude: ports.conversations.getState(),
       queues: ports.scenarios.queuesView(),
+      taskRuns: ports.tasks.runs(),
       providers: this.providers,
       keys: this.host.keys(),
       clock: this.host.clock,

@@ -1,5 +1,7 @@
 import type { Conversation } from '@shared/claude'
+import { isRunWorking } from '@shared/scenario-runs'
 import type { RunSummary } from '@shared/scenario-runs'
+import { isTaskRunWorking } from '@shared/tasks'
 import type { TaskRunSummary } from '@shared/tasks'
 
 import { worksOnItsOwn } from '../../features/claude-code/StatusDot/StatusDot.utils'
@@ -12,13 +14,6 @@ type WorkingRun = Pick<RunSummary, 'id' | 'projectPath' | 'state' | 'asking'>
 
 /** Слова строки подсказки: разговор и прогон сценария - своими. */
 type WorkText<C, R> = { chat: (conversation: C) => string; run: (run: R) => string }
-
-/**
- * Прогон сценария работает сам: начинается или идёт и ни о чём не спрашивает. Пауза, стоп на
- * вопросе и упор в лимит - ждут человека, о них говорит число на иконке сценариев.
- */
-export const runWorks = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
-  (run.state === 'starting' || run.state === 'running') && run.asking === ''
 
 /**
  * Что в проекте работает само, без человека: разговоры, чья вкладка горит «работает»
@@ -39,7 +34,7 @@ export const projectWork = <C extends WorkingConversation, R extends WorkingRun>
       background: false,
     })),
   ...runs
-    .filter((run) => run.projectPath === rootPath && runWorks(run))
+    .filter((run) => run.projectPath === rootPath && isRunWorking(run))
     .map((run) => ({ id: run.id, text: text.run(run), background: true })),
 ]
 
@@ -53,5 +48,5 @@ export const taskWork = <T extends Pick<TaskRunSummary, 'id' | 'projectPath' | '
   text: (run: T) => string,
 ): ProjectWork[] =>
   runs
-    .filter((run) => run.projectPath === rootPath && run.state === 'running')
+    .filter((run) => run.projectPath === rootPath && isTaskRunWorking(run.state))
     .map((run) => ({ id: run.id, text: text(run), background: true }))

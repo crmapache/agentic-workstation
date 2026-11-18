@@ -28,26 +28,36 @@ export const useMarkRead = (items: readonly InboxItem[]) => {
 }
 
 /**
- * Баннер ОС привёл к уведомлению: его вкладка, прокрутка к нему и подсветка на миг. Что
- * подсвечено, отдаёт хук; null - ничего.
+ * Баннер ОС или карточка в углу окна привели к уведомлению: его вкладка, карточка раскрыта,
+ * прокрутка к её началу и подсветка на миг. Что подсвечено, отдаёт хук; null - ничего.
  */
 export const useRevealed = (items: readonly InboxItem[]): string | null => {
   const revealed = useInboxUiStore((state) => state.revealed)
   const clearReveal = useInboxUiStore((state) => state.clearReveal)
   const setTab = useInboxStore((state) => state.setTab)
+  const setExpanded = useInboxStore((state) => state.setExpanded)
+  const isOpened = useInboxStore((state) => revealed !== null && state.expanded[revealed] === true)
   const target = items.find((item) => item.id === revealed)
+  const isListed = Boolean(target)
 
+  // Привели к сути - свёрнутая показала бы одну шапку.
   useEffect(() => {
-    if (!revealed) return
+    if (revealed) setExpanded(revealed, true)
+  }, [revealed, setExpanded])
+
+  // Прокрутка - когда карточка уже раскрыта и стоит в списке своей вкладки: раскрытая длиннее, и к
+  // началу, а не к середине - иначе шапка длинного отчёта уезжала бы за верх.
+  useEffect(() => {
+    if (!revealed || !isOpened || !isListed) return
 
     const found = document.querySelector(`[data-inbox-item="${CSS.escape(revealed)}"]`)
 
-    found?.scrollIntoView({ block: 'center' })
+    found?.scrollIntoView({ block: 'start' })
 
     const timer = window.setTimeout(clearReveal, REVEAL_MS)
 
     return () => window.clearTimeout(timer)
-  }, [revealed, clearReveal])
+  }, [revealed, isOpened, isListed, clearReveal])
 
   useEffect(() => {
     if (revealed && !target) setTab('open')

@@ -25,7 +25,7 @@
       "description": "How an agent calls you when it finishes or needs you",
       "help": {
         "label": "About sounds",
-        "text": "An agent in any project calls you with a sound: when it finishes, asks for something, hits a limit or breaks. Its chat tab glows in the colour of the reason, and the project tab gets a dot of the same colour, until you open that chat.\n\nA muted sound doesn't call at all: no glow and no dot. While you look right at a chat, it stays quiet. Of sounds that come at once, only the more important one plays.\n\nMute all sounds (here or with the speaker at the right end of the title bar) silences the whole IDE at once - chats, notifications and system banners - but keeps the glow and the dots. Your settings per sound stay as they are and come back when you turn sounds on again."
+        "text": "An agent in any project calls you with a sound: when it finishes, asks for something, hits a limit or breaks. Its chat tab glows in the colour of the reason, and the project tab gets a dot of the same colour, until you open that chat.\n\nA muted sound doesn't call at all: no glow and no dot. While you look right at a chat, it stays quiet. Of sounds that come at once, only the more important one plays.\n\nMute all sounds (here or with the speaker in the status bar, next to the phone) silences the whole IDE at once - chats, notifications and system banners - but keeps the glow and the dots. Your settings per sound stay as they are and come back when you turn sounds on again."
       },
       "events": {
         "turnDone": {
@@ -64,7 +64,7 @@
       "muteAll": "Mute all sounds",
       "unmuteAll": "Turn sounds back on",
       "muteAllLabel": "Mute all sounds",
-      "muteAllHint": "Chats still glow and mark the project tab, just quietly. Same as the speaker in the title bar."
+      "muteAllHint": "Chats still glow and mark the project tab, just quietly. Same as the speaker in the status bar."
     }
   },
   "connectors": {
@@ -3238,8 +3238,10 @@
     "lineStats": {
       "files_one": "{{shown}} file changed",
       "files_other": "{{shown}} files changed",
-      "label": "{{files}} since the last commit: {{added}} lines added, {{deleted}} removed. Opens Changes",
-      "labelPartial": "Too many changes to count them all. At least {{files}} since the last commit: {{added}} lines added, {{deleted}} removed. Opens Changes"
+      "label": "{{files}} since the last commit: {{added}} lines added, {{deleted}} removed. {{action}}",
+      "labelPartial": "Too many changes to count them all. At least {{files}} since the last commit: {{added}} lines added, {{deleted}} removed. {{action}}",
+      "show": "Opens Changes",
+      "hide": "Hides Changes"
     },
     "pullRequest": {
       "number": "#{{number}}",
@@ -3662,7 +3664,7 @@
     "help": {
       "label": "About notifications",
       "title": "Notifications",
-      "text": "Everything that needs you lands here: questions and permission requests of task runs, their reports and failures, and notifications or reminders Claude sends you from any chat or task.\n\nButtons answer right here: allow a command, pick an option, open the file, or send your choice back into the conversation that asked.\n\nWhen the IDE is in the background, a system banner shows up too. Sounds follow Settings → Sounds."
+      "text": "Everything that needs you lands here: questions and permission requests of task runs, their reports and failures, and notifications or reminders Claude sends you from any chat or task.\n\nCards show only their header: what it is, from whom and when. Click the header or the arrow to read the rest. Questions, permissions and plans that wait for your answer stay open, and so does a card you came to from a banner.\n\nButtons answer right here: allow a command, pick an option, open the file, or send your choice back into the conversation that asked.\n\nWhen the IDE is in the background, a system banner shows up too. Sounds follow Settings → Sounds."
     },
     "tabs": {
       "label": "Notifications sections",
@@ -3686,7 +3688,9 @@
       "runAgain": "Run again",
       "resume": "Continue",
       "trust": "Trust folder and run",
-      "dismissRead": "Dismiss read"
+      "dismissRead": "Dismiss read",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "kinds": {
       "question": "Question",

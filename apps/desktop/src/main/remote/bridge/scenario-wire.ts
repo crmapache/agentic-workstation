@@ -1,4 +1,5 @@
 import type { ScenarioQueue, ScenarioQueuesView } from '@shared/scenario-queues'
+import { isRunWorking } from '@shared/scenario-runs'
 import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
 import type { Scenario } from '@shared/scenarios'
 
@@ -146,6 +147,7 @@ export const queuesSummary = (view: ScenarioQueuesView, rootPath: string): Queue
       .length,
     running: live.length,
     asking: live.filter((run) => run.asking !== '').length,
+    working: live.filter(isRunWorking).length,
   }
 }
 

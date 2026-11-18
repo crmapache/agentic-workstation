@@ -40,14 +40,6 @@
   min-width: var(--space-4);
 }
 
-// Кнопки справа - с тем же полем до края окна, что у проекта до места под «светофор».
-.end {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  padding-right: var(--space-2);
-}
-
 .start {
   display: flex;
   align-items: center;

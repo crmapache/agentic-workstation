@@ -4,6 +4,11 @@ export type InboxCardProps = {
   item: InboxItem
   /** К нему привёл баннер ОС: подсвечено на миг. */
   highlighted?: boolean | undefined
+  /**
+   * На виде уведомлений - свёрнута до шапки, пока её не раскроют (выбор - в inbox.store), а ждущая
+   * ответа - раскрыта. В окне прогона - нет: там карточка и есть то, на что отвечают.
+   */
+  collapsible?: boolean | undefined
 }
 
 export type ItemPartProps = { item: InboxItem }

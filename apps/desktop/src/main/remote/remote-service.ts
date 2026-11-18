@@ -154,6 +154,11 @@ export class RemoteService {
     this.line?.runChanged(run)
   }
 
+  /** Прогоны заданий поменялись - список машины телефонам (знак работы проекта). */
+  tasksChanged(): void {
+    this.line?.tasksChanged()
+  }
+
   workspaceChanged(): void {
     this.line?.workspaceChanged()
   }

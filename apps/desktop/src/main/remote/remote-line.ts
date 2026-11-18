@@ -149,6 +149,10 @@ export class RemoteLine {
     this.pushes.runChanged(run)
   }
 
+  tasksChanged(): void {
+    this.bridge.tasksChanged()
+  }
+
   workspaceChanged(): void {
     this.bridge.workspaceChanged()
     this.pushes.soon()

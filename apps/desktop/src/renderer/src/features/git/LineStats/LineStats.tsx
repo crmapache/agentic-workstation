@@ -4,20 +4,23 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import { useGitLineStats } from '../git.queries'
-import { useLayoutStore } from '../../../state/layout.store'
+import { useLayoutStore, isSidePanelShown } from '../../../state/layout.store'
 import { LINE_COUNT } from './LineStats.constants'
 import styles from './LineStats.module.scss'
 import type { LineStatsProps } from './LineStats.types'
 
 /**
  * Счёт строк с последнего коммита в шапке, справа от ветки: «+12 −3» - видно, есть ли
- * изменения, не открывая списка. Нажатие показывает вид Changes. Изменений нет, папка не в
- * git или git не ответил - ничего.
+ * изменения, не открывая списка. Нажатие показывает вид Changes, повторное - прячет, как иконка
+ * вида в левой полосе. Изменений нет, папка не в git или git не ответил - ничего.
  */
 export const LineStats = ({ projectId }: LineStatsProps) => {
   const { t } = useTranslation()
   const { data: stats } = useGitLineStats(projectId)
-  const showSideView = useLayoutStore((state) => state.showSideView)
+  const selectSideView = useLayoutStore((state) => state.selectSideView)
+  const isChangesShown = useLayoutStore(
+    (state) => state.side.activeViewId === 'changes' && isSidePanelShown(state),
+  )
 
   if (!stats || stats.files === 0) return null
 
@@ -27,13 +30,14 @@ export const LineStats = ({ projectId }: LineStatsProps) => {
     files: t('git.lineStats.files', { count: stats.files, shown: LINE_COUNT.format(stats.files) }),
     added,
     deleted,
+    action: t(isChangesShown ? 'git.lineStats.hide' : 'git.lineStats.show'),
   })
 
-  const handleShow = () => showSideView('changes')
+  const handleToggle = () => selectSideView('changes')
 
   return (
     <Tooltip label={label}>
-      <Button variant="ghost" aria-label={label} onClick={handleShow}>
+      <Button variant="ghost" aria-label={label} onClick={handleToggle}>
         <span className={styles.added}>{`+${added}`}</span>
         <span className={styles.deleted}>{`−${deleted}`}</span>
       </Button>

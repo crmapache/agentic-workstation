@@ -40,6 +40,7 @@ import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
 import { RemoteModal } from '../../features/remote/RemoteModal/RemoteModal'
 import { ScenarioNotice } from '../../features/scenarios/ScenarioNotice/ScenarioNotice'
+import { MuteSoundsButton } from '../../features/settings/MuteSoundsButton/MuteSoundsButton'
 import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsDialog'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
 import { TasksNotice } from '../../features/tasks/TasksNotice/TasksNotice'
@@ -174,7 +175,7 @@ export const Workbench = () => {
             )}
           </div>
 
-          <StatusBar items={<RemoteButton />} />
+          <StatusBar items={[<RemoteButton />, <MuteSoundsButton />]} />
         </div>
 
         <SearchLayer />

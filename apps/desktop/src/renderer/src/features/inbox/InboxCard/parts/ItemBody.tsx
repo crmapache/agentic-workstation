@@ -6,6 +6,7 @@ import { CodeSnippet } from '@agentic-workstation/ui/CodeSnippet'
 
 import styles from '../InboxCard.module.scss'
 import type { ItemPartProps } from '../InboxCard.types'
+import { subjectOf } from '../InboxCard.utils'
 import { useConversationLog } from '../../../../state/conversation-log.context'
 
 /**
@@ -15,14 +16,12 @@ import { useConversationLog } from '../../../../state/conversation-log.context'
 export const ItemBody = ({ item }: ItemPartProps) => {
   const { t } = useTranslation()
   const log = useConversationLog()
+  const subject = subjectOf(item)
   const plain = <div className={styles.text}>{item.body}</div>
 
   return (
     <>
-      {/* Заголовок вопроса прогона - имя задания, оно уже стоит строкой «от кого». */}
-      {item.kind !== 'report' && item.kind !== 'failure' && item.title !== item.source && (
-        <div className={styles.title}>{item.title}</div>
-      )}
+      {subject && <div className={styles.title}>{subject}</div>}
       {item.kind === 'failure' && (
         <div className={styles.failure}>
           {t(`tasks.failures.${item.reason}`, { defaultValue: t('tasks.codes.unknown') })}

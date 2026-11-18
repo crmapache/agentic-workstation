@@ -11,6 +11,7 @@ import {
   projectWorks,
   projectNeedsYou,
   conversationCounts,
+  projectWorksInBackground,
 } from '../../../../lib/projects.utils'
 import { useRouter } from '../../../../lib/router.store'
 import type { MirroredInventory } from '../../../../state/remote.types'
@@ -22,7 +23,8 @@ import { MachineLinks } from './MachineLinks'
 /**
  * Открытые проекты IDE, под ними - недавние (у них видны история и очереди сценариев) и экраны
  * машины: доска всех очередей, аккаунты, коннекторы. Где что-то работает само - янтарный
- * спиннер справа, как знак работы на вкладке проекта в IDE.
+ * спиннер справа, как знак работы на вкладке проекта в IDE: идут одни сценарии и задания -
+ * приглушённый.
  */
 export const MachineProjects = ({
   agentId,
@@ -64,7 +66,12 @@ export const MachineProjects = ({
                 </Badge>
               )}
               {projectWorks(project) && (
-                <Spinner size="sm" tone="warning" label={t('machines.working')} />
+                <Spinner
+                  size="sm"
+                  tone="warning"
+                  quiet={projectWorksInBackground(project)}
+                  label={t('machines.working')}
+                />
               )}
             </>
           }

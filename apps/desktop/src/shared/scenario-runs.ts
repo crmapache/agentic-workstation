@@ -210,6 +210,13 @@ export type RunSummary = {
   origin: RunOrigin
 }
 
+/**
+ * Прогон работает сам: начинается или идёт и ни о чём не спрашивает - знак работы на вкладке
+ * проекта и в списке проектов телефона. Пауза, стоп на вопросе и упор в лимит ждут человека.
+ */
+export const isRunWorking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
+  (run.state === 'starting' || run.state === 'running') && run.asking === ''
+
 /** Прогон ждёт человека: стоит на вопросе или спрашивает разрешения. */
 export const isRunAsking = (run: Pick<RunSummary, 'state' | 'asking'>): boolean =>
   run.state === 'blocked' || run.asking !== ''

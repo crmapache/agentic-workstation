@@ -6,9 +6,9 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { useMuteAllSounds } from '../../../state/sounds.queries'
 
 /**
- * Все звуки IDE одним нажатием - в правом конце шапки окна. Нажатая (заливкой) - IDE молчит:
- * разговоры зовут светом вкладки и точкой проекта, без звука. Поводы и громкости - в Settings →
- * Sounds, кнопка их не трогает.
+ * Все звуки IDE одним нажатием - в строке состояния, рядом с телефоном Remote Control. Нажатая
+ * (заливкой) - IDE молчит: разговоры зовут светом вкладки и точкой проекта, без звука. Поводы и
+ * громкости - в Settings → Sounds, кнопка их не трогает.
  */
 export const MuteSoundsButton = () => {
   const { t } = useTranslation()
@@ -18,8 +18,9 @@ export const MuteSoundsButton = () => {
     <IconButton
       icon={muteAll ? VolumeOff : Volume2}
       label={muteAll ? t('settings.sounds.unmuteAll') : t('settings.sounds.muteAll')}
+      size="sm"
       active={muteAll}
-      tooltipPlacement="bottom"
+      tooltipPlacement="top"
       onClick={toggle}
     />
   )

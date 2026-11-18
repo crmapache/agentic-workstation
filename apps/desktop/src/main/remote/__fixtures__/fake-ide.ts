@@ -116,7 +116,13 @@ export const fakeIde = () => {
     conversationOf,
   }
   const historyRun = historyRunOf(PROJECT_PATH, RUN)
+  // Прогоны заданий: один идёт сам, один ждёт ответа - знак работы считает только первый.
+  const taskRuns = [
+    { projectPath: PROJECT_PATH, state: 'running' as const },
+    { projectPath: PROJECT_PATH, state: 'waiting' as const },
+  ]
   const ports: BridgePorts = {
+    tasks: { runs: () => taskRuns },
     workspace: workspacePortOf(record, workspace),
     search: searchOf(record, PROJECT_PATH),
     accounts: accountsPortOf(record, state),

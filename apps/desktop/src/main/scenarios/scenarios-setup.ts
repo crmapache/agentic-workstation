@@ -30,7 +30,7 @@ export type ScenariosSetup = {
   workspace: WorkspaceService
   dataDir: string
   getWindow: () => BrowserWindow | null
-  /** Все звуки IDE выключены (кнопка в шапке окна): уведомление ОС - без своего звука. */
+  /** Все звуки IDE выключены (кнопка в строке состояния): уведомление ОС - без своего звука. */
   silent: () => boolean
   taps?: ScenarioTaps | undefined
 }

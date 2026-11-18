@@ -85,9 +85,12 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
+// Длинное слово в содержимом (адрес, путь в вопросе прогона) переносится, а не распирает карточку
+// за край экрана телефона. break-word, а не anywhere: ширину таблиц и блоков кода внутри не трогает.
 .body {
   padding: var(--space-3) var(--space-4) var(--space-4);
   color: var(--color-fg-muted);
+  overflow-wrap: break-word;
 }
 
 // Нажимается вся: курсор руки и подложка поярче под ним - как у плитки (Tile), без объёма.
@@ -121,5 +124,40 @@
 
   .body {
     padding: var(--space-1-5) var(--space-3) var(--space-3);
+  }
+}
+
+// Сворачивается до шапки: шапка нажимается вся и светлеет под курсором полосой до линии, как
+// раскрывашка шапки карточки (Disclosure md). Зазор под подписью переезжает из линии и тела в
+// саму шапку - расстояния те же, а полоса доходит до линии.
+.collapsible {
+  .header {
+    @include interactive-surface(var(--color-surface-raised-hover));
+
+    padding-bottom: var(--space-3);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .divider {
+    margin-top: 0;
+  }
+
+  &.sm .header {
+    padding-bottom: var(--space-1-5);
+  }
+
+  &.sm .body {
+    padding-top: 0;
+  }
+}
+
+// Свёрнутая - одна шапка с ровным полем сверху и снизу, светлеет вся.
+.collapsed {
+  .header {
+    border-radius: var(--radius-lg);
+  }
+
+  &.sm .header {
+    padding-bottom: var(--space-2);
   }
 }
