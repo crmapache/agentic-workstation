@@ -180,6 +180,7 @@ describe('страница ленты выше', () => {
       parentToolUseId: null,
       name: 'Agent',
       input: { description: 'long job' },
+      action: { kind: 'agent', agent: '', description: 'long job', prompt: '', workflow: false },
       status: 'running',
       result: null,
       startedAt: 0,

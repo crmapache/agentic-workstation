@@ -1,5 +1,6 @@
+import type { ConversationRuntime } from '../agents/conversation/conversation-runtime'
+import { claudeOf } from './conversation/claude-conversation'
 import type { ConnectorsLaunch } from './conversation/connectors-launch'
-import type { ConversationRuntime } from './conversation/conversation-runtime'
 
 /**
  * Коннекторы IDE для процессов разговоров (ADR 0028, 0029). Серверы шлюза CLI получает
@@ -23,7 +24,8 @@ export class ConnectorsBridge {
   /** Набор коннекторов поменялся в проектах, для которых affects - да. */
   serversChanged(affects: (projectPath: string) => boolean): void {
     for (const runtime of this.runtimes()) {
-      if (runtime.process?.isAlive && affects(runtime.meta.projectPath)) runtime.restartProcess()
+      if (claudeOf(runtime).process?.isAlive && affects(runtime.meta.projectPath))
+        runtime.restartSession()
     }
   }
 
@@ -31,7 +33,9 @@ export class ConnectorsBridge {
     for (const runtime of this.runtimes()) {
       // Процесс поднят раньше, чем появился сервер, - CLI ответит отказом: сервер придёт
       // с перезапуском, который уже назначен.
-      void runtime.process?.control({ subtype: 'mcp_reconnect', serverName }).catch(() => undefined)
+      void claudeOf(runtime)
+        .process?.control({ subtype: 'mcp_reconnect', serverName })
+        .catch(() => undefined)
     }
   }
 }

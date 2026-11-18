@@ -4,14 +4,16 @@ import { buildLaunchArgs } from '../cli/cli-args'
 import type { ClaudeCli } from '../cli/cli-locator'
 import { CliProcess } from '../cli/cli-process'
 import { CLI_ENV_OVERRIDES, CHECKPOINTS_VARIABLE } from '../cli/cli.constants'
-import type { Environment } from '../cli/shell-env'
 import { fileCheckpointing } from '../config/config-files'
 import { releasedBriefing } from '../history/released-heads'
 import { findTranscript } from '../history/transcript-paths'
 import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
+import type { Environment } from '../../process/shell-env'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { claudeOf } from './claude-conversation'
+import { ClaudeSession } from './claude-session'
 import type { ConnectorsLaunch } from './connectors-launch'
-import type { ConversationRuntime } from './conversation-runtime'
 
 /**
  * Окружение процесса разговора. Копии файлов (откат кода) - только если человек их не
@@ -33,9 +35,10 @@ const conversationEnv = (env: Environment, checkpoints: boolean): Environment =>
 export const connectorsLaunch = async (
   runtime: ConversationRuntime,
 ): Promise<ConnectorsLaunch | null> => {
-  const launch = await runtime.host.mcpConfig(runtime.meta.projectPath).catch((error: unknown) => {
+  const claude = claudeOf(runtime)
+  const launch = await claude.host.mcpConfig(runtime.meta.projectPath).catch((error: unknown) => {
     console.warn('[claude] конфиг коннекторов не записан', error)
-    runtime.feed.builder.addNotice('connectors-missing', '')
+    claude.feed.builder.addNotice('connectors-missing', '')
 
     return null
   })
@@ -48,16 +51,17 @@ export const connectorsLaunch = async (
 }
 
 /**
- * Процесс CLI для разговора; null - папки проекта больше нет. Транскрипт сессии уже
+ * Сессия Claude для разговора; null - папки проекта больше нет. Транскрипт сессии уже
  * есть - продолжить её (--resume), нет - начать с нашим id (--session-id), а
  * нерождённый форк - ответвить от источника: так id известен до первого ответа CLI, и
  * разговор переживёт перезапуск, даже если оборвался на первом же ходе.
  */
-export const spawnConversationProcess = async (
+export const openClaudeSession = async (
   runtime: ConversationRuntime,
   cli: ClaudeCli,
-): Promise<CliProcess | null> => {
+): Promise<ClaudeSession | null> => {
   const { meta } = runtime
+  const claude = claudeOf(runtime)
   const info = await stat(meta.projectPath).catch(() => null)
 
   // Папку проекта удалили или переименовали, пока он открыт: CLI упал бы с ENOENT.
@@ -71,11 +75,11 @@ export const spawnConversationProcess = async (
 
   // Модель - к тому, что аккаунт умеет, до подъёма: CLI не отказывает в чужой модели на
   // старте, а падает на первом сообщении. Аргументы ниже читают её уже исправленной.
-  runtime.host.panel?.launching(runtime, runtime.host.accountId())
+  claude.host.panel?.launching(runtime, claude.host.accountId())
 
   const checkpoints = await fileCheckpointing(meta.projectPath)
   const connectors = await connectorsLaunch(runtime)
-  let process: CliProcess
+  let session: ClaudeSession | null = null
 
   try {
     const args = buildLaunchArgs(
@@ -93,7 +97,7 @@ export const spawnConversationProcess = async (
       cli.features,
     )
 
-    process = new CliProcess(
+    const process = new CliProcess(
       {
         binary: cli.binary,
         args,
@@ -101,16 +105,18 @@ export const spawnConversationProcess = async (
         env: conversationEnv(cli.env, checkpoints),
       },
       {
-        onMessage: (message) => runtime.handleMessage(process, message),
-        onControlRequest: (request) => runtime.handleControlRequest(process, request),
+        onMessage: (message) => session?.handleMessage(message),
+        onControlRequest: (request) => session?.handleControlRequest(request),
         onExit: (code, stderrTail) => {
           // Процесс кончился - его ключ шлюза и процессы команд больше не нужны.
           connectors?.release()
-          runtime.handleExit(process, code, stderrTail)
-          runtime.host.panel?.exited(runtime, process)
+          session?.handleExit(code, stderrTail)
+          claude.host.panel?.exited(runtime, process)
         },
       },
     )
+
+    session = new ClaudeSession(runtime, process)
   } catch (error) {
     connectors?.release()
     throw error
@@ -119,15 +125,15 @@ export const spawnConversationProcess = async (
   // Быстрый режим ездит с разговором: просьба - первой строкой, CLI берёт её до первого
   // сообщения (аргументом нельзя - это JSON, а кавычки в аргументах запрещены).
   if (meta.fastMode) {
-    process.control(fastModeRequest(true)).catch(() => undefined)
+    session.process.control(fastModeRequest(true)).catch(() => undefined)
   }
 
   // CLI кладёт `env` репозитория поверх окружения процесса: выбранный в панели аккаунт
   // молча не в деле - лента говорит об этом строкой SETTINGS. На обычном входе это просто
   // то, как устроен проект (как в ACC).
-  if (runtime.host.accountId() !== '') {
-    runtime.feed.builder.noteOutranked(await repositoryOverrides(meta.projectPath))
+  if (claude.host.accountId() !== '') {
+    claude.feed.builder.noteOutranked(await repositoryOverrides(meta.projectPath))
   }
 
-  return process
+  return session
 }

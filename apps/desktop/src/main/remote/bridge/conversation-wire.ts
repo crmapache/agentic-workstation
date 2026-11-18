@@ -12,6 +12,13 @@ import type {
 /** Разговоры панели - провайдера Claude Code; второй провайдер принесёт свой id. */
 export const CLAUDE_PROVIDER: ProviderId = 'claude'
 
+/**
+ * Провайдер, чьи разговоры мост отдаёт телефону. Пока это одна панель Claude: разговоры
+ * Codex и открытых моделей телефон получит вместе с переводом телефона на провайдеров
+ * (этап 5 плана). Другой провайдер - отказ providerMissing, а не чужая история.
+ */
+export const isServedProvider = (value: unknown): value is ProviderId => value === CLAUDE_PROVIDER
+
 /** Состояние для телефона: ход ждёт человека, идёт (и фоновые агенты), свободен. */
 export const statusOf = (conversation: Conversation): ConversationStatus => {
   if (conversation.pending || conversation.status === 'waiting') return 'waiting-for-you'

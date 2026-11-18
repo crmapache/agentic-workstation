@@ -1,6 +1,6 @@
 import type { ClaudeService } from '../../claude/claude-service'
+import type { Environment } from '../../process/shell-env'
 import { environmentFor } from '../../claude/accounts/account-env'
-import type { Environment } from '../../claude/cli/shell-env'
 import type { EngineAccounts } from '../../scenarios/engine/engine-core'
 
 /** Самое полное окно всего тарифа (пять часов, неделя), проценты; null - не измерен. */

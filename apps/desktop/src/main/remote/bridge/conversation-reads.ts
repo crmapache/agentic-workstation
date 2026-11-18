@@ -1,10 +1,9 @@
-import { isProviderId } from '@shared/providers'
-
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
 import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { searchWire, aiSearchWire } from './conversation-extras-wire'
+import { isServedProvider } from './conversation-wire'
 import type { Redact } from './fit'
 import { done, fail } from './outcomes'
 import type { ProjectKeys } from './project-keys'
@@ -19,7 +18,7 @@ const remoteRun = (runId: string) => `remote:${runId}`
 /**
  * Чтение разговоров по просьбе телефона: история проекта и продолжение прошлого разговора,
  * страница ленты выше того, что у телефона, картинка сообщения для просмотра. Те же методы
- * ClaudeService, что зовёт окно (claude:listHistory, openHistory, loadEarlier, getImage); ответ
+ * ClaudeService, что зовёт окно (agent:listHistory, openHistory, loadEarlier, getImage); ответ
  * каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в открытом проекте:
  * проверку его id и проекта делает ConversationCommands до того, как позвать сюда. Поиск по
  * разговорам - тоже чтение: набранный - индексом IDE, описанный - моделью (SearchDesk).
@@ -39,7 +38,7 @@ export class ConversationReads {
     const path = this.keys().pathOf(args.projectKey)
 
     if (!path) return fail('notFound')
-    if (!isProviderId(args.provider)) return fail('refused', 'providerMissing')
+    if (!isServedProvider(args.provider)) return fail('refused', 'providerMissing')
 
     return done(historyThatFits(await this.ports.conversations.history(path), this.redact()))
   }
@@ -129,7 +128,7 @@ export class ConversationReads {
     const path = this.openPath(projectKey)
 
     if (typeof path !== 'string') return path
-    if (!isProviderId(provider)) return fail('refused', 'providerMissing')
+    if (!isServedProvider(provider)) return fail('refused', 'providerMissing')
 
     return path
   }

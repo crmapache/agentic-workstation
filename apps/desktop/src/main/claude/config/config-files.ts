@@ -1,9 +1,9 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { loginShellEnv } from '../cli/shell-env'
 import { claudeHome } from '../history/transcript-paths'
 import { layerFiles, readLayers, readSettingsObject } from '../settings/setting-layers'
+import { loginShellEnv } from '../../process/shell-env'
 import type { ConfigFiles } from './claude-config'
 import { checkpointsOn } from './claude-config'
 

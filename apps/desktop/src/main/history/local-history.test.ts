@@ -11,6 +11,7 @@ import { DAY_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 import { FileOpsService } from '../fs/file-ops-service'
 import { listProjectFiles } from '../search/project-files'
+import { claudeToolAction } from '../claude/feed/tool-action'
 import { contentKey } from './content-key'
 import { HISTORY_DB_NAME, HISTORY_DIR_NAME } from './history.constants'
 import { LocalHistory } from './local-history'
@@ -158,6 +159,10 @@ describe('локальная история', () => {
           kind: 'tool',
           name: 'Write',
           input: { file_path: join(repo, '.env'), content: 'SECRET=2\n' },
+          action: claudeToolAction('Write', {
+            file_path: join(repo, '.env'),
+            content: 'SECRET=2\n',
+          }),
           status,
           result: null,
           startedAt: clock,
@@ -277,6 +282,7 @@ describe('локальная история', () => {
           kind: 'tool',
           name: 'Edit',
           input: { file_path: join(repo, '.env') },
+          action: claudeToolAction('Edit', { file_path: join(repo, '.env') }),
           status,
           result: null,
           startedAt: clock,

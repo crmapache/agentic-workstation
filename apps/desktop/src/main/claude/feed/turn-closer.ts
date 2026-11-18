@@ -2,14 +2,14 @@ import type { NoticeCode, StopReason, NoticeExtra, ClosedReason } from '@shared/
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, stringField } from '../cli/cli-messages'
+import type { FeedStore } from '../../agents/feed/feed-store'
+import type { WorkClock } from '../../agents/feed/work-clock'
 import type { AgentTasks } from './agent-tasks'
 import { overSampling } from './api-errors'
 import type { AssistantBlocks } from './assistant-blocks'
-import type { FeedStore } from './feed-store'
 import { saidInTurn } from './replayed-user'
 import type { ServiceRows } from './service-rows'
 import type { TurnTracker } from './turn-tracker'
-import type { WorkClock } from './work-clock'
 
 /** Что концу хода нужно от сборщика ленты: его части, часы, id и обычная отметка. */
 export type TurnCloserHost = {

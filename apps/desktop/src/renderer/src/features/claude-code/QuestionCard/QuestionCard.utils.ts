@@ -1,19 +1,8 @@
 import type { ToolFeedItem } from '@shared/claude-feed'
 
-/** Тексты вопросов из входа AskUserQuestion. */
-const questionTitles = (tool: ToolFeedItem): string[] => {
-  const questions = tool.input['questions']
-
-  if (!Array.isArray(questions)) return []
-
-  return questions
-    .map((question: unknown) =>
-      typeof question === 'object' && question !== null && 'question' in question
-        ? String(question.question)
-        : '',
-    )
-    .filter(Boolean)
-}
+/** Тексты вопросов вызова. */
+const questionTitles = (tool: ToolFeedItem): string[] =>
+  tool.action.kind === 'question' ? tool.action.questions : []
 
 /**
  * Пары «вопрос - ответ» из результата AskUserQuestion: CLI пишет их модели парами

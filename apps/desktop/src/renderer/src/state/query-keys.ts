@@ -1,4 +1,5 @@
 import type { SearchFindRequest } from '@shared/claude-search'
+import type { ProviderId } from '@shared/providers'
 import type { StatsSource } from '@shared/statistics'
 
 /**
@@ -105,7 +106,8 @@ export const QUERY_KEYS = {
   /** Лента разговора работы ИИ о коннекторе: снимок - запросом, дальше - патчами события. */
   connectorAiJobFeed: (jobId: string) => ['connectors-ai-job', 'feed', jobId],
   /** Разговоры с Claude Code и лента каждого (ADR 0009). */
-  claudeState: ['claude', 'state'],
+  /** Состояние панели провайдера (ADR 0083). */
+  agentState: (provider: ProviderId) => ['agent', provider, 'state'],
   /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
   soundPrefs: ['sounds', 'prefs'],
   /** Задания по расписанию и сводки их прогонов (ADR 0069) - одним снимком. */
@@ -119,15 +121,26 @@ export const QUERY_KEYS = {
   taskGoal: (runId: string) => ['tasks', 'goal', runId],
   /** Уведомления IDE (ADR 0069). */
   inbox: ['inbox'],
-  claudeFeed: (conversationId: string) => ['claude', 'feed', conversationId],
+  agentFeed: (provider: ProviderId, conversationId: string) => [
+    'agent',
+    provider,
+    'feed',
+    conversationId,
+  ],
   /** Элементы ленты по id выше загруженного - для полки закреплённых. */
-  claudeFeedItems: (conversationId: string, itemIds: readonly string[]) => [
-    'claude',
+  agentFeedItems: (provider: ProviderId, conversationId: string, itemIds: readonly string[]) => [
+    'agent',
+    provider,
     'feed-items',
     conversationId,
     ...itemIds,
   ],
-  claudeHistory: (projectId: string) => ['claude', 'history', projectId],
+  agentHistory: (provider: ProviderId, projectId: string) => [
+    'agent',
+    provider,
+    'history',
+    projectId,
+  ],
   claudeTodayTokens: ['claude', 'todayTokens'],
   /** Вопросы сбоку (/btw) вкладки: цепочку держит главный процесс, ответы - событием. */
   claudeAside: (conversationId: string) => ['claude', 'aside', conversationId],
@@ -147,8 +160,9 @@ export const QUERY_KEYS = {
     place,
     whole,
   ],
-  claudeImage: (conversationId: string, messageId: string, index: number) => [
-    'claude',
+  agentImage: (provider: ProviderId, conversationId: string, messageId: string, index: number) => [
+    'agent',
+    provider,
     'image',
     conversationId,
     messageId,
@@ -176,8 +190,9 @@ export const QUERY_KEYS = {
     request.matchCase,
     request.wholeWords,
   ],
-  claudeRewindPreview: (conversationId: string, messageId: string) => [
-    'claude',
+  agentRewindPreview: (provider: ProviderId, conversationId: string, messageId: string) => [
+    'agent',
+    provider,
     'rewind-preview',
     conversationId,
     messageId,

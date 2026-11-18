@@ -1,4 +1,4 @@
-import { SHELL_CONTEXT_MAX_CHARS } from './shell.constants'
+import { SHELL_CONTEXT_MAX_CHARS } from '../../agents/shell/shell.constants'
 
 /** Команда «!», которая отработала: то, что увидит модель. */
 export type ShellRun = { command: string; stdout: string; stderr: string; exitCode: number | null }

@@ -14,6 +14,7 @@ import type {
   ModelSwitchFeedItem,
 } from '@shared/claude-feed'
 import type { ToolsResult } from '@shared/claude-tools'
+import type { ProviderId } from '@shared/providers'
 import type { SoundEvent } from '@shared/sounds'
 import type { Project } from '@shared/workspace'
 
@@ -71,7 +72,13 @@ export type MenuState = { open: boolean; screen: MenuScreen; back: boolean }
  * Вкладка позвала человека: чем, каким цветом светиться и когда (новый зов той же вкладки -
  * тоже новость: полоса просыпается). Повод - для слов в подсказке вкладки проекта.
  */
-export type TabCall = { reason: SoundEvent; tone: ClosableTabCall; at: number }
+/** Свет позвавшей вкладки; provider - чья панель позвала: её состояние и гасит свет закрытых. */
+export type TabCall = {
+  reason: SoundEvent
+  tone: ClosableTabCall
+  at: number
+  provider: ProviderId
+}
 
 /** Сообщение, к которому откатываются: разговор и имя строки. */
 export type RewindTarget = { conversationId: string; messageId: string }

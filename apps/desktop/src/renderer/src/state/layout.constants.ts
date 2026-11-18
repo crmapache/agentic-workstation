@@ -1,3 +1,5 @@
+import type { ProviderId } from '@shared/providers'
+
 import type { PanelSide, MainViewId, SideViewId, ProviderViewId } from './layout.types'
 
 /** Виды, которые есть сейчас. Сохранённый вид не из списка - удалённый, его не открыть. */
@@ -11,6 +13,13 @@ export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'inbox',
 ]
 export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code']
+
+/** Панель провайдера в полосе зоны 3: зов, звук и переход к разговору - в панель своего провайдера. */
+export const PROVIDER_VIEW_OF: Readonly<Record<ProviderId, ProviderViewId>> = {
+  claude: 'claude-code',
+  codex: 'codex',
+  opencode: 'open-models',
+}
 
 /**
  * Зазор между листами окна - --space-2 (Workbench.module.scss). Место середины и левой

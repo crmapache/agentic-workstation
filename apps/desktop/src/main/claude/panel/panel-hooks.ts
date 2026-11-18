@@ -3,7 +3,7 @@ import type { CarryOnReason } from '@shared/claude-panel'
 
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 
 /**
  * Где служебные возможности панели (panel/) слышат разговор: живые строки CLI раньше

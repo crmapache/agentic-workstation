@@ -6,7 +6,9 @@ import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import type { FeedItem, FileChange, ToolFeedItem, TurnFeedItem } from '@shared/claude-feed'
 
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationFeedSync } from '../conversation/conversation-feed'
+import { claudeToolAction } from '../feed/tool-action'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { copyKey } from './file-copies'
 import { TurnRevert } from './turn-revert'
 
@@ -33,6 +35,13 @@ afterEach(async () => {
   await rm(dir, { recursive: true })
 })
 
+/** Откат хода над поддельной лентой. */
+const revertOf = (runtime: ReturnType<typeof fakeRuntime>) =>
+  new TurnRevert(
+    runtime as unknown as ConversationRuntime,
+    runtime.feed as unknown as ConversationFeedSync,
+  )
+
 /** Лента и разговор без процесса: только то, что откату нужно от сборщика. */
 const fakeRuntime = (items: FeedItem[], messageId = MESSAGE) => {
   const builder = {
@@ -49,7 +58,7 @@ const fakeRuntime = (items: FeedItem[], messageId = MESSAGE) => {
   return {
     feed: { builder, flush: vi.fn() },
     meta: { projectPath: dir, sessionId: SESSION },
-  } as unknown as ConversationRuntime
+  }
 }
 
 /** counts 'uncounted' - большая правка: CLI прислал пустой дифф, цифр у ленты нет. */
@@ -65,6 +74,7 @@ const tool = (
     parentToolUseId: null,
     name: 'Edit',
     input: { file_path: path, ...input },
+    action: claudeToolAction('Edit', { file_path: path, ...input }),
     status: 'done',
     result: {
       text: 'ok',
@@ -129,7 +139,7 @@ describe('откат файлов хода', () => {
     const path = join(dir, 'a.txt')
     const items: FeedItem[] = [tool('t1', path, { added: 1, removed: 1 })]
     const runtime = fakeRuntime(items)
-    const revert = new TurnRevert(runtime)
+    const revert = revertOf(runtime)
 
     revert.observe(result('t1', path, [HUNK]))
     await writeFile(path, `${LINES.join('\n').replace('two', 'TWO')}\n`)
@@ -154,7 +164,7 @@ describe('откат файлов хода', () => {
     const path = join(dir, 'a.txt')
     const before = `${LINES.join('\n')}\n`
     const items: FeedItem[] = [tool('t1', path, { added: 1, removed: 1 })]
-    const revert = new TurnRevert(fakeRuntime(items))
+    const revert = revertOf(fakeRuntime(items))
 
     await copied(path, before)
     revert.observe(result('t1', path, [HUNK]))
@@ -173,7 +183,7 @@ describe('откат файлов хода', () => {
     const before = Array.from({ length: 50 }, (_, index) => `x = foo(${index})\n`).join('')
     const replaceAll = { old_string: 'foo(', new_string: 'bar(', replace_all: true }
     const items: FeedItem[] = [tool('t1', path, 'uncounted', replaceAll)]
-    const revert = new TurnRevert(fakeRuntime(items))
+    const revert = revertOf(fakeRuntime(items))
 
     await copied(path, before)
     revert.observe(result('t1', path, []))
@@ -196,7 +206,7 @@ describe('откат файлов хода', () => {
   it('строки хода переписаны руками - отказ, файл не тронут; файла нет - «файла нет»', async () => {
     const path = join(dir, 'a.txt')
     const items: FeedItem[] = [tool('t1', path, { added: 1, removed: 1 })]
-    const revert = new TurnRevert(fakeRuntime(items))
+    const revert = revertOf(fakeRuntime(items))
 
     revert.observe(result('t1', path, [HUNK]))
     await writeFile(path, `${LINES.join('\n').replace('two', 'TWO')}\n`)
@@ -217,7 +227,7 @@ describe('откат файлов хода', () => {
     const path = join(dir, 'a.txt')
     const before = `${LINES.join('\n')}\n`
     const items: FeedItem[] = [tool('t1', path, { added: 1, removed: 1 })]
-    const revert = new TurnRevert(fakeRuntime(items, ''))
+    const revert = revertOf(fakeRuntime(items, ''))
     const old = `${copyKey(path)}@v1`
     const fresh = `${copyKey(path)}@v2`
 

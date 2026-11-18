@@ -8,12 +8,14 @@ import type {
 import type { ConversationFeed } from '@shared/claude-feed'
 import type { PanelPrefs } from '@shared/claude-prefs'
 import { DEFAULT_PANEL_PREFS } from '@shared/claude-prefs'
+import type { ProviderId } from '@shared/providers'
 import type { WorkspaceState } from '@shared/workspace'
 import { useQuery, queryOptions, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
 import { useIpcEvent } from '../../lib/ipc.hooks'
 import { applyFeedPatch } from '../../state/feed-patch.utils'
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useActiveProject } from '../../state/workspace.queries'
 import { touchesFiles, finishedTurnProjects } from './claude.utils'
@@ -21,15 +23,16 @@ import { useCallSounds } from './sounds.hooks'
 import { useTabCallsSync } from './tab-calls.hooks'
 
 /**
- * Разговоры Claude Code во всех проектах. Владелец - главный процесс; здесь зеркало
- * под одним ключом: первый запрос, ответы на действия и событие claude:state пишут
- * туда же.
+ * Разговоры панели провайдера во всех проектах (ADR 0083). Владелец - главный процесс;
+ * здесь зеркало под ключом провайдера: первый запрос, ответы на действия и событие
+ * agent:state пишут туда же.
  */
-const claudeStateQuery = queryOptions({
-  queryKey: QUERY_KEYS.claudeState,
-  queryFn: () => invoke('claude:getState'),
-  staleTime: Infinity,
-})
+const panelStateQuery = (provider: ProviderId) =>
+  queryOptions({
+    queryKey: QUERY_KEYS.agentState(provider),
+    queryFn: () => invoke('agent:getState', { provider }),
+    staleTime: Infinity,
+  })
 
 const NO_MODELS: readonly ModelInfo[] = []
 
@@ -37,40 +40,46 @@ const NO_COMMANDS: readonly SlashCommand[] = []
 
 const NO_REFUSALS: RefusedModes = { bypass: false, autoModels: [] }
 
-export const useClaudeState = () => useQuery(claudeStateQuery)
+export const useClaudeState = () => useQuery(panelStateQuery(usePanelProvider()))
 
 /**
  * Каталог моделей CLI; пусто, пока CLI не ответил. Выборка из того же кэша:
  * компонент перерисовывается, только когда поменялся сам каталог.
  */
 export const useModelCatalog = (): readonly ModelInfo[] =>
-  useQuery({ ...claudeStateQuery, select: (state) => state.models }).data ?? NO_MODELS
+  useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.models }).data ??
+  NO_MODELS
 
 /**
  * Настройки панели (Settings). Пока главный процесс не ответил - по умолчанию: поле и
  * строка под ним рисуются сразу, а не после первого ответа.
  */
 export const usePanelPrefs = (): PanelPrefs =>
-  useQuery({ ...claudeStateQuery, select: (state) => state.prefs }).data ?? DEFAULT_PANEL_PREFS
+  useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.prefs }).data ??
+  DEFAULT_PANEL_PREFS
 
 /** Режимы, в которые CLI отказался переходить: Shift+Tab и меню MODE их пропускают. */
 export const useRefusedModes = (): RefusedModes =>
-  useQuery({ ...claudeStateQuery, select: (state) => state.refusedModes }).data ?? NO_REFUSALS
+  useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.refusedModes })
+    .data ?? NO_REFUSALS
 
 /**
  * Свои команды CLI (/compact, /clear…) - служебным запросом при старте IDE, без разговора;
  * пусто, пока CLI не ответил.
  */
 export const useBuiltinCommands = (): readonly SlashCommand[] =>
-  useQuery({ ...claudeStateQuery, select: (state) => state.builtinCommands }).data ?? NO_COMMANDS
+  useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.builtinCommands })
+    .data ?? NO_COMMANDS
 
 /**
  * Слэш-команды, которые CLI сообщил для проекта; с прошлого запуска IDE - именами, пусто,
  * пока процесс проекта ни разу не поднимался.
  */
 export const useSlashCommands = (projectPath: string): readonly SlashCommand[] =>
-  useQuery({ ...claudeStateQuery, select: (state) => state.commandsByProject[projectPath] }).data ??
-  NO_COMMANDS
+  useQuery({
+    ...panelStateQuery(usePanelProvider()),
+    select: (state) => state.commandsByProject[projectPath],
+  }).data ?? NO_COMMANDS
 
 /** Разговоры активного проекта по порядку вкладок и выбранный из них. */
 export const useProjectConversations = () => {
@@ -86,34 +95,44 @@ export const useProjectConversations = () => {
 }
 
 /** Лента разговора. Живые изменения дописывает useClaudeSync, перезапроса нет. */
-export const useConversationFeed = (conversationId: string | undefined) =>
-  useQuery({
-    queryKey: QUERY_KEYS.claudeFeed(conversationId ?? ''),
-    queryFn: () => invoke('claude:getFeed', { conversationId: conversationId ?? '' }),
+export const useConversationFeed = (conversationId: string | undefined) => {
+  const provider = usePanelProvider()
+
+  return useQuery({
+    queryKey: QUERY_KEYS.agentFeed(provider, conversationId ?? ''),
+    queryFn: () => invoke('agent:getFeed', { provider, conversationId: conversationId ?? '' }),
     enabled: Boolean(conversationId),
     staleTime: Infinity,
   })
+}
 
 /** Что вернёт откат кода к сообщению: CLI спрашивается, пока открыт диалог отката. */
-export const useRewindPreview = (conversationId: string, messageId: string) =>
-  useQuery({
-    queryKey: QUERY_KEYS.claudeRewindPreview(conversationId, messageId),
-    queryFn: () => invoke('claude:previewRewind', { conversationId, messageId }),
+export const useRewindPreview = (conversationId: string, messageId: string) => {
+  const provider = usePanelProvider()
+
+  return useQuery({
+    queryKey: QUERY_KEYS.agentRewindPreview(provider, conversationId, messageId),
+    queryFn: () => invoke('agent:previewRewind', { provider, conversationId, messageId }),
     staleTime: 0,
     gcTime: 0,
   })
+}
 
 /** Прошлые разговоры проекта - для меню истории, читаются при каждом открытии. */
-export const useConversationHistory = (projectId: string | undefined, enabled: boolean) =>
-  useQuery({
-    queryKey: QUERY_KEYS.claudeHistory(projectId ?? ''),
-    queryFn: () => invoke('claude:listHistory', { projectId: projectId ?? '' }),
+export const useConversationHistory = (projectId: string | undefined, enabled: boolean) => {
+  const provider = usePanelProvider()
+
+  return useQuery({
+    queryKey: QUERY_KEYS.agentHistory(provider, projectId ?? ''),
+    queryFn: () => invoke('agent:listHistory', { provider, projectId: projectId ?? '' }),
     enabled: enabled && Boolean(projectId),
     staleTime: 0,
   })
+}
 
 /**
- * Держит кэш разговоров и лент в синхроне с главным процессом. Лента, которую окно ещё
+ * Держит кэш разговоров и лент всех панелей провайдеров в синхроне с главным процессом:
+ * событие несёт провайдера, кэш - его ключ. Лента, которую окно ещё
  * не запрашивало, не заводится из патча: её целиком отдаст первый запрос.
  */
 export const useClaudeSync = () => {
@@ -134,24 +153,24 @@ export const useClaudeSync = () => {
     }
   }
 
-  useIpcEvent('claude:state', (state) => {
-    const previous = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.claudeState)
+  useIpcEvent('agent:state', ({ provider, state }) => {
+    const previous = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.agentState(provider))
 
-    queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, state)
+    queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState(provider), state)
 
     // Ход кончился - модель могла создать и удалить файлы: дерево проекта перечитывается.
     for (const path of finishedTurnProjects(previous, state)) refreshTree(path)
   })
 
-  useIpcEvent('claude:feed', (patch) => {
+  useIpcEvent('agent:feed', ({ provider, patch }) => {
     queryClient.setQueryData<ConversationFeed>(
-      QUERY_KEYS.claudeFeed(patch.conversationId),
+      QUERY_KEYS.agentFeed(provider, patch.conversationId),
       (feed) => (feed ? applyFeedPatch(feed, patch) : feed),
     )
 
     // Откат файлов, откат разговора с кодом, отработавшая команда «!» тоже трогают диск.
     if (touchesFiles(patch)) {
-      const state = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.claudeState)
+      const state = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.agentState(provider))
       const conversation = state?.conversations.find((item) => item.id === patch.conversationId)
 
       if (conversation) refreshTree(conversation.projectPath)

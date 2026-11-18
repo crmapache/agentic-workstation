@@ -1,15 +1,6 @@
 import type { AppInfo, ResourceUsage } from '../app-info'
-import type {
-  ClaudeState,
-  HistoryEntry,
-  ImageAttachment,
-  RequestResponse,
-  ConversationOptions,
-} from '../claude'
-import type { EditorRef, MessageDraft } from '../claude-draft'
-import type { FeedItem, FeedPatch, FleetTranscript, ConversationFeed } from '../claude-feed'
-import type { PanelPrefsPatch, ConversationCall } from '../claude-prefs'
-import type { RewindScope, RewindOutcome, RewindPreview } from '../claude-rewind'
+import type { ClaudeState } from '../claude'
+import type { FleetTranscript } from '../claude-feed'
 import type { PluginScope, PluginAction, PluginCatalog, PluginsOutcome } from '../claude-tools'
 import type { DirectoryEntry } from '../fs'
 import type {
@@ -40,18 +31,6 @@ import { AREA_EVENTS, AREA_CHANNELS } from './areas.contract'
 type ProjectRequest = { projectId: string }
 
 type ConversationRequest = { conversationId: string }
-
-/**
- * Сообщение человека: текст для CLI и картинки (base64), картинок может не быть. draft -
- * те же куски для ленты и очереди (чипы, цитаты), editor - что было открыто в
- * редакторе: модель получит это отдельной заметкой.
- */
-type OutgoingRequest = {
-  text: string
-  images?: ImageAttachment[]
-  draft?: MessageDraft
-  editor?: EditorRef | null
-}
 
 /** Запрос-ответ: окно спрашивает, главный процесс отвечает. */
 export type InvokeContract = {
@@ -119,81 +98,8 @@ export type InvokeContract = {
    */
   'git:getPullRequest': { request: ProjectRequest; response: GitPullRequest | null }
 
-  /** Разговоры с Claude Code во всех проектах (ADR 0009). */
-  'claude:getState': { request: void; response: ClaudeState }
-  /** Лента разговора целиком: прошлые ходы из транскрипта CLI и живой ход. */
-  'claude:getFeed': { request: ConversationRequest; response: ConversationFeed }
-  /**
-   * Страница ранней истории («load earlier messages»): сообщения транскрипта выше
-   * загруженного встают перед лентой. Ответ - лента целиком.
-   */
-  'claude:loadEarlier': { request: ConversationRequest; response: ConversationFeed }
-  /**
-   * Страницы выше загруженного - до элемента itemId (прыжок к закреплённому сообщению):
-   * одним шагом, сколько бы страниц ни было. Ответ - лента целиком.
-   */
-  'claude:loadThrough': {
-    request: ConversationRequest & { itemId: string }
-    response: ConversationFeed
-  }
-  /**
-   * Элементы ленты по id - загруженные и выше загруженного (полка закреплённых), в порядке
-   * разговора. Чего нет в ответе, нет и в разговоре; null - транскрипт не прочитался.
-   */
-  'claude:feedItems': {
-    request: ConversationRequest & { itemIds: string[] }
-    response: FeedItem[] | null
-  }
-  /** /status: строка SESSION в ленте - id разговора и как продолжить его в терминале. */
-  'claude:showSessionInfo': { request: ConversationRequest; response: ClaudeState }
-  'claude:newConversation': { request: ProjectRequest; response: ClaudeState }
-  'claude:activateConversation': { request: ConversationRequest; response: ClaudeState }
-  /** Сообщение человека. Во время хода - подсказка модели на её следующем шаге. */
-  'claude:send': { request: ConversationRequest & OutgoingRequest; response: ClaudeState }
-  /**
-   * Отложить сообщение до конца хода. before - сосед, перед которым встать (сообщение
-   * вынимали из очереди поправить); null или ушедший сосед - в конец.
-   */
-  'claude:enqueue': {
-    request: ConversationRequest & OutgoingRequest & { before?: string | null }
-    response: ClaudeState
-  }
-  'claude:removeQueued': {
-    request: ConversationRequest & { queuedId: string }
-    response: ClaudeState
-  }
-  /** Отправить отложенное сейчас: модель прочтёт его на следующем шаге. */
-  'claude:sendQueued': {
-    request: ConversationRequest & { queuedId: string }
-    response: ClaudeState
-  }
-  /**
-   * Довериться папке проекта: Claude Code прочитает её настройки, хуки и CLAUDE.md. В
-   * режиме потока CLI сам об этом не спрашивает - спрашивает панель.
-   */
-  'claude:trustProject': { request: ProjectRequest; response: ClaudeState }
-  /** Остановить ход: CLI закончит его сам. */
-  'claude:interrupt': { request: ConversationRequest; response: ClaudeState }
-  /** CLI не ответил на остановку - погасить его процесс. */
-  'claude:forceStop': { request: ConversationRequest; response: ClaudeState }
-  /** Ответ на вопрос CLI: разрешение, выбор, план. */
-  'claude:respond': {
-    request: ConversationRequest & { requestId: string; response: RequestResponse }
-    response: ClaudeState
-  }
-  'claude:setOptions': {
-    request: ConversationRequest & { options: ConversationOptions }
-    response: ClaudeState
-  }
-  /** Прошлые разговоры проекта из транскриптов CLI. */
-  'claude:listHistory': { request: ProjectRequest; response: HistoryEntry[] }
-  'claude:openHistory': { request: ProjectRequest & { sessionId: string }; response: ClaudeState }
-  /** Поискать CLI заново: его могли поставить, пока IDE открыта. */
-  'claude:recheckCli': { request: void; response: ClaudeState }
   /** Токены за сегодня по всем проектам машины (из транскриптов CLI). */
   'claude:getTodayTokens': { request: void; response: number }
-  /** Настройки панели (Settings): что не названо в патче - не меняется. */
-  'claude:setPrefs': { request: { patch: PanelPrefsPatch }; response: ClaudeState }
   /** Аккаунты Claude: спросить хранилища, вошёл ли CLI, и перечитать аккаунты ACC. */
   'accounts:refresh': { request: void; response: ClaudeState }
   /**
@@ -234,52 +140,10 @@ export type InvokeContract = {
     request: ProjectRequest & { name: string }
     response: PluginsOutcome
   }
-  /**
-   * Команда «!» в папке проекта: выполняет панель, а не агент; карточка живёт в ленте.
-   * Ответ - сразу, не дожидаясь конца команды.
-   */
-  'claude:runShell': { request: ConversationRequest & { command: string }; response: ClaudeState }
-  'claude:stopShell': { request: ConversationRequest & { runId: string }; response: ClaudeState }
-  /**
-   * Остановить задачу разговора - субагента или фоновую команду (stop_task CLI), не
-   * трогая ход. О конце задачи CLI скажет сам, уведомлением.
-   */
-  'claude:stopTask': { request: ConversationRequest & { taskId: string }; response: ClaudeState }
   /** Разговор агента флота workflow с диска - по нажатию на его строку. */
   'claude:readFleetAgent': {
     request: ConversationRequest & { agentId: string }
     response: FleetTranscript
-  }
-  /**
-   * Откатить файл последнего хода (path null - все его файлы); restore - вернуть
-   * откаченное. Итог - в строках файлов итога хода, лентой.
-   */
-  'claude:revertChanges': {
-    request: ConversationRequest & { turnId: string; path: string | null; restore: boolean }
-    response: ClaudeState
-  }
-  /** Картинка сообщения целиком (data URL): в ленте только миниатюры. null - её нет. */
-  'claude:getImage': {
-    request: ConversationRequest & { messageId: string; index: number }
-    response: string | null
-  }
-  /** Какие файлы вернёт откат кода к сообщению (ничего не меняет). */
-  'claude:previewRewind': {
-    request: ConversationRequest & { messageId: string }
-    response: RewindPreview
-  }
-  /** Откатить разговор и/или код к сообщению человека: оно и всё после уходит. */
-  'claude:rewind': {
-    request: ConversationRequest & { messageId: string; scope: RewindScope }
-    response: { state: ClaudeState; outcome: RewindOutcome }
-  }
-  /**
-   * Форк в новой вкладке. beforeMessageId - форк несёт разговор до этого сообщения,
-   * null - весь разговор на момент нажатия.
-   */
-  'claude:fork': {
-    request: ConversationRequest & { beforeMessageId: string | null }
-    response: ClaudeState
   }
 
   'updates:getStatus': { request: void; response: UpdateStatus }
@@ -293,15 +157,6 @@ export type InvokeContract = {
 /** События: главный процесс сообщает окну, что состояние изменилось. */
 export type EventContract = {
   'workspace:changed': WorkspaceState
-  'claude:state': ClaudeState
-  /** Изменения ленты разговора - пачкой, по id элементов. */
-  'claude:feed': FeedPatch
-  /**
-   * Разговор позвал человека: ход кончился, вопрос, план, лимит, доплата, поломка. Окно
-   * играет звук (настройки IDE, Settings → Sounds), подсвечивает фоновую вкладку цветом
-   * повода и ставит точку на вкладку его проекта. Выключенный в звуках повод сюда не приходит.
-   */
-  'claude:call': ConversationCall
   'updates:status': UpdateStatus
 } & AreaEventContract
 
@@ -341,28 +196,7 @@ export const INVOKE_CHANNELS = Object.keys({
   'git:getPushInfo': true,
   'git:push': true,
   'git:getPullRequest': true,
-  'claude:getState': true,
-  'claude:getFeed': true,
-  'claude:loadEarlier': true,
-  'claude:loadThrough': true,
-  'claude:feedItems': true,
-  'claude:showSessionInfo': true,
-  'claude:newConversation': true,
-  'claude:activateConversation': true,
-  'claude:send': true,
-  'claude:enqueue': true,
-  'claude:removeQueued': true,
-  'claude:sendQueued': true,
-  'claude:trustProject': true,
-  'claude:interrupt': true,
-  'claude:forceStop': true,
-  'claude:respond': true,
-  'claude:setOptions': true,
-  'claude:listHistory': true,
-  'claude:openHistory': true,
-  'claude:recheckCli': true,
   'claude:getTodayTokens': true,
-  'claude:setPrefs': true,
   'accounts:refresh': true,
   'accounts:refreshUsage': true,
   'accounts:add': true,
@@ -377,15 +211,7 @@ export const INVOKE_CHANNELS = Object.keys({
   'plugins:act': true,
   'plugins:addMarketplace': true,
   'plugins:removeMarketplace': true,
-  'claude:runShell': true,
-  'claude:stopShell': true,
-  'claude:stopTask': true,
   'claude:readFleetAgent': true,
-  'claude:revertChanges': true,
-  'claude:getImage': true,
-  'claude:previewRewind': true,
-  'claude:rewind': true,
-  'claude:fork': true,
   'updates:getStatus': true,
   'updates:install': true,
   'updates:dismiss': true,
@@ -395,9 +221,6 @@ export const INVOKE_CHANNELS = Object.keys({
 
 export const EVENT_CHANNELS = Object.keys({
   'workspace:changed': true,
-  'claude:state': true,
-  'claude:feed': true,
-  'claude:call': true,
   'updates:status': true,
   ...AREA_EVENTS,
 } satisfies Record<EventChannel, true>) as EventChannel[]

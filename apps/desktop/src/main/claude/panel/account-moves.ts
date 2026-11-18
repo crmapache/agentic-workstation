@@ -1,4 +1,5 @@
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import { claudeOf } from '../conversation/claude-conversation'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import type { CarryOnDesk } from './carry-on-desk'
 import { owedFor } from './carry-ons'
 import { FORCED_MOVE_MS } from './panel.constants'
@@ -33,7 +34,7 @@ export class AccountMoves {
 
     for (const runtime of this.host.runtimes()) {
       const { id } = runtime.meta
-      const process = runtime.process?.isAlive ? runtime.process : null
+      const process = claudeOf(runtime).process?.isAlive ? claudeOf(runtime).process : null
 
       // Ожидание лимита считается заново по аккаунту, на который вкладка встанет.
       this.host.carryOn.followAccount(id, current, now)
@@ -44,12 +45,12 @@ export class AccountMoves {
       }
 
       // Свободная вкладка меняет процесс сразу, занятая - как освободится.
-      runtime.restartProcess()
+      runtime.restartSession()
 
       if (this.gentle || this.forced.has(id)) continue
 
       if (runtime.turnActive) this.interrupt(runtime)
-      else if (runtime.feed.builder.hasBackgroundWork) this.swapQuietly(runtime, now)
+      else if (claudeOf(runtime).feed.builder.hasBackgroundWork) this.swapQuietly(runtime, now)
       else this.host.carryOn.sayNext(runtime, now)
     }
   }
@@ -75,7 +76,7 @@ export class AccountMoves {
     clearTimeout(timer)
     this.forced.delete(runtime.meta.id)
 
-    const process = runtime.process
+    const process = claudeOf(runtime).process
 
     return process && timer && runtime.accountId !== this.host.currentAccount()
       ? process.stop()
@@ -85,7 +86,7 @@ export class AccountMoves {
   /** Прервать ход ради переезда и продолжить на новом аккаунте; не остановился - снять. */
   private interrupt(runtime: ConversationRuntime) {
     const { id } = runtime.meta
-    const process = runtime.process
+    const process = claudeOf(runtime).process
 
     this.host.carryOn.owe(id, owedFor('accountSwitch'))
     // Итог хода скажет «Stopped to switch account», а не «Stopped by you» (как в ACC).
@@ -94,7 +95,7 @@ export class AccountMoves {
     const timer = setTimeout(() => {
       this.forced.delete(id)
 
-      if (runtime.process !== process || !runtime.turnActive) return
+      if (claudeOf(runtime).process !== process || !runtime.turnActive) return
 
       // Процесс снят посреди хода: его выход сам закроет ход, а продолжение - после.
       void process?.stop().then(() => this.host.carryOn.sayNext(runtime, Date.now()))
@@ -109,7 +110,7 @@ export class AccountMoves {
    * ним - и если они ещё работали, панель говорит агенту продолжить.
    */
   private swapQuietly(runtime: ConversationRuntime, now: number) {
-    const process = runtime.process
+    const process = claudeOf(runtime).process
 
     this.host.carryOn.oweRestart(runtime, now)
     void process?.stop().then(() => this.host.carryOn.sayNext(runtime, Date.now()))

@@ -63,6 +63,7 @@ export const PERMISSION: Extract<PendingRequest, { kind: 'permission' }> = {
   toolUseId: 'tool-9',
   toolName: 'Bash',
   input: { command: 'pnpm test', description: 'Run the test suite' },
+  action: { kind: 'command', command: 'pnpm test', description: 'Run the test suite' },
   description: 'pnpm test',
   reason: '',
   alwaysKind: 'rule',

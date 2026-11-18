@@ -316,6 +316,23 @@ describe('scenario service', () => {
     })
   })
 
+  it('refuses a provider the IDE does not have instead of queueing a run that fails', async () => {
+    const scenarios = service as ScenarioService
+    const before = scenarios.queuesView().queues.length
+
+    expect(
+      await scenarios.start({
+        projectPath: project,
+        scenarioId: 'a',
+        scope: 'project',
+        inputs: {},
+        provider: 'codex',
+        target: { kind: 'new', worktree: false },
+      }),
+    ).toEqual({ ok: false, code: 'providerMissing' })
+    expect(scenarios.queuesView().queues).toHaveLength(before)
+  })
+
   it('runs a new queue in its own git worktree and drops it when the empty queue closes', async () => {
     const git = (...args: string[]) =>
       execFileSync('git', args, {

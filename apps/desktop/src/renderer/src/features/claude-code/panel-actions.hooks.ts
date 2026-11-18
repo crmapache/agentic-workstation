@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { invoke } from '../../lib/ipc'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useAsideActions } from './aside.queries'
+import { useClaudeAccounts } from './claude-accounts.hooks'
 import { useClaudeActions } from './claude-actions.hooks'
 import { useClaudeCodeStore } from './claude-code.store'
 import { useClaudeState } from './claude.queries'
@@ -24,6 +25,7 @@ export const usePanelActions = (
 ): Partial<Record<PanelCommandId, PanelAction>> => {
   const queryClient = useQueryClient()
   const actions = useClaudeActions()
+  const accounts = useClaudeAccounts()
   const asides = useAsideActions()
   const { data: state } = useClaudeState()
   const openMenu = useClaudeCodeStore((store) => store.openMenu)
@@ -32,14 +34,14 @@ export const usePanelActions = (
   const terminal = (command: PanelTerminalCommand) =>
     invoke('claudePanel:terminalCommand', { command })
       .then((next) => {
-        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, next)
+        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState('claude'), next)
 
         if (TERMINAL_FAILURES.has(next.accounts.lastOutcome ?? '')) openMenu('accounts')
       })
       .catch((error: unknown) => console.warn('[claude-code] Терминал не открылся:', error))
 
   return {
-    login: () => void actions.accounts.signIn(state?.accounts.current ?? ''),
+    login: () => void accounts.signIn(state?.accounts.current ?? ''),
     logout: () => void terminal('logout'),
     'design-login': () => void terminal('design-login'),
     ...(conversation && {

@@ -10,6 +10,7 @@ import type {
 } from '@shared/claude-tools'
 
 import { isRecord } from '../cli/cli-messages'
+import { claudeOf } from '../conversation/claude-conversation'
 import { commandsFromChange } from '../conversation/cli-replies'
 import { runCli } from './cli-run'
 import { installedFor, parseCliJson, marketplacesOf, availablePlugins } from './plugin-catalog'
@@ -124,7 +125,7 @@ export class PluginTools {
 
   private async reloadPlugins() {
     for (const runtime of this.host.runtimes()) {
-      const { process } = runtime
+      const { process } = claudeOf(runtime)
 
       if (!process?.isAlive) continue
 

@@ -5,8 +5,9 @@ import type { CliProcess } from '../cli/cli-process'
 import { CliReplyError } from '../cli/cli-process'
 import { fastModeRequest } from '../panel/fast-mode'
 import { toPanelMode } from '../settings/default-mode'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { claudeOf } from './claude-conversation'
 import { modeFromReply } from './cli-replies'
-import type { ConversationRuntime } from './conversation-runtime'
 
 const warn = (what: string) => (error: unknown) =>
   console.warn(`[claude] ${what} не принят:`, error)
@@ -17,7 +18,7 @@ const warn = (what: string) => (error: unknown) =>
  * ними (флаги запуска в spawn.ts).
  */
 export const applyOptions = (runtime: ConversationRuntime, options: ConversationOptions): void => {
-  const process = runtime.process?.isAlive ? runtime.process : null
+  const process = claudeOf(runtime).process?.isAlive ? claudeOf(runtime).process : null
 
   if (options.model !== undefined) {
     runtime.update({ model: options.model })
@@ -37,7 +38,7 @@ export const applyOptions = (runtime: ConversationRuntime, options: Conversation
   // начале следующего хода (до того прошлый ответ CLI не в счёт).
   if (options.fastMode !== undefined) {
     // Новая просьба - и отказ по прежней причине снова новость: строка FAST встанет опять.
-    if (options.fastMode && !runtime.meta.fastMode) runtime.feed.builder.noteFastAsked()
+    if (options.fastMode && !runtime.meta.fastMode) claudeOf(runtime).feed.builder.noteFastAsked()
 
     runtime.update({ fastMode: options.fastMode, fastReport: undefined })
     process?.control(fastModeRequest(options.fastMode)).catch(warn('fastMode'))
@@ -64,9 +65,11 @@ const switchMode = (
   asked: PermissionMode,
   previous: PermissionMode,
 ) => {
-  if (!runtime.cli) return
+  const { cli } = claudeOf(runtime)
 
-  const mode = cliPermissionMode(asked, runtime.cli.features)
+  if (!cli) return
+
+  const mode = cliPermissionMode(asked, cli.features)
 
   process
     .control({ subtype: 'set_permission_mode', mode })
@@ -82,6 +85,6 @@ const switchMode = (
       if (!(error instanceof CliReplyError)) return
       if (runtime.meta.permissionMode === asked) runtime.update({ permissionMode: previous })
 
-      runtime.host.panel?.modeRefused(runtime, asked)
+      claudeOf(runtime).host.panel?.modeRefused(runtime, asked)
     })
 }

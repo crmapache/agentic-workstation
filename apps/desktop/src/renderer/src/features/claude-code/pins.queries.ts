@@ -4,6 +4,7 @@ import type { FeedItem } from '@shared/claude-feed'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { usePins, usePinsStore } from './pins.store'
 import type { PinnedItem } from './pins.utils'
@@ -20,12 +21,13 @@ export const usePinnedShelf = (
   conversationId: string,
   items: readonly FeedItem[],
 ): PinnedItem[] => {
+  const provider = usePanelProvider()
   const pins = usePins(conversationId)
   const unpin = usePinsStore((store) => store.unpin)
   const unloaded = useMemo(() => unloadedPins(items, pins), [items, pins])
   const { data, isPlaceholderData } = useQuery({
-    queryKey: QUERY_KEYS.claudeFeedItems(conversationId, unloaded),
-    queryFn: () => invoke('claude:feedItems', { conversationId, itemIds: unloaded }),
+    queryKey: QUERY_KEYS.agentFeedItems(provider, conversationId, unloaded),
+    queryFn: () => invoke('agent:feedItems', { provider, conversationId, itemIds: unloaded }),
     enabled: unloaded.length > 0,
     placeholderData: keepPreviousData,
     staleTime: Infinity,

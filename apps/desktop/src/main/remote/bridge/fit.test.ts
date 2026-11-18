@@ -16,6 +16,7 @@ import {
   conversationOf,
   CONVERSATION_ID,
 } from '../__fixtures__/fake-ide'
+import { claudeToolAction } from '../../claude/feed/tool-action'
 import { FeedDesk, JOURNAL_IDLE_MS } from './feed-desk'
 import { emptyFold, foldPatch, FeedJournal } from './feed-journal'
 import { tailWindow } from './feed-window'
@@ -105,12 +106,14 @@ describe('кадр', () => {
       { length: 6000 },
       (_, index) => `export const value${index} = 'generated line of code number ${index}'\n`,
     )
+    const input = { file_path: '/p/big.ts', content: content.join('') }
     const write = wire({
       kind: 'tool',
       id: 'w1',
       parentToolUseId: null,
       name: 'Write',
-      input: { file_path: '/p/big.ts', content: content.join('') },
+      input,
+      action: claudeToolAction('Write', input),
       status: 'done',
       result: {
         text: 'File created successfully at: /p/big.ts',
@@ -131,6 +134,8 @@ describe('кадр', () => {
     expect(fitted.input.content.endsWith(PHONE_NOTE)).toBe(true)
     expect(fitted.result.changeCounts).toEqual({ added: 6000, removed: 0 })
     expect(fitted.result.created).toBe(true)
+    // Вид действия с диффом по входу удвоил бы файл в кадре - телефону он не уходит.
+    expect('action' in fitted).toBe(false)
   })
 
   it('элемент, не влезающий и урезанным, становится карточкой, а не пропадает', () => {
@@ -178,6 +183,7 @@ describe('папки машины', () => {
       toolUseId: 't1',
       toolName: 'Edit',
       input: { file_path: `${PROJECT_PATH}/src/login.ts` },
+      action: { kind: 'edit' as const, path: `${PROJECT_PATH}/src/login.ts`, preview: [] },
       description: `Edit ${PROJECT_PATH}/src/login.ts`,
       reason: '',
       alwaysKind: 'rule' as const,

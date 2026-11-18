@@ -1,8 +1,9 @@
 import { open } from 'node:fs/promises'
 
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import { claudeOf } from '../conversation/claude-conversation'
 import { findTranscript } from '../history/transcript-paths'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 
 /** Перевод строки в UTF-8 - один байт. */
 const NEWLINE = 0x0a
@@ -22,7 +23,7 @@ const askRename = (runtime: ConversationRuntime, process: CliProcess, title: str
       session_id: runtime.meta.sessionId,
     })
     .then(() => {
-      runtime.namedAs = title
+      claudeOf(runtime).namedAs = title
     })
     .catch((error: unknown) => console.warn('[claude] имя не ушло в разговор:', error))
 }
@@ -58,7 +59,8 @@ const appendTitle = async (file: string, sessionId: string, title: string) => {
  * с первым сообщением (nameAfterPerson).
  */
 export const writeOwnTitle = async (runtime: ConversationRuntime, title: string): Promise<void> => {
-  const { process, meta } = runtime
+  const { meta } = runtime
+  const { process } = claudeOf(runtime)
 
   if (process?.isAlive) return askRename(runtime, process, title)
 
@@ -80,7 +82,7 @@ export const writeOwnTitle = async (runtime: ConversationRuntime, title: string)
 export const nameAfterPerson = (runtime: ConversationRuntime, process: CliProcess): void => {
   const { title, titleSource } = runtime.meta
 
-  if (titleSource !== 'user' || !title || runtime.namedAs === title) return
+  if (titleSource !== 'user' || !title || claudeOf(runtime).namedAs === title) return
 
   askRename(runtime, process, title)
 }

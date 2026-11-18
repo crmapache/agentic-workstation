@@ -1,4 +1,4 @@
-import { patchLines, writtenLines } from '../../claude/changes/line-counts'
+import { patchLines, writtenLines } from '../../agents/changes/line-counts'
 import { editLines, extensionOf, isNotAuthoredCommand } from './edit-lines'
 
 /**

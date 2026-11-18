@@ -1,22 +1,13 @@
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, recordField, stringField, recordsField } from '../cli/cli-messages'
-import type { EditHunk, FileEdit } from './change-revert'
+import type { EditHunk, FileEdit } from '../../agents/changes/change-revert'
+import type { TurnFile } from '../../agents/changes/changes.types'
 
 /**
  * Что одна правка сделала с файлом по словам CLI: точный дифф (или создание), большая
  * правка без диффа (`structuredPatch: []`) или запись того же текста - ничего.
  */
 export type EditEntry = { path: string; edit: FileEdit | 'undiffed' | 'unchanged' }
-
-/** Файл хода глазами отката: точные правки по порядку и что про них известно. */
-export type TurnFile = {
-  path: string
-  edits: FileEdit[]
-  /** Хоть одна правка пришла без диффа: что ход сделал с файлом, знает только копия CLI. */
-  owing: boolean
-  /** Ни одна правка ничего не поменяла (Write того же текста). */
-  unchanged: boolean
-}
 
 /** Ханки патча CLI, или null, если хоть один кривой: половина отката - файл, которого никто не писал. */
 const hunksOf = (patch: readonly unknown[]): EditHunk[] | null => {

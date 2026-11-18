@@ -2,7 +2,7 @@ import type { CarryOnReason } from '@shared/claude-panel'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, recordField, stringField } from '../cli/cli-messages'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { forAgent, carryOnWords } from './carry-on-words'
 import type { Owed } from './carry-ons'
 import {

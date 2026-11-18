@@ -6,12 +6,13 @@ import type { CliProcess } from '../cli/cli-process'
 import { takeReleasedFrame } from '../history/released-heads'
 import { parseCarryOn } from '../panel/carry-on-words'
 import { sealOwnText } from '../shell/shell-text'
-import { rankOf } from '../tabs/tab-names'
 import { nameAfterPerson } from '../tabs/tab-rename'
-import type { ConversationRuntime } from './conversation-runtime'
-import { draftTitle, isSlashCommand } from './conversation.utils'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
+import type { Outgoing } from '../../agents/conversation/outbox'
+import { rankOf } from '../../agents/tabs/tab-names'
+import { claudeOf } from './claude-conversation'
 import { editorReminder } from './editor-note'
-import type { Outgoing } from './outbox'
 import type { HeldRequest } from './pending-requests'
 import { PLAN_ANSWERED_IN_CHAT, answerInChat as chatAnswer } from './pending-requests'
 import { askTitle } from './session-title'
@@ -61,26 +62,26 @@ export const writeUserMessage = (
   // Команда - приказ разговору, а не вопрос про код: заметку о редакторе она не несёт.
   const editor = isSlashCommand(text) ? null : (message.editor ?? null)
 
-  runtime.lastSentUuid = uuid
-  runtime.discardStray = false
+  claudeOf(runtime).lastSentUuid = uuid
+  claudeOf(runtime).discardStray = false
   // Сообщение начинает ход: по отметкам CLI о нём видно, взят ли ход и кончился ли он.
-  if (!steering) runtime.turnCommand = uuid
-  runtime.feed.builder.addUserMessage(uuid, shown, images, steering, {
+  if (!steering) claudeOf(runtime).turnCommand = uuid
+  claudeOf(runtime).feed.builder.addUserMessage(uuid, shown, images, steering, {
     draft: message.draft ?? undefined,
     editor: editor ?? undefined,
     auto,
   })
-  runtime.feed.schedule()
+  claudeOf(runtime).feed.schedule()
 
   const own = sealOwnText(text)
-  const shell = isSlashCommand(text) ? '' : runtime.shells.takeContext()
+  const shell = isSlashCommand(text) ? '' : claudeOf(runtime).shells.takeContext()
   // Голова прогона, открытая чатом: рамка о снятой роли - перед первым словом человека.
   const frame = isSlashCommand(text) ? '' : takeReleasedFrame(runtime.meta.sessionId)
   const said = [frame, shell, own].filter(Boolean).join('\n\n')
   const content = userContent({ text: said, images }, editor)
 
   process.write({ type: 'user', uuid, message: { role: 'user', content } })
-  runtime.host.panel?.said(runtime, auto ?? null)
+  claudeOf(runtime).host.panel?.said(runtime, auto ?? null)
   // Имя от модели - после сообщения, чтобы ход не ждал за ним. По словам панели не называют.
   if (!auto) askTitle(runtime, process, text)
   nameAfterPerson(runtime, process)
@@ -95,23 +96,19 @@ export const writeUserMessage = (
  */
 export const answerInChat = (
   runtime: ConversationRuntime,
+  process: CliProcess,
   held: HeldRequest,
   message: Outgoing,
 ): void => {
-  const { process } = runtime
-
-  if (!process) return
-
-  runtime.held = runtime.held.filter((entry) => entry !== held)
-
+  const claude = claudeOf(runtime)
   const isPlanNote = held.pending.kind === 'plan' && message.images.length === 0
 
   if (isPlanNote) {
     // Замечание к плану уходит отказом, а не сообщением: CLI его имени не знает.
-    runtime.feed.builder.addUserMessage(randomUUID(), message.text, [], true, {
+    claude.feed.builder.addUserMessage(randomUUID(), message.text, [], true, {
       draft: message.draft ?? undefined,
     })
-    runtime.feed.schedule()
+    claude.feed.schedule()
   } else {
     writeUserMessage(runtime, process, message, runtime.turnActive)
   }
@@ -122,5 +119,4 @@ export const answerInChat = (
       : chatAnswer(held, message.text)
 
   process.respond(held.pending.requestId, answer)
-  runtime.syncStatus()
 }

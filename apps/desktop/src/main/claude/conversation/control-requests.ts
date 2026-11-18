@@ -1,6 +1,6 @@
 import type { ControlRequest } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from './conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { UNSUPPORTED_REQUEST } from './conversation.constants'
 import { holdRequest } from './pending-requests'
 

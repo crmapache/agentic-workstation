@@ -6,11 +6,10 @@ import { Card } from '@agentic-workstation/ui/Card'
 import { Kbd } from '@agentic-workstation/ui/Kbd'
 
 import { useClaudeActions } from '../claude-actions.hooks'
-import { toolLabel } from '../tool-summary.utils'
 import { useDigitHotkeys } from './PermissionPrompt.hooks'
 import styles from './PermissionPrompt.module.scss'
 import type { PermissionPromptProps } from './PermissionPrompt.types'
-import { permissionTitle } from './PermissionPrompt.utils'
+import { requestLabel, permissionTitle } from './PermissionPrompt.utils'
 import { PermissionPreview } from './parts/PermissionPreview'
 
 /**
@@ -43,9 +42,7 @@ export const PermissionPrompt = ({ conversation, request }: PermissionPromptProp
         title={t('claudeCode.permission.title')}
         actions={
           <span className={styles.meta}>
-            {more > 0
-              ? t('claudeCode.permission.more', { count: more })
-              : toolLabel(request.toolName)}
+            {more > 0 ? t('claudeCode.permission.more', { count: more }) : requestLabel(request)}
             {' · '}
             {t('claudeCode.permission.underMode', {
               mode: t(`claudeCode.modes.labels.${request.mode}`),

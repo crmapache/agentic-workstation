@@ -1,0 +1,401 @@
+import type {
+  Conversation,
+  RequestResponse,
+  ConversationError,
+  ConversationOptions,
+} from '@shared/claude'
+import type { NoticeCode, StopReason, ConversationFeed } from '@shared/claude-feed'
+
+import { syncWork } from '../feed/work-clock'
+import type {
+  AgentFeed,
+  AgentHost,
+  AgentShells,
+  HeldRequest,
+  AgentSession,
+  ConnectorsHandle,
+} from './agent-parts'
+import { IDLE_SLEEP_MS } from './conversation.constants'
+import type { Outgoing } from './outbox'
+import { ConversationOutbox } from './outbox'
+import { matchesRequest } from './request-match'
+
+/** Разговор работает: идёт ход (с вопросами к человеку) или фоновые агенты. */
+const isWorking = (meta: Conversation): boolean => meta.status !== 'idle' || meta.backgroundWork
+
+/** Почему сессия кончилась: в ленту строкой, ход закрывается. null - кончилась тихо (сон). */
+export type SessionExit = { code: NoticeCode; detail: string } | null
+
+/**
+ * Один разговор: его вкладка, лента и сессия CLI провайдера (ADR 0083). Сессия поднимается
+ * на первое сообщение и гасится после простоя; вопросы CLI (разрешение, выбор, план) ждут
+ * ответа человека без таймеров - CLI ждёт столько же. Отправки и очередь - в outbox.ts.
+ * Что делает сессия и как она говорит со своим CLI, ядро не знает - это драйвер.
+ */
+export class ConversationRuntime {
+  readonly feed: AgentFeed
+  session: AgentSession | null = null
+  /** Аккаунт, на котором поднята сессия: её расход эта сессия и знает. */
+  accountId = ''
+  held: HeldRequest[] = []
+  /** Идёт ход основного разговора (не только фоновые вопросы субагентов). */
+  turnActive = false
+  /** Откат в пути: сессию не перезапускать, пока CLI не ответил. */
+  rewinding = false
+  /** Отправки и очередь: правки очереди из поля (вынуть, переставить) идут прямо сюда. */
+  readonly outbox: ConversationOutbox
+  /** Команды «!»; их вывод уезжает модели с ближайшим сообщением. */
+  readonly shells: AgentShells
+  /**
+   * Коннекторы последней сессии. Сессия кончается раньше разговора (сон, перезапуск), а
+   * закрытие вкладки должно сказать коннекторам, что разговора больше нет (end).
+   */
+  connectors: ConnectorsHandle | null = null
+  private opening: Promise<AgentSession | null> | null = null
+  /** Конфиг MCP или аккаунт поменялся: сессия перезапустится, как только освободится. */
+  private restartPending = false
+  private idleTimer: NodeJS.Timeout | null = null
+  private disposed = false
+
+  constructor(
+    public meta: Conversation,
+    readonly host: AgentHost,
+  ) {
+    const parts = host.driver.attach(this)
+
+    this.feed = parts.feed
+    this.shells = parts.shells
+    this.outbox = new ConversationOutbox(this)
+  }
+
+  /** Нет хода и вопросов к человеку: можно начинать новый ход. */
+  get isFree(): boolean {
+    return !this.turnActive && this.held.length === 0
+  }
+
+  get isDisposed(): boolean {
+    return this.disposed
+  }
+
+  async getFeed(): Promise<ConversationFeed> {
+    await this.loadFeed()
+
+    return this.feed.snapshot()
+  }
+
+  /** Прошлые ходы - из журнала провайдера (у Claude - транскрипт, у нерождённого форка - источника). */
+  loadFeed(): Promise<void> {
+    return this.feed.ensureLoaded()
+  }
+
+  /** Сообщение человека. Отправки идут строго по одной, в порядке нажатия. */
+  send(message: Outgoing): Promise<void> {
+    return this.outbox.send(message)
+  }
+
+  /** Отложить сообщение до конца хода; before - перед каким соседом встать. */
+  enqueue(message: Outgoing, before: string | null = null): Promise<void> {
+    return this.outbox.enqueue(message, before)
+  }
+
+  removeQueued(queuedId: string): void {
+    this.outbox.remove(queuedId)
+  }
+
+  /** Команда «!» в папке проекта: выполняет панель, модель увидит её со следующим сообщением. */
+  runShell(command: string): Promise<void> {
+    return this.shells.run(command, this.meta.projectPath)
+  }
+
+  stopShell(runId: string): void {
+    this.shells.stop(runId)
+  }
+
+  /** Откат: очередь, стоявшая в момент нажатия, написана про отрезанное и уходит с ним. */
+  dropQueued(queuedIds: readonly string[]): void {
+    this.outbox.removeAll(queuedIds)
+  }
+
+  sendQueued(queuedId: string): Promise<void> {
+    return this.outbox.sendQueued(queuedId)
+  }
+
+  /**
+   * Остановить ход - человек или панель ради переезда на аккаунт (подпись итога). Ход
+   * кончится словами CLI; вопросы, которые ждали, снимаются.
+   */
+  interrupt(reason: StopReason = 'you'): void {
+    const session = this.session
+
+    if (!session?.isAlive || !this.turnActive) return
+
+    for (const held of this.held) session.dismiss(held)
+
+    this.held = []
+    this.feed.builder.noteStopped(reason)
+    this.update({ stopRequestedAt: Date.now() })
+    this.syncStatus()
+    session.interrupt().catch((error: unknown) => {
+      console.warn('[agents] остановка хода не принята:', error)
+    })
+  }
+
+  /** CLI не ответил на остановку - погасить сессию. */
+  forceStop(): void {
+    this.session?.kill()
+  }
+
+  /** Ответ человека на вопрос. Ответ не того вида, что вопрос, - ошибка, а не догадка. */
+  respond(requestId: string, response: RequestResponse): void {
+    const index = this.held.findIndex((held) => held.pending.requestId === requestId)
+    const held = this.held[index]
+
+    if (!held || !this.session) return
+    if (!matchesRequest(held, response)) throw new Error('Ответ не подходит к вопросу')
+
+    this.held.splice(index, 1)
+    this.session.answer(held, response)
+    this.syncStatus()
+    // Последний вопрос фонового субагента снят после хода - очередь может идти.
+    this.applyPendingRestart()
+    void this.outbox.drain()
+  }
+
+  /** Человек ответил в чат, пока ход стоял на вопросе: вопрос снимается сообщением. */
+  answerInChat(held: HeldRequest, message: Outgoing): void {
+    const session = this.session
+
+    if (!session) return
+
+    this.held = this.held.filter((entry) => entry !== held)
+    session.answerInChat(held, message)
+    this.syncStatus()
+  }
+
+  /** Модель, усилие, режим. Живой сессии - без перезапуска, словами её CLI. */
+  setOptions(options: ConversationOptions): void {
+    this.host.driver.setOptions(this, options)
+  }
+
+  /** Причина, по которой разговор стоял, снята: убрать её и отправить то, что ждало. */
+  resolveError(error: ConversationError): Promise<void> {
+    if (this.meta.error !== error) return Promise.resolve()
+
+    this.update({ error: null })
+
+    return this.outbox.release()
+  }
+
+  /** Сессия гасится (человек нажал «погасить») - дождаться, пока она закроется. */
+  async settleStopping(): Promise<void> {
+    if (this.session?.isStopping) await this.session.stop()
+  }
+
+  /**
+   * Закрыть вкладку: сессия гасится, начатый подъём не доведётся. Коннекторы узнают, что
+   * разговора больше нет: его вкладки браузера закрываются сразу, а не ждут новую сессию.
+   */
+  dispose(): Promise<void> {
+    this.disposed = true
+    this.shells.stopAll()
+    this.clearIdleTimer()
+    this.feed.dispose()
+    this.connectors?.end()
+
+    const session = this.session
+
+    this.session = null
+
+    return session ? session.stop() : Promise.resolve()
+  }
+
+  /**
+   * Поменять поля вкладки и сообщить сервису. Работа встала - коннекторы сразу убирают то, чем
+   * показывали её человеку: иначе курсор и рамка агента в Chrome стояли бы на странице до
+   * закрытия вкладки разговора, а капсула Computer - минуту.
+   */
+  update(change: Partial<Conversation>): void {
+    const wasWorking = isWorking(this.meta)
+
+    this.meta = { ...this.meta, ...change, updatedAt: Date.now() }
+    this.host.onChange()
+
+    if (wasWorking && !isWorking(this.meta)) this.connectors?.idle()
+  }
+
+  /**
+   * Статус из двух вещей: ждут ли ответа вопросы и идёт ли основной ход. Новый ход
+   * снимает прошлую остановку, ошибку и поломку: точка вкладки говорит о том, что идёт сейчас.
+   */
+  syncStatus(): void {
+    const [first] = this.held
+    const status = first ? 'waiting' : this.turnActive ? 'running' : 'idle'
+    const { outcome } = this.meta
+    const settled = outcome === 'error' || outcome === 'crashed' || outcome === 'interrupted'
+    const { builder } = this.feed
+
+    this.update({
+      pending: first?.pending ?? null,
+      pendingCount: this.held.length,
+      status,
+      outcome: this.turnActive && settled ? 'done' : outcome,
+      backgroundWork: builder.hasBackgroundWork,
+      // Счётчик работы для строки статуса: паузы на вопросах, конец, когда всё встало.
+      ...syncWork(builder.work, status, builder.hasBackgroundWork, Date.now()),
+    })
+  }
+
+  /**
+   * Сессия кончилась (процесс вышел). Чужая (заменённая) уже не наша - её выход ничего не
+   * трогает. exit - почему, если ход оборвался; null - кончилась тихо.
+   */
+  sessionEnded(session: AgentSession, exit: SessionExit): void {
+    if (session !== this.session) return
+
+    this.session = null
+    this.clearIdleTimer()
+
+    if (exit) this.feed.builder.abortTurn(exit.code, exit.detail)
+    else this.feed.builder.abortBackground()
+
+    this.feed.flush()
+    this.held = []
+    this.turnActive = false
+    // Сессия умерла посреди хода или не поднялась - вкладка говорит об этом красной точкой.
+    const crashed = exit !== null && exit.code !== 'interrupted'
+
+    this.update({
+      turnStartedAt: null,
+      stopRequestedAt: null,
+      ...(crashed && { outcome: 'crashed' }),
+      ...(exit?.code === 'interrupted' && { outcome: 'interrupted' }),
+    })
+    this.syncStatus()
+
+    if (crashed) this.host.onCall(this.meta.id, 'error')
+
+    // Ход оборвался вместе с сессией - очередь ждёт человека, как после «стоп».
+    if (exit) void this.outbox.afterTurn(false)
+  }
+
+  /**
+   * Ход кончился. Чистый - очередь идёт дальше; остановленный или с ошибкой - очередь
+   * ждёт человека: слать дальше в ошибку или после «стоп» незачем. И отсчёт до сна
+   * сессии: новый ход его снимет.
+   */
+  afterTurn(isClean: boolean): void {
+    this.applyPendingRestart()
+    void this.outbox.afterTurn(isClean)
+    this.scheduleSleep()
+  }
+
+  /**
+   * Папка доверена, лента прочитана, сессия поднята - или null и причина во вкладке.
+   * Гасимая сессия сначала доживает: её выход ещё должен снять ход и вопросы. Живая,
+   * но ждущая перезапуска, - сменяется, если разговор свободен.
+   */
+  async prepareSession(): Promise<AgentSession | null> {
+    if (!(await this.host.isTrusted(this.meta.projectPath))) {
+      this.update({ error: 'untrusted' })
+
+      return null
+    }
+
+    await this.loadFeed()
+    await this.settleStopping()
+    this.clearIdleTimer()
+    this.applyPendingRestart()
+
+    if (this.session?.isAlive) return this.session
+
+    this.opening ??= this.openSession().finally(() => {
+      this.opening = null
+    })
+
+    return this.opening
+  }
+
+  private async openSession(): Promise<AgentSession | null> {
+    const accountId = this.host.accountId()
+    // Сбой подготовки (файловая система, CLI) - причина во вкладке, а не повисший ход.
+    const session = await this.host.driver.open(this).catch((error: unknown) => {
+      console.warn('[agents] сессия разговора не поднялась', error)
+      this.update({ error: 'start-failed' })
+
+      return null
+    })
+
+    if (!session || this.disposed) {
+      if (session) void session.stop()
+
+      return null
+    }
+
+    this.accountId = accountId
+    this.session = session
+    this.update({ error: null })
+
+    return session
+  }
+
+  /**
+   * Конфиг MCP или аккаунт поменялся, а CLI читает их только на старте: сессия гасится,
+   * как только свободна (ход, вопросы, фоновые субагенты и откат не рвутся), и
+   * поднимется заново, продолжив разговор.
+   */
+  restartSession(): void {
+    this.restartPending = true
+    this.applyPendingRestart()
+  }
+
+  /**
+   * Перезапуск, который ждал свободы. Зовут везде, где разговор освобождается, и перед
+   * новым ходом: иначе ход ушёл бы в старую сессию - на прежнем аккаунте.
+   */
+  applyPendingRestart(): void {
+    const isBusy = !this.isFree || this.rewinding || this.feed.builder.hasBackgroundWork
+
+    if (!this.restartPending || isBusy) return
+
+    const session = this.session
+
+    this.restartPending = false
+    this.session = null
+
+    // Выход заменённой сессии сюда уже не дойдёт (она больше не наша): фоновые команды
+    // отпускаются здесь, иначе их учёт держал бы следующую сессию без сна навсегда.
+    if (session) {
+      this.feed.builder.abortBackground('restarted')
+      this.feed.flush()
+    }
+
+    void session?.stop()
+  }
+
+  /**
+   * Сон сессии после простоя. Фоновые агенты, флот workflow и фоновые команды - работа
+   * этой сессии: вкладка выглядит простаивающей, а сон убил бы их молча.
+   */
+  scheduleSleep(): void {
+    this.clearIdleTimer()
+    this.idleTimer = setTimeout(() => {
+      // Очередь, которая ждёт человека, - не работа: сессия может уснуть.
+      const hasOutgoing = this.meta.queue.length > 0 && !this.outbox.isHeld
+      const isBusy = !this.isFree || hasOutgoing || this.feed.builder.hasBackgroundWork
+
+      if (isBusy || this.feed.builder.hasBackgroundCommands) return this.scheduleSleep()
+
+      const session = this.session
+
+      this.session = null
+      void session?.stop()
+    }, IDLE_SLEEP_MS)
+    this.idleTimer.unref()
+  }
+
+  private clearIdleTimer() {
+    if (this.idleTimer) clearTimeout(this.idleTimer)
+
+    this.idleTimer = null
+  }
+}

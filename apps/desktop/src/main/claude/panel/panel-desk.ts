@@ -11,8 +11,9 @@ import { AccountUpkeep } from '../accounts/account-upkeep'
 import { writeTerminalCommand } from '../accounts/design-login'
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import { claudeOf } from '../conversation/claude-conversation'
 import { NO_REFUSALS, withRefusal } from '../settings/mode-refusals'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { AccountMoves } from './account-moves'
 import { AsideDesk } from './aside-desk'
 import { CarryOnDesk } from './carry-on-desk'
@@ -96,14 +97,14 @@ export class PanelDesk implements PanelHooks {
 
     if (fold) {
       if (fold.mods !== runtime.meta.mods) {
-        this.modsOwner.set(runtime, runtime.process)
+        this.modsOwner.set(runtime, claudeOf(runtime).process)
         runtime.update({ mods: fold.mods })
         this.expireToast(runtime)
       }
 
       if (fold.log) {
-        runtime.feed.builder.addNotice('mod', fold.log.text, { subject: fold.log.plugin })
-        runtime.feed.schedule()
+        claudeOf(runtime).feed.builder.addNotice('mod', fold.log.text, { subject: fold.log.plugin })
+        claudeOf(runtime).feed.schedule()
       }
 
       return true
@@ -127,7 +128,7 @@ export class PanelDesk implements PanelHooks {
     this.accountModels.forget(id)
 
     for (const runtime of this.runtimes()) {
-      if (runtime.accountId === id && runtime.process?.isAlive) runtime.restartProcess()
+      if (runtime.accountId === id && claudeOf(runtime).process?.isAlive) runtime.restartSession()
     }
   }
 

@@ -2,7 +2,7 @@ import type { NoticeCode, RetryReason, RetryOutcome, CompactFeedItem } from '@sh
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'
-import type { FeedStore } from './feed-store'
+import type { FeedStore } from '../../agents/feed/feed-store'
 import {
   RETRY_TRACE_MS,
   ALLOWED_RATE_LIMIT,

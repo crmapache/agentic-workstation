@@ -1,7 +1,8 @@
 import type { CliProcess } from '../cli/cli-process'
-import { rankOf, outranks } from '../tabs/tab-names'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { rankOf, outranks } from '../../agents/tabs/tab-names'
+import { claudeOf } from './claude-conversation'
 import { titleFromReply } from './cli-replies'
-import type { ConversationRuntime } from './conversation-runtime'
 import {
   TITLE_MIN_CHARS,
   TITLE_SAMPLE_CHARS,
@@ -37,27 +38,31 @@ export const titleDescription = (text: string): string | null => {
  * имя от человека, данное, пока модель думала, модель не перебивает.
  */
 export const askTitle = (runtime: ConversationRuntime, process: CliProcess, text: string) => {
-  if (runtime.titleAsking || rankOf(runtime.meta.titleSource) >= rankOf('llm')) return
+  if (claudeOf(runtime).titleAsking || rankOf(runtime.meta.titleSource) >= rankOf('llm')) return
 
   const description = titleDescription(text)
 
   if (!description) return
 
-  const epoch = runtime.titleEpoch
+  const epoch = claudeOf(runtime).titleEpoch
 
-  runtime.titleAsking = true
+  claudeOf(runtime).titleAsking = true
   process
     .control({ subtype: 'generate_session_title', description, persist: true })
     .then((reply) => {
       const title = titleFromReply(reply)
 
-      if (title && epoch === runtime.titleEpoch && outranks('llm', runtime.meta.titleSource)) {
+      if (
+        title &&
+        epoch === claudeOf(runtime).titleEpoch &&
+        outranks('llm', runtime.meta.titleSource)
+      ) {
         runtime.update({ title, titleSource: 'llm' })
       }
     })
     .catch(() => undefined)
     .finally(() => {
-      runtime.titleAsking = false
+      claudeOf(runtime).titleAsking = false
     })
 }
 
@@ -66,8 +71,8 @@ export const askTitle = (runtime: ConversationRuntime, process: CliProcess, text
  * вкладку заново (имя держится, пока нового нет). Имя от человека остаётся его.
  */
 export const forgetTitle = (runtime: ConversationRuntime) => {
-  runtime.titleEpoch += 1
-  runtime.titleAsking = false
+  claudeOf(runtime).titleEpoch += 1
+  claudeOf(runtime).titleAsking = false
 
   if (runtime.meta.titleSource === 'llm') runtime.update({ titleSource: 'heuristic' })
 }

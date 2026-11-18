@@ -18,8 +18,10 @@ import type { TaskService } from '../tasks/task-service'
 import type { TerminalService } from '../terminal/terminal-service'
 import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
+import type { PanelRegistry } from '../agents/panel/panel-registry'
 import type { SearchDesk } from '../claude/search/search-desk'
 import { createAccountsHandlers } from './accounts-handlers'
+import { createAgentHandlers } from './agent-handlers'
 import { createClaudeHandlers } from './claude-handlers'
 import { createClaudePanelHandlers } from './claude-panel-handlers'
 import { createClaudeSearchHandlers } from './claude-search-handlers'
@@ -52,6 +54,8 @@ type Services = HandlerContext & {
   updates: UpdateService
   search: SearchService
   claude: ClaudeService
+  /** Панели провайдеров ИИ по id (ADR 0083): каналы agent:* берут панель отсюда. */
+  panels: PanelRegistry
   /** Статусы git открытых проектов: перечитываются по слежению за диском. */
   gitStatus: GitStatusService
   /** Слежение за файлами вне проекта, открытыми вкладками редактора. */
@@ -109,6 +113,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createEditorHandlers(workspace, history, services.definitions),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
+    ...createAgentHandlers(workspace, services.panels),
     ...createClaudeHandlers(workspace, claude),
     ...createClaudeToolsHandlers(workspace, claude),
     ...createComposerHandlers(workspace, claude, services.getWindow),

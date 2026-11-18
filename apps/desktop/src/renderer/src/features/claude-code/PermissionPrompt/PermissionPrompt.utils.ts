@@ -1,29 +1,30 @@
 import type { TFunction } from 'i18next'
 
-import { baseName, inputText } from '../claude.utils'
+import { baseName } from '../claude.utils'
 import { toolLabel } from '../tool-summary.utils'
 import type { PermissionRequest } from './PermissionPrompt.types'
 
-const text = (request: PermissionRequest, key: string) => inputText(request.input, key)
+/** Имя вызова вопроса для людей - как у вызова в ленте. */
+export const requestLabel = (request: PermissionRequest): string =>
+  toolLabel({ name: request.toolName, action: request.action })
 
 /** Что модель хочет сделать - человеческой фразой: «хочет запустить команду». */
 export const permissionTitle = (request: PermissionRequest, t: TFunction): string => {
-  const file = baseName(text(request, 'file_path') || text(request, 'notebook_path'))
+  const { action } = request
 
-  switch (request.toolName) {
-    case 'Bash':
-      return t('claudeCode.permission.run')
-    case 'Edit':
-    case 'MultiEdit':
-    case 'NotebookEdit':
-      return t('claudeCode.permission.edit', { file })
-    case 'Write':
-      return t('claudeCode.permission.write', { file })
-    case 'WebFetch':
-      return t('claudeCode.permission.fetch', { target: text(request, 'url') })
-    case 'WebSearch':
-      return t('claudeCode.permission.fetch', { target: text(request, 'query') })
+  switch (action.kind) {
+    case 'command':
+      // Без текста команды - служебный вызов вокруг фоновой команды: он не «запускает».
+      return action.command
+        ? t('claudeCode.permission.run')
+        : t('claudeCode.permission.use', { tool: requestLabel(request) })
+    case 'edit':
+      return t('claudeCode.permission.edit', { file: baseName(action.path) })
+    case 'write':
+      return t('claudeCode.permission.write', { file: baseName(action.path) })
+    case 'web':
+      return t('claudeCode.permission.fetch', { target: action.target })
     default:
-      return t('claudeCode.permission.use', { tool: toolLabel(request.toolName) })
+      return t('claudeCode.permission.use', { tool: requestLabel(request) })
   }
 }

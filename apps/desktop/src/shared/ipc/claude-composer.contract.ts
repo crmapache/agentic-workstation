@@ -1,15 +1,6 @@
-import type { ClaudeState } from '../claude'
-import type {
-  CommandHint,
-  PictureView,
-  TakenQueued,
-  PicturePlace,
-  AttachmentPath,
-} from '../claude-draft'
+import type { CommandHint, PictureView, PicturePlace, AttachmentPath } from '../claude-draft'
 
 type ProjectRequest = { projectId: string }
-
-type ConversationRequest = { conversationId: string }
 
 /**
  * Часть контракта (contract.ts) про поле ввода Claude Code: правка очереди из поля,
@@ -18,16 +9,6 @@ type ConversationRequest = { conversationId: string }
  * правила те же (.claude/rules/ipc-contract.md).
  */
 export type ClaudeComposerInvokeContract = {
-  /** Вынуть сообщение из очереди в поле: пока его правят, оно вне очереди и не уйдёт. */
-  'claude:takeQueued': {
-    request: ConversationRequest & { queuedId: string }
-    response: { state: ClaudeState; taken: TakenQueued | null }
-  }
-  /** Переставить сообщение очереди на место toIndex. */
-  'claude:moveQueued': {
-    request: ConversationRequest & { queuedId: string; toIndex: number }
-    response: ClaudeState
-  }
   /** Команды и скиллы с диска (проект, свои, плагины) - для «/» ещё до первого хода. */
   'claude:listCommands': { request: ProjectRequest; response: CommandHint[] }
   /** Системный выбор файлов, картинок и папок для поля. Отмена - пустой список. */
@@ -54,8 +35,6 @@ export type ClaudeComposerInvokeContract = {
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const CLAUDE_COMPOSER_CHANNELS = {
-  'claude:takeQueued': true,
-  'claude:moveQueued': true,
   'claude:listCommands': true,
   'claude:pickAttachments': true,
   'claude:describePaths': true,

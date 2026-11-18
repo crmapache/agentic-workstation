@@ -1,11 +1,11 @@
 /**
  * Сколько строк добавила и убрала правка агента. Главный источник - structuredPatch в
  * результате инструмента (CLI сам посчитал разность с файлом), его считает общее правило
- * (claude/changes/line-counts.ts). Нет его (старые версии CLI) - разность старого и нового
+ * (agents/changes/line-counts.ts). Нет его (старые версии CLI) - разность старого и нового
  * куска с обрезкой общих начала и конца, как EditLines панели ACC.
  */
 
-import type { LineChange } from '../../claude/changes/line-counts'
+import type { LineChange } from '../../agents/changes/line-counts'
 
 /** Строки правки по старому и новому тексту: совпадающие голова и хвост не считаются. */
 export const editLines = (before: string, after: string): LineChange => {

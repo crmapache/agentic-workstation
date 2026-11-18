@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { ForkOrigin, Conversation } from '@shared/claude'
 
-import { freshConversation } from './claude-state'
+import { freshConversation } from '../agents/panel/panel-state'
 import { resolveForkOrigin } from './fork-origin'
 
 const line = (value: Record<string, unknown>) => JSON.stringify(value)

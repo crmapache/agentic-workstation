@@ -2,6 +2,7 @@ import type { FleetAgentState } from '@shared/claude-feed'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 
 /**
@@ -26,11 +27,12 @@ export const useFleetTranscript = (
  */
 export const useStopTask = () => {
   const queryClient = useQueryClient()
+  const provider = usePanelProvider()
 
   return useMutation({
     mutationFn: ({ conversationId, taskId }: { conversationId: string; taskId: string }) =>
-      invoke('claude:stopTask', { conversationId, taskId }),
-    onSuccess: (state) => queryClient.setQueryData(QUERY_KEYS.claudeState, state),
+      invoke('agent:stopTask', { provider, conversationId, taskId }),
+    onSuccess: (state) => queryClient.setQueryData(QUERY_KEYS.agentState(provider), state),
     onError: (error) => console.warn('[claude-code] задача не остановлена:', error),
   })
 }

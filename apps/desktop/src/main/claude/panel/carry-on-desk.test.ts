@@ -2,8 +2,8 @@ import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import type { Conversation } from '@shared/claude'
 
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
-import type { Outgoing } from '../conversation/outbox'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import type { Outgoing } from '../../agents/conversation/outbox'
 import { CarryOnDesk } from './carry-on-desk'
 import { owedFor } from './carry-ons'
 

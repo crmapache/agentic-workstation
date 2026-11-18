@@ -1,8 +1,8 @@
 import type { StepLogPage } from '@shared/scenario-view'
 
+import { makeThumbnail } from '../agents/images/thumbnail'
 import { ConversationFeedSync } from '../claude/conversation/conversation-feed'
 import { findTranscript } from '../claude/history/transcript-paths'
-import { makeThumbnail } from '../claude/images/thumbnail'
 
 /** Сколько открытых логов держать: экран прогона показывает один, рядом - пара вкладок. */
 const KEPT = 6

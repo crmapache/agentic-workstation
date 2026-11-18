@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
-import { useClaudeActions } from '../claude-actions.hooks'
+import { useClaudeAccounts } from '../claude-accounts.hooks'
 import { accountTitle } from '../AccountsScreen/AccountsScreen.utils'
 import { useSignInCheck } from './LoginGate.hooks'
 import styles from './LoginGate.module.scss'
@@ -19,14 +19,14 @@ import { otherSignedIn } from './LoginGate.utils'
  */
 export const LoginGate = ({ accounts }: LoginGateProps) => {
   const { t } = useTranslation()
-  const actions = useClaudeActions()
+  const claudeAccounts = useClaudeAccounts()
   const handleCheck = useSignInCheck()
   const current = accounts.accounts.find((account) => account.id === accounts.current)
   const isWaiting = accounts.signingIn === accounts.current
   const others = otherSignedIn(accounts)
   const problem = accounts.lastOutcome === 'open-failed' || accounts.lastOutcome === 'timeout'
 
-  const handleLogIn = () => void actions.accounts.signIn(accounts.current)
+  const handleLogIn = () => void claudeAccounts.signIn(accounts.current)
 
   return (
     <EmptyState
@@ -58,7 +58,7 @@ export const LoginGate = ({ accounts }: LoginGateProps) => {
                   <Button
                     key={account.id || 'default'}
                     size="sm"
-                    onClick={() => void actions.accounts.select(account.id)}>
+                    onClick={() => void claudeAccounts.select(account.id)}>
                     {accountTitle(account, t)}
                   </Button>
                 ))}

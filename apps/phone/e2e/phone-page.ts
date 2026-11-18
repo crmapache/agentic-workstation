@@ -31,6 +31,7 @@ export const richFeed: FeedItem[] = [
     kind: 'tool',
     name: 'Bash',
     input: { command: 'pnpm test -- login', description: 'Run the login tests' },
+    action: { kind: 'command', command: 'pnpm test -- login', description: 'Run the login tests' },
     status: 'done',
     result: { text: '12 passed, 1 failed', isError: false, truncated: false },
     startedAt: 1,
@@ -43,6 +44,11 @@ export const richFeed: FeedItem[] = [
     kind: 'tool',
     name: 'Edit',
     input: { file_path: '/Users/someone/Projects/secret-client/src/auth/login.ts' },
+    action: {
+      kind: 'edit',
+      path: '/Users/someone/Projects/secret-client/src/auth/login.ts',
+      preview: [],
+    },
     status: 'done',
     result: {
       text: 'ok',

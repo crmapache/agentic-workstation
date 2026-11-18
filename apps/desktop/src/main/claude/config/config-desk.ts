@@ -66,7 +66,7 @@ export class ClaudeConfigDesk {
       // Копии файлов процесс получает переменной при старте (spawn.ts): без перезапуска
       // переключатель не действовал бы ни в одной открытой вкладке. Ход не рвётся.
       if (ok && key === RESTARTING_KEY) {
-        for (const runtime of this.host.runtimes()) runtime.restartProcess()
+        for (const runtime of this.host.runtimes()) runtime.restartSession()
       }
 
       return {

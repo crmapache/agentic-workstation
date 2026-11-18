@@ -2,7 +2,7 @@ import { readFile, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 
-import { loginShellEnv } from '../cli/shell-env'
+import { loginShellEnv } from '../../process/shell-env'
 
 /** Где CLI помнит, каким папкам человек доверился в терминале. */
 const cliConfigFile = async () => {

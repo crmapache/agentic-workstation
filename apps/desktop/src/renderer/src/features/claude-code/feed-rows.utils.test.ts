@@ -1,10 +1,24 @@
+import { structuredPatch } from 'diff'
 import { it, expect, describe } from 'vitest'
 
-import type { FeedItem, ToolFeedItem } from '@shared/claude-feed'
+import type { FeedItem, ToolAction, ToolFeedItem } from '@shared/claude-feed'
 
 import { formatTokens, relativePath, touchesFiles, formatDuration } from './claude.utils'
-import { diffStats, rowsFromPatch, patchFromInput } from './diff.utils'
+import { diffStats, rowsFromPatch } from './diff.utils'
 import { sameRow, buildFeedRows } from './feed-rows.utils'
+
+/** Вид действия по имени - как его поставил бы драйвер Claude. */
+const ACTIONS: Record<string, ToolAction> = {
+  Read: { kind: 'read', path: '', line: null },
+  Grep: { kind: 'search', pattern: '', path: '' },
+  Bash: { kind: 'command', command: '', description: '' },
+  Edit: { kind: 'edit', path: '', preview: [] },
+  Write: { kind: 'write', path: '', preview: [], lines: 0 },
+  TaskUpdate: { kind: 'todo' },
+  ToolSearch: { kind: 'todo' },
+  AskUserQuestion: { kind: 'question', questions: [] },
+  Task: { kind: 'agent', agent: '', description: '', prompt: '', workflow: false },
+}
 
 const tool = (id: string, name: string, parent: string | null = null): ToolFeedItem => ({
   kind: 'tool',
@@ -12,6 +26,7 @@ const tool = (id: string, name: string, parent: string | null = null): ToolFeedI
   parentToolUseId: parent,
   name,
   input: {},
+  action: ACTIONS[name] ?? { kind: 'other', target: '', path: '' },
   status: 'done',
   result: null,
   startedAt: 0,
@@ -138,9 +153,9 @@ describe('подписи', () => {
 })
 
 describe('дифф правки', () => {
-  it('из входа Edit - удалённое и добавленное с контекстом', () => {
+  it('дифф по входу - удалённое и добавленное с контекстом, без номеров строк', () => {
     const rows = rowsFromPatch(
-      patchFromInput('Edit', { old_string: 'a\nb\nc', new_string: 'a\nB\nc' }),
+      structuredPatch('', '', 'a\nb\nc', 'a\nB\nc', '', '', { context: 2 }).hunks,
       false,
     )
 

@@ -4,6 +4,7 @@ import type { ConversationFeed } from '@shared/claude-feed'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 
 /**
@@ -15,16 +16,20 @@ import { QUERY_KEYS } from '../../state/query-keys'
  */
 export const useLoadEarlier = (conversationId: string) => {
   const queryClient = useQueryClient()
+  const provider = usePanelProvider()
   const inFlight = useRef(false)
   const [pages, setPages] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
 
   const accept = useCallback(
     (feed: ConversationFeed) => {
-      queryClient.setQueryData<ConversationFeed>(QUERY_KEYS.claudeFeed(conversationId), feed)
+      queryClient.setQueryData<ConversationFeed>(
+        QUERY_KEYS.agentFeed(provider, conversationId),
+        feed,
+      )
       setPages((count) => count + 1)
     },
-    [conversationId, queryClient],
+    [conversationId, queryClient, provider],
   )
 
   const loadEarlier = useCallback(() => {
@@ -32,14 +37,14 @@ export const useLoadEarlier = (conversationId: string) => {
 
     inFlight.current = true
     setIsLoading(true)
-    invoke('claude:loadEarlier', { conversationId })
+    invoke('agent:loadEarlier', { provider, conversationId })
       .then(accept)
       .catch((error: unknown) => console.warn('[claude-code] ранние сообщения не пришли:', error))
       .finally(() => {
         inFlight.current = false
         setIsLoading(false)
       })
-  }, [conversationId, accept])
+  }, [conversationId, accept, provider])
 
   /**
    * Лента до элемента выше загруженного (закреплённое): страницы главный процесс ставит
@@ -48,7 +53,7 @@ export const useLoadEarlier = (conversationId: string) => {
    */
   const loadThrough = useCallback(
     (itemId: string) =>
-      invoke('claude:loadThrough', { conversationId, itemId })
+      invoke('agent:loadThrough', { provider, conversationId, itemId })
         .then((feed) => {
           accept(feed)
 
@@ -59,7 +64,7 @@ export const useLoadEarlier = (conversationId: string) => {
 
           return null
         }),
-    [conversationId, accept],
+    [conversationId, accept, provider],
   )
 
   return { pages, isLoading, loadEarlier, loadThrough }

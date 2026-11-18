@@ -20,7 +20,9 @@ export const DesignSignIn = ({ busy }: DesignSignInProps) => {
 
   const handleDesign = () => {
     invoke('claudePanel:terminalCommand', { command: 'design-login' })
-      .then((state) => queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, state))
+      .then((state) =>
+        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState('claude'), state),
+      )
       .catch((error: unknown) => console.warn('[claude-code] вход в Design не открылся:', error))
   }
 

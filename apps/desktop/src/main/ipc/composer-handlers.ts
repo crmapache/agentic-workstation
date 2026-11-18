@@ -13,8 +13,6 @@ import { projectRootOf } from './workspace-handlers'
 
 /** Каналы поля ввода: их обработчики здесь, а не в claude-handlers.ts. */
 export type ComposerChannels =
-  | 'claude:takeQueued'
-  | 'claude:moveQueued'
   | 'claude:listCommands'
   | 'claude:pickAttachments'
   | 'claude:describePaths'
@@ -96,29 +94,7 @@ export const createComposerHandlers = (
   getWindow: () => BrowserWindow | null,
 ): Pick<InvokeHandlers, ComposerChannels> => {
   const root = (projectId: unknown) => projectRootOf(workspace, projectId)
-  const runtime = (conversationId: unknown, queuedId: unknown) => {
-    assertString(conversationId, 'conversationId')
-    assertString(queuedId, 'queuedId')
-
-    return { outbox: claude.runtime(conversationId).outbox, queuedId }
-  }
-
   return {
-    'claude:takeQueued': ({ conversationId, queuedId }) => {
-      const target = runtime(conversationId, queuedId)
-      const taken = target.outbox.takeOut(target.queuedId)
-
-      return { state: claude.getState(), taken }
-    },
-    'claude:moveQueued': ({ conversationId, queuedId, toIndex }) => {
-      const target = runtime(conversationId, queuedId)
-
-      if (typeof toIndex !== 'number' || !Number.isInteger(toIndex) || toIndex < 0) {
-        throw new Error('Недопустимое место в очереди')
-      }
-
-      return claude.actions.moveQueued(conversationId, target.queuedId, toIndex)
-    },
     'claude:listCommands': ({ projectId }) => claude.composer.commands(root(projectId)),
     'claude:pickAttachments': ({ projectId }) => claude.composer.pick(getWindow(), root(projectId)),
     'claude:describePaths': ({ projectId, paths }) =>

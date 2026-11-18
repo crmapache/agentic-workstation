@@ -2,6 +2,7 @@ import type { CliTask, ClosedReason, ToolFeedItem, CliTaskOutcome } from '@share
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, stringField } from '../cli/cli-messages'
+import type { FeedStore } from '../../agents/feed/feed-store'
 import {
   AGENT_CALLS,
   NOTIFIED_TASK,
@@ -13,7 +14,7 @@ import {
   NOTIFIED_TOOL_USE,
   NOTIFICATION_BLOCK,
 } from './agent-tasks.constants'
-import type { FeedStore } from './feed-store'
+import { claudeToolAction } from './tool-action'
 import { fleetOf } from './workflow-fleet'
 
 const newTask = (
@@ -252,16 +253,20 @@ export class AgentTasks {
     const description = stringField(message, 'description')
     const subagentType = stringField(message, 'subagent_type')
 
+    const name = workflow ? 'Workflow' : 'Agent'
+    const input = {
+      ...(description ? { description } : {}),
+      ...(subagentType ? { subagent_type: subagentType } : {}),
+    }
+
     this.background.add(id)
     this.store.put({
       kind: 'tool',
       id,
       parentToolUseId: stringField(message, 'parent_tool_use_id') || null,
-      name: workflow ? 'Workflow' : 'Agent',
-      input: {
-        ...(description ? { description } : {}),
-        ...(subagentType ? { subagent_type: subagentType } : {}),
-      },
+      name,
+      input,
+      action: claudeToolAction(name, input),
       status: 'running',
       result: null,
       startedAt: at,

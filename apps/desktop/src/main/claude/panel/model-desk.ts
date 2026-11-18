@@ -4,8 +4,9 @@ import { losesFastMode } from '@shared/claude-fast-mode'
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, recordField, stringField } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import { claudeOf } from '../conversation/claude-conversation'
 import { MODEL_FALLBACK_SUBTYPES } from '../feed/feed.constants'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { fastReportOf } from './fast-mode'
 import type { ModelEvent, ModelWatchState } from './model-watch'
 import { NO_WATCH, watchPicked, watchSigned, watchRequest, watchFellBack } from './model-watch'
@@ -39,8 +40,8 @@ export class ModelDesk {
   observe(runtime: ConversationRuntime, message: CliMessage): void {
     // Первая строка нового процесса: подписи старого к нему не относятся - он поднят с
     // выбором вкладки, и его первая подпись не «смена модели».
-    if (this.owners.get(runtime) !== runtime.process) {
-      this.owners.set(runtime, runtime.process)
+    if (this.owners.get(runtime) !== claudeOf(runtime).process) {
+      this.owners.set(runtime, claudeOf(runtime).process)
       this.forgetProcess(runtime)
     }
 
@@ -117,12 +118,12 @@ export class ModelDesk {
     if (runtime.meta.modelNote !== state.note) runtime.update({ modelNote: state.note })
     if (!event) return
 
-    const { builder } = runtime.feed
+    const { builder } = claudeOf(runtime).feed
 
     if (event.kind === 'stuck')
       builder.addNotice('model-stuck', event.picked, { subject: event.running })
     else builder.addNotice('model-swap', event.from, { subject: event.to })
 
-    runtime.feed.schedule()
+    claudeOf(runtime).feed.schedule()
   }
 }

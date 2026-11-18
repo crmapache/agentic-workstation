@@ -1,12 +1,10 @@
-import type { ClosedReason, ToolFeedItem } from '@shared/claude-feed'
+import type { ToolAction, ClosedReason, ToolFeedItem } from '@shared/claude-feed'
 
 import type { OpenFileRequest } from '../../state/open-file.context'
 import { DETAIL_LIMIT, ANCHOR_MIN_CHARS } from './claude.constants'
-import { inputText, relativePath } from './claude.utils'
+import { relativePath } from './claude.utils'
 import type { DiffRow } from './diff.utils'
 import { editRows, diffStats } from './diff.utils'
-
-const text = inputText
 
 const firstLine = (value: string) => value.split('\n')[0]?.trim() ?? ''
 
@@ -16,51 +14,53 @@ const countLines = (value: string) => {
   return trimmed ? trimmed.split('\n').length : 0
 }
 
-/** Вызов MCP-инструмента: `mcp__сервер__инструмент` - сервер и имя по отдельности. */
-const parseMcpName = (name: string): { server: string; tool: string } | null => {
-  const match = /^mcp__(.+?)__(.+)$/.exec(name)
+/** Имя вызова для людей: у MCP - инструмент без сервера, у остальных - имя у провайдера. */
+export const toolLabel = (tool: Pick<ToolFeedItem, 'name' | 'action'>): string =>
+  tool.action.kind === 'mcp' ? tool.action.tool : tool.name
 
-  return match?.[1] && match[2] ? { server: match[1], tool: match[2] } : null
-}
+/** Файл вызова - чтение, правка, новый файл: путь в шапке - ссылка на него. Пусто - не про файл. */
+const filePathOf = (action: ToolAction): string =>
+  action.kind === 'read' || action.kind === 'edit' || action.kind === 'write' ? action.path : ''
 
-/** Имя вызова для людей: у MCP - имя инструмента без служебного префикса. */
-export const toolLabel = (name: string): string => parseMcpName(name)?.tool ?? name
-
-/** Инструменты, чей аргумент - один файл: путь в шапке - ссылка на него. */
-const FILE_TOOLS = new Set(['Read', 'NotebookRead', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
-
-/** Путь файла вызова (не путь поиска у Grep и Glob): пусто - вызов не про файл. */
-const filePathOf = (tool: Pick<ToolFeedItem, 'name' | 'input'>): string =>
-  FILE_TOOLS.has(tool.name)
-    ? text(tool.input, 'file_path') || text(tool.input, 'notebook_path')
-    : ''
+/** Путь от корня проекта, иначе текст цели, иначе имя вызова. */
+const pathOrText = (
+  tool: Pick<ToolFeedItem, 'name' | 'action'>,
+  path: string,
+  text: string,
+  root?: string,
+) => (path ? relativePath(path, root) : text || toolLabel(tool))
 
 /**
  * Цель вызова в шапке, как в ACC: у скилла - имя и аргументы, у файла - путь от корня,
- * у команды - первая строка, дальше шаблон, адрес или запрос, описание; ничего - имя.
+ * у команды - первая строка, у поиска - папка или шаблон, дальше адрес, запрос, описание;
+ * ничего - имя.
  */
-export const toolTarget = (tool: Pick<ToolFeedItem, 'name' | 'input'>, root?: string): string => {
-  const { name, input } = tool
-  const skill = text(input, 'skill')
+export const toolTarget = (tool: Pick<ToolFeedItem, 'name' | 'action'>, root?: string): string => {
+  const { action } = tool
 
-  if (name === 'Skill' && skill) {
-    const args = firstLine(text(input, 'args'))
+  switch (action.kind) {
+    case 'skill':
+      if (!action.skill) return toolLabel(tool)
 
-    return args ? `${skill} ${args}` : skill
+      return action.args ? `${action.skill} ${action.args}` : action.skill
+    case 'read':
+    case 'edit':
+    case 'write':
+      return pathOrText(tool, action.path, '', root)
+    case 'search':
+      return pathOrText(tool, action.path, action.pattern, root)
+    case 'command':
+      return firstLine(action.command) || tool.name
+    case 'web':
+      return action.target || toolLabel(tool)
+    case 'mcp':
+    case 'other':
+      return pathOrText(tool, action.path, action.target, root)
+    case 'agent':
+      return firstLine(action.description || action.prompt) || toolLabel(tool)
+    default:
+      return toolLabel(tool)
   }
-
-  const path = text(input, 'file_path') || text(input, 'notebook_path') || text(input, 'path')
-
-  if (path) return relativePath(path, root)
-  if (name === 'Bash' || name === 'BashOutput') return firstLine(text(input, 'command')) || name
-
-  const found =
-    text(input, 'pattern') ||
-    text(input, 'url') ||
-    text(input, 'query') ||
-    firstLine(text(input, 'description') || text(input, 'prompt'))
-
-  return found || toolLabel(name)
 }
 
 /**
@@ -68,7 +68,7 @@ export const toolTarget = (tool: Pick<ToolFeedItem, 'name' | 'input'>, root?: st
  * номера строки в ответе на правку не даёт). Короткая (скобка, запятая) нашлась бы не
  * там - тогда ничего: верх файла честнее чужой строки.
  */
-export const editAnchor = (tool: Pick<ToolFeedItem, 'name' | 'input' | 'result'>): string => {
+export const editAnchor = (tool: Pick<ToolFeedItem, 'action' | 'result'>): string => {
   const best = editRows(tool)
     .filter((row) => row.kind === 'add')
     .reduce(
@@ -79,18 +79,17 @@ export const editAnchor = (tool: Pick<ToolFeedItem, 'name' | 'input' | 'result'>
   return best.length >= ANCHOR_MIN_CHARS ? best : ''
 }
 
-/** Куда ведёт путь в шапке: файл, у правки - её место, у Read со сдвигом - его строка. */
+/** Куда ведёт путь в шапке: файл, у правки - её место, у чтения со сдвигом - его строка. */
 export const fileTarget = (tool: ToolFeedItem): OpenFileRequest | null => {
-  const path = filePathOf(tool)
+  const { action } = tool
+  const path = filePathOf(action)
 
   if (!path) return null
 
-  const find = tool.status === 'done' && tool.name !== 'Read' ? editAnchor(tool) : ''
-  const offset = tool.input['offset']
+  const find = tool.status === 'done' && action.kind !== 'read' ? editAnchor(tool) : ''
 
   if (find) return { path, find }
-  if (tool.name === 'Read' && typeof offset === 'number' && offset > 0)
-    return { path, line: offset }
+  if (action.kind === 'read' && action.line !== null) return { path, line: action.line }
 
   return { path }
 }
@@ -125,24 +124,24 @@ export const toolMeta = (tool: ToolFeedItem): ToolMeta => {
   if (tool.status === 'error') return { kind: 'failed' }
 
   const output = tool.result?.text ?? ''
+  const { action } = tool
 
-  if (tool.name === 'Read' || tool.name === 'NotebookRead') {
+  if (action.kind === 'read') {
     const lines = countLines(output)
 
     return lines > 0 ? { kind: 'lines', count: lines } : { kind: 'none' }
   }
 
-  if (tool.name === 'Grep' || tool.name === 'Glob') {
+  // Поиск без шаблона - список папки (LS): совпадений у него нет.
+  if (action.kind === 'search' && action.pattern) {
     return { kind: 'matches', count: countLines(output) }
   }
 
-  if (tool.name === 'Write') {
-    const lines = countLines(text(tool.input, 'content'))
+  if (action.kind === 'write')
+    return action.lines > 0 ? { kind: 'lines', count: action.lines } : { kind: 'none' }
 
-    return lines > 0 ? { kind: 'lines', count: lines } : { kind: 'none' }
-  }
-
-  if (tool.name === 'Bash') {
+  // Команда без текста - служебный вызов вокруг фоновой (вывод опрошен, процесс снят).
+  if (action.kind === 'command' && action.command) {
     const printed = `${tool.result?.stdout ?? ''}${tool.result?.stderr ?? ''}` || output
 
     return { kind: 'output', empty: !printed.trim() }

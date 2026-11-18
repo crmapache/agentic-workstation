@@ -11,7 +11,8 @@ import type {
 import { isRecord, stringField } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
 import { fileCheckpointing } from '../config/config-files'
-import type { ConversationRuntime } from './conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { claudeOf } from './claude-conversation'
 import { REWOUND_DENY, REWIND_ATTEMPTS, REWIND_RETRY_MS } from './conversation.constants'
 import {
   codeOf,
@@ -67,18 +68,18 @@ const restoreFiles = async (process: CliProcess, messageId: string): Promise<str
 
 /** Текст своего сообщения в ленте: после отката он возвращается в поле. */
 const userText = (runtime: ConversationRuntime, messageId: string): string | null => {
-  const item = runtime.feed.builder.items.find((entry) => entry.id === messageId)
+  const item = claudeOf(runtime).feed.builder.items.find((entry) => entry.id === messageId)
 
   return item?.kind === 'user' ? item.text : null
 }
 
 /** Самое свежее сообщение, которое видела панель: CLI не режет то, чего она не видела. */
 const lastSeenUuid = (runtime: ConversationRuntime): string | null => {
-  const lastInFeed = runtime.feed.builder.items.findLast(
+  const lastInFeed = claudeOf(runtime).feed.builder.items.findLast(
     (item) => item.kind === 'user' && !item.steering,
   )
 
-  return runtime.lastSentUuid ?? lastInFeed?.id ?? null
+  return claudeOf(runtime).lastSentUuid ?? lastInFeed?.id ?? null
 }
 
 /**
@@ -97,13 +98,13 @@ const applyRewound = (
     process.respond(held.pending.requestId, { behavior: 'deny', message: REWOUND_DENY })
   }
 
-  runtime.discardStray = runtime.turnActive
+  claudeOf(runtime).discardStray = runtime.turnActive
   runtime.held = []
   runtime.turnActive = false
-  runtime.lastSentUuid = null
-  runtime.feed.builder.truncateFrom(messageId, runtime.shells.pendingIds())
-  runtime.feed.builder.addNotice('rewound')
-  runtime.feed.flush()
+  claudeOf(runtime).lastSentUuid = null
+  claudeOf(runtime).feed.builder.truncateFrom(messageId, claudeOf(runtime).shells.pendingIds())
+  claudeOf(runtime).feed.builder.addNotice('rewound')
+  claudeOf(runtime).feed.flush()
   runtime.dropQueued(queuedAtPress)
   runtime.update({ turnStartedAt: null, stopRequestedAt: null })
   runtime.syncStatus()
@@ -134,7 +135,7 @@ export const previewRewind = async (
 ): Promise<RewindPreview> => {
   if (await checkpointsOff(runtime)) return { state: 'off' }
 
-  const process = await runtime.prepareProcess()
+  const process = (await runtime.prepareSession()) && claudeOf(runtime).process
 
   if (!process) return { state: 'unavailable', detail: '' }
 
@@ -219,7 +220,7 @@ const rewindNow = async (
   messageId: string,
   scope: RewindScope,
 ): Promise<RewindOutcome> => {
-  const process = await runtime.prepareProcess()
+  const process = (await runtime.prepareSession()) && claudeOf(runtime).process
 
   if (!process) return refused('noProcess', '')
 

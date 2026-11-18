@@ -3,20 +3,27 @@ import { it, vi, expect, describe } from 'vitest'
 import type { TitleSource } from '@shared/claude'
 
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationRuntime } from './conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import type { ClaudeHost } from './claude-conversation'
+import { attachClaude } from './claude-conversation'
 import { TITLE_SAMPLE_CHARS } from './conversation.constants'
 import { askTitle, forgetTitle, titleDescription } from './session-title'
 
-/** Разговор ровно с тем, что трогает имя: ранг имени, ожидание ответа и счёт /clear. */
+/** Хост, которого хватает своему Claude разговора: лента без рассылки. */
+const host = { onFeedPatch: vi.fn(), thumbnail: () => '' } as unknown as ClaudeHost
+
+/**
+ * Разговор ровно с тем, что трогает имя: ранг имени, а ожидание ответа и счёт /clear - у
+ * своего Claude разговора (claude, тот же объект, что берёт claudeOf).
+ */
 const fakeRuntime = (titleSource: TitleSource) => {
   const runtime = {
-    titleAsking: false,
-    titleEpoch: 0,
-    meta: { title: 'Draft from the first message', titleSource },
+    meta: { id: 'c1', title: 'Draft from the first message', titleSource },
     update: vi.fn((patch: object) => Object.assign(runtime.meta, patch)),
   }
+  const claude = attachClaude(runtime as unknown as ConversationRuntime, host)
 
-  return runtime
+  return Object.assign(runtime, { claude })
 }
 
 /** Процесс, который отвечает на запрос имени тем, что ему дали. */
@@ -62,7 +69,7 @@ describe('askTitle', () => {
     })
     await vi.waitFor(() => expect(runtime.meta.title).toBe('Chrome tanks extension'))
     expect(runtime.meta.titleSource).toBe('llm')
-    expect(runtime.titleAsking).toBe(false)
+    expect(runtime.claude.titleAsking).toBe(false)
   })
 
   it('пока ответ в пути, второй раз не спрашивает; названную вкладку - больше никогда', async () => {
@@ -81,7 +88,7 @@ describe('askTitle', () => {
     const runtime = fakeRuntime('heuristic')
 
     ask(runtime, fakeProcess(Promise.reject(new Error('aborted'))), 'First long enough message')
-    await vi.waitFor(() => expect(runtime.titleAsking).toBe(false))
+    await vi.waitFor(() => expect(runtime.claude.titleAsking).toBe(false))
 
     const retry = fakeProcess(Promise.resolve({ title: 'Named' }))
 
@@ -99,7 +106,7 @@ describe('askTitle', () => {
     Object.assign(runtime.meta, { title: 'Tanks', titleSource: 'user' })
     answer({ title: 'Chrome tanks extension' })
 
-    await vi.waitFor(() => expect(runtime.titleAsking).toBe(false))
+    await vi.waitFor(() => expect(runtime.claude.titleAsking).toBe(false))
     expect(runtime.meta).toMatchObject({ title: 'Tanks', titleSource: 'user' })
   })
 

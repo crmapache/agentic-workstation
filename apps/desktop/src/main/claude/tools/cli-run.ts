@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 
 import { SPAWN_DETACHED } from '../../platform'
 import type { ClaudeCli } from '../cli/cli-locator'
-import { ProcessGroup } from '../cli/process-group'
+import { ProcessGroup } from '../../process/process-group'
 import { CLI_COMMAND_TIMEOUT_MS } from './tools.constants'
 
 /** timedOut - процесс погашен потолком по времени, а не кончился сам. */

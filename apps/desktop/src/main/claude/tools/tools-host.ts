@@ -1,7 +1,7 @@
 import type { SlashCommand } from '@shared/claude'
 
 import type { ClaudeCli } from '../cli/cli-locator'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 
 /** Что экранам плагинов и /config нужно от сервиса разговоров. */
 export type ToolsHost = {

@@ -1,45 +1,39 @@
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 
-import type {
-  ForkOrigin,
-  ClaudeState,
-  Conversation,
-  HistoryEntry,
-  ConversationOptions,
-} from '@shared/claude'
-import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
+import type { ClaudeState, ConversationOptions } from '@shared/claude'
+import type { FeedPatch, FleetTranscript } from '@shared/claude-feed'
 import type { ConversationCall } from '@shared/claude-prefs'
 
 import type { JsonFile } from '../storage/json-file'
-import { ClaudePersistence } from './claude-persistence'
-import type { StoredClaude } from './claude-state'
-import { toStored, freshConversation, parseStoredClaude } from './claude-state'
-import { SHUTDOWN_MAX_MS } from './claude.constants'
+import { makeThumbnail } from '../agents/images/thumbnail'
+import type { PanelDriver } from '../agents/panel/agent-panel'
+import { AgentPanel } from '../agents/panel/agent-panel'
+import type { ConversationOps } from '../agents/panel/panel-actions'
+import type { StoredPanel } from '../agents/panel/panel-state'
+import { parseStoredClaude } from './claude-state'
 import { ConnectorsBridge } from './connectors-bridge'
-import { ConversationActions } from './conversation-actions'
 import { forkOriginFor } from './fork-origin'
 import { AccountService } from './accounts/account-service'
 import type { StoredAccounts } from './accounts/account-store'
-import { ConversationCalls } from './calls/conversation-calls'
 import { CliAccess } from './cli/cli-access'
 import type { CliProcess } from './cli/cli-process'
-import { ProcessGroup } from './cli/process-group'
-import { ProjectCommands } from './cli/project-commands'
 import { ComposerTools } from './composer/composer-tools'
-import type { ConversationHost } from './conversation/conversation-runtime'
-import { ConversationRuntime } from './conversation/conversation-runtime'
+import { claudeOf } from './conversation/claude-conversation'
+import type { ClaudeHost } from './conversation/claude-conversation'
+import { claudeDriver } from './conversation/claude-driver'
 import { applyReplayFacts } from './conversation/replay-facts'
+import { answerReopened } from './conversation/replay-facts'
+import { rewind, previewRewind } from './conversation/rewind'
+import { loadFleetTranscript } from './feed/fleet-files'
 import { listHistory, transcriptName } from './history/transcript-files'
 import { claudeHome, findTranscript } from './history/transcript-paths'
-import type { TranscriptSummary } from './history/transcript-summary'
-import { makeThumbnail } from './images/thumbnail'
+import { readTranscriptImage } from './images/transcript-images'
 import { PanelDesk } from './panel/panel-desk'
+import { defaultPermissionMode } from './settings/default-mode'
 import { PanelSettings } from './settings/panel-settings'
 import { WorkspaceTrust } from './settings/workspace-trust'
-import { newTabConversation } from './tabs/new-tab'
-import { TabStrip } from './tabs/tab-strip'
+import { writeOwnTitle } from './tabs/tab-rename'
 import { PluginTools } from './tools/plugin-tools'
 import type { ToolsHost } from './tools/tools-host'
 import { TodayTokens } from './usage/today-tokens'
@@ -66,9 +60,7 @@ export type AccountPlaces = { file: JsonFile<StoredAccounts>; dir: string }
  * изменения лент. Вкладки привязаны к папке проекта, а не к id вкладки проекта: id
  * новый при каждом открытии, а разговоры должны вернуться вместе с папкой.
  */
-export class ClaudeService {
-  /** Действия над одним разговором - отдельно: здесь держатся сами разговоры. */
-  readonly actions = new ConversationActions(this)
+export class ClaudeService extends AgentPanel {
   /** Служебное поверх разговоров: /btw, моды, модель, продолжения, переезд аккаунта (panel/). */
   readonly panel = new PanelDesk(this, (path) => this.events.openPath(path))
   /** Плагины и маркетплейсы. */
@@ -77,17 +69,6 @@ export class ClaudeService {
   readonly composer = new ComposerTools()
   /** Коннекторы IDE в процессах разговоров: файл серверов шлюза, перезапуск, переподключение. */
   readonly connectors = new ConnectorsBridge(() => this.runtimes.values())
-  /** Полоса вкладок: порядок, группы форков, имена, закрытые - отдельно (tabs/). */
-  readonly tabs = new TabStrip({
-    runtimes: () => this.runtimes,
-    activeByProject: () => this.activeByProject,
-    setActive: (projectPath, id) => this.setActive(projectPath, id),
-    spawn: (conversation) => new ConversationRuntime(conversation, this.host),
-    changed: () => this.persist.changed(),
-    state: () => this.getState(),
-  })
-  private readonly runtimes = new Map<string, ConversationRuntime>()
-  private readonly commands: ProjectCommands
   readonly cli = new CliAccess(
     () => this.scheduleBroadcast(),
     (cli) => ({ ...cli, env: this.accounts.envFor(cli.env) }),
@@ -96,43 +77,23 @@ export class ClaudeService {
   readonly settings = new PanelSettings(this.toolsHost(), () => this.persist.changed())
   /** Счётчик «tok» у поля: токены за сегодня по всем проектам машины. */
   readonly todayTokens = new TodayTokens(async () => join(await claudeHome(), 'projects'))
-  /** Поводы позвать человека: звук, свечение вкладки, телефон (calls/). */
-  private readonly calls = new ConversationCalls((call) => this.events.onCall(call))
   private readonly trust: WorkspaceTrust
-  private activeByProject: Record<string, string>
-  private readonly persist: ClaudePersistence
 
   private constructor(
-    stored: StoredClaude,
-    file: JsonFile<StoredClaude>,
+    stored: StoredPanel,
+    file: JsonFile<StoredPanel>,
     private readonly events: ClaudeEvents,
     readonly accounts: AccountService,
     readonly usage: UsageService,
   ) {
-    this.persist = new ClaudePersistence(
-      file,
-      () => this.stored(),
-      () => events.onState(this.getState()),
-    )
-    this.activeByProject = stored.activeByProject
-    this.commands = new ProjectCommands(stored.commandsByProject, (saved) =>
-      saved ? this.persist.changed() : this.scheduleBroadcast(),
-    )
+    super(stored, file, { onState: events.onState, onCall: events.onCall })
     this.settings.prefs = stored.prefs
     this.trust = new WorkspaceTrust(stored.trustedProjects, () => this.persist.changed())
-
-    for (const conversation of stored.conversations) {
-      this.runtimes.set(
-        conversation.id,
-        new ConversationRuntime(freshConversation(conversation), this.host),
-      )
-    }
-
-    this.tabs.restore(stored.closed)
+    this.restore(stored)
   }
 
   static async load(
-    file: JsonFile<StoredClaude>,
+    file: JsonFile<StoredPanel>,
     events: ClaudeEvents,
     places: AccountPlaces,
   ): Promise<ClaudeService> {
@@ -165,10 +126,7 @@ export class ClaudeService {
 
   getState(): ClaudeState {
     return {
-      conversations: [...this.runtimes.values()].map((runtime) => runtime.meta),
-      activeByProject: this.activeByProject,
-      closedByProject: this.tabs.closedByProject(),
-      commandsByProject: this.commands.view,
+      ...this.coreState(),
       builtinCommands: this.cli.commands,
       models: this.cli.models,
       cli: this.cli.status,
@@ -181,26 +139,6 @@ export class ClaudeService {
   /** Настройки панели: патч поверх текущих, негодное поле - отказ целиком. */
   setPrefs(patch: unknown): ClaudeState {
     this.settings.apply(patch)
-
-    return this.getState()
-  }
-
-  /** Лента разговора; прочитанный транскрипт отдаёт вкладке модель и оборванный вопрос. */
-  async getFeed(conversationId: string): Promise<ConversationFeed> {
-    const runtime = this.runtime(conversationId)
-    const feed = await runtime.getFeed()
-
-    applyReplayFacts(runtime)
-
-    return feed
-  }
-
-  /**
-   * Новая вкладка. Модель, усилие и режим - закреплённые в Settings → New chats, иначе
-   * как у выбранной вкладки проекта.
-   */
-  async newConversation(projectPath: string): Promise<ClaudeState> {
-    await this.addRuntime(projectPath, randomUUID(), null)
 
     return this.getState()
   }
@@ -218,109 +156,81 @@ export class ClaudeService {
     return id
   }
 
-  activateConversation(conversationId: string): ClaudeState {
-    this.setActive(this.runtime(conversationId).meta.projectPath, conversationId)
-
-    return this.getState()
+  /** Выход из IDE: сверх общего - процессы аккаунтов (вход, вопросы расхода). */
+  override shutdown(): Promise<void> {
+    return super.shutdown(this.accounts.dispose())
   }
 
-  /** Выбрать вкладку проекта; null - вкладок не осталось. */
-  private setActive(projectPath: string, conversationId: string | null) {
-    const { [projectPath]: _previous, ...rest } = this.activeByProject
-
-    this.activeByProject = conversationId ? { ...rest, [projectPath]: conversationId } : rest
-    this.persist.changed()
+  protected storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'> {
+    return { trustedProjects: this.trust.list, prefs: this.settings.prefs }
   }
 
-  /** Доверена ли папка: процесс CLI для недоверенной не поднимается ни в каком обходе. */
-  isTrusted(projectPath: string): Promise<boolean> {
-    return this.trust.isTrusted(projectPath)
+  /** Своё Claude у действий над разговором: транскрипт, копии файлов CLI, его управляющие запросы. */
+  protected readonly ops: ConversationOps = {
+    stopped: (conversationId) => this.panel.carryOn.cancel(conversationId),
+    answerReopened: (runtime, requestId, response) => answerReopened(runtime, requestId, response),
+    // Судьба выбора модели, быстрый режим без модели, которая его умеет, память аккаунта.
+    options: (runtime, options) => this.panel.options(runtime, options),
+    sessionInfo: (runtime) => {
+      const { feed } = claudeOf(runtime)
+
+      feed.builder.addNotice('session', runtime.meta.sessionId)
+      feed.flush()
+    },
+    revertChanges: (runtime, turnId, path, restore) =>
+      claudeOf(runtime).turnRevert.apply(turnId, path, restore),
+    stopTask: (runtime, taskId) => {
+      claudeOf(runtime)
+        .process?.control({ subtype: 'stop_task', task_id: taskId })
+        .catch((error: unknown) => console.warn('[claude] задача не остановилась:', taskId, error))
+    },
+    // Картинка - из транскрипта разговора, у нерождённого форка - из источника.
+    getImage: async (runtime, messageId, index) => {
+      const { projectPath, sessionId, fork } = runtime.meta
+      const file =
+        (await findTranscript(projectPath, sessionId)) ??
+        (fork ? await findTranscript(projectPath, fork.sourceSessionId) : null)
+
+      return file ? readTranscriptImage(file, messageId, index) : null
+    },
+    previewRewind: (runtime, messageId) => previewRewind(runtime, messageId),
+    rewind: (runtime, messageId, scope) => rewind(runtime, messageId, scope),
   }
 
-  /** Человек доверился папке: разговоры, которые на этом стояли, отправляют ждавшее. */
-  async trustProject(projectPath: string): Promise<ClaudeState> {
-    this.trust.trust(projectPath)
-    await Promise.all(
-      [...this.runtimes.values()]
-        .filter((runtime) => runtime.meta.projectPath === projectPath)
-        .map((runtime) => runtime.resolveError('untrusted')),
-    )
+  /** Разговор агента флота с диска: в папке этого разговора, потом источника форка и прочих. */
+  readFleetAgent(conversationId: string, agentId: string): Promise<FleetTranscript> {
+    const { projectPath, sessionId, fork } = this.runtime(conversationId).meta
+    const sessions = fork ? [sessionId, fork.sourceSessionId] : [sessionId]
 
-    return this.getState()
+    return loadFleetTranscript(projectPath, sessions, agentId)
   }
 
-  listHistory(projectPath: string): Promise<HistoryEntry[]> {
-    const open = new Set(
-      [...this.runtimes.values()]
-        .filter((runtime) => runtime.meta.projectPath === projectPath)
-        .map((runtime) => runtime.meta.sessionId),
-    )
+  /** Своё Claude у панели: транскрипты, форк по строке транскрипта, режим по настройкам CLI. */
+  protected readonly driver: PanelDriver = {
+    hasJournal: async (projectPath, sessionId) =>
+      (await findTranscript(projectPath, sessionId)) !== null,
+    journalName: async (projectPath, sessionId) => {
+      const file = await findTranscript(projectPath, sessionId)
 
-    return listHistory(projectPath, open)
+      return file ? transcriptName(file) : undefined
+    },
+    listHistory: (projectPath, open) => listHistory(projectPath, open),
+    forkOrigin: (source, beforeMessageId) => forkOriginFor(source, beforeMessageId),
+    saveTitle: (runtime, title) => writeOwnTitle(runtime, title),
+    defaultMode: async (projectPath) => defaultPermissionMode(projectPath, await claudeHome()),
+    // Закреплённый режим - если проект его допускает (bypass может быть запрещён).
+    newTabPrefs: async (projectPath) => ({
+      ...this.panel.newTabPrefs(this.settings.prefs),
+      newTabMode: await this.settings.pinnedMode(projectPath),
+    }),
+    feedLoaded: (runtime) => applyReplayFacts(runtime),
+    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
+    trust: (projectPath) => this.trust.trust(projectPath),
+    recheckCli: async () => (await this.cli.recheck()) !== null,
   }
 
-  /**
-   * Открыть прошлый разговор. Уже открыт - выбрать его вкладку: два процесса на одном
-   * транскрипте писали бы в него наперегонки. Транскрипта нет - отказ: с чужим id
-   * вкладка начала бы новую сессию под id, который выбрало окно. Заголовок берётся из
-   * транскрипта, а не из запроса.
-   */
-  async openHistory(projectPath: string, sessionId: string): Promise<ClaudeState> {
-    const open = [...this.runtimes.values()].find(
-      (runtime) => runtime.meta.projectPath === projectPath && runtime.meta.sessionId === sessionId,
-    )
-
-    if (open) return this.activateConversation(open.meta.id)
-
-    const file = await findTranscript(projectPath, sessionId)
-
-    if (!file) throw new Error(`Транскрипта ${sessionId} нет`)
-
-    await this.addRuntime(projectPath, sessionId, await transcriptName(file))
-
-    return this.getState()
-  }
-
-  /** Форк в новой вкладке рядом: тот же разговор до точки, дальше - своя ветка. */
-  async fork(conversationId: string, beforeMessageId: string | null): Promise<ClaudeState> {
-    const source = this.runtime(conversationId).meta
-    const origin = await forkOriginFor(source, beforeMessageId)
-
-    await this.addRuntime(source.projectPath, randomUUID(), null, source, origin)
-
-    return this.getState()
-  }
-
-  /** Поискать CLI заново: человек поставил его, пока IDE была открыта. */
-  async recheckCli(): Promise<ClaudeState> {
-    const cli = await this.cli.recheck()
-
-    if (cli) {
-      await Promise.all(
-        [...this.runtimes.values()].map((runtime) => runtime.resolveError('cli-not-found')),
-      )
-    }
-
-    return this.getState()
-  }
-
-  /**
-   * Выход из IDE: процессы CLI, команды «!» и разовые команды CLI гасятся с ожиданием,
-   * а вкладки дописываются на диск. Без ожидания таймер добивания не успел бы
-   * сработать, и упрямый CLI пережил бы IDE вместе со своими MCP-серверами.
-   */
-  async shutdown(): Promise<void> {
-    const stopped = Promise.all([
-      ...[...this.runtimes.values()].map((runtime) => runtime.dispose()),
-      this.accounts.dispose(),
-      ProcessGroup.stopAll(),
-    ])
-
-    await Promise.race([stopped, delay(SHUTDOWN_MAX_MS)])
-    await this.persist.save()
-  }
-
-  private readonly host: ConversationHost = {
+  protected readonly host: ClaudeHost = {
+    driver: claudeDriver(() => this.host),
     cli: async () => {
       const cli = await this.cli.locate()
 
@@ -337,7 +247,9 @@ export class ClaudeService {
     thumbnail: makeThumbnail,
     accountId: () => this.accounts.current,
     onUsageHint: (runtime) => {
-      if (runtime.process?.isAlive) this.usage.fromProcess(runtime.accountId, runtime.process)
+      const { process } = claudeOf(runtime)
+
+      if (process?.isAlive) this.usage.fromProcess(runtime.accountId, process)
     },
     onCall: (conversationId, reason, key) => this.calls.add(conversationId, reason, key),
     mcpConfig: (projectPath) => this.connectors.configFor(projectPath),
@@ -347,34 +259,10 @@ export class ClaudeService {
   /** Живой процесс разговора на аккаунте: расход у него свежий и бесплатный. */
   private liveProcess(accountId: string): CliProcess | null {
     const runtime = [...this.runtimes.values()].find(
-      (item) => item.process?.isAlive && item.accountId === accountId,
+      (item) => claudeOf(item).process?.isAlive && item.accountId === accountId,
     )
 
-    return runtime?.process ?? null
-  }
-
-  /**
-   * Вкладка разговора, выбранная в своём проекте. Модель, усилие и режим - как у base
-   * (форк продолжает свой источник и встаёт в его группу), иначе как у выбранной до неё
-   * или закреплённые в Settings (tabs/new-tab.ts).
-   */
-  private async addRuntime(
-    projectPath: string,
-    sessionId: string,
-    name: TranscriptSummary,
-    base?: Conversation,
-    fork: ForkOrigin | null = null,
-  ) {
-    const current = this.runtimes.get(this.activeByProject[projectPath] ?? '')?.meta
-    // Закреплённый режим - если проект его допускает (bypass может быть запрещён).
-    const pinnedMode = await this.settings.pinnedMode(projectPath)
-    const prefs = { ...this.panel.newTabPrefs(this.settings.prefs), newTabMode: pinnedMode }
-    const tab = { projectPath, sessionId, name, base, fork, current, prefs }
-    const conversation = await newTabConversation(tab)
-
-    this.tabs.add(conversation)
-
-    return conversation.id
+    return runtime ? claudeOf(runtime).process : null
   }
 
   /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры, доверие. */
@@ -385,31 +273,6 @@ export class ClaudeService {
       cli: () => this.host.cli(),
       isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
       onCommands: (projectPath, commands) => this.host.onCommands(projectPath, commands),
-    }
-  }
-
-  /** Разговор по id из окна; нет такого - ошибка, а не тихий пропуск. */
-  runtime(conversationId: string): ConversationRuntime {
-    const runtime = this.runtimes.get(conversationId)
-
-    if (!runtime) throw new Error(`Разговора ${conversationId} нет`)
-
-    return runtime
-  }
-
-  scheduleBroadcast() {
-    this.persist.scheduleBroadcast()
-  }
-
-  /** Что о вкладках хранится на диске. */
-  private stored(): StoredClaude {
-    return {
-      conversations: [...this.runtimes.values()].map((runtime) => toStored(runtime.meta)),
-      closed: this.tabs.stored(),
-      activeByProject: this.activeByProject,
-      trustedProjects: this.trust.list,
-      prefs: this.settings.prefs,
-      commandsByProject: this.commands.stored(),
     }
   }
 }

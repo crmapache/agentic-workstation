@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
-import type { CliTask, FeedItem, FleetAgent, ToolFeedItem } from '@shared/claude-feed'
+import type { CliTask, FeedItem, FleetAgent, ToolAction, ToolFeedItem } from '@shared/claude-feed'
 
 import {
   streamAgents,
@@ -34,12 +34,19 @@ const task = (over: Partial<CliTask> = {}): CliTask => ({
   ...over,
 })
 
+/** Вид действия по имени - как его поставил бы драйвер Claude. */
+const actionOf = (name: string): ToolAction =>
+  name === 'Bash'
+    ? { kind: 'command', command: '', description: '' }
+    : { kind: 'agent', agent: '', description: '', prompt: '', workflow: name === 'Workflow' }
+
 const tool = (id: string, name: string, over: Partial<ToolFeedItem> = {}): ToolFeedItem => ({
   kind: 'tool',
   id,
   parentToolUseId: null,
   name,
   input: {},
+  action: actionOf(name),
   status: 'running',
   result: null,
   startedAt: 1_000,

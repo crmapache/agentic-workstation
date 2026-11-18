@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../NoticeRow.module.scss'
-import { useClaudeActions } from '../../claude-actions.hooks'
+import { useClaudeAccounts } from '../../claude-accounts.hooks'
 import { useClaudeCodeStore } from '../../claude-code.store'
 import { useClaudeState } from '../../claude.queries'
 
@@ -14,7 +14,7 @@ import { useClaudeState } from '../../claude.queries'
  */
 export const SignInActions = () => {
   const { t } = useTranslation()
-  const { accounts } = useClaudeActions()
+  const accounts = useClaudeAccounts()
   const { data: state } = useClaudeState()
   const openMenu = useClaudeCodeStore((store) => store.openMenu)
   const hasOthers = (state?.accounts.accounts.length ?? 0) > 1

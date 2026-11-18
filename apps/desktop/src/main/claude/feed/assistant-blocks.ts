@@ -1,6 +1,7 @@
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'
-import type { FeedStore } from './feed-store'
+import type { FeedStore } from '../../agents/feed/feed-store'
 import { EMPTY_TEXT_PLACEHOLDER } from './feed.constants'
+import { claudeToolAction } from './tool-action'
 
 type BlockKind = 'text' | 'thinking' | 'tool'
 
@@ -204,18 +205,24 @@ export class AssistantBlocks {
     const input = recordField(block, 'input')
 
     if (existing?.kind === 'tool') {
+      const latest = Object.keys(input).length > 0 ? input : existing.input
+
       this.store.put({
         ...existing,
-        input: Object.keys(input).length > 0 ? input : existing.input,
+        input: latest,
+        action: claudeToolAction(existing.name, latest),
         parentToolUseId: existing.parentToolUseId ?? parentToolUseId,
       })
     } else {
+      const name = stringField(block, 'name')
+
       this.store.put({
         kind: 'tool',
         id,
         parentToolUseId,
-        name: stringField(block, 'name'),
+        name,
         input,
+        action: claudeToolAction(name, input),
         status: 'running',
         result: null,
         startedAt: at,

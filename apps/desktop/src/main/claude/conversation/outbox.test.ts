@@ -2,8 +2,8 @@ import { it, expect, describe } from 'vitest'
 
 import type { QueuedMessage } from '@shared/claude'
 
-import type { ConversationRuntime } from './conversation-runtime'
-import { ConversationOutbox } from './outbox'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { ConversationOutbox } from '../../agents/conversation/outbox'
 
 /** Разговор посреди хода: всё, что ставят в очередь, остаётся в ней. */
 const busyRuntime = () => {

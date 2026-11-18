@@ -1,4 +1,4 @@
-import type { Environment } from '../cli/shell-env'
+import type { Environment } from '../../process/shell-env'
 
 /** Переменная CLI: где лежит вход. Не в --help, найдена ACC в бинарнике и проверена. */
 export const DRAWER_VARIABLE = 'CLAUDE_SECURESTORAGE_CONFIG_DIR'

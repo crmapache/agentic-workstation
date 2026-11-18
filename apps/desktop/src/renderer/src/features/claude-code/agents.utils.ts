@@ -2,20 +2,20 @@ import type { TFunction } from 'i18next'
 
 import type { CliTask, FeedItem, FleetAgent, ToolFeedItem } from '@shared/claude-feed'
 
-import { AGENT_CALLS, MAX_JOURNAL_STEPS, COMMAND_OUTCOME_KEYS } from './agents.constants'
-import { inputText, formatTokens, formatDuration } from './claude.utils'
+import { MAX_JOURNAL_STEPS, COMMAND_OUTCOME_KEYS } from './agents.constants'
+import { formatTokens, formatDuration } from './claude.utils'
 import { toolKind } from './feed-rows.utils'
 import type { SelectedStream, StreamSelection } from './streams.types'
 import type { DotState } from './StatusDot/StatusDot.types'
 
-/** Вызов субагента или флота: Task, Agent, Workflow или агент, поднятый скиллом. */
+/** Вызов субагента или флота - по виду действия - или агент, поднятый скиллом. */
 export const isAgentCall = (item: FeedItem): item is ToolFeedItem =>
   item.kind === 'tool' &&
-  (AGENT_CALLS.has(item.name) || item.task?.kind === 'agent' || item.task?.kind === 'workflow')
+  (item.action.kind === 'agent' || item.task?.kind === 'agent' || item.task?.kind === 'workflow')
 
-/** Флот workflow, а не один агент: отчёт флота мог ещё не прийти, имя вызова - уже есть. */
+/** Флот workflow, а не один агент: отчёт флота мог ещё не прийти, вид вызова - уже есть. */
 export const isWorkflow = (tool: ToolFeedItem): boolean =>
-  tool.name === 'Workflow' || tool.task?.kind === 'workflow'
+  (tool.action.kind === 'agent' && tool.action.workflow) || tool.task?.kind === 'workflow'
 
 /** Агент верхнего уровня разговора, который ещё работает. */
 const isLiveAgent = (item: FeedItem): boolean =>
@@ -46,11 +46,11 @@ export const runningCommands = (items: readonly FeedItem[]): ToolFeedItem[] =>
 export const agentType = (tool: ToolFeedItem, t: TFunction): string =>
   isWorkflow(tool)
     ? t('claudeCode.agents.workflow')
-    : inputText(tool.input, 'subagent_type') || t('claudeCode.agents.agent')
+    : (tool.action.kind === 'agent' && tool.action.agent) || t('claudeCode.agents.agent')
 
 /** Чем занят агент: описание из вызова, иначе из события CLI. */
 export const agentDescription = (tool: ToolFeedItem): string =>
-  inputText(tool.input, 'description') || tool.task?.activity || ''
+  (tool.action.kind === 'agent' && tool.action.description) || tool.task?.activity || ''
 
 /** Сколько шёл вызов к моменту now: до конца или, пока идёт, до сейчас. 0 - неизвестно. */
 export const elapsedMs = (tool: ToolFeedItem, now: number): number => {
@@ -74,7 +74,7 @@ export const fleetPercent = (tool: ToolFeedItem): number | null => {
 export const journalSteps = (children: readonly FeedItem[]) => {
   const steps = children.filter(
     (step) =>
-      (step.kind === 'tool' && toolKind(step.name) !== 'hidden') ||
+      (step.kind === 'tool' && toolKind(step.action) !== 'hidden') ||
       step.kind === 'thinking' ||
       step.kind === 'assistant',
   )

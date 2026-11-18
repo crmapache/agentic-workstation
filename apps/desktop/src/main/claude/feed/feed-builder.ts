@@ -14,9 +14,10 @@ import type {
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'
+import { FeedStore } from '../../agents/feed/feed-store'
+import { WorkClock } from '../../agents/feed/work-clock'
 import { AgentTasks } from './agent-tasks'
 import { AssistantBlocks } from './assistant-blocks'
-import { FeedStore } from './feed-store'
 import { lineTime } from './line-time'
 import { leftQuestion, replayedUser, assistantText, replayedQueued } from './replayed-user'
 import { ServiceRows } from './service-rows'
@@ -24,7 +25,6 @@ import { TaskList } from './task-list'
 import { ToolResults } from './tool-results'
 import { TurnCloser } from './turn-closer'
 import { TurnTracker } from './turn-tracker'
-import { WorkClock } from './work-clock'
 
 /** Что ушло окну с прошлого сбора: тронутые и убранные элементы, список задач, если менялся. */
 export type FeedChanges = {

@@ -2,6 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { FeedItem, ToolFeedItem } from '@shared/claude-feed'
 
+import { claudeToolAction } from '../feed/tool-action'
 import { turnTools, turnChanges } from './turn-changes'
 import type { EditEntry } from './turn-edits'
 
@@ -17,6 +18,7 @@ const edit = (
   parentToolUseId: parent,
   name,
   input,
+  action: claudeToolAction(name, input),
   status: 'done',
   result: result && { text: '', isError: false, truncated: false, ...result },
   startedAt: 0,

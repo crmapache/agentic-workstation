@@ -3,8 +3,9 @@ import type { PanelPrefs } from '@shared/claude-prefs'
 import type { ClaudeCli } from '../cli/cli-locator'
 import type { CliMessage } from '../cli/cli-messages'
 import { askCli } from '../cli/cli-probe'
+import { claudeOf } from '../conversation/claude-conversation'
 import { modelsFromReply } from '../conversation/cli-replies'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { AccountCatalogs } from './account-catalogs'
 import { environmentFor } from './account-env'
 import type { AccountService } from './account-service'
@@ -47,7 +48,8 @@ export class AccountModels {
 
   /** Живая строка процесса: на первом init аккаунта - спросить его каталог у самого процесса. */
   heard(runtime: ConversationRuntime, message: CliMessage): void {
-    const { process, accountId } = runtime
+    const { accountId } = runtime
+    const { process } = claudeOf(runtime)
     const isInit = message.type === 'system' && message.subtype === 'init' && !message['task_id']
 
     if (!isInit || !process) return

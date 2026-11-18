@@ -1,9 +1,9 @@
 import type { FeedItem, ToolInput, FileChange, ToolFeedItem } from '@shared/claude-feed'
 
 import { isRecord } from '../cli/cli-messages'
+import { patchLines, writtenLines } from '../../agents/changes/line-counts'
+import { lineDiff } from '../../agents/changes/line-diff'
 import { EDIT_TOOL_PATH_FIELD } from './changes.constants'
-import { patchLines, writtenLines } from './line-counts'
-import { lineDiff } from './line-diff'
 import type { EditEntry } from './turn-edits'
 
 /** Что одна правка дала строке файла - без отметок отката. */

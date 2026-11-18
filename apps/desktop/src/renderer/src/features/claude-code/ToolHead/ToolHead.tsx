@@ -25,7 +25,7 @@ export const ToolHead = ({ tool, meta, canOpen, expanded, onToggle }: ToolHeadPr
   const { t } = useTranslation()
   const { projectPath } = useFeedScope()
   const awaitingId = useAwaitingTool()
-  const chip = toolChip(tool.name)
+  const chip = toolChip(tool.action)
   const target = toolTarget(tool, projectPath)
   const file = fileTarget(tool)
   const isFailed = tool.status === 'error' || tool.status === 'denied'

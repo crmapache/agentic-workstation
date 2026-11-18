@@ -2,11 +2,11 @@ import type { CliStatus, ModelInfo, SlashCommand } from '@shared/claude'
 import type { CliSearch } from '@shared/claude-panel'
 
 import { modelsFromReply, builtinsFromReply } from '../conversation/cli-replies'
+import { loginShellEnv } from '../../process/shell-env'
 import type { ClaudeCli } from './cli-locator'
 import { locateClaudeCli } from './cli-locator'
 import { checkCliPath, searchedPlaces } from './cli-path'
 import { askCli } from './cli-probe'
-import { loginShellEnv } from './shell-env'
 
 /**
  * Где Claude Code на этой машине, какие у него модели и свои команды. Ищется сразу при

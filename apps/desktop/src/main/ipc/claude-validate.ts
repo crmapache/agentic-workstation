@@ -8,8 +8,8 @@ import type {
 import { EFFORT_LEVELS, PERMISSION_MODES, IMAGE_MEDIA_TYPES } from '@shared/claude'
 import type { RewindScope } from '@shared/claude-rewind'
 
-import { parseEditorRef, parseMessageDraft } from '../claude/conversation/message-draft'
-import type { Outgoing } from '../claude/conversation/outbox'
+import { parseEditorRef, parseMessageDraft } from '../agents/conversation/message-draft'
+import type { Outgoing } from '../agents/conversation/outbox'
 import { isAgentName } from '../claude/feed/fleet-transcript'
 import { usableModel } from '../claude/settings/panel-prefs'
 import { assertOneOf, assertString } from './validate'

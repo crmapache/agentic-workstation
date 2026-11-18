@@ -2,7 +2,7 @@ import { stat, readdir, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import { loginShellEnv } from '../cli/shell-env'
+import { loginShellEnv } from '../../process/shell-env'
 import { SLUG_MAX_CHARS } from './history.constants'
 
 /**

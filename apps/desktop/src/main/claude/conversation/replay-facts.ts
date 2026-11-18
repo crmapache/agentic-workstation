@@ -1,6 +1,7 @@
 import type { Conversation, RequestResponse } from '@shared/claude'
 
-import type { ConversationRuntime } from './conversation-runtime'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { claudeOf } from './claude-conversation'
 import { parseQuestions } from './pending-requests'
 
 /** Префикс id ожившего вопроса: управляющего запроса CLI под ним нет. */
@@ -19,7 +20,7 @@ export const applyReplayFacts = (runtime: ConversationRuntime): void => {
 
   applied.add(runtime)
 
-  const { model, abandonedQuestion } = runtime.feed.builder.replayFacts
+  const { model, abandonedQuestion } = claudeOf(runtime).feed.builder.replayFacts
   const change: Partial<Conversation> = {}
 
   if (model && !runtime.meta.activeModel) change.activeModel = model

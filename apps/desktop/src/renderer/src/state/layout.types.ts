@@ -4,8 +4,11 @@ export type SideViewId = 'files' | 'changes'
 /** Виды зоны 6 (середина окна), переключаются иконками полосы слева от неё. */
 export type MainViewId = 'file' | 'scenarios' | 'tasks' | 'statistics' | 'connectors' | 'inbox'
 
-/** GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3. */
-export type ProviderViewId = 'claude-code'
+/**
+ * GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3 (ADR 0083):
+ * Claude Code, Codex, открытые модели. Какие из них уже есть - PROVIDER_VIEW_IDS.
+ */
+export type ProviderViewId = 'claude-code' | 'codex' | 'open-models'
 
 /** Область окна с видами: какой вид выбран и развёрнута ли она. Такова середина окна. */
 export type ViewAreaState<ViewId extends string> = {

@@ -5,7 +5,7 @@ import type { WindowCommand } from '@shared/window'
 
 import { IS_MAC } from './platform'
 import { broadcast } from './ipc/broadcast'
-import { isPanelFocused } from './claude/tabs/panel-focus'
+import { isPanelFocused } from './agents/tabs/panel-focus'
 
 type MenuActions = {
   openProject: () => void

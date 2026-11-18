@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto'
 
 import type { ShellFeedItem } from '@shared/claude-feed'
 
-import { loginShellEnv } from '../cli/shell-env'
 import type { ConversationFeedSync } from '../conversation/conversation-feed'
-import { ShellCommand } from './shell-command'
+import { loginShellEnv } from '../../process/shell-env'
+import { ShellCommand } from '../../agents/shell/shell-command'
 import type { ShellRun } from './shell-text'
 import { shellText } from './shell-text'
 

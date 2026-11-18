@@ -1,7 +1,7 @@
 import type { CliMessage } from '../cli/cli-messages'
 import { stringField } from '../cli/cli-messages'
+import type { FeedStore } from '../../agents/feed/feed-store'
 import type { AgentTasks } from './agent-tasks'
-import type { FeedStore } from './feed-store'
 import type { TaskList } from './task-list'
 import { wasRejected, buildToolResult } from './tool-result'
 

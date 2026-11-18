@@ -14,7 +14,6 @@ import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
 import { ClaudeService } from './claude/claude-service'
-import type { StoredClaude } from './claude/claude-state'
 import { startConnectors } from './connectors/connectors-setup'
 import { AI_CHATS_DIR } from './connectors/connectors.constants'
 import { OutsideWatchers } from './fs/outside-watchers'
@@ -26,6 +25,8 @@ import { InboxLink } from './inbox/inbox-agent'
 import { broadcast } from './ipc/broadcast'
 import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
+import { ProcessGroup } from './process/process-group'
+import { loginShellEnv } from './process/shell-env'
 import { SearchService } from './search/search-service'
 import { SoundsService } from './sounds/sounds-service'
 import { JsonFile } from './storage/json-file'
@@ -40,11 +41,11 @@ import { hideConsoleWindows } from './windows/console-hide'
 import { homeFolderPath } from './workspace/home-folder'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
+import { PanelRegistry } from './agents/panel/panel-registry'
+import type { StoredPanel } from './agents/panel/panel-state'
 import type { StoredAccounts } from './claude/accounts/account-store'
 import { watchAgentEdits } from './claude/changes/agent-edits-tap'
 import { locateClaudeCli } from './claude/cli/cli-locator'
-import { ProcessGroup } from './claude/cli/process-group'
-import { loginShellEnv } from './claude/cli/shell-env'
 import { connectorChats } from './claude/connector-chat/connector-chats'
 import { SearchDesk } from './claude/search/search-desk'
 import { SEARCH_DIR_NAME } from './claude/search/search.constants'
@@ -120,20 +121,20 @@ const bootstrap = async () => {
     (prefs) => broadcast('sounds:changed', prefs),
   )
   const claude = await ClaudeService.load(
-    new JsonFile<StoredClaude>(join(app.getPath('userData'), 'claude.json')),
+    new JsonFile<StoredPanel>(join(app.getPath('userData'), 'claude.json')),
     {
       onState: (state) => {
-        broadcast('claude:state', state)
+        broadcast('agent:state', { provider: 'claude', state })
         observeClaude(state)
       },
       onFeed: (patch) => {
-        broadcast('claude:feed', patch)
+        broadcast('agent:feed', { provider: 'claude', patch })
         observeFeed(patch)
       },
       // Телефону - каждый повод, окну - только не выключенный в Settings → Sounds.
       onCall: (call) => {
         observeCall(call)
-        if (!sounds.isMuted(call.reason)) broadcast('claude:call', call)
+        if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider: 'claude', call })
       },
       openPath: (path) => shell.openPath(path),
     },
@@ -142,6 +143,10 @@ const bootstrap = async () => {
       dir: join(app.getPath('userData'), 'claude-accounts'),
     },
   )
+  // Панели провайдеров ИИ (ADR 0083): каналы agent:* находят панель по провайдеру.
+  const panels = new PanelRegistry()
+
+  panels.add('claude', claude)
   // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
   claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
   // Дом - папка, которую создала сама IDE, чужих хуков и настроек в ней нет: вопроса о доверии
@@ -267,6 +272,7 @@ const bootstrap = async () => {
     updates,
     search,
     claude,
+    panels,
     gitStatus,
     outsideWatchers,
     conversationSearch,

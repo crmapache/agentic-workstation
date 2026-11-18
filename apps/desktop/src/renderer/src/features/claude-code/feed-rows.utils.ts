@@ -1,36 +1,26 @@
-import type { FeedItem, ToolFeedItem, ThinkingFeedItem } from '@shared/claude-feed'
+import type { FeedItem, ToolAction, ToolFeedItem, ThinkingFeedItem } from '@shared/claude-feed'
 
 import type { FeedRow, ToolKind } from './claude.types'
 
-/** Служебные вызовы: список задач рисуется панелью над полем, поиск инструментов - шум. */
-const HIDDEN_TOOLS = new Set([
-  'TodoWrite',
-  'TaskCreate',
-  'TaskUpdate',
-  'TaskGet',
-  'TaskList',
-  'ToolSearch',
-])
-
 /**
- * Правки, которые стоят своей карточкой с открытым диффом, а не прячутся в группе:
- * неверную правку надо заметить, не собираясь её искать (ACC). Write - не здесь: новый
- * файл - не «что изменилось», он идёт в группе с подписью «· N lines».
+ * Как вызов встаёт в ленту: в группе, своей карточкой или не встаёт вовсе. Служебный
+ * (список задач рисуется панелью над полем) - не встаёт. Правка стоит своей карточкой с
+ * открытым диффом: неверную правку надо заметить, не собираясь её искать (ACC). Новый файл -
+ * не «что изменилось», он идёт в группе с подписью «· N lines». Субагент и workflow - своя
+ * карточка со своим журналом.
  */
-const EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit'])
-
-/** Субагент и workflow: своя карточка со своим журналом. */
-const AGENT_TOOLS = new Set(['Task', 'Agent', 'Workflow'])
-
-/** Как вызов встаёт в ленту: в группе, своей карточкой или не встаёт вовсе. */
-export const toolKind = (name: string): ToolKind => {
-  if (HIDDEN_TOOLS.has(name)) return 'hidden'
-  if (EDIT_TOOLS.has(name)) return 'edit'
-  if (AGENT_TOOLS.has(name)) return 'agent'
-  if (name === 'ExitPlanMode') return 'plan'
-  if (name === 'AskUserQuestion') return 'question'
-
-  return 'plain'
+export const toolKind = (action: ToolAction): ToolKind => {
+  switch (action.kind) {
+    case 'todo':
+      return 'hidden'
+    case 'edit':
+    case 'agent':
+    case 'plan':
+    case 'question':
+      return action.kind
+    default:
+      return 'plain'
+  }
 }
 
 /** Вызов ждёт ответа человека или уже ответил: вопрос, на который ещё не ответили, - над полем. */
@@ -77,7 +67,7 @@ export const buildFeedRows = (items: readonly FeedItem[]): FeedRow[] => {
     }
 
     if (item.kind === 'tool') {
-      const kind = toolKind(item.name)
+      const kind = toolKind(item.action)
 
       if (kind === 'hidden') continue
 

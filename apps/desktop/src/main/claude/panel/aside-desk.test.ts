@@ -3,7 +3,10 @@ import { it, expect, describe } from 'vitest'
 import type { AsideView } from '@shared/claude-panel'
 
 import { CliReplyError } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ClaudeHost } from '../conversation/claude-conversation'
+import { attachClaude } from '../conversation/claude-conversation'
+import type { ClaudeSession } from '../conversation/claude-session'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { AsideDesk } from './aside-desk'
 
 /** Процесс разговора: ответы на служебные запросы держит тест, отмена - ошибкой CLI. */
@@ -33,10 +36,21 @@ const setup = (ready: Promise<unknown>) => {
     meta: { id: 'c1' },
     isFree: true,
     isDisposed: false,
-    process: null as unknown,
-    prepareProcess: () => ready.then((process) => (runtime.process = process)),
+    session: null as unknown,
+    // Сессия поднята - её процесс и есть процесс разговора (claudeOf(runtime).process).
+    prepareSession: () =>
+      ready.then((process) => {
+        const session = { process } as unknown as ClaudeSession
+
+        claude.session = session
+        runtime.session = session
+
+        return session
+      }),
     scheduleSleep: () => (sleeps += 1),
   }
+  const host = { onFeedPatch: () => undefined, thumbnail: () => '' } as unknown as ClaudeHost
+  const claude = attachClaude(runtime as unknown as ConversationRuntime, host)
   const desk = new AsideDesk(() => runtime as unknown as ConversationRuntime)
 
   desk.onChange = (view) => views.push(view)

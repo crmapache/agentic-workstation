@@ -3,16 +3,20 @@ import { join } from 'node:path'
 
 import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
-import { freshConversation } from '../claude-state'
 import type { CliProcess } from '../cli/cli-process'
-import type { ConversationHost } from './conversation-runtime'
-import { ConversationRuntime } from './conversation-runtime'
-import { REWOUND_DENY, IDLE_SLEEP_MS, COMMAND_RESULT_GRACE_MS } from './conversation.constants'
+import { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { IDLE_SLEEP_MS } from '../../agents/conversation/conversation.constants'
+import { freshConversation } from '../../agents/panel/panel-state'
+import type { ClaudeHost } from './claude-conversation'
+import { claudeOf } from './claude-conversation'
+import { claudeDriver } from './claude-driver'
+import { ClaudeSession } from './claude-session'
+import { REWOUND_DENY, COMMAND_RESULT_GRACE_MS } from './conversation.constants'
 import { PLAN_ANSWERED_IN_CHAT } from './pending-requests'
 import { rewind } from './rewind'
-import { spawnConversationProcess } from './spawn'
+import { openClaudeSession } from './spawn'
 
-vi.mock('./spawn', () => ({ spawnConversationProcess: vi.fn() }))
+vi.mock('./spawn', () => ({ openClaudeSession: vi.fn() }))
 
 type Block = { type: string; text?: string }
 type Written = { type: string; uuid?: string; message?: { content: Block[] } }
@@ -62,7 +66,8 @@ const fakeProcess = () => {
 type FakeProcess = ReturnType<typeof fakeProcess>
 
 const makeRuntime = (trusted: { value: boolean }) => {
-  const host: ConversationHost = {
+  const host: ClaudeHost = {
+    driver: claudeDriver(() => host),
     cli: () =>
       Promise.resolve({
         binary: 'claude',
@@ -107,9 +112,27 @@ const makeRuntime = (trusted: { value: boolean }) => {
   return runtime
 }
 
+/** Сессии над поддельными процессами: поток и выход идут через ту, что владеет процессом. */
+const sessions = new Map<FakeProcess, ClaudeSession>()
+
+/** Сессия поддельного процесса - как её поднял бы драйвер. */
+const sessionOf = (fake: FakeProcess): ClaudeSession => {
+  const session = sessions.get(fake)
+
+  if (!session) throw new Error('Процесс не поднимался')
+
+  return session
+}
+
 /** Следующий поднятый процесс - этот. */
 const nextProcess = (fake: FakeProcess) =>
-  vi.mocked(spawnConversationProcess).mockResolvedValueOnce(fake as unknown as CliProcess)
+  vi.mocked(openClaudeSession).mockImplementationOnce((runtime) => {
+    const session = new ClaudeSession(runtime, fake as unknown as CliProcess)
+
+    sessions.set(fake, session)
+
+    return Promise.resolve(session)
+  })
 
 const askPermission = (
   runtime: ConversationRuntime,
@@ -120,7 +143,7 @@ const askPermission = (
     input: { command: 'ls' },
   },
 ) =>
-  runtime.handleControlRequest(fake as unknown as CliProcess, {
+  sessionOf(fake).handleControlRequest({
     type: 'control_request',
     request_id: id,
     request: {
@@ -133,7 +156,7 @@ const askPermission = (
 
 /** Строка потока CLI - как её получил бы разговор от живого процесса. */
 const receive = (runtime: ConversationRuntime, fake: FakeProcess, message: object) =>
-  runtime.handleMessage(fake as unknown as CliProcess, message as never)
+  sessionOf(fake).handleMessage(message as never)
 
 /** Ход кончился так, как его заканчивает process-router. */
 const finishTurn = (runtime: ConversationRuntime, isClean = true) => {
@@ -165,7 +188,7 @@ const msg = (text: string) => ({ text, images: [] })
 
 const queueTexts = (runtime: ConversationRuntime) => runtime.meta.queue.map((item) => item.text)
 
-beforeEach(() => vi.mocked(spawnConversationProcess).mockReset())
+beforeEach(() => vi.mocked(openClaudeSession).mockReset())
 
 afterEach(() => vi.useRealTimers())
 
@@ -277,10 +300,11 @@ describe('процесс', () => {
     const first = fakeProcess()
     const second = fakeProcess()
 
-    nextProcess(first).mockResolvedValueOnce(second as unknown as CliProcess)
+    nextProcess(first)
+    nextProcess(second)
     await runtime.send(msg('hello'))
     first.stop.mockImplementationOnce(() => {
-      runtime.handleExit(first as unknown as CliProcess, null, '')
+      sessionOf(first).handleExit(null, '')
 
       return Promise.resolve()
     })
@@ -396,11 +420,12 @@ describe('отложенный перезапуск', () => {
     const first = fakeProcess()
     const second = fakeProcess()
 
-    nextProcess(first).mockResolvedValueOnce(second as unknown as CliProcess)
+    nextProcess(first)
+    nextProcess(second)
     await runtime.send(msg('hello'))
     askPermission(runtime, first, 'r1')
     finishTurn(runtime)
-    runtime.restartProcess()
+    runtime.restartSession()
 
     expect(first.stop).not.toHaveBeenCalled()
 
@@ -416,18 +441,19 @@ describe('отложенный перезапуск', () => {
     const first = fakeProcess()
     const second = fakeProcess()
 
-    nextProcess(first).mockResolvedValueOnce(second as unknown as CliProcess)
+    nextProcess(first)
+    nextProcess(second)
     await runtime.send(msg('hello'))
     first.stop.mockImplementationOnce(() => {
-      runtime.handleExit(first as unknown as CliProcess, null, '')
+      sessionOf(first).handleExit(null, '')
 
       return Promise.resolve()
     })
     runtime.forceStop()
-    await runtime.prepareProcess()
+    await runtime.prepareSession()
 
     expect(runtime.meta.status).toBe('idle')
-    expect(runtime.process).toBe(second)
+    expect(claudeOf(runtime).process).toBe(second)
   })
 })
 
@@ -450,7 +476,7 @@ describe('сообщение', () => {
     const runtime = makeRuntime({ value: true })
     const fake = fakeProcess()
     const takeContext = vi
-      .spyOn(runtime.shells, 'takeContext')
+      .spyOn(claudeOf(runtime).shells, 'takeContext')
       .mockReturnValue('<bash-input>ls</bash-input>')
 
     nextProcess(fake)
@@ -535,7 +561,10 @@ describe('конец хода', () => {
 
     expect(runtime.meta.status).toBe('idle')
     expect(runtime.meta.stopRequestedAt).toBeNull()
-    expect(runtime.feed.builder.items.at(-1)).toMatchObject({ kind: 'turn', costUsd: 0.01004223 })
+    expect(claudeOf(runtime).feed.builder.items.at(-1)).toMatchObject({
+      kind: 'turn',
+      costUsd: 0.01004223,
+    })
     await vi.waitFor(() => expect(fake.texts).toEqual(['/compact', 'next']))
   })
 
@@ -561,14 +590,7 @@ describe('конец хода', () => {
     const idle = vi.fn()
     const result = { type: 'result', num_turns: 1, result: 'hi', total_cost_usd: 0 }
 
-    runtime.connectors = {
-      path: '',
-      allowed: [],
-      own: vi.fn(),
-      release: vi.fn(),
-      idle,
-      end: vi.fn(),
-    }
+    runtime.connectors = { idle, end: vi.fn() }
     nextProcess(fake)
     await runtime.send(msg('hello'))
     expect(idle).not.toHaveBeenCalled()
@@ -708,9 +730,9 @@ describe('конец хода', () => {
     nextProcess(fake)
     await runtime.send(msg('/compact'))
     receive(runtime, fake, lifecycle(fake.uuids[0] ?? '', 'started'))
-    runtime.handleExit(fake as unknown as CliProcess, 1, 'boom')
+    sessionOf(fake).handleExit(1, 'boom')
 
-    expect(runtime.feed.builder.items.at(-1)).toMatchObject({
+    expect(claudeOf(runtime).feed.builder.items.at(-1)).toMatchObject({
       kind: 'notice',
       code: 'process-exited',
     })
@@ -721,7 +743,7 @@ describe('процесс не поднялся', () => {
   it('сбой подготовки - сообщение ждёт в очереди, ход не висит, причина во вкладке', async () => {
     const runtime = makeRuntime({ value: true })
 
-    vi.mocked(spawnConversationProcess).mockRejectedValueOnce(new Error('ENOSPC'))
+    vi.mocked(openClaudeSession).mockRejectedValueOnce(new Error('ENOSPC'))
     await runtime.send(msg('hello'))
 
     expect(runtime.turnActive).toBe(false)

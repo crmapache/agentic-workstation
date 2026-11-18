@@ -12,7 +12,7 @@ import type { PicturesPort, ConversationsPort } from '../bridge/bridge-ports'
 /** Прошлый разговор проекта, которого нет вкладкой: его можно открыть с телефона. */
 export const PAST_SESSION = '9a8b7c6d-5e4f-3a2b-1c0d-ffeeddccbbaa'
 
-/** Картинка сообщения целиком - как её отдаёт claude:getImage (data URL). */
+/** Картинка сообщения целиком - как её отдаёт agent:getImage (data URL). */
 export const imageOf = (bytes: number): string => `data:image/png;base64,${'A'.repeat(bytes)}`
 
 /**

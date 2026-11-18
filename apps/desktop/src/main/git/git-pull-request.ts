@@ -4,7 +4,7 @@ import { promisify } from 'node:util'
 
 import type { GitPullRequest, GitPullRequestState } from '@shared/git'
 
-import { loginShellEnv } from '../claude/cli/shell-env'
+import { loginShellEnv } from '../process/shell-env'
 import { GH_TIMEOUT_MS, GH_FALLBACK_DIRS } from './git.constants'
 
 const run = promisify(execFile)

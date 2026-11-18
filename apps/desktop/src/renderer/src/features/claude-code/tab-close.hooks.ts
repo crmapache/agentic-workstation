@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import type { ClaudeState, Conversation } from '@shared/claude'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useClaudeActions } from './claude-actions.hooks'
 import { useClaudeCodeStore } from './claude-code.store'
@@ -16,12 +17,13 @@ import { useComposerStore } from './composer.store'
  */
 export const useCloseTab = () => {
   const queryClient = useQueryClient()
+  const provider = usePanelProvider()
   const { closeConversation } = useClaudeActions()
   const setEmptied = useClaudeCodeStore((store) => store.setEmptied)
 
   return useCallback(
     (conversation: Conversation) => {
-      const state = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.claudeState)
+      const state = queryClient.getQueryData<ClaudeState>(QUERY_KEYS.agentState(provider))
       const left = state?.conversations.filter(
         (item) => item.projectPath === conversation.projectPath && item.id !== conversation.id,
       )
@@ -31,6 +33,6 @@ export const useCloseTab = () => {
 
       return closeConversation(conversation.id, hasDraft)
     },
-    [queryClient, closeConversation, setEmptied],
+    [queryClient, closeConversation, setEmptied, provider],
   )
 }

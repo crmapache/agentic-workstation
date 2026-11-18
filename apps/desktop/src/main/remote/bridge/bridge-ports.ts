@@ -63,18 +63,18 @@ export type ConversationsPort = {
   bypassDisabled: (projectPath: string) => Promise<boolean>
   rename: (conversationId: string, title: string) => Promise<unknown>
   providers: () => Promise<ProviderInfo[]>
-  /** Прошлые разговоры проекта (claude:listHistory). */
+  /** Прошлые разговоры проекта (agent:listHistory). */
   history: (projectPath: string) => Promise<HistoryEntry[]>
   /**
-   * Открыть прошлый разговор вкладкой (claude:openHistory). Ответ - id вкладки; null - такого
+   * Открыть прошлый разговор вкладкой (agent:openHistory). Ответ - id вкладки; null - такого
    * разговора у проекта нет (транскрипт пропал), а не исключение посреди команды.
    */
   openHistory: (projectPath: string, sessionId: string) => Promise<string | null>
-  /** Страница ранней истории в ленту IDE (claude:loadEarlier); ответ - лента целиком. */
+  /** Страница ранней истории в ленту IDE (agent:loadEarlier); ответ - лента целиком. */
   loadEarlier: (conversationId: string) => Promise<ConversationFeed>
-  /** Картинка сообщения целиком, data URL (claude:getImage); null - её нет. */
+  /** Картинка сообщения целиком, data URL (agent:getImage); null - её нет. */
   image: (conversationId: string, messageId: string, index: number) => Promise<string | null>
-  /** Отложить до конца хода (claude:enqueue); разговор свободен - уходит сразу. */
+  /** Отложить до конца хода (agent:enqueue); разговор свободен - уходит сразу. */
   enqueue: (
     conversationId: string,
     message: { text: string; images: ImageAttachment[] },

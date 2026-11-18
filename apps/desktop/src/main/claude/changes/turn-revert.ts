@@ -5,18 +5,20 @@ import type { FileChange, ChangeRefusal } from '@shared/claude-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { parseCliLine } from '../cli/cli-messages'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { ConversationFeedSync } from '../conversation/conversation-feed'
 import { readTranscriptLines } from '../history/transcript-files'
 import { claudeHome, findTranscript } from '../history/transcript-paths'
-import type { FileEdit } from './change-revert'
-import { MAX_FILE_BYTES } from './changes.constants'
+import type { FileEdit } from '../../agents/changes/change-revert'
+import { MAX_FILE_BYTES } from '../../agents/changes/changes.constants'
+import type { TurnFile } from '../../agents/changes/changes.types'
+import { revertOnDisk } from '../../agents/changes/file-revert'
+import type { SettledFile } from '../../agents/changes/turn-settle'
+import { settleFile } from '../../agents/changes/turn-settle'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { readCopy, copiesTaken, findTurnStart, copyRecordsFrom } from './file-copies'
-import { revertOnDisk } from './file-revert'
 import { turnTools, turnChanges } from './turn-changes'
-import type { TurnFile, EditEntry } from './turn-edits'
+import type { EditEntry } from './turn-edits'
 import { filesOf, TurnEdits } from './turn-edits'
-import type { SettledFile } from './turn-settle'
-import { settleFile } from './turn-settle'
 
 /** Файл на диске как текст с `\n`; null - нет, не файл или слишком большой. */
 const readLeft = async (path: string) => {
@@ -66,7 +68,11 @@ export class TurnRevert {
   /** Сверка и откаты по одному: нажатие не пишет файл наперегонки со сверкой или другим нажатием. */
   private queue: Promise<void> = Promise.resolve()
 
-  constructor(private readonly runtime: ConversationRuntime) {}
+  /** Лента своего разговора: по ней ход, его вызовы и список файлов под ним. */
+  constructor(
+    private readonly runtime: ConversationRuntime,
+    private readonly feed: Pick<ConversationFeedSync, 'builder' | 'flush'>,
+  ) {}
 
   /** Строка живого потока CLI: правки и вызовы Write - в учёт хода. Ответ - правка строки. */
   observe(message: CliMessage): EditEntry | null {
@@ -79,7 +85,7 @@ export class TurnRevert {
    * там, где дифф есть). Потом файлы сверяются с диском.
    */
   captureEnd(): Promise<void> {
-    const { builder } = this.runtime.feed
+    const { builder } = this.feed
     const latest = builder.latestTurn
     // Пустой ход (рукопожатие после --resume) итога не ставит: прошлый итог уже разобран,
     // и учёт, очищенный тогда, стёр бы его кнопки.
@@ -129,10 +135,8 @@ export class TurnRevert {
         )
       }
 
-      this.runtime.feed.builder.updateChanges(turnId, (changes) =>
-        changes.map(answered(results, restore)),
-      )
-      this.runtime.feed.flush()
+      this.feed.builder.updateChanges(turnId, (changes) => changes.map(answered(results, restore)))
+      this.feed.flush()
     })
   }
 
@@ -147,7 +151,7 @@ export class TurnRevert {
   }
 
   private turn(id: string) {
-    const item = this.runtime.feed.builder.items.find((entry) => entry.id === id)
+    const item = this.feed.builder.items.find((entry) => entry.id === id)
 
     return item?.kind === 'turn' ? item : null
   }
@@ -158,7 +162,7 @@ export class TurnRevert {
    * чужой работы, и дифф от неё унёс бы в откат и её.
    */
   private since(messageId: string) {
-    const message = this.runtime.feed.builder.items.find((item) => item.id === messageId)
+    const message = this.feed.builder.items.find((item) => item.id === messageId)
     const sent = message?.kind === 'user' ? message.time : 0
 
     return sent || this.lastEndedAt
@@ -199,7 +203,7 @@ export class TurnRevert {
 
     for (const [path, result] of settled) this.last.files.set(path, result.edits)
 
-    this.runtime.feed.builder.updateChanges(turnId, (changes) =>
+    this.feed.builder.updateChanges(turnId, (changes) =>
       changes.map((change) => {
         const result = settled.get(change.path)
 
@@ -214,7 +218,7 @@ export class TurnRevert {
           : change
       }),
     )
-    this.runtime.feed.flush()
+    this.feed.flush()
   }
 
   /**
@@ -222,7 +226,7 @@ export class TurnRevert {
    * транскрипта с его вызовами. Сверки у такого хода нет - только диффы CLI.
    */
   private async replayed(turnId: string) {
-    const ids = turnTools(this.runtime.feed.builder.items, turnId).map((tool) => tool.id)
+    const ids = turnTools(this.feed.builder.items, turnId).map((tool) => tool.id)
     const transcript = ids.length > 0 ? await this.transcript() : null
     const ledger = new TurnEdits()
 

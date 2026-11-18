@@ -1,5 +1,4 @@
 import type { Conversation, RequestResponse } from '@shared/claude'
-import { isProviderId } from '@shared/providers'
 
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
@@ -8,6 +7,7 @@ import type { BridgePorts } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { ConversationReads } from './conversation-reads'
 import { ConversationTools } from './conversation-tools'
+import { isServedProvider } from './conversation-wire'
 import type { Redact } from './fit'
 import type { ModeGate } from './mode-gate'
 import { done, fail } from './outcomes'
@@ -153,7 +153,7 @@ export class ConversationCommands {
     const path = this.keys().openPathOf(args.projectKey)
 
     if (!path) return fail(this.keys().pathOf(args.projectKey) ? 'notOpen' : 'notFound')
-    if (!isProviderId(args.provider)) return fail('refused', 'providerMissing')
+    if (!isServedProvider(args.provider)) return fail('refused', 'providerMissing')
 
     const mode = args.permissionMode ?? 'default'
 

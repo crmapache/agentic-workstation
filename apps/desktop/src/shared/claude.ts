@@ -1,6 +1,6 @@
 import type { AccountsState } from './claude-accounts'
 import type { MessageDraft } from './claude-draft'
-import type { ToolInput } from './claude-feed'
+import type { ToolInput, ToolAction } from './claude-feed'
 import type { ModelNote, FastReport, CarryOnPlan, ConversationMods } from './claude-panel'
 import type { PanelPrefs } from './claude-prefs'
 
@@ -64,6 +64,8 @@ export type PendingRequest =
       toolUseId: string
       toolName: string
       input: ToolInput
+      /** Что вызов сделает - по нему карточка решает заголовок и показ (команда, дифф, адрес). */
+      action: ToolAction
       /** Короткое описание действия от CLI: имя файла, команда. */
       description: string
       /** Почему CLI спрашивает: правило, хук, классификатор. Пусто - обычный вопрос. */

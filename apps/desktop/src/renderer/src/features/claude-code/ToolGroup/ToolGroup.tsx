@@ -37,7 +37,7 @@ export const ToolGroup = memo(({ items }: ToolGroupProps) => {
   if (items.length === 1 && current) return <ToolRow tool={current} />
   if (!current) return null
 
-  const chip = toolChip(current.name)
+  const chip = toolChip(current.action)
 
   return (
     <div className={styles.toolGroup}>

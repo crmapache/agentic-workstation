@@ -12,17 +12,6 @@ export const PASTED_MAX_BYTES = 50 * 1024 * 1024
 /** Имя файла из буфера - буквы, цифры и простая пунктуация, не длиннее этого. */
 export const PASTED_NAME_MAX = 120
 
-/** Расширения картинок: такой файл - чип картинки, а не файла. */
-export const PICTURE_EXTENSIONS: ReadonlySet<string> = new Set([
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'webp',
-  'bmp',
-  'svg',
-])
-
 /** Сколько путей за раз можно перетащить или выбрать в поле. */
 export const MAX_ATTACH_PATHS = 100
 

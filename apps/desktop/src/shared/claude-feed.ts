@@ -50,8 +50,32 @@ export type ToolResult = {
  */
 export type ToolStatus = 'running' | 'done' | 'error' | 'denied' | 'interrupted'
 
-/** Вход инструмента - как его прислала модель. Окно разбирает поля само по имени. */
+/** Вход инструмента - как его прислала модель: для подробностей, решения окно берёт из ToolAction. */
 export type ToolInput = Record<string, unknown>
+
+/**
+ * Что делает вызов - общими словами для всех провайдеров (ADR 0083). Ставит драйвер, когда
+ * переводит поток своего CLI; окно рисует чип, цель, карточку правки, субагента и вопрос
+ * разрешения по нему, а не по имени инструмента. preview - дифф по входу, пока провайдер не
+ * прислал свой (вопрос разрешения, прерванный ход); todo - служебный вызов списка задач, его
+ * лента не рисует. path у search и mcp - папка или путь из входа, не файл для ссылки.
+ */
+export type ToolAction =
+  | { kind: 'read'; path: string; line: number | null }
+  | { kind: 'search'; pattern: string; path: string }
+  | { kind: 'edit'; path: string; preview: PatchHunk[] }
+  | { kind: 'write'; path: string; preview: PatchHunk[]; lines: number }
+  | { kind: 'command'; command: string; description: string }
+  | { kind: 'web'; target: string }
+  | { kind: 'mcp'; server: string; tool: string; target: string; path: string }
+  | { kind: 'skill'; skill: string; args: string }
+  | { kind: 'agent'; agent: string; description: string; prompt: string; workflow: boolean }
+  | { kind: 'plan'; plan: string }
+  | { kind: 'question'; questions: string[] }
+  | { kind: 'todo' }
+  | { kind: 'other'; target: string; path: string }
+
+export type ToolActionKind = ToolAction['kind']
 
 type FeedItemBase = {
   id: string
@@ -66,7 +90,7 @@ type FeedItemBase = {
  * Картинка в сообщении человека для ленты: только миниатюра (JPEG data URL), пустая -
  * миниатюру сделать не вышло. Рисует их телефон: под пальцем нет наведения. Окно IDE
  * показывает картинку чипом с превью под курсором (как в ACC), миниатюр не рисует. Сама
- * картинка - по запросу claude:getImage, по её номеру.
+ * картинка - по запросу agent:getImage, по её номеру.
  */
 export type FeedImage = { thumbnail: string }
 
@@ -123,8 +147,10 @@ export type ClosedReason = 'replay' | 'exited' | 'stopped' | 'turnEnded' | 'untr
 /** Вызов инструмента и его результат в одной карточке. id - tool_use_id. */
 export type ToolFeedItem = FeedItemBase & {
   kind: 'tool'
+  /** Имя инструмента у провайдера: подпись в шапке, когда своей цели у вызова нет. */
   name: string
   input: ToolInput
+  action: ToolAction
   status: ToolStatus
   result: ToolResult | null
   /** Когда вызов начался и кончился (мс) - длительность справа в шапке. 0 - неизвестно. */
@@ -444,7 +470,7 @@ export type ConversationFeed = {
   tasks: TaskEntry[]
   /**
    * Выше загруженного в транскрипте есть ещё: над лентой метка «load earlier messages»
-   * (страницы, claude:loadEarlier). false - начало разговора уже в ленте.
+   * (страницы, agent:loadEarlier). false - начало разговора уже в ленте.
    */
   hasEarlier: boolean
 }

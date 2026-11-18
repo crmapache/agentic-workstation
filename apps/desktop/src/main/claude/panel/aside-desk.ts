@@ -5,7 +5,8 @@ import type { AsideView, AsideThread, AsideExchange } from '@shared/claude-panel
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'
 import { CliReplyError } from '../cli/cli-process'
-import type { ConversationRuntime } from '../conversation/conversation-runtime'
+import { claudeOf } from '../conversation/claude-conversation'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { ASIDE_TIMEOUT_MS } from './panel.constants'
 import type { AsideEnding } from './side-question'
 import {
@@ -179,7 +180,8 @@ export class AsideDesk {
   }
 
   private async run(runtime: ConversationRuntime, id: string, request: object) {
-    const process = await runtime.prepareProcess().catch(() => null)
+    const session = await runtime.prepareSession().catch(() => null)
+    const process = session && claudeOf(runtime).process
     const ask = this.asks.get(id)
 
     // Отменили, пока процесс поднимался: спрашивать некого.
@@ -231,7 +233,7 @@ export class AsideDesk {
 
   /** Вопрос поднял спящий процесс: без хода сам он не уснул бы никогда. */
   private sleepAfter(runtime: ConversationRuntime, process: CliProcess | null) {
-    if (process && runtime.isFree && !runtime.isDisposed && runtime.process === process) {
+    if (process && runtime.isFree && !runtime.isDisposed && claudeOf(runtime).process === process) {
       runtime.scheduleSleep()
     }
   }

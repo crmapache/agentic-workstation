@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 
 import { useClaudeActions } from '../claude-actions.hooks'
-import { inputText } from '../claude.utils'
 import { useFeedScope, usePendingRequest } from '../feed-scope.context'
 import { useFeedStore } from '../feed.store'
 import { ElapsedTime } from '../ElapsedTime/ElapsedTime'
@@ -25,7 +24,7 @@ export const PlanCard = memo(({ tool }: PlanCardProps) => {
   const { respond } = useClaudeActions()
   const isDecided = useFeedStore((store) => store.decidedPlans.has(tool.id))
   const decidePlan = useFeedStore((store) => store.decidePlan)
-  const plan = inputText(tool.input, 'plan')
+  const plan = tool.action.kind === 'plan' ? tool.action.plan : ''
   const steps = planSteps(plan)
   const request = pending?.kind === 'plan' && pending.toolUseId === tool.id ? pending : null
   const isWithdrawn = tool.status === 'interrupted' && tool.closedReason !== 'replay'

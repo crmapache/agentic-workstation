@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 import type { AccountsState, ClaudeAccount } from '@shared/claude-accounts'
 
-import { useClaudeActions } from '../claude-actions.hooks'
+import { useClaudeAccounts } from '../claude-accounts.hooks'
 import { ACCOUNTS_USAGE_REFRESH_MS } from '../usage.constants'
 import { useUsageRefresh } from '../usage.hooks'
 import type { AccountConfirm } from './AccountsScreen.types'
@@ -13,7 +13,7 @@ import type { AccountConfirm } from './AccountsScreen.types'
  * действия, вопрос перед «забыть» и «выйти», переименование.
  */
 export const useAccountsScreen = (state: AccountsState) => {
-  const { accounts } = useClaudeActions()
+  const accounts = useClaudeAccounts()
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState<AccountConfirm>(null)
   const [renaming, setRenaming] = useState<ClaudeAccount | null>(null)

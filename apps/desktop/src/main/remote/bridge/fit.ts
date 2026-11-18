@@ -88,12 +88,29 @@ const stubOf = (item: FeedItemWire, budget: number, redact: Redact): FeedItemWir
   return sizeOf(stub) <= budget ? stub : { id: item.id, kind: item.kind, stub: true }
 }
 
+/**
+ * Вид действия вызова (ADR 0083) телефон пока не читает: он рисует вызов по имени. А дифф по
+ * входу внутри него удвоил бы правку в кадре и раньше времени гнал бы её в карточку. Пока
+ * телефон не перешёл на вид действия, поле до него не едет.
+ */
+const withoutAction = (item: FeedItemWire): FeedItemWire => {
+  if (!('action' in item)) return item
+
+  const { action: _action, ...rest } = item
+
+  return rest
+}
+
 /** Элемент ленты в кадр: целиком, урезанным или карточкой - но не пропадает. */
 export const fitItem = (
   item: FeedItemWire,
   budget: number = BODY_BUDGET,
   redact: Redact = asIs,
-): FeedItemWire => fitValue(item, budget, redact) ?? stubOf(item, budget, redact)
+): FeedItemWire => {
+  const sent = withoutAction(item)
+
+  return fitValue(sent, budget, redact) ?? stubOf(sent, budget, redact)
+}
 
 /** Список пачками, каждая влезает в кадр; порядок сохраняется, ни один элемент не теряется. */
 export const packsThatFit = <T extends FeedItemWire>(

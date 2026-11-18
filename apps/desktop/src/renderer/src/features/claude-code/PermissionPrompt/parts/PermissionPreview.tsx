@@ -12,11 +12,11 @@ import { DiffView } from '../../DiffView/DiffView'
  * действия, а не по имени инструмента.
  */
 export const PermissionPreview = ({ request }: PermissionPreviewProps) => {
-  const { toolName, input } = request
-  const rows = useMemo(() => editRows({ name: toolName, input, result: null }), [toolName, input])
+  const { action, input } = request
+  const rows = useMemo(() => editRows({ action, result: null }), [action])
 
-  if (toolName === 'Bash') {
-    return <pre className={styles.command}>{`$ ${inputText(input, 'command')}`}</pre>
+  if (action.kind === 'command' && action.command) {
+    return <pre className={styles.command}>{`$ ${action.command}`}</pre>
   }
 
   if (rows.length > 0) {
@@ -29,7 +29,9 @@ export const PermissionPreview = ({ request }: PermissionPreviewProps) => {
 
   return (
     <pre className={styles.command}>
-      {inputText(input, 'url') || JSON.stringify(input, null, 2)}
+      {action.kind === 'web'
+        ? action.target
+        : inputText(input, 'url') || JSON.stringify(input, null, 2)}
     </pre>
   )
 }

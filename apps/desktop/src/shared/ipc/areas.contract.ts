@@ -1,3 +1,5 @@
+import type { AgentEventContract, AgentInvokeContract } from './agent.contract'
+import { AGENT_EVENTS, AGENT_CHANNELS } from './agent.contract'
 import type { ClaudeComposerInvokeContract } from './claude-composer.contract'
 import { CLAUDE_COMPOSER_CHANNELS } from './claude-composer.contract'
 import type { ClaudePanelEventContract, ClaudePanelInvokeContract } from './claude-panel.contract'
@@ -52,7 +54,8 @@ import { WINDOW_EVENTS, WINDOW_CHANNELS } from './window.contract'
  * целиком и не растёт с каждой новой областью. Новая область - свой файл
  * `<область>.contract.ts` и строка здесь в каждом из четырёх списков.
  */
-export type AreaInvokeContract = ClaudeTabsInvokeContract &
+export type AreaInvokeContract = AgentInvokeContract &
+  ClaudeTabsInvokeContract &
   ClaudeSettingsInvokeContract &
   ClaudeComposerInvokeContract &
   ClaudePanelInvokeContract &
@@ -74,7 +77,8 @@ export type AreaInvokeContract = ClaudeTabsInvokeContract &
   TasksInvokeContract &
   InboxInvokeContract
 
-export type AreaEventContract = ClaudeTabsEventContract &
+export type AreaEventContract = AgentEventContract &
+  ClaudeTabsEventContract &
   ClaudePanelEventContract &
   ClaudeSearchEventContract &
   ProjectSyncEventContract &
@@ -94,6 +98,7 @@ export type AreaEventContract = ClaudeTabsEventContract &
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
+  ...AGENT_CHANNELS,
   ...CLAUDE_TABS_CHANNELS,
   ...CLAUDE_SETTINGS_CHANNELS,
   ...CLAUDE_COMPOSER_CHANNELS,
@@ -119,6 +124,7 @@ export const AREA_CHANNELS = {
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
 export const AREA_EVENTS = {
+  ...AGENT_EVENTS,
   ...CLAUDE_TABS_EVENTS,
   ...CLAUDE_PANEL_EVENTS,
   ...CLAUDE_SEARCH_EVENTS,

@@ -6,8 +6,8 @@ import { join, delimiter, isAbsolute } from 'node:path'
 import type { CliPathRefusal } from '@shared/claude-panel'
 
 import { IS_WINDOWS } from '../../platform'
+import type { Environment } from '../../process/shell-env'
 import { CLAUDE_BINARY, CLI_PROBE_TIMEOUT_MS } from './cli.constants'
-import type { Environment } from './shell-env'
 
 /** Как CLI называет себя в `--version`: «2.1.293 (Claude Code)». */
 const CLAUDE_VERSION = /\(Claude Code\)/

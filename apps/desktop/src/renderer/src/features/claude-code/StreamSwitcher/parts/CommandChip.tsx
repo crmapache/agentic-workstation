@@ -9,7 +9,6 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import styles from '../StreamSwitcher.module.scss'
 import type { CommandChipProps } from '../StreamSwitcher.types'
 import { commandLabel } from '../StreamSwitcher.utils'
-import { inputText } from '../../claude.utils'
 import { StatusDot } from '../../StatusDot/StatusDot'
 import { ChipClock } from './ChipClock'
 import { CommandView } from './CommandView'
@@ -23,8 +22,8 @@ import { CommandView } from './CommandView'
 export const CommandChip = ({ tool, onStop }: CommandChipProps) => {
   const { t } = useTranslation()
   const popover = usePopover()
-  const command = inputText(tool.input, 'command')
-  const description = inputText(tool.input, 'description')
+  const command = tool.action.kind === 'command' ? tool.action.command : ''
+  const description = tool.action.kind === 'command' ? tool.action.description : ''
   const label = commandLabel(command) || description
   const taskId = tool.task?.taskId ?? ''
   const startedAt = tool.task?.startedAt ?? 0

@@ -2,14 +2,9 @@ import { it, vi, expect, describe, afterEach } from 'vitest'
 
 import type { ConversationCall } from '@shared/claude-prefs'
 
-import {
-  callForResult,
-  strongestCall,
-  callForRateLimit,
-  callForAssistantError,
-} from './call-reasons'
-import { CALL_SETTLE_MS } from './calls.constants'
-import { ConversationCalls } from './conversation-calls'
+import { CALL_SETTLE_MS } from '../../agents/calls/calls.constants'
+import { ConversationCalls } from '../../agents/calls/conversation-calls'
+import { callForResult, callForRateLimit, callForAssistantError } from './call-reasons'
 
 const result = (fields: Record<string, unknown>) => ({ type: 'result', ...fields })
 const live = { interrupted: false, stillWorking: false }
@@ -71,14 +66,6 @@ describe('событие лимита', () => {
     expect(extra?.reason).toBe('extraUsage')
     expect(stop?.reason).toBe('limit')
     expect(stop?.key).not.toBe(extra?.key)
-  })
-})
-
-describe('кто из поводов зовёт', () => {
-  it('самый важный из собранных', () => {
-    expect(strongestCall(new Set(['turnDone', 'error']))).toBe('error')
-    expect(strongestCall(new Set(['plan', 'permission']))).toBe('permission')
-    expect(strongestCall(new Set())).toBeNull()
   })
 })
 

@@ -1,15 +1,20 @@
-import type { Question, PendingRequest, PermissionMode, RequestResponse } from '@shared/claude'
+import type { Question, PermissionMode, RequestResponse } from '@shared/claude'
 
 import type { ControlRequest } from '../cli/cli-messages'
 import { recordField, stringField, recordsField } from '../cli/cli-messages'
+import { claudeToolAction } from '../feed/tool-action'
 import { isModQuestion } from '../panel/mod-lines'
+import type { HeldRequest as CoreHeld } from '../../agents/conversation/agent-parts'
 
 /** Вопрос CLI вместе с тем, что нужно для ответа, но окну не показывается. */
-export type HeldRequest = {
-  pending: PendingRequest
+export type HeldRequest = CoreHeld & {
   input: Record<string, unknown>
   suggestions: Record<string, unknown>[]
 }
+
+/** Вопрос, который держит разговор, - вопрос Claude: у него вход вызова и предложения CLI. */
+export const isClaudeHeld = (held: CoreHeld): held is HeldRequest =>
+  'input' in held && 'suggestions' in held
 
 /** Ответ CLI на управляющий запрос - тело `response` в `control_response`. */
 export type ControlAnswer = Record<string, unknown>
@@ -107,6 +112,7 @@ export const holdRequest = (
       toolUseId,
       toolName,
       input,
+      action: claudeToolAction(toolName, input),
       description: stripAnsi(stringField(request, 'description')),
       reason: stripAnsi(stringField(request, 'decision_reason')),
       alwaysKind: alwaysKindOf(request, suggestions),
@@ -140,16 +146,6 @@ export const modeFromAlways = (held: HeldRequest): string | null => {
 
   return mode && typeof mode['mode'] === 'string' ? mode['mode'] : null
 }
-
-/**
- * Подходит ли ответ к вопросу: того же вида, или отказ на вопрос с вариантами («отвечу
- * в чате»). Ответ-выбор на разрешение подмешал бы во вход инструмента чужие поля.
- */
-export const matchesRequest = (held: HeldRequest, response: RequestResponse): boolean =>
-  response.kind === held.pending.kind ||
-  (held.pending.kind === 'question' &&
-    response.kind === 'permission' &&
-    response.decision.behavior === 'deny')
 
 /** Ответ человека - в тело `control_response` для CLI. */
 export const answerFor = (held: HeldRequest, response: RequestResponse): ControlAnswer => {

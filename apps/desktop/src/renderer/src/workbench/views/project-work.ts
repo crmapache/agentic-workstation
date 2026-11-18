@@ -10,7 +10,7 @@ import { taskWork, projectWork } from './project-work.utils'
 /**
  * Что работает само в каждом проекте - знак работы на вкладках проектов: разговоры Claude Code
  * всех проектов (и фоновых), идущие прогоны сценариев и заданий по расписанию. Источники главный
- * процесс держит свежими событиями (claude:state, scenarios:queues, tasks:changed), так что знак
+ * процесс держит свежими событиями (agent:state, scenarios:queues, tasks:changed), так что знак
  * гаснет вместе с работой.
  */
 export const useProjectWork = (): ((rootPath: string) => readonly ProjectWork[]) => {

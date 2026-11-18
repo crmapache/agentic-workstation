@@ -12,10 +12,10 @@ const conversations = [
 ]
 
 const calls: Record<string, TabCall> = {
-  a: { reason: 'turnDone', tone: 'success', at: 30 },
-  b: { reason: 'permission', tone: 'attention', at: 10 },
-  c: { reason: 'error', tone: 'danger', at: 20 },
-  gone: { reason: 'turnDone', tone: 'success', at: 5 },
+  a: { reason: 'turnDone', tone: 'success', at: 30, provider: 'claude' },
+  b: { reason: 'permission', tone: 'attention', at: 10, provider: 'claude' },
+  c: { reason: 'error', tone: 'danger', at: 20, provider: 'claude' },
+  gone: { reason: 'turnDone', tone: 'success', at: 5, provider: 'claude' },
 }
 
 const run = (id: string, patch: Partial<CallingRun> = {}): CallingRun => ({

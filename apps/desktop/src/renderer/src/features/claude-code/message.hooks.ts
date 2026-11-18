@@ -5,6 +5,7 @@ import type { UserFeedItem, ConversationFeed } from '@shared/claude-feed'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
+import { usePanelProvider } from '../../state/panel-provider.context'
 import { QUERY_KEYS } from '../../state/query-keys'
 import type { ComposerDraft } from './draft.types'
 import { quotesOf } from './draft.utils'
@@ -18,14 +19,17 @@ import { messageDraft, answersBefore, reusableMessage } from './message.utils'
  */
 export const useMessageDraft = (conversationId: string, item: UserFeedItem): MessageDraft => {
   const queryClient = useQueryClient()
+  const provider = usePanelProvider()
 
   return useMemo(() => {
     if (item.draft || !hasQuotation(item.text)) return messageDraft(item)
 
-    const feed = queryClient.getQueryData<ConversationFeed>(QUERY_KEYS.claudeFeed(conversationId))
+    const feed = queryClient.getQueryData<ConversationFeed>(
+      QUERY_KEYS.agentFeed(provider, conversationId),
+    )
 
     return messageDraft(item, feed ? answersBefore(feed.items, item.id) : [])
-  }, [item, conversationId, queryClient])
+  }, [item, conversationId, queryClient, provider])
 }
 
 /**
@@ -35,6 +39,7 @@ export const useMessageDraft = (conversationId: string, item: UserFeedItem): Mes
  */
 export const useReuseDraft = () => {
   const queryClient = useQueryClient()
+  const provider = usePanelProvider()
 
   return useCallback(
     async (
@@ -46,9 +51,9 @@ export const useReuseDraft = () => {
         item.images.map((_, index) =>
           queryClient
             .fetchQuery({
-              queryKey: QUERY_KEYS.claudeImage(conversationId, item.id, index),
+              queryKey: QUERY_KEYS.agentImage(provider, conversationId, item.id, index),
               queryFn: () =>
-                invoke('claude:getImage', { conversationId, messageId: item.id, index }),
+                invoke('agent:getImage', { provider, conversationId, messageId: item.id, index }),
               staleTime: Infinity,
             })
             .catch(() => null),
@@ -58,6 +63,6 @@ export const useReuseDraft = () => {
 
       return { tokens: reused.tokens, quotes: quotesOf(reused.quotes) }
     },
-    [queryClient],
+    [queryClient, provider],
   )
 }

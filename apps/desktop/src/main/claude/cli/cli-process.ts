@@ -4,11 +4,11 @@ import { randomUUID } from 'node:crypto'
 import { createInterface } from 'node:readline'
 
 import { SPAWN_DETACHED } from '../../platform'
+import { ProcessGroup } from '../../process/process-group'
+import type { Environment } from '../../process/shell-env'
 import type { CliMessage, ControlRequest } from './cli-messages'
 import { parseCliLine, isControlRequest } from './cli-messages'
 import { STDERR_TAIL_CHARS } from './cli.constants'
-import { ProcessGroup } from './process-group'
-import type { Environment } from './shell-env'
 
 export type CliProcessEvents = {
   /** Любая строка потока, кроме управляющих: её разбирает лента. */

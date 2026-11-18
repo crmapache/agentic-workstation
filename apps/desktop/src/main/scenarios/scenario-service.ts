@@ -171,7 +171,15 @@ export class ScenarioService {
     }
   }
 
+  /**
+   * Запуск сценария. Провайдера, которого в IDE нет (ADR 0083: в перечне есть и ещё не
+   * подключённые), - отказ сразу, а не очередь, которая тут же встанет на отказе.
+   */
   start(request: ScenarioStartRequest): Promise<ScenarioStartOutcome> {
+    if (!this.providers.has(request.provider)) {
+      return Promise.resolve({ ok: false, code: 'providerMissing' })
+    }
+
     return this.runner.start(request)
   }
 
@@ -288,8 +296,13 @@ export class ScenarioService {
     return (await provider.openChat(cwd, run.headConversationId)) ? null : 'runGone'
   }
 
+  /** Час расписания; провайдера, которого в IDE нет, - отказ, а не час, который каждый раз откажет. */
   schedule(projectPath: string, hour: ScenarioHourRequest) {
-    return this.afterShelves(projectPath, scheduleHour(this.desk(projectPath), hour))
+    const code = this.providers.has(hour.provider)
+      ? scheduleHour(this.desk(projectPath), hour)
+      : Promise.resolve<ScenarioCode | null>('providerMissing')
+
+    return this.afterShelves(projectPath, code)
   }
 
   unschedule(projectPath: string, scheduleId: string) {

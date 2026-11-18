@@ -16,7 +16,9 @@ export const useSignInCheck = () => {
 
   const check = useCallback(() => {
     invoke('claudePanel:checkSignIn')
-      .then((state) => queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, state))
+      .then((state) =>
+        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState('claude'), state),
+      )
       .catch((error: unknown) => console.warn('[claude-code] вход не проверился:', error))
   }, [queryClient])
 

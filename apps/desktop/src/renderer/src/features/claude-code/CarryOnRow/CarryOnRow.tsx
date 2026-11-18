@@ -31,7 +31,9 @@ export const CarryOnRow = ({ conversation }: CarryOnRowProps) => {
 
   const handleCancel = () => {
     invoke('claudePanel:cancelCarryOn', { conversationId: conversation.id })
-      .then((state) => queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, state))
+      .then((state) =>
+        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState('claude'), state),
+      )
       .catch((error: unknown) => console.warn('[claude-code] план продолжения не снят:', error))
   }
 

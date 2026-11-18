@@ -1,27 +1,21 @@
-import { useState } from 'react'
-
 import { useQueryClient } from '@tanstack/react-query'
 
-import { ClaudeCodeView } from '../ClaudeCodeView/ClaudeCodeView'
-import { PanelCrash } from '../PanelCrash/PanelCrash'
+import { PanelProviderContext } from '../../../state/panel-provider.context'
+import { PanelFrame } from './parts/PanelFrame'
 
 /**
- * Правая панель Claude Code целиком - за границей ошибок. «Reload the panel» собирает её
- * заново: зеркала данных главного процесса перечитываются, дерево монтируется с нуля, а
- * окно IDE и разговоры (они в главном процессе) остаются как были.
+ * Правая панель Claude Code (ADR 0083): общая панель провайдера, которой сказано, что её
+ * провайдер - Claude. Запросы, кэш и события внутри - по этому провайдеру; при перезагрузке
+ * панели перечитываются и зеркала каналов Claude (ключ 'claude').
  */
 export const ClaudeCodePanel = () => {
   const queryClient = useQueryClient()
-  const [generation, setGeneration] = useState(0)
 
-  const handleReload = () => {
-    void queryClient.resetQueries({ queryKey: ['claude'] })
-    setGeneration((value) => value + 1)
-  }
+  const handleReload = () => void queryClient.resetQueries({ queryKey: ['claude'] })
 
   return (
-    <PanelCrash key={generation} onReload={handleReload}>
-      <ClaudeCodeView />
-    </PanelCrash>
+    <PanelProviderContext.Provider value="claude">
+      <PanelFrame onReload={handleReload} />
+    </PanelProviderContext.Provider>
   )
 }

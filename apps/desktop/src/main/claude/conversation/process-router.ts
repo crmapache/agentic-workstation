@@ -4,8 +4,9 @@ import { callForResult, callFromMessage } from '../calls/call-reasons'
 import { announceAgentEdit } from '../changes/agent-edits-tap'
 import type { CliMessage } from '../cli/cli-messages'
 import { recordField, stringField } from '../cli/cli-messages'
+import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { claudeOf } from './claude-conversation'
 import { mergeCommands, modelsFromReply, commandsFromInit, commandsFromChange } from './cli-replies'
-import type { ConversationRuntime } from './conversation-runtime'
 import { COMMAND_RESULT_GRACE_MS } from './conversation.constants'
 import { forgetTitle } from './session-title'
 import { lifecycleOf, isFinalState, isStartupResult } from './turn-command'
@@ -18,7 +19,8 @@ let modelsAsked = false
  * не было, его начал сам CLI (досрочно закончился фоновый агент).
  */
 const applyInit = (runtime: ConversationRuntime, init: CliMessage) => {
-  const { meta, host, process } = runtime
+  const { meta } = runtime
+  const { host, process } = claudeOf(runtime)
   const sessionId = stringField(init, 'session_id')
 
   host.onCommands(
@@ -33,7 +35,7 @@ const applyInit = (runtime: ConversationRuntime, init: CliMessage) => {
   if (!runtime.turnActive) {
     // Ход начал сам CLI: нашего сообщения за ним нет, отметки прошлого к нему не относятся.
     runtime.turnActive = true
-    runtime.turnCommand = null
+    claudeOf(runtime).turnCommand = null
     runtime.update({ turnStartedAt: Date.now() })
     runtime.syncStatus()
   }
@@ -56,8 +58,8 @@ const applyInit = (runtime: ConversationRuntime, init: CliMessage) => {
 
 /** Точные цифры контекста у CLI - занятое и окно. Не ответил - остаются прежние. */
 const askContext = (runtime: ConversationRuntime) => {
-  runtime.process
-    ?.control({ subtype: 'get_context_usage' })
+  claudeOf(runtime)
+    .process?.control({ subtype: 'get_context_usage' })
     .then((reply) => runtime.update({ usage: usageFromContextReply(reply, runtime.meta.usage) }))
     .catch(() => undefined)
 }
@@ -70,15 +72,17 @@ type TurnEnd = { interrupted: boolean; isError: boolean; usage: ConversationUsag
 
 /** Ход закрыт - по итогу CLI или без него: вкладка свободна, цифры контекста, очередь, сон. */
 const closeTurn = (runtime: ConversationRuntime, end: TurnEnd) => {
-  const { feed } = runtime
+  const { feed } = claudeOf(runtime)
 
-  runtime.freshProcess = false
-  runtime.turnCommand = null
+  claudeOf(runtime).freshProcess = false
+  claudeOf(runtime).turnCommand = null
   // Файлы хода - по точным правкам и сверкой с диском, пока их никто не тронул. Список
   // уточняется синхронно, до отправки окну: промежуточного окно не видит.
-  runtime.turnRevert.captureEnd().catch((error: unknown) => {
-    console.warn('[claude] файлы хода не сверились:', error)
-  })
+  claudeOf(runtime)
+    .turnRevert.captureEnd()
+    .catch((error: unknown) => {
+      console.warn('[claude] файлы хода не сверились:', error)
+    })
   feed.flush()
 
   runtime.turnActive = false
@@ -93,7 +97,7 @@ const closeTurn = (runtime: ConversationRuntime, end: TurnEnd) => {
 
   askContext(runtime)
 
-  runtime.host.onUsageHint(runtime)
+  claudeOf(runtime).host.onUsageHint(runtime)
   runtime.afterTurn(!end.interrupted && !end.isError)
 }
 
@@ -102,11 +106,12 @@ const closeTurn = (runtime: ConversationRuntime, end: TurnEnd) => {
  * процесса (turn-command.ts) - не конец настоящего хода, который уже идёт: false.
  */
 const applyResult = (runtime: ConversationRuntime, result: CliMessage): boolean => {
-  const { feed, meta } = runtime
+  const { meta } = runtime
+  const { feed } = claudeOf(runtime)
   const interrupted = meta.stopRequestedAt !== null
 
-  if (isStartupResult(result, runtime.freshProcess, interrupted)) {
-    runtime.freshProcess = false
+  if (isStartupResult(result, claudeOf(runtime).freshProcess, interrupted)) {
+    claudeOf(runtime).freshProcess = false
 
     return false
   }
@@ -136,20 +141,20 @@ const applyResult = (runtime: ConversationRuntime, result: CliMessage): boolean 
  * него, а не висит «в работе» с вечным Stop.
  */
 const applyLifecycle = (runtime: ConversationRuntime, uuid: string, state: string) => {
-  if (!uuid || runtime.turnCommand !== uuid) return
+  if (!uuid || claudeOf(runtime).turnCommand !== uuid) return
 
-  if (state === 'started') runtime.freshProcess = false
+  if (state === 'started') claudeOf(runtime).freshProcess = false
 
   if (!isFinalState(state)) return
 
   setTimeout(() => {
-    if (runtime.isDisposed || runtime.turnCommand !== uuid || !runtime.turnActive) return
+    if (runtime.isDisposed || claudeOf(runtime).turnCommand !== uuid || !runtime.turnActive) return
 
     console.warn('[claude] команда хода кончилась, а итога нет - ход закрыт без него:', uuid)
 
     const interrupted = runtime.meta.stopRequestedAt !== null
 
-    runtime.feed.builder.closeTurnWithoutResult(interrupted)
+    claudeOf(runtime).feed.builder.closeTurnWithoutResult(interrupted)
     closeTurn(runtime, { interrupted, isError: false, usage: runtime.meta.usage })
   }, COMMAND_RESULT_GRACE_MS).unref()
 }
@@ -159,7 +164,8 @@ const applyLifecycle = (runtime: ConversationRuntime, uuid: string, state: strin
  * и их init ход не начинают и цифры контекста не трогают.
  */
 export const routeMessage = (runtime: ConversationRuntime, message: CliMessage): void => {
-  const { feed, host, meta } = runtime
+  const { meta } = runtime
+  const { feed, host } = claudeOf(runtime)
   const isMain = !message['parent_tool_use_id']
 
   const isMainInit = message.type === 'system' && message.subtype === 'init' && !message['task_id']
@@ -167,10 +173,10 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
   // Новый основной ход (его мог начать и сам CLI, когда досрочно кончился фоновый
   // агент) - уже не хвост отрезанного: иначе его итог потерялся бы, и разговор навсегда
   // остался бы «в работе».
-  if (isMainInit && isMain) runtime.discardStray = false
+  if (isMainInit && isMain) claudeOf(runtime).discardStray = false
 
   // Хвост хода, отрезанного откатом: CLI про него молчит, а то, что всё же пришло, - лишнее.
-  if (runtime.discardStray && STRAY_TYPES.has(message.type)) return
+  if (claudeOf(runtime).discardStray && STRAY_TYPES.has(message.type)) return
 
   // Строки панели (прогресс вопроса сбоку, моды) - не события разговора: ленте их не нести.
   if (host.panel?.line(runtime, message)) return
@@ -195,7 +201,7 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
 
   // Лента держит дифф правки обрезанным для показа - точные правки хода копит откат; их же
   // видит локальная история (ADR 0045): «до» правки агента, если её снимок опоздал.
-  const edit = runtime.turnRevert.observe(message)
+  const edit = claudeOf(runtime).turnRevert.observe(message)
 
   if (edit) announceAgentEdit(edit)
   feed.builder.apply(message)
@@ -208,7 +214,7 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
 
   // Вход истёк: процесс держит мёртвый токен в памяти - следующий ход пусть идёт в новом.
   if (message.type === 'assistant' && message['error'] === 'authentication_failed') {
-    runtime.restartProcess()
+    runtime.restartSession()
   }
 
   if (isMainInit) {
@@ -227,7 +233,7 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
       usage: { ...meta.usage, contextTokens: 0 },
     })
   } else if ((message.type === 'assistant' || message.type === 'stream_event') && isMain) {
-    runtime.freshProcess = false
+    claudeOf(runtime).freshProcess = false
   }
 
   if (message.type === 'assistant' && isMain) {

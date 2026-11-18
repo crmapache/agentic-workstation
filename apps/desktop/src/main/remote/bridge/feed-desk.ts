@@ -34,7 +34,7 @@ const SHELL_SLACK = 64
 export const JOURNAL_IDLE_MS = 10 * 60_000
 
 export type FeedDeskHost = {
-  /** Лента целиком, как её отдаёт окну провайдер (claude:getFeed). */
+  /** Лента целиком, как её отдаёт окну провайдер (agent:getFeed). */
   getFeed: (conversationId: string) => Promise<ConversationFeed>
   /** false - не ушло в очередь (ключей нет, тело не влезло). */
   send: (deviceId: string, message: AgentMessage) => boolean

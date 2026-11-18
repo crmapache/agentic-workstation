@@ -3,11 +3,8 @@ import { open, stat, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { isRecord, recordField, stringField, parseCliLine } from '../cli/cli-messages'
-import {
-  MAX_FILE_BYTES,
-  TRANSCRIPT_CHUNK_BYTES,
-  TRANSCRIPT_SCAN_MAX_BYTES,
-} from './changes.constants'
+import { MAX_FILE_BYTES } from '../../agents/changes/changes.constants'
+import { TRANSCRIPT_CHUNK_BYTES, TRANSCRIPT_SCAN_MAX_BYTES } from './changes.constants'
 
 /** Так открывается запись копии CLI в транскрипте: по началу строки, не разбирая остальное. */
 const COPY_RECORD = '{"type":"file-history-'

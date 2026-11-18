@@ -1,11 +1,12 @@
 /**
- * Провайдеры ИИ на уровне IDE. Сейчас один - Claude Code, но всё, что не панель провайдера
- * (сценарии, статистика, удалённый доступ), говорит о провайдере этим словом, а не «Claude»:
- * второй провайдер встаёт рядом, не переделывая их.
+ * Провайдеры ИИ на уровне IDE (ADR 0083): Claude Code, Codex и открытые модели (OpenCode),
+ * у каждого своя панель. Всё, что не панель провайдера (сценарии, статистика, удалённый
+ * доступ), говорит о провайдере этим словом, а не «Claude». Какие из них сейчас в IDE -
+ * знает реестр панелей главного процесса (providers:list), а не этот список.
  */
-export type ProviderId = 'claude'
+export type ProviderId = 'claude' | 'codex' | 'opencode'
 
-export const PROVIDER_IDS: readonly ProviderId[] = ['claude']
+export const PROVIDER_IDS: readonly ProviderId[] = ['claude', 'codex', 'opencode']
 
 export const isProviderId = (value: unknown): value is ProviderId =>
   typeof value === 'string' && (PROVIDER_IDS as readonly string[]).includes(value)

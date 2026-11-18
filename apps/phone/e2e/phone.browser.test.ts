@@ -841,6 +841,13 @@ describe('телефон в мобильном Chromium против насто�
       kind: 'tool',
       name: 'Task',
       input: { description: 'Review the login code', subagent_type: 'reviewer' },
+      action: {
+        kind: 'agent',
+        agent: 'reviewer',
+        description: 'Review the login code',
+        prompt: '',
+        workflow: false,
+      },
       status: 'running',
       result: null,
       startedAt: Date.now(),

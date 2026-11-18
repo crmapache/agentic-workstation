@@ -29,7 +29,7 @@ export const useCliPath = () => {
     invoke('claudePanel:setCliPath', { path: path.trim() })
       .then(({ state, search: next }) => {
         queryClient.setQueryData(QUERY_KEYS.claudeCliSearch, next)
-        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.claudeState, state)
+        queryClient.setQueryData<ClaudeState>(QUERY_KEYS.agentState('claude'), state)
         setEdited(null)
       })
       .catch((error: unknown) => console.warn('[claude-code] путь к CLI не принят:', error))

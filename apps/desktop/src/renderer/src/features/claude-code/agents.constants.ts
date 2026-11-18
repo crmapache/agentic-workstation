@@ -4,9 +4,6 @@ import type { ClosedReason, CliTaskOutcome } from '@shared/claude-feed'
 
 import type { StreamSelection } from './streams.types'
 
-/** Вызовы, за которыми стоит агент: субагент (Task, Agent) или флот (Workflow). */
-export const AGENT_CALLS = new Set(['Task', 'Agent', 'Workflow'])
-
 /**
  * Сколько шагов агента рисовать в журнале (как в ACC - 300): долгий субагент делает
  * тысячи вызовов, а читают последние. Срезанное - одной строкой сверху.

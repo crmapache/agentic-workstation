@@ -1,7 +1,7 @@
 import type { FileChange, TurnFeedItem } from '@shared/claude-feed'
 
 import { turnChanges } from '../changes/turn-changes'
-import type { FeedStore } from './feed-store'
+import type { FeedStore } from '../../agents/feed/feed-store'
 
 /** Итог хода без того, что считает учёт: файлы и можно ли их откатить. */
 export type TurnFields = Omit<TurnFeedItem, 'kind' | 'parentToolUseId' | 'changes' | 'revertable'>

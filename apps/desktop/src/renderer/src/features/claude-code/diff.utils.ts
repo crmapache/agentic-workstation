@@ -1,8 +1,4 @@
-import { structuredPatch } from 'diff'
-
-import type { PatchHunk, ToolInput, ToolFeedItem } from '@shared/claude-feed'
-
-import { inputText } from './claude.utils'
+import type { PatchHunk, ToolFeedItem } from '@shared/claude-feed'
 
 /** Строка диффа для отрисовки: добавлена, удалена, контекст или разрыв между кусками. */
 export type DiffRow = {
@@ -11,9 +7,6 @@ export type DiffRow = {
   /** Номер строки в файле после правки (у удалённой - до правки). null - не знаем. */
   line: number | null
 }
-
-/** Сколько контекста вокруг правки, когда дифф считаем сами. */
-const CONTEXT_LINES = 2
 
 /** Строки диффа из кусков: номера идут от начала каждого куска. */
 export const rowsFromPatch = (hunks: readonly PatchHunk[], numbered: boolean): DiffRow[] => {
@@ -46,30 +39,6 @@ export const rowsFromPatch = (hunks: readonly PatchHunk[], numbered: boolean): D
   return rows
 }
 
-const text = inputText
-
-const hunksOf = (before: string, after: string): PatchHunk[] =>
-  structuredPatch('', '', before, after, '', '', { context: CONTEXT_LINES }).hunks
-
-/**
- * Дифф правки по входу вызова - пока CLI не прислал свой (карточка разрешения, ход
- * прерван). Номеров строк файла тут нет: известны только заменяемые куски.
- */
-export const patchFromInput = (name: string, input: ToolInput): PatchHunk[] => {
-  if (name === 'Write') return hunksOf('', text(input, 'content'))
-  if (name === 'Edit') return hunksOf(text(input, 'old_string'), text(input, 'new_string'))
-
-  if (name === 'MultiEdit' && Array.isArray(input['edits'])) {
-    return input['edits'].flatMap((edit: unknown) =>
-      typeof edit === 'object' && edit !== null
-        ? hunksOf(text(edit as ToolInput, 'old_string'), text(edit as ToolInput, 'new_string'))
-        : [],
-    )
-  }
-
-  return []
-}
-
 /** Сколько строк добавлено и удалено. */
 export const diffStats = (rows: readonly DiffRow[]) => ({
   added: rows.filter((row) => row.kind === 'add').length,
@@ -77,16 +46,20 @@ export const diffStats = (rows: readonly DiffRow[]) => ({
 })
 
 /**
- * Строки диффа правки: дифф CLI с настоящими номерами строк, если он пришёл, иначе -
- * свой по входу вызова (вопрос разрешения, прерванный ход). Новый файл (Write)
- * начинается с первой строки, его номера точные и без CLI.
+ * Строки диффа правки: дифф провайдера с настоящими номерами строк, если он пришёл, иначе -
+ * дифф по входу вызова (вопрос разрешения, прерванный ход). У правки по входу номеров строк
+ * файла нет - известны только заменяемые куски; новый файл начинается с первой строки, его
+ * номера точные и так.
  */
-export const editRows = (tool: Pick<ToolFeedItem, 'name' | 'input' | 'result'>): DiffRow[] => {
+export const editRows = (tool: Pick<ToolFeedItem, 'action' | 'result'>): DiffRow[] => {
   const patch = tool.result?.patch
+  const { action } = tool
 
   if (patch && patch.length > 0) return rowsFromPatch(patch, true)
+  if (action.kind === 'edit') return rowsFromPatch(action.preview, false)
+  if (action.kind === 'write') return rowsFromPatch(action.preview, true)
 
-  return rowsFromPatch(patchFromInput(tool.name, tool.input), tool.name === 'Write')
+  return []
 }
 
 /** Кусок диффа для показа: с какой строки (после правки), сколько добавлено и удалено, строки. */

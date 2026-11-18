@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 
-import { useClaudeActions } from './claude-actions.hooks'
+import { useClaudeAccounts } from './claude-accounts.hooks'
 
 /**
  * Просить главный процесс освежить лимиты аккаунтов: сразу и раз в interval, пока
  * компонент на экране. Чаще своего шага главный процесс аккаунт всё равно не спросит.
  */
 export const useUsageRefresh = (accountIds: readonly string[], interval: number) => {
-  const { accounts } = useClaudeActions()
+  const accounts = useClaudeAccounts()
   // Список - строкой: новый массив с теми же id не должен перезапускать опрос. JSON, а
   // не join: id обычного входа - пустая строка.
   const key = JSON.stringify(accountIds)

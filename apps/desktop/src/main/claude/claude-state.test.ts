@@ -1,6 +1,30 @@
 import { it, expect, describe } from 'vitest'
 
-import { toStored, freshConversation, parseStoredClaude } from './claude-state'
+import type { ClosedTab } from '../agents/panel/closed-tabs'
+import { closedView } from '../agents/panel/closed-tabs'
+import { toStored, freshConversation } from '../agents/panel/panel-state'
+import { parseStoredClaude } from './claude-state'
+
+/** Закрытая вкладка, как её пишет полоса вкладок (agents/panel/closed-tabs.ts). */
+const closed = (id: string, closedAt = 0): ClosedTab => ({
+  stored: {
+    id,
+    projectPath: '/p',
+    sessionId: `s-${id}`,
+    title: id,
+    titleSource: 'llm',
+    outcome: 'done',
+    model: null,
+    effort: null,
+    permissionMode: 'default',
+    queue: [],
+    fork: null,
+    updatedAt: 0,
+  },
+  place: { groupsLeft: [], tabsLeft: [] },
+  closedAt,
+  hasDraft: false,
+})
 
 describe('сохранённые разговоры', () => {
   it('очередь переживает перезапуск текстом, битые записи в ней отбрасываются', () => {
@@ -129,5 +153,25 @@ describe('команды проекта', () => {
 
     expect(parsed.commandsByProject).toEqual({ '/p': ['compact', 'mcp__srv__prompt'] })
     expect(parseStoredClaude({}).commandsByProject).toEqual({})
+  })
+})
+
+describe('закрытые вкладки на диске', () => {
+  it('переживают перезапуск: место и черновик с диска, битое выпадает', () => {
+    const file = JSON.parse(
+      JSON.stringify({
+        conversations: [],
+        closed: [
+          { ...closed('a', 7), place: { groupsLeft: ['g'], tabsLeft: ['x', 3] }, hasDraft: true },
+          { stored: { id: 'broken' } },
+        ],
+      }),
+    ) as unknown
+
+    const [tab] = parseStoredClaude(file).closed
+
+    expect(parseStoredClaude(file).closed).toHaveLength(1)
+    expect(tab).toMatchObject({ closedAt: 7, hasDraft: true, place: { tabsLeft: ['x'] } })
+    expect(tab && closedView(tab)).toMatchObject({ id: 'a', title: 'a', titleSource: 'llm' })
   })
 })

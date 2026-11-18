@@ -1,8 +1,8 @@
 import type { PatchHunk, ToolResult } from '@shared/claude-feed'
 
-import type { LineChange } from '../changes/line-counts'
-import { patchLines, writtenLines } from '../changes/line-counts'
 import { isRecord, numberField, stringField, recordsField } from '../cli/cli-messages'
+import type { LineChange } from '../../agents/changes/line-counts'
+import { patchLines, writtenLines } from '../../agents/changes/line-counts'
 import { MAX_PATCH_LINES, MAX_RESULT_CHARS } from './feed.constants'
 
 type Clipped = { text: string; truncated: boolean }

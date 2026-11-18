@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path'
 
 import type { ClaudeService } from '../claude-service'
 import { CliProcess } from '../cli/cli-process'
-import { makeThumbnail } from '../images/thumbnail'
+import { makeThumbnail } from '../../agents/images/thumbnail'
 import type { OpenAiChat } from '../../connectors/ai/ai-chat'
 import { DeferredProcess } from '../../providers/claude/deferred-process'
 import { ConnectorChat } from './connector-chat'

@@ -4,12 +4,12 @@ import { stat, access } from 'node:fs/promises'
 import { join, delimiter } from 'node:path'
 
 import { IS_WINDOWS } from '../../platform'
+import type { Environment } from '../../process/shell-env'
+import { loginShellEnv } from '../../process/shell-env'
 import type { CliFeatures } from './cli-features'
 import { parseCliFeatures } from './cli-features'
 import { checkCliPath } from './cli-path'
 import { CLAUDE_BINARY, CLI_PROBE_TIMEOUT_MS } from './cli.constants'
-import type { Environment } from './shell-env'
-import { loginShellEnv } from './shell-env'
 
 /** Где нашёлся CLI, с каким окружением его запускать и что он умеет. */
 export type ClaudeCli = { binary: string; env: Environment; features: CliFeatures }

@@ -12,8 +12,8 @@ import {
   FIT_ABOVE_BYTES,
   PREVIEW_QUALITY,
   PICTURE_FILE_MAX_BYTES,
-} from './images.constants'
-import { fittedSize, picturePath, pictureType } from './picture-fit'
+} from '../../agents/images/images.constants'
+import { fittedSize, picturePath, pictureType } from '../../agents/images/picture-fit'
 
 /** Откуда главный процесс берёт картинки сообщений: очередь и транскрипт разговора. */
 export type PictureHost = {

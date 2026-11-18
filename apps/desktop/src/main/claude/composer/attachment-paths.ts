@@ -3,7 +3,8 @@ import { sep, extname, relative, isAbsolute } from 'node:path'
 
 import type { AttachmentPath } from '@shared/claude-draft'
 
-import { MAX_ATTACH_PATHS, PICTURE_EXTENSIONS } from './composer.constants'
+import { PICTURE_EXTENSIONS } from '../../agents/images/images.constants'
+import { MAX_ATTACH_PATHS } from './composer.constants'
 
 /** Картинка по расширению - её чип показывает картинку, а модель читает файл. */
 export const isPicturePath = (path: string): boolean =>
