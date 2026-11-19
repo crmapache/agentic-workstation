@@ -3,6 +3,7 @@ import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { GenerateConnectorRequest } from '@shared/connector-spec'
 import type {
   AgentApp,
+  OutsideCopy,
   ConnectorsState,
   AddToTypeRequest,
   UpdateTypeRequest,
@@ -165,5 +166,11 @@ export const useConnectorActions = () => {
     openDiskAccess: () => invoke('connectors:openDiskAccess'),
     /** Разрешение macOS для Computer Use: IDE - в список, открыть настройку; не мак - false. */
     allowComputer: (permission: ComputerPermission) => invoke('computer:allow', { permission }),
+    /** Вход в IDE снаружи (ADR 0090): сервер на постоянном порту с ключом. */
+    setOutside: (enabled: boolean) => run(() => invoke('connectors:setOutside', { enabled })),
+    /** Настройка с ключом - в буфер обмена главным процессом; false - ключа не сохранить. */
+    copyOutside: (what: OutsideCopy) => invoke('connectors:copyOutside', { what }),
+    /** Новый ключ: клиенты со старым больше не войдут. */
+    renewOutsideKey: () => run(() => invoke('connectors:renewOutsideKey')),
   }
 }

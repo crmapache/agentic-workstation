@@ -20,7 +20,8 @@ import type { ComputerState } from './computer'
  * личному токену, оба через официальные MCP (ADR 0036); playwright - браузер Playwright MCP
  * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); computer -
  * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); notifications -
- * уведомления и напоминания IDE самому человеку (ADR 0069, встроенный); mcp - любой
+ * уведомления и напоминания IDE самому человеку (ADR 0069, встроенный); workstation - сама IDE:
+ * проекты, сценарии и очереди, задания, разговоры панелей (ADR 0090, встроенный); mcp - любой
  * MCP-сервер по адресу (Linear, Sentry, свой); command - MCP-сервер командой на этой машине
  * (npx, node); http - описанный ИИ по документации сервиса (ADR 0029).
  */
@@ -35,6 +36,7 @@ export type ConnectorKind =
   | 'browser'
   | 'computer'
   | 'notifications'
+  | 'workstation'
   | 'mcp'
   | 'command'
   | 'http'
@@ -50,6 +52,7 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'browser',
   'computer',
   'notifications',
+  'workstation',
   'mcp',
   'command',
   'http',
@@ -57,12 +60,19 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
 
 /**
  * Встроенные коннекторы, которые есть всегда: IDE заводит их сама и в каталоге нового их нет.
- * Уведомления IDE (ADR 0069) - то, чем любой разговор зовёт человека кнопками и напоминаниями.
+ * Уведомления IDE (ADR 0069) - то, чем любой разговор зовёт человека кнопками и напоминаниями;
+ * Agentic Workstation (ADR 0090) - то, чем разговор управляет самой IDE без мыши.
  */
-export const BUILT_IN_KINDS: readonly ConnectorKind[] = ['notifications']
+export const BUILT_IN_KINDS: readonly ConnectorKind[] = ['notifications', 'workstation']
 
 /** Имя сервера уведомлений IDE: тип в начале, как у всех (ADR 0028). */
 export const NOTIFICATIONS_SERVER_NAME = 'notifications'
+
+/**
+ * Имя сервера самой IDE (ADR 0090). Не `ide`: так Claude Code зовёт свой сервер связи с
+ * редакторами, и в терминале человека два сервера с одним именем спорили бы.
+ */
+export const WORKSTATION_SERVER_NAME = 'workstation'
 
 /**
  * Работает командой на этой машине: своя MCP-команда и Playwright. Своя копия на каждый
@@ -282,6 +292,27 @@ export const BROWSER_SERVER_NAME = 'browser-chrome'
 /** Адрес страницы расширений Chrome: открыть её или скопировать, если Chrome не открылся. */
 export const CHROME_EXTENSIONS_URL = 'chrome://extensions'
 
+/**
+ * Вход в IDE снаружи (ADR 0090): сервер workstation на постоянном порту 127.0.0.1 для чужих
+ * агентов - Claude Code в терминале, Codex, любого клиента MCP. off - выключен человеком;
+ * on - слушает; port-busy - порт занят другим процессом; failed - не поднялся по другой причине.
+ */
+export type OutsideStatus = 'off' | 'on' | 'port-busy' | 'failed'
+
+export type OutsideAccessState = {
+  enabled: boolean
+  status: OutsideStatus
+  /** Адрес сервера без ключа; ключ окно не видит - он уходит в буфер обмена из главного процесса. */
+  url: string
+  /** Шифрования хранилища нет - ключ не сохранить, включить нельзя. */
+  vault: boolean
+}
+
+/** Что положить в буфер обмена: команда Claude Code, запись Codex, JSON для любого клиента. */
+export type OutsideCopy = 'claude' | 'codex' | 'json'
+
+export const OUTSIDE_COPIES: readonly OutsideCopy[] = ['claude', 'codex', 'json']
+
 export type ConnectorsState = {
   connectors: Connector[]
   /** Свои типы коннекторов - и те, что подключают один раз. */
@@ -296,6 +327,8 @@ export type ConnectorsState = {
   browser: BrowserState
   /** Готовность Computer Use: система и разрешения macOS (ADR 0057). */
   computer: ComputerState
+  /** Вход в IDE снаружи (ADR 0090). */
+  outside: OutsideAccessState
 }
 
 /**

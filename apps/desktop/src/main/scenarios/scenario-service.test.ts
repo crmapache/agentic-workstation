@@ -319,6 +319,33 @@ describe('scenario service', () => {
     })
   })
 
+  it('a new queue made with working hours sleeps before its first scenario starts', async () => {
+    const scenarios = service as ScenarioService
+    // Окно в другой день недели: сейчас точно вне часов.
+    const other = ((new Date().getDay() + 3) % 7) + 1
+    const started = await scenarios.start({
+      projectPath: project,
+      scenarioId: 'a',
+      scope: 'project',
+      inputs: {},
+      provider: 'claude',
+      target: { kind: 'new', worktree: false },
+      hours: { from: 9 * 60, to: 10 * 60, days: [other] },
+    })
+
+    expect(started.ok).toBe(true)
+    if (!started.ok) return
+
+    await start('b', { kind: 'queue', queueId: started.queueId })
+
+    expect(queue(started.queueId).nap).not.toBeNull()
+    expect(queue(started.queueId).items.map((item) => item.state)).toEqual(['waiting', 'waiting'])
+    expect(fakes).toHaveLength(0)
+
+    await scenarios.act(started.queueId, { kind: 'hours', hours: null })
+    await until(() => queue(started.queueId).items[0]?.state === 'done')
+  })
+
   it('refuses a provider the IDE does not have instead of queueing a run that fails', async () => {
     const scenarios = service as ScenarioService
     const before = scenarios.queuesView().queues.length

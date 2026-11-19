@@ -5,6 +5,7 @@ import {
   Drama,
   Globe,
   ListTodo,
+  AppWindow,
   CalendarDays,
   NotebookText,
   SquareKanban,
@@ -41,6 +42,7 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   browser: Globe,
   computer: MousePointerClick,
   notifications: Bell,
+  workstation: AppWindow,
   mcp: Plug,
   command: SquareTerminal,
   http: WandSparkles,
@@ -71,6 +73,17 @@ export const DESCRIPTION_SAVE_MS = 1000
 /** Коннектору в проекте ничего не сказано: ни инструкций, ни профиля Chrome. */
 export const NOTHING_SAID: ConnectorInProject = { instructions: '', browserProfile: null }
 
+/**
+ * Коннекторы без раздела подключения (адрес, команда, вход): свои инструменты IDE поверх её же
+ * частей - браузер, компьютер, уведомления и сама IDE.
+ */
+export const NO_CONNECTION_KINDS: readonly ConnectorKind[] = [
+  'browser',
+  'computer',
+  'notifications',
+  'workstation',
+]
+
 /** Тон плитки типа в каталоге: разные сервисы узнаются цветом, смысла состояния в нём нет. */
 export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   gmail: 'danger',
@@ -83,6 +96,7 @@ export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   browser: 'accent',
   computer: 'info',
   notifications: 'accent',
+  workstation: 'accent',
   mcp: 'accent',
   command: 'neutral',
   http: 'success',

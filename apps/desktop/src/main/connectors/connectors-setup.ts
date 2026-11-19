@@ -11,12 +11,22 @@ import { ELECTRON_CIPHER } from '../storage/electron-cipher'
 import { JsonFile } from '../storage/json-file'
 import { Vault } from '../storage/vault'
 import { openExternalWeb } from '../window/open-external'
+import { WorkstationLink } from '../workstation/workstation-link'
 import { pickGoogleClientFile } from './connector-dialogs'
 import type { StoredConnectors } from './connector-store'
 import { ConnectorsService } from './connectors-service'
-import { VAULT_FILE, AI_JOBS_FILE, MCP_CONFIG_DIR, CONNECTORS_FILE } from './connectors.constants'
+import {
+  VAULT_FILE,
+  AI_JOBS_FILE,
+  OUTSIDE_FILE,
+  OUTSIDE_PORT,
+  MCP_CONFIG_DIR,
+  CONNECTORS_FILE,
+  OUTSIDE_PORT_ENV,
+} from './connectors.constants'
 import type { OpenAiChat } from './ai/ai-chat'
 import type { StoredAiJobs } from './ai/ai-jobs-file'
+import type { StoredOutside } from './outside/outside-access'
 
 /** Что коннекторам надо от провайдеров: перезапустить процессы или переподключить сервер. */
 export type ProviderLinks = {
@@ -35,6 +45,15 @@ export type ProviderLinks = {
   rendererUrl: string | undefined
   /** Уведомления IDE: они поднимутся позже коннекторов и встанут в эту связь (ADR 0069). */
   inbox: InboxLink
+}
+
+/** Порт входа снаружи: переменная - у копии окна агента и проверок, иначе свой у сборки и dev. */
+const outsidePort = (): number => {
+  const asked = Number(process.env[OUTSIDE_PORT_ENV])
+
+  if (Number.isInteger(asked) && asked > 0 && asked < 65_536) return asked
+
+  return app.isPackaged ? OUTSIDE_PORT.packaged : OUTSIDE_PORT.dev
 }
 
 /**
@@ -68,6 +87,10 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       browser,
       computer,
       inbox: links.inbox,
+      // Сама IDE (ADR 0090): сценарии, задания и панели поднимутся позже и встанут в эту связь.
+      workstation: new WorkstationLink(),
+      outsideFile: new JsonFile<StoredOutside>(join(userData, OUTSIDE_FILE)),
+      outsidePort: outsidePort(),
     },
     {
       onState: (state) => broadcast('connectors:state', state),

@@ -34,6 +34,7 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   browser: 'browser',
   computer: 'computer',
   notifications: 'notifications',
+  workstation: 'workstation',
   mcp: '',
   command: '',
   http: '',
@@ -78,3 +79,15 @@ export const MCP_CONFIG_DIR = 'connectors-mcp'
 
 /** Как IDE представляется сервисам при регистрации клиента и подключении. */
 export const CLIENT_NAME = 'Agentic Workstation'
+
+/**
+ * Постоянный порт входа в IDE снаружи (ADR 0090, записан в ~/.claude/ports.md): его адрес человек
+ * вписывает в чужой клиент один раз. У dev свой - установленная IDE и dev работают рядом.
+ */
+export const OUTSIDE_PORT = { packaged: 4461, dev: 4462 }
+
+/** Свой порт входа снаружи - копии окна агента и проверкам, чтобы не спорить с dev человека. */
+export const OUTSIDE_PORT_ENV = 'AGENTIC_WORKSTATION_OUTSIDE_PORT'
+
+/** Включён ли вход снаружи; ключ - в хранилище. */
+export const OUTSIDE_FILE = 'workstation-outside.json'

@@ -149,8 +149,10 @@ export const assertAddRequest = (value: unknown): AddConnectorRequest => {
   const request = recordOf(value)
   const kind = assertOneOf(request['kind'], CONNECTOR_KINDS, 'kind')
 
-  // Встроенные (уведомления IDE) заводит сама IDE: добавить второй нельзя.
-  if (kind === 'notifications') throw new Error('Встроенный коннектор не добавляется')
+  // Встроенные (уведомления IDE, сама IDE) заводит сама IDE: добавить второй нельзя.
+  if (kind === 'notifications' || kind === 'workstation') {
+    throw new Error('Встроенный коннектор не добавляется')
+  }
 
   // Браузеру для ИИ и Computer Use подпись не нужна: они одни, имя сервера постоянное.
   if (kind === 'browser' || kind === 'computer') return { kind }

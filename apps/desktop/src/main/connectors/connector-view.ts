@@ -16,6 +16,7 @@ import { signsInWithBrowser } from './kinds/sources'
 import { BROWSER_GUIDE, BROWSER_COMPUTER_NOTE } from './kinds/browser/browser-guide'
 import { COMPUTER_GUIDE } from './kinds/computer/computer-guide'
 import { NOTIFICATIONS_GUIDE } from './kinds/notifications/notifications-guide'
+import { WORKSTATION_GUIDE } from './kinds/workstation/workstation-guide'
 
 /** Что о коннекторе знает только живая IDE: идёт ли вход и чем кончилась последняя попытка. */
 export type LiveFacts = {
@@ -106,6 +107,7 @@ export const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   browser: "the user's Chrome",
   computer: "the user's computer (real mouse, keyboard and screen)",
   notifications: "the user's Agentic Workstation notifications",
+  workstation: 'Agentic Workstation itself, the IDE you run in',
   mcp: 'MCP server',
   command: 'MCP server',
   http: 'API',
@@ -159,6 +161,7 @@ const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = {
   browser: BROWSER_GUIDE,
   computer: COMPUTER_GUIDE,
   notifications: NOTIFICATIONS_GUIDE,
+  workstation: WORKSTATION_GUIDE,
 }
 
 /**

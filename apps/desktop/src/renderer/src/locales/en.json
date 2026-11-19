@@ -153,6 +153,11 @@
         "name": "Notifications",
         "hint": "Built in: any chat or task can notify you here, with buttons and reminders",
         "short": "Notifications"
+      },
+      "workstation": {
+        "name": "Agentic Workstation",
+        "hint": "Built in: any chat can run the IDE itself - projects, scenarios and queues, tasks, other chats",
+        "short": "Agentic Workstation"
       }
     },
     "status": {
@@ -558,6 +563,10 @@
       "computer": {
         "title": "Computer Use",
         "text": "On a Mac, Accessibility lets the IDE move the mouse and type in other apps, and Screen Recording lets it take screenshots for the AI. macOS asks for both once, in System Settings → Privacy & Security, and may ask you to reopen the IDE after Screen Recording. Windows asks for nothing, but it keeps everyone's mouse and keyboard out of apps running as administrator, the AI's too. There the AI pastes text through the clipboard and puts back what you had copied right after.\n\nOne conversation uses the computer at a time. While it works, a capsule at the bottom center of the screen shows its project. Pause stops the current action and holds the next one until you resume; Stop ends computer use, and the AI asks you before it takes the computer again. Moving the mouse yourself also stops the current action.\n\nWeb pages stay with Browser Use: it works in the background and doesn't take your mouse. Turn the connector off or limit it to some projects to keep the AI off your computer."
+      },
+      "outside": {
+        "title": "Control from outside",
+        "text": "The IDE's own tools - projects, scenarios and queues, tasks and chats - for agents that run outside it: Claude Code in a terminal, Codex, Cursor or any MCP client on this computer. Chats inside the IDE have them already.\n\nTurn it on, then Copy setup: the command or config goes to the clipboard with the key in it. Paste it where your agent keeps its MCP servers. The server listens only on this computer, and nothing gets in without the key.\n\nNew key cuts off every client that has the old one. Turning this off stops the server; the key stays until you make a new one.\n\nWhat the tools may do is the same as inside: switch tools off on the right, or turn the whole connector off."
       }
     },
     "inProject": {
@@ -619,6 +628,30 @@
       "unsupported": "Computer Use works on macOS and Windows only.",
       "windowsTitle": "Windows",
       "windows": "Windows asks for no permissions. It doesn't let the AI's mouse and keyboard into apps running as administrator: those steps stay yours, or run the app normally. Text goes in like a paste, through the clipboard: what you copied is back right after, and the AI's text stays out of clipboard history."
+    },
+    "outside": {
+      "title": "Control from outside",
+      "switch": "Let agents outside the IDE control it",
+      "switchHint": "Claude Code in a terminal, Codex or any MCP client on this computer, with a key",
+      "noVault": "Secure storage isn't available here, so the key can't be kept.",
+      "status": {
+        "off": "Off",
+        "on": "Listening",
+        "port-busy": "Port taken",
+        "failed": "Didn't start"
+      },
+      "why": {
+        "port-busy": "Another app holds this port. Close it, then turn this off and on.",
+        "failed": "The server didn't start. Turn this off and on to try again."
+      },
+      "copy": "Copy setup",
+      "copied": "Copied with the key",
+      "copyFor": {
+        "claude": "Claude Code command",
+        "codex": "Codex config.toml",
+        "json": "JSON for other MCP clients"
+      },
+      "renew": "New key"
     }
   },
   "computer": {

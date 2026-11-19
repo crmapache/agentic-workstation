@@ -1,4 +1,4 @@
-import type { ConnectorInProject } from '@shared/connectors'
+import type { ConnectorKind, ConnectorInProject } from '@shared/connectors'
 import { runsCommand } from '@shared/connectors'
 
 import { launchCommand } from '../connector-command'
@@ -11,6 +11,7 @@ import type { BrowserHub } from '../../browser/browser-hub'
 import type { ProfileOpening } from '../../browser/chrome-profiles'
 import type { ComputerRuntime } from '../../computer/computer-runtime'
 import type { InboxLink } from '../../inbox/inbox-agent'
+import type { WorkstationLink } from '../../workstation/workstation-link'
 import { NativeSource } from './native-tools'
 import { RemoteMcpSource } from './remote-mcp'
 import { StdioMcpSource } from './stdio-mcp'
@@ -21,6 +22,7 @@ import { GMAIL_TOOLS } from './google/gmail-tools'
 import { GoogleSession, GoogleApiError } from './google/google-session'
 import { HttpSpecSource } from './http/http-source'
 import { createNotificationsSource } from './notifications/notifications-tools'
+import { createWorkstationSource } from './workstation/workstation-tools'
 
 export type SourceDeps = {
   googleClient: () => GoogleClient | null
@@ -33,10 +35,14 @@ export type SourceDeps = {
   computer?: ComputerRuntime | null | undefined
   /** Уведомления IDE - для встроенного коннектора уведомлений (ADR 0069); в тестах нет. */
   inbox?: InboxLink | null | undefined
+  /** Сама IDE - для встроенного коннектора Agentic Workstation (ADR 0090); в тестах нет. */
+  workstation?: WorkstationLink | null | undefined
   /** Открыть окно браузера в закрытом профиле по имени (ADR 0053); в тестах нет. */
   openBrowserProfile?: ((name: string) => Promise<ProfileOpening>) | undefined
   /** Что человек сказал про этот коннектор в проекте (ADR 0053); ставит живой коннектор. */
   inProject?: ((projectPath: string) => ConnectorInProject | null) | undefined
+  /** Виден ли коннектор в проекте (ADR 0029); ставит живой коннектор. Нет - во всех. */
+  availableIn?: ((projectPath: string) => boolean) | undefined
 }
 
 /**
@@ -100,6 +106,13 @@ export const createSource = (
     return deps.inbox ? createNotificationsSource(deps.inbox) : new NativeSource([], null, [])
   }
 
+  // Сама IDE (ADR 0090): проекты, сценарии, задания и разговоры - её же сервисами.
+  if (connector.kind === 'workstation') {
+    return deps.workstation
+      ? createWorkstationSource(deps.workstation, (path) => deps.availableIn?.(path) ?? true)
+      : new NativeSource([], null, [])
+  }
+
   if (runsCommand(connector.kind) && connector.command) {
     return new StdioMcpSource({
       command: () => launchCommand(connector, secrets.read()),
@@ -129,18 +142,19 @@ export const createSource = (
   })
 }
 
+/** Свои инструменты IDE поверх её же частей: входа у них нет и не бывает. */
+const IDE_OWN_KINDS: readonly ConnectorKind[] = [
+  'browser',
+  'computer',
+  'notifications',
+  'workstation',
+]
+
 /** Есть ли вход: токен Google, токен OAuth сервера, ключ - или вход не нужен вовсе. */
 export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets): boolean => {
   if (connector.kind === 'gmail' || connector.kind === 'calendar') return Boolean(secrets.google)
 
-  if (
-    runsCommand(connector.kind) ||
-    connector.kind === 'browser' ||
-    connector.kind === 'computer' ||
-    connector.kind === 'notifications'
-  ) {
-    return true
-  }
+  if (runsCommand(connector.kind) || IDE_OWN_KINDS.includes(connector.kind)) return true
 
   if (connector.kind === 'http')
     return connector.spec?.auth.type === 'none' || Boolean(secrets.apiKey)
@@ -154,15 +168,13 @@ export const hasSignIn = (connector: StoredConnector, secrets: ConnectorSecrets)
 
 /**
  * Входить в браузере надо готовым сервисам и своему MCP с OAuth; команде, Playwright, ИИ,
- * браузеру для ИИ, Computer Use и уведомлениям IDE - нет.
+ * браузеру для ИИ, Computer Use, уведомлениям IDE и самой IDE - нет.
  */
 export const signsInWithBrowser = (connector: StoredConnector): boolean => {
   if (
     runsCommand(connector.kind) ||
     connector.kind === 'http' ||
-    connector.kind === 'browser' ||
-    connector.kind === 'computer' ||
-    connector.kind === 'notifications'
+    IDE_OWN_KINDS.includes(connector.kind)
   ) {
     return false
   }

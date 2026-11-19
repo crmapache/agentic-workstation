@@ -46,6 +46,7 @@ export const ConnectorsModals = ({ state, projects }: ConnectorsModalsProps) => 
       customType={type ? { type, connections: connectionsOf(state, type.id) } : null}
       browser={state.browser}
       computer={state.computer}
+      outside={state.outside}
     />
   ) : null
 }

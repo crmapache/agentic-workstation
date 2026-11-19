@@ -15,14 +15,16 @@ import type {
 } from '@shared/connectors'
 
 import type { ComputerRuntime } from '../computer/computer-runtime'
+import type { WorkstationLink } from '../workstation/workstation-link'
 import { ConnectorAccess } from './connector-access'
 import { newConnector } from './connector-add'
 import type { NewConnector } from './connector-add'
+import { addRefusal, storeSecrets } from './connector-adding'
 import { withInProject } from './connector-in-project'
 import { migrateRegistry } from './connector-migrate'
 import { GoalConnectors } from './connector-probe'
 import { ConnectorRegistry } from './connector-registry'
-import { SecretsOf, secretsKey, typeSecretsKey } from './connector-secrets'
+import { secretsKey } from './connector-secrets'
 import { parseStoredConnectors } from './connector-store'
 import { ConnectorTypeDesk } from './connector-type-desk'
 import { typeView } from './connector-types'
@@ -35,6 +37,8 @@ import { AiConnectorDesk } from './ai/ai-connector-desk'
 import type { McpLaunch, GatewayLaunch } from './gateway/launches'
 import { ImportDesk } from './import/import-desk'
 import { signsInWithBrowser } from './kinds/sources'
+import type { OutsideAccess } from './outside/outside-access'
+import { outsideAccess } from './outside/outside-server'
 import { BrowserDesk } from './kinds/browser/browser-desk'
 
 /**
@@ -55,6 +59,8 @@ export class ConnectorsService {
   readonly imports: ImportDesk
   private readonly browser: BrowserDesk
   private readonly types: ConnectorTypeDesk
+  /** Вход в IDE снаружи (ADR 0090): сервер workstation на постоянном порту с ключом. */
+  readonly outside: OutsideAccess
 
   private constructor(
     private readonly registry: ConnectorRegistry,
@@ -92,6 +98,7 @@ export class ConnectorsService {
       projectPaths: places.projectPaths,
       isTrusted: places.isTrusted,
       shellEnv: places.shellEnv,
+      outsidePort: places.outsidePort,
     })
 
     this.ai = new AiConnectorDesk({
@@ -104,6 +111,7 @@ export class ConnectorsService {
       adopted: events.onAiJobAdded,
     })
     this.browser = new BrowserDesk(places.browser, registry)
+    this.outside = outsideAccess(places, registry, this.live, () => this.broadcast())
     this.types = new ConnectorTypeDesk({
       registry,
       vault: places.vault,
@@ -143,6 +151,7 @@ export class ConnectorsService {
 
     for (const live of this.live.all()) void live.refresh()
 
+    await this.outside.load()
     this.browser.sync()
     // Готовое до перезапуска IDE добавляется теперь, когда коннекторы подняты (ADR 0086).
     this.ai.adoptReady()
@@ -151,10 +160,16 @@ export class ConnectorsService {
   /** Сессии браузера закрываются раньше моста: им ещё отпускать вкладки в Chrome. */
   async stop(): Promise<void> {
     this.ai.dispose()
+    await this.outside.stop()
     await this.live.disposeAll()
     await this.gateway.stop()
     await this.browser.stop()
     this.places.computer.stop()
+  }
+
+  /** Связь коннектора самой IDE (ADR 0090): в неё встают сценарии, задания и панели. */
+  get workstation(): WorkstationLink {
+    return this.places.workstation
   }
 
   /** Computer Use (ADR 0057): капсула зовёт его паузу и остановку, окно - разрешения. */
@@ -186,6 +201,7 @@ export class ConnectorsService {
       aiJobs: this.ai.list,
       browser: this.browser.state(),
       computer: this.places.computer.state(),
+      outside: this.outside.state(),
     }
   }
 
@@ -219,30 +235,15 @@ export class ConnectorsService {
    * где он виден, - перезапустить, вход в браузере - начать. Отказ - кодом.
    */
   async addPrepared(
-    { connector, secrets, type }: NewConnector,
+    prepared: NewConnector,
     { signIn = true }: { signIn?: boolean } = {},
   ): Promise<AddConnectorOutcome['error']> {
-    const hasSecrets = Object.keys(secrets).length > 0
+    const { connector, type } = prepared
+    const refusal = addRefusal(prepared, this.places.vault, this.access.googleClient() !== null)
 
-    if ((signsInWithBrowser(connector) || hasSecrets) && !this.places.vault.available) {
-      return 'vault-unavailable'
-    }
+    if (refusal) return refusal
 
-    if (
-      (connector.kind === 'gmail' || connector.kind === 'calendar') &&
-      !this.access.googleClient()
-    ) {
-      return 'google-app-missing'
-    }
-
-    if (hasSecrets) await new SecretsOf(this.places.vault, connector.id).update(secrets)
-
-    if (type && Object.keys(type.secrets).length) {
-      await new SecretsOf(this.places.vault, type.stored.id, typeSecretsKey(type.stored.id)).update(
-        type.secrets,
-      )
-    }
-
+    await storeSecrets(prepared, this.places.vault)
     await this.registry.add(connector, type?.stored ?? null)
 
     const live = this.live.attach(connector)

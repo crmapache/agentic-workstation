@@ -7,6 +7,7 @@ import type { GatewayServer } from './gateway/gateway'
 import { GatewayLaunches } from './gateway/launches'
 import type { Launch, McpLaunch, GatewayLaunch } from './gateway/launches'
 import type { GatewayEntry } from './gateway/mcp-config'
+import { WORKSTATION_READ_TOOLS } from './kinds/workstation/workstation-tools'
 
 /**
  * Что шлюз сообщает живым коннекторам (LiveConnectors): процесс кончился, работа разговора
@@ -125,14 +126,19 @@ export class GatewayHost {
     })
 
     // Уведомления самому человеку (ADR 0069) - без вопроса «разрешить?»: правило на весь сервер.
+    // У самой IDE (ADR 0090) без вопроса - только чтение: запуск сценария или письмо соседнему
+    // разговору человек разрешает сам, как любое действие.
     const allowed = this.registry.connectors
       .filter(
         (connector) =>
-          connector.kind === 'notifications' &&
-          connector.enabled &&
-          entries.some((entry) => entry.name === connector.serverName),
+          connector.enabled && entries.some((entry) => entry.name === connector.serverName),
       )
-      .map((connector) => `mcp__${connector.serverName}`)
+      .flatMap((connector) => {
+        if (connector.kind === 'notifications') return [`mcp__${connector.serverName}`]
+        if (connector.kind !== 'workstation') return []
+
+        return WORKSTATION_READ_TOOLS.map((tool) => `mcp__${connector.serverName}__${tool}`)
+      })
     // Свои серверы IDE работают на сам разговор и разрешены без вопроса, как уведомления.
     const all = [...own, ...entries]
 

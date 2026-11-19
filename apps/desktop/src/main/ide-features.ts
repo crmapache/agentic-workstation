@@ -28,6 +28,7 @@ import type { TaskAuthor } from './tasks/task-author'
 import type { TaskService } from './tasks/task-service'
 import { startTasks } from './tasks/tasks-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
+import { workstationPorts } from './workstation/workstation-ports'
 import type { PanelRegistry } from './agents/panel/panel-registry'
 import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
@@ -145,6 +146,14 @@ export const startIdeFeatures = async (setup: {
       }
     }
   }
+  // Коннектор самой IDE оживает, когда поднялось всё, чем он управляет.
+  setup.connectors.workstation.ports = workstationPorts({
+    workspace,
+    scenarios,
+    tasks: automation.tasks,
+    claude,
+    panels: setup.panels,
+  })
   // Прогоны, поднятые до этой строки (наверстывание при старте), телефон узнаёт сразу.
   taskRuns.runs = () => automation.tasks.view().runs
   remote.tasksChanged()
@@ -185,6 +194,7 @@ export const startIdeFeatures = async (setup: {
       // постановка сценария в worktree тянется минутами, а ⌘Q и установка обновления - нет.
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
+        setup.connectors.workstation.ports = null
         await definitions.close().catch(warnShutdown)
         await automation.shutdown().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)

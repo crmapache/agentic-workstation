@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import { cleanHours } from '@shared/queue-hours'
 import type { QueueItem, ScenarioQueue, ScenarioStartRequest } from '@shared/scenario-queues'
 import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { ScenarioCode } from '@shared/scenarios'
@@ -46,7 +47,7 @@ export const placeItem = async (
   }
   const placed =
     request.target.kind === 'new'
-      ? await openQueue(host, request.projectPath, item, request.target.worktree, provider)
+      ? await openQueue(host, request, item, request.target.worktree, provider)
       : joinQueue(host, request.target.queueId, request.projectPath, item)
 
   return 'code' in placed ? placed : { queueId: placed.queueId, itemId: item.id }
@@ -54,7 +55,7 @@ export const placeItem = async (
 
 const openQueue = async (
   host: RunnerHost,
-  projectPath: string,
+  { projectPath, hours }: ScenarioStartRequest,
   item: QueueItem,
   worktree: boolean,
   provider: ScenarioProvider,
@@ -83,7 +84,8 @@ const openQueue = async (
     items: [item],
     stopAfterItemId: '',
     hold: null,
-    hours: null,
+    // Часы - до первого шага: вне них очередь уснёт, не подняв первый сценарий.
+    hours: hours ? cleanHours(hours) : null,
     nap: null,
   }
 

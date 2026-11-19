@@ -29,6 +29,25 @@ export type ImportHost = {
   /** Доверился ли человек папке: .mcp.json недоверенной не читается. */
   isTrusted: (projectPath: string) => Promise<boolean>
   shellEnv: () => Promise<Record<string, string>>
+  /**
+   * Порт входа в IDE снаружи (ADR 0090): сервер на нём - сама эта IDE, вписанная человеком в
+   * Claude Code кнопкой Copy setup. Перенос его не предлагает - разговоры IDE получили бы её же
+   * вход снаружи вторым набором, без своего разговора и проекта.
+   */
+  outsidePort: number
+}
+
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]'])
+
+/** Сервер - вход снаружи этой IDE: свой адрес на её порту. */
+export const isOwnOutside = ({ server }: FoundServer, port: number): boolean => {
+  try {
+    const url = new URL(typeof server.url === 'string' ? server.url : '')
+
+    return LOOPBACK.has(url.hostname) && Number(url.port) === port
+  } catch {
+    return false
+  }
 }
 
 /** Чем работает найденный сервер - строкой, для поиска одинаковых. */
@@ -57,7 +76,9 @@ export class ImportDesk {
       this.host.isTrusted,
     )
 
-    this.found = findServers(userConfig, projects, this.host.serverNames())
+    this.found = findServers(userConfig, projects, this.host.serverNames()).filter(
+      (found) => !isOwnOutside(found, this.host.outsidePort),
+    )
 
     return this.found.map(({ candidate }) => candidate)
   }

@@ -5,6 +5,7 @@ import { blankConnector } from '../connector-store'
 import { findServers } from './import-candidates'
 import type { ProjectServers, McpJsonApprovals } from './import-candidates'
 import { withImportType, importedConnector } from './import-connector'
+import { isOwnOutside } from './import-desk'
 import { expandConfigVariables } from './import-vars'
 
 const userConfig = {
@@ -205,5 +206,20 @@ describe('expandConfigVariables', () => {
   it('${NAME} и ${NAME:-запасное}, как у Claude Code', () => {
     expect(expandConfigVariables('${A}/${B:-b}/${C:-c}', { A: 'a', C: '' })).toBe('a/b/c')
     expect(() => expandConfigVariables('${NOPE}', {})).toThrow()
+  })
+})
+
+describe('isOwnOutside', () => {
+  const found = (url: string) =>
+    ({ candidate: {} as never, server: { type: 'http', url } }) as Parameters<
+      typeof isOwnOutside
+    >[0]
+
+  it('вход снаружи этой IDE на её порту - свой, остальное - чужое', () => {
+    expect(isOwnOutside(found('http://127.0.0.1:4461/mcp/workstation'), 4461)).toBe(true)
+    expect(isOwnOutside(found('http://localhost:4461/mcp/workstation'), 4461)).toBe(true)
+    expect(isOwnOutside(found('http://127.0.0.1:4462/mcp/workstation'), 4461)).toBe(false)
+    expect(isOwnOutside(found('https://mcp.notion.com/mcp'), 4461)).toBe(false)
+    expect(isOwnOutside(found('not a url'), 4461)).toBe(false)
   })
 })

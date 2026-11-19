@@ -1,8 +1,8 @@
 import type { ConnectorKind } from '@shared/connectors'
 
 /** Что добавляют: коннектор этого типа или перенос из Claude Code. */
-/** Тип из каталога нового: встроенные (уведомления IDE, ADR 0069) IDE заводит сама. */
-export type AddKind = Exclude<ConnectorKind, 'notifications'>
+/** Тип из каталога нового: встроенные (уведомления IDE, сама IDE - ADR 0069, 0090) IDE заводит сама. */
+export type AddKind = Exclude<ConnectorKind, 'notifications' | 'workstation'>
 
 /** Что добавляют: тип из каталога или перенос. */
 export type AddTarget = AddKind | 'import'

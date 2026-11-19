@@ -2,6 +2,7 @@ import type { ConnectorAvailability } from '../connector-availability'
 import type { GenerateConnectorRequest } from '../connector-spec'
 import type {
   AgentApp,
+  OutsideCopy,
   ImportOutcome,
   ConnectorsState,
   ImportCandidate,
@@ -126,6 +127,15 @@ export type ConnectorsInvokeContract = {
    * Chrome (ADR 0052). Не macOS или настройки не открылись - false.
    */
   'connectors:openDiskAccess': { request: void; response: boolean }
+  /** Вход в IDE снаружи (ADR 0090): включить или выключить сервер на постоянном порту. */
+  'connectors:setOutside': { request: { enabled: boolean }; response: ConnectorsState }
+  /**
+   * Положить в буфер обмена настройку для чужого клиента с ключом. Ключ окну не уходит: текст
+   * пишет главный процесс. Ключа не сохранить (нет шифрования) - false.
+   */
+  'connectors:copyOutside': { request: { what: OutsideCopy }; response: boolean }
+  /** Новый ключ входа снаружи: клиенты со старым больше не войдут. */
+  'connectors:renewOutsideKey': { request: void; response: ConnectorsState }
 }
 
 export type ConnectorsEventContract = {
@@ -169,6 +179,9 @@ export const CONNECTORS_CHANNELS = {
   'connectors:revealBrowserExtension': true,
   'connectors:openBrowserExtensions': true,
   'connectors:openDiskAccess': true,
+  'connectors:setOutside': true,
+  'connectors:copyOutside': true,
+  'connectors:renewOutsideKey': true,
 } satisfies Record<keyof ConnectorsInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

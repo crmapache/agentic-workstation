@@ -6,9 +6,11 @@ import type { ComputerRuntime } from '../computer/computer-runtime'
 import type { InboxLink } from '../inbox/inbox-agent'
 import type { JsonFile } from '../storage/json-file'
 import type { Vault } from '../storage/vault'
+import type { WorkstationLink } from '../workstation/workstation-link'
 import type { StoredConnectors } from './connector-store'
 import type { OpenAiChat } from './ai/ai-chat'
 import type { StoredAiJobs } from './ai/ai-jobs-file'
+import type { StoredOutside } from './outside/outside-access'
 
 export type ConnectorsPlaces = {
   file: JsonFile<StoredConnectors>
@@ -32,6 +34,12 @@ export type ConnectorsPlaces = {
   computer: ComputerRuntime
   /** Уведомления IDE для встроенного коннектора уведомлений (ADR 0069). */
   inbox: InboxLink
+  /** Сама IDE для встроенного коннектора Agentic Workstation (ADR 0090). */
+  workstation: WorkstationLink
+  /** Вход в IDE снаружи (ADR 0090): включён ли, - файл; ключ - в хранилище. */
+  outsideFile: JsonFile<StoredOutside>
+  /** Постоянный порт входа снаружи: у собранной IDE и у dev - свой. */
+  outsidePort: number
 }
 
 export type ConnectorsEvents = {

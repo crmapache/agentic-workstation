@@ -16,6 +16,8 @@ set -euo pipefail
 DESKTOP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 WORK_DIR="$HOME/.agentic-workstation-agent"
 CDP_PORT=5316
+# Вход в IDE снаружи (ADR 0090) - свой порт копии: 4462 у dev человека, 4461 у установленной IDE.
+OUTSIDE_PORT="${AGENTIC_WORKSTATION_OUTSIDE_PORT:-4472}"
 
 stop() {
   pkill -f "$WORK_DIR/out" 2>/dev/null || true
@@ -59,6 +61,7 @@ start() {
   # Копия живёт за окнами человека, а закрытое окно Chromium не рисует: кадры стоят, страница
   # считает себя скрытой, и всё, что ждёт кадра (показ разницы, покадровые замеры), молчит.
   AGENTIC_WORKSTATION_PROFILE_DIR="$WORK_DIR/profile" AGENTIC_WORKSTATION_CDP_PORT="$CDP_PORT" \
+    AGENTIC_WORKSTATION_OUTSIDE_PORT="$OUTSIDE_PORT" \
     nohup ./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron "$WORK_DIR/out" \
     --disable-backgrounding-occluded-windows >"$WORK_DIR/app.log" 2>&1 &
 

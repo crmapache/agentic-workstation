@@ -108,6 +108,27 @@ describe('GatewayHost', () => {
     expect((await stat(a.path)).mode & 0o777).toBe(0o600)
   })
 
+  it('без вопроса - уведомления целиком и только чтение самой IDE, у выключенного - ничего', async () => {
+    await registry.add(
+      blankConnector({ id: 'n', kind: 'notifications', label: '', serverName: 'notifications' }),
+    )
+    await registry.add(
+      blankConnector({ id: 'w', kind: 'workstation', label: '', serverName: 'workstation' }),
+    )
+
+    const allowed = (await host.open('/p/a'))!.allowed
+
+    expect(allowed).toContain('mcp__notifications')
+    expect(allowed).toContain('mcp__workstation__list_queues')
+    expect(allowed).not.toContain('mcp__workstation__start_scenario')
+    expect(allowed).not.toContain('mcp__workstation')
+
+    await registry.update('w', { enabled: false })
+    expect((await host.open('/p/a'))!.allowed.some((rule) => rule.includes('workstation'))).toBe(
+      false,
+    )
+  })
+
   it('ключ у каждого процесса свой: по нему шлюз знает и проект, и сам процесс', async () => {
     const first = (await host.open('/p/a'))!
     const second = (await host.open('/p/a'))!

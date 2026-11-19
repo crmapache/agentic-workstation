@@ -56,6 +56,11 @@ export class ConnectorGateway<Launch> {
   constructor(
     private readonly access: GatewayAccess<Launch>,
     private readonly version: string,
+    /**
+     * Порт; 0 - от системы (шлюз процессов разговоров). Постоянный - у входа снаружи (ADR 0090):
+     * его адрес человек вписывает в чужой клиент один раз.
+     */
+    private readonly fixedPort = 0,
   ) {}
 
   async start(): Promise<void> {
@@ -73,7 +78,7 @@ export class ConnectorGateway<Launch> {
 
     await new Promise<void>((resolve, reject) => {
       http.once('error', reject)
-      http.listen(0, '127.0.0.1', () => {
+      http.listen(this.fixedPort, '127.0.0.1', () => {
         http.off('error', reject)
         resolve()
       })
@@ -96,7 +101,14 @@ export class ConnectorGateway<Launch> {
 
     this.http = null
 
-    if (http) await new Promise((resolve) => http.close(resolve))
+    if (!http) return
+
+    const closed = new Promise((resolve) => http.close(resolve))
+
+    // Открытые ответы рвутся сразу: клиент снаружи IDE (ADR 0090) жив и ждал бы долгий вызов,
+    // а выход из IDE ждать его не должен. Клиенты-процессы разговоров к этому моменту уже погашены.
+    http.closeAllConnections()
+    await closed
   }
 
   /**
@@ -104,7 +116,10 @@ export class ConnectorGateway<Launch> {
    * угодно на этой машине, и до ключа она ничего не должна задевать.
    */
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    if (request.headers.host !== `127.0.0.1:${this.port}`) {
+    // localhost - тоже этот адрес: так его пишут в чужом клиенте. Чужое имя (DNS rebinding) - нет.
+    const host = request.headers.host
+
+    if (host !== `127.0.0.1:${this.port}` && host !== `localhost:${this.port}`) {
       response.writeHead(403).end()
 
       return

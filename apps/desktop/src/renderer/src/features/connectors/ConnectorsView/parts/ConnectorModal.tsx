@@ -6,11 +6,17 @@ import { Badge } from '@agentic-workstation/ui/Badge'
 import { Modal } from '@agentic-workstation/ui/Modal'
 import { Switch } from '@agentic-workstation/ui/Switch'
 
-import { KIND_ICONS, KIND_TONES, STATUS_TONES } from '../ConnectorsView.constants'
+import {
+  KIND_ICONS,
+  KIND_TONES,
+  STATUS_TONES,
+  NO_CONNECTION_KINDS,
+} from '../ConnectorsView.constants'
 import styles from '../ConnectorsView.module.scss'
 import type { ConnectorModalProps } from '../ConnectorsView.types'
 import { connectorNames, instructionProjects } from '../ConnectorsView.utils'
 import { useConnectorsStore } from '../../connectors.store'
+import { WorkstationOutside } from '../../WorkstationOutside/WorkstationOutside'
 import { useConnectorActions } from '../../../../state/connectors.queries'
 import { useActiveProject } from '../../../../state/workspace.queries'
 import { BrowserSetup } from './BrowserSetup'
@@ -37,6 +43,7 @@ export const ConnectorModal = ({
   customType,
   browser,
   computer,
+  outside,
 }: ConnectorModalProps) => {
   const { t } = useTranslation()
   const actions = useConnectorActions()
@@ -76,7 +83,7 @@ export const ConnectorModal = ({
       footer={
         <>
           <ConnectorSignIn connector={connector} />
-          {/* Встроенный (уведомления IDE) не удаляется: IDE завела бы его снова. */}
+          {/* Встроенный (уведомления IDE, сама IDE) не удаляется: IDE завела бы его снова. */}
           {!BUILT_IN_KINDS.includes(kind) && <RemoveConnector connector={connector} />}
         </>
       }
@@ -103,7 +110,8 @@ export const ConnectorModal = ({
             )}
             {kind === 'browser' && <BrowserSetup browser={browser} />}
             {kind === 'computer' && <ComputerSetup computer={computer} />}
-            {kind !== 'browser' && kind !== 'computer' && kind !== 'notifications' && (
+            {kind === 'workstation' && <WorkstationOutside outside={outside} />}
+            {!NO_CONNECTION_KINDS.includes(kind) && (
               <ConnectorConnection connector={connector} google={google} />
             )}
             <ProjectsPicker connector={connector} projects={projects} />

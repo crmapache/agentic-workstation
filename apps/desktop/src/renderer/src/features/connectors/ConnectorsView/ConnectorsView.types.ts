@@ -15,6 +15,7 @@ import type {
   AddConnectorError,
   PlaywrightProfile,
   BrowserProfileView,
+  OutsideAccessState,
 } from '@shared/connectors'
 import type { ProjectRef } from '@shared/workspace'
 
@@ -76,7 +77,7 @@ export type TypePartProps = { type: CustomType; connections: number }
 export type AddToTypeFormProps = { type: CustomType; onAdded: OnAdded; onCancel: () => void }
 
 /** Тип коннектора с обычной формой; коннектор от ИИ добавляет свой поток (AiConnectorFlow). */
-export type FormKind = Exclude<ConnectorKind, 'http' | 'notifications'>
+export type FormKind = Exclude<ConnectorKind, 'http' | 'notifications' | 'workstation'>
 
 /** Добавлен - id нового (окно покажет его); null - добавлено несколько или ничего. */
 export type OnAdded = (id: string | null) => void
@@ -137,6 +138,8 @@ export type ConnectorModalProps = {
   browser: BrowserState
   /** Разрешения macOS - окну коннектора Computer Use (ADR 0057). */
   computer: ComputerState
+  /** Вход в IDE снаружи - окну коннектора Agentic Workstation (ADR 0090). */
+  outside: OutsideAccessState
 }
 
 /** Установка расширения браузера и профили Chrome на связи. */
@@ -199,6 +202,7 @@ export type ConnectorsHelpProps = {
     | 'computer'
     | 'inProject'
     | 'aiJobs'
+    | 'outside'
 }
 
 /**

@@ -6,7 +6,7 @@ import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import { JsonFile } from '../storage/json-file'
 import type { Vault } from '../storage/vault'
-import { adoptPlaywright, assignCustomTypes } from './connector-migrate'
+import { ensureBuiltIns, adoptPlaywright, assignCustomTypes } from './connector-migrate'
 import { ConnectorRegistry } from './connector-registry'
 import { secretsKey, typeSecretsKey } from './connector-secrets'
 import { blankConnector, parseStoredConnectors } from './connector-store'
@@ -165,5 +165,41 @@ describe('assignCustomTypes', () => {
       ['command', 'chatkepr', 'tc', ''],
     ])
     expect(store.has(typeSecretsKey('tn'))).toBe(false)
+  })
+})
+
+describe('ensureBuiltIns', () => {
+  let dir = ''
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'builtins-'))
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('заводит уведомления и саму IDE один раз; занятое имя - с меткой -ide', async () => {
+    const registry = new ConnectorRegistry(
+      {
+        connectors: [command('mine', 'workstation', ['/x/server.js'])],
+        types: [],
+        googleClientId: null,
+      },
+      new JsonFile<StoredConnectors>(join(dir, 'connectors.json')),
+    )
+    let next = 0
+    const newId = () => `id-${(next += 1)}`
+
+    await ensureBuiltIns(registry, newId)
+    await ensureBuiltIns(registry, newId)
+
+    expect(
+      registry.connectors.map(({ kind, serverName, label }) => ({ kind, serverName, label })),
+    ).toEqual([
+      { kind: 'command', serverName: 'workstation', label: 'workstation' },
+      { kind: 'notifications', serverName: 'notifications', label: 'Agentic Workstation' },
+      { kind: 'workstation', serverName: 'workstation-ide', label: '' },
+    ])
   })
 })

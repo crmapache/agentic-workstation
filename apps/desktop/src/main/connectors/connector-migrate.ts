@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto'
 
-import { isCustomKind, NOTIFICATIONS_SERVER_NAME } from '@shared/connectors'
+import {
+  isCustomKind,
+  WORKSTATION_SERVER_NAME,
+  NOTIFICATIONS_SERVER_NAME,
+} from '@shared/connectors'
 
 import type { Vault } from '../storage/vault'
 import { commandForStore } from './connector-command'
@@ -118,27 +122,32 @@ export const adoptPlaywright = async (registry: ConnectorRegistry, vault: Vault)
   }
 }
 
+/** Встроенный коннектор: тип, имя его сервера и подпись подключения. */
+const BUILT_INS = [
+  { kind: 'notifications', serverName: NOTIFICATIONS_SERVER_NAME, label: 'Agentic Workstation' },
+  // Подпись пустая: имя типа на плитке и есть «Agentic Workstation».
+  { kind: 'workstation', serverName: WORKSTATION_SERVER_NAME, label: '' },
+] as const
+
 /**
- * Встроенные коннекторы, которые есть всегда (BUILT_IN_KINDS): уведомления IDE (ADR 0069).
- * Нет в реестре - заводятся, во всех проектах. Человек может выключить их или сузить проекты,
- * но не удалить: удалённый вернулся бы на следующем запуске, а окно кнопки удаления не даёт.
+ * Встроенные коннекторы, которые есть всегда (BUILT_IN_KINDS): уведомления IDE (ADR 0069) и сама
+ * IDE (ADR 0090). Нет в реестре - заводятся, во всех проектах. Человек может выключить их или
+ * сузить проекты, но не удалить: удалённый вернулся бы на следующем запуске, а окно кнопки
+ * удаления не даёт.
  */
 export const ensureBuiltIns = async (registry: ConnectorRegistry, newId: () => string) => {
-  if (registry.connectors.some((connector) => connector.kind === 'notifications')) return
+  for (const builtIn of BUILT_INS) {
+    if (registry.connectors.some((connector) => connector.kind === builtIn.kind)) continue
 
-  // Имя занято своим сервером человека - встроенный встаёт рядом с меткой.
-  const serverName = registry.serverNames().has(NOTIFICATIONS_SERVER_NAME)
-    ? `${NOTIFICATIONS_SERVER_NAME}-ide`
-    : NOTIFICATIONS_SERVER_NAME
+    // Имя занято своим сервером человека - встроенный встаёт рядом с меткой.
+    const serverName = registry.serverNames().has(builtIn.serverName)
+      ? `${builtIn.serverName}-ide`
+      : builtIn.serverName
 
-  await registry.add(
-    blankConnector({
-      id: newId(),
-      kind: 'notifications',
-      label: 'Agentic Workstation',
-      serverName,
-    }),
-  )
+    await registry.add(
+      blankConnector({ id: newId(), kind: builtIn.kind, label: builtIn.label, serverName }),
+    )
+  }
 }
 
 /**

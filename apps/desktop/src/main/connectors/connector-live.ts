@@ -1,3 +1,4 @@
+import { isAvailableIn } from '@shared/connector-availability'
 import { runsCommand } from '@shared/connectors'
 import type { ConnectorFailure } from '@shared/connectors'
 import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -101,7 +102,15 @@ export class LiveConnector {
   ) {
     // Настройки проекта источник читает свежими на каждом вызове: смена их не пересоздаёт
     // источник (у Browser в нём живут сессии разговоров).
-    this.deps = { ...deps, inProject: (path) => host.stored()?.inProjects[path] ?? null }
+    this.deps = {
+      ...deps,
+      inProject: (path) => host.stored()?.inProjects[path] ?? null,
+      availableIn: (path) => {
+        const stored = host.stored()
+
+        return stored ? isAvailableIn(stored.availability, path) : false
+      },
+    }
     this.source = createSource(connector, secrets, this.deps)
   }
 

@@ -131,6 +131,11 @@ export type ScenarioStartRequest = {
   inputs: Record<string, string>
   provider: ProviderId
   target: QueueTarget
+  /**
+   * Рабочие часы новой очереди - до её первого шага: вне часов она встаёт спящей и первый
+   * сценарий не стартует (ADR 0090, очередь «на завтра» от ИИ). У существующей очереди не читается.
+   */
+  hours?: QueueHours | null | undefined
 }
 
 export type ScenarioStartOutcome =

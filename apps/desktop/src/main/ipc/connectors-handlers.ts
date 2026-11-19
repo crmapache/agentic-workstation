@@ -1,3 +1,7 @@
+import { clipboard } from 'electron'
+
+import { OUTSIDE_COPIES } from '@shared/connectors'
+
 import {
   openChromeExtensions,
   revealExtensionFolder,
@@ -24,6 +28,7 @@ import {
   assertAvailability,
 } from './connectors-validate'
 import type { InvokeHandlers } from './handle'
+import { assertOneOf } from './validate'
 
 type ConnectorsChannels = Extract<keyof InvokeHandlers, `connectors:${string}`>
 
@@ -102,4 +107,21 @@ export const createConnectorsHandlers = (
     revealExtensionFolder(connectors.getState().browser.extensionDir),
   'connectors:openBrowserExtensions': () => openChromeExtensions(),
   'connectors:openDiskAccess': () => openDiskAccessSettings(),
+  'connectors:setOutside': async ({ enabled }) => {
+    await connectors.outside.setEnabled(assertBoolean(enabled, 'enabled'))
+
+    return connectors.getState()
+  },
+  'connectors:copyOutside': async ({ what }) => {
+    const text = await connectors.outside.setupText(assertOneOf(what, OUTSIDE_COPIES, 'what'))
+
+    if (text) await clipboard.writeText(text)
+
+    return text !== null
+  },
+  'connectors:renewOutsideKey': async () => {
+    await connectors.outside.renewKey()
+
+    return connectors.getState()
+  },
 })
