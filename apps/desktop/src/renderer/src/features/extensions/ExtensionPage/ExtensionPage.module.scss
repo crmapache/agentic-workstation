@@ -1,0 +1,16 @@
+// Вид расширения в середине окна или в левой панели: шапка прибита, страница прокручивается.
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.content {
+  padding: var(--space-4) var(--size-panel-gutter);
+}

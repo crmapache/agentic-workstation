@@ -11,6 +11,7 @@ import { EditorDocument } from './editor-document'
 import type { DocumentHost } from './editor-document'
 import { SAVE_COMMAND } from './editor.constants'
 import { useEditorStore } from './editor.store'
+import { editShown } from './extension-edits'
 import { monaco } from './monaco-setup'
 import { watchOutsideFiles } from './outside-watch'
 
@@ -179,6 +180,8 @@ connectDocuments({
   checkAll: () => documents.checkAll(),
   discard: (projectId, paths) => documents.discard(projectId, paths),
   saveAll: () => documents.saveAll(),
+  edit: (projectId, path, kind, text) =>
+    editShown((model) => documents.findByModel(model), projectId, path, kind, text),
 })
 
 // ⌘S - явная просьба: пишет файл того редактора, где фокус (код файла или правая сторона

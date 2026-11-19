@@ -23,14 +23,18 @@
     "update:e2e": "bash scripts/update-e2e.sh"
   },
   "dependencies": {
+    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "koffi": "3.3.3",
     "node-pty": "1.2.0-beta.18",
+    "quickjs-emscripten-core": "0.32.0",
     "semver": "7.8.5"
   },
   "devDependencies": {
     "@agentic-workstation/browser-protocol": "workspace:*",
     "@agentic-workstation/relay": "workspace:*",
     "@agentic-workstation/remote-protocol": "workspace:*",
+    "@agentic-workstation/store": "workspace:*",
+    "@agentic-workstation/store-protocol": "workspace:*",
     "@agentic-workstation/ui": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@tanstack/react-query": "5.104.3",

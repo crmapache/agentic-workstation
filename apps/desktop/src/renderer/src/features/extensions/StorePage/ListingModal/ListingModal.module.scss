@@ -1,0 +1,206 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.layout {
+  container-type: inline-size;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-6);
+
+  @container (width < 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.side {
+  padding-left: var(--space-6);
+  border-left: var(--border-width) solid var(--color-border);
+
+  @container (width < 640px) {
+    padding-top: var(--space-6);
+    padding-left: 0;
+    border-top: var(--border-width) solid var(--color-border);
+    border-left: none;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.readme {
+  min-width: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  overflow-wrap: anywhere;
+}
+
+.plain {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+// Оценка: средняя крупно, под ней полосы долей от пятёрок к единицам.
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.average {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bars {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  color: var(--color-warning);
+}
+
+.starOff {
+  color: var(--color-fg-disabled);
+}
+
+// Поставленная звезда - залита: оценку читают формой, а не только цветом обводки.
+.starOn {
+  fill: currentcolor;
+}
+
+.starIcon {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.reviews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+
+  & + & {
+    padding-top: var(--space-3);
+    border-top: var(--border-width) solid var(--color-border);
+  }
+}
+
+.reviewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.author {
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.when {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.reviewText {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.versions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.version {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.footerEnd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+}
+
+.failure {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}

@@ -1,0 +1,20 @@
+.from {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.body {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

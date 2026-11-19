@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
+import { viewLabel } from '../views/view-label'
 import styles from './ActivityBar.module.scss'
 import type { ActivityBarProps } from './ActivityBar.types'
 
@@ -40,8 +41,8 @@ export const ActivityBar = <ViewId extends string>({
               icon={view.icon}
               label={
                 count > 0
-                  ? t('activityBar.waiting', { label: t(view.labelKey), count })
-                  : (mark?.label ?? t(view.labelKey))
+                  ? t('activityBar.waiting', { label: viewLabel(view, t), count })
+                  : (mark?.label ?? viewLabel(view, t))
               }
               active={isPanelOpen && view.id === activeViewId}
               tooltipPlacement={tooltipPlacement}

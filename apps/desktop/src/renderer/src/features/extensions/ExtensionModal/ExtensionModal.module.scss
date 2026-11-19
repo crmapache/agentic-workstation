@@ -1,0 +1,157 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Окно расширения: две колонки - состояние, права и настройки слева, вклад и журнал справа.
+.layout {
+  container-type: inline-size;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+
+  @container (width < 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.side {
+  padding-left: var(--space-6);
+  border-left: var(--border-width) solid var(--color-border);
+
+  @container (width < 640px) {
+    padding-top: var(--space-6);
+    padding-left: 0;
+    border-top: var(--border-width) solid var(--color-border);
+    border-left: none;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.problem {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  max-height: calc(14em * var(--font-scale));
+  overflow: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-danger);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+// Вклад расширения: группы с подписью, строки - имя и клавиши.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.groupLabel {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.lineText {
+  @include truncate;
+
+  min-width: 0;
+}
+
+// Журнал: моноширинные строки на тёмной подложке, ошибки - красным, предупреждения - жёлтым.
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: calc(22em * var(--font-scale));
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  list-style: none;
+}
+
+.entry {
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.time {
+  color: var(--color-fg-subtle);
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.footerEnd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.question {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.failure {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}

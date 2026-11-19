@@ -1,0 +1,152 @@
+# Agentic Workstation extension
+
+This folder is an extension of Agentic Workstation, the IDE you run in. An extension changes
+how the IDE behaves: it adds commands, views, status bar items, notifications, a theme, tools
+for AI conversations, and hooks into conversations, files and the editor.
+
+Read `ide.d.ts` before you write code: it is the whole API, with the permission each part needs.
+
+## Files
+
+- `extension.json` - the manifest. `id` must match the folder name.
+- `main.js` - the entry, an ES module. Other modules: relative imports only (`./util.js`).
+- `ide.d.ts` - the API. Do not edit it.
+- `README.md` - what the extension does, for people who install it.
+
+## Manifest
+
+```json
+{
+  "id": "my-extension",
+  "name": "My extension",
+  "version": "1.0.0",
+  "description": "One sentence about what it does.",
+  "icon": "Puzzle",
+  "main": "main.js",
+  "apiVersion": 1,
+  "permissions": [],
+  "network": { "hosts": [] },
+  "shell": { "commands": [] },
+  "settings": []
+}
+```
+
+- `icon` and icons in views are lucide icon names in PascalCase (`Timer`, `GitBranch`).
+- `permissions` - only what the code really uses:
+  - `files.read` - read files of open projects, the active editor, file save events.
+  - `files.write` - write and delete files of open projects, edit the editor text.
+  - `agent.observe` - see when a turn of any AI conversation ends, with its answer.
+  - `agent.intercept` - rewrite messages before they go to the model, refuse permission requests.
+  - `ide.control` - drive the IDE: projects, scenarios, queues, tasks, conversations.
+  - `ai.tools` - give tools to AI conversations.
+  - `network` - HTTP requests, only to hosts listed in `network.hosts` (`api.github.com`,
+    `*.example.com` for subdomains).
+  - `shell` - run programs listed in `shell.commands` (`git`, `npm`), without a shell.
+  - `clipboard` - read and write the clipboard.
+- `settings` - fields the person fills in the Extensions view: `text`, `secret` (stored in
+  the system keychain, never in files), `switch`, `select`. Read them with `ide.settings`.
+  Put API keys in a `secret` setting, never in code.
+
+Without permissions an extension can still use commands, views, the status bar,
+notifications, dialogs, the theme, its own storage and settings, timers and the log.
+
+## Code
+
+```js
+export async function activate(ide) {
+  await ide.commands.register('hello', { title: 'Say hello', keys: 'cmd+alt+h' }, async () => {
+    const name = await ide.ui.prompt({ title: 'Your name?' })
+    if (name) await ide.ui.notify({ title: `Hello, ${name}!`, tone: 'success' })
+  })
+}
+
+export async function deactivate() {}
+```
+
+- `activate(ide)` runs on start; `deactivate()` on stop (optional). The global `ide` works too.
+- Everything the IDE gives you is async: always `await` it.
+- No Node.js (`fs`, `require`, `process`), no DOM (`document`, `window`), no `fetch` - use
+  `ide.files`, `ide.net.fetch`, `ide.shell.run`. No npm packages: write what you need in the
+  folder.
+- `setTimeout`, `setInterval` and `console.*` work. `console` goes to the extension log.
+
+### Views
+
+A view is a tree of nodes the IDE draws with its own design system. Render the whole tree
+again when your state changes. Fields send their values with every event.
+
+```js
+const view = ide.ui.view({ id: 'todo', title: 'Todo', icon: 'ListTodo' })
+let items = (await ide.storage.get('items')) ?? []
+
+const render = () =>
+  view.render({
+    type: 'section',
+    title: 'Todo',
+    children: [
+      { type: 'row', children: [
+        { type: 'textField', name: 'text', label: 'New item' },
+        { type: 'button', label: 'Add', action: 'add', variant: 'primary' },
+      ] },
+      items.length
+        ? { type: 'list', items: items.map((text, index) => ({ id: String(index), title: text, action: `done:${index}` })) }
+        : { type: 'empty', title: 'Nothing to do' },
+    ],
+  })
+
+view.onEvent(async (event) => {
+  if (event.kind !== 'action') return
+  if (event.action === 'add' && event.values.text) items = [...items, event.values.text]
+  if (event.action.startsWith('done:')) items = items.filter((_, i) => i !== Number(event.action.slice(5)))
+  await ide.storage.set('items', items)
+  await render()
+})
+await render()
+```
+
+Use `muted` text for secondary words and keep views short: the IDE is a calm, flat dark UI.
+
+### Tools for AI
+
+```js
+await ide.tools.register(
+  {
+    name: 'count_words',
+    description: 'Count the words in a text.',
+    inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
+    readOnly: true,
+  },
+  (args) => ({ words: args.text.trim().split(/\s+/).length }),
+)
+```
+
+### Hooks into conversations
+
+```js
+await ide.agent.guard((request) =>
+  request.action.kind === 'command' && /push\s+(-f|--force)/.test(request.action.command)
+    ? { deny: 'Force push is blocked by an extension. Push without --force.' }
+    : undefined,
+)
+```
+
+## Limits
+
+- One call into your code may run up to 1 second without awaiting; longer - the extension
+  stops with a timeout. Split heavy work with `await` or `setTimeout`.
+- Memory: 64 MB. Storage: 1 MB. Files: read up to 5 MB, write up to 5 MB.
+- Up to 100 commands, 8 views, 3 status bar items, 30 AI tools, 200 timers.
+- Hooks: `onBeforeSend` 3 s, `guard` 2 s - slower answers are ignored.
+
+## Check your work
+
+The IDE reloads the extension on every save of its files. Then use the tools of the
+"Agentic Workstation" connector:
+
+- `list_extensions` - status of every extension, its problem, commands, views and tools.
+- `extension_logs` - its log: console output, errors with stack traces.
+- `reload_extension` - start it again after a fix.
+- `run_extension_command` - run a command and see what it returns.
+
+A new or wider permission puts the extension in "Needs approval": only the person can
+approve it in the Extensions view. Tell the person which permissions you added and why.

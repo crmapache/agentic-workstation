@@ -99,6 +99,7 @@ const ideOf = ({
     scenarios: { queuesView: () => ({ queues: [], live: [] }), ...scenarios } as ScenariosPort,
     tasks: tasks as TasksPort,
     panels: () => [panel, codex] as unknown as ConversationsPort[],
+    extensions: () => null,
   }
   const link = new WorkstationLink()
 

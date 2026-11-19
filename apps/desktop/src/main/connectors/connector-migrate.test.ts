@@ -200,6 +200,7 @@ describe('ensureBuiltIns', () => {
       { kind: 'command', serverName: 'workstation', label: 'workstation' },
       { kind: 'notifications', serverName: 'notifications', label: 'Agentic Workstation' },
       { kind: 'workstation', serverName: 'workstation-ide', label: '' },
+      { kind: 'extensions', serverName: 'extensions', label: '' },
     ])
   })
 })

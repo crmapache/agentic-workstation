@@ -11,6 +11,8 @@ import type { ClaudeService } from './claude/claude-service'
 import type { ConnectorsService } from './connectors/connectors-service'
 import type { DefinitionService } from './definitions/definition-service'
 import { createDefinitionService } from './definitions/definition-setup'
+import type { ExtensionsRuntime } from './extensions/extensions-setup'
+import { startExtensions } from './extensions/extensions-setup'
 import type { InboxLink } from './inbox/inbox-agent'
 import type { InboxService } from './inbox/inbox-service'
 import { broadcast } from './ipc/broadcast'
@@ -67,6 +69,8 @@ export type IdeFeatures = {
   observeCall: (call: ConversationCall) => void
   /** Проекты открыли или закрыли. */
   projectsChanged: () => void
+  /** Расширения IDE (ADR 0091): песочницы, работа с ИИ над ними, магазин. */
+  extensions: ExtensionsRuntime
   /** Выход из IDE: связь с телефонами гаснет, прогоны пишутся остановленными, база закрывается. */
   shutdown: () => Promise<void>
 }
@@ -96,6 +100,8 @@ export const startIdeFeatures = async (setup: {
   silent: () => boolean
   /** Связь коннектора уведомлений: в неё встанут уведомления IDE (ADR 0069). */
   inboxLink: InboxLink
+  /** Папка расширений IDE (ADR 0091): своя у копии с отдельным профилем. */
+  extensionsRoot: string
 }): Promise<IdeFeatures> => {
   const { workspace, claude } = setup
   const taps: ScenarioTaps = { onQueues: () => undefined, onRun: () => undefined }
@@ -146,13 +152,26 @@ export const startIdeFeatures = async (setup: {
       }
     }
   }
-  // Коннектор самой IDE оживает, когда поднялось всё, чем он управляет.
+  // Коннектор самой IDE оживает, когда поднялось всё, чем он управляет; расширения - вслед за
+  // портами: их ручка ide.control зовёт те же инструменты.
+  let extensions: ExtensionsRuntime | null = null
+
   setup.connectors.workstation.ports = workstationPorts({
     workspace,
     scenarios,
     tasks: automation.tasks,
     claude,
     panels: setup.panels,
+    extensions: () => extensions?.service ?? null,
+  })
+  extensions = await startExtensions({
+    root: setup.extensionsRoot,
+    userData: setup.dataDir,
+    workspace,
+    inbox: automation.inbox,
+    workstation: setup.connectors.workstation,
+    panels: setup.panels,
+    connectors: setup.connectors,
   })
   // Прогоны, поднятые до этой строки (наверстывание при старте), телефон узнаёт сразу.
   taskRuns.runs = () => automation.tasks.view().runs
@@ -169,6 +188,7 @@ export const startIdeFeatures = async (setup: {
     inbox: automation.inbox,
     taskAuthor: automation.author,
     definitions,
+    extensions,
     observeState: (provider, state) => {
       providers.changed(provider, state)
       statistics.observe(provider, state)
@@ -194,6 +214,8 @@ export const startIdeFeatures = async (setup: {
       // постановка сценария в worktree тянется минутами, а ⌘Q и установка обновления - нет.
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
+        // Расширения - первыми: их хуки и вызовы ходят в то, что гаснет ниже.
+        await extensions?.shutdown().catch(warnShutdown)
         setup.connectors.workstation.ports = null
         await definitions.close().catch(warnShutdown)
         await automation.shutdown().catch(warnShutdown)

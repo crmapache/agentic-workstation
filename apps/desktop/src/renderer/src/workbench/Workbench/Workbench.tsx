@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { ActionNotice } from '../ActionNotice/ActionNotice'
 import { useClaudePanelKey, useClaudePanelToggle } from '../actions/claude-panel'
 import { useFileViewOnSelect } from '../actions/file-view'
 import { useOpenFile } from '../actions/open-file'
@@ -13,38 +12,29 @@ import { usePresence } from '../actions/presence'
 import { useTerminalKey, useTerminalToggle } from '../actions/terminal-dock'
 import { useWindowCommands } from '../actions/window-commands'
 import { ActivityBar } from '../ActivityBar/ActivityBar'
-import { NotificationArea } from '../NotificationArea/NotificationArea'
-import { SearchLayer } from '../SearchLayer/SearchLayer'
+import { Overlays } from '../Overlays/Overlays'
 import { SideFooter } from '../SideFooter/SideFooter'
 import { SidePanel } from '../SidePanel/SidePanel'
 import { TerminalDock } from '../TerminalDock/TerminalDock'
 import { TitleBar } from '../TitleBar/TitleBar'
 import { CONVERSATION_LOG } from '../views/conversation-log'
+import { useViewLists, useGoneViewFallback } from '../views/extension-views'
 import { useMainViewBadges } from '../views/main-view-badges'
-import { MAIN_VIEWS, MAIN_BAR_VIEWS } from '../views/main-views'
 import { useProjectCalls } from '../views/project-calls'
 import { useProjectWork } from '../views/project-work'
 import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { useSideViewMarks } from '../views/side-view-marks'
-import { SIDE_VIEWS } from '../views/side-views'
 import { ViewStack } from '../ViewStack/ViewStack'
 import { ConversationLogContext } from '../../state/conversation-log.context'
 import { InboxCardContext } from '../../state/inbox-card.context'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
-import { DiscardDialog } from '../../features/editor/DiscardDialog/DiscardDialog'
 import { InboxCard } from '../../features/inbox/InboxCard/InboxCard'
-import { InboxToasts } from '../../features/inbox/InboxToasts/InboxToasts'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
-import { RemoteModal } from '../../features/remote/RemoteModal/RemoteModal'
-import { ScenarioNotice } from '../../features/scenarios/ScenarioNotice/ScenarioNotice'
 import { MuteSoundsButton } from '../../features/settings/MuteSoundsButton/MuteSoundsButton'
-import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsDialog'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
-import { TasksNotice } from '../../features/tasks/TasksNotice/TasksNotice'
-import { UpdateNotice } from '../../features/updates/UpdateNotice/UpdateNotice'
 import { useRoomMeasure } from './Workbench.hooks'
 import styles from './Workbench.module.scss'
 
@@ -53,7 +43,7 @@ import styles from './Workbench.module.scss'
  * проектов, 2, 3 и 8 полосы переключения видов, 4 строка состояния, 5 левая панель,
  * 6 середина (файл, сценарии, задания, статистика, коннекторы, уведомления), 7 GUI провайдера
  * LLM и терминал под ним;
- * поверх - поиск везде, настройки, Remote Control и витрина. Workbench только расставляет зоны, мерит под
+ * поверх - поиск везде, вопросы и карточки (Overlays) и витрина. Workbench только расставляет зоны, мерит под
  * них место и связывает их с раскладкой; что внутри каждой - решают фичи.
  */
 export const Workbench = () => {
@@ -71,7 +61,8 @@ export const Workbench = () => {
   const openFile = useOpenFile()
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
-  const mainBadges = useMainViewBadges()
+  const views = useViewLists()
+  const mainBadges = { ...useMainViewBadges(), ...views.badges }
   const sideMarks = useSideViewMarks()
   const projectCallsOf = useProjectCalls()
   const projectWorkOf = useProjectWork()
@@ -84,6 +75,7 @@ export const Workbench = () => {
   // Settings… (⌘,) и размер текста (⌘+, ⌘-, ⌘0) из меню приложения.
   useWindowCommands()
   usePresence()
+  useGoneViewFallback(views.main, views.side)
 
   return (
     <OpenFileContext value={openFile}>
@@ -96,7 +88,7 @@ export const Workbench = () => {
             <ActivityBar
               edge="start"
               label={t('sideViews.label')}
-              views={SIDE_VIEWS}
+              views={views.side}
               marks={sideMarks}
               activeViewId={side.activeViewId}
               isPanelOpen={arrangement.isSideShown}
@@ -106,7 +98,7 @@ export const Workbench = () => {
             <SidePanel
               ref={sideRef}
               placement="start"
-              views={SIDE_VIEWS}
+              views={views.side}
               activeViewId={side.activeViewId}
               isOpen={arrangement.isSideShown}
               width={arrangement.side}
@@ -117,7 +109,7 @@ export const Workbench = () => {
             <ActivityBar
               edge="start"
               label={t('mainViews.label')}
-              views={MAIN_BAR_VIEWS}
+              views={views.mainBar}
               badges={mainBadges}
               activeViewId={main.activeViewId}
               isPanelOpen={arrangement.isMainShown}
@@ -129,7 +121,7 @@ export const Workbench = () => {
                 <ConversationLogContext value={CONVERSATION_LOG}>
                   <InboxCardContext value={InboxCard}>
                     <ViewStack
-                      views={MAIN_VIEWS}
+                      views={views.main}
                       activeViewId={main.activeViewId}
                       isOpen={arrangement.isMainShown}
                     />
@@ -178,18 +170,7 @@ export const Workbench = () => {
           <StatusBar items={[<RemoteButton />, <MuteSoundsButton />]} />
         </div>
 
-        <SearchLayer />
-        <DiscardDialog />
-        <SettingsDialog />
-        <RemoteModal />
-
-        <NotificationArea>
-          <UpdateNotice />
-          <ActionNotice />
-          <ScenarioNotice />
-          <TasksNotice />
-          <InboxToasts />
-        </NotificationArea>
+        <Overlays />
       </div>
     </OpenFileContext>
   )

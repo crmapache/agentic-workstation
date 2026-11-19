@@ -12,6 +12,7 @@ export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'statistics',
   'connectors',
   'inbox',
+  'extensions',
 ]
 export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code', 'codex', 'open-models']
 

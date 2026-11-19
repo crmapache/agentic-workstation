@@ -232,6 +232,22 @@ export class ConversationOutbox {
     return this.chain
   }
 
+  /**
+   * Текст после хуков расширений (ADR 0091): команду CLI и сообщение, написанное панелью, они
+   * не трогают. Новый текст - без кусков поля: чипы и цитаты описывали прежний.
+   */
+  private async rewritten(message: Outgoing): Promise<Outgoing> {
+    const { hooks, meta } = this.runtime
+
+    if (!hooks?.rewriting() || message.auto || isSlashCommand(message.text)) return message
+
+    const text = await hooks
+      .beforeSend({ conversationId: meta.id, projectPath: meta.projectPath, text: message.text })
+      .catch(() => message.text)
+
+    return text === message.text ? message : { ...message, text, draft: null }
+  }
+
   private async sendNow(message: Outgoing, place: QueuePlace): Promise<void> {
     const { runtime } = this
 
@@ -289,7 +305,21 @@ export class ConversationOutbox {
 
     if (this.hold === 'blocked') this.hold = null
 
-    session.send(message, !startsTurn)
+    const sent = await this.rewritten(message)
+
+    if (runtime.isDisposed) return
+
+    // Пока хук расширения думал, сессия сменилась: сообщение ждёт в очереди, как при отказе.
+    if (runtime.session !== session) {
+      if (startsTurn) runtime.turnActive = false
+
+      this.hold = 'blocked'
+      this.push(message, place)
+
+      return runtime.syncStatus()
+    }
+
+    session.send(sent, !startsTurn)
 
     if (startsTurn) runtime.update({ turnStartedAt: Date.now(), stopRequestedAt: null })
   }

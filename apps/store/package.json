@@ -1,0 +1,29 @@
+{
+  "name": "@agentic-workstation/store",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Магазин расширений Agentic Workstation: каталог, публикация с подписью ключом IDE, оценки и отзывы, счёт установок.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./config": "./src/config.ts"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "PORT=4463 STORE_DATA_DIR=.data node --watch src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentic-workstation/store-protocol": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

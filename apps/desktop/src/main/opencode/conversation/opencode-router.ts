@@ -114,9 +114,7 @@ const asked = (session: OpenCodeSession, data: Record<string, unknown>) => {
     openCodeOf(runtime).servers,
   )
 
-  runtime.held = [...runtime.held, held]
-  runtime.syncStatus()
-  runtime.host.onCall(runtime.meta.id, 'permission')
+  void runtime.hold(held)
 }
 
 const formCreated = (session: OpenCodeSession, data: Record<string, unknown>) => {

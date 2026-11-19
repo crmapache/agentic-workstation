@@ -244,7 +244,5 @@ export const takeServerRequest = (
     return session.answer(held, { kind: 'permission', decision: { behavior: 'allow' } })
   }
 
-  runtime.held = [...runtime.held, held]
-  runtime.syncStatus()
-  runtime.host.onCall(runtime.meta.id, held.pending.kind)
+  void runtime.hold(held)
 }

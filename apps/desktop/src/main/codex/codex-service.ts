@@ -9,7 +9,7 @@ import type { PanelPrefs, ConversationCall } from '@shared/panel-prefs'
 import { parseStoredClaude } from '../claude/claude-state'
 import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
-import type { PanelDriver } from '../agents/panel/agent-panel'
+import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
 import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
@@ -33,7 +33,7 @@ import { codexDriver } from './conversation/codex-driver'
 import { forkSessionFor } from './conversation/codex-fork'
 import { rewindCodex, previewCodexRewind } from './conversation/codex-rewind'
 
-export type CodexEvents = {
+export type CodexEvents = Pick<PanelEvents, 'hooks'> & {
   onState: (state: AgentPanelState) => void
   onFeed: (patch: FeedPatch) => void
   onCall: (call: ConversationCall) => void
@@ -71,7 +71,7 @@ export class CodexService extends AgentPanel {
     private readonly version: string,
     accounts: CodexAccounts,
   ) {
-    super(stored, file, { onState: events.onState, onCall: events.onCall })
+    super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.prefs = stored.prefs
     this.trust = new FolderTrust(stored.trustedProjects, () => this.persist.changed())
     // Каталог аккаунта в работе: окружение входа берётся на каждом подъёме процесса.

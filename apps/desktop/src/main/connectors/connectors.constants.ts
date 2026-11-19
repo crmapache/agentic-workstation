@@ -35,6 +35,7 @@ export const SERVER_PREFIX: Record<ConnectorKind, string> = {
   computer: 'computer',
   notifications: 'notifications',
   workstation: 'workstation',
+  extensions: 'extensions',
   mcp: '',
   command: '',
   http: '',

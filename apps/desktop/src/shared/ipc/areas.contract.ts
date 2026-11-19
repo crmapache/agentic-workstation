@@ -19,6 +19,10 @@ import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connec
 import { CONNECTORS_EVENTS, CONNECTORS_CHANNELS } from './connectors.contract'
 import type { EditorEventContract, EditorInvokeContract } from './editor.contract'
 import { EDITOR_EVENTS, EDITOR_CHANNELS } from './editor.contract'
+import type { ExtensionStoreInvokeContract } from './extension-store.contract'
+import { EXTENSION_STORE_CHANNELS } from './extension-store.contract'
+import type { ExtensionsEventContract, ExtensionsInvokeContract } from './extensions.contract'
+import { EXTENSIONS_EVENTS, EXTENSIONS_CHANNELS } from './extensions.contract'
 import type { FileOpsInvokeContract } from './file-ops.contract'
 import { FILE_OPS_CHANNELS } from './file-ops.contract'
 import type { FsPathsInvokeContract } from './fs-paths.contract'
@@ -81,7 +85,9 @@ export type AreaInvokeContract = AgentInvokeContract &
   ServiceAiInvokeContract &
   TasksInvokeContract &
   InboxInvokeContract &
-  OpenModelsInvokeContract
+  OpenModelsInvokeContract &
+  ExtensionsInvokeContract &
+  ExtensionStoreInvokeContract
 
 export type AreaEventContract = AgentEventContract &
   ClaudeTabsEventContract &
@@ -102,7 +108,8 @@ export type AreaEventContract = AgentEventContract &
   ServiceAiEventContract &
   TasksEventContract &
   InboxEventContract &
-  OpenModelsEventContract
+  OpenModelsEventContract &
+  ExtensionsEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -130,6 +137,8 @@ export const AREA_CHANNELS = {
   ...TASKS_CHANNELS,
   ...INBOX_CHANNELS,
   ...OPEN_MODELS_CHANNELS,
+  ...EXTENSIONS_CHANNELS,
+  ...EXTENSION_STORE_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -154,4 +163,5 @@ export const AREA_EVENTS = {
   ...TASKS_EVENTS,
   ...INBOX_EVENTS,
   ...OPEN_MODELS_EVENTS,
+  ...EXTENSIONS_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

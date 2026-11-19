@@ -428,6 +428,35 @@ iframe под их строкой и ссылками `f2e7` (`page-frames.ts`: 
 (собранная IDE 4461, dev 4462), с ключом из хранилища; включается в окне коннектора, там же
 копируется настройка для Claude Code, Codex или любого клиента MCP.
 
+**Расширения IDE** ([ADR 0091](adr/0091-extensions-sandbox-and-store.md)) - вид середины окна
+`features/extensions` (иконка-пазл, вкладки Installed и Store), главный процесс - `main/extensions/`.
+Расширение - папка `~/.agentic-workstation/extensions/<id>/` (у копии с профилем - в профиле) с
+`extension.json` и ES-модулем; включено, выданные права, настройки и откуда оно - `userData/extensions.json`,
+своё хранилище - `extensions-data/`, секреты - `extensions.vault`. Код - в песочнице QuickJS (WASM) в
+одном потоке-воркере (`engine/`: `ExtensionSandbox` - свой модуль WASM с памятью до 64 МБ, срок 1 с
+на заход, модули только из своей папки; прелюдия `ide` - `prelude-*.ts`; `SandboxPool` в потоке,
+`ExtensionEngine` - в главном). Вызовы `ide.*` - ручки `host/*-methods.ts` с правом у каждой
+(`host-router.ts`); права - просьба манифеста, выданная человеком (`manifest/grants.ts`), шире выданного
+
+- «ждёт одобрения». Сервис (`extensions-core.ts`, `extensions-service.ts`) держит вклад запущенных
+  (`ExtensionRuntime`: команды, виды, пункты строки состояния, инструменты ИИ, хуки, тема), журнал и
+  следит за папкой (`extensions-watcher.ts`): правка файла - перезапуск расширения. Хуки разговоров -
+  в ядре панелей для всех провайдеров (`agents/hooks/`, `ConversationOutbox.rewritten`,
+  `ConversationRuntime.hold`, `settleTurn`; связка - `PanelRegistry.hooks`). Инструменты ИИ - встроенный
+  коннектор `extensions` через ту же связь, что у workstation (`kinds/extensions`); ИИ, который пишет
+  расширение, проверяет его инструментами workstation (`list_extensions`, `extension_logs`,
+  `reload_extension`, `run_extension_command`). Новое с ИИ - заготовка с руководством
+  (`authoring/`), папка проектом и разговор выбранного провайдера. В окне: дерево вида расширения
+  рисует `ExtensionSurface` примитивами дизайн-системы; виды встают своими иконками в полосы середины и
+  левой панели (`workbench/views/extension-views.ts`, id `ext:<ключ>`), команды - в поиск действий и на
+  клавиши (`workbench/actions/extension-*.ts`), пункты - в строку состояния (`status-bar/ExtensionItems`),
+  вопросы - окном (`ExtensionDialog`, `state/extension-dialogs.store.ts`), тема - на корень документа
+  (`state/extension-theme.ts`), правки редактора - мостом `extensions:editorAsk`. Магазин - сервер
+  `apps/store` (Node, SQLite в томе, порт 4463) и протокол `packages/store-protocol`; в IDE -
+  `main/extensions/store/` (клиент с подписью ключом IDE из хранилища ключей, установка со сверкой
+  отпечатка, публикация своей папки, отзывы и обновления), в окне - `StorePage`, `ListingModal`,
+  `PublishModal`.
+
 **Терминал** ([ADR 0037](adr/0037-terminal.md)) - как окно Terminal в WebStorm: кнопка внизу
 полосы зоны 3 (и ⌥F12) открывает его снизу правой колонки, под панелью Claude Code, на долю её
 высоты (по умолчанию половина, сохраняется в раскладке); граница тянется ручкой, терминал и
@@ -616,7 +645,7 @@ IDE `LinkWait`); токены и примитивы - `packages/ui` (разме�
 | ------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
 | `ui`                | `packages/ui/src`               | только себя                                                                   |
 | `shared`            | `apps/desktop/src/shared`       | только себя. Ни Electron, ни Node, ни React                                   |
-| `main`              | `apps/desktop/src/main`         | `main`, `shared`, `browser-protocol`, `remote-protocol` (тесты - и `relay`)   |
+| `main`              | `apps/desktop/src/main`         | `main`, `shared`, протоколы (тесты - и `relay`, `store`)                      |
 | `preload`           | `apps/desktop/src/preload`      | `preload`, `shared`                                                           |
 | `lib`               | `renderer/src/lib`              | `lib`, `shared`                                                               |
 | `state`             | `renderer/src/state`            | `state`, `lib`, `shared`                                                      |
@@ -631,6 +660,8 @@ IDE `LinkWait`); токены и примитивы - `packages/ui` (разме�
 | `phone`             | `apps/phone/src`                | себя, `ui`, `remote-protocol`. Ни Node, ни Electron, к IDE - только протокол  |
 | `phone-e2e`         | `apps/phone/e2e`                | `phone`, `main`, `shared`, `relay`, `remote-protocol`: настоящая IDE в тесте  |
 | `site`              | `apps/site/src`                 | себя и `ui` (только стили). Статическая страница, к IDE - ничего              |
+| `store-protocol`    | `packages/store-protocol/src`   | только себя. Node без Electron: едет в главный процесс и в сервер магазина    |
+| `store`             | `apps/store/src`                | себя и `store-protocol`. Свой сервер магазина расширений на Node              |
 
 Отсюда два следствия, которые чаще всего забывают:
 

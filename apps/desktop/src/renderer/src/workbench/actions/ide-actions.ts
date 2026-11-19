@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { MAIN_VIEWS } from '../views/main-views'
 import { toggleShowcase } from '../views/showcase-view'
 import { SIDE_VIEWS } from '../views/side-views'
+import { viewLabel } from '../views/view-label'
 import { AI_ICON } from '../../lib/ai-icon.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { useWorkspace, useActiveProject, useWorkspaceActions } from '../../state/workspace.queries'
@@ -20,6 +21,7 @@ import { useProjectActionRunner } from '../../features/projects/project-actions.
 import { useRemoteStore } from '../../features/remote/remote.store'
 import type { SearchAction } from '../../features/search-everywhere/search-everywhere.types'
 import { useClaudePanelToggle } from './claude-panel'
+import { useExtensionSearchActions } from './extension-actions'
 import { useHistoryActions } from './history-actions'
 import { useSettingsActions } from './settings-actions'
 import { useTerminalToggle } from './terminal-dock'
@@ -47,6 +49,7 @@ export const useIdeActions = (): SearchAction[] => {
   const settingsActions = useSettingsActions()
   const openRemote = useRemoteStore((state) => state.open)
   const historyActions = useHistoryActions()
+  const extensionActions = useExtensionSearchActions()
 
   const projectActions: SearchAction[] = PROJECT_ACTIONS.map((entry) => ({
     id: `project.${entry.id}`,
@@ -98,13 +101,13 @@ export const useIdeActions = (): SearchAction[] => {
     // Виды левой панели и середины берутся из реестров полос: подпись и иконка не разойдутся.
     ...SIDE_VIEWS.map((view) => ({
       id: `view.side.${view.id}`,
-      label: t('searchEverywhere.actions.toggleView', { name: t(view.labelKey) }),
+      label: t('searchEverywhere.actions.toggleView', { name: viewLabel(view, t) }),
       icon: view.icon,
       run: () => selectSideView(view.id),
     })),
     ...MAIN_VIEWS.map((view) => ({
       id: `view.main.${view.id}`,
-      label: t('searchEverywhere.actions.toggleView', { name: t(view.labelKey) }),
+      label: t('searchEverywhere.actions.toggleView', { name: viewLabel(view, t) }),
       icon: view.icon,
       keywords: view.keywords,
       run: () => selectMainView(view.id),
@@ -160,6 +163,7 @@ export const useIdeActions = (): SearchAction[] => {
     ...viewActions,
     ...historyActions,
     ...settingsActions,
+    ...extensionActions,
     ...recentActions,
   ]
 }

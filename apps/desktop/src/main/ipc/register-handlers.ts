@@ -3,6 +3,7 @@ import { shell } from 'electron'
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import type { DefinitionService } from '../definitions/definition-service'
+import type { ExtensionsRuntime } from '../extensions/extensions-setup'
 import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
@@ -33,6 +34,8 @@ import { createComposerHandlers } from './composer-handlers'
 import { createComputerHandlers } from './computer-handlers'
 import { createConnectorsHandlers } from './connectors-handlers'
 import { createEditorHandlers } from './editor-handlers'
+import { createExtensionStoreHandlers } from './extension-store-handlers'
+import { createExtensionsHandlers } from './extensions-handlers'
 import { createFileOpsHandlers } from './file-ops-handlers'
 import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
@@ -92,6 +95,8 @@ type Services = HandlerContext & {
   inbox: InboxService
   /** Панель открытых моделей (ADR 0084): её подключения - своими каналами. */
   openModels: OpenModelsService
+  /** Расширения IDE (ADR 0091): песочницы, их вклад и работа с ИИ над ними. */
+  extensions: ExtensionsRuntime
 }
 
 /**
@@ -120,7 +125,11 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),
     ...createInboxHandlers(services.inbox),
     ...createOpenModelsHandlers(services.openModels),
-    ...createEditorHandlers(workspace, history, services.definitions),
+    ...createEditorHandlers(workspace, history, services.definitions, (root, path) =>
+      services.extensions.service.fileSaved(root, path),
+    ),
+    ...createExtensionsHandlers(services.extensions),
+    ...createExtensionStoreHandlers(services.extensions.shop),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
     ...createAgentHandlers(workspace, services.panels),

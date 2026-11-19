@@ -1,0 +1,5 @@
+export async function activate(ide) {
+  await ide.commands.register('hello', 'Say hello', async () => {
+    await ide.ui.notify({ title: `Hello from ${ide.extension.name}!`, tone: 'success' })
+  })
+}

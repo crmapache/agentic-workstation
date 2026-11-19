@@ -17,6 +17,7 @@ import { RemoteMcpSource } from './remote-mcp'
 import { StdioMcpSource } from './stdio-mcp'
 import { createBrowserSource } from './browser/browser-tools'
 import { createComputerSource } from './computer/computer-tools'
+import { ExtensionsSource } from './extensions/extensions-source'
 import { CALENDAR_TOOLS } from './google/calendar-tools'
 import { GMAIL_TOOLS } from './google/gmail-tools'
 import { GoogleSession, GoogleApiError } from './google/google-session'
@@ -113,6 +114,13 @@ export const createSource = (
       : new NativeSource([], null, [])
   }
 
+  // Инструменты расширений IDE (ADR 0091): список живой, его держит сервис расширений.
+  if (connector.kind === 'extensions') {
+    return deps.workstation
+      ? new ExtensionsSource(deps.workstation)
+      : new NativeSource([], null, [])
+  }
+
   if (runsCommand(connector.kind) && connector.command) {
     return new StdioMcpSource({
       command: () => launchCommand(connector, secrets.read()),
@@ -148,6 +156,7 @@ const IDE_OWN_KINDS: readonly ConnectorKind[] = [
   'computer',
   'notifications',
   'workstation',
+  'extensions',
 ]
 
 /** Есть ли вход: токен Google, токен OAuth сервера, ключ - или вход не нужен вовсе. */

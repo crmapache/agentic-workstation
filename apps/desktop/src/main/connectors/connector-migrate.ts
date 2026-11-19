@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import {
   isCustomKind,
+  EXTENSIONS_SERVER_NAME,
   WORKSTATION_SERVER_NAME,
   NOTIFICATIONS_SERVER_NAME,
 } from '@shared/connectors'
@@ -127,6 +128,7 @@ const BUILT_INS = [
   { kind: 'notifications', serverName: NOTIFICATIONS_SERVER_NAME, label: 'Agentic Workstation' },
   // Подпись пустая: имя типа на плитке и есть «Agentic Workstation».
   { kind: 'workstation', serverName: WORKSTATION_SERVER_NAME, label: '' },
+  { kind: 'extensions', serverName: EXTENSIONS_SERVER_NAME, label: '' },
 ] as const
 
 /**

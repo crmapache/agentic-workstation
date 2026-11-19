@@ -9,7 +9,10 @@ import type { LucideIcon } from 'lucide-react'
 export type ViewDescriptor<ViewId extends string> = {
   id: ViewId
   icon: LucideIcon
-  labelKey: ParseKeys
+  /** Подпись ключом i18n - у видов IDE. */
+  labelKey?: ParseKeys | undefined
+  /** Подпись готовой строкой - у видов расширений (ADR 0091): их имена приходят от расширения. */
+  label?: string | undefined
   /** Слова, по которым вид находит поиск везде, кроме его имени (gmail - коннекторы). */
   keywords?: string[]
   Component: LazyExoticComponent<ComponentType>

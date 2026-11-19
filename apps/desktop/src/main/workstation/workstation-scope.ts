@@ -173,4 +173,6 @@ export const scopedPorts = (
   scenarios: scopedScenarios(ports.scenarios, allowed),
   tasks: scopedTasks(ports.tasks, allowed),
   panels: () => ports.panels().map((port) => scopedPanel(port, allowed)),
+  // Расширения - на всю IDE, а не на проект: сужать нечего.
+  extensions: ports.extensions,
 })

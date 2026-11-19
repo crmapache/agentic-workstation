@@ -8,7 +8,7 @@ import type { ConversationCall } from '@shared/panel-prefs'
 
 import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
-import type { PanelDriver } from '../agents/panel/agent-panel'
+import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
 import type { ConversationOps } from '../agents/panel/panel-actions'
 import type { StoredPanel } from '../agents/panel/panel-state'
@@ -40,7 +40,7 @@ import type { ToolsHost } from './tools/tools-host'
 import { TodayTokens } from './usage/today-tokens'
 import { UsageService } from './usage/usage-service'
 
-export type ClaudeEvents = {
+export type ClaudeEvents = Pick<PanelEvents, 'hooks'> & {
   onState: (state: AgentPanelState) => void
   onFeed: (patch: FeedPatch) => void
   /** Открыть файл программой по умолчанию (скрипт входа в аккаунт - в Терминале). */
@@ -87,7 +87,7 @@ export class ClaudeService extends AgentPanel {
     readonly accounts: AccountService,
     readonly usage: UsageService,
   ) {
-    super(stored, file, { onState: events.onState, onCall: events.onCall })
+    super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.settings.prefs = stored.prefs
     this.trust = new WorkspaceTrust(stored.trustedProjects, () => this.persist.changed())
     this.restore(stored)

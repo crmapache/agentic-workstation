@@ -158,6 +158,11 @@
         "name": "Agentic Workstation",
         "hint": "Built in: any chat can run the IDE itself - projects, scenarios and queues, tasks, other chats",
         "short": "Agentic Workstation"
+      },
+      "extensions": {
+        "name": "Extensions",
+        "hint": "Built in: tools that your IDE extensions give to every chat",
+        "short": "Extensions"
       }
     },
     "status": {
@@ -712,7 +717,8 @@
     "tasks": "Tasks",
     "statistics": "Statistics",
     "connectors": "Connectors",
-    "inbox": "Notifications"
+    "inbox": "Notifications",
+    "extensions": "Extensions"
   },
   "providerViews": {
     "label": "LLM providers",
@@ -3943,6 +3949,253 @@
       "noModels": "No models yet - start Ollama or LM Studio, or add a connection",
       "context": "{{tokens}} context",
       "smallContext": "Small context ({{tokens}}) - the agent may lose track"
+    }
+  },
+  "extensions": {
+    "title": "Extensions",
+    "tabs": {
+      "label": "Extensions sections",
+      "installed": "Installed",
+      "store": "Store"
+    },
+    "newExtension": "New extension",
+    "openFolder": "Open folder",
+    "help": {
+      "label": "About extensions",
+      "title": "Extensions",
+      "text": "An extension changes how the IDE works: commands in Search Everywhere and on keys, its own views with icons in the bars, status bar items, notifications, a theme, tools for AI chats, and hooks into chats, files and the editor.\n\nEvery extension runs in a sandbox. It reaches the IDE only through its API and only with the permissions you approve: reading or writing project files, watching or rewriting AI chats, driving the IDE, giving tools to AI, the network to listed sites, listed programs, the clipboard. An extension that asks for more than you approved waits until you approve it. A slow or broken extension stops alone; the IDE keeps working.\n\nNew extension writes one with AI: describe what you want, the IDE opens its folder as a project and starts a chat that builds it. The extension reloads on every save of its files.",
+      "close": "Close"
+    },
+    "listTitle": "Installed",
+    "approvalTitle": "Waiting for your approval",
+    "empty": {
+      "title": "No extensions yet",
+      "description": "Describe what you want the IDE to do, and AI will build it as an extension."
+    },
+    "status": {
+      "starting": "Starting",
+      "running": "Running",
+      "stopped": "Stopped",
+      "disabled": "Off",
+      "needsApproval": "Needs approval",
+      "failed": "Failed",
+      "invalid": "Broken manifest"
+    },
+    "tile": {
+      "version": "v{{version}}",
+      "commands_one": "{{count}} command",
+      "commands_other": "{{count}} commands",
+      "views_one": "{{count}} view",
+      "views_other": "{{count}} views",
+      "tools_one": "{{count}} AI tool",
+      "tools_other": "{{count}} AI tools",
+      "errors_one": "{{count}} error",
+      "errors_other": "{{count}} errors"
+    },
+    "permissions": {
+      "files.read": {
+        "name": "Read project files",
+        "hint": "Read files of open projects, the active editor and file saves"
+      },
+      "files.write": {
+        "name": "Change project files",
+        "hint": "Write and delete files of open projects, edit text in the editor"
+      },
+      "agent.observe": {
+        "name": "Watch AI chats",
+        "hint": "See when a turn of any AI chat ends, with its answer and changed files"
+      },
+      "agent.intercept": {
+        "name": "Rewrite and block in AI chats",
+        "hint": "Change your messages before they go to the model, refuse permission requests"
+      },
+      "ide.control": {
+        "name": "Drive the IDE",
+        "hint": "Projects, scenarios and queues, tasks, chats of every provider"
+      },
+      "ai.tools": {
+        "name": "Give tools to AI",
+        "hint": "Add tools that every AI chat can call"
+      },
+      "network": {
+        "name": "Network",
+        "hint": "HTTP requests to the sites listed below"
+      },
+      "shell": {
+        "name": "Run programs",
+        "hint": "Run the programs listed below in project folders"
+      },
+      "clipboard": {
+        "name": "Clipboard",
+        "hint": "Read and write the clipboard"
+      }
+    },
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "modal": {
+      "close": "Close",
+      "subtitle": "v{{version}} · {{id}}",
+      "problem": "Problem",
+      "enabled": "Enabled",
+      "enabledHint": "Off - the extension does not run and adds nothing",
+      "approve": "Approve and start",
+      "approveTitle": "Asks for permissions",
+      "approveText": "It runs only after you approve everything it asks for.",
+      "hosts": "Sites",
+      "commands": "Programs",
+      "granted": "Can do",
+      "nothingGranted": "Only its own commands, views and storage",
+      "settings": "Settings",
+      "secretSaved": "Saved in the keychain. Type to replace.",
+      "secretEmpty": "Not set",
+      "adds": "Adds to the IDE",
+      "addsNothing": "Nothing right now",
+      "commandsList": "Commands",
+      "viewsList": "Views",
+      "statusList": "Status bar",
+      "toolsList": "AI tools",
+      "hooksList": "Hooks",
+      "hooks": {
+        "beforeSend": "Rewrites messages to AI",
+        "guard": "Can refuse permission requests",
+        "turnEnd": "Watches AI turns",
+        "fileSaved": "Watches file saves"
+      },
+      "log": "Log",
+      "logEmpty": "Nothing in the log",
+      "clearLog": "Clear",
+      "reload": "Reload",
+      "reveal": "Open folder",
+      "editWithAi": "Change with AI",
+      "publish": "Publish",
+      "remove": "Remove",
+      "removeQuestion": "Move its folder to Trash and forget its data?",
+      "removeConfirm": "Remove",
+      "cancel": "Cancel",
+      "inStore": "In the store",
+      "fromStore": "From the store · v{{version}} by {{publisher}}"
+    },
+    "ai": {
+      "newTitle": "New extension",
+      "editTitle": "Change {{name}} with AI",
+      "name": "Name",
+      "namePlaceholder": "Pomodoro timer",
+      "request": "What should it do?",
+      "requestPlaceholder": "A 25-minute timer in the status bar; when it ends, a notification and a short break",
+      "editRequest": "What should change?",
+      "provider": "Built by",
+      "start": "Start building",
+      "startEdit": "Start",
+      "cancel": "Cancel",
+      "hint": "The IDE opens the extension folder as a project and starts a chat there. You will see the extension appear and reload while AI works."
+    },
+    "errors": {
+      "not-found": "This extension is gone.",
+      "exists": "An extension with this name already exists.",
+      "invalid-name": "Fill in the name and what it should do.",
+      "io": "Could not write the extension folder.",
+      "no-provider": "Pick an AI provider that is installed."
+    },
+    "view": {
+      "empty": "This view is empty",
+      "working": "Working",
+      "chartEmpty": "No data yet"
+    },
+    "dialog": {
+      "cancel": "Cancel",
+      "ok": "OK",
+      "from": "From {{name}}"
+    },
+    "actions": {
+      "command": "{{extension}}: {{title}}",
+      "showView": "Show {{name}}"
+    },
+    "store": {
+      "search": "Search the store",
+      "sortLabel": "Order",
+      "sort": {
+        "popular": "Popular",
+        "rating": "Top rated",
+        "new": "New"
+      },
+      "results": "Extensions",
+      "updates": "Updates",
+      "update": "Update to {{version}}",
+      "updateAll": "Update all",
+      "nothing": "Nothing found",
+      "nothingHint": "Try other words, or build it yourself with AI.",
+      "empty": "The store is empty so far",
+      "emptyHint": "Publish your extension to be the first.",
+      "more": "Show more",
+      "installed": "Installed",
+      "updateBadge": "Update",
+      "rating": "★ {{average}} ({{count}})",
+      "noRating": "No ratings yet",
+      "installs_one": "{{count}} install",
+      "installs_other": "{{count}} installs",
+      "by": "by {{name}}",
+      "version": "v{{version}}",
+      "listing": {
+        "close": "Close",
+        "install": "Install",
+        "installAllow": "Install and allow",
+        "updateTo": "Update to {{version}}",
+        "installedVersion": "Installed v{{version}}",
+        "localSameId": "Your own extension with this id is installed",
+        "permissions": "Asks for",
+        "noPermissions": "Asks for no permissions: commands, views and its own storage only",
+        "readme": "About",
+        "versions": "Versions",
+        "reviews": "Reviews",
+        "noReviews": "No reviews yet",
+        "moreReviews": "Show more reviews",
+        "writeReview": "Your review",
+        "reviewText": "What do you think?",
+        "send": "Send",
+        "sent": "Thanks, your review is in.",
+        "mine": "You published this extension",
+        "unpublish": "Unpublish",
+        "unpublishQuestion": "Hide it from the store? Installed copies keep working.",
+        "report": "Report",
+        "reportReason": "What is wrong with it?",
+        "reportSent": "Reported. Thank you.",
+        "stars": "{{count}} of 5",
+        "rate": "Rate {{count}} of 5",
+        "reviewMeta": "{{day}} · v{{version}}",
+        "versionMeta": "{{day}} · {{size}}",
+        "subtitle": "v{{version}} · by {{name}}"
+      },
+      "publish": {
+        "title": "Publish {{name}}",
+        "button": "Publish",
+        "submit": "Publish v{{version}}",
+        "author": "Your name in the store",
+        "authorHint": "Shown under your extensions and reviews. Your identity is a key kept in this computer's keychain.",
+        "hint": "Everyone in the store will see it and can install it. Publish again with a higher version to update.",
+        "done": "Published v{{version}}.",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "offline": "The store does not answer. Check the connection.",
+        "not-found": "It is not in the store.",
+        "not-owner": "Another author published an extension with this id.",
+        "version-exists": "This version is already published: raise \"version\" in extension.json.",
+        "rate-limited": "Too many requests, try again later.",
+        "not-installed": "Install it before rating it.",
+        "own-extension": "You cannot rate your own extension.",
+        "invalid-package": "The extension is not valid for the store: {{message}}",
+        "digest-mismatch": "The downloaded package does not match the store record. Nothing was installed.",
+        "no-keychain": "The keychain is not available, so the IDE cannot sign for the store.",
+        "exists-local": "Your own extension with this id is installed. Remove it first.",
+        "too-large": "The extension is too large for the store.",
+        "bad-request": "The store did not accept it: {{message}}",
+        "bad-signature": "The store did not accept the signature. Check the computer clock.",
+        "server": "The store failed: {{message}}"
+      },
+      "upgrade": "{{from}} → {{to}}"
     }
   }
 }

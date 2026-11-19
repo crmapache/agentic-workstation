@@ -60,6 +60,9 @@ const ELEMENTS = [
   { type: 'phone-e2e', pattern: 'apps/phone/e2e/**', partialMatch: false },
   // Сайт продукта (ADR 0068): статическая страница. Из общего - только стили дизайн-системы.
   { type: 'site', pattern: 'apps/site/src/**', partialMatch: false },
+  // Магазин расширений (ADR 0091): протокол - общий пакет IDE и сервера, сервер - свой.
+  { type: 'store-protocol', pattern: 'packages/store-protocol/src/**', partialMatch: false },
+  { type: 'store', pattern: 'apps/store/src/**', partialMatch: false },
 ]
 
 /** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
@@ -184,6 +187,8 @@ export default defineConfig(
       'apps/phone/src/**/*.{ts,tsx}',
       'apps/phone/e2e/**/*.ts',
       'apps/site/src/**/*.ts',
+      'packages/store-protocol/src/**/*.ts',
+      'apps/store/src/**/*.ts',
     ],
     plugins: { boundaries },
     settings: {
@@ -199,6 +204,8 @@ export default defineConfig(
         'apps/phone/src/**/*',
         'apps/phone/e2e/**/*',
         'apps/site/src/**/*',
+        'packages/store-protocol/src/**/*',
+        'apps/store/src/**/*',
       ],
       'import/resolver': {
         typescript: {
@@ -214,6 +221,8 @@ export default defineConfig(
             'apps/phone/tsconfig.app.json',
             'apps/phone/tsconfig.node.json',
             'apps/site/tsconfig.json',
+            'packages/store-protocol/tsconfig.json',
+            'apps/store/tsconfig.json',
           ],
         },
       },
@@ -237,8 +246,16 @@ export default defineConfig(
             { from: { element: { type: 'shared' } }, allow: allowTo('shared') },
             {
               from: { element: { type: 'main' } },
-              allow: allowTo('main', 'shared', 'browser-protocol', 'remote-protocol'),
+              allow: allowTo(
+                'main',
+                'shared',
+                'browser-protocol',
+                'remote-protocol',
+                'store-protocol',
+              ),
             },
+            { from: { element: { type: 'store-protocol' } }, allow: allowTo('store-protocol') },
+            { from: { element: { type: 'store' } }, allow: allowTo('store', 'store-protocol') },
             { from: { element: { type: 'remote-protocol' } }, allow: allowTo('remote-protocol') },
             { from: { element: { type: 'relay' } }, allow: allowTo('relay') },
             // Релей своё содержимое не читает и протокола не знает; тесты сверяют его конверт с
@@ -249,7 +266,7 @@ export default defineConfig(
             },
             {
               from: { element: { type: 'main' }, file: { categories: 'test' } },
-              allow: allowTo('relay'),
+              allow: allowTo('relay', 'store'),
             },
             // Телефон не видит ни IDE, ни релея: только протокол и дизайн-систему.
             {
@@ -436,6 +453,24 @@ export default defineConfig(
             {
               group: ['electron', 'electron/*', 'react', 'react/*', '@agentic-workstation/ui/*'],
               message: 'Релей - отдельный сервер на Node: без Electron и интерфейса.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Магазин расширений и его протокол - Node (IDE и сервер), без Electron и интерфейса.
+  {
+    files: ['apps/store/src/**/*.ts', 'packages/store-protocol/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['electron', 'electron/*', 'react', 'react/*', '@agentic-workstation/ui/*'],
+              message: 'Магазин и его протокол - Node: без Electron и интерфейса.',
             },
           ],
         },

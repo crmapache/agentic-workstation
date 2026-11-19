@@ -12,7 +12,7 @@ import type { OpenModelsConnections } from '@shared/ipc/open-models.contract'
 import { parseStoredClaude } from '../claude/claude-state'
 import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
-import type { PanelDriver } from '../agents/panel/agent-panel'
+import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
 import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
@@ -39,7 +39,7 @@ import { rewindOpenCode, previewOpenCodeRewind } from './conversation/opencode-r
 import { isSessionOf } from './conversation/session-place'
 import type { OpenCodeDirs } from './server/opencode-server'
 
-export type OpenModelsEvents = {
+export type OpenModelsEvents = Pick<PanelEvents, 'hooks'> & {
   onState: (state: AgentPanelState) => void
   onFeed: (patch: FeedPatch) => void
   onCall: (call: ConversationCall) => void
@@ -98,7 +98,7 @@ export class OpenModelsService extends AgentPanel {
     readonly models: ModelConnections,
     private readonly root: string,
   ) {
-    super(stored, file, { onState: events.onState, onCall: events.onCall })
+    super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.prefs = stored.prefs
     this.trust = new FolderTrust(stored.trustedProjects, () => this.persist.changed())
     this.restore(stored)

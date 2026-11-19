@@ -1,0 +1,239 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид расширения: дерево узлов одно под другим, ширина - вся страница вида.
+.surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+// Стопка и ряд: зазор - ступенью шкалы по слову расширения.
+.stack,
+.row {
+  display: flex;
+  min-width: 0;
+}
+
+.stack {
+  flex-direction: column;
+}
+
+.row {
+  flex-direction: row;
+
+  // Поле ввода в ряду забирает свободное место, кнопки остаются своей ширины.
+  > :not(button) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.sm {
+  gap: var(--space-2);
+}
+
+.md {
+  gap: var(--space-3);
+}
+
+.lg {
+  gap: var(--space-6);
+}
+
+.alignStart {
+  align-items: flex-start;
+}
+
+.alignCenter {
+  align-items: center;
+}
+
+.alignEnd {
+  align-items: flex-end;
+}
+
+.alignBetween {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.divider {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.text {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+}
+
+.prewrap {
+  white-space: pre-wrap;
+}
+
+.small {
+  font-size: var(--font-size-sm);
+}
+
+.mono {
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+}
+
+.strong {
+  font-weight: var(--font-weight-semibold);
+}
+
+.toneDefault {
+  color: var(--color-fg);
+}
+
+.toneMuted {
+  color: var(--color-fg-muted);
+}
+
+.toneAccent {
+  color: var(--color-fg-accent);
+}
+
+.toneSuccess {
+  color: var(--color-success);
+}
+
+.toneWarning {
+  color: var(--color-warning);
+}
+
+.toneDanger {
+  color: var(--color-danger);
+}
+
+.toneInfo {
+  color: var(--color-info);
+}
+
+.markdown {
+  min-width: 0;
+}
+
+.code {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Сведения: подпись тише сверху, значение целиком под ней; пары - сеткой.
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--size-tile-min), 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.factLabel {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.factValue {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  overflow-wrap: anywhere;
+}
+
+.working {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.workingLabel {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Список - строками на тёмной подложке в рамке, как список инструментов коннектора.
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-sunken);
+  list-style: none;
+}
+
+.listRow,
+.listButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.listButton {
+  @include button-reset;
+  @include interactive-surface;
+
+  cursor: pointer;
+}
+
+.listIcon {
+  flex: none;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-fg-muted);
+}
+
+.listText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.listTitle {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+}
+
+.listDescription {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+}

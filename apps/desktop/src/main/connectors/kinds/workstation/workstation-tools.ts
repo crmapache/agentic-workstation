@@ -3,6 +3,7 @@ import type { NativeTool } from '../native-tools'
 import type { WorkstationLink, WorkstationPorts } from '../../../workstation/workstation-link'
 import { scopedPorts } from '../../../workstation/workstation-scope'
 import { CONVERSATION_TOOLS } from './conversation-tools'
+import { EXTENSION_TOOLS } from './extension-tools'
 import { PROJECT_TOOLS } from './project-tools'
 import { QUEUE_TOOLS } from './queue-tools'
 import { RUN_TOOLS } from './run-tools'
@@ -22,6 +23,7 @@ export const WORKSTATION_TOOLS: NativeTool<WorkstationPorts>[] = [
   ...RUN_TOOLS,
   ...TASK_TOOLS,
   ...CONVERSATION_TOOLS,
+  ...EXTENSION_TOOLS,
 ]
 
 /** Инструменты на чтение: шлюз разрешает их CLI без вопроса человеку. */

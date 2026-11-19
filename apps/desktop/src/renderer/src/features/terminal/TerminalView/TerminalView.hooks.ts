@@ -11,6 +11,7 @@ import { ACK_BATCH, SCROLLBACK_LINES } from '../terminal.constants'
 import { useTerminalStore } from '../terminal.store'
 import { invoke } from '../../../lib/ipc'
 import { IS_MAC } from '../../../lib/platform'
+import { onExtensionThemeApplied } from '../../../state/extension-theme'
 import { onTextSizeApplied } from '../../../state/text-size.store'
 
 /** Ссылка из вывода - в браузер: обработчик окна открывает только http и https. */
@@ -74,6 +75,10 @@ export const useXterm = (sessionId: string, isActive: boolean) => {
       term.options.fontSize = terminalTypography().fontSize
       refit()
     })
+    // Тема расширений (ADR 0091): xterm берёт цвета при создании - новая тема вручную.
+    const stopTheme = onExtensionThemeApplied(() => {
+      term.options.theme = terminalTheme()
+    })
 
     term.loadAddon(fit)
     term.loadAddon(new WebLinksAddon(openLink))
@@ -111,6 +116,7 @@ export const useXterm = (sessionId: string, isActive: boolean) => {
       disposed = true
       stopListening()
       stopTextSize()
+      stopTheme()
       observer.disconnect()
       termRef.current = null
       term.dispose()

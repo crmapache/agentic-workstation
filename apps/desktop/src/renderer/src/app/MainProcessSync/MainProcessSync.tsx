@@ -1,4 +1,5 @@
 import { useConnectorsSync } from '../../state/connectors.queries'
+import { useExtensionsSync } from '../../state/extensions.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
 import { useGitStatusSync } from '../../state/git-status.queries'
 import { useInboxSync } from '../../state/inbox.queries'
@@ -50,6 +51,7 @@ export const MainProcessSync = () => {
   useTasksSync()
   useInboxSync()
   useConnectionsSync()
+  useExtensionsSync()
 
   return null
 }

@@ -1,0 +1,271 @@
+/**
+ * Agentic Workstation extension API, version 1.
+ *
+ * Your extension runs in a sandbox (QuickJS): no Node.js, no DOM, no fetch, no require.
+ * The global `ide` object below is the only way to reach the IDE. Every call that talks
+ * to the IDE returns a Promise. A call your extension has no permission for rejects with
+ * an Error that names the permission to add to extension.json.
+ */
+declare const ide: Ide
+
+type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
+
+interface Disposable {
+  dispose(): Promise<void>
+}
+
+interface Ide {
+  readonly extension: { readonly id: string; readonly name: string; readonly version: string }
+  readonly commands: Commands
+  readonly ui: Ui
+  readonly storage: Storage
+  readonly settings: Settings
+  readonly projects: Projects
+  /** Needs "files.read" (read, list, exists, onDidSave) or "files.write" (write, delete). */
+  readonly files: Files
+  /** active(): "files.read"; insert/replaceSelection: "files.write"; open: no permission. */
+  readonly editor: Editor
+  /** onTurnEnd: "agent.observe"; onBeforeSend and guard: "agent.intercept". */
+  readonly agent: Agent
+  /** Needs "ai.tools". */
+  readonly tools: Tools
+  /** Needs "ide.control". */
+  readonly workstation: Workstation
+  /** Needs "network" and the host in network.hosts. */
+  readonly net: Net
+  /** Needs "shell" and the program in shell.commands. */
+  readonly shell: Shell
+  /** Needs "clipboard". */
+  readonly clipboard: Clipboard
+}
+
+interface Commands {
+  /**
+   * A command shows in Search Everywhere → Actions (⌘⇧A) as "<extension>: <title>" and runs
+   * on its keys. Keys look like "cmd+shift+k" and need cmd, ctrl or alt; keys the IDE already
+   * uses stay with the IDE. id: letters, digits, "_" and "-".
+   */
+  register(
+    id: string,
+    spec: string | { title: string; keys?: string },
+    run: (...args: Json[]) => unknown,
+  ): Promise<Disposable>
+  /** Run your command ("id") or another extension's ("extension-id.command-id"). */
+  run(id: string, ...args: Json[]): Promise<Json>
+}
+
+type Tone = 'default' | 'muted' | 'accent' | 'success' | 'warning' | 'danger' | 'info'
+type Gap = 'sm' | 'md' | 'lg'
+
+/** A view is a tree of these nodes; the IDE draws them with its own components. */
+type UiNode =
+  | { type: 'stack'; gap?: Gap; children: UiNode[] }
+  | { type: 'row'; gap?: Gap; align?: 'start' | 'center' | 'end' | 'between'; wrap?: boolean; children: UiNode[] }
+  | { type: 'section'; title: string; description?: string; actions?: UiNode[]; children: UiNode[] }
+  | { type: 'card'; title?: string; description?: string; tone?: 'neutral' | 'accent'; actions?: UiNode[]; children: UiNode[] }
+  | { type: 'text'; text: string; tone?: Tone; size?: 'sm' | 'md'; mono?: boolean; strong?: boolean }
+  | { type: 'markdown'; text: string }
+  | { type: 'code'; text: string }
+  | { type: 'badge'; text: string; tone?: Tone }
+  | { type: 'button'; label: string; action: string; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; icon?: string; disabled?: boolean }
+  | { type: 'textField'; name: string; label: string; value?: string; placeholder?: string }
+  | { type: 'textArea'; name: string; label: string; value?: string; placeholder?: string }
+  | { type: 'select'; name: string; label: string; value?: string; options: { value: string; label: string; description?: string }[] }
+  | { type: 'switch'; name: string; label: string; description?: string; checked?: boolean }
+  | { type: 'list'; items: { id: string; title: string; description?: string; icon?: string; badge?: { text: string; tone?: Tone }; action?: string }[] }
+  | { type: 'keyValue'; items: { label: string; value: string }[] }
+  | { type: 'progress'; value?: number; label?: string }
+  | { type: 'empty'; title: string; description?: string; icon?: string }
+  | { type: 'chart'; title: string; layout?: 'grouped' | 'stacked'; series: { key: string; label: string }[]; points: { key: string; label: string; values: number[] }[] }
+  | { type: 'divider' }
+
+/** Values of every field of the view at the moment of the event, by field name. */
+type UiValues = Record<string, string | boolean>
+
+type UiEvent =
+  | { kind: 'action'; action: string; values: UiValues }
+  | { kind: 'change'; name: string; value: string | boolean; values: UiValues }
+
+interface View {
+  /** Replace the whole tree. Render again whenever your state changes. */
+  render(tree: UiNode | null): Promise<void>
+  /** Buttons and list rows (action) and field edits (change). */
+  onEvent(listener: (event: UiEvent) => unknown): { dispose(): void }
+  /** A number on the view icon; 0 hides it. */
+  setBadge(count: number): Promise<void>
+  /** Bring the view to front. */
+  show(): Promise<void>
+  dispose(): Promise<void>
+}
+
+interface Ui {
+  /** A card in the IDE notifications (and an OS banner when the IDE is in the background). */
+  notify(notice: { title: string; body?: string; tone?: 'info' | 'success' | 'attention' | 'danger'; link?: string }): Promise<void>
+  /**
+   * Your own view with an icon in the bar of the middle area ("main") or of the left panel
+   * ("side"). Icons are lucide names in PascalCase: "Timer", "GitBranch", "ListTodo".
+   */
+  view(spec: { id: string; title: string; icon?: string; place?: 'main' | 'side' }): View
+  /** Up to 3 items in the status bar; a click runs the command. */
+  statusItem(spec: { id: string; text: string; icon?: string; tooltip?: string; command?: string }): {
+    update(patch: { text?: string; icon?: string; tooltip?: string; command?: string }): Promise<void>
+    dispose(): Promise<void>
+  }
+  /** Ask the person. null - closed without an answer. */
+  prompt(options: { title: string; label?: string; value?: string; placeholder?: string; multiline?: boolean }): Promise<string | null>
+  confirm(options: { title: string; body?: string; confirmLabel?: string; danger?: boolean }): Promise<boolean>
+  pick(options: { title: string; items: (string | { value: string; label: string; description?: string })[] }): Promise<string | null>
+  /**
+   * Recolor the IDE: override design tokens --color-*, --palette-* and --font-family-*.
+   * null removes your overrides. url() is not allowed.
+   */
+  setTheme(tokens: Record<string, string> | null): Promise<void>
+  /** Open an http(s) address in the person's browser. */
+  openUrl(url: string): Promise<void>
+}
+
+/** Your own key-value storage (JSON values, up to 1 MB together). */
+interface Storage {
+  get(key: string): Promise<Json>
+  set(key: string, value: Json): Promise<void>
+  delete(key: string): Promise<void>
+  keys(): Promise<string[]>
+}
+
+/** Values of the "settings" fields of extension.json, set by the person in Extensions. */
+interface Settings {
+  get(key: string): Promise<string | boolean | null>
+  all(): Promise<Record<string, string | boolean | null>>
+  onChange(listener: (change: { key: string }) => unknown): Promise<Disposable>
+}
+
+interface ProjectInfo {
+  path: string
+  name: string
+  home: boolean
+  active: boolean
+}
+
+interface Projects {
+  /** Projects open as tabs; "home" is the IDE home project. */
+  list(): Promise<ProjectInfo[]>
+  /** The project the person looks at now. */
+  active(): Promise<ProjectInfo | null>
+}
+
+/**
+ * Paths are relative to the project root ("src/app.ts") or absolute inside an open project.
+ * project: a path or a name of an open project; default - the active project.
+ */
+interface Files {
+  read(path: string, options?: { project?: string }): Promise<string>
+  list(path?: string, options?: { project?: string }): Promise<{ name: string; path: string; directory: boolean }[]>
+  exists(path: string, options?: { project?: string }): Promise<boolean>
+  write(path: string, text: string, options?: { project?: string }): Promise<void>
+  /** Moves the file to the system Trash. */
+  delete(path: string, options?: { project?: string }): Promise<void>
+  /** The person saved a file in the editor. */
+  onDidSave(listener: (file: { projectPath: string; path: string }) => unknown): Promise<Disposable>
+}
+
+interface Editor {
+  active(): Promise<{
+    projectPath: string
+    path: string
+    /** Selected lines (from 1); null - nothing selected. */
+    selection: { startLine: number; endLine: number } | null
+    selectedText: string
+  } | null>
+  /** Insert at the cursor of the file the person looks at. */
+  insert(text: string): Promise<void>
+  /** Replace the selection in the file the person looks at. */
+  replaceSelection(text: string): Promise<void>
+  open(path: string, options?: { project?: string; line?: number }): Promise<void>
+}
+
+type Provider = 'claude' | 'codex' | 'opencode'
+
+interface Agent {
+  /**
+   * Before a message of the person goes to the model (Claude Code, Codex, open models):
+   * return new text, or nothing to keep it. Slash commands are not shown to you. 3 s limit.
+   */
+  onBeforeSend(listener: (message: { conversationId: string; provider: Provider; projectPath: string; text: string }) => unknown): Promise<Disposable>
+  /**
+   * Before a permission question reaches the person: return { deny: "reason for the model" }
+   * to refuse it. You can only refuse, never allow. 2 s limit.
+   */
+  guard(listener: (request: {
+    conversationId: string
+    provider: Provider
+    projectPath: string
+    toolName: string
+    action: { kind: string; [key: string]: Json }
+    input: Record<string, Json>
+    description: string
+  }) => unknown): Promise<Disposable>
+  /** A turn of any conversation ended. */
+  onTurnEnd(listener: (turn: {
+    conversationId: string
+    provider: Provider
+    projectPath: string
+    outcome: 'done' | 'error' | 'interrupted'
+    answer: string
+    changedFiles: string[]
+    durationMs: number | null
+    costUsd: number | null
+  }) => unknown): Promise<Disposable>
+}
+
+interface Tools {
+  /**
+   * A tool for AI conversations of every provider, in the IDE connector "extensions" as
+   * "<extension_id>_<name>". Return a string or JSON - the model reads it.
+   */
+  register(
+    spec: { name: string; description: string; inputSchema?: object; readOnly?: boolean },
+    run: (args: Record<string, Json>, caller: { projectPath: string; conversationId: string | null }) => unknown,
+  ): Promise<Disposable>
+}
+
+interface Workstation {
+  /** The IDE tools: projects, scenarios, queues, tasks, conversations of every provider. */
+  tools(): Promise<{ name: string; description: string; readOnly: boolean; inputSchema: object }[]>
+  call(tool: string, args?: Record<string, Json>): Promise<Json>
+}
+
+interface Net {
+  fetch(url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }): Promise<{
+    status: number
+    ok: boolean
+    headers: Record<string, string>
+    body: string
+    text(): Promise<string>
+    json(): Promise<Json>
+  }>
+}
+
+interface Shell {
+  /** Runs a program from PATH without a shell, in the project folder (or path inside it). */
+  run(command: string, args?: string[], options?: { project?: string; path?: string; timeoutMs?: number; input?: string }): Promise<{
+    code: number | null
+    stdout: string
+    stderr: string
+  }>
+}
+
+interface Clipboard {
+  read(): Promise<string>
+  write(text: string): Promise<void>
+}
+
+declare function setTimeout(callback: () => void, ms?: number): number
+declare function setInterval(callback: () => void, ms?: number): number
+declare function clearTimeout(id?: number): void
+declare function clearInterval(id?: number): void
+declare const console: {
+  log(...values: unknown[]): void
+  info(...values: unknown[]): void
+  warn(...values: unknown[]): void
+  error(...values: unknown[]): void
+}

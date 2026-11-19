@@ -8,6 +8,8 @@ import type {
 import type { NoticeCode, StopReason, ConversationFeed } from '@shared/conversation-feed'
 
 import { syncWork } from '../feed/work-clock'
+import type { PanelHooks } from '../hooks/conversation-hooks'
+import { turnSummary } from '../hooks/turn-summary'
 import type {
   AgentFeed,
   AgentHost,
@@ -64,6 +66,8 @@ export class ConversationRuntime {
   constructor(
     public meta: Conversation,
     readonly host: AgentHost,
+    /** Хуки расширений IDE (ADR 0091): нет - разговор идёт без них. */
+    readonly hooks: PanelHooks | undefined = undefined,
   ) {
     const parts = host.driver.attach(this)
 
@@ -305,15 +309,55 @@ export class ConversationRuntime {
    * (afterTurn) - после того, что ему нужно спросить у ещё живой сессии.
    */
   settleTurn(end: TurnEnd): void {
+    const outcome = end.isError ? 'error' : end.interrupted ? 'interrupted' : 'done'
+
     this.feed.flush()
     this.turnActive = false
-    this.update({
-      turnStartedAt: null,
-      stopRequestedAt: null,
-      usage: end.usage,
-      outcome: end.isError ? 'error' : end.interrupted ? 'interrupted' : 'done',
-    })
+    this.update({ turnStartedAt: null, stopRequestedAt: null, usage: end.usage, outcome })
     this.syncStatus()
+    this.hooks?.turnEnded({
+      conversationId: this.meta.id,
+      projectPath: this.meta.projectPath,
+      outcome,
+      ...turnSummary(this.feed.builder.items),
+    })
+  }
+
+  /**
+   * Вопрос CLI к человеку встаёт во вкладку и зовёт его. Разрешение сначала видят охраны
+   * расширений (ADR 0091): отказ - сразу ответ CLI с их причиной, человек вопроса не видит.
+   * Охран нет - вопрос встаёт сразу, как всегда.
+   */
+  async hold(held: HeldRequest): Promise<void> {
+    const { pending } = held
+    const session = this.session
+    const { hooks } = this
+
+    if (pending.kind === 'permission' && session && hooks?.guarding()) {
+      const reason = await hooks
+        .guard({
+          conversationId: this.meta.id,
+          projectPath: this.meta.projectPath,
+          toolName: pending.toolName,
+          action: pending.action,
+          input: pending.input,
+          description: pending.description,
+        })
+        .catch(() => null)
+
+      if (this.isDisposed || this.session !== session) return
+      if (reason !== null) {
+        return session.answer(held, {
+          kind: 'permission',
+          decision: { behavior: 'deny', message: reason },
+        })
+      }
+    }
+
+    this.held = [...this.held, held]
+    this.syncStatus()
+    // Вид вопроса и есть повод позвать: разрешение, выбор, план.
+    this.host.onCall(this.meta.id, pending.kind)
   }
 
   /**

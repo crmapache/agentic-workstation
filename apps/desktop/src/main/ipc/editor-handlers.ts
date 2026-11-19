@@ -80,6 +80,8 @@ export const createEditorHandlers = (
   workspace: WorkspaceService,
   history: LocalHistory,
   definitions: DefinitionService,
+  /** Файл проекта сохранён редактором: расширениям с files.onDidSave (ADR 0091). */
+  onSaved: (rootPath: string, relativePath: string) => void = () => undefined,
 ): Pick<InvokeHandlers, EditorChannels> => ({
   'fs:readFile': async (request) => {
     const target = fileTarget(workspace, request)
@@ -118,6 +120,8 @@ export const createEditorHandlers = (
     if (written.kind === 'saved' && tracked !== null) {
       void history.settle(rootPath, [tracked], 'edit')
     }
+
+    if (written.kind === 'saved') onSaved(rootPath, relativePath)
 
     return written
   },

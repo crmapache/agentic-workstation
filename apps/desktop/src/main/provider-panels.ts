@@ -67,6 +67,8 @@ export const startProviderPanels = async (options: {
   observers: PanelObservers
 }): Promise<ProviderPanels> => {
   const { userData, sounds, observers } = options
+  // Хуки расширений IDE (ADR 0091): связка реестра, пустая, пока расширения не поднялись.
+  const registry = new PanelRegistry()
   const claude = await ClaudeService.load(
     new JsonFile<StoredPanel>(join(userData, 'claude.json')),
     {
@@ -84,6 +86,7 @@ export const startProviderPanels = async (options: {
         if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider: 'claude', call })
       },
       openPath: (path) => shell.openPath(path),
+      hooks: registry.hooks.forPanel('claude'),
     },
     {
       file: new JsonFile<StoredAccounts>(join(userData, 'claude-accounts.json')),
@@ -110,6 +113,7 @@ export const startProviderPanels = async (options: {
         if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider: 'codex', call })
       },
       openUrl: (url) => openExternalWeb(url),
+      hooks: registry.hooks.forPanel('codex'),
     },
     options.version,
     codexAccounts,
@@ -140,12 +144,11 @@ export const startProviderPanels = async (options: {
         if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider: 'opencode', call })
       },
       onConnections: (state) => broadcast('openModels:connections', state),
+      hooks: registry.hooks.forPanel('opencode'),
     },
     connections,
     join(userData, 'opencode'),
   )
-
-  const registry = new PanelRegistry()
 
   registry.add('claude', claude)
   registry.add('codex', codex)

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { MAIN_VIEWS, FOOTER_MAIN_VIEW_ID } from '../views/main-views'
+import { viewLabel } from '../views/view-label'
 import { shortcutLabel } from '../../lib/keys'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { useSettingsStore } from '../../features/settings/settings.store'
@@ -27,7 +28,7 @@ export const SideFooter = () => {
       {view && (
         <IconButton
           icon={view.icon}
-          label={t(view.labelKey)}
+          label={viewLabel(view, t)}
           active={arrangement.isMainShown && activeMainView === view.id}
           tooltipPlacement="end"
           onClick={() => selectMainView(view.id)}

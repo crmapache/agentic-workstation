@@ -14,6 +14,7 @@ import type { PanelPrefs, ConversationCall } from '@shared/panel-prefs'
 import { ConversationCalls } from '../calls/conversation-calls'
 import type { AgentHost } from '../conversation/agent-parts'
 import { ConversationRuntime } from '../conversation/conversation-runtime'
+import type { PanelHooks } from '../hooks/conversation-hooks'
 import { ProcessGroup } from '../../process/process-group'
 import type { JsonFile } from '../../storage/json-file'
 import type { HistoryName } from './new-tab'
@@ -70,6 +71,8 @@ export type PanelDriver = {
 export type PanelEvents = {
   onState: (state: AgentPanelState) => void
   onCall: (call: ConversationCall) => void
+  /** Хуки расширений IDE (ADR 0091): отправка, вопрос разрешения, конец хода. */
+  hooks?: PanelHooks | undefined
 }
 
 /**
@@ -93,11 +96,13 @@ export abstract class AgentPanel {
 
   /** Хост разговоров: доверие, рассылка, зов, драйвер разговора провайдера. */
   protected abstract readonly host: AgentHost
+  private readonly hooks: PanelHooks | undefined
   protected abstract readonly driver: PanelDriver
   /** Своё провайдера у действий над разговором: откат, картинки, задачи, поправка выбора. */
   protected abstract readonly ops: ConversationOps
 
   protected constructor(stored: StoredPanel, file: JsonFile<StoredPanel>, events: PanelEvents) {
+    this.hooks = events.hooks
     this.persist = new PanelPersistence(
       file,
       () => this.stored(),
@@ -113,7 +118,7 @@ export abstract class AgentPanel {
       runtimes: () => this.runtimes,
       activeByProject: () => this.activeByProject,
       setActive: (projectPath, id) => this.setActive(projectPath, id),
-      spawn: (conversation) => new ConversationRuntime(conversation, this.host),
+      spawn: (conversation) => new ConversationRuntime(conversation, this.host, this.hooks),
       changed: () => this.persist.changed(),
       state: () => this.getState(),
       hasJournal: (tab) => this.driver.hasJournal(tab.projectPath, tab.sessionId),
@@ -156,7 +161,7 @@ export abstract class AgentPanel {
     for (const conversation of stored.conversations) {
       this.runtimes.set(
         conversation.id,
-        new ConversationRuntime(freshConversation(conversation), this.host),
+        new ConversationRuntime(freshConversation(conversation), this.host, this.hooks),
       )
     }
 

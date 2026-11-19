@@ -4,22 +4,26 @@ import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker'
 import 'monaco-editor/features/register.all.js'
 import './monaco.css'
 
-import { MONACO_FIND_COMMANDS } from './editor.constants'
-import { registerLanguages } from './monaco-languages'
-import { defineEditorTheme } from './monaco-theme'
-
+import { onExtensionThemeApplied } from '../../state/extension-theme'
 /**
  * Monaco по частям (ADR 0005): ядро, все функции правки VS Code и свои языки с
  * подсветкой shiki - без встроенных языковых сервисов, интеллект кода придёт от LSP.
  * Модуль грузится вместе с редактором, при первом открытом файле, и настраивает Monaco
  * один раз на окно.
  */
+import { MONACO_FIND_COMMANDS } from './editor.constants'
+import { registerLanguages } from './monaco-languages'
+import { defineEditorTheme } from './monaco-theme'
+
 ;(self as { MonacoEnvironment?: monaco.Environment }).MonacoEnvironment = {
   getWorker: () => new EditorWorker(),
 }
 
 registerLanguages(monaco)
 defineEditorTheme(monaco)
+// Тема расширений (ADR 0091) меняет роли --color-*: Monaco цвета из CSS сам не перечитывает,
+// тема переопределяется заново и сразу ложится на все редакторы окна.
+onExtensionThemeApplied(() => defineEditorTheme(monaco))
 
 // ⌘⇧O в IDE - поиск файлов (поиск везде), а не переход к символу Monaco: иначе в
 // редакторе открывались бы оба окна разом.

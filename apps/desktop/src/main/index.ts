@@ -16,6 +16,7 @@ import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
 import { attachGateway, connectorLinks, startProviderPanels } from './provider-panels'
 import { startConnectors } from './connectors/connectors-setup'
+import { extensionsFolderPath } from './extensions/extensions-folder'
 import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
@@ -45,9 +46,7 @@ import { homeFolderPath } from './workspace/home-folder'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
 import { watchAgentEdits } from './claude/changes/agent-edits-tap'
-import { locateClaudeCli } from './claude/cli/cli-locator'
-import { SearchDesk } from './claude/search/search-desk'
-import { SEARCH_DIR_NAME } from './claude/search/search.constants'
+import { startConversationSearch } from './claude/search/search-setup'
 
 /** В dev страницу отдаёт Vite (адрес передаёт electron-vite), в сборке - файл. */
 const RENDERER_URL = app.isPackaged ? undefined : process.env['ELECTRON_RENDERER_URL']
@@ -158,21 +157,12 @@ const bootstrap = async () => {
   })
 
   attachGateway(providerPanels, connectors)
-  // Поиск по разговорам панели - своим модулем (main/claude/search): индекс по проекту,
-  // первая сборка - через 20 секунд после открытия проекта, поиск модели - на аккаунте панели.
-  const conversationSearch = new SearchDesk({
-    dir: join(app.getPath('userData'), SEARCH_DIR_NAME),
-    cli: async () => {
-      const cli = await locateClaudeCli()
-
-      return cli && { ...cli, env: claude.accounts.envFor(cli.env) }
-    },
-    onStep: (step) => broadcast('claudeSearch:step', step),
+  // Поиск по разговорам панели (main/claude/search): поднимается после разговоров.
+  const { search: conversationSearch, projectsChanged: searchProjects } = startConversationSearch({
+    userData: app.getPath('userData'),
+    claude,
+    workspace,
   })
-  const searchProjects = () =>
-    conversationSearch.projectsChanged(
-      workspace.getState().projects.map((project) => project.rootPath),
-    )
 
   const rootOf = (projectId: string) =>
     workspace.getState().projects.find((project) => project.id === projectId)?.rootPath
@@ -240,6 +230,7 @@ const bootstrap = async () => {
     getWindow: () => mainWindow,
     silent: () => sounds.prefs.muteAll,
     inboxLink,
+    extensionsRoot: extensionsFolderPath(PROFILE_DIR),
   })
 
   observeState = features.observeState
@@ -279,6 +270,7 @@ const bootstrap = async () => {
     history,
     sounds,
     definitions: features.definitions,
+    extensions: features.extensions,
     getWindow: () => mainWindow,
   }
 

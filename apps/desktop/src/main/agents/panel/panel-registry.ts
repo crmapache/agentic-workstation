@@ -1,6 +1,7 @@
 import type { ProviderId } from '@shared/providers'
 import { isProviderId } from '@shared/providers'
 
+import { ConversationHooksLink } from '../hooks/conversation-hooks'
 import type { AgentPanel } from './agent-panel'
 
 /**
@@ -9,6 +10,11 @@ import type { AgentPanel } from './agent-panel'
  */
 export class PanelRegistry {
   private readonly panels = new Map<ProviderId, AgentPanel>()
+  /**
+   * Хуки расширений IDE во всех панелях (ADR 0091): панели получают связку при подъёме, а
+   * расширения встают в неё позже, когда поднимутся.
+   */
+  readonly hooks = new ConversationHooksLink()
 
   add(provider: ProviderId, panel: AgentPanel): void {
     this.panels.set(provider, panel)

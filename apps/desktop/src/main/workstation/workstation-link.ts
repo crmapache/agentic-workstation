@@ -1,5 +1,6 @@
 import type { WorkspaceState } from '@shared/workspace'
 
+import type { ExtensionsService } from '../extensions/extensions-service'
 import type { TaskService } from '../tasks/task-service'
 import { ArgumentError } from '../connectors/kinds/native-tools'
 import type { ScenariosPort, ConversationsPort } from '../remote/bridge/bridge-ports'
@@ -37,7 +38,15 @@ export type WorkstationPorts = {
   tasks: TasksPort
   /** Панели провайдеров по порядку: первой - Claude Code. */
   panels: () => readonly ConversationsPort[]
+  /** Расширения IDE (ADR 0091): поднимаются после портов, до того - null. */
+  extensions: () => ExtensionsPort | null
 }
+
+/** Расширения IDE для ИИ, который их пишет: состояние, журнал, перезапуск, команда. */
+export type ExtensionsPort = Pick<
+  ExtensionsService,
+  'state' | 'logsOf' | 'reloadOne' | 'runCommand' | 'tools' | 'callTool'
+>
 
 /**
  * Связь коннектора Agentic Workstation с IDE: коннекторы поднимаются раньше сценариев, заданий

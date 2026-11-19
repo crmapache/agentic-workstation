@@ -8,6 +8,15 @@ import type { StatsSource, StatsProviderFilter } from '@shared/statistics'
  */
 export const QUERY_KEYS = {
   appInfo: ['app', 'info'],
+  /** Расширения IDE (ADR 0091): состояние, деревья видов по ключу, журнал расширения. */
+  extensions: ['extensions'],
+  extensionViews: ['extensions', 'views'],
+  extensionLogs: (id: string) => ['extensions', 'logs', id],
+  /** Магазин расширений: страницы каталога, карточка, обновления, имя автора. */
+  storeList: (q: string, sort: string) => ['extensions', 'store', 'list', q, sort],
+  storeView: (id: string) => ['extensions', 'store', 'view', id],
+  storeUpdates: ['extensions', 'store', 'updates'],
+  storeIdentity: ['extensions', 'store', 'identity'],
   resourceUsage: ['app', 'resource-usage'],
   workspace: ['workspace'],
   /** Капсула Computer Use (ADR 0057): что делает ИИ на компьютере; свободен - null. */

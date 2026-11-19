@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
+import { ExtensionItems } from '../ExtensionItems/ExtensionItems'
 import { ResourceUsage } from '../ResourceUsage/ResourceUsage'
 import { StatusDivider } from '../StatusDivider/StatusDivider'
 import { useCopy } from '../../../lib/clipboard.hooks'
@@ -48,6 +49,7 @@ export const StatusBar = ({ items = [] }: StatusBarProps) => {
         )}
       </div>
       <div className={styles.segments}>
+        <ExtensionItems />
         {/* Кнопки фич стоят по порядку и не меняются - ключом им служит место. */}
         {items.map((item, index) => (
           <Fragment key={index}>

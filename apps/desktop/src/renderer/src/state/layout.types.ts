@@ -1,8 +1,19 @@
-/** Виды зоны 5 (левая панель), переключаются иконками зоны 2. */
-export type SideViewId = 'files' | 'changes'
+/** Вид расширения IDE (ADR 0091): `ext:<расширение>.<вид>`. */
+export type ExtensionViewId = `ext:${string}`
+
+/** Виды зоны 5 (левая панель), переключаются иконками зоны 2; расширения добавляют свои. */
+export type SideViewId = 'files' | 'changes' | ExtensionViewId
 
 /** Виды зоны 6 (середина окна), переключаются иконками полосы слева от неё. */
-export type MainViewId = 'file' | 'scenarios' | 'tasks' | 'statistics' | 'connectors' | 'inbox'
+export type MainViewId =
+  | 'file'
+  | 'scenarios'
+  | 'tasks'
+  | 'statistics'
+  | 'connectors'
+  | 'inbox'
+  | 'extensions'
+  | ExtensionViewId
 
 /**
  * GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3 (ADR 0083):

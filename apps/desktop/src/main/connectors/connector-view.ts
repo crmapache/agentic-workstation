@@ -15,6 +15,7 @@ import { isToolEnabled } from './tool-access'
 import { signsInWithBrowser } from './kinds/sources'
 import { BROWSER_GUIDE, BROWSER_COMPUTER_NOTE } from './kinds/browser/browser-guide'
 import { COMPUTER_GUIDE } from './kinds/computer/computer-guide'
+import { EXTENSIONS_GUIDE } from './kinds/extensions/extensions-source'
 import { NOTIFICATIONS_GUIDE } from './kinds/notifications/notifications-guide'
 import { WORKSTATION_GUIDE } from './kinds/workstation/workstation-guide'
 
@@ -108,6 +109,7 @@ export const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   computer: "the user's computer (real mouse, keyboard and screen)",
   notifications: "the user's Agentic Workstation notifications",
   workstation: 'Agentic Workstation itself, the IDE you run in',
+  extensions: 'tools of Agentic Workstation extensions',
   mcp: 'MCP server',
   command: 'MCP server',
   http: 'API',
@@ -162,6 +164,7 @@ const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = {
   computer: COMPUTER_GUIDE,
   notifications: NOTIFICATIONS_GUIDE,
   workstation: WORKSTATION_GUIDE,
+  extensions: EXTENSIONS_GUIDE,
 }
 
 /**

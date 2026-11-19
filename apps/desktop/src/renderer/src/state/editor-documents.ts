@@ -9,6 +9,11 @@ export type DocumentsBus = {
   discard: (projectId: string, paths: readonly string[]) => void
   /** Дописать всё несохранённое; ответ - когда записано. */
   saveAll: () => Promise<void>
+  /**
+   * Правка от расширения (ADR 0091) в редакторе файла на виду: вставить у курсора или заменить
+   * выделенное - одним шагом отмены. false - файл сейчас не открыт в редакторе.
+   */
+  edit: (projectId: string, path: string, kind: 'insert' | 'replace', text: string) => boolean
 }
 
 let documents: DocumentsBus | null = null

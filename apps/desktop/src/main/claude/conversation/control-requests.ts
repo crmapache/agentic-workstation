@@ -35,8 +35,5 @@ export const takeControlRequest = (
     return process.respond(request.request_id, { behavior: 'deny', message: UNSUPPORTED_REQUEST })
   }
 
-  runtime.held = [...runtime.held, held]
-  runtime.syncStatus()
-  // Вид вопроса и есть повод позвать: разрешение, выбор, план.
-  runtime.host.onCall(runtime.meta.id, held.pending.kind)
+  void runtime.hold(held)
 }

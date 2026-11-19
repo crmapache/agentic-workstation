@@ -21,7 +21,8 @@ import type { ComputerState } from './computer'
  * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); computer -
  * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); notifications -
  * уведомления и напоминания IDE самому человеку (ADR 0069, встроенный); workstation - сама IDE:
- * проекты, сценарии и очереди, задания, разговоры панелей (ADR 0090, встроенный); mcp - любой
+ * проекты, сценарии и очереди, задания, разговоры панелей (ADR 0090, встроенный); extensions -
+ * инструменты расширений IDE (ADR 0091, встроенный); mcp - любой
  * MCP-сервер по адресу (Linear, Sentry, свой); command - MCP-сервер командой на этой машине
  * (npx, node); http - описанный ИИ по документации сервиса (ADR 0029).
  */
@@ -37,6 +38,7 @@ export type ConnectorKind =
   | 'computer'
   | 'notifications'
   | 'workstation'
+  | 'extensions'
   | 'mcp'
   | 'command'
   | 'http'
@@ -53,6 +55,7 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'computer',
   'notifications',
   'workstation',
+  'extensions',
   'mcp',
   'command',
   'http',
@@ -61,9 +64,14 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
 /**
  * Встроенные коннекторы, которые есть всегда: IDE заводит их сама и в каталоге нового их нет.
  * Уведомления IDE (ADR 0069) - то, чем любой разговор зовёт человека кнопками и напоминаниями;
- * Agentic Workstation (ADR 0090) - то, чем разговор управляет самой IDE без мыши.
+ * Agentic Workstation (ADR 0090) - то, чем разговор управляет самой IDE без мыши; Extensions
+ * (ADR 0091) - инструменты, которые ИИ дают расширения IDE.
  */
-export const BUILT_IN_KINDS: readonly ConnectorKind[] = ['notifications', 'workstation']
+export const BUILT_IN_KINDS: readonly ConnectorKind[] = [
+  'notifications',
+  'workstation',
+  'extensions',
+]
 
 /** Имя сервера уведомлений IDE: тип в начале, как у всех (ADR 0028). */
 export const NOTIFICATIONS_SERVER_NAME = 'notifications'
@@ -73,6 +81,9 @@ export const NOTIFICATIONS_SERVER_NAME = 'notifications'
  * редакторами, и в терминале человека два сервера с одним именем спорили бы.
  */
 export const WORKSTATION_SERVER_NAME = 'workstation'
+
+/** Имя сервера инструментов расширений IDE (ADR 0091). */
+export const EXTENSIONS_SERVER_NAME = 'extensions'
 
 /**
  * Работает командой на этой машине: своя MCP-команда и Playwright. Своя копия на каждый
