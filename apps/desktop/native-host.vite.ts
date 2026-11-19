@@ -31,6 +31,9 @@ export const buildNativeHost = async (root: string, outDir: string): Promise<str
   return join(outDir, 'host.js')
 }
 
+/** Очередь раскладки моста: одна на все сборки процесса (у кусков `?modulePath` - свои). */
+let placing: Promise<void> = Promise.resolve()
+
 /**
  * Мост браузера рядом с главным процессом: `<out>/native-host/host.js` и собранное расширение
  * `<out>/chrome-extension` (из apps/browser-extension/dist - его собирает скрипт build). Папка
@@ -41,27 +44,36 @@ export const buildNativeHost = async (root: string, outDir: string): Promise<str
 export const browserBridgePlugin = (root: string): Plugin => {
   let outRoot = resolve(root, 'out')
 
+  const place = async () => {
+    await buildNativeHost(root, join(outRoot, 'native-host'))
+
+    const extension = resolve(root, '../browser-extension/dist')
+    const target = join(outRoot, 'chrome-extension')
+
+    await rm(target, { recursive: true, force: true })
+
+    if (existsSync(join(extension, 'manifest.json'))) {
+      await cp(extension, target, { recursive: true })
+    } else {
+      console.warn(
+        '[browser] расширение не собрано: pnpm --filter @agentic-workstation/browser-extension build',
+      )
+    }
+  }
+
   return {
     name: 'agentic-workstation-browser-bridge',
     apply: 'build',
     configResolved: (config) => {
       outRoot = dirname(resolve(config.root, config.build.outDir))
     },
-    closeBundle: async () => {
-      await buildNativeHost(root, join(outRoot, 'native-host'))
+    // closeBundle зовут и куски `?modulePath` (потоки статистики, определений, расширений) -
+    // одновременно со сборкой main. Параллельные rm и cp одной папки рвали друг друга (ENOENT на
+    // chmod посреди копии), поэтому раскладка идёт по очереди: каждая следующая - после прошлой.
+    closeBundle: () => {
+      placing = placing.then(place, place)
 
-      const extension = resolve(root, '../browser-extension/dist')
-      const target = join(outRoot, 'chrome-extension')
-
-      await rm(target, { recursive: true, force: true })
-
-      if (existsSync(join(extension, 'manifest.json'))) {
-        await cp(extension, target, { recursive: true })
-      } else {
-        console.warn(
-          '[browser] расширение не собрано: pnpm --filter @agentic-workstation/browser-extension build',
-        )
-      }
+      return placing
     },
   }
 }
