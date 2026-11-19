@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { GOAL_BUDGETS, GOAL_LIFE_DAYS, GOAL_OUTBOUNDS } from '@shared/goals'
 import type { GoalOutbound } from '@shared/goals'
 
+import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
+
 import styles from '../TaskModal.module.scss'
 import type { GoalFieldsProps } from '../TaskModal.types'
-import { ChoiceField } from './ChoiceField'
 
 /**
  * Пределы поручения (ADR 0080): как писать людям (по умолчанию - каждое сообщение с кнопки
@@ -37,20 +38,20 @@ export const GoalFields = ({ draft, onChange }: GoalFieldsProps) => {
       <ChoiceField
         label={t('tasks.form.outbound')}
         value={goal.outbound}
-        choices={outbounds}
+        options={outbounds}
         onPick={(outbound) => set({ outbound: outbound as GoalOutbound })}
       />
       <div className={styles.row}>
         <ChoiceField
           label={t('tasks.form.budget')}
           value={String(goal.budgetUsd)}
-          choices={budgets}
+          options={budgets}
           onPick={(amount) => set({ budgetUsd: Number(amount) })}
         />
         <ChoiceField
           label={t('tasks.form.lifeDays')}
           value={String(goal.lifeDays)}
-          choices={days}
+          options={days}
           onPick={(count) => set({ lifeDays: Number(count) })}
         />
       </div>

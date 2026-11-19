@@ -1,6 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite'
 
 import { modelFamilyOf, CLAUDE_MODEL_FAMILIES } from '@shared/claude-models'
+import type { ProviderId } from '@shared/providers'
+import { isProviderId } from '@shared/providers'
 import type {
   StatsToolRow,
   StatsModelRow,
@@ -16,16 +18,28 @@ import type { Scope } from './query-scope'
 import { agentWhere, humanWhere } from './query-scope'
 import { clip } from './time-math'
 
-/** Модели периода: токены по видам, стоимость и сколько ответов. */
+/** Провайдер из базы; незнакомый (база от будущей IDE) - Claude, первый провайдер статистики. */
+const providerOf = (value: string): ProviderId => (isProviderId(value) ? value : 'claude')
+
+/**
+ * Модели периода у своего провайдера: токены по видам, стоимость и сколько ответов. Семья -
+ * только у моделей Claude: имя открытой модели («qwen-haiku-distill») подстрокой совпало бы с
+ * семьёй Claude, а модель Codex - не модель Claude.
+ */
 export const queryModels = (db: DatabaseSync, scope: Scope): StatsModelRow[] => {
   const where = agentWhere(scope)
   const rows = db
     .prepare(
-      `SELECT model, SUM(input) AS input, SUM(output) AS output, SUM(cache_read) AS cacheRead,
-         SUM(cache_write) AS cacheWrite, SUM(cost) AS cost, COUNT(*) AS answers
-       FROM answers WHERE ${where.sql} GROUP BY model ORDER BY cost DESC`,
+      `SELECT sessions.provider AS provider, model, SUM(input) AS input, SUM(output) AS output,
+         SUM(cache_read) AS cacheRead, SUM(cache_write) AS cacheWrite, SUM(cost) AS cost,
+         COUNT(*) AS answers
+       FROM answers JOIN sessions ON sessions.id = answers.session
+       WHERE ${where.sql} GROUP BY sessions.provider, model
+       ORDER BY SUM(answers.cost) DESC,
+         SUM(answers.input + answers.output + answers.cache_read + answers.cache_write) DESC`,
     )
     .all(where.params) as {
+    provider: string
     model: string
     input: number
     output: number
@@ -36,8 +50,12 @@ export const queryModels = (db: DatabaseSync, scope: Scope): StatsModelRow[] => 
   }[]
 
   return rows.map((row) => ({
+    provider: providerOf(row.provider),
     model: row.model,
-    family: modelFamilyOf(row.model, CLAUDE_MODEL_FAMILIES) ?? 'other',
+    family:
+      row.provider === 'claude'
+        ? (modelFamilyOf(row.model, CLAUDE_MODEL_FAMILIES) ?? 'other')
+        : 'other',
     tokens: {
       input: row.input,
       output: row.output,

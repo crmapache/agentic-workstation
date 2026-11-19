@@ -2,14 +2,15 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import type { StatsFilter, StatsPeriod, StatsReport, StatsScanProgress } from '@shared/statistics'
 
-import { costOf, PRICES_VERSION } from './pricing'
+import { answerCostOf, PRICES_VERSION, PRICED_PROVIDERS } from './pricing'
 import { readMeta, writeMeta, openStatsDb, inTransaction } from './stats-db'
 import { StatsStore } from './stats-store'
+import type { ScanSource } from './journals/journal-format'
+import type { ScanResult } from './journals/journal-scanner'
+import { JournalScanner } from './journals/journal-scanner'
 import type { LiveNote } from './live/live-notes'
 import { LiveNotes } from './live/live-notes'
 import { buildReport } from './queries/stats-report'
-import type { ScanResult } from './transcripts/transcript-scanner'
-import { TranscriptScanner } from './transcripts/transcript-scanner'
 
 /** Папка, где шла работа, и её проект (null - ещё не решён). */
 export type PlaceRow = { id: number; path: string; project: string | null }
@@ -18,7 +19,7 @@ export type PlaceProject = { id: number; project: string | null }
 
 /** Что умеет движок: запрос и ответ каждого действия. */
 export type EngineOps = {
-  scan: { request: { root: string }; response: ScanResult }
+  scan: { request: { sources: ScanSource[] }; response: ScanResult }
   query: {
     request: { period: StatsPeriod; filter: StatsFilter; now: number }
     response: StatsReport
@@ -47,12 +48,12 @@ const metaNumber = (db: DatabaseSync, key: string): number | null => {
 /**
  * Вся работа с базой статистики. Живёт в своём потоке (scan-worker.ts), в тестах - прямо в
  * процессе: node:sqlite синхронный, и выборка за год или первый проход по гигабайтам
- * транскриптов в главном процессе останавливали бы окно.
+ * журналов в главном процессе останавливали бы окно.
  */
 export class StatsEngine {
   private readonly db: DatabaseSync
   private readonly store: StatsStore
-  private readonly scanner: TranscriptScanner
+  private readonly scanner: JournalScanner
   private readonly notes: LiveNotes
   private scanning: Promise<ScanResult> | null = null
   private progress: StatsScanProgress
@@ -63,7 +64,7 @@ export class StatsEngine {
   ) {
     this.db = openStatsDb(dbPath)
     this.store = new StatsStore(this.db)
-    this.scanner = new TranscriptScanner(this.store)
+    this.scanner = new JournalScanner(this.store)
     this.notes = new LiveNotes(this.store)
     this.repriceIfNeeded()
     this.progress = {
@@ -79,7 +80,7 @@ export class StatsEngine {
 
   handle<K extends EngineOp>(request: EngineRequest<K>): Promise<EngineOps[K]['response']>
   async handle(request: EngineRequest): Promise<EngineOps[EngineOp]['response']> {
-    if (request.op === 'scan') return this.scan(request.root)
+    if (request.op === 'scan') return this.scan(request.sources)
     if (request.op === 'query') {
       return buildReport(this.db, request.period, request.filter, request.now)
     }
@@ -102,20 +103,20 @@ export class StatsEngine {
   }
 
   /** Один проход за раз: второй вопрос ждёт идущий, а не читает те же байты рядом. */
-  private scan(root: string): Promise<ScanResult> {
-    this.scanning ??= this.runScan(root).finally(() => {
+  private scan(sources: readonly ScanSource[]): Promise<ScanResult> {
+    this.scanning ??= this.runScan(sources).finally(() => {
       this.scanning = null
     })
 
     return this.scanning
   }
 
-  private async runScan(root: string): Promise<ScanResult> {
+  private async runScan(sources: readonly ScanSource[]): Promise<ScanResult> {
     this.progress = { ...this.progress, running: true }
     this.onProgress({ ...this.progress })
 
     try {
-      const result = await this.scanner.scan(root, (step) => {
+      const result = await this.scanner.scan(sources, (step) => {
         this.progress = { ...this.progress, ...step }
         this.onProgress({ ...this.progress })
       })
@@ -149,16 +150,20 @@ export class StatsEngine {
     })
   }
 
-  /** Цены поменялись (PRICES_VERSION) - пересчитать стоимость всех ответов в базе. */
+  /**
+   * Цены поменялись (PRICES_VERSION) - пересчитать стоимость ответов, которую считает таблица
+   * IDE (Claude, Codex). Стоимость открытых моделей записал сам OpenCode - её не трогаем: из
+   * токенов её не восстановить.
+   */
   private repriceIfNeeded(): void {
     if (readMeta(this.db, PRICES_KEY) === PRICES_VERSION) return
 
-    // Семь аргументов явно: SQLite узнаёт число аргументов функции по её length.
+    // Восемь аргументов явно: SQLite узнаёт число аргументов функции по её length.
     this.db.function(
       'stats_cost',
       { deterministic: true },
-      (model, input, output, cacheRead, cacheWrite, cacheWrite1h, fast) =>
-        costOf(String(model), {
+      (provider, model, input, output, cacheRead, cacheWrite, cacheWrite1h, fast) =>
+        answerCostOf(String(provider), String(model), {
           input: Number(input),
           output: Number(output),
           cacheRead: Number(cacheRead),
@@ -168,9 +173,13 @@ export class StatsEngine {
         }),
     )
     inTransaction(this.db, () => {
-      this.db.exec(
-        'UPDATE answers SET cost = stats_cost(model, input, output, cache_read, cache_write, cache_write_1h, fast)',
+      const update = this.db.prepare(
+        `UPDATE answers SET cost = stats_cost(:provider, model, input, output, cache_read,
+           cache_write, cache_write_1h, fast)
+         WHERE session IN (SELECT id FROM sessions WHERE provider = :provider)`,
       )
+
+      for (const provider of PRICED_PROVIDERS) update.run({ provider })
       writeMeta(this.db, PRICES_KEY, PRICES_VERSION)
     })
   }

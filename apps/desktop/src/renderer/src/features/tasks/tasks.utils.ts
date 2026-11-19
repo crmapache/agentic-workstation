@@ -100,6 +100,7 @@ export const blankDraft = (projectPath: string): TaskDraft => ({
   enabled: true,
   catchUp: true,
   report: true,
+  // Провайдер, пока человек его не выбрал, форма считает при показе (effectiveProvider).
   provider: 'claude',
   model: '',
   effort: '',

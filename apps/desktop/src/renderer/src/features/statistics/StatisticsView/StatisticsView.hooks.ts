@@ -61,6 +61,7 @@ export const useStatisticsData = () => {
   const period = useStatisticsStore((state) => state.period)
   const lastDay = useStatisticsStore((state) => state.lastDay)
   const source = useStatisticsStore((state) => state.source)
+  const provider = useStatisticsStore((state) => state.provider)
   const scope = useStatisticsStore((state) => state.scope)
   const project = useActiveProject()
   const moment = useCompareMoment()
@@ -68,11 +69,12 @@ export const useStatisticsData = () => {
   const range = rangeOf(period, moment, lastDay)
   const comparable = comparablePeriodOf(range.period, moment)
   const projectId = scope === 'project' ? (project?.id ?? null) : null
-  const current = useStatsReport(range.period, source, projectId)
+  const filter = { source, projectId, provider }
+  const current = useStatsReport(range.period, filter)
   const report = current.data
   const wantsPrevious =
     !current.isPlaceholderData && report !== undefined && report.previous !== null
-  const previous = useStatsReport(comparable, source, projectId, wantsPrevious)
+  const previous = useStatsReport(comparable, filter, wantsPrevious)
 
   if (!report) return { data: null, failed: current.isError, range }
 
@@ -83,6 +85,7 @@ export const useStatisticsData = () => {
     previousReport !== undefined &&
     previousReport.period.from === comparable.from &&
     previousReport.filter.source === report.filter.source &&
+    previousReport.filter.provider === report.filter.provider &&
     previousReport.filter.project === report.filter.project
 
   const data: StatisticsData = {

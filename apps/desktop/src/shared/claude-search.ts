@@ -4,7 +4,7 @@
  * читает разговоры как текст. Окно только рисует: что найдено и какие слова красить.
  */
 
-import type { TitleSource } from './claude'
+import type { TitleSource } from './conversation'
 
 /** Область набранного запроса: разговор вкладки или все разговоры проекта. */
 export type SearchScope = 'chat' | 'project'

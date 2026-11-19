@@ -1,3 +1,4 @@
+import type { ProviderId } from '@shared/providers'
 import type { ScenarioProblem } from '@shared/scenario-rules'
 import type { Scenario, StageEach, ScenarioCard, ScenarioStage } from '@shared/scenarios'
 
@@ -204,3 +205,36 @@ export const promptPieces = (text: string) =>
             : ('slot' as const),
     }))
     .filter((piece) => piece.text.length > 0)
+
+/**
+ * Сценарий под другого провайдера: имена моделей и уровни у провайдеров свои, поэтому у головы
+ * и у всех карточек модель и усилие - его по умолчанию, режим не из его списка - «спрашивать»
+ * (у карточки пустой режим - «как голова» - остаётся).
+ */
+export const withProvider = (
+  draft: Scenario,
+  provider: ProviderId,
+  modes: readonly string[],
+): Scenario => {
+  const mode = (value: string) => (value === '' || modes.includes(value) ? value : 'default')
+
+  return {
+    ...draft,
+    head: {
+      ...draft.head,
+      provider,
+      model: '',
+      effort: '',
+      permissionMode: mode(draft.head.permissionMode) || 'default',
+    },
+    stages: draft.stages.map((stage) => ({
+      ...stage,
+      cards: stage.cards.map((card) => ({
+        ...card,
+        model: '',
+        effort: '',
+        permissionMode: mode(card.permissionMode),
+      })),
+    })),
+  }
+}

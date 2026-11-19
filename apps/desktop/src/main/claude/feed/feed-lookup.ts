@@ -1,4 +1,4 @@
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { recordField, stringField, parseCliLine } from '../cli/cli-messages'

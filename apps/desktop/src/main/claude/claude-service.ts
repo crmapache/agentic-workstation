@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
-import type { ClaudeState, ConversationOptions } from '@shared/claude'
-import type { FeedPatch, FleetTranscript } from '@shared/claude-feed'
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { AgentPanelState } from '@shared/conversation'
+import type { FeedPatch, FleetTranscript } from '@shared/conversation-feed'
+import { CLAUDE_CAPABILITIES } from '@shared/panel-capabilities'
+import type { ConversationCall } from '@shared/panel-prefs'
 
 import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
@@ -40,7 +41,7 @@ import { TodayTokens } from './usage/today-tokens'
 import { UsageService } from './usage/usage-service'
 
 export type ClaudeEvents = {
-  onState: (state: ClaudeState) => void
+  onState: (state: AgentPanelState) => void
   onFeed: (patch: FeedPatch) => void
   /** Открыть файл программой по умолчанию (скрипт входа в аккаунт - в Терминале). */
   openPath: (path: string) => Promise<string>
@@ -124,7 +125,7 @@ export class ClaudeService extends AgentPanel {
     return service
   }
 
-  getState(): ClaudeState {
+  getState(): AgentPanelState {
     return {
       ...this.coreState(),
       builtinCommands: this.cli.commands,
@@ -133,27 +134,75 @@ export class ClaudeService extends AgentPanel {
       accounts: { ...this.accounts.view, usage: this.usage.view, ...this.panel.accountFacts() },
       prefs: this.settings.prefs,
       refusedModes: this.panel.refusedModes,
+      capabilities: CLAUDE_CAPABILITIES,
     }
   }
 
   /** Настройки панели: патч поверх текущих, негодное поле - отказ целиком. */
-  setPrefs(patch: unknown): ClaudeState {
+  setPrefs(patch: unknown): AgentPanelState {
     this.settings.apply(patch)
 
     return this.getState()
   }
 
+  async signIn(accountId: string): Promise<AgentPanelState> {
+    await this.accounts.signInAgain(accountId)
+
+    return this.getState()
+  }
+
+  async cancelSignIn(): Promise<AgentPanelState> {
+    await this.accounts.cancelSignIn()
+
+    return this.getState()
+  }
+
+  async checkSignIn(): Promise<AgentPanelState> {
+    await this.accounts.checkCurrent()
+
+    return this.getState()
+  }
+
   /**
-   * Новая вкладка с выбором сразу (Remote Control): модель, усилие и режим ставятся до того,
-   * как поднимется процесс. Ответ - id созданной вкладки, а не состояние, в котором её надо
-   * искать.
+   * Выход из обычного входа - и переход на соседний вошедший аккаунт, если он есть. Выйти
+   * можно только из него: у добавленных аккаунтов вместо выхода - «забыть».
    */
-  async openConversation(projectPath: string, options: ConversationOptions): Promise<string> {
-    const id = await this.addRuntime(projectPath, randomUUID(), null)
+  async signOut(accountId: string): Promise<AgentPanelState> {
+    if (accountId === '') await this.panel.logout()
 
-    this.actions.setOptions(id, options)
+    return this.getState()
+  }
 
-    return id
+  async addAccount(): Promise<AgentPanelState> {
+    await this.accounts.add()
+
+    return this.getState()
+  }
+
+  /** Выбор по уже текущему тоже переводит всё: вкладка могла отстать на старом входе. */
+  selectAccount(accountId: string): Promise<AgentPanelState> {
+    this.accounts.select(accountId)
+    this.panel.accountChanged()
+
+    return Promise.resolve(this.getState())
+  }
+
+  renameAccount(accountId: string, alias: string): Promise<AgentPanelState> {
+    this.accounts.rename(accountId, alias)
+
+    return Promise.resolve(this.getState())
+  }
+
+  async forgetAccount(accountId: string): Promise<AgentPanelState> {
+    await this.accounts.forget(accountId)
+
+    return this.getState()
+  }
+
+  async refreshUsage(accountIds: readonly string[]): Promise<AgentPanelState> {
+    await this.usage.refresh(accountIds)
+
+    return this.getState()
   }
 
   /** Выход из IDE: сверх общего - процессы аккаунтов (вход, вопросы расхода). */
@@ -207,6 +256,7 @@ export class ClaudeService extends AgentPanel {
 
   /** Своё Claude у панели: транскрипты, форк по строке транскрипта, режим по настройкам CLI. */
   protected readonly driver: PanelDriver = {
+    newSessionId: () => randomUUID(),
     hasJournal: async (projectPath, sessionId) =>
       (await findTranscript(projectPath, sessionId)) !== null,
     journalName: async (projectPath, sessionId) => {
@@ -215,7 +265,10 @@ export class ClaudeService extends AgentPanel {
       return file ? transcriptName(file) : undefined
     },
     listHistory: (projectPath, open) => listHistory(projectPath, open),
-    forkOrigin: (source, beforeMessageId) => forkOriginFor(source, beforeMessageId),
+    forkSession: async (source, beforeMessageId) => ({
+      sessionId: randomUUID(),
+      origin: await forkOriginFor(source, beforeMessageId),
+    }),
     saveTitle: (runtime, title) => writeOwnTitle(runtime, title),
     defaultMode: async (projectPath) => defaultPermissionMode(projectPath, await claudeHome()),
     // Закреплённый режим - если проект его допускает (bypass может быть запрещён).

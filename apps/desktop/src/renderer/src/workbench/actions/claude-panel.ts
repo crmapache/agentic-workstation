@@ -2,8 +2,8 @@ import { useEffect, useEffectEvent } from 'react'
 
 import { withMacKeys } from '../../lib/keys'
 import { useLayoutStore } from '../../state/layout.store'
-import { useClaudeCodeStore } from '../../features/claude-code/claude-code.store'
-import { isOpenPanelKey } from '../../features/claude-code/panel-keys.utils'
+import { isOpenPanelKey } from '../../features/agent-panel/panel-keys.utils'
+import { usePanelStore } from '../../features/agent-panel/panel.store'
 
 /** Узел правой панели (зона 7) - его ставит SidePanel с placement="end". */
 const PROVIDER_PANEL = '[data-placement="end"]'
@@ -33,7 +33,7 @@ const noteFocus = (event: FocusEvent) => {
  */
 export const useClaudePanelToggle = () => {
   const selectProviderView = useLayoutStore((state) => state.selectProviderView)
-  const requestFocus = useClaudeCodeStore((store) => store.requestFocus)
+  const requestFocus = usePanelStore((store) => store.requestFocus)
 
   return () => {
     const { provider } = useLayoutStore.getState()

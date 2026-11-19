@@ -45,6 +45,33 @@ describe('openStatsDb', () => {
     second.close()
   })
 
+  it('moves sessions of version 1 to the (provider, id) identity and keeps their ids', () => {
+    const db = new DatabaseSync(':memory:')
+
+    // Таблица сессий первой версии: id уникален сам по себе.
+    db.exec(`
+      CREATE TABLE sessions (
+        id INTEGER PRIMARY KEY, uuid TEXT NOT NULL UNIQUE, provider TEXT NOT NULL,
+        ide_kind TEXT, ide_seen_at INTEGER
+      );
+      INSERT INTO sessions (id, uuid, provider, ide_kind) VALUES (7, 'S1', 'claude', 'panel');
+      PRAGMA user_version = 1;
+    `)
+    migrate(db)
+    db.prepare("INSERT INTO sessions (uuid, provider) VALUES ('S1', 'codex')").run()
+
+    expect(
+      db.prepare('SELECT id, uuid, provider, ide_kind FROM sessions ORDER BY id').all(),
+    ).toEqual([
+      { id: 7, uuid: 'S1', provider: 'claude', ide_kind: 'panel' },
+      { id: 8, uuid: 'S1', provider: 'codex', ide_kind: null },
+    ])
+    expect(() =>
+      db.prepare("INSERT INTO sessions (uuid, provider) VALUES ('S1', 'codex')").run(),
+    ).toThrow(/UNIQUE/)
+    db.close()
+  })
+
   it('refuses a base from a newer schema', () => {
     const db = new DatabaseSync(':memory:')
 

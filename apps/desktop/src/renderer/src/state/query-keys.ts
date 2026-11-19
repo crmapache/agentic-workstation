@@ -1,6 +1,6 @@
 import type { SearchFindRequest } from '@shared/claude-search'
 import type { ProviderId } from '@shared/providers'
-import type { StatsSource } from '@shared/statistics'
+import type { StatsSource, StatsProviderFilter } from '@shared/statistics'
 
 /**
  * Ключи кэша React Query для данных главного процесса. Одна сущность - один ключ:
@@ -91,14 +91,13 @@ export const QUERY_KEYS = {
   /** Все отчёты статистики разом: сбросить, когда главный процесс сказал stats:changed. */
   statsReports: ['stats', 'report'],
   /** Отчёт статистики: период в мс, чьи агенты и проект - всё, что меняет ответ. */
-  statsReport: (from: number, to: number, source: StatsSource, projectId: string | null) => [
-    'stats',
-    'report',
-    from,
-    to,
-    source,
-    projectId,
-  ],
+  statsReport: (
+    from: number,
+    to: number,
+    source: StatsSource,
+    projectId: string | null,
+    provider: StatsProviderFilter,
+  ) => ['stats', 'report', from, to, source, projectId, provider],
   /** MCP-серверы из конфига Claude Code для переноса: свежие на каждое открытие. */
   connectorImportCandidates: ['connectors-import', 'candidates'],
   /** Приложения ИИ на Mac, которым отдают настройку: поставили новое - видно при следующем показе. */
@@ -110,6 +109,7 @@ export const QUERY_KEYS = {
   agentState: (provider: ProviderId) => ['agent', provider, 'state'],
   /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
   soundPrefs: ['sounds', 'prefs'],
+  serviceAi: ['serviceAi'],
   /** Задания по расписанию и сводки их прогонов (ADR 0069) - одним снимком. */
   tasks: ['tasks', 'state'],
   /** Прогон задания целиком, с отчётом. */
@@ -146,6 +146,8 @@ export const QUERY_KEYS = {
   claudeAside: (conversationId: string) => ['claude', 'aside', conversationId],
   /** Где панель искала CLI и что с путём руками (экран «Claude Code not found»). */
   claudeCliSearch: ['claude', 'cliSearch'],
+  /** Подключения панели открытых моделей (ADR 0084): ключи окну не приходят. */
+  openModelsConnections: ['openModels', 'connections'],
   /** Команды и скиллы проекта с диска - для подсказки «/» до первого хода. */
   claudeCommands: (projectId: string) => ['claude', 'commands', projectId],
   /** Файлы настроек Claude Code проекта и его собственные настройки (/config). */

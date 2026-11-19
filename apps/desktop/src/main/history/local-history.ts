@@ -1,7 +1,7 @@
 import { stat, rename, realpath } from 'node:fs/promises'
 import { join, relative, isAbsolute } from 'node:path'
 
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 import type { FileOpOutcome } from '@shared/file-ops'
 import type {
   HistoryList,

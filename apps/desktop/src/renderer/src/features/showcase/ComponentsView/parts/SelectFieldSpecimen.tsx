@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
@@ -11,13 +12,15 @@ import { SELECT_SAMPLES } from '../ComponentsView.constants'
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
- * Образец поля выбора: живое со списком шириной с поле, пустое с placeholder, недоступное и
- * два узких в ряд (час и минуты) - как в окнах запуска и расписания сценария.
+ * Образец поля выбора: живое со списком шириной с поле, пустое с placeholder, недоступное,
+ * выбор из списка (ChoiceField) с пояснением и погашенным вариантом и два узких в ряд (час и
+ * минуты) - как в окнах запуска и расписания сценария.
  */
 export const SelectFieldSpecimen = () => {
   const { t } = useTranslation('showcase')
   const popover = usePopover()
   const [picked, setPicked] = useState<string>(SELECT_SAMPLES[0])
+  const [choice, setChoice] = useState<string>(SELECT_SAMPLES[0])
 
   const handlePick = (value: string) => {
     popover.close()
@@ -49,6 +52,19 @@ export const SelectFieldSpecimen = () => {
           placeholder={t('samples.selectPlaceholder')}
         />
         <SelectField label={t('samples.selectLabel')} value={picked} disabled />
+      </Specimen>
+      <Specimen label={t('specimens.choiceField')} layout="column">
+        <ChoiceField
+          label={t('samples.selectLabel')}
+          value={choice}
+          options={SELECT_SAMPLES.map((value, index) => ({
+            value,
+            label: value,
+            description: index === 0 ? t('samples.choiceHint') : undefined,
+            disabled: index === SELECT_SAMPLES.length - 1,
+          }))}
+          onPick={setChoice}
+        />
       </Specimen>
       <Specimen label={t('specimens.selectFieldFit')}>
         <SelectField label={t('samples.selectHour')} value={t('samples.selectHourValue')} fit />

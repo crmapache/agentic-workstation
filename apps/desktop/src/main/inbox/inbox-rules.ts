@@ -7,6 +7,7 @@ import type {
   InboxActionKind,
 } from '@shared/inbox'
 import { isInboxAsking } from '@shared/inbox'
+import { isProviderId } from '@shared/providers'
 import { DAY_MS } from '@shared/time-units'
 
 import { blankItem, questionsOf } from './inbox-items'
@@ -82,6 +83,8 @@ const originOf = (raw: unknown): InboxOrigin => {
   if (raw['kind'] === 'chat') {
     return {
       kind: 'chat',
+      // Уведомления до провайдеров (этап 5) присылали только разговоры Claude Code.
+      provider: isProviderId(raw['provider']) ? raw['provider'] : 'claude',
       conversationId: text(raw['conversationId'], 64),
       sessionId: text(raw['sessionId'], 64),
     }

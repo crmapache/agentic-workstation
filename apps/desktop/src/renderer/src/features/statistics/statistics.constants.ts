@@ -1,4 +1,5 @@
-import type { StatsSource } from '@shared/statistics'
+import { PROVIDER_IDS } from '@shared/providers'
+import type { StatsSource, StatsProviderFilter } from '@shared/statistics'
 import { MINUTE_MS } from '@shared/time-units'
 
 import type { ChartTone } from '@agentic-workstation/ui/ChartTip.types'
@@ -18,6 +19,9 @@ export const PERIOD_DAYS: Record<Exclude<PeriodKind, 'all'>, number> = {
 }
 
 export const SOURCES: readonly StatsSource[] = ['all', 'ide', 'outside']
+
+/** Провайдеры фильтра - все, чьи журналы читает статистика, а не только те, что в IDE сейчас. */
+export const PROVIDERS: readonly StatsProviderFilter[] = ['all', ...PROVIDER_IDS]
 
 export const SCOPES: readonly ScopeKind[] = ['all', 'project']
 

@@ -1,19 +1,24 @@
 import { useTranslation } from 'react-i18next'
 
+import { useEditorProvider } from '../editor-provider.context'
 import styles from '../EditorModal.module.scss'
 import type { HeadPaneProps } from '../EditorModal.types'
 import { retryOptions } from '../EditorModal.utils'
+import { providerChoices } from '../../../../lib/provider-choices'
+import { useProviders } from '../../../../state/providers.queries'
 import { ChoicePicker } from './ChoicePicker'
 import { LongField } from './LongField'
 import { RunsOn } from './RunsOn'
 
 /**
- * Главный поток прогона: брифинг, по которому голова судит каждую карточку, на чём она идёт
- * и как поступает с вопросом карточки, с карточкой, которую не доделали, и сколько раз
- * возвращает на доработку.
+ * Главный поток прогона: брифинг, по которому голова судит каждую карточку, для какого
+ * провайдера сценарий и на чём идёт голова, как она поступает с вопросом карточки, с
+ * карточкой, которую не доделали, и сколько раз возвращает на доработку.
  */
-export const HeadPane = ({ head, onHead }: HeadPaneProps) => {
+export const HeadPane = ({ head, onHead, onProvider }: HeadPaneProps) => {
   const { t } = useTranslation()
+  const providers = useProviders().data ?? []
+  const { provider } = useEditorProvider()
 
   return (
     <>
@@ -24,6 +29,20 @@ export const HeadPane = ({ head, onHead }: HeadPaneProps) => {
         placeholder={t('scenarios.editor.head.briefingHint')}
         onChange={(briefing) => onHead({ briefing })}
       />
+      <div className={styles.chips}>
+        <ChoicePicker
+          caption={t('scenarios.editor.head.provider')}
+          menuLabel={t('scenarios.editor.head.provider')}
+          value={provider?.id ?? head.provider}
+          // Сценарий можно писать и под провайдера, которого нет на этой машине.
+          options={providerChoices(providers, t, true).map((one) => ({
+            id: one.value,
+            label: one.label,
+            description: one.description,
+          }))}
+          onPick={onProvider}
+        />
+      </div>
       <RunsOn value={head} fallback="newTab" onChange={onHead} />
       <div className={styles.chips}>
         <ChoicePicker

@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { PendingRequest, ConversationOptions } from '@shared/claude'
+import type { PendingRequest, ConversationOptions } from '@shared/conversation'
 
 import { settle, bridgeSetup, OTHER_PHONE, stopBridges } from '../__fixtures__/fake-bridge'
 import {
@@ -66,12 +66,12 @@ describe('инвентарь', () => {
 
     const before = sentTo().length
 
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     await settle(400)
     expect(sentTo().length).toBe(before)
 
     ide.state.conversations = [conversationOf({ status: 'running', workStartedAt: 5000 })]
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
 
     const changed = await next('inventory', before)
 
@@ -85,7 +85,7 @@ describe('инвентарь', () => {
     say({ k: 'hello' })
     await next('inventory')
     ide.state.conversations = [conversationOf({ status: 'running', workStartedAt: 5000 })]
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
 
     const other = await next('inventory', 0, OTHER_PHONE)
 
@@ -95,7 +95,7 @@ describe('инвентарь', () => {
     // Без перемен - больше никому ничего.
     const counts = [sentTo().length, sentTo(OTHER_PHONE).length]
 
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     await settle(400)
     expect([sentTo().length, sentTo(OTHER_PHONE).length]).toEqual(counts)
   })
@@ -145,7 +145,7 @@ describe('лента разговора', () => {
 
     // Вкладку закрыли - телефону сказано, подписка снята.
     ide.state.conversations = []
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     expect((await next('conversationGone')).conversationId).toBe(CONVERSATION_ID)
   })
 
@@ -282,7 +282,7 @@ describe('команды телефона', () => {
     const { ide, command } = bridgeSetup()
 
     // IDE, которая не послушала выбор: вкладка унаследовала bypass.
-    ide.ports.conversations.newConversation = (projectPath, options: ConversationOptions) => {
+    ide.claude.newConversation = (projectPath, options: ConversationOptions) => {
       ide.calls.push({ name: 'newConversation', args: [projectPath, options] })
       ide.state.conversations = [
         ...ide.state.conversations,

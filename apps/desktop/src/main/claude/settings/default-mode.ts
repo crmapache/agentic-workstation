@@ -1,5 +1,5 @@
-import type { PermissionMode } from '@shared/claude'
-import { PERMISSION_MODES } from '@shared/claude'
+import type { PermissionMode } from '@shared/conversation'
+import { PERMISSION_MODES } from '@shared/conversation'
 
 import type { LayerSettings, SettingsLayer } from './setting-layers'
 import { isRecord, layerFiles, readLayers } from './setting-layers'

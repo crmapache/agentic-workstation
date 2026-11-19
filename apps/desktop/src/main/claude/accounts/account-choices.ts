@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 
-import type { EffortLevel } from '@shared/claude'
-import { EFFORT_LEVELS } from '@shared/claude'
+import type { EffortLevel } from '@shared/conversation'
+import { EFFORT_LEVELS } from '@shared/conversation'
 
 import { usableModel } from '../settings/panel-prefs'
 import { JsonFile } from '../../storage/json-file'

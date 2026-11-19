@@ -1,4 +1,5 @@
-import type { ModelInfo, ClaudeState } from '@shared/claude'
+import type { ModelInfo, AgentPanelState } from '@shared/conversation'
+import { CLAUDE_CAPABILITIES } from '@shared/panel-capabilities'
 import type { ProviderInfo, ProviderModel } from '@shared/providers'
 
 /**
@@ -50,6 +51,8 @@ export const claudeProvider = ({ found, catalog, customModels }: ClaudeFacts): P
   available: found,
   unavailable: found ? null : 'noCli',
   models: claudeModels(catalog, customModels),
+  modes: CLAUDE_CAPABILITIES.modes,
+  efforts: CLAUDE_CAPABILITIES.efforts,
 })
 
 /**
@@ -57,7 +60,7 @@ export const claudeProvider = ({ found, catalog, customModels }: ClaudeFacts): P
  * каждое состояние. CLI ещё ищут (unknown) - null: сказать «нет CLI» было бы неправдой.
  */
 export const claudeProviderOf = (
-  state: Pick<ClaudeState, 'cli' | 'models' | 'prefs'>,
+  state: Pick<AgentPanelState, 'cli' | 'models' | 'prefs'>,
 ): ProviderInfo | null =>
   state.cli === 'unknown'
     ? null

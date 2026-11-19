@@ -100,15 +100,70 @@ export const stepCounts = (view: Pick<FeedView, 'items' | 'steps'>): Map<string,
 export const shortPath = (path: string): string =>
   path.split('/').filter(Boolean).slice(-2).join('/')
 
-/** Имя инструмента для глаз: mcp__server__tool - «server: tool». */
-export const toolLabel = (name: string): string => {
+const firstLine = (value: string): string => value.split('\n')[0]?.trim() ?? ''
+
+/**
+ * Вид действия вызова (ToolActionWire): что вызов делает общими словами всех провайдеров - по
+ * нему строка рисуется у любого провайдера. IDE постарше его не шлёт - null, и строка рисуется по
+ * имени инструмента Claude Code.
+ */
+export const actionOf = (item: Fields): Fields | null => {
+  const action = fields(item, 'action')
+
+  return action && typeof action['kind'] === 'string' ? action : null
+}
+
+/** Имя инструмента для глаз: у MCP - «server: tool» (по виду действия или имени mcp__server__tool). */
+export const toolLabel = (name: string, action: Fields | null = null): string => {
+  if (action?.['kind'] === 'mcp') return `${text(action, 'server')}: ${text(action, 'tool')}`
+
   const mcp = /^mcp__(.+?)__(.+)$/.exec(name)
 
   return mcp ? `${mcp[1]}: ${mcp[2]}` : name
 }
 
-/** О чём вызов одной строкой: команда, файл, шаблон, адрес - по имени инструмента. */
-export const toolSummary = (name: string, input: Fields): string => {
+/**
+ * О чём вызов по виду действия, как цель в шапке окна IDE: файл, шаблон, команда, адрес, агент.
+ * null - вид незнакомый (IDE новее телефона): тогда по имени.
+ */
+const actionSummary = (action: Fields): string | null => {
+  const path = shortPath(text(action, 'path'))
+
+  switch (action['kind']) {
+    case 'read':
+    case 'edit':
+    case 'write':
+      return path
+    case 'search':
+      return text(action, 'pattern') || path
+    case 'command':
+      return text(action, 'description') || firstLine(text(action, 'command'))
+    case 'web':
+      return text(action, 'target')
+    case 'mcp':
+    case 'other':
+      return text(action, 'target') || path
+    case 'skill':
+      return [text(action, 'skill'), text(action, 'args')].filter(Boolean).join(' ')
+    case 'agent':
+      return text(action, 'description') || firstLine(text(action, 'prompt'))
+    case 'plan':
+      return firstLine(text(action, 'plan'))
+    case 'question':
+      return list(action, 'questions').find((one): one is string => typeof one === 'string') ?? ''
+    case 'todo':
+      return ''
+    default:
+      return null
+  }
+}
+
+/** О чём вызов одной строкой: по виду действия, у IDE постарше - по имени инструмента. */
+export const toolSummary = (name: string, input: Fields, action: Fields | null = null): string => {
+  const summary = action ? actionSummary(action) : null
+
+  if (summary !== null) return summary
+
   switch (name) {
     case 'Bash':
       return text(input, 'description') || text(input, 'command')
@@ -141,6 +196,12 @@ const writtenLines = (content: string): number => {
   return trimmed === '' ? 0 : trimmed.split('\n').length
 }
 
+/** Правка ли вызов: по виду действия, у IDE постарше - по имени инструмента Claude Code. */
+const isEdit = (name: string, action: Fields | null): boolean =>
+  action
+    ? action['kind'] === 'edit' || action['kind'] === 'write'
+    : ['Edit', 'MultiEdit', 'Write', 'NotebookEdit'].includes(name)
+
 /**
  * Правка файла итогом: сколько строк добавлено и убрано или «не посчитать»; null - вызов не
  * правка. Цифры берутся у IDE (changeCounts): она считает по всему диффу и по содержимому
@@ -151,8 +212,9 @@ export const editCounts = (
   name: string,
   input: Fields,
   result: Fields | null,
+  action: Fields | null = null,
 ): EditCounts | null => {
-  if (!['Edit', 'MultiEdit', 'Write', 'NotebookEdit'].includes(name)) return null
+  if (!isEdit(name, action)) return null
   if (result && flag(result, 'uncounted')) return 'uncounted'
 
   const counted = result ? fields(result, 'changeCounts') : null
@@ -183,14 +245,25 @@ export const editCounts = (
     return { added, removed }
   }
 
-  if (name === 'Write') return { added: writtenLines(text(input, 'content')), removed: 0 }
+  // Новый файл, пока идёт: строки знает вид действия (их посчитала IDE), у старой IDE - вход Write.
+  if (action?.['kind'] === 'write') return { added: count(action, 'lines'), removed: 0 }
+  if (!action && name === 'Write')
+    return { added: writtenLines(text(input, 'content')), removed: 0 }
 
   return null
 }
 
-/** Подробности вызова для раскрытия: вход читаемо, длинное - обрезано. */
-export const inputText = (name: string, input: Fields, limit = 2000): string => {
-  const raw = name === 'Bash' ? text(input, 'command') : JSON.stringify(input, null, 2)
+/** Подробности вызова для раскрытия: команда как есть, остальное - вход читаемо, длинное - обрезано. */
+export const inputText = (
+  name: string,
+  input: Fields,
+  action: Fields | null = null,
+  limit = 2000,
+): string => {
+  const command = action
+    ? action['kind'] === 'command' && text(action, 'command')
+    : name === 'Bash' && text(input, 'command')
+  const raw = command === false ? JSON.stringify(input, null, 2) : command
 
   return raw.length > limit ? `${raw.slice(0, limit)}\n…` : raw
 }

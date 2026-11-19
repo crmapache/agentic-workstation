@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { app, dialog } from 'electron'
 import type { BrowserWindow } from 'electron'
 
-import type { CommandHint, AttachmentPath } from '@shared/claude-draft'
+import type { CommandHint, AttachmentPath } from '@shared/message-draft'
 
 import { claudeHome } from '../history/transcript-paths'
 import { describePaths } from './attachment-paths'

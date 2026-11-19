@@ -1,9 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { homedir } from 'node:os'
 
-import type { ClaudeState } from '@shared/claude'
-import type { FeedPatch } from '@shared/claude-feed'
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { FeedPatch } from '@shared/conversation-feed'
+import type { ConversationCall } from '@shared/panel-prefs'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
@@ -11,6 +10,7 @@ import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import { RemoteAgent } from './agent/remote-agent'
 import { Bridge } from './bridge/bridge'
 import type { BridgePorts } from './bridge/bridge-ports'
+import { ownedConversations } from './bridge/panels'
 import type { SocketLike } from './link/relay-link'
 import type { ConversationEvent } from './push/attention'
 import { PushDesk } from './push/push-desk'
@@ -90,7 +90,7 @@ export class RemoteLine {
       epoch: randomBytes(6).toString('base64url'),
     })
     this.pushes = new PushDesk({
-      conversations: () => deps.ports.conversations.getState().conversations,
+      conversations: () => ownedConversations(deps.ports.panels),
       queues: () => deps.ports.scenarios.queuesView(),
       lens: () => this.bridge.lens(),
       subscribers: () => deps.store.pushDevices(),
@@ -123,13 +123,17 @@ export class RemoteLine {
     this.agent.stop()
   }
 
-  claudeChanged(state: ClaudeState): void {
-    this.bridge.claudeChanged(state)
+  /** Состояние панели какого-то провайдера поменялось. */
+  panelChanged(): void {
+    this.bridge.panelChanged()
     this.pushes.soon()
   }
 
-  /** Разговор позвал человека: упал, лимит, доплата - повод разбудить телефон не на связи. */
-  claudeCalled(call: ConversationCall): void {
+  /**
+   * Разговор любой панели позвал человека: упал, лимит, доплата - повод разбудить телефон не на
+   * связи. Чей разговор, пуш узнаёт по его id у панелей.
+   */
+  called(call: ConversationCall): void {
     const reason = PUSHED_CALLS[call.reason]
 
     if (reason) this.pushes.called({ conversationId: call.conversationId, reason, at: Date.now() })

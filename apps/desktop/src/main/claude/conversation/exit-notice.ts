@@ -1,4 +1,4 @@
-import type { NoticeCode } from '@shared/claude-feed'
+import type { NoticeCode } from '@shared/conversation-feed'
 
 /** Что процесс знает о ходе, когда умер. */
 export type ExitContext = {

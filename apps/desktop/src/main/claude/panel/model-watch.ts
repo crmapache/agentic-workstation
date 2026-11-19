@@ -4,7 +4,7 @@ import {
   modelVersionOf,
   PANEL_MODEL_FAMILIES,
 } from '@shared/claude-models'
-import type { ModelNote } from '@shared/claude-panel'
+import type { ModelNote } from '@shared/panel-extras'
 
 /**
  * Судьба выбора модели (как в ACC, models.md): чип MODEL держит ВЫБОР, пока выбор не

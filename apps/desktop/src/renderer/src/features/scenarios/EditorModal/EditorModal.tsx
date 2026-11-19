@@ -7,6 +7,7 @@ import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
 
 import { ScenarioConfirm } from '../ScenarioConfirm/ScenarioConfirm'
+import { EditorProviderContext } from './editor-provider.context'
 import { useEditorDraft } from './EditorModal.hooks'
 import styles from './EditorModal.module.scss'
 import type { EditorModalProps } from './EditorModal.types'
@@ -65,13 +66,17 @@ export const EditorModal = (props: EditorModalProps) => {
             onAddStage={editor.addStage}
           />
           <div key={at.part === 'stage' ? at.stageId : at.part} className={styles.pane}>
-            <EditorPane
-              draft={draft}
-              at={at}
-              canShare={editor.canShare}
-              onChange={editor.change}
-              onRemoveStage={editor.removeStage}
-            />
+            <EditorProviderContext
+              value={{ provider: editor.provider, headModel: draft.head.model }}>
+              <EditorPane
+                draft={draft}
+                at={at}
+                canShare={editor.canShare}
+                onChange={editor.change}
+                onProvider={editor.chooseProvider}
+                onRemoveStage={editor.removeStage}
+              />
+            </EditorProviderContext>
           </div>
         </div>
       </Modal>

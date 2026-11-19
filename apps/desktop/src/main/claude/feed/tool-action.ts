@@ -1,6 +1,6 @@
 import { structuredPatch } from 'diff'
 
-import type { PatchHunk, ToolInput, ToolAction } from '@shared/claude-feed'
+import type { PatchHunk, ToolInput, ToolAction } from '@shared/conversation-feed'
 
 import { isRecord, stringField } from '../cli/cli-messages'
 

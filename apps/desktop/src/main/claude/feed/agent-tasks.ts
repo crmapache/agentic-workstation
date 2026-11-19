@@ -1,4 +1,4 @@
-import type { CliTask, ClosedReason, ToolFeedItem, CliTaskOutcome } from '@shared/claude-feed'
+import type { CliTask, ClosedReason, ToolFeedItem, CliTaskOutcome } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, stringField } from '../cli/cli-messages'

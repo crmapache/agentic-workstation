@@ -2,17 +2,7 @@ import type { Dirent } from 'node:fs'
 import { stat, readdir } from 'node:fs/promises'
 import { sep, join, basename, relative } from 'node:path'
 
-/** Транскрипт на диске и чей он. */
-export type TranscriptFile = {
-  path: string
-  size: number
-  mtimeMs: number
-  /** Когда файл создан: форк моложе своего оригинала, а оригинал должен прочитаться первым. */
-  birthtimeMs: number
-  /** Сессия: имя основного транскрипта или папка разговора над subagents/. */
-  session: string
-  subagent: boolean
-}
+import type { JournalFile } from '../journals/journal-format'
 
 /** Сколько stat делать разом: тысячи файлов, но не тысячи открытых вызовов сразу. */
 const STAT_BATCH = 64
@@ -34,15 +24,19 @@ export const transcriptOwner = (
   return { session: basename(path, '.jsonl'), subagent: false }
 }
 
-/** Все транскрипты под root (рекурсивно); папки, которых нет, - пустой ответ. */
-export const walkTranscripts = async (root: string): Promise<TranscriptFile[]> => {
+/** Файлы *.jsonl под root (рекурсивно) с размером и временем; папки, которых нет, - пусто. */
+export const walkJsonl = async (
+  root: string,
+  ownerOf: (path: string) => Pick<JournalFile, 'session' | 'subagent'>,
+  accept: (name: string) => boolean = () => true,
+): Promise<JournalFile[]> => {
   const entries: Dirent[] = await readdir(root, { recursive: true, withFileTypes: true }).catch(
     () => [],
   )
   const paths = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl'))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl') && accept(entry.name))
     .map((entry) => join(entry.parentPath, entry.name))
-  const files: TranscriptFile[] = []
+  const files: JournalFile[] = []
 
   for (let index = 0; index < paths.length; index += STAT_BATCH) {
     const batch = await Promise.all(
@@ -56,7 +50,7 @@ export const walkTranscripts = async (root: string): Promise<TranscriptFile[]> =
           size: info.size,
           mtimeMs: info.mtimeMs,
           birthtimeMs: info.birthtimeMs || info.mtimeMs,
-          ...transcriptOwner(root, path),
+          ...ownerOf(path),
         }
       }),
     )
@@ -66,3 +60,7 @@ export const walkTranscripts = async (root: string): Promise<TranscriptFile[]> =
 
   return files
 }
+
+/** Все транскрипты Claude Code под projects/ (рекурсивно). */
+export const walkTranscripts = (root: string): Promise<JournalFile[]> =>
+  walkJsonl(root, (path) => transcriptOwner(root, path))

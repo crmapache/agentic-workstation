@@ -31,7 +31,15 @@ const storedJobSchema = z.object({
   sessionId: z.string().min(1),
   /** Разговор записан на диск: следующее слово - продолжение (`--resume`), а не новый. */
   saved: z.boolean(),
-  request: z.object({ service: z.string(), goal: z.string(), docsUrl: z.string() }),
+  // Работы до провайдеров (этап 5) собирал Claude Code на модели по умолчанию.
+  request: z.object({
+    service: z.string(),
+    goal: z.string(),
+    docsUrl: z.string(),
+    provider: z.enum(['claude', 'codex', 'opencode']).default('claude'),
+    model: z.string().default(''),
+    effort: z.string().default(''),
+  }),
   createdAt: z.number(),
   status: z.enum(['working', 'ready', 'asking', 'stopped', 'failed']),
   message: z.string(),

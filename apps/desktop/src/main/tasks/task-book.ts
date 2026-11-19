@@ -114,6 +114,11 @@ export class TaskBook {
     return this.save()
   }
 
+  /** Все начатые записи дописаны: выход из IDE ждёт их, иначе последние правки потерялись бы. */
+  settled(): Promise<boolean> {
+    return this.writing
+  }
+
   /** Записать как есть; false - запись не удалась (состояние в памяти уже новое). */
   save(): Promise<boolean> {
     const snapshot: StoredTasks = { tasks: this.tasks, runs: this.runs }

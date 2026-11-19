@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { FeedItem, TaskEntry } from '@shared/claude-feed'
+import type { FeedItem, TaskEntry } from '@shared/conversation-feed'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
@@ -129,13 +129,14 @@ describe('кадр', () => {
     const fitted = fitItem(write) as unknown as {
       input: { content: string }
       result: { changeCounts: unknown; created: unknown }
+      action: unknown
     }
 
     expect(fitted.input.content.endsWith(PHONE_NOTE)).toBe(true)
     expect(fitted.result.changeCounts).toEqual({ added: 6000, removed: 0 })
     expect(fitted.result.created).toBe(true)
-    // Вид действия с диффом по входу удвоил бы файл в кадре - телефону он не уходит.
-    expect('action' in fitted).toBe(false)
+    // Вид действия едет телефону без диффа по входу: тот удвоил бы файл в кадре.
+    expect(fitted.action).toEqual({ kind: 'write', path: '/p/big.ts', lines: 6000 })
   })
 
   it('элемент, не влезающий и урезанным, становится карточкой, а не пропадает', () => {

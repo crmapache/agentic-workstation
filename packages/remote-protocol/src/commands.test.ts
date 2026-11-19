@@ -1,6 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
 import {
+  EFFORTS,
   parseCommand,
   COMMAND_NAMES,
   COMMAND_LIMITS,
@@ -43,14 +44,16 @@ describe('команды телефона уровня ACC', () => {
     expect(ok('conversation.cancelCarryOn', { conversationId: CONVERSATION })).toBe(true)
   })
 
-  it('режим разговора - любой из пяти режимов окна IDE, и ничего сверх них', () => {
+  it('режим разговора - любой из режимов окна IDE у всех провайдеров, и ничего сверх них', () => {
     const setMode = (mode: unknown) =>
       ok('conversation.setMode', { conversationId: CONVERSATION, mode })
 
     for (const mode of PERMISSION_MODES) expect(setMode(mode)).toBe(true)
+    // readOnly - у Codex и открытых моделей (ADR 0083): какие есть у разговора, говорит IDE.
     expect(PERMISSION_MODES).toEqual([
       'default',
       'acceptEdits',
+      'readOnly',
       'plan',
       'auto',
       'bypassPermissions',
@@ -59,6 +62,21 @@ describe('команды телефона уровня ACC', () => {
     expect(setMode('manual')).toBe(false)
     expect(ok('conversation.setMode', { conversationId: '../x', mode: 'plan' })).toBe(false)
     expect(COMMAND_LIMITS['conversation.setMode']).toBe(COMMAND_LIMITS['conversation.setModel'])
+  })
+
+  it('усилие - уровни всех провайдеров от minimal до ultra, и ничего сверх них', () => {
+    const setEffort = (effort: unknown) =>
+      ok('conversation.setEffort', { conversationId: CONVERSATION, effort })
+    const newWith = (effort: unknown) =>
+      ok('conversation.new', { projectKey: PROJECT, provider: 'codex', effort })
+
+    expect(EFFORTS).toEqual(['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'])
+    for (const effort of EFFORTS) expect(setEffort(effort)).toBe(true)
+    expect(setEffort(null)).toBe(true)
+    expect(setEffort('extreme')).toBe(false)
+    expect(newWith('minimal')).toBe(true)
+    expect(newWith('ultra')).toBe(true)
+    expect(newWith('turbo')).toBe(false)
   })
 
   it('быстрый режим - флагом, вопрос сбоку - со своим id и непустым вопросом', () => {
@@ -75,13 +93,16 @@ describe('команды телефона уровня ACC', () => {
     )
   })
 
-  it('откат - к сообщению по UUID и только тремя областями', () => {
+  it('откат - к сообщению по UUID (у OpenCode - его msg_) и только тремя областями', () => {
     const rewind = (messageId: string, scope: string) =>
       ok('conversation.rewind', { conversationId: CONVERSATION, messageId, scope })
 
     expect(rewind(CONVERSATION, 'both')).toBe(true)
+    expect(rewind('msg_01JQ8ZK4T2', 'conversation')).toBe(true)
     expect(rewind(CONVERSATION, 'files')).toBe(false)
     expect(rewind('a1:0', 'conversation')).toBe(false)
+    expect(rewind('msg_../x', 'conversation')).toBe(false)
+    expect(rewind('u1', 'conversation')).toBe(false)
     expect(
       ok('conversation.rewindPreview', { conversationId: CONVERSATION, messageId: CONVERSATION }),
     ).toBe(true)

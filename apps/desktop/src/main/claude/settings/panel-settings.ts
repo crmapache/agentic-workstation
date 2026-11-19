@@ -1,7 +1,7 @@
-import type { PermissionMode } from '@shared/claude'
 import type { ProjectClaudeSettings } from '@shared/claude-config'
-import type { PanelPrefs } from '@shared/claude-prefs'
-import { DEFAULT_PANEL_PREFS } from '@shared/claude-prefs'
+import type { PermissionMode } from '@shared/conversation'
+import type { PanelPrefs } from '@shared/panel-prefs'
+import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 
 import { ClaudeConfigDesk } from '../config/config-desk'
 import { claudeHome } from '../history/transcript-paths'

@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { AccountOutcome } from '@shared/claude-accounts'
+import type { AccountOutcome } from '@shared/accounts'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import { destroyDrawer } from './account-drawers'

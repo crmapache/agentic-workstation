@@ -1,4 +1,4 @@
-import { PANEL_TERMINAL_COMMANDS } from '@shared/claude-panel'
+import { PANEL_TERMINAL_COMMANDS } from '@shared/panel-extras'
 import type { ClaudePanelInvokeContract } from '@shared/ipc/claude-panel.contract'
 
 import type { ClaudeService } from '../claude/claude-service'
@@ -54,11 +54,6 @@ export const createClaudePanelHandlers = (
     },
     'claudePanel:terminalCommand': ({ command }) =>
       panel.terminalCommand(assertOneOf(command, PANEL_TERMINAL_COMMANDS, 'command')),
-    'claudePanel:checkSignIn': async () => {
-      await claude.accounts.checkCurrent()
-
-      return claude.getState()
-    },
     'claudePanel:cliSearch': () => claude.cli.search,
     'claudePanel:setCliPath': ({ path }) => {
       assertString(path, 'path')

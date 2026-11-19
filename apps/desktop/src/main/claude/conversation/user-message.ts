@@ -1,15 +1,15 @@
 import { randomUUID } from 'node:crypto'
 
-import type { EditorRef } from '@shared/claude-draft'
+import type { EditorRef } from '@shared/message-draft'
 
 import type { CliProcess } from '../cli/cli-process'
-import { takeReleasedFrame } from '../history/released-heads'
 import { parseCarryOn } from '../panel/carry-on-words'
-import { sealOwnText } from '../shell/shell-text'
 import { nameAfterPerson } from '../tabs/tab-rename'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import type { Outgoing } from '../../agents/conversation/outbox'
+import { takeReleasedFrame } from '../../agents/history/released-runs'
+import { sealOwnText } from '../../agents/shell/shell-text'
 import { rankOf } from '../../agents/tabs/tab-names'
 import { claudeOf } from './claude-conversation'
 import { editorReminder } from './editor-note'

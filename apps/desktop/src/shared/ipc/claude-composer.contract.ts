@@ -1,4 +1,4 @@
-import type { CommandHint, PictureView, PicturePlace, AttachmentPath } from '../claude-draft'
+import type { CommandHint, PictureView, PicturePlace, AttachmentPath } from '../message-draft'
 
 type ProjectRequest = { projectId: string }
 

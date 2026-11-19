@@ -1,16 +1,19 @@
 import type { TFunction } from 'i18next'
 
-import type { PermissionMode } from '@shared/claude'
-import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/claude'
+import type { PermissionMode } from '@shared/conversation'
+import type { EffortLevel } from '@shared/conversation'
+import { EFFORT_LEVELS } from '@shared/conversation'
+import type { ProviderInfo } from '@shared/providers'
 import type { ProviderModel } from '@shared/providers'
 import type { ScenarioProblem } from '@shared/scenario-rules'
 import { cardRuns, passesOf, SCENARIO_NAME } from '@shared/scenario-rules'
 import type { Scenario, ScenarioStage } from '@shared/scenarios'
 
+import type { ModeTone } from '../../../lib/permission-modes.constants'
+import { MODE_ICONS, MODE_TONES } from '../../../lib/permission-modes.constants'
 import {
   PER_ITEM,
-  MODE_ICONS,
-  MODE_TONES,
+  ALL_MODES,
   RUN_COUNTS,
   MAIN_MODELS,
   RETRY_COUNTS,
@@ -18,7 +21,7 @@ import {
   DEFAULT_MODEL_VALUE,
   LEGACY_DEFAULT_MODE,
 } from './EditorModal.constants'
-import type { ModeTone, ModelMenu, PickerOption, RunsOnFallback } from './EditorModal.types'
+import type { ModelMenu, PickerOption, RunsOnFallback } from './EditorModal.types'
 
 /** Как промпт пишет вопрос сценария: `{{name}}`. */
 export const inputMention = (name: string): string => `{{${name}}}`
@@ -123,18 +126,28 @@ export const fallbackOption = (t: TFunction, fallback: RunsOnFallback): PickerOp
         description: t('scenarios.editor.head.asNewTabHint'),
       }
 
-/** EFFORT: «пусто» и уровни CLI. */
-export const effortOptions = (t: TFunction, fallback: PickerOption): PickerOption[] => [
+/** EFFORT: «пусто» и уровни провайдера сценария (у модели - свои, если она их назвала). */
+export const effortOptions = (
+  t: TFunction,
+  fallback: PickerOption,
+  levels: readonly EffortLevel[] = EFFORT_LEVELS,
+): PickerOption[] => [
   fallback,
-  ...EFFORT_LEVELS.map((level) => ({
+  ...levels.map((level) => ({
     id: level,
     label: t(`scenarios.editor.runsOn.efforts.${level}`),
     description: t(`scenarios.editor.runsOn.effortHints.${level}`),
   })),
 ]
 
-const isMode = (value: string): value is PermissionMode =>
-  PERMISSION_MODES.some((mode) => mode === value)
+const isMode = (value: string): value is PermissionMode => ALL_MODES.some((mode) => mode === value)
+
+/**
+ * Режимы сценария у провайдера: его режимы без `auto` (как в ACC: решение классификатора за
+ * человека в прогоне без присмотра не даётся). Провайдера нет - режимы сценария Claude.
+ */
+export const scenarioModesOf = (provider: ProviderInfo | null): readonly PermissionMode[] =>
+  provider ? provider.modes.filter((mode) => mode !== 'auto') : SCENARIO_MODES
 
 /**
  * Режим, каким его показывает селектор: старое `manual` - это default, а пустой режим у головы
@@ -155,9 +168,9 @@ export const modeOptions = (
   t: TFunction,
   fallback: PickerOption | null,
   value: string,
+  allowed: readonly PermissionMode[] = SCENARIO_MODES,
 ): PickerOption[] => {
-  const modes =
-    isMode(value) && !SCENARIO_MODES.includes(value) ? [...SCENARIO_MODES, value] : SCENARIO_MODES
+  const modes = isMode(value) && !allowed.includes(value) ? [...allowed, value] : allowed
   const options = modes.map((mode) => ({
     id: mode,
     label: t(`scenarios.editor.runsOn.modes.${mode}`),

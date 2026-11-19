@@ -62,6 +62,7 @@
     "textArea": "Multi-line field: grows with the text, with error, disabled",
     "selectField": "Select field: chosen with a list as wide as the field, empty, disabled",
     "selectFieldFit": "Select fields as wide as their value, side by side",
+    "choiceField": "Choice field: a list with a hint and an option that cannot be picked now",
     "progress": "Progress",
     "spinner": "Spinner: accent, neutral and warning; sm, md and around a sign",
     "agentPointer": "AI pointer: Browser in a Chrome page and Computer Use over the screen, a ring on press",
@@ -114,6 +115,7 @@
     "chartTip": "Chart tip"
   },
   "samples": {
+    "choiceHint": "What this option means",
     "primary": "Primary",
     "secondary": "Secondary",
     "ghost": "Ghost",

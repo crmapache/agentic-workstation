@@ -1,4 +1,9 @@
-import type { FleetAgent, FleetPhase, WorkflowFleet, FleetAgentState } from '@shared/claude-feed'
+import type {
+  FleetAgent,
+  FleetPhase,
+  WorkflowFleet,
+  FleetAgentState,
+} from '@shared/conversation-feed'
 
 import { isRecord, numberField, stringField } from '../cli/cli-messages'
 

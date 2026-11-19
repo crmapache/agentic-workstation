@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import { SecretsOf } from '../connector-secrets'
-import { Vault } from '../vault'
+import { Vault } from '../../storage/vault'
 import { McpAuthProvider } from './mcp-auth-provider'
 
 const cipher = {

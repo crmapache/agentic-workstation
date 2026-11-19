@@ -1,4 +1,4 @@
-import type { FastReport } from '@shared/claude-panel'
+import type { FastReport } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { stringField } from '../cli/cli-messages'

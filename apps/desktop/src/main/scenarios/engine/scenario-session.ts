@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 
 import type { CliMessage, ControlRequest } from '../../claude/cli/cli-messages'
 import { numberField, recordField, stringField } from '../../claude/cli/cli-messages'
@@ -36,6 +36,13 @@ export type SessionSpec = {
    * провайдер просит их у шлюза вместе с коннекторами проекта.
    */
   ideServers?: readonly string[] | undefined
+  /**
+   * Ответ каждого хода - JSON по этой схеме (разговор о коннекторе, ADR 0050): у переводчиков
+   * Codex и OpenCode итог хода несёт его в `structured_output`, как `claude -p --json-schema`.
+   */
+  outputSchema?: Record<string, unknown> | undefined
+  /** Веб (поиск, страница) при остальном только чтении - тому же разговору о коннекторе. */
+  web?: boolean | undefined
 }
 
 export type SessionWires = {
@@ -158,7 +165,7 @@ export class ScenarioSession {
       },
     )
 
-    if (!process) this.events.onError('Claude Code executable not found.')
+    if (!process) this.events.onError('The AI provider of this run is not installed or not found.')
 
     this.process = process
     this.fresh = true
@@ -234,7 +241,7 @@ export class ScenarioSession {
     if (!this.heard) {
       const said = stderrTail.trim().split('\n').at(-1) ?? ''
 
-      return this.events.onError(said || `Claude Code exited with code ${code ?? 'none'}`)
+      return this.events.onError(said || `The AI provider exited with code ${code ?? 'none'}`)
     }
 
     this.events.onCrashed()

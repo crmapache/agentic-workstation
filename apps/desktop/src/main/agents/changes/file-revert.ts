@@ -1,7 +1,7 @@
 import { rm, stat, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute } from 'node:path'
 
-import type { ChangeRefusal } from '@shared/claude-feed'
+import type { ChangeRefusal } from '@shared/conversation-feed'
 
 import type { FileEdit } from './change-revert'
 import { redoEdits, revertText, bringBackText } from './change-revert'

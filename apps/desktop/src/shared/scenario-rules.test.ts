@@ -59,6 +59,7 @@ const scenario = (stages: ScenarioStage[], inputs: string[] = []): Scenario => (
   })),
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'default',

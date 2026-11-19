@@ -1,8 +1,9 @@
 /**
  * Что IDE показывает телефону - формы данных протокола v1. Здесь нет путей на диске: проект на
  * проводе - ключ (`p-` и хеш пути, project-key.ts), где он лежит, знает только IDE. Путь в
- * тексте заменён метками папок (placeholders.ts). Провайдер назван в каждой записи: сейчас
- * один - Claude Code (`claude`), но телефон рисует любого по этим же формам.
+ * тексте заменён метками папок (placeholders.ts). Провайдер назван в каждой записи: Claude
+ * Code (`claude`), Codex (`codex`), открытые модели (`opencode`) - телефон рисует любого по этим
+ * же формам, а незнакомого показывает его id.
  */
 
 /** Как телефон читает разговор: свободен, идёт ход, ждёт человека (разрешение, вопрос, план). */
@@ -20,15 +21,23 @@ export type ConversationOutcome = 'none' | 'done' | 'interrupted' | 'failed' | '
 /**
  * Модель провайдера: значение для запуска и подписи из каталога. fast - у модели есть быстрый
  * режим (переключатель разговора на телефоне виден только у неё); нет поля - не сказано.
+ * efforts - уровни усилия, которые понимает модель (Codex, открытые модели); нет поля - уровни
+ * провайдера.
  */
 export type ProviderModel = {
   value: string
   label: string
   description: string
   fast?: boolean | undefined
+  efforts?: string[] | undefined
 }
 
-/** Провайдер и что у него можно выбрать с телефона - у каждого свои модели, усилия и режимы. */
+/**
+ * Провайдер и что у него можно выбрать с телефона - у каждого свои модели, усилия и режимы.
+ * Флаги после permissionModes - что провайдер умеет сверх разговора (ADR 0083): false - кнопки
+ * нет и у окна, телефон её прячет, а команду IDE отказывает. Нет поля - IDE старше флагов: всё
+ * как у Claude Code.
+ */
 export type ProviderCaps = {
   id: string
   label: string
@@ -42,6 +51,16 @@ export type ProviderCaps = {
    * окна). Старая IDE называет только default, acceptEdits и plan.
    */
   permissionModes: string[]
+  /** Вопрос сбоку (/btw). */
+  aside?: boolean | undefined
+  /** Быстрый режим разговора. */
+  fastMode?: boolean | undefined
+  /** Остановить задачу разговора (субагента, фоновую команду), не трогая ход. */
+  stopTask?: boolean | undefined
+  /** Откат разговора к сообщению. */
+  rewind?: boolean | undefined
+  /** Что можно откатить: conversation, code, both; нет поля - все три. */
+  rewindScopes?: string[] | undefined
 }
 
 export type ConversationSummary = {
@@ -108,6 +127,11 @@ export type PendingWire =
       reason: string
       input: unknown
       truncated: boolean
+      /**
+       * Что вызов сделает - общими словами всех провайдеров (ToolActionWire): команда, правка
+       * файла, адрес. Нет поля - IDE старше: телефон читает вход по именам Claude Code.
+       */
+      action?: ToolActionWire | undefined
     }
   | {
       kind: 'question'
@@ -169,9 +193,33 @@ export type ConversationWire = ConversationSummary & {
 }
 
 /**
+ * Что делает вызов инструмента - общими словами для всех провайдеров (ADR 0083): по нему
+ * телефон рисует строку вызова и вопрос разрешения, а не по имени инструмента, которое у
+ * каждого провайдера своё (Bash у Claude Code, shell у Codex). Это вид действия ленты IDE без
+ * диффа по входу: правка приходит своим результатом. path у search и mcp - папка или путь из
+ * входа, не файл; todo - служебный вызов списка задач. Незнакомый вид (IDE новее телефона) -
+ * строка по имени, как у IDE без вида действия.
+ */
+export type ToolActionWire =
+  | { kind: 'read'; path: string; line: number | null }
+  | { kind: 'search'; pattern: string; path: string }
+  | { kind: 'edit'; path: string }
+  | { kind: 'write'; path: string; lines: number }
+  | { kind: 'command'; command: string; description: string }
+  | { kind: 'web'; target: string }
+  | { kind: 'mcp'; server: string; tool: string; target: string; path: string }
+  | { kind: 'skill'; skill: string; args: string }
+  | { kind: 'agent'; agent: string; description: string; prompt: string; workflow: boolean }
+  | { kind: 'plan'; plan: string }
+  | { kind: 'question'; questions: string[] }
+  | { kind: 'todo' }
+  | { kind: 'other'; target: string; path: string }
+
+/**
  * Элемент ленты - тот, что собирает IDE для своей панели (сообщение, ответ, вызов
- * инструмента, итог хода…): `kind` говорит вид, остальные поля - по виду. Длинные строки
- * дорога до телефона режет и говорит об этом в самом тексте.
+ * инструмента, итог хода…): `kind` говорит вид, остальные поля - по виду. У вызова
+ * инструмента - и `action` (ToolActionWire; нет - IDE старше). Длинные строки дорога до
+ * телефона режет и говорит об этом в самом тексте.
  */
 export type FeedItemWire = { id: string; kind: string } & Record<string, unknown>
 

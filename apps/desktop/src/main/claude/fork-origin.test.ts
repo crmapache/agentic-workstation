@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { ForkOrigin, Conversation } from '@shared/claude'
+import type { ForkOrigin, Conversation } from '@shared/conversation'
 
 import { freshConversation } from '../agents/panel/panel-state'
 import { resolveForkOrigin } from './fork-origin'

@@ -1,9 +1,10 @@
-import { join, basename } from 'node:path'
+import { join } from 'node:path'
 
 import type { BrowserWindow } from 'electron'
 import { Notification, powerMonitor } from 'electron'
 
 import type { InboxItem } from '@shared/inbox'
+import type { ProviderId } from '@shared/providers'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from '../claude/claude-service'
@@ -14,21 +15,25 @@ import type { StoredGoals } from '../goals/goal-book'
 import { GOAL_SERVER } from '../goals/goal-briefing'
 import { goalServer } from '../goals/goal-tools'
 import { InboxAgent } from '../inbox/inbox-agent'
-import type { InboxLink, AgentCaller, AgentOrigin } from '../inbox/inbox-agent'
+import type { InboxLink } from '../inbox/inbox-agent'
 import { bannerOf } from '../inbox/inbox-banner'
 import { InboxService } from '../inbox/inbox-service'
-import type { ChatOrigin, StoredInbox } from '../inbox/inbox-service'
+import type { StoredInbox } from '../inbox/inbox-service'
 import { broadcast } from '../ipc/broadcast'
+import type { ScenarioProvider } from '../providers/scenario-provider'
+import { serviceAuthorAsk, serviceGoalChecks } from '../providers/service-work'
+import type { ServiceAiService } from '../service-ai/service-ai-service'
 import type { StatsService } from '../statistics/stats-service'
 import { JsonFile } from '../storage/json-file'
 import { openExternalWeb } from '../window/open-external'
 import type { WorkspaceService } from '../workspace/workspace-service'
+import type { PanelRegistry } from '../agents/panel/panel-registry'
 import { claudeGoalChecks } from '../providers/claude/claude-goal-checks'
-import { claudeSessions } from '../providers/claude/claude-sessions'
 import { claudeTaskAuthor } from '../providers/claude/claude-task-author'
 import type { TaskAuthor } from './task-author'
 import { TaskBook } from './task-book'
 import type { StoredTasks } from './task-book'
+import { taskChats } from './task-chats'
 import { TaskService } from './task-service'
 
 /** Такт часов заданий и напоминаний: срок «в 9:00» сработает не позже 9:00:20. */
@@ -39,6 +44,12 @@ const FIRST_TICK_MS = 5 * SECOND_MS
 
 export type TasksSetup = {
   claude: ClaudeService
+  /** Панели провайдеров: прогоны открываются их вкладками, уведомления отвечают их разговорам. */
+  panels: PanelRegistry
+  /** Исполнители провайдеров - те же, что у сценариев: прогон идёт на провайдере задания. */
+  providers: ReadonlyMap<ProviderId, ScenarioProvider>
+  /** Провайдер служебной работы (Settings → AI): проверки поручений и черновики заданий. */
+  serviceAi: ServiceAiService
   /** Коннекторы: сторожа поручений, свой сервер поручения и правило отправки (ADR 0080). */
   connectors: ConnectorsService
   workspace: WorkspaceService
@@ -58,7 +69,7 @@ export type Tasks = {
   inbox: InboxService
   /** ИИ пишет задание из слов человека - для формы, без сохранения. */
   author: TaskAuthor
-  shutdown: () => void
+  shutdown: () => Promise<void>
 }
 
 /**
@@ -105,49 +116,45 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
 
     return [...state.projects, ...state.recentProjects].map((project) => project.rootPath)
   }
-  const tasks = new TaskService(book, {
+  const work = {
+    setting: () => setup.serviceAi.value,
+    runner: (id: ProviderId) => setup.providers.get(id) ?? null,
     dataDir: setup.dataDir,
-    host: {
-      sessions: claudeSessions(claude),
-      defaults: () => {
-        const prefs = claude.panel.newTabPrefs(claude.settings.prefs)
-
-        return { model: prefs.newTabModel ?? '', effort: prefs.newTabEffort ?? '' }
-      },
-      accountId: () => claude.accounts.current,
-    },
+  }
+  const chats = taskChats({
+    panels: setup.panels,
+    provider: (id) => setup.providers.get(id) ?? null,
+    workspace,
+    runBySession: (sessionId) => tasks.runBySession(sessionId),
+  })
+  const tasks: TaskService = new TaskService(book, {
+    dataDir: setup.dataDir,
+    host: { provider: (id) => setup.providers.get(id) ?? null },
     folderKnown: (path) => knownFolders().includes(path),
-    openChat: async (projectPath, sessionId) => {
-      try {
-        await workspace.openProject(projectPath)
-        await claude.openHistory(projectPath, sessionId)
-
-        return true
-      } catch {
-        return false
-      }
-    },
-    sendToChat: async (sessionId, text) => {
-      const chat = claude.getState().conversations.find((one) => one.sessionId === sessionId)
-
-      if (!chat) return false
-
-      await claude.actions.send(chat.id, { text, images: [] })
-
-      return true
-    },
+    openChat: chats.openChat,
+    sendToChat: chats.sendToRunChat,
     onState: (state) => {
       broadcast('tasks:changed', state)
       setup.onTasks()
     },
     onRunFinished: (run) => {
-      if (run.sessionId) setup.stats.noteIdeSession('claude', run.sessionId, 'task')
+      // Статистика знает разговор по id провайдера (поток Codex, сессия OpenCode).
+      void setup.providers
+        .get(run.provider)
+        ?.chatIdOf(run.sessionId)
+        .then((chatId) => {
+          if (chatId) setup.stats.noteIdeSession(run.provider, chatId, 'task')
+        })
     },
     goals: {
       book: goalBook,
       probe: (projectPath, server, tool, args, signal) =>
         connectors.goals.probe({ projectPath, server, tool, args, signal }),
-      checker: claudeGoalChecks(claude, connectors, setup.dataDir),
+      checker: serviceGoalChecks(
+        work,
+        claudeGoalChecks(claude, connectors, setup.dataDir, () => setup.serviceAi.value.model),
+        (projectPath) => connectors.goals.readTools(projectPath),
+      ),
     },
   })
   const goals = tasks.goals.desk
@@ -171,51 +178,15 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
       },
     },
   )
-  const sendToChat = async (origin: ChatOrigin, projectPath: string, text: string) => {
-    const find = () =>
-      claude
-        .getState()
-        .conversations.find(
-          (one) => one.id === origin.conversationId || one.sessionId === origin.sessionId,
-        )?.id
-    let id = find()
-
-    // Вкладку закрыли - разговор поднимается из истории той же вкладкой.
-    if (!id)
-      id = await claude.openHistory(projectPath, origin.sessionId).then(find, () => undefined)
-    if (!id) return false
-
-    await claude.actions.send(id, { text, images: [] })
-
-    return true
-  }
-  const originOf = ({ projectPath, conversationId }: AgentCaller): AgentOrigin => {
-    const run = conversationId ? tasks.runBySession(conversationId) : null
-
-    if (run)
-      return { origin: { kind: 'task', taskId: run.taskId, runId: run.id }, source: run.taskName }
-
-    const chat = claude.getState().conversations.find((one) => one.id === conversationId)
-
-    if (chat) {
-      return {
-        origin: { kind: 'chat', conversationId: chat.id, sessionId: chat.sessionId },
-        source: chat.title || basename(projectPath),
-      }
-    }
-
-    return { origin: { kind: 'none' }, source: basename(projectPath) }
-  }
-
   inbox.routes = {
     tasks,
-    sendToChat,
-    trust: (projectPath) => claude.trustProject(projectPath),
+    sendToChat: chats.sendToOrigin,
+    trust: (projectPath, runId) => chats.trust(projectPath, tasks.run(runId)),
     openPath: (path) => openOutside(path, false),
     openUrl: openExternalWeb,
   }
   tasks.inbox = inbox
-  setup.inboxLink.agent = new InboxAgent(inbox, originOf, (origin) => {
+  setup.inboxLink.agent = new InboxAgent(inbox, chats.originOf, (origin) => {
     if (origin.kind === 'task') tasks.noteNotified(origin.runId)
   })
 
@@ -238,14 +209,21 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
   return {
     tasks,
     inbox,
-    author: claudeTaskAuthor(claude, connectors, setup.dataDir),
+    author: claudeTaskAuthor(
+      claude,
+      connectors,
+      setup.dataDir,
+      () => setup.serviceAi.value.model,
+      () => serviceAuthorAsk(work),
+    ),
     shutdown: () => {
       clearInterval(clock)
       clearTimeout(first)
       powerMonitor.off('resume', tick)
-      tasks.shutdown()
       connectors.goals.gate = null
       setup.inboxLink.agent = null
+
+      return tasks.shutdown()
     },
   }
 }

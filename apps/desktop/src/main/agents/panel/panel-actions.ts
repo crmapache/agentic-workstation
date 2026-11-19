@@ -1,6 +1,6 @@
-import type { ClaudeState, RequestResponse, ConversationOptions } from '@shared/claude'
-import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
-import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/claude-rewind'
+import type { AgentPanelState, RequestResponse, ConversationOptions } from '@shared/conversation'
+import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
+import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/rewind'
 
 import type { ConversationRuntime } from '../conversation/conversation-runtime'
 import type { Outgoing } from '../conversation/outbox'
@@ -47,7 +47,7 @@ export type ConversationOps = {
 /** Что действиям нужно от панели: разговор по id и её состояние для ответа. */
 export type ActionsPanel = {
   runtime: (conversationId: string) => ConversationRuntime
-  getState: () => ClaudeState
+  getState: () => AgentPanelState
 }
 
 /**
@@ -67,7 +67,7 @@ export class PanelActions {
     return this.opsOf()
   }
 
-  async send(conversationId: string, message: Outgoing): Promise<ClaudeState> {
+  async send(conversationId: string, message: Outgoing): Promise<AgentPanelState> {
     await this.panel.runtime(conversationId).send(message)
 
     return this.panel.getState()
@@ -78,32 +78,32 @@ export class PanelActions {
     conversationId: string,
     message: Outgoing,
     before: string | null = null,
-  ): Promise<ClaudeState> {
+  ): Promise<AgentPanelState> {
     await this.panel.runtime(conversationId).enqueue(message, before)
 
     return this.panel.getState()
   }
 
-  removeQueued(conversationId: string, queuedId: string): ClaudeState {
+  removeQueued(conversationId: string, queuedId: string): AgentPanelState {
     this.panel.runtime(conversationId).removeQueued(queuedId)
 
     return this.panel.getState()
   }
 
   /** Переставить отложенное на место toIndex: окно - перетаскиванием, телефон - кнопками. */
-  moveQueued(conversationId: string, queuedId: string, toIndex: number): ClaudeState {
+  moveQueued(conversationId: string, queuedId: string, toIndex: number): AgentPanelState {
     this.panel.runtime(conversationId).outbox.move(queuedId, toIndex)
 
     return this.panel.getState()
   }
 
-  async sendQueued(conversationId: string, queuedId: string): Promise<ClaudeState> {
+  async sendQueued(conversationId: string, queuedId: string): Promise<AgentPanelState> {
     await this.panel.runtime(conversationId).sendQueued(queuedId)
 
     return this.panel.getState()
   }
 
-  interrupt(conversationId: string): ClaudeState {
+  interrupt(conversationId: string): AgentPanelState {
     this.panel.runtime(conversationId).interrupt()
     // Stop человека - его «нет» и служебному провайдера (у Claude - продолжению после лимита).
     this.ops.stopped(conversationId)
@@ -111,13 +111,13 @@ export class PanelActions {
     return this.panel.getState()
   }
 
-  forceStop(conversationId: string): ClaudeState {
+  forceStop(conversationId: string): AgentPanelState {
     this.panel.runtime(conversationId).forceStop()
 
     return this.panel.getState()
   }
 
-  respond(conversationId: string, requestId: string, response: RequestResponse): ClaudeState {
+  respond(conversationId: string, requestId: string, response: RequestResponse): AgentPanelState {
     const runtime = this.panel.runtime(conversationId)
 
     // Оживший вопрос из истории: спросившего вызова нет - ответ уходит сообщением.
@@ -129,7 +129,7 @@ export class PanelActions {
   }
 
   /** /status: строка SESSION в ленте - id разговора, его и продолжают в терминале. */
-  async showSessionInfo(conversationId: string): Promise<ClaudeState> {
+  async showSessionInfo(conversationId: string): Promise<AgentPanelState> {
     const runtime = this.panel.runtime(conversationId)
 
     await runtime.loadFeed()
@@ -165,7 +165,7 @@ export class PanelActions {
     return runtime.feed.itemsById(itemIds)
   }
 
-  setOptions(conversationId: string, options: ConversationOptions): ClaudeState {
+  setOptions(conversationId: string, options: ConversationOptions): AgentPanelState {
     const runtime = this.panel.runtime(conversationId)
 
     runtime.setOptions(this.ops.options(runtime, options))
@@ -173,7 +173,7 @@ export class PanelActions {
     return this.panel.getState()
   }
 
-  runShell(conversationId: string, command: string): ClaudeState {
+  runShell(conversationId: string, command: string): AgentPanelState {
     const runtime = this.panel.runtime(conversationId)
 
     runtime.runShell(command).catch((error: unknown) => {
@@ -188,13 +188,13 @@ export class PanelActions {
     turnId: string,
     path: string | null,
     restore: boolean,
-  ): Promise<ClaudeState> {
+  ): Promise<AgentPanelState> {
     await this.ops.revertChanges(this.panel.runtime(conversationId), turnId, path, restore)
 
     return this.panel.getState()
   }
 
-  stopShell(conversationId: string, runId: string): ClaudeState {
+  stopShell(conversationId: string, runId: string): AgentPanelState {
     this.panel.runtime(conversationId).stopShell(runId)
 
     return this.panel.getState()
@@ -204,7 +204,7 @@ export class PanelActions {
    * Остановить задачу CLI (субагент, фоновую команду), не трогая ход. Уже кончившуюся CLI
    * останавливает молча; о конце скажет своим уведомлением. Сессии нет - и задачи нет.
    */
-  stopTask(conversationId: string, taskId: string): ClaudeState {
+  stopTask(conversationId: string, taskId: string): AgentPanelState {
     this.ops.stopTask(this.panel.runtime(conversationId), taskId)
 
     return this.panel.getState()
@@ -223,7 +223,7 @@ export class PanelActions {
     conversationId: string,
     messageId: string,
     scope: RewindScope,
-  ): Promise<{ state: ClaudeState; outcome: RewindOutcome }> {
+  ): Promise<{ state: AgentPanelState; outcome: RewindOutcome }> {
     const outcome = await this.ops.rewind(this.panel.runtime(conversationId), messageId, scope)
 
     return { state: this.panel.getState(), outcome }

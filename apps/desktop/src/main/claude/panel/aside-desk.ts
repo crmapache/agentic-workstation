@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { AsideView, AsideThread, AsideExchange } from '@shared/claude-panel'
+import type { AsideView, AsideThread, AsideExchange } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'

@@ -24,16 +24,24 @@ export const CONVERSATION_ID = z.string().regex(/^[A-Za-z0-9-]{1,80}$/)
 
 export const PROJECT_KEY = z.string().regex(PROJECT_KEY_PATTERN)
 
-/** id прошлого разговора у провайдера - UUID сессии CLI. */
-export const SESSION_ID = z.string().regex(/^[A-Za-z0-9-]{1,80}$/)
+/**
+ * id прошлого разговора у провайдера: UUID сессии Claude Code, id потока Codex, `ses_…` сессии
+ * OpenCode. Без разделителей путей.
+ */
+export const SESSION_ID = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/)
 
 /** id элемента ленты - каким его назвала IDE: телефон только возвращает его обратно. */
 export const ITEM_ID = z.string().min(1).max(200)
 
-/** id сообщения человека в разговоре - UUID строки транскрипта (по нему откат). */
+/**
+ * id сообщения человека в разговоре (по нему откат): UUID строки транскрипта Claude Code или
+ * сообщения, отправленного из IDE, у разговора OpenCode из его журнала - `msg_…` OpenCode.
+ */
 export const MESSAGE_ID = z
   .string()
-  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+  .regex(
+    /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|msg_[A-Za-z0-9]{1,76})$/i,
+  )
 
 /** Вопрос CLI, на который отвечают: его id управляющего запроса. */
 export const REQUEST_ID = z.string().min(1).max(200)
@@ -81,17 +89,26 @@ export const FILES = z
   )
   .optional()
 
-export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+/**
+ * Уровни усилия всех провайдеров IDE от слабого к сильному (ADR 0083): у Claude Code - low…max, у
+ * Codex - ещё minimal и ultra, у открытых моделей - свои у каждой модели. Какие есть у разговора,
+ * IDE говорит списком его провайдера (ProviderCaps.efforts), а уровень не его провайдера она
+ * отказывает. Старый телефон знал только уровни Claude и прочие просто не показывает.
+ */
+export const EFFORTS = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'] as const
 
 /**
- * Режимы разрешений разговора - те же пять, что в меню MODE окна IDE (ADR 0076). Спаренный
- * телефон и так отвечает на каждый вопрос разрешения, режим не шире этого. Доступен ли режим
- * разговору (bypass под запретом настроек, auto, от которого CLI отказался), решает IDE - тем же
+ * Режимы разрешений разговора - режимы меню MODE окна IDE у всех провайдеров (ADR 0076, 0083):
+ * readOnly - у Codex и открытых моделей, auto - только у Claude Code. Какие есть у разговора, IDE
+ * говорит списком его провайдера (ProviderCaps.permissionModes). Спаренный телефон и так отвечает
+ * на каждый вопрос разрешения, режим не шире этого. Доступен ли режим разговору (не его
+ * провайдера, bypass под запретом настроек, auto, от которого CLI отказался), решает IDE - тем же
  * правилом, что у окна. dontAsk нет и у окна - его не выразить и здесь.
  */
 export const PERMISSION_MODES = [
   'default',
   'acceptEdits',
+  'readOnly',
   'plan',
   'auto',
   'bypassPermissions',

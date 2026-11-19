@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { MAX_SELECTION_CHARS } from '@shared/claude-draft'
+import { MAX_SELECTION_CHARS } from '@shared/message-draft'
 
 import { snippetChip } from './editor-chat.utils'
 

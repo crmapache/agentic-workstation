@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import type {
   FeedItem,
   TaskEntry,
@@ -10,11 +10,13 @@ import type {
   ToolFeedItem,
   UserFeedItem,
   ShellFeedItem,
-} from '@shared/claude-feed'
+} from '@shared/conversation-feed'
 
+import { turnChanges } from '../changes/turn-changes'
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'
 import { FeedStore } from '../../agents/feed/feed-store'
+import { TurnTracker } from '../../agents/feed/turn-tracker'
 import { WorkClock } from '../../agents/feed/work-clock'
 import { AgentTasks } from './agent-tasks'
 import { AssistantBlocks } from './assistant-blocks'
@@ -24,7 +26,6 @@ import { ServiceRows } from './service-rows'
 import { TaskList } from './task-list'
 import { ToolResults } from './tool-results'
 import { TurnCloser } from './turn-closer'
-import { TurnTracker } from './turn-tracker'
 
 /** Что ушло окну с прошлого сбора: тронутые и убранные элементы, список задач, если менялся. */
 export type FeedChanges = {
@@ -55,7 +56,7 @@ export class FeedBuilder {
   private readonly taskList = new TaskList()
   private readonly blocks = new AssistantBlocks(this.store)
   /** Ходы: начало текущего, последний итог с файлами хода. */
-  private readonly turns = new TurnTracker(this.store)
+  private readonly turns = new TurnTracker(this.store, (items) => turnChanges(items))
   /** Субагенты, флоты и фоновые команды (task_*): ждут уведомления, а не конца хода. */
   private readonly agents = new AgentTasks(this.store)
   private readonly results = new ToolResults(this.store, this.taskList, this.agents)

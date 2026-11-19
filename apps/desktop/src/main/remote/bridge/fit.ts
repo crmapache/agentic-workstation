@@ -2,6 +2,8 @@ import { utf8Length } from '@agentic-workstation/remote-protocol/body'
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 
+import { itemForPhone } from './action-wire'
+
 /**
  * Что влезает в кадр релея и что уходит телефону. Переросший кадр релей не режет, а закрывает
  * сокет вместе со всем остальным, поэтому дорога до телефона меряет каждое тело заранее.
@@ -89,25 +91,15 @@ const stubOf = (item: FeedItemWire, budget: number, redact: Redact): FeedItemWir
 }
 
 /**
- * Вид действия вызова (ADR 0083) телефон пока не читает: он рисует вызов по имени. А дифф по
- * входу внутри него удвоил бы правку в кадре и раньше времени гнал бы её в карточку. Пока
- * телефон не перешёл на вид действия, поле до него не едет.
+ * Элемент ленты в кадр: целиком, урезанным или карточкой - но не пропадает. Вид действия
+ * вызова едет без диффа по входу (action-wire.ts).
  */
-const withoutAction = (item: FeedItemWire): FeedItemWire => {
-  if (!('action' in item)) return item
-
-  const { action: _action, ...rest } = item
-
-  return rest
-}
-
-/** Элемент ленты в кадр: целиком, урезанным или карточкой - но не пропадает. */
 export const fitItem = (
   item: FeedItemWire,
   budget: number = BODY_BUDGET,
   redact: Redact = asIs,
 ): FeedItemWire => {
-  const sent = withoutAction(item)
+  const sent = itemForPhone(item)
 
   return fitValue(sent, budget, redact) ?? stubOf(sent, budget, redact)
 }

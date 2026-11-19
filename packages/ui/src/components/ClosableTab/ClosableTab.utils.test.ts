@@ -17,7 +17,7 @@ describe('подпись вкладки, обрезанная посередин
 
   it('короткое имя и слишком длинное последнее слово не делятся', () => {
     expect(splitTitle('Fix the bug')).toEqual({ head: 'Fix the bug', tail: '' })
-    expect(splitTitle('Look at src/features/claude-code/ConversationTabs.tsx').tail).toBe('')
+    expect(splitTitle('Look at src/features/agent-panel/ConversationTabs.tsx').tail).toBe('')
   })
 
   it('китайский и японский без пробелов - хвостом последние четыре знака', () => {

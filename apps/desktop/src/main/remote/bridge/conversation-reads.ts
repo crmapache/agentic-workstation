@@ -1,11 +1,11 @@
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
-import type { BridgePorts } from './bridge-ports'
+import type { BridgePorts, ConversationsPort } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { searchWire, aiSearchWire } from './conversation-extras-wire'
-import { isServedProvider } from './conversation-wire'
 import type { Redact } from './fit'
 import { done, fail } from './outcomes'
+import { panelOf } from './panels'
 import type { ProjectKeys } from './project-keys'
 import { pageBefore, historyThatFits, pictureThatFits, feedWithRowAbove } from './reads-fit'
 
@@ -16,12 +16,13 @@ import { pageBefore, historyThatFits, pictureThatFits, feedWithRowAbove } from '
 const remoteRun = (runId: string) => `remote:${runId}`
 
 /**
- * Чтение разговоров по просьбе телефона: история проекта и продолжение прошлого разговора,
- * страница ленты выше того, что у телефона, картинка сообщения для просмотра. Те же методы
- * ClaudeService, что зовёт окно (agent:listHistory, openHistory, loadEarlier, getImage); ответ
- * каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в открытом проекте:
- * проверку его id и проекта делает ConversationCommands до того, как позвать сюда. Поиск по
- * разговорам - тоже чтение: набранный - индексом IDE, описанный - моделью (SearchDesk).
+ * Чтение разговоров по просьбе телефона: история проекта у провайдера и продолжение прошлого
+ * разговора, страница ленты выше того, что у телефона, картинка сообщения для просмотра. Те же
+ * методы панели провайдера, что зовёт окно (agent:listHistory, openHistory, loadEarlier,
+ * getImage); ответ каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в
+ * открытом проекте: его панель, id и проект находит ConversationCommands до того, как позвать
+ * сюда. Поиск по разговорам - тоже чтение, только у Claude Code: набранный - индексом IDE,
+ * описанный - моделью (SearchDesk).
  */
 export class ConversationReads {
   constructor(
@@ -38,9 +39,12 @@ export class ConversationReads {
     const path = this.keys().pathOf(args.projectKey)
 
     if (!path) return fail('notFound')
-    if (!isServedProvider(args.provider)) return fail('refused', 'providerMissing')
 
-    return done(historyThatFits(await this.ports.conversations.history(path), this.redact()))
+    const panel = panelOf(this.ports.panels, args.provider)
+
+    if (!panel) return fail('refused', 'providerMissing')
+
+    return done(historyThatFits(await panel.history(path), this.redact()))
   }
 
   /** Набранный поиск по разговорам открытого проекта - индексом IDE, находки в один кадр. */
@@ -77,18 +81,21 @@ export class ConversationReads {
    * его вкладку в окне IDE, а человек за столом смотрит, может быть, на другую.
    */
   async openHistory(args: CommandArgs<'conversation.openHistory'>): Promise<Outcome> {
-    const path = this.projectPath(args.projectKey, args.provider)
+    const path = this.openPath(args.projectKey)
 
     if (typeof path !== 'string') return path
 
-    const { conversations } = this.ports
-    const open = conversations
+    const panel = panelOf(this.ports.panels, args.provider)
+
+    if (!panel) return fail('refused', 'providerMissing')
+
+    const open = panel
       .getState()
       .conversations.find(
         (conversation) =>
           conversation.projectPath === path && conversation.sessionId === args.sessionId,
       )
-    const id = open?.id ?? (await conversations.openHistory(path, args.sessionId))
+    const id = open?.id ?? (await panel.openHistory(path, args.sessionId))
 
     return id ? done({ conversationId: id }) : fail('notFound')
   }
@@ -97,12 +104,12 @@ export class ConversationReads {
    * Страница строк перед самой ранней строкой телефона. Выше неё в ленте IDE строк нет, а есть
    * транскрипт - сначала его страницы в ленту IDE (как «load earlier» окна, feedWithRowAbove).
    */
-  async earlier(args: CommandArgs<'conversation.earlier'>): Promise<Outcome> {
-    const { conversations } = this.ports
-    const feed = await feedWithRowAbove(
-      await conversations.getFeed(args.conversationId),
-      args.before,
-      () => conversations.loadEarlier(args.conversationId),
+  async earlier(
+    panel: ConversationsPort,
+    args: CommandArgs<'conversation.earlier'>,
+  ): Promise<Outcome> {
+    const feed = await feedWithRowAbove(await panel.getFeed(args.conversationId), args.before, () =>
+      panel.loadEarlier(args.conversationId),
     )
     const page = feed && pageBefore(feed.items, args.before, feed.hasEarlier, this.redact())
 
@@ -110,9 +117,9 @@ export class ConversationReads {
   }
 
   /** Картинка сообщения: целиком, если влезает в кадр, иначе уменьшенная; нет - notFound. */
-  async image(args: CommandArgs<'conversation.image'>): Promise<Outcome> {
-    const { conversations, pictures } = this.ports
-    const original = await conversations.image(args.conversationId, args.messageId, args.index)
+  async image(panel: ConversationsPort, args: CommandArgs<'conversation.image'>): Promise<Outcome> {
+    const { pictures } = this.ports
+    const original = await panel.image(args.conversationId, args.messageId, args.index)
 
     if (!original) return fail('notFound')
 
@@ -121,16 +128,6 @@ export class ConversationReads {
     )
 
     return fitted ? done(fitted) : fail('refused', 'imageTooBig')
-  }
-
-  /** Папка открытого проекта по ключу и провайдер с историей; иначе - отказ. */
-  private projectPath(projectKey: string, provider: string): string | Outcome {
-    const path = this.openPath(projectKey)
-
-    if (typeof path !== 'string') return path
-    if (!isServedProvider(provider)) return fail('refused', 'providerMissing')
-
-    return path
   }
 
   /** Папка открытого проекта по ключу; закрытый - notOpen, незнакомый - notFound. */

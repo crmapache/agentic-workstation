@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 
+import type { ProviderId } from '@shared/providers'
 import type { Task, TaskRun, TaskCode, TaskFailure, TaskTrigger } from '@shared/tasks'
 import { HOUR_MS } from '@shared/time-units'
 
 import { GOAL_SERVER, goalBriefing } from '../goals/goal-briefing'
-import { findTranscript } from '../claude/history/transcript-paths'
-import type { ClaudeSessions } from '../providers/claude/claude-sessions'
+import type { ScenarioProvider } from '../providers/scenario-provider'
+import { transcriptIn } from '../scenarios/scenario-launch'
 import type { CardAsk } from '../scenarios/engine/run-mail'
 import type { SessionSpec } from '../scenarios/engine/scenario-session'
 import { taskBriefing } from './task-briefing'
@@ -16,11 +17,12 @@ import type { LiveRunHost } from './task-run'
 /** Потолок работы прогона без ожидания человека: задание, которое крутится полдня, - сбой. */
 export const RUN_CEILING_MS = 3 * HOUR_MS
 
-/** Что прогонам нужно от IDE: процессы провайдера, его модели и аккаунт. */
+/**
+ * Что прогонам нужно от IDE: исполнитель провайдера прогона - тот же, что у сценариев (процессы,
+ * модель и усилие новой вкладки, аккаунт, журналы); null - провайдера в IDE нет.
+ */
 export type TaskDeskHost = {
-  sessions: ClaudeSessions
-  defaults: () => { model: string; effort: string }
-  accountId: () => string
+  provider: (id: ProviderId) => ScenarioProvider | null
 }
 
 /** Кому прогоны сообщают о себе: книге (запись, окно) и уведомлениям (вопросы, итог). */
@@ -121,6 +123,7 @@ export class TaskDesk {
       id: randomUUID(),
       taskId: task.id,
       taskName: task.name,
+      provider: task.provider,
       projectPath: task.projectPath,
       sessionId: randomUUID(),
       trigger,
@@ -167,8 +170,9 @@ export class TaskDesk {
   }
 
   private async raiseAgain(run: TaskRun, task: Task | undefined, text: string) {
-    const resumed =
-      Boolean(run.sessionId) && (await findTranscript(run.projectPath, run.sessionId)) !== null
+    const provider = this.host.provider(run.provider)
+    const dirs = provider && run.sessionId ? await provider.transcriptDirs(run.projectPath) : []
+    const resumed = transcriptIn(dirs, run.sessionId) !== null
     const again: TaskRun = {
       ...run,
       sessionId: run.sessionId || randomUUID(),
@@ -220,14 +224,17 @@ export class TaskDesk {
   }
 
   private async raise(run: TaskRun, task: Task | null, text: string, resume: boolean) {
-    const refused = await this.refusal(run.projectPath)
+    const provider = this.host.provider(run.provider)
+    const refused = provider ? await this.refusal(run.projectPath, provider) : 'noCli'
 
     // Не поднявшийся прогон разговора не начал: продолжать и открывать в чате нечего.
-    if (refused) return this.ended(resume ? run : { ...run, sessionId: '' }, refused)
+    if (refused || !provider) {
+      return this.ended(resume ? run : { ...run, sessionId: '' }, refused ?? 'noCli')
+    }
     // Задание удалили, пока шла проверка: процесс не нужен вовсе.
     if (this.dropped.has(run.taskId)) return this.ended({ ...run, sessionId: '' }, null)
 
-    const defaults = this.host.defaults()
+    const defaults = provider.defaults()
     const goal = task?.kind === 'goal' ? task : null
     const spec: SessionSpec = {
       sessionId: run.sessionId,
@@ -238,7 +245,7 @@ export class TaskDesk {
       briefing: goal
         ? goalBriefing(goal.name, goal.goal.outbound, Date.now())
         : taskBriefing(task?.name ?? run.taskName, run.trigger, run.dueAt, Date.now()),
-      accountId: this.host.accountId(),
+      accountId: provider.accounts.current(),
       // Инструменты поручения - своим сервером IDE, только этому процессу (ADR 0080).
       ideServers: goal ? [GOAL_SERVER] : [],
     }
@@ -247,7 +254,7 @@ export class TaskDesk {
       if (this.live.get(over.id) === live) this.live.delete(over.id)
     }
     const live: LiveRun = new LiveRun(run, spec, {
-      spawn: (wanted, wires) => this.host.sessions.spawn(wanted, place, wires),
+      spawn: (wanted, wires) => provider.spawn(wanted, place, wires),
       changed: (changed) => this.events.changed(changed),
       asked: (asking, ask) => this.events.asked(asking, ask),
       withdrawn: (asking, requestId) => this.events.withdrawn(asking, requestId),
@@ -275,16 +282,18 @@ export class TaskDesk {
     return live.run
   }
 
-  /** Почему прогон не поднять: папки нет, CLI нет, папке не доверились. */
-  private async refusal(projectPath: string): Promise<TaskFailure | null> {
+  /** Почему прогон не поднять: папки нет, CLI провайдера нет, папке не доверились. */
+  private async refusal(
+    projectPath: string,
+    provider: ScenarioProvider,
+  ): Promise<TaskFailure | null> {
     if (!(await folderExists(projectPath))) return 'folderMissing'
 
-    const code = await this.host.sessions.prepare(projectPath)
+    const code = await provider.prepare(projectPath)
 
-    if (code === 'noClaude') return 'noClaude'
-    if (code === 'untrusted') return 'untrusted'
+    if (code === 'noClaude' || code === 'noCli' || code === 'untrusted') return code
 
-    return null
+    return code ? 'noCli' : null
   }
 
   /** Прогон кончился, не поднявшись: сбой с причиной или остановка (null - задание удалено). */

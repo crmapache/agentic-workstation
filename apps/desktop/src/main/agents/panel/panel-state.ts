@@ -1,5 +1,5 @@
-import type { TitleSource, TurnOutcome, Conversation } from '@shared/claude'
-import type { PanelPrefs } from '@shared/claude-prefs'
+import type { TitleSource, TurnOutcome, Conversation } from '@shared/conversation'
+import type { PanelPrefs } from '@shared/panel-prefs'
 
 import type { ClosedTab } from './closed-tabs'
 
@@ -95,7 +95,8 @@ export const toStored = (conversation: Conversation): StoredConversation => ({
   queue: conversation.queue.map((item) => ({ ...item, imageCount: 0 })),
   fork: conversation.fork,
   updatedAt: conversation.updatedAt,
-  ...(conversation.fastMode && { fastMode: true }),
+  // Просьба «выключить» тоже хранится: у Codex она перебивает уровень из его настроек.
+  ...(conversation.fastMode !== undefined && { fastMode: conversation.fastMode }),
   ...(conversation.usage.contextWindow > 0 && {
     context: { tokens: conversation.usage.contextTokens, window: conversation.usage.contextWindow },
   }),

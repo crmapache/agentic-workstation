@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { AsideView } from '@shared/claude-panel'
+import type { AsideView } from '@shared/panel-extras'
 
 import { CliReplyError } from '../cli/cli-process'
 import type { ClaudeHost } from '../conversation/claude-conversation'

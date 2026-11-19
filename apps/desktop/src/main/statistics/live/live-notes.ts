@@ -34,9 +34,9 @@ const minuteOf = (value: number): number | null =>
   Number.isFinite(value) && value >= 0 ? Math.floor(value) : null
 
 /**
- * Запись живых событий. Транскрипт знает не всё: точное время хода (без ожидания человека)
- * знают часы панели и сценариев, присутствие и правки руками - только окно, а какие сессии
- * запускала IDE - только сама IDE.
+ * Запись живых событий. Журнал провайдера знает не всё: точное время хода (без ожидания
+ * человека) знают часы панели и сценариев, присутствие и правки руками - только окно, а какие
+ * сессии запускала IDE - только сама IDE.
  */
 export class LiveNotes {
   constructor(private readonly store: StatsStore) {}
@@ -70,7 +70,7 @@ export class LiveNotes {
     this.store.db
       .prepare(
         `INSERT INTO sessions (uuid, provider, ide_kind, ide_seen_at) VALUES (?, ?, ?, ?)
-         ON CONFLICT(uuid) DO UPDATE SET
+         ON CONFLICT(provider, uuid) DO UPDATE SET
            ide_kind = CASE WHEN ide_kind IN ('scenario', 'task') THEN ide_kind ELSE excluded.ide_kind END,
            ide_seen_at = max(coalesce(ide_seen_at, 0), excluded.ide_seen_at)`,
       )
@@ -78,7 +78,7 @@ export class LiveNotes {
   }
 
   /**
-   * Ход по живым часам. Оценка того же отрезка из транскрипта стирается: она длиннее (в ней
+   * Ход по живым часам. Оценка того же отрезка из журнала стирается: она длиннее (в ней
    * ожидание ответа на вопросы) и посчитала бы ход второй раз.
    */
   private turn(note: StatsTurnNote) {
@@ -104,7 +104,7 @@ export class LiveNotes {
     )
   }
 
-  /** Ключ - id вызова, как у той же записи транскрипта: решение не посчитается дважды. */
+  /** Ключ - id вызова, как у той же записи журнала: решение не посчитается дважды. */
   private permission(note: StatsPermissionNote) {
     const key = keyOf(note.toolUseId ?? `live\n${note.session}\n${note.at}`)
 

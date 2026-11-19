@@ -1,4 +1,3 @@
-import type { Conversation } from '@shared/claude'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
@@ -8,6 +7,7 @@ import { PUSH_REASONS } from '@agentic-workstation/remote-protocol/push'
 
 import { AWAKE_MS } from '../agent/remote-agent'
 import type { Redact } from '../bridge/fit'
+import type { OwnedConversation } from '../bridge/panels'
 import type { ProjectKeys } from '../bridge/project-keys'
 import type { Attention, ConversationEvent } from './attention'
 import { attentionId, attentionOf } from './attention'
@@ -25,7 +25,8 @@ export const EVENT_LIFE_MS = 30 * 60_000
 const SETTLE_MS = 100
 
 export type PushDeskHost = {
-  conversations: () => readonly Conversation[]
+  /** Разговоры всех панелей с провайдером каждого. */
+  conversations: () => readonly OwnedConversation[]
   queues: () => ScenarioQueuesView
   /** Ключи и подмена папок - те же, что у линии (Bridge.lens). */
   lens: () => { keys: ProjectKeys; redact: Redact }

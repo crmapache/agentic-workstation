@@ -245,7 +245,7 @@ describe('goals', () => {
   it('goes on by itself after the IDE restarted in the middle of work', async () => {
     const before = await goal(() => ({ kind: 'silent' }))
 
-    before.tasks.shutdown()
+    await before.tasks.shutdown()
 
     const after = await harness.start((said) => ({ kind: 'say', text: said }))
 

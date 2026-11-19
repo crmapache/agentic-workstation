@@ -1,5 +1,3 @@
-import type { ProviderInfo } from '@shared/providers'
-
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 
 import type { BridgePorts } from './bridge-ports'
@@ -30,11 +28,11 @@ export type InventoryDeskHost = {
 /**
  * Список машины телефонам: на hello и inventory - сейчас, при переменах в IDE - каждому на
  * связи, у кого он другой. Что кому ушло, помнится по телефону: телефон, вернувшийся из сна,
- * получает своё, а не молчание, потому что другой уже видел этот список. Провайдеры
- * спрашиваются при старте линии, а не на первом hello: список, ушедший до него, был бы без них.
+ * получает своё, а не молчание, потому что другой уже видел этот список. CLI провайдеров
+ * ищутся при старте линии, а не на первом hello: список, ушедший до него, был бы без них.
+ * Сами провайдеры (модели, режимы, на месте ли) - по нынешнему состоянию панелей.
  */
 export class InventoryDesk {
-  private providers: ProviderInfo[] = []
   private readonly loaded: Promise<void>
   private readonly sent = new Map<string, string>()
   private timer: NodeJS.Timeout | null = null
@@ -44,10 +42,10 @@ export class InventoryDesk {
   }
 
   /**
-   * Телефон спросил: список ему сейчас, что бы ему ни слали раньше. Провайдеры заодно
-   * спрашиваются заново (Claude Code могли поставить) - перемена уйдёт следом сама. Настройки
-   * режима открытых проектов, которых мост ещё не читал, - до ответа: иначе bypass ушёл бы
-   * погашенным и следом - второй список.
+   * Телефон спросил: список ему сейчас, что бы ему ни слали раньше. CLI провайдеров заодно
+   * ищутся заново (их могли поставить) - перемена уйдёт следом сама. Настройки режима открытых
+   * проектов, которых мост ещё не читал, - до ответа: иначе bypass ушёл бы погашенным и следом -
+   * второй список.
    */
   async answer(deviceId: string, still: () => boolean): Promise<void> {
     await this.loaded
@@ -92,9 +90,9 @@ export class InventoryDesk {
 
   private async refreshProviders(): Promise<void> {
     try {
-      this.providers = await this.host.ports.conversations.providers()
+      await this.host.ports.panels.refresh()
     } catch (error) {
-      console.warn('[remote] список провайдеров не получен:', error)
+      console.warn('[remote] CLI провайдеров не найдены:', error)
     }
   }
 
@@ -104,13 +102,16 @@ export class InventoryDesk {
     const { ports } = this.host
     const inventory = inventoryOf({
       workspace: ports.workspace.getState(),
-      claude: ports.conversations.getState(),
+      panels: ports.panels.list().map((panel) => ({
+        provider: panel.provider,
+        state: panel.getState(),
+        info: panel.info(),
+      })),
       queues: ports.scenarios.queuesView(),
       taskRuns: ports.tasks.runs(),
-      providers: this.providers,
       keys: this.host.keys(),
       clock: this.host.clock,
-      newModesOff: (projectPath) => this.host.modes.offForNew(projectPath),
+      newModesOff: (provider, projectPath) => this.host.modes.offForNew(provider, projectPath),
       machine: this.host.machine(),
       epoch: this.host.epoch,
       now: Date.now(),

@@ -1,4 +1,4 @@
-import type { ConversationFeed } from './claude-feed'
+import type { ConversationFeed } from './conversation-feed'
 import type { ProviderId } from './providers'
 import type { RunSummary, ScenarioRun } from './scenario-runs'
 import type {

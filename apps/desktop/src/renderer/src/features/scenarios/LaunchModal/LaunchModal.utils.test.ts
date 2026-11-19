@@ -23,6 +23,7 @@ const scenario = (id: string, scope: ScenarioScope, inputs: string[] = []): Scen
   inputs: inputs.map((name) => ({ id: name, name, label: '', placeholder: '', required: false })),
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: '',

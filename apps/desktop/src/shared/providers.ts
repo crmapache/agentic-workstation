@@ -1,3 +1,5 @@
+import type { EffortLevel, PermissionMode } from './conversation'
+
 /**
  * Провайдеры ИИ на уровне IDE (ADR 0083): Claude Code, Codex и открытые модели (OpenCode),
  * у каждого своя панель. Всё, что не панель провайдера (сценарии, статистика, удалённый
@@ -24,9 +26,21 @@ export type ProviderModel = {
   displayName: string
   description: string
   custom: boolean
+  /** Уровни усилия модели; нет поля - уровни провайдера, пусто - модель без усилия. */
+  efforts?: readonly EffortLevel[] | undefined
+  /** Уровень модели по умолчанию (Codex). */
+  defaultEffort?: EffortLevel | undefined
+  /** Модель провайдера по умолчанию: пустое поле модели идёт на неё. */
+  isDefault?: boolean | undefined
+  /** Группа меню: подключение открытых моделей. */
+  group?: { id: string; label: string } | undefined
 }
 
-/** Что окно знает о провайдере: имя, на месте ли он, на каких моделях работает. */
+/**
+ * Что окно знает о провайдере: имя, на месте ли он, на каких моделях работает, какие у него
+ * режимы разрешений и уровни усилия. Один список на сценарии, задания, коннектор от ИИ,
+ * служебные задачи и телефон (docs/plan-providers/50-ide.md).
+ */
 export type ProviderInfo = {
   id: ProviderId
   label: string
@@ -39,4 +53,28 @@ export type ProviderInfo = {
    * моделей.
    */
   models?: readonly ProviderModel[] | undefined
+  /** Режимы разрешений провайдера по порядку (как меню MODE его панели). */
+  modes: readonly PermissionMode[]
+  /** Уровни усилия провайдера - у модели без своего списка. */
+  efforts: readonly EffortLevel[]
+}
+
+/** Модель, на которой пойдёт пустое поле модели: «по умолчанию» провайдера, иначе первая. */
+export const defaultModelOf = (provider: Pick<ProviderInfo, 'models'> | null): string =>
+  provider?.models?.find((one) => one.isDefault)?.value ?? provider?.models?.[0]?.value ?? ''
+
+/**
+ * Уровни усилия модели у провайдера: свои у модели, иначе провайдера. Пустая модель - модель,
+ * на которой работа реально пойдёт (по умолчанию): у модели без размышлений уровней нет.
+ */
+export const providerEfforts = (
+  provider: Pick<ProviderInfo, 'efforts' | 'models'> | null,
+  model: string,
+): readonly EffortLevel[] => {
+  if (!provider) return []
+
+  const value = model || defaultModelOf(provider)
+  const known = provider.models?.find((one) => one.value === value)
+
+  return known?.efforts ?? provider.efforts
 }

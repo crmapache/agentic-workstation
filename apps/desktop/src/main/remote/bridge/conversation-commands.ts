@@ -1,16 +1,17 @@
-import type { Conversation, RequestResponse } from '@shared/claude'
+import type { EffortLevel, RequestResponse } from '@shared/conversation'
 
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
 import { withFiles } from './attached-files'
-import type { BridgePorts } from './bridge-ports'
+import type { BridgePorts, ConversationsPort } from './bridge-ports'
 import type { Outcome } from './command-ledger'
 import { ConversationReads } from './conversation-reads'
 import { ConversationTools } from './conversation-tools'
-import { isServedProvider } from './conversation-wire'
 import type { Redact } from './fit'
 import type { ModeGate } from './mode-gate'
 import { done, fail } from './outcomes'
+import type { Owner } from './panels'
+import { ownerOf, panelOf } from './panels'
 import type { ProjectKeys } from './project-keys'
 
 export type ConversationCommand = Extract<Command, { name: `conversation.${string}` }>
@@ -40,10 +41,19 @@ const responseOf = (decision: Decision): RequestResponse => {
 }
 
 /**
- * Команды разговоров - публичными методами ClaudeService, теми же, что зовёт окно. Разговор -
- * только в открытом проекте; проект - по ключу из тех, что IDE назвала сама. Чтение по просьбе
- * (история, страница выше, картинка, поиск) - ConversationReads; служебное поверх разговора
- * (очередь, остановки, вопрос сбоку, откат) - ConversationTools.
+ * Уровень усилия, который знает провайдер панели (capabilities.efforts): протокол знает уровни
+ * всех провайдеров, а чужой уровень CLI не примет (ultra у Claude Code). null - как в настройках.
+ */
+const knowsEffort = (panel: ConversationsPort, effort: EffortLevel | null | undefined): boolean =>
+  effort === null || effort === undefined || panel.getState().capabilities.efforts.includes(effort)
+
+/**
+ * Команды разговоров - публичными методами панелей провайдеров, теми же, что зовёт окно (ADR
+ * 0083): команду по id разговора ведёт панель, у которой этот разговор, новый разговор и
+ * историю - панель провайдера, которого выбрал телефон. Разговор - только в открытом проекте;
+ * проект - по ключу из тех, что IDE назвала сама. Чтение по просьбе (история, страница выше,
+ * картинка, поиск) - ConversationReads; служебное поверх разговора (очередь, остановки, вопрос
+ * сбоку, откат) - ConversationTools.
  */
 export class ConversationCommands {
   private readonly reads: ConversationReads
@@ -78,50 +88,53 @@ export class ConversationCommands {
     }
   }
 
-  /** Команды одному разговору: он есть и его проект открыт - иначе отказ. */
+  /** Команды одному разговору: он есть у какой-то панели и его проект открыт - иначе отказ. */
   private async inConversation(command: ConversationCommand): Promise<Outcome> {
-    const { conversations } = this.ports
     const id = 'conversationId' in command.args ? command.args.conversationId : ''
-    const conversation = conversations.getState().conversations.find((one) => one.id === id)
+    const owner = ownerOf(this.ports.panels, id)
 
-    if (!conversation) return fail('notFound')
-    if (!this.keys().isOpen(conversation.projectPath)) return fail('notOpen')
+    if (!owner) return fail('notFound')
+    if (!this.keys().isOpen(owner.conversation.projectPath)) return fail('notOpen')
+
+    const { panel } = owner
 
     switch (command.name) {
       case 'conversation.send': {
         const { images = [], files = [] } = command.args
-        const text = await withFiles(command.args.text, files, conversations.saveFile)
+        const text = await withFiles(command.args.text, files, this.ports.panels.saveFile)
 
         if (text === null) return fail('refused', 'fileNotSaved')
 
-        await conversations.send(id, { text, images })
+        await panel.send(id, { text, images })
 
         return done()
       }
       case 'conversation.respond':
-        return this.respond(conversation, command.args)
+        return this.respond(owner, command.args)
       case 'conversation.interrupt':
-        conversations.interrupt(id)
+        panel.interrupt(id)
 
         return done()
       case 'conversation.rename':
-        await conversations.rename(id, command.args.title)
+        await panel.rename(id, command.args.title)
 
         return done()
       case 'conversation.setModel':
-        conversations.setOptions(id, { model: command.args.model })
+        panel.setOptions(id, { model: command.args.model })
 
         return done()
       case 'conversation.setEffort':
-        conversations.setOptions(id, { effort: command.args.effort })
+        if (!knowsEffort(panel, command.args.effort)) return fail('refused', 'effortUnavailable')
+
+        panel.setOptions(id, { effort: command.args.effort })
 
         return done()
       case 'conversation.earlier':
-        return this.reads.earlier(command.args)
+        return this.reads.earlier(panel, command.args)
       case 'conversation.image':
-        return this.reads.image(command.args)
+        return this.reads.image(panel, command.args)
       default:
-        return this.tools.run(command, conversation)
+        return this.tools.run(command, owner)
     }
   }
 
@@ -129,7 +142,10 @@ export class ConversationCommands {
    * Ответ на вопрос, которого уже нет (ответили за столом, вопрос снят, стоит следующий), -
    * отказ, а не «ок»: иначе телефон считал бы, что ответил он, а ответ никуда не лёг.
    */
-  private respond(conversation: Conversation, args: CommandArgs<'conversation.respond'>): Outcome {
+  private respond(
+    { panel, conversation }: Owner,
+    args: CommandArgs<'conversation.respond'>,
+  ): Outcome {
     const { requestId, decision } = args
     const { pending } = conversation
 
@@ -137,43 +153,50 @@ export class ConversationCommands {
     // Ответ не того вида на тот же вопрос - не ответ.
     if (pending.kind !== decision.kind) return fail('badArgs')
 
-    this.ports.conversations.respond(conversation.id, requestId, responseOf(decision))
+    panel.respond(conversation.id, requestId, responseOf(decision))
 
     return done()
   }
 
   /**
-   * Новый разговор с телефона. Режим задаётся всегда (default, если телефон не выбрал): иначе
-   * вкладка взяла бы закреплённый в настройках или режим выбранной вкладки, а не выбранный на
-   * телефоне. Режим, которого окно не дало бы (ADR 0076), - отказ modeUnavailable: bypass - ещё
-   * до вкладки, по настройкам проекта; auto - по модели, которую вкладка взяла. Вышел не тот
-   * режим или недоступный - разговор закрывается, а телефону отказ.
+   * Новый разговор с телефона - вкладкой панели выбранного провайдера. Режим задаётся всегда
+   * (default, если телефон не выбрал): иначе вкладка взяла бы закреплённый в настройках или режим
+   * выбранной вкладки, а не выбранный на телефоне. Режим, которого окно не дало бы (ADR 0076: не
+   * этого провайдера, bypass под запретом настроек, auto, от которого CLI отказался), - отказ
+   * modeUnavailable: всё, кроме auto, - ещё до вкладки; auto - по модели, которую вкладка взяла.
+   * Вышел не тот режим или недоступный - разговор закрывается, а телефону отказ.
    */
   private async newConversation(args: CommandArgs<'conversation.new'>): Promise<Outcome> {
     const path = this.keys().openPathOf(args.projectKey)
 
     if (!path) return fail(this.keys().pathOf(args.projectKey) ? 'notOpen' : 'notFound')
-    if (!isServedProvider(args.provider)) return fail('refused', 'providerMissing')
+
+    const panel = panelOf(this.ports.panels, args.provider)
+
+    if (!panel) return fail('refused', 'providerMissing')
+    if (!knowsEffort(panel, args.effort)) return fail('refused', 'effortUnavailable')
 
     const mode = args.permissionMode ?? 'default'
+    const { provider } = panel
 
-    if (!(await this.modes.allows(mode, path, null))) return fail('refused', 'modeUnavailable')
+    if (!(await this.modes.allows(provider, mode, path, null))) {
+      return fail('refused', 'modeUnavailable')
+    }
 
-    const { conversations } = this.ports
-    const id = await conversations.newConversation(path, {
+    const id = await panel.newConversation(path, {
       ...(args.model !== undefined && { model: args.model }),
       ...(args.effort !== undefined && { effort: args.effort }),
       permissionMode: mode,
     })
-    const created = conversations.getState().conversations.find((one) => one.id === id)
+    const created = panel.getState().conversations.find((one) => one.id === id)
 
     if (!created) return fail('failed')
 
     const asked = created.permissionMode === mode
 
-    if (!asked || !(await this.modes.allows(mode, path, created))) {
+    if (!asked || !(await this.modes.allows(provider, mode, path, created))) {
       console.warn(`[remote] новый разговор вышел в режиме ${created.permissionMode} - закрыт`)
-      await conversations.close(id)
+      await panel.close(id)
 
       return fail('refused', asked ? 'modeUnavailable' : 'permissionMode')
     }

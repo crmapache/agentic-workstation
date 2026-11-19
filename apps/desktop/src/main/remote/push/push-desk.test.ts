@@ -1,6 +1,7 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { Conversation, PendingRequest } from '@shared/claude'
+import type { Conversation, PendingRequest } from '@shared/conversation'
+import type { ProviderId } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 
 import type { PushNotice } from '@agentic-workstation/remote-protocol/push'
@@ -19,8 +20,14 @@ afterEach(() => {
   for (const desk of desks.splice(0)) desk.stop()
 })
 
-/** Стол пушей на подделке IDE: часы, кто когда говорил и что ушло - руками теста. */
-const setup = (conversations: Conversation[] = [conversationOf()]) => {
+/**
+ * Стол пушей на подделке IDE: часы, кто когда говорил и что ушло - руками теста. Разговоры - одной
+ * панели (provider).
+ */
+const setup = (
+  conversations: Conversation[] = [conversationOf()],
+  provider: ProviderId = 'claude',
+) => {
   const ide = fakeIde()
   const clock = { now: 1_000_000 }
   const heard = new Map<string, number>()
@@ -29,7 +36,7 @@ const setup = (conversations: Conversation[] = [conversationOf()]) => {
   const state = { conversations }
   const queues: ScenarioQueuesView = { queues: [QUEUE], live: [] }
   const desk = new PushDesk({
-    conversations: () => state.conversations,
+    conversations: () => state.conversations.map((conversation) => ({ provider, conversation })),
     queues: () => queues,
     lens: () => ({
       keys: new ProjectKeys(ide.workspace),
@@ -83,6 +90,20 @@ describe('когда будить телефон', () => {
       tool: 'Bash',
       tag: `c-${conversationOf().id}`,
     })
+  })
+
+  it('разговор Codex: вопрос и лимит будят телефон, пуш называет провайдера', () => {
+    const { desk, ask, sent, later, clock } = setup([conversationOf({ id: 'codex-1' })], 'codex')
+
+    ask(permission('perm-2'))
+    later(10)
+    desk.called({ conversationId: 'codex-1', reason: 'limit', at: clock.now })
+    later(COALESCE_MS + 10)
+
+    expect(sent.map((one) => [one.notice.reason, one.notice.provider])).toEqual([
+      ['permission', 'codex'],
+      ['limit', 'codex'],
+    ])
   })
 
   it('телефон на связи и заговорил после вопроса - видел сам, пуша нет', () => {

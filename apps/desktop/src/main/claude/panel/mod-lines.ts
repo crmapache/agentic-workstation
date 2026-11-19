@@ -1,4 +1,4 @@
-import type { ModPane, ConversationMods } from '@shared/claude-panel'
+import type { ModPane, ConversationMods } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, stringField, recordsField } from '../cli/cli-messages'

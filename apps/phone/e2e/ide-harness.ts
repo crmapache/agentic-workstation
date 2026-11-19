@@ -1,5 +1,5 @@
-import type { Conversation, PendingRequest } from '@shared/claude'
-import type { FeedItem } from '@shared/claude-feed'
+import type { Conversation, PendingRequest } from '@shared/conversation'
+import type { FeedItem } from '@shared/conversation-feed'
 import type { QueueAction, ScenarioQueue } from '@shared/scenario-queues'
 
 import type { Config } from '@agentic-workstation/relay/config'
@@ -16,6 +16,7 @@ import {
   PERMISSION,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import type { ConversationsPort } from '../../desktop/src/main/remote/bridge/bridge-ports'
 import type { StoredRemote } from '../../desktop/src/main/remote/store/remote-state'
 import type { Latency } from './latency-proxy'
 import { NO_LATENCY, startLatencyProxy } from './latency-proxy'
@@ -154,7 +155,7 @@ export const startHarness = async (
   const ide = fakeIde()
   const { state, feed, queues } = ide
   let service: RemoteService | null = null
-  const changed = () => service?.claudeChanged(state)
+  const changed = () => service?.panelChanged()
   const conversation = () => state.conversations[0] as Conversation
   const update = (over: Partial<Conversation>) => {
     state.conversations = [{ ...conversation(), ...over }, ...state.conversations.slice(1)]
@@ -180,7 +181,8 @@ export const startHarness = async (
 
   state.models = MODELS
 
-  const base = ide.ports.conversations
+  // Разговоры панели Claude Code - тот же объект, что в списке панелей моста: правка на месте.
+  const base = { ...ide.claude }
   /** Перемена очереди разговора - IDE рассылает состояние, как ClaudeService после действия. */
   const thenChanged =
     <A extends unknown[], R>(act: (...args: A) => R) =>
@@ -200,8 +202,7 @@ export const startHarness = async (
       service?.workspaceChanged()
     },
   }
-  ide.ports.conversations = {
-    ...base,
+  Object.assign(ide.claude, {
     enqueue: thenChanged(base.enqueue),
     unqueue: thenChanged(base.unqueue),
     moveQueued: thenChanged(base.moveQueued),
@@ -236,7 +237,7 @@ export const startHarness = async (
 
       return null
     },
-  }
+  } satisfies Partial<ConversationsPort>)
   ide.ports.scenarios = {
     ...withSavedScenarios(ide.ports.scenarios),
     start: (request) => {

@@ -8,6 +8,7 @@ import { useTasksStore } from '../tasks.store'
 import type { ScheduleForm } from '../tasks.types'
 import { formOf, draftOf, blankDraft, scheduleOf } from '../tasks.utils'
 import { invoke } from '../../../lib/ipc'
+import { useProviders, effectiveProvider } from '../../../state/providers.queries'
 import { useTaskRunStore } from '../../../state/task-run.store'
 import { useTasks } from '../../../state/tasks.queries'
 import { useWorkspace, useActiveProject } from '../../../state/workspace.queries'
@@ -25,12 +26,21 @@ export const useTaskForm = (taskId: string | null) => {
   const actions = useTaskActions()
   const close = useTasksStore((state) => state.closeEditor)
   const closeRun = useTaskRunStore((state) => state.close)
-  const [draft, setDraft] = useState<TaskDraft>(() =>
+  const providers = useProviders().data ?? []
+  const [stored, setDraft] = useState<TaskDraft>(() =>
     task ? draftOf(task) : blankDraft(active?.rootPath ?? workspace?.projects[0]?.rootPath ?? ''),
   )
-  const [schedule, setSchedule] = useState<ScheduleForm>(() => formOf(draft.schedule, Date.now()))
+  // Провайдер нового задания, пока человек его не выбрал, считается при показе: список
+  // провайдеров мог ещё не прийти, а застывший Claude у машины только с Codex упал бы в свой час.
+  const [providerChosen, setProviderChosen] = useState(task !== null)
+  const provider = effectiveProvider(providers, providerChosen ? stored.provider : null)
+  const draft = providerChosen || !provider ? stored : { ...stored, provider: provider.id }
+  const [schedule, setSchedule] = useState<ScheduleForm>(() => formOf(stored.schedule, Date.now()))
   const [removing, setRemoving] = useState(false)
-  const change = (patch: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...patch }))
+  const change = (patch: Partial<TaskDraft>) => {
+    if (patch.provider) setProviderChosen(true)
+    setDraft((current) => ({ ...current, ...patch }))
+  }
 
   const changeSchedule = (next: ScheduleForm) => {
     setSchedule(next)

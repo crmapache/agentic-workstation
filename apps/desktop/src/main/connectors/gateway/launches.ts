@@ -28,14 +28,17 @@ export type Launch = {
 export type LaunchOwner = { conversationId: string; workDir: string }
 
 /**
- * Конфиг шлюза одного процесса: файл для `--mcp-config`. own - назвать разговор процесса;
- * зовётся сразу после выдачи ключа, до подъёма CLI, - вызовов по ключу ещё нет. release -
- * процесс кончился (разговор может поднять следующий), idle - работа разговора встала (ни
- * хода, ни фоновых агентов), end - кончился сам разговор: его вкладку закрыли. idle и end
- * можно звать и после release - разговор переживает свои процессы.
+ * Ключ шлюза одного процесса. own - назвать разговор процесса; зовётся сразу после выдачи
+ * ключа, до подъёма CLI, - вызовов по ключу ещё нет. release - процесс кончился (разговор
+ * может поднять следующий), idle - работа разговора встала (ни хода, ни фоновых агентов),
+ * end - кончился сам разговор: его вкладку закрыли. idle и end можно звать и после release -
+ * разговор переживает свои процессы.
  */
-export type McpLaunch = {
-  path: string
+export type GatewayLaunch = {
+  /** Серверы шлюза для процесса - у провайдера, который берёт их флагами запуска (Codex). */
+  servers: readonly GatewayEntry[]
+  /** Ключ процесса: у такого провайдера - только в памяти и окружении процесса, не на диске. */
+  token: string
   /**
    * Правила «разрешено всегда» для CLI (`--allowedTools`): серверы IDE, о которых человека
    * спрашивать незачем, - уведомления самому себе (ADR 0069).
@@ -47,6 +50,9 @@ export type McpLaunch = {
   end: () => void
 }
 
+/** Ключ шлюза с файлом для `--mcp-config` (Claude Code): ключ - внутри файла. */
+export type McpLaunch = GatewayLaunch & { path: string }
+
 const digest = (token: string): string => createHash('sha256').update(token).digest('hex')
 
 /**
@@ -57,7 +63,7 @@ const digest = (token: string): string => createHash('sha256').update(token).dig
  * поиск по хешу не выдаёт сам ключ временем ответа.
  */
 export class GatewayLaunches {
-  private readonly launches = new Map<string, Launch & { file: string }>()
+  private readonly launches = new Map<string, Launch & { file: string | null }>()
 
   constructor(
     private readonly dir: string,
@@ -81,11 +87,43 @@ export class GatewayLaunches {
     allowed: readonly string[] = [],
   ): Promise<McpLaunch> {
     const token = randomToken()
+    const file = join(this.dir, `${randomUUID()}.json`)
+    const launch = this.register(projectPath, entries, allowed, token, file)
+
+    try {
+      await writeMcpConfig(file, claudeMcpConfig(entries, token))
+    } catch (error) {
+      // Процесс с этим ключом не поднимется: снять молча, как будто не выдавали.
+      this.launches.delete(digest(token))
+      throw error
+    }
+
+    return { ...launch, path: file }
+  }
+
+  /** Выдать ключ без файла - процессу, который берёт серверы флагами, а ключ из окружения. */
+  issueInMemory(
+    projectPath: string,
+    entries: readonly GatewayEntry[],
+    allowed: readonly string[] = [],
+  ): GatewayLaunch {
+    return this.register(projectPath, entries, allowed, randomToken(), null)
+  }
+
+  find(token: string): Launch | null {
+    return this.launches.get(digest(token)) ?? null
+  }
+
+  private register(
+    projectPath: string,
+    servers: readonly GatewayEntry[],
+    allowed: readonly string[],
+    token: string,
+    file: string | null,
+  ): GatewayLaunch {
     const key = digest(token)
-    const id = randomUUID()
-    const file = join(this.dir, `${id}.json`)
     const launch = {
-      id,
+      id: randomUUID(),
       projectPath,
       workDir: projectPath,
       conversationId: null as string | null,
@@ -95,15 +133,9 @@ export class GatewayLaunches {
 
     this.launches.set(key, launch)
 
-    try {
-      await writeMcpConfig(file, claudeMcpConfig(entries, token))
-    } catch (error) {
-      this.launches.delete(key)
-      throw error
-    }
-
     return {
-      path: file,
+      servers,
+      token,
       allowed,
       own: ({ conversationId, workDir }) => {
         launch.conversationId = conversationId
@@ -119,10 +151,6 @@ export class GatewayLaunches {
     }
   }
 
-  find(token: string): Launch | null {
-    return this.launches.get(digest(token)) ?? null
-  }
-
   private release(key: string): void {
     const launch = this.launches.get(key)
 
@@ -130,7 +158,7 @@ export class GatewayLaunches {
 
     this.launches.delete(key)
     launch.released = true
-    void unlink(launch.file).catch(() => undefined)
+    if (launch.file) void unlink(launch.file).catch(() => undefined)
     this.released(launch)
   }
 }

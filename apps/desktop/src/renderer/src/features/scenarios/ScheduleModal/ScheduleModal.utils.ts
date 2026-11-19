@@ -1,4 +1,3 @@
-import { PROVIDER_IDS } from '@shared/providers'
 import { isRunnable } from '@shared/scenario-rules'
 import type { ScenarioShelvesView } from '@shared/scenario-view'
 import type { Scenario } from '@shared/scenarios'
@@ -43,6 +42,7 @@ export const initialForm = (
     hour: { at: defaultHour(now), repeat: 'once', weekday: isoWeekday(now) },
     values: {},
     worktree: false,
-    provider: PROVIDER_IDS[0] ?? 'claude',
+    // Новый час: провайдера окно выберет при показе по сценарию (effectiveProvider).
+    provider: null,
   }
 }

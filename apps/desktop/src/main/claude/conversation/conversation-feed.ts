@@ -1,7 +1,7 @@
 import { setImmediate as nextTick } from 'node:timers/promises'
 
-import type { ForkOrigin, ImageAttachment } from '@shared/claude'
-import type { FeedItem, FeedPatch, ConversationFeed } from '@shared/claude-feed'
+import type { ForkOrigin, ImageAttachment } from '@shared/conversation'
+import type { FeedItem, FeedPatch, ConversationFeed } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { stringField, parseCliLine } from '../cli/cli-messages'
@@ -17,7 +17,8 @@ import type { TranscriptPage } from '../history/transcript-pages'
 import { lastPage, pageAnchor, pageBefore } from '../history/transcript-pages'
 import { findTranscript } from '../history/transcript-paths'
 import { dropRewound } from '../history/transcript-rewinds'
-import { FEED_FLUSH_MS, REPLAY_BATCH_LINES } from './conversation.constants'
+import { FEED_FLUSH_MS } from '../../agents/conversation/conversation.constants'
+import { REPLAY_BATCH_LINES } from './conversation.constants'
 
 /** Строки транскрипта для страниц выше: свой файл или источник нерождённого форка до точки. */
 type ReadAll = () => Promise<string[]>

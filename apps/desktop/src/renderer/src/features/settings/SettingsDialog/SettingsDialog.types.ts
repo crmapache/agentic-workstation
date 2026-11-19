@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 
 import type { SoundEvent } from '@shared/sounds'
 
+import type { ChoiceOption } from '@agentic-workstation/ui/ChoiceField.types'
+
 export type SettingRowProps = {
   label: string
   /** Строка под подписью: что настройка делает, коротко. */
@@ -21,4 +23,12 @@ export type SoundRowProps = {
   onVolume: (event: SoundEvent, volume: number) => void
   /** Сыграть повод сейчас - по одному имени не понять, что услышишь. */
   onPreview: (event: SoundEvent) => void
+}
+
+export type PickRowProps = {
+  label: string
+  description: string
+  value: string
+  options: readonly ChoiceOption[]
+  onPick: (value: string) => void
 }

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import type { RunState, RunSummary, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
 import type { RunControlRefusal, ScenarioRunControl } from '@shared/scenario-view'
 

@@ -1,4 +1,4 @@
-import type { QuestionAnswers } from '@shared/claude'
+import type { QuestionAnswers } from '@shared/conversation'
 import type { InboxInvokeContract } from '@shared/ipc/inbox.contract'
 
 import type { InboxService } from '../inbox/inbox-service'

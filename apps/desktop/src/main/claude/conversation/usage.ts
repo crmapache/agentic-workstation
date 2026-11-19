@@ -1,4 +1,4 @@
-import type { ConversationUsage } from '@shared/claude'
+import type { ConversationUsage } from '@shared/conversation'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, recordsField } from '../cli/cli-messages'

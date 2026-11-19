@@ -85,7 +85,7 @@ describe('режим разговора с телефона (ADR 0076)', () => {
     const mark = sentTo().length
 
     ide.state.refusedModes = { bypass: false, autoModels: ['opus'] }
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     expect((await next('conversation', mark)).conversation.unavailableModes).toEqual([
       'auto',
       'bypassPermissions',

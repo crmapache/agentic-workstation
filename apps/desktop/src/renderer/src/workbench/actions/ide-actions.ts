@@ -7,7 +7,7 @@ import { SIDE_VIEWS } from '../views/side-views'
 import { AI_ICON } from '../../lib/ai-icon.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { useWorkspace, useActiveProject, useWorkspaceActions } from '../../state/workspace.queries'
-import { OPEN_PANEL_KEY } from '../../features/claude-code/panel-keys.constants'
+import { OPEN_PANEL_KEY } from '../../features/agent-panel/panel-keys.constants'
 import {
   GIT_BRANCH_ACTIONS,
   GIT_REPOSITORY_ACTIONS,

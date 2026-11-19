@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { PendingRequest } from '@shared/claude'
+import type { PendingRequest } from '@shared/conversation'
 
 import type {
   SearchWire,
@@ -106,7 +106,7 @@ describe('очередь разговора с телефона', () => {
         fastReport: { state: 'cooldown', reason: 'rate' },
       }),
     ]
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     say({ k: 'subscribe', conversationId })
 
     const { conversation } = await next('conversation')

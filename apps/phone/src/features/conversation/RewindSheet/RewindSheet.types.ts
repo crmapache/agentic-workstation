@@ -13,5 +13,7 @@ export type RewindSheetProps = {
   running: boolean
   /** Сколько сообщений ждёт в очереди: они уходят вместе с откатом. */
   queued: number
+  /** Что провайдер разговора умеет откатить (ProviderCaps.rewindScopes); нет - все три. */
+  allowedScopes?: readonly string[] | undefined
   onClose: () => void
 }

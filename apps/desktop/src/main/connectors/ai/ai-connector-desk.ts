@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
-import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
 import type { AiJob, GenerateConnectorRequest } from '@shared/connector-spec'
 import type { ImportCandidate } from '@shared/connectors'
+import type { FeedPatch, ConversationFeed } from '@shared/conversation-feed'
 
 import type { JsonFile } from '../../storage/json-file'
 import { readAnswer, ANSWER_JSON_SCHEMA } from './ai-answer'
@@ -159,6 +159,9 @@ export class AiConnectorDesk {
     const { id } = live.job
     const chat = this.host.open(
       {
+        provider: live.job.request.provider,
+        model: live.job.request.model,
+        effort: live.job.request.effort,
         sessionId: live.sessionId,
         resume: live.saved,
         instructions: aiInstructions(candidates),

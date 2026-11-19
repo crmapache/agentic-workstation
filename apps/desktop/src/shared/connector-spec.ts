@@ -1,4 +1,5 @@
 import type { McpAuth, ToolAccess, ImportCandidate } from './connectors'
+import type { ProviderId } from './providers'
 
 /**
  * Как сервис пускает по ключу: Bearer в Authorization, свой заголовок, параметр адреса,
@@ -49,11 +50,17 @@ export type HttpConnectorSpec = {
   tools: SpecTool[]
 }
 
-/** Что попросить у ИИ: какой сервис, что с ним делать, где документация. */
+/**
+ * Что попросить у ИИ: какой сервис, что с ним делать, где документация, - и кто собирает:
+ * провайдер, модель и усилие (пусто - его по умолчанию).
+ */
 export type GenerateConnectorRequest = {
   service: string
   goal: string
   docsUrl: string
+  provider: ProviderId
+  model: string
+  effort: string
 }
 
 /**

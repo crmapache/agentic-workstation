@@ -1,4 +1,4 @@
-import type { RefusedModes, PermissionMode } from '@shared/claude'
+import type { RefusedModes, PermissionMode } from '@shared/conversation'
 
 /** Отказов ещё не было: всё, что не запрещено настройками, считается доступным. */
 export const NO_REFUSALS: RefusedModes = { bypass: false, autoModels: [] }

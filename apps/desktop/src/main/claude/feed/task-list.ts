@@ -1,4 +1,4 @@
-import type { TaskEntry, TaskState } from '@shared/claude-feed'
+import type { TaskEntry, TaskState } from '@shared/conversation-feed'
 
 import { isRecord, recordField, stringField, recordsField } from '../cli/cli-messages'
 

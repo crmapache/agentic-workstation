@@ -146,7 +146,14 @@ export const EMPTY_ADD_FIELDS: AddFormFields = {
 export const MCP_AUTH_OPTIONS = MCP_AUTHS
 
 /** Пустая просьба к ИИ. */
-export const EMPTY_AI_REQUEST: GenerateConnectorRequest = { service: '', goal: '', docsUrl: '' }
+export const EMPTY_AI_REQUEST: GenerateConnectorRequest = {
+  service: '',
+  goal: '',
+  docsUrl: '',
+  provider: 'claude',
+  model: '',
+  effort: '',
+}
 
 /** Режимы доступности по порядку вкладок: во всех проектах или только в отмеченных. */
 export const AVAILABILITY_MODES: readonly ConnectorAvailability['mode'][] = ['all', 'only']

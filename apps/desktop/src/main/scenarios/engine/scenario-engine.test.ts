@@ -42,6 +42,7 @@ const scenarioOf = (stages: ScenarioStage[], head: Partial<Scenario['head']> = {
   inputs: [{ id: 'i', name: 'branch', label: 'Branch', placeholder: '', required: true }],
   head: {
     briefing: 'Keep it tidy.',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'acceptEdits',

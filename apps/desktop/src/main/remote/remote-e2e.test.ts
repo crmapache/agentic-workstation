@@ -18,6 +18,7 @@ import {
   conversationOf,
   CONVERSATION_ID,
 } from './__fixtures__/fake-ide'
+import { addPanel, PANEL_CONVERSATION } from './__fixtures__/fake-panels'
 import { until, WebCryptoPhone } from './__fixtures__/webcrypto-phone'
 import { projectKey as projectKeyOf } from './bridge/project-keys'
 import type { StoredRemote } from './store/remote-state'
@@ -390,6 +391,11 @@ describe('Remote Control: IDE, релей и телефон', () => {
 
       const file = keptFile()
       const ide = fakeIde()
+      // Разговор панели Codex: его зов будит телефон так же, как разговор Claude Code.
+      const codex = PANEL_CONVERSATION.codex
+
+      addPanel(ide, 'codex')
+
       const load = () =>
         RemoteService.load({
           file,
@@ -430,7 +436,7 @@ describe('Remote Control: IDE, релей и телефон', () => {
       cleanups.push(() => second.shutdown())
       await until(() => (second.view().state === 'connected' ? true : null), 'IDE back')
       ide.state.conversations = [conversationOf({ pending: PERMISSION, status: 'waiting' })]
-      second.claudeChanged(ide.state)
+      second.panelChanged()
 
       const order = await until(() => orders[0], 'a push at the push service')
       const notice = await phone.openPush(order.payload)
@@ -445,6 +451,17 @@ describe('Remote Control: IDE, релей и телефон', () => {
       })
       expect(order.payload.toString('latin1')).not.toContain('secret-client')
 
+      // Разговор Codex упёрся в лимит (зов его панели) - второй пуш, со своим провайдером.
+      second.called({ conversationId: codex, reason: 'limit' })
+
+      const limit = await phone.openPush((await until(() => orders[1], 'a Codex push')).payload)
+
+      expect(limit).toMatchObject({
+        reason: 'limit',
+        provider: 'codex',
+        route: { screen: 'conversation', conversationId: codex },
+      })
+
       // Телефон вернулся и говорит: новый вопрос он видит сам - пуша нет.
       await phone.resume()
       await phone.send({ p: 1, k: 'ping', n: 1 })
@@ -452,12 +469,12 @@ describe('Remote Control: IDE, релей и телефон', () => {
       ide.state.conversations = [
         conversationOf({ pending: { ...PERMISSION, requestId: 'perm-2' }, status: 'waiting' }),
       ]
-      second.claudeChanged(ide.state)
+      second.panelChanged()
       await new Promise((resolve) => setTimeout(resolve, 300))
       await phone.send({ p: 1, k: 'ping', n: 2 })
       await phone.next('pong', (message) => message['n'] === 2)
       await new Promise((resolve) => setTimeout(resolve, 300))
-      expect(orders).toHaveLength(1)
+      expect(orders).toHaveLength(2)
     },
   )
 

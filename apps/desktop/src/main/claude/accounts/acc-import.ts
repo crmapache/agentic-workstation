@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, isAbsolute } from 'node:path'
 
-import type { ImportableAccount } from '@shared/claude-accounts'
+import type { ImportableAccount } from '@shared/accounts'
 
 import { isRecord, stringField, recordsField } from '../cli/cli-messages'
 import type { StoredAccount } from './account-store'

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import type { GoogleAppError, GoogleAppState } from '@shared/connectors'
 
-import type { Vault } from './vault'
+import type { Vault } from '../storage/vault'
 import { parseGoogleClientFile } from './oauth/google-oauth'
 import type { GoogleClient } from './oauth/google-oauth'
 

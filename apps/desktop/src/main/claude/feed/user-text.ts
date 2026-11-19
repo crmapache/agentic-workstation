@@ -1,9 +1,9 @@
-import type { ImageAttachment } from '@shared/claude'
-import { IMAGE_MEDIA_TYPES } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
+import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
 
 import { isRecord, recordField, stringField } from '../cli/cli-messages'
-import type { ShellRun } from '../shell/shell-text'
-import { splitShellText } from '../shell/shell-text'
+import type { ShellRun } from '../../agents/shell/shell-text'
+import { splitShellText } from '../../agents/shell/shell-text'
 
 /** Сообщение человека из транскрипта: текст, картинки и команды «!», ехавшие перед ним. */
 export type UserText = { text: string; images: ImageAttachment[]; shellRuns: ShellRun[] }

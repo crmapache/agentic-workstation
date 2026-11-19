@@ -1,5 +1,5 @@
-import type { ClaudeState, Conversation, HistoryEntry } from '@shared/claude'
-import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
+import type { Conversation, HistoryEntry, AgentPanelState } from '@shared/conversation'
+import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 
 import type { PicturesPort, ConversationsPort } from '../bridge/bridge-ports'
 
@@ -31,7 +31,7 @@ const historyOf = (projectPath: string, openSession: string): HistoryEntry[] => 
 
 export type ReadsIde = {
   record: (name: string, ...args: unknown[]) => null
-  state: ClaudeState
+  state: AgentPanelState
   feed: ConversationFeed
   /** Транскрипт выше ленты: страница, которую ленте IDE отдаст loadEarlier (как окну). */
   earlier: FeedItem[]

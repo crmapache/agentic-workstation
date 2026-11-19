@@ -6,13 +6,13 @@ import { app } from 'electron'
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import { broadcast } from '../ipc/broadcast'
-import { listProviders } from '../providers/provider-registry'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import { JsonFile } from '../storage/json-file'
 import type { WorkspaceService } from '../workspace/workspace-service'
 import { shrinkPicture } from '../agents/images/shrink-picture'
-import { findTranscript } from '../claude/history/transcript-paths'
+import type { PanelRegistry } from '../agents/panel/panel-registry'
 import type { SearchDesk } from '../claude/search/search-desk'
+import { panelsPort } from './panel-ports'
 import { relayUrlFor } from './relay-url'
 import { RemoteService } from './remote-service'
 import { REMOTE_FILE } from './remote.constants'
@@ -23,57 +23,13 @@ import type {
   ScenariosPort,
   WorkspacePort,
   ConnectorsPort,
-  ConversationsPort,
 } from './bridge/bridge-ports'
 import type { StoredRemote } from './store/remote-state'
 import { safeVault } from './store/safe-vault'
 
-/** Разговоры Claude Code для моста - теми же публичными методами, что зовёт окно. */
-export const claudePort = (claude: ClaudeService): ConversationsPort => ({
-  getState: () => claude.getState(),
-  getFeed: (id) => claude.getFeed(id),
-  send: (id, message) => claude.actions.send(id, message),
-  respond: (id, requestId, response) => claude.actions.respond(id, requestId, response),
-  interrupt: (id) => claude.actions.interrupt(id),
-  newConversation: (projectPath, options) => claude.openConversation(projectPath, options),
-  close: (id) => claude.tabs.close(id, false),
-  setOptions: (id, options) => claude.actions.setOptions(id, options),
-  bypassDisabled: async (projectPath) =>
-    (await claude.settings.projectInfo(projectPath)).bypassDisabled,
-  rename: (id, title) => claude.tabs.rename(id, title),
-  providers: () => listProviders(claude),
-  history: (projectPath) => claude.listHistory(projectPath),
-  openHistory: async (projectPath, sessionId) => {
-    // Транскрипта нет - openHistory бросил бы; телефону это «не найдено», а не сбой.
-    if (!(await findTranscript(projectPath, sessionId))) return null
-
-    const state = await claude.openHistory(projectPath, sessionId)
-    const opened = state.conversations.find(
-      (conversation) =>
-        conversation.projectPath === projectPath && conversation.sessionId === sessionId,
-    )
-
-    return opened?.id ?? null
-  },
-  loadEarlier: (id) => claude.actions.loadEarlier(id),
-  image: (id, messageId, index) => claude.actions.getImage(id, messageId, index),
-  enqueue: (id, message) => claude.actions.enqueue(id, message),
-  unqueue: (id, queuedId) => claude.actions.removeQueued(id, queuedId),
-  saveFile: (name, data) => claude.composer.savePasted(name, data),
-  moveQueued: (id, queuedId, toIndex) => claude.actions.moveQueued(id, queuedId, toIndex),
-  sendQueued: (id, queuedId) => claude.actions.sendQueued(id, queuedId),
-  forceStop: (id) => claude.actions.forceStop(id),
-  stopTask: (id, taskId) => claude.actions.stopTask(id, taskId),
-  cancelCarryOn: (id) => claude.panel.carryOn.cancel(id),
-  askAside: (id, question, askId) => claude.panel.aside.askFor(id, question, askId),
-  cancelAside: (id, askId) => claude.panel.aside.cancel(id, askId),
-  rewindPreview: (id, messageId) => claude.actions.previewRewind(id, messageId),
-  rewind: async (id, messageId, scope) =>
-    (await claude.actions.rewind(id, messageId, scope)).outcome,
-})
-
 /** Аккаунты Claude для моста - те же действия, что у каналов accounts:* окна. */
 export const accountsPort = (claude: ClaudeService): AccountsPort => ({
+  state: () => claude.getState().accounts,
   refreshUsage: (accountIds) => claude.usage.refresh(accountIds),
   use: (accountId) => {
     claude.accounts.select(accountId)
@@ -139,6 +95,8 @@ export const scenariosPort = (scenarios: ScenarioService): ScenariosPort => ({
 
 export type RemoteSetup = {
   claude: ClaudeService
+  /** Панели всех провайдеров: телефон видит разговоры каждой (ADR 0083). */
+  panels: PanelRegistry
   scenarios: ScenarioService
   /**
    * Прогоны заданий. Задания поднимаются после Remote Control (им нужна статистика), поэтому
@@ -166,7 +124,7 @@ export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
     file: new JsonFile<StoredRemote>(join(setup.dataDir, REMOTE_FILE), { mode: 0o600 }),
     vault: safeVault,
     ports: {
-      conversations: claudePort(setup.claude),
+      panels: panelsPort(setup.claude, setup.panels),
       scenarios: scenariosPort(setup.scenarios),
       tasks: setup.tasks,
       workspace: workspacePort(setup.workspace),

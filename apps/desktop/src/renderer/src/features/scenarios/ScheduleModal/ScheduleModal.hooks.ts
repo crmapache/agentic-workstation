@@ -7,6 +7,7 @@ import type { Scenario } from '@shared/scenarios'
 import type { ScheduledHour } from '../scenarios-hours.utils'
 import { useScenarioActions } from '../scenarios.actions'
 import { useScenariosStore } from '../scenarios.store'
+import { useProviders, effectiveProvider } from '../../../state/providers.queries'
 import type { ScheduleFormProps } from './ScheduleModal.types'
 import { scenarioOf } from './ScheduleModal.utils'
 
@@ -21,11 +22,19 @@ export const useScheduleForm = ({ project, request, scenarios, initial }: Schedu
   const [form, setForm] = useState(initial)
   const [saving, setSaving] = useState(false)
   const scenario = scenarioOf(scenarios, form.scenario)
+  const providers = useProviders().data ?? []
+  // Пока человек не выбрал сам - провайдер сценария, если он на месте, иначе первый на месте.
+  const provider = effectiveProvider(providers, form.provider, scenario?.head.provider ?? null)
   const isMissing = scenario ? missingInputs(scenario, form.values).length > 0 : true
-  const canSave = scenario !== null && isRunnable(scenario) && !isMissing && !saving
+  const canSave =
+    scenario !== null &&
+    isRunnable(scenario) &&
+    !isMissing &&
+    provider?.available === true &&
+    !saving
 
   const save = async () => {
-    if (!scenario || !canSave) return
+    if (!scenario || !provider || !canSave) return
 
     setSaving(true)
 
@@ -38,7 +47,7 @@ export const useScheduleForm = ({ project, request, scenarios, initial }: Schedu
       weekday: form.hour.weekday,
       inputs: answersOf(scenario, form.values),
       worktree: form.worktree,
-      provider: form.provider,
+      provider: provider.id,
     })
 
     setSaving(false)
@@ -49,6 +58,7 @@ export const useScheduleForm = ({ project, request, scenarios, initial }: Schedu
   return {
     form,
     scenario,
+    provider,
     canSave,
     close,
     save: () => void save(),

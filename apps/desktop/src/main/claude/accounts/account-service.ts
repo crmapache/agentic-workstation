@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import type { AccountsState, AccountOutcome } from '@shared/claude-accounts'
+import type { AccountsState, AccountOutcome } from '@shared/accounts'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import { runCli } from '../tools/cli-run'

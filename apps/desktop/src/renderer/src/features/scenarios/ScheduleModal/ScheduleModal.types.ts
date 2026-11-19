@@ -1,4 +1,4 @@
-import type { ProviderId, ProviderInfo } from '@shared/providers'
+import type { ProviderId } from '@shared/providers'
 import type { Scenario, ScenarioScope } from '@shared/scenarios'
 
 import type { ScheduledHour } from '../scenarios-hours.utils'
@@ -19,7 +19,11 @@ export type ScheduleFormState = {
   hour: ScheduledHour
   values: Record<string, string>
   worktree: boolean
-  provider: ProviderId
+  /**
+   * Провайдер, выбранный человеком (у правки - провайдер записи); null - не выбирал: окно берёт
+   * провайдера сценария, если он стоит на машине, иначе первого, что стоит (effectiveProvider).
+   */
+  provider: ProviderId | null
 }
 
 export type ScheduleFormProps = ScheduleModalProps & {
@@ -42,10 +46,4 @@ export type InputFieldsProps = {
   scenario: Scenario
   values: Record<string, string>
   onChange: (values: Record<string, string>) => void
-}
-
-export type ProviderPickerProps = {
-  providers: readonly ProviderInfo[]
-  value: ProviderId
-  onPick: (provider: ProviderId) => void
 }

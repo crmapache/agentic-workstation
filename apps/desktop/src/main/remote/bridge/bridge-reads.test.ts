@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
 import type {

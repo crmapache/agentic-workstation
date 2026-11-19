@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 import { DAY_MS, MINUTE_MS, SECOND_MS } from '@shared/time-units'
 
 import { FileOpsService } from '../fs/file-ops-service'

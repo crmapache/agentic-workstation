@@ -1,16 +1,17 @@
+import type { AccountsState } from '@shared/accounts'
+import type { SearchAnswer, AiSearchOutcome } from '@shared/claude-search'
+import type { Connector } from '@shared/connectors'
 import type {
-  ClaudeState,
   HistoryEntry,
+  AgentPanelState,
   ImageAttachment,
   RequestResponse,
   ConversationOptions,
-} from '@shared/claude'
-import type { ConversationFeed } from '@shared/claude-feed'
-import type { AsideExchange } from '@shared/claude-panel'
-import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/claude-rewind'
-import type { SearchAnswer, AiSearchOutcome } from '@shared/claude-search'
-import type { Connector } from '@shared/connectors'
-import type { ProviderInfo } from '@shared/providers'
+} from '@shared/conversation'
+import type { ConversationFeed } from '@shared/conversation-feed'
+import type { AsideExchange } from '@shared/panel-extras'
+import type { ProviderId, ProviderInfo } from '@shared/providers'
+import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/rewind'
 import type {
   QueueAction,
   ScenarioQueuesView,
@@ -37,9 +38,20 @@ import type { WorkspaceState } from '@shared/workspace'
  * подделки этих портов.
  */
 
-/** Разговоры провайдера. Сейчас один - Claude Code (ClaudeService), провайдер в каждой записи. */
+/**
+ * Разговоры одной панели провайдера (ADR 0083): Claude Code, Codex, открытые модели. id
+ * разговоров - UUID вкладок, у двух панелей они не совпадают: команду по id ведёт панель, у
+ * которой этот разговор. Своё Claude Code (слои настроек, продолжение после лимита, вопрос
+ * сбоку) - необязательными методами: у других провайдеров их нет, и мост отказывает.
+ */
 export type ConversationsPort = {
-  getState: () => ClaudeState
+  provider: ProviderId
+  /**
+   * Провайдер для всего, что не панель (как providers:list): на месте ли, модели, режимы и
+   * уровни - по нынешнему состоянию панели; null - CLI ещё ищут.
+   */
+  info: () => ProviderInfo | null
+  getState: () => AgentPanelState
   getFeed: (conversationId: string) => Promise<ConversationFeed>
   send: (
     conversationId: string,
@@ -58,11 +70,10 @@ export type ConversationsPort = {
   setOptions: (conversationId: string, options: ConversationOptions) => unknown
   /**
    * Запретил ли режим без вопросов хоть один слой настроек проекта (claudeConfig:project) - то,
-   * по чему окно гасит bypass в меню MODE.
+   * по чему окно гасит bypass в меню MODE. Нет - слоёв настроек у провайдера нет.
    */
-  bypassDisabled: (projectPath: string) => Promise<boolean>
+  bypassDisabled?: ((projectPath: string) => Promise<boolean>) | undefined
   rename: (conversationId: string, title: string) => Promise<unknown>
-  providers: () => Promise<ProviderInfo[]>
   /** Прошлые разговоры проекта (agent:listHistory). */
   history: (projectPath: string) => Promise<HistoryEntry[]>
   /**
@@ -80,30 +91,40 @@ export type ConversationsPort = {
     message: { text: string; images: ImageAttachment[] },
   ) => Promise<unknown>
   unqueue: (conversationId: string, queuedId: string) => unknown
-  /**
-   * Файл с телефона - в каталог вставок IDE (claude:savePasted): путь на диске или null (пустой,
-   * тяжелее потолка, не записался). Тот же путь, что у документа, вставленного в поле IDE.
-   */
-  saveFile: (name: string, data: string) => Promise<string | null>
   moveQueued: (conversationId: string, queuedId: string, toIndex: number) => unknown
   sendQueued: (conversationId: string, queuedId: string) => Promise<unknown>
   forceStop: (conversationId: string) => unknown
   /** Остановить задачу CLI (stop_task): субагента или фоновую команду, ход не трогается. */
   stopTask: (conversationId: string, taskId: string) => unknown
+  rewindPreview: (conversationId: string, messageId: string) => Promise<RewindPreview>
+  rewind: (conversationId: string, messageId: string, scope: RewindScope) => Promise<RewindOutcome>
   /** «Don't continue» под планом продолжения (claudePanel:cancelCarryOn). */
-  cancelCarryOn: (conversationId: string) => unknown
+  cancelCarryOn?: ((conversationId: string) => unknown) | undefined
   /**
    * Вопрос сбоку от телефона (AsideDesk.askFor): итог, когда он пришёл; null - id уже занят или
    * разговор сменился раньше ответа.
    */
-  askAside: (
-    conversationId: string,
-    question: string,
-    askId: string,
-  ) => Promise<AsideExchange | null>
-  cancelAside: (conversationId: string, askId: string) => unknown
-  rewindPreview: (conversationId: string, messageId: string) => Promise<RewindPreview>
-  rewind: (conversationId: string, messageId: string, scope: RewindScope) => Promise<RewindOutcome>
+  askAside?:
+    | ((conversationId: string, question: string, askId: string) => Promise<AsideExchange | null>)
+    | undefined
+  cancelAside?: ((conversationId: string, askId: string) => unknown) | undefined
+}
+
+/** Панели провайдеров IDE - всё, что телефону о разговорах, с чьими бы они ни были. */
+export type PanelsPort = {
+  /** Панели по порядку: первой - Claude Code. */
+  list: () => readonly ConversationsPort[]
+  /**
+   * Поискать CLI провайдеров заново (providers:list): их могли поставить, пока IDE открыта.
+   * Перемена придёт состоянием панели.
+   */
+  refresh: () => Promise<unknown>
+  /**
+   * Файл с телефона - в каталог вставок IDE (claude:savePasted): путь на диске или null (пустой,
+   * тяжелее потолка, не записался). Тот же путь, что у документа, вставленного в поле IDE любой
+   * панели.
+   */
+  saveFile: (name: string, data: string) => Promise<string | null>
 }
 
 /** Поиск по разговорам проекта (SearchDesk): индексом и моделью. */
@@ -114,10 +135,12 @@ export type SearchPort = {
 }
 
 /**
- * Аккаунты провайдера (AccountService и переезд панели). Список - в состоянии разговоров
- * (ClaudeState.accounts); здесь только действия, те же, что у каналов accounts:* окна.
+ * Аккаунты Claude Code (AccountService и переезд панели): список и те же действия, что у
+ * каналов accounts:* окна.
  */
 export type AccountsPort = {
+  /** Аккаунты и их лимиты, как в состоянии панели (AgentPanelState.accounts). */
+  state: () => AccountsState
   /** Освежить лимиты аккаунтов - каждый не чаще своего шага; ответ - когда цифры пришли. */
   refreshUsage: (accountIds: string[]) => Promise<unknown>
   /** Выбрать аккаунт для всех разговоров: процессы переезжают, как освободятся. */
@@ -203,7 +226,7 @@ export type WorkspacePort = {
 }
 
 export type BridgePorts = {
-  conversations: ConversationsPort
+  panels: PanelsPort
   scenarios: ScenariosPort
   tasks: TasksPort
   workspace: WorkspacePort

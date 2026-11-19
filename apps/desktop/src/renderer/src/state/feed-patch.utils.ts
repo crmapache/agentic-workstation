@@ -1,4 +1,4 @@
-import type { FeedItem, FeedPatch, ConversationFeed } from '@shared/claude-feed'
+import type { FeedItem, FeedPatch, ConversationFeed } from '@shared/conversation-feed'
 
 /**
  * Патч главного процесса поверх ленты из кэша: убранные откатом уходят, новые элементы

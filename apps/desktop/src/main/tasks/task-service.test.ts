@@ -313,7 +313,7 @@ describe('TaskService', () => {
   it('sends words to the chat tab of a run that was opened in the panel', async () => {
     const told: string[] = []
     const { tasks } = await start(() => ({ kind: 'say', text: 'ok' }), {
-      chat: (_sessionId, text) => {
+      chat: (_run, text) => {
         told.push(text)
 
         return Promise.resolve(true)

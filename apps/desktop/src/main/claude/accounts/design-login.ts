@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 
-import type { PanelTerminalCommand } from '@shared/claude-panel'
+import type { PanelTerminalCommand } from '@shared/panel-extras'
 
 import { IS_WINDOWS } from '../../platform'
 import { consoleScript, writeConsoleScript } from './console-script'

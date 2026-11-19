@@ -1,5 +1,5 @@
-import type { TitleSource } from '@shared/claude'
-import { OWN_TITLE_MAX, TITLE_SOURCES } from '@shared/claude'
+import type { TitleSource } from '@shared/conversation'
+import { OWN_TITLE_MAX, TITLE_SOURCES } from '@shared/conversation'
 
 /** Пробелы, переводы строк и управляющие символы: в имени вкладки это пробел. */
 const BREAKS = /[\s\p{Cc}]+/gu

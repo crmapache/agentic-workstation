@@ -1,5 +1,5 @@
-import type { DraftChip } from '@shared/claude-draft'
-import { MAX_SELECTION_CHARS } from '@shared/claude-draft'
+import type { DraftChip } from '@shared/message-draft'
+import { MAX_SELECTION_CHARS } from '@shared/message-draft'
 
 /**
  * Чип куска файла для чата: путь от корня проекта, строки («L12» или «L12-L18») и ровно

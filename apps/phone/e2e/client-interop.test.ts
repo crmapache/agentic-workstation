@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'

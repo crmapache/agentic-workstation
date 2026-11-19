@@ -31,7 +31,7 @@ import type { ConnectorsEvents, ConnectorsPlaces } from './connectors-service.ty
 import { GatewayHost } from './gateway-host'
 import { LiveConnectors } from './live-connectors'
 import { AiConnectorDesk } from './ai/ai-connector-desk'
-import type { McpLaunch } from './gateway/launches'
+import type { McpLaunch, GatewayLaunch } from './gateway/launches'
 import { ImportDesk } from './import/import-desk'
 import { signsInWithBrowser } from './kinds/sources'
 import { BrowserDesk } from './kinds/browser/browser-desk'
@@ -164,6 +164,11 @@ export class ConnectorsService {
    */
   mcpConfigFor(projectPath: string, ideServers: readonly string[] = []): Promise<McpLaunch | null> {
     return this.gateway.open(projectPath, ideServers)
+  }
+
+  /** Ключ шлюза без файла - для процесса, который берёт серверы флагами (Codex). */
+  gatewayFor(projectPath: string, ideServers: readonly string[] = []): GatewayLaunch | null {
+    return this.gateway.openInMemory(projectPath, ideServers)
   }
 
   getState(): ConnectorsState {

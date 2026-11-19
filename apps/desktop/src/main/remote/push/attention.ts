@@ -1,4 +1,3 @@
-import type { Conversation } from '@shared/claude'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
@@ -6,8 +5,9 @@ import { isRunFinished } from '@shared/scenario-runs'
 import type { PushNotice, PushReason } from '@agentic-workstation/remote-protocol/push'
 import { PUSH_TEXT_MAX } from '@agentic-workstation/remote-protocol/push'
 
-import { titleOf, CLAUDE_PROVIDER } from '../bridge/conversation-wire'
+import { titleOf } from '../bridge/conversation-wire'
 import type { Redact } from '../bridge/fit'
+import type { OwnedConversation } from '../bridge/panels'
 import type { ProjectKeys } from '../bridge/project-keys'
 
 /**
@@ -38,7 +38,8 @@ export type Attention = {
 }
 
 export type AttentionInput = {
-  conversations: readonly Conversation[]
+  /** Разговоры всех панелей с провайдером каждого: пуш называет, чей разговор зовёт. */
+  conversations: readonly OwnedConversation[]
   events: readonly ConversationEvent[]
   queues: ScenarioQueuesView
   /** Последнее состояние идущих прогонов - в нём вопрос головы с опознанием. */
@@ -60,14 +61,14 @@ const short = (text: string, redact: Redact, max = PUSH_TEXT_MAX): string => {
 const conversationAttention = (input: AttentionInput): Attention[] => {
   const { keys, redact } = input
 
-  return input.conversations.flatMap((conversation) => {
+  return input.conversations.flatMap(({ provider, conversation }) => {
     // Разговоры закрытого проекта телефону не видны - и будить ими незачем.
     if (!keys.isOpen(conversation.projectPath)) return []
 
     const tag = `c-${conversation.id}`
     const base = {
       detail: '',
-      provider: CLAUDE_PROVIDER,
+      provider,
       project: short(keys.nameOf(conversation.projectPath), redact),
       title: short(titleOf(conversation), redact),
       tool: '',

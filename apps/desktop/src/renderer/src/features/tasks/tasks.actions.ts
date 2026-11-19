@@ -2,9 +2,11 @@ import type { TaskDraft, TaskSaved, TaskOutcome, TaskStarted } from '@shared/tas
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
+import { PROVIDER_VIEW_OF } from '../../state/layout.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useTaskRunStore } from '../../state/task-run.store'
+import { runProviderOf } from '../../state/tasks.queries'
 import { useTasksStore } from './tasks.store'
 
 /**
@@ -54,7 +56,7 @@ export const useTaskActions = () => {
     if (!took(await invoke('tasks:openChat', { runId }))) return
 
     useTaskRunStore.getState().close()
-    useLayoutStore.getState().showProviderView('claude-code')
+    useLayoutStore.getState().showProviderView(PROVIDER_VIEW_OF[runProviderOf(queryClient, runId)])
   }
 
   return { save, remove, setEnabled, runNow, stop, tell, wake, openChat }

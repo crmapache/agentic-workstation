@@ -120,6 +120,13 @@ const MACHINE_PREFIXES = [
   '<bash-stderr',
 ]
 
+/**
+ * Текст вставил CLI или IDE, а не человек: служебные вставки одинаковы у всех провайдеров -
+ * их кладёт панель IDE (продолжение, уведомления) или сам CLI.
+ */
+export const isMachineText = (said: string): boolean =>
+  MACHINE_PREFIXES.some((prefix) => said.startsWith(prefix))
+
 const promptText = (body: Json): string | null => {
   const content = (body['message'] as Json | undefined)?.['content']
 
@@ -150,7 +157,7 @@ export const promptKindOf = (body: Json): PromptKind => {
     body['promptSource'] === 'system' ||
     body['origin'] !== undefined ||
     AUTO_ORIGINS.has(text(body, 'turnOrigin')) ||
-    MACHINE_PREFIXES.some((prefix) => said.startsWith(prefix))
+    isMachineText(said)
 
   return automatic ? 'auto' : 'human'
 }

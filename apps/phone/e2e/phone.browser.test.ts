@@ -5,7 +5,7 @@ import type { Page, Browser, BrowserContext } from 'playwright-core'
 import { chromium } from 'playwright-core'
 import { it, expect, afterAll, describe, beforeAll } from 'vitest'
 
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 import type { ScenarioQueue } from '@shared/scenario-queues'
 
 import { MESSAGE_UUID } from '../../desktop/src/main/remote/__fixtures__/fake-extras'
@@ -275,9 +275,9 @@ describe('телефон в мобильном Chromium против насто�
     await until(() => ide.ide.calls.find((call) => call.name === 'interrupt'), 'stop at the IDE')
 
     // Отказ IDE - уведомлением сразу над низом экрана, а не поверх поля и кнопок.
-    const { interrupt } = ide.ide.ports.conversations
+    const { interrupt } = ide.ide.claude
 
-    ide.ide.ports.conversations.interrupt = () => {
+    ide.ide.claude.interrupt = () => {
       throw new Error('the CLI did not answer')
     }
     await page.getByRole('button', { name: 'Stop', exact: true }).click()
@@ -289,7 +289,7 @@ describe('телефон в мобильном Chromium против насто�
     expect(footer.top - toasts.bottom).toBeGreaterThanOrEqual(4)
     expect(footer.top - toasts.bottom).toBeLessThanOrEqual(12)
     await shot('05c-toast')
-    ide.ide.ports.conversations.interrupt = interrupt
+    ide.ide.claude.interrupt = interrupt
     await page.getByRole('button', { name: 'Dismiss' }).click()
     ide.update({ status: 'idle', turnStartedAt: null, workStartedAt: null })
     await page.getByRole('button', { name: 'Stop', exact: true }).waitFor({ state: 'detached' })

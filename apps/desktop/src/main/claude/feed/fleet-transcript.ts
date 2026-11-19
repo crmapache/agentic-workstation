@@ -1,4 +1,4 @@
-import type { FleetTranscript } from '@shared/claude-feed'
+import type { FleetTranscript } from '@shared/conversation-feed'
 
 import { isRecord, recordField, stringField, parseCliLine } from '../cli/cli-messages'
 import {

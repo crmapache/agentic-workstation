@@ -1,6 +1,6 @@
 import type { BrowserWindow } from 'electron'
 
-import type { PicturePlace } from '@shared/claude-draft'
+import type { PicturePlace } from '@shared/message-draft'
 
 import type { ClaudeService } from '../claude/claude-service'
 import type { WorkspaceService } from '../workspace/workspace-service'

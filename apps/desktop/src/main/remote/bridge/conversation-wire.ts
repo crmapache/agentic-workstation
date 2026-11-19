@@ -1,4 +1,4 @@
-import type { Conversation, PendingRequest } from '@shared/claude'
+import type { Conversation, PendingRequest } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
 
 import type {
@@ -9,15 +9,7 @@ import type {
   ConversationSummary,
 } from '@agentic-workstation/remote-protocol/wire-types'
 
-/** Разговоры панели - провайдера Claude Code; второй провайдер принесёт свой id. */
-export const CLAUDE_PROVIDER: ProviderId = 'claude'
-
-/**
- * Провайдер, чьи разговоры мост отдаёт телефону. Пока это одна панель Claude: разговоры
- * Codex и открытых моделей телефон получит вместе с переводом телефона на провайдеров
- * (этап 5 плана). Другой провайдер - отказ providerMissing, а не чужая история.
- */
-export const isServedProvider = (value: unknown): value is ProviderId => value === CLAUDE_PROVIDER
+import { actionWire } from './action-wire'
 
 /** Состояние для телефона: ход ждёт человека, идёт (и фоновые агенты), свободен. */
 export const statusOf = (conversation: Conversation): ConversationStatus => {
@@ -66,9 +58,14 @@ const outcomeOf = (conversation: Conversation): ConversationOutcome =>
 export const titleOf = (conversation: Conversation): string =>
   conversation.title || conversation.fork?.sourceTitle || 'New chat'
 
-export const summaryOf = (conversation: Conversation, since: number): ConversationSummary => ({
+/** Разговор в списке машины - с провайдером его панели. */
+export const summaryOf = (
+  conversation: Conversation,
+  provider: ProviderId,
+  since: number,
+): ConversationSummary => ({
   id: conversation.id,
-  provider: CLAUDE_PROVIDER,
+  provider,
   title: titleOf(conversation),
   status: statusOf(conversation),
   outcome: outcomeOf(conversation),
@@ -78,7 +75,8 @@ export const summaryOf = (conversation: Conversation, since: number): Conversati
 
 /**
  * Вопрос хода - без «разрешать всегда»: такой ответ с телефона не даётся. Целиком: урезала ли
- * его дорога до телефона, скажет fitConversation (fit-pending.ts).
+ * его дорога до телефона, скажет fitConversation (fit-pending.ts). У разрешения - и вид
+ * действия: по нему телефон показывает вызов любого провайдера.
  */
 const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
   if (!pending) return null
@@ -93,6 +91,7 @@ const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
         reason: pending.reason,
         input: pending.input,
         truncated: false,
+        action: actionWire(pending.action),
       }
     case 'question':
       return {
@@ -112,11 +111,12 @@ const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
  */
 export const conversationWire = (
   conversation: Conversation,
+  provider: ProviderId,
   projectKey: string,
   since: number,
   unavailableModes: readonly string[],
 ): ConversationWire => ({
-  ...summaryOf(conversation, since),
+  ...summaryOf(conversation, provider, since),
   projectKey,
   model: conversation.model,
   effort: conversation.effort,

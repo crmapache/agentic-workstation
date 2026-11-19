@@ -85,7 +85,7 @@ export const ConversationSettings = ({
         <Section size="sm" title={t('conversation.settings.effort')}>
           <OptionList
             label={t('conversation.settings.effort')}
-            options={effortOptions(t, provider)}
+            options={effortOptions(t, provider, conversation.model ?? conversation.activeModel)}
             isSelected={(value) => (conversation.effort ?? '') === value}
             onSelect={(value) =>
               setEffort.mutate({ conversationId, effort: (value || null) as Effort })

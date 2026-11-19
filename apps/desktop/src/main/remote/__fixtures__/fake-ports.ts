@@ -1,6 +1,6 @@
-import type { ClaudeState, Conversation } from '@shared/claude'
-import type { AsideExchange } from '@shared/claude-panel'
 import type { SearchHit } from '@shared/claude-search'
+import type { Conversation, AgentPanelState } from '@shared/conversation'
+import type { AsideExchange } from '@shared/panel-extras'
 import type { Scenario } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
 
@@ -22,7 +22,7 @@ export type Record = (name: string, ...args: unknown[]) => null
 
 export type ExtrasIde = {
   record: Record
-  state: ClaudeState
+  state: AgentPanelState
   workspace: WorkspaceState
   projectPath: string
   scenario: Scenario
@@ -31,6 +31,8 @@ export type ExtrasIde = {
 
 type Controls = Omit<
   ConversationsPort,
+  | 'provider'
+  | 'info'
   | 'getState'
   | 'getFeed'
   | 'send'
@@ -41,7 +43,6 @@ type Controls = Omit<
   | 'setOptions'
   | 'bypassDisabled'
   | 'rename'
-  | 'providers'
   | 'history'
   | 'openHistory'
   | 'loadEarlier'
@@ -85,12 +86,6 @@ export const controlsOf = (ide: ExtrasIde): Controls => {
       ])
 
       return Promise.resolve(null)
-    },
-    // Как ComposerTools.savePasted: файл ложится в каталог вставок, ответ - его путь.
-    saveFile: (name, data) => {
-      ide.record('saveFile', name, data)
-
-      return Promise.resolve(`/ide/pasted/${name}`)
     },
     unqueue: (id, queuedId) => {
       ide.record('unqueue', id, queuedId)
@@ -212,7 +207,17 @@ export const searchOf = (record: Record, projectPath: string): SearchPort => ({
   cancel: (runId) => void record('search.cancel', runId),
 })
 
-export const accountsPortOf = (record: Record, state: ClaudeState): AccountsPort => ({
+/** Как ComposerTools.savePasted: файл ложится в каталог вставок, ответ - его путь. */
+export const saveFileOf =
+  (record: Record) =>
+  (name: string, data: string): Promise<string | null> => {
+    record('saveFile', name, data)
+
+    return Promise.resolve(`/ide/pasted/${name}`)
+  }
+
+export const accountsPortOf = (record: Record, state: AgentPanelState): AccountsPort => ({
+  state: () => state.accounts,
   refreshUsage: (ids) => Promise.resolve(record('accounts.refreshUsage', ids)),
   use: (id) => {
     record('accounts.use', id)

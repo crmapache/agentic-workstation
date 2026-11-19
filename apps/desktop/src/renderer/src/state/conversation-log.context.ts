@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import { useContext, createContext } from 'react'
 
-import type { ConversationFeed } from '@shared/claude-feed'
+import type { ConversationFeed } from '@shared/conversation-feed'
 
 /**
  * Кто в этой ленте стоит на месте человека: main - главный поток прогона (журнал шага: карточке

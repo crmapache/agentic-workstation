@@ -2,9 +2,10 @@ import type {
   Conversation,
   RequestResponse,
   ConversationError,
+  ConversationUsage,
   ConversationOptions,
-} from '@shared/claude'
-import type { NoticeCode, StopReason, ConversationFeed } from '@shared/claude-feed'
+} from '@shared/conversation'
+import type { NoticeCode, StopReason, ConversationFeed } from '@shared/conversation-feed'
 
 import { syncWork } from '../feed/work-clock'
 import type {
@@ -22,6 +23,9 @@ import { matchesRequest } from './request-match'
 
 /** Разговор работает: идёт ход (с вопросами к человеку) или фоновые агенты. */
 const isWorking = (meta: Conversation): boolean => meta.status !== 'idle' || meta.backgroundWork
+
+/** Чем кончился ход: остановкой, ошибкой и с какими цифрами контекста. */
+export type TurnEnd = { interrupted: boolean; isError: boolean; usage: ConversationUsage }
 
 /** Почему сессия кончилась: в ленту строкой, ход закрывается. null - кончилась тихо (сон). */
 export type SessionExit = { code: NoticeCode; detail: string } | null
@@ -122,22 +126,38 @@ export class ConversationRuntime {
 
   /**
    * Остановить ход - человек или панель ради переезда на аккаунт (подпись итога). Ход
-   * кончится словами CLI; вопросы, которые ждали, снимаются.
+   * кончится словами CLI; вопросы, которые ждали, снимаются. Хода нет - снимаются только
+   * вопросы, которые панель держит сама после хода (план Codex), и очередь ждёт человека;
+   * вопрос фонового субагента CLI остаётся ждать ответа.
    */
   interrupt(reason: StopReason = 'you'): void {
     const session = this.session
 
-    if (!session?.isAlive || !this.turnActive) return
+    if (!session?.isAlive) return
+    if (!this.turnActive) return this.dropOwnQuestions(session)
 
     for (const held of this.held) session.dismiss(held)
 
     this.held = []
+
     this.feed.builder.noteStopped(reason)
     this.update({ stopRequestedAt: Date.now() })
     this.syncStatus()
     session.interrupt().catch((error: unknown) => {
       console.warn('[agents] остановка хода не принята:', error)
     })
+  }
+
+  private dropOwnQuestions(session: AgentSession): void {
+    const own = this.held.filter((held) => held.ownAfterTurn)
+
+    if (own.length === 0) return
+
+    for (const held of own) session.dismiss(held)
+
+    this.held = this.held.filter((held) => !held.ownAfterTurn)
+    this.syncStatus()
+    void this.outbox.afterTurn(false)
   }
 
   /** CLI не ответил на остановку - погасить сессию. */
@@ -276,6 +296,24 @@ export class ConversationRuntime {
 
     // Ход оборвался вместе с сессией - очередь ждёт человека, как после «стоп».
     if (exit) void this.outbox.afterTurn(false)
+  }
+
+  /**
+   * Ход кончился словами CLI (у Claude - `result`, у Codex - `turn/completed`): лента
+   * дописана, вкладка свободна, цифры контекста и исход. Вопросы фоновых субагентов
+   * переживают конец хода: CLI ждёт на них ответа. Очередь и сон драйвер запускает сам
+   * (afterTurn) - после того, что ему нужно спросить у ещё живой сессии.
+   */
+  settleTurn(end: TurnEnd): void {
+    this.feed.flush()
+    this.turnActive = false
+    this.update({
+      turnStartedAt: null,
+      stopRequestedAt: null,
+      usage: end.usage,
+      outcome: end.isError ? 'error' : end.interrupted ? 'interrupted' : 'done',
+    })
+    this.syncStatus()
   }
 
   /**

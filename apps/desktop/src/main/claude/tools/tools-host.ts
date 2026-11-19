@@ -1,4 +1,4 @@
-import type { SlashCommand } from '@shared/claude'
+import type { SlashCommand } from '@shared/conversation'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'

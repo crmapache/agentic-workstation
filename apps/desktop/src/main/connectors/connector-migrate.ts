@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { isCustomKind, NOTIFICATIONS_SERVER_NAME } from '@shared/connectors'
 
+import type { Vault } from '../storage/vault'
 import { commandForStore } from './connector-command'
 import type { ConnectorRegistry } from './connector-registry'
 import { SecretsOf, typeSecretsKey, definitionSecrets } from './connector-secrets'
@@ -9,7 +10,6 @@ import { blankConnector } from './connector-store'
 import type { StoredConnector } from './connector-store'
 import { planTypes } from './connector-types'
 import { publicUrl } from './connector-url'
-import type { Vault } from './vault'
 import { asPlaywright } from './kinds/playwright'
 
 /**

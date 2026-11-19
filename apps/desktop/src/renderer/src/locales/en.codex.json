@@ -1,0 +1,82 @@
+{
+  "agentPanel": {
+    "modes": {
+      "labels": {
+        "default": "Ask every time",
+        "acceptEdits": "Auto",
+        "plan": "Plan mode",
+        "bypassPermissions": "Full access"
+      },
+      "short": {
+        "default": "Ask",
+        "acceptEdits": "Auto",
+        "plan": "Plan",
+        "bypassPermissions": "Full"
+      },
+      "hints": {
+        "default": "Codex asks before anything not known to be safe",
+        "acceptEdits": "Works in the project folder on its own, asks to step outside it",
+        "plan": "Codex explores and plans, changes nothing",
+        "bypassPermissions": "No sandbox, no questions, network on. Only where mistakes are cheap"
+      }
+    },
+    "blocked": {
+      "trustText": "Codex will read, edit and run commands in this folder. Trust only folders you know."
+    },
+    "settings": {
+      "rows": {
+        "meters": {
+          "sub": "Limit rings below the message box"
+        }
+      }
+    },
+    "permission": {
+      "allowAlways": "Allow for this chat"
+    },
+    "loginGate": {
+      "text": "Codex opens your browser to sign in with ChatGPT. The panel picks it up on its own.",
+      "openAgain": "Open the browser again",
+      "finish": "Finish signing in in the browser - this screen closes by itself.",
+      "noTerminal": "The sign-in didn't go through. Try again."
+    },
+    "accounts": {
+      "waiting": "Finish signing in in the browser. The panel picks it up by itself.",
+      "openFailed": "The sign-in didn't go through. Try again.",
+      "logoutTitle": "Log out of Codex?",
+      "logoutText": "Codex is signed out on this computer, in the terminal too.",
+      "logoutFailed": "Couldn't sign out: Codex is still signed in. Try again.",
+      "help": "Chats run on the account Codex is signed in with. Sign in opens your browser for ChatGPT; the panel picks the sign-in up by itself. Log out signs Codex out on this computer, in the terminal too."
+    },
+    "menu": {
+      "titles": {
+        "accounts": {
+          "title": "Codex account"
+        }
+      },
+      "rows": {
+        "accounts": {
+          "label": "Codex account"
+        }
+      }
+    },
+    "slash": {
+      "panel": {
+        "login": "sign in to Codex - opens the browser",
+        "logout": "sign out of Codex on this computer",
+        "fast": "toggle fast mode - faster answers, your limits go faster too"
+      }
+    },
+    "fast": {
+      "offSub": "Off · faster answers, your limits go faster too",
+      "waitingSub": "On from the next message · your limits go faster too",
+      "onSub": "On · your limits go faster too"
+    },
+    "notice": {
+      "fast": {
+        "reasons": {
+          "modelNotAllowed": "This model has no fast tier."
+        }
+      }
+    }
+  }
+}

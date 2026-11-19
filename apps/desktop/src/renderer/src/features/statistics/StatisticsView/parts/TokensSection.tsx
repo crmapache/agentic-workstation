@@ -91,7 +91,9 @@ export const TokensSection = ({ data, chart, labels }: SectionProps) => {
           <RankedList
             title={t('statistics.tokens.models')}
             emptyLabel={t('statistics.nothing')}
-            rows={modelRows(report.models, rowValue)}
+            rows={modelRows(report.models, rowValue, (provider) =>
+              t(`statistics.providers.${provider}`),
+            )}
           />
           <RankedList
             title={t('statistics.tokens.projects')}

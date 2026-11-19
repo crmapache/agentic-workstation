@@ -43,6 +43,12 @@ export type OnGiveUp = 'stop' | 'head'
 export type HeadSettings = {
   /** Для чего этот круг работ - словами человека; голова судит по нему каждую карточку. */
   briefing: string
+  /**
+   * Провайдер, под которого написан сценарий: его модели, уровни и режимы у головы и карточек,
+   * его ставит окно запуска первым. Запустить можно и на другом - чужая модель там станет
+   * моделью этого провайдера по умолчанию.
+   */
+  provider: ProviderId
   /** Пусто - как у новой вкладки (с закреплением в Settings). */
   model: string
   effort: string
@@ -146,6 +152,7 @@ export type ScenarioCode =
   | 'worktreeDirty'
   | 'providerMissing'
   | 'noClaude'
+  | 'noCli'
   | 'untrusted'
   | 'runBusy'
   | 'runGone'

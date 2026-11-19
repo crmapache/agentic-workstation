@@ -1,4 +1,4 @@
-import type { PatchHunk, ToolResult } from '@shared/claude-feed'
+import type { PatchHunk, ToolResult } from '@shared/conversation-feed'
 
 import { isRecord, numberField, stringField, recordsField } from '../cli/cli-messages'
 import type { LineChange } from '../../agents/changes/line-counts'

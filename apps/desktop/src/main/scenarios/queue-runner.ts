@@ -25,6 +25,8 @@ export type RunnerHost = {
   book: QueueBook
   desk: (projectPath: string) => RunDesk
   provider: (id: ProviderId) => ScenarioProvider | null
+  /** Провайдер служебной работы (Settings → AI): им называются очереди. */
+  service?: (() => ProviderId) | undefined
   worktreesRoot: string
   onQueues: () => void
   notify: (title: string, body: string) => void

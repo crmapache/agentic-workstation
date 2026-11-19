@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { REWIND_FILES_LISTED } from '@shared/claude-rewind'
+import { REWIND_FILES_LISTED } from '@shared/rewind'
 
 import { CliReplyError, CliExitedError } from '../cli/cli-process'
 import {

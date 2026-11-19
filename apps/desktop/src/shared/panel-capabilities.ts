@@ -1,0 +1,173 @@
+import type { EffortLevel, PermissionMode } from './conversation'
+import { EFFORT_LEVELS, PERMISSION_MODES, CODEX_EFFORT_LEVELS } from './conversation'
+import { REASONING_LEVELS } from './open-models'
+import type { ProviderId } from './providers'
+import type { RewindScope } from './rewind'
+
+/**
+ * Что умеет провайдер панели (ADR 0083). Окно показывает кнопку, экран или команду, только
+ * если провайдер их объявил: без заглушек, которые потом молча ничего не делают.
+ */
+export type PanelCapabilities = {
+  provider: ProviderId
+  /** Режимы разрешений меню MODE и Shift+Tab, по порядку. */
+  modes: readonly PermissionMode[]
+  /** Уровни усилия, когда у модели нет своего списка (ModelInfo.efforts). */
+  efforts: readonly EffortLevel[]
+  /** Форк разговора и откат к сообщению. */
+  fork: boolean
+  rewind: boolean
+  /** Откат кода к сообщению (копии файлов CLI). */
+  rewindFiles: boolean
+  /**
+   * Что можно откатить: только разговор, только код, оба. OpenCode откатывает код только
+   * вместе с разговором (его снимки), поэтому «только код» у него не предлагается.
+   */
+  rewindScopes: readonly RewindScope[]
+  /** Вопрос сбоку (/btw), быстрый режим, остановка фоновой задачи. */
+  sideQuestion: boolean
+  fastMode: boolean
+  stopTask: boolean
+  /** Экраны бокового меню провайдера. */
+  plugins: boolean
+  config: boolean
+  customModels: boolean
+  /** Чьи аккаунты: экран аккаунтов, вход, кольца лимитов. */
+  accounts: 'claude' | 'codex' | 'none'
+  /** Путь к CLI руками на экране «CLI не найден». */
+  cliPath: boolean
+  /** Подключения моделей (Ollama, LM Studio, OpenRouter, свой адрес) - экран в меню панели. */
+  connections: boolean
+  /**
+   * Слои настроек проекта (`.claude/settings*.json` и управляемые): они могут запретить режим
+   * без вопросов, и меню MODE его тогда не даёт.
+   */
+  settingsLayers: boolean
+  /** Поиск по разговорам и токены за день по журналам провайдера. */
+  search: boolean
+  todayTokens: boolean
+  /** Продолжение после лимита и моды CLI. */
+  carryOn: boolean
+  /**
+   * Встроенные команды провайдера, которые подсказка «/» показывает до первого хода, сверх
+   * выбора модели и усилия: у Claude - /context, /cost, /usage, /code-review, у Codex -
+   * /compact и /review.
+   */
+  commands: readonly string[]
+  /** Команды и навыки с диска проекта и пользователя. */
+  diskCommands: boolean
+}
+
+/** Возможности Claude Code: всё, что умеет панель. */
+export const CLAUDE_CAPABILITIES: PanelCapabilities = {
+  provider: 'claude',
+  modes: PERMISSION_MODES,
+  efforts: EFFORT_LEVELS,
+  fork: true,
+  rewind: true,
+  rewindFiles: true,
+  rewindScopes: ['conversation', 'code', 'both'],
+  sideQuestion: true,
+  fastMode: true,
+  stopTask: true,
+  plugins: true,
+  config: true,
+  customModels: true,
+  accounts: 'claude',
+  cliPath: true,
+  connections: false,
+  settingsLayers: true,
+  search: true,
+  todayTokens: true,
+  carryOn: true,
+  commands: ['context', 'cost', 'usage', 'code-review'],
+  diskCommands: true,
+}
+
+/**
+ * Возможности Codex (docs/plan-providers/30-codex.md). Форк и откат разговора - через его
+ * журнал; код - обратными правками (копий файлов у Codex нет). Быстрый режим - уровень
+ * обслуживания `priority`; вопроса сбоку, плагинов, своих моделей и поиска по журналам нет.
+ */
+export const CODEX_CAPABILITIES: PanelCapabilities = {
+  provider: 'codex',
+  modes: ['default', 'acceptEdits', 'readOnly', 'plan', 'bypassPermissions'],
+  efforts: CODEX_EFFORT_LEVELS,
+  fork: true,
+  rewind: true,
+  rewindFiles: true,
+  rewindScopes: ['conversation', 'code', 'both'],
+  sideQuestion: false,
+  fastMode: true,
+  stopTask: false,
+  plugins: false,
+  config: false,
+  customModels: false,
+  accounts: 'codex',
+  cliPath: false,
+  connections: false,
+  settingsLayers: false,
+  search: false,
+  todayTokens: false,
+  carryOn: false,
+  commands: ['compact', 'review'],
+  diskCommands: false,
+}
+
+/**
+ * Возможности открытых моделей через OpenCode (docs/plan-providers/40-open-models.md): модели
+ * из подключений, усилие - вариантами модели, режимы - правилами сессии; форк, откат разговора
+ * и кода - силами OpenCode (его снимки файлов); аккаунтов и лимитов подписки нет.
+ */
+export const OPENCODE_CAPABILITIES: PanelCapabilities = {
+  provider: 'opencode',
+  modes: ['default', 'acceptEdits', 'readOnly', 'plan', 'bypassPermissions'],
+  // Все уровни, какие бывают у открытых моделей; у каждой модели - свой список (ModelInfo.efforts).
+  efforts: REASONING_LEVELS,
+  fork: true,
+  rewind: true,
+  rewindFiles: true,
+  rewindScopes: ['conversation', 'both'],
+  sideQuestion: false,
+  fastMode: false,
+  stopTask: false,
+  plugins: false,
+  config: false,
+  customModels: false,
+  accounts: 'none',
+  cliPath: false,
+  connections: true,
+  settingsLayers: false,
+  search: false,
+  todayTokens: false,
+  carryOn: false,
+  commands: ['compact'],
+  diskCommands: false,
+}
+
+/** Провайдер, у которого панели ещё нет: окно не показывает ничего сверх разговора. */
+const BARE = (provider: ProviderId): PanelCapabilities => ({
+  ...CODEX_CAPABILITIES,
+  provider,
+  modes: ['default'],
+  efforts: [],
+  accounts: 'none',
+  commands: [],
+})
+
+/**
+ * Возможности провайдера, пока главный процесс не прислал свои (state.capabilities): окно
+ * сразу рисует панель как она будет, без кнопок другого провайдера на первом кадре.
+ */
+export const capabilitiesOf = (provider: ProviderId): PanelCapabilities => {
+  switch (provider) {
+    case 'claude':
+      return CLAUDE_CAPABILITIES
+    case 'codex':
+      return CODEX_CAPABILITIES
+    case 'opencode':
+      return OPENCODE_CAPABILITIES
+    default:
+      return BARE(provider)
+  }
+}

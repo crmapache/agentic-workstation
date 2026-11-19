@@ -15,10 +15,21 @@ export const modelOptions = (t: TFunction, provider: ProviderCaps): OptionItem<s
   })),
 ]
 
-/** Усилия провайдера, которые знает протокол, и «как в настройках». */
-export const effortOptions = (t: TFunction, provider: ProviderCaps): OptionItem<string>[] => [
+/**
+ * Уровни усилия модели: свои у модели (Codex, открытые модели), иначе провайдера - как меню
+ * окна IDE. Модель не выбрана или каталог о ней молчит - уровни провайдера.
+ */
+export const effortsOf = (provider: ProviderCaps, model?: string | null): readonly string[] =>
+  provider.models.find((one) => one.value === model)?.efforts ?? provider.efforts
+
+/** Усилия модели провайдера, которые знает протокол, и «как в настройках». */
+export const effortOptions = (
+  t: TFunction,
+  provider: ProviderCaps,
+  model?: string | null,
+): OptionItem<string>[] => [
   { value: '', label: t('options.defaultEffort') },
-  ...provider.efforts
+  ...effortsOf(provider, model)
     .filter((effort) => (EFFORTS as readonly string[]).includes(effort))
     .map((effort) => ({ value: effort, label: t(`effort.${effort}`, { defaultValue: effort }) })),
 ]

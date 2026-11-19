@@ -1,5 +1,5 @@
-import type { ImageAttachment } from '@shared/claude'
-import type { FeedItem, FeedImage, ToolFeedItem } from '@shared/claude-feed'
+import type { ImageAttachment } from '@shared/conversation'
+import type { FeedItem, FeedImage, ToolFeedItem } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, recordField, stringField } from '../cli/cli-messages'

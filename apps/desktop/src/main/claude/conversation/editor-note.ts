@@ -1,5 +1,5 @@
-import { MAX_SELECTION_CHARS } from '@shared/claude-draft'
-import type { EditorRef } from '@shared/claude-draft'
+import { MAX_SELECTION_CHARS } from '@shared/message-draft'
+import type { EditorRef } from '@shared/message-draft'
 
 /**
  * Заметка модели о том, что открыто в редакторе, - словами терминального Claude Code

@@ -17,6 +17,7 @@ import type {
 import type { PlaceProject } from './stats-engine'
 import { STATS_DB_FILE, SCAN_INTERVAL_MS, CHANGED_THROTTLE_MS } from './stats.constants'
 import type { EngineLink, EngineLinkFactory } from './engine/engine-link'
+import type { ScanSource } from './journals/journal-format'
 import type { LiveNote } from './live/live-notes'
 import type { ProjectOf } from './places/git-root'
 import { nearestGitRoot } from './places/git-root'
@@ -24,8 +25,8 @@ import { nearestGitRoot } from './places/git-root'
 export type StatsServiceDeps = {
   /** Папка состояния IDE (userData): там лежит statistics.sqlite. */
   dataDir: string
-  /** Папка транскриптов CLI - projects/ в доме CLI (claudeHome). */
-  projectsDir: () => Promise<string>
+  /** Журналы провайдеров: папки JSONL Claude Code и Codex, базы OpenCode (stats-setup.ts). */
+  sources: () => Promise<ScanSource[]>
   /** Как поднять движок: поток в приложении (stats-setup.ts), процесс в тестах. */
   link: EngineLinkFactory
   /** Числа изменились - окну пора перезапросить (не чаще CHANGED_THROTTLE_MS). */
@@ -46,8 +47,8 @@ const IDLE_PROGRESS: StatsScanProgress = {
 }
 
 /**
- * Статистика IDE: движок в своём потоке (база, транскрипты, выборки), здесь - расписание
- * чтения, проекты папок и живые события. Проект папки решает главный процесс (он знает
+ * Статистика IDE: движок в своём потоке (база, журналы провайдеров, выборки), здесь -
+ * расписание чтения, проекты папок и живые события. Проект папки решает главный процесс (он знает
  * открытые проекты и worktree сценариев), движок только хранит ответ.
  */
 export class StatsService {
@@ -64,7 +65,7 @@ export class StatsService {
     this.now = deps.now ?? Date.now
   }
 
-  /** Как идёт чтение транскриптов (для «считаю» в окне). */
+  /** Как идёт чтение журналов (для «считаю» в окне). */
   get progress(): StatsScanProgress {
     return this.scanProgress
   }
@@ -94,7 +95,7 @@ export class StatsService {
     this.timer.unref()
   }
 
-  /** Дочитать транскрипты сейчас; идущий проход не дублируется. */
+  /** Дочитать журналы сейчас; идущий проход не дублируется. */
   scanNow(): Promise<void> {
     this.scanning ??= this.scan().finally(() => {
       this.scanning = null
@@ -174,13 +175,13 @@ export class StatsService {
     if (!link) return
 
     try {
-      const result = await link.request({ op: 'scan', root: await this.deps.projectsDir() })
+      const result = await link.request({ op: 'scan', sources: await this.deps.sources() })
 
       await this.resolvePlaces(false)
 
       if (result.changed) this.changed()
     } catch (error) {
-      console.warn('[statistics] transcript scan failed', error)
+      console.warn('[statistics] journal scan failed', error)
     }
   }
 

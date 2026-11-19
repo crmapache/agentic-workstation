@@ -1,6 +1,7 @@
-import type { AsideExchange } from '@shared/claude-panel'
-import type { RewindOutcome, RewindPreview } from '@shared/claude-rewind'
 import type { SearchHit, SearchAnswer, AiSearchOutcome } from '@shared/claude-search'
+import type { AsideExchange } from '@shared/panel-extras'
+import type { ProviderId } from '@shared/providers'
+import type { RewindOutcome, RewindPreview } from '@shared/rewind'
 
 import type {
   SearchWire,
@@ -11,7 +12,6 @@ import type {
   RewindPreviewWire,
 } from '@agentic-workstation/remote-protocol/conversation-wire-types'
 
-import { CLAUDE_PROVIDER } from './conversation-wire'
 import type { Redact } from './fit'
 import { sizeOf, fitValue, redactStrings } from './fit'
 import { READ_BUDGET } from './reads-fit'
@@ -48,9 +48,14 @@ export const redactSnippet = (
   }
 }
 
-/** Поиск по разговорам сейчас только у панели Claude Code. */
+/**
+ * Поиск по разговорам - только у панели Claude Code (capabilities.search): индекс и поиск
+ * моделью читают её транскрипты. Находка открывается историей этого провайдера.
+ */
+const SEARCH_PROVIDER: ProviderId = 'claude'
+
 const hitWire = (hit: SearchHit, redact: Redact): SearchHitWire => ({
-  provider: CLAUDE_PROVIDER,
+  provider: SEARCH_PROVIDER,
   sessionId: hit.conversationId,
   anchor: hit.anchor,
   speaker: hit.speaker,

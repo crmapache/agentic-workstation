@@ -1,4 +1,4 @@
-import type { AsideRetry, AsideThread, AsideFailure, AsideExchange } from '@shared/claude-panel'
+import type { AsideRetry, AsideThread, AsideFailure, AsideExchange } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, stringField } from '../cli/cli-messages'

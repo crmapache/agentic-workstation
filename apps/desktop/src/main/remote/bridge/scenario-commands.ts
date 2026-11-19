@@ -101,7 +101,7 @@ export class ScenarioCommands {
 
     if (!path) return fail('notFound')
 
-    const text = await withFiles(args.text, args.files ?? [], this.ports.conversations.saveFile)
+    const text = await withFiles(args.text, args.files ?? [], this.ports.panels.saveFile)
 
     if (text === null) return fail('refused', 'fileNotSaved')
 

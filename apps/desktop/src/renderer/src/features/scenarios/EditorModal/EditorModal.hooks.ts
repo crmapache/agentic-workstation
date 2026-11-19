@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { ProviderModel } from '@shared/providers'
 import type { Scenario, ScenarioCode } from '@shared/scenarios'
 
 import { blankStage, blankScenario } from '../scenarios-blank.utils'
 import type { EditorPlace } from '../scenarios-editor.utils'
-import { isDirty, livePlace, savedTwin, withoutStage } from '../scenarios-editor.utils'
-import { providerModels, defaultProvider } from '../scenarios-providers.utils'
+import {
+  isDirty,
+  livePlace,
+  savedTwin,
+  withoutStage,
+  withProvider,
+} from '../scenarios-editor.utils'
 import { useScenariosStore } from '../scenarios.store'
 import { invoke } from '../../../lib/ipc'
-import { useProviders, useScenarioShelves } from '../../../state/scenarios.queries'
+import { useProviders, effectiveProvider } from '../../../state/providers.queries'
+import { useScenarioShelves } from '../../../state/scenarios.queries'
 import { FIRST_PLACE } from './EditorModal.constants'
 import type { EditorModalProps } from './EditorModal.types'
-
-/**
- * Модели для MODEL - из описания провайдера (providers:list; новый каталог и свои модели
- * человека главный процесс присылает событием providers:changed). Провайдер - тот, кого окно
- * запуска предложит первым: в файле сценария провайдера нет, модель карточки - его строка.
- */
-export const useProviderModels = (): readonly ProviderModel[] =>
-  providerModels(defaultProvider(useProviders().data ?? []))
+import { scenarioModesOf } from './EditorModal.utils'
 
 /**
  * Черновик редактора живёт в сторе вида - в самом запросе окна: окно размонтируется от взгляда
@@ -41,8 +39,16 @@ export const useEditorDraft = ({ project, request }: EditorModalProps) => {
   const [saving, setSaving] = useState(false)
   const [refusal, setRefusal] = useState<ScenarioCode | null>(null)
   const [asking, setAsking] = useState(false)
-  const draft = request.scenario ?? blank
+  const stored = request.scenario ?? blank
   const saved = shelves?.scenarios ?? []
+  const providers = useProviders().data ?? []
+  // Провайдер нового сценария, пока человек его не выбрал, считается при показе (правило окна
+  // запуска): список провайдеров мог ещё не прийти. Открытый с полки - его собственный.
+  const [providerChosen, setProviderChosen] = useState(request.scenario !== null)
+  const provider = effectiveProvider(providers, providerChosen ? stored.head.provider : null)
+  const shown = (one: Scenario): Scenario =>
+    providerChosen || !provider ? one : { ...one, head: { ...one.head, provider: provider.id } }
+  const draft = shown(stored)
 
   const current = (): Scenario => {
     const modal = useScenariosStore.getState().modal
@@ -76,7 +82,7 @@ export const useEditorDraft = ({ project, request }: EditorModalProps) => {
   }
 
   const save = async () => {
-    const scenario = current()
+    const scenario = shown(current())
 
     if (saving) return
 
@@ -99,11 +105,23 @@ export const useEditorDraft = ({ project, request }: EditorModalProps) => {
     }
   }
 
+  /** Сценарий под другого провайдера: голова и все карточки - на его списках. */
+  const chooseProvider = (id: string) => {
+    const picked = providers.find((one) => one.id === id)
+
+    if (!picked || picked.id === draft.head.provider) return
+
+    setProviderChosen(true)
+    change((one) => withProvider(one, picked.id, scenarioModesOf(picked)))
+  }
+
   // Закрыть - крестик, Esc, щелчок мимо, Cancel: что-то правлено - сначала вопрос.
   const leave = () => (isDirty(current(), saved) ? setAsking(true) : close())
 
   return {
     draft,
+    provider,
+    chooseProvider,
     at: livePlace(draft, place),
     fresh: savedTwin(draft, saved) === null,
     canShare: shelves?.canShare ?? true,

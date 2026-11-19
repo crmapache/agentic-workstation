@@ -1,6 +1,5 @@
-import type { ClaudeState } from '@shared/claude'
-import type { FeedPatch } from '@shared/claude-feed'
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { FeedPatch } from '@shared/conversation-feed'
+import type { ConversationCall } from '@shared/panel-prefs'
 import type { RemoteView } from '@shared/remote'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -133,17 +132,19 @@ export class RemoteService {
     return this.store.devices.some((device) => device.id === deviceId)
   }
 
-  claudeChanged(state: ClaudeState): void {
-    this.line?.claudeChanged(state)
+  /** Состояние панели любого провайдера поменялось: список, разговор, вопросы, пуши. */
+  panelChanged(): void {
+    this.line?.panelChanged()
   }
 
+  /** Заплатка ленты разговора любой панели: id разговора - UUID, его панель одна. */
   feedPatched(patch: FeedPatch): void {
     this.line?.feedPatched(patch)
   }
 
-  /** Разговор позвал человека (звук окна): телефону не на связи - пуш. */
-  claudeCalled(call: ConversationCall): void {
-    this.line?.claudeCalled(call)
+  /** Разговор любой панели позвал человека (звук окна): телефону не на связи - пуш. */
+  called(call: ConversationCall): void {
+    this.line?.called(call)
   }
 
   queuesChanged(): void {

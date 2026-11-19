@@ -1,6 +1,6 @@
 import type { editor, IDisposable } from 'monaco-editor/editor/editor.api.js'
 
-import { MAX_SELECTION_CHARS } from '@shared/claude-draft'
+import { MAX_SELECTION_CHARS } from '@shared/message-draft'
 
 import { useEditorSelectionStore } from '../../state/editor-selection.store'
 import type { EditorSelection } from '../../state/editor-selection.store'

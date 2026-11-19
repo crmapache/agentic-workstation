@@ -1,10 +1,10 @@
-import type { Conversation } from '@shared/claude'
+import type { Conversation } from '@shared/conversation'
 import { isRunWorking } from '@shared/scenario-runs'
 import type { RunSummary } from '@shared/scenario-runs'
 import { isTaskRunWorking } from '@shared/tasks'
 import type { TaskRunSummary } from '@shared/tasks'
 
-import { worksOnItsOwn } from '../../features/claude-code/StatusDot/StatusDot.utils'
+import { worksOnItsOwn } from '../../features/agent-panel/StatusDot/StatusDot.utils'
 import type { ProjectWork } from '../../features/projects/ProjectTab/ProjectTab.types'
 
 type WorkingConversation = Parameters<typeof worksOnItsOwn>[0] &

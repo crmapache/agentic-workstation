@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { Conversation } from '@shared/claude'
+import type { Conversation } from '@shared/conversation'
 import { isRunWorking } from '@shared/scenario-runs'
 import type { RunState } from '@shared/scenario-runs'
 

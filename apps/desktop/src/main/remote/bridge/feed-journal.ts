@@ -1,4 +1,4 @@
-import type { FeedItem, FeedPatch, TaskEntry } from '@shared/claude-feed'
+import type { FeedItem, FeedPatch, TaskEntry } from '@shared/conversation-feed'
 
 import type { FeedPatchMessage } from '@agentic-workstation/remote-protocol/agent-messages'
 

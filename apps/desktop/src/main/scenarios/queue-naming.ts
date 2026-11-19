@@ -7,6 +7,8 @@ import { renameQueue } from './queues/queue-rules'
 type NamingHost = {
   book: QueueBook
   provider: (id: ProviderId) => ScenarioProvider | null
+  /** Провайдер служебной работы (Settings → AI); нет - провайдер первого сценария очереди. */
+  service?: (() => ProviderId) | undefined
   onQueues: () => void
 }
 
@@ -38,7 +40,7 @@ export class QueueNaming {
       })
       .join('\n')
     const title = await this.host
-      .provider(first.provider)
+      .provider(this.host.service?.() ?? first.provider)
       ?.suggestTitle(`Scenarios queued:\n${described}`)
       .catch(() => null)
     const now = this.host.book.get(queueId)

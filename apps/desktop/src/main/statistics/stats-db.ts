@@ -28,11 +28,14 @@ import { DatabaseSync } from 'node:sqlite'
  * и может решить заново - записи хранят папку, а не проект.
  *
  * sessions - разговоры провайдера; ide_kind не пуст у тех, что запускала IDE (это и есть
- * «в IDE» фильтра).
+ * «в IDE» фильтра). Разговор узнаётся парой (провайдер, id): id у провайдеров свои (UUID
+ * Claude, поток Codex, `ses_` OpenCode), и живая отметка одного провайдера не должна
+ * присвоить себе журнал другого.
  *
- * files - транскрипты: до какого байта прочитаны и что осталось от недочитанного отрезка
- * активности. Записи из транскриптов помнят свой файл: укоротившийся файл читается заново,
- * а его прежние записи стираются.
+ * files - журналы: до какого байта прочитаны и что осталось от недочитанного отрезка
+ * активности (у базы OpenCode - докуда дочитаны сообщения по времени правки). Записи из
+ * журналов помнят свой файл: укоротившийся файл читается заново, а его прежние записи
+ * стираются.
  *
  * spans - отрезки активности файла: записи не дальше IDLE_GAP_MS друг от друга и без
  * начала хода внутри. Из них и начал ходов складываются оценочные ходы (turns, exact = 0).
@@ -112,6 +115,19 @@ const MIGRATIONS: readonly string[] = [
     cost REAL NOT NULL, tokens INTEGER NOT NULL, active_ms INTEGER NOT NULL
   ) WITHOUT ROWID;
   CREATE INDEX scenario_runs_started ON scenario_runs(started_at);
+  `,
+  // Версия 2 (провайдеры, docs/plan-providers/50-ide.md, шаг 5.7): сессия - пара (провайдер,
+  // id). Таблица пересобирается с теми же id: записи ссылаются на них.
+  `
+  CREATE TABLE sessions_next (
+    id INTEGER PRIMARY KEY, uuid TEXT NOT NULL, provider TEXT NOT NULL,
+    ide_kind TEXT, ide_seen_at INTEGER, UNIQUE (provider, uuid)
+  );
+  INSERT INTO sessions_next (id, uuid, provider, ide_kind, ide_seen_at)
+    SELECT id, uuid, provider, ide_kind, ide_seen_at FROM sessions;
+  DROP TABLE sessions;
+  ALTER TABLE sessions_next RENAME TO sessions;
+  CREATE INDEX sessions_provider ON sessions(provider, id);
   `,
 ]
 

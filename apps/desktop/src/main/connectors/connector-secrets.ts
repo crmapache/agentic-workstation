@@ -4,7 +4,7 @@ import type {
   OAuthClientInformationMixed,
 } from '@modelcontextprotocol/sdk/shared/auth.js'
 
-import type { Vault } from './vault'
+import type { Vault } from '../storage/vault'
 import type { GoogleTokens } from './oauth/google-oauth'
 
 /** Всё секретное одного коннектора. Какие поля есть, зависит от типа. */

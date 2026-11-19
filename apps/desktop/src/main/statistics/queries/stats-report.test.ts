@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
+import type { ProviderId } from '@shared/providers'
 import type { StatsFilter } from '@shared/statistics'
 import { DAY_MS, HOUR_MS, MINUTE_MS } from '@shared/time-units'
 
@@ -12,7 +13,7 @@ import { buildReport } from './stats-report'
 
 /** Местная полночь 10 ноября 2026: дни теста - по часам машины, как у окна. */
 const D0 = new Date(2026, 10, 10).getTime()
-const ALL: StatsFilter = { source: 'all', project: null }
+const ALL: StatsFilter = { source: 'all', project: null, provider: 'all' }
 
 let db: DatabaseSync
 let store: StatsStore
@@ -32,18 +33,21 @@ const answer = (
   session: string,
   tokens: Partial<Record<string, number>> = {},
   project = '/p/a',
+  provider: ProviderId = 'claude',
+  model = 'claude-opus-5-5',
 ) =>
   db
     .prepare(
       `INSERT INTO answers (ts, key, file, place, session, model, input, output, cache_read,
          cache_write, cache_write_1h, fast, cost, subagent)
-       VALUES (?, ?, 1, ?, ?, 'claude-opus-5-5', ?, ?, ?, ?, 0, 0, ?, 0)`,
+       VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 0)`,
     )
     .run(
       ts,
       key,
       place(project),
-      store.sessionId(session, 'claude'),
+      store.sessionId(session, provider),
+      model,
       tokens['input'] ?? 0,
       tokens['output'] ?? 0,
       tokens['cacheRead'] ?? 0,
@@ -51,7 +55,14 @@ const answer = (
       tokens['cost'] ?? 0,
     )
 
-const turn = (session: string, start: number, end: number, exact = 0, project = '/p/a') =>
+const turn = (
+  session: string,
+  start: number,
+  end: number,
+  exact = 0,
+  project = '/p/a',
+  provider: ProviderId = 'claude',
+) =>
   db
     .prepare(
       `INSERT INTO turns (key, session, place, started_at, ended_at, work_ms, exact)
@@ -59,7 +70,7 @@ const turn = (session: string, start: number, end: number, exact = 0, project = 
     )
     .run(
       `${exact ? 'x' : 'e'}:${session}:${start}`,
-      store.sessionId(session, 'claude'),
+      store.sessionId(session, provider),
       place(project),
       start,
       end,
@@ -189,11 +200,67 @@ describe('buildReport agent time', () => {
       at: D0,
     })
 
-    expect(report(D0, D0 + DAY_MS, { source: 'ide', project: null }).totals.tokens.output).toBe(3)
-    expect(report(D0, D0 + DAY_MS, { source: 'outside', project: null }).totals.tokens.output).toBe(
-      7,
-    )
-    expect(report(D0, D0 + DAY_MS, { source: 'all', project: '/p/b' }).totals.tokens.output).toBe(7)
+    expect(report(D0, D0 + DAY_MS, { ...ALL, source: 'ide' }).totals.tokens.output).toBe(3)
+    expect(report(D0, D0 + DAY_MS, { ...ALL, source: 'outside' }).totals.tokens.output).toBe(7)
+    expect(report(D0, D0 + DAY_MS, { ...ALL, project: '/p/b' }).totals.tokens.output).toBe(7)
+  })
+
+  it('splits by provider and keeps the human numbers for every provider', () => {
+    answer(1, D0 + HOUR_MS, 'S1', { output: 3, cost: 1 })
+    answer(2, D0 + HOUR_MS, 'T1', { output: 7, cost: 2 }, '/p/a', 'codex', 'gpt-6-sol')
+    answer(3, D0 + HOUR_MS, 'ses_1', { output: 11 }, '/p/a', 'opencode', 'qwen-haiku-distill')
+    turn('T1', D0 + 2 * HOUR_MS, D0 + 2 * HOUR_MS + 30 * MINUTE_MS, 0, '/p/a', 'codex')
+    notes.write({
+      kind: 'presence',
+      entries: [{ minute: (D0 + HOUR_MS) / MINUTE_MS, project: '/p/a' }],
+    })
+    notes.write({
+      kind: 'scenarioRun',
+      note: {
+        runId: 'run-codex',
+        provider: 'codex',
+        project: '/p/a',
+        scenario: 'Fix lint',
+        startedAt: D0 + HOUR_MS,
+        endedAt: D0 + 2 * HOUR_MS,
+        state: 'done',
+        cost: 0.5,
+        tokens: 100,
+        activeMs: MINUTE_MS,
+      },
+    })
+
+    const codex = report(D0, D0 + DAY_MS, { ...ALL, provider: 'codex' })
+    const claude = report(D0, D0 + DAY_MS, { ...ALL, provider: 'claude' })
+    const all = report(D0, D0 + DAY_MS)
+
+    expect(codex.totals).toMatchObject({ cost: 2, agentWorkMs: 30 * MINUTE_MS, presenceMinutes: 1 })
+    expect(codex.totals.tokens.output).toBe(7)
+    expect(codex.scenarios.runs).toBe(1)
+    expect(claude.totals).toMatchObject({ cost: 1, agentWorkMs: 0, presenceMinutes: 1 })
+    expect(claude.scenarios.runs).toBe(0)
+    expect(all.totals.tokens.output).toBe(21)
+    // Модель открытых моделей с «haiku» в имени - не семья Claude; модели - у своих провайдеров.
+    expect(all.models.map((row) => [row.provider, row.model, row.family])).toEqual([
+      ['codex', 'gpt-6-sol', 'other'],
+      ['claude', 'claude-opus-5-5', 'opus'],
+      ['opencode', 'qwen-haiku-distill', 'other'],
+    ])
+  })
+
+  it('keeps one session id apart for two providers', () => {
+    answer(1, D0 + HOUR_MS, 'SAME', { output: 3 })
+    answer(2, D0 + HOUR_MS, 'SAME', { output: 7 }, '/p/a', 'codex', 'gpt-6-sol')
+    notes.write({
+      kind: 'ideSession',
+      provider: 'codex',
+      session: 'SAME',
+      ideKind: 'panel',
+      at: D0,
+    })
+
+    expect(report(D0, D0 + DAY_MS).totals.sessions).toBe(2)
+    expect(report(D0, D0 + DAY_MS, { ...ALL, source: 'ide' }).totals.tokens.output).toBe(7)
   })
 })
 

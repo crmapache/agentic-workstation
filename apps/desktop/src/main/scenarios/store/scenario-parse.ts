@@ -1,3 +1,4 @@
+import { isProviderId } from '@shared/providers'
 import { passesOf } from '@shared/scenario-rules'
 import type {
   CardSlot,
@@ -90,6 +91,8 @@ const headOf = (value: unknown): HeadSettings => {
 
   return {
     briefing: text(raw, 'briefing'),
+    // Сценарии до провайдеров (этап 5) и из ACC писались для Claude Code.
+    provider: isProviderId(raw['provider']) ? raw['provider'] : 'claude',
     model: text(raw, 'model'),
     effort: text(raw, 'effort'),
     permissionMode: text(raw, 'permissionMode') || 'default',

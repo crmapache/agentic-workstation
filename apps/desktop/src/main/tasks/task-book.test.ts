@@ -8,6 +8,7 @@ const run = (index: number, patch: Partial<TaskRun> = {}): TaskRun => ({
   id: `r${index}`,
   taskId: 't',
   taskName: 'T',
+  provider: 'claude',
   projectPath: '/p',
   sessionId: `s${index}`,
   trigger: 'schedule',

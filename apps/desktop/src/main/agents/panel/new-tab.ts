@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
-import type { ForkOrigin, TitleSource, Conversation, PermissionMode } from '@shared/claude'
-import type { PanelPrefs } from '@shared/claude-prefs'
+import type { ForkOrigin, TitleSource, Conversation, PermissionMode } from '@shared/conversation'
+import type { PanelPrefs } from '@shared/panel-prefs'
 
 import { freshConversation } from './panel-state'
 
@@ -51,7 +51,7 @@ export const newTabConversation = async (tab: NewTab): Promise<Conversation> => 
     queue: [],
     fork: tab.fork,
     updatedAt: Date.now(),
-    // Быстрый режим платный: новая вкладка без него, форк продолжает свой источник.
-    ...(base?.fastMode && { fastMode: true }),
+    // Быстрый режим платный: новая вкладка без просьбы, форк продолжает просьбу источника.
+    ...(base?.fastMode !== undefined && { fastMode: base.fastMode }),
   })
 }

@@ -1,12 +1,7 @@
 import { homedir } from 'node:os'
 import { setTimeout as delay } from 'node:timers/promises'
 
-import type {
-  RewindScope,
-  RewindOutcome,
-  RewindPreview,
-  RewindRefusal,
-} from '@shared/claude-rewind'
+import type { RewindScope, RewindOutcome, RewindPreview, RewindRefusal } from '@shared/rewind'
 
 import { isRecord, stringField } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'

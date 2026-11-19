@@ -1,4 +1,4 @@
-import type { CarryOnPlan, CarryOnReason } from '@shared/claude-panel'
+import type { CarryOnPlan, CarryOnReason } from '@shared/panel-extras'
 
 import {
   LIMIT_TRIES,

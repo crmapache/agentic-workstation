@@ -1,4 +1,4 @@
-import type { ForkOrigin, Conversation } from '@shared/claude'
+import type { ForkOrigin, Conversation } from '@shared/conversation'
 
 import type { ForkAnchor } from './history/fork-anchor'
 import { forkLeaf, forkAnchor } from './history/fork-anchor'

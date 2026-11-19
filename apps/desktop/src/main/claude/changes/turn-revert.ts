@@ -1,7 +1,7 @@
 import { stat, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { FileChange, ChangeRefusal } from '@shared/claude-feed'
+import type { FileChange, ChangeRefusal } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { parseCliLine } from '../cli/cli-messages'

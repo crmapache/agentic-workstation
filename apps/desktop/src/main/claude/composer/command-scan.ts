@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { CommandHint } from '@shared/claude-draft'
+import type { CommandHint } from '@shared/message-draft'
 
 import { COMMAND_HINT_MAX, COMMANDS_MAX_DEPTH, COMMANDS_MAX_FILES } from './composer.constants'
 

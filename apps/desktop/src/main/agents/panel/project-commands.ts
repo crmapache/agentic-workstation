@@ -1,4 +1,4 @@
-import type { SlashCommand } from '@shared/claude'
+import type { SlashCommand } from '@shared/conversation'
 
 /**
  * Команды, которые CLI назвал последними, - по папке проекта. Список живёт только в

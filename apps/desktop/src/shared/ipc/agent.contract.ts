@@ -1,15 +1,15 @@
 import type {
-  ClaudeState,
   HistoryEntry,
+  AgentPanelState,
   ImageAttachment,
   RequestResponse,
   ConversationOptions,
-} from '../claude'
-import type { EditorRef, TakenQueued, MessageDraft } from '../claude-draft'
-import type { FeedItem, FeedPatch, ConversationFeed } from '../claude-feed'
-import type { PanelPrefsPatch, ConversationCall } from '../claude-prefs'
-import type { RewindScope, RewindOutcome, RewindPreview } from '../claude-rewind'
+} from '../conversation'
+import type { FeedItem, FeedPatch, ConversationFeed } from '../conversation-feed'
+import type { EditorRef, TakenQueued, MessageDraft } from '../message-draft'
+import type { PanelPrefsPatch, ConversationCall } from '../panel-prefs'
 import type { ProviderId } from '../providers'
+import type { RewindScope, RewindOutcome, RewindPreview } from '../rewind'
 
 /**
  * Часть контракта (contract.ts) про панели провайдеров ИИ (ADR 0083): разговоры, лента,
@@ -39,7 +39,7 @@ type OutgoingRequest = {
 
 export type AgentInvokeContract = {
   /** Разговоры с Claude Code во всех проектах (ADR 0009). */
-  'agent:getState': { request: PanelRequest; response: ClaudeState }
+  'agent:getState': { request: PanelRequest; response: AgentPanelState }
   /** Лента разговора целиком: прошлые ходы из транскрипта CLI и живой ход. */
   'agent:getFeed': { request: PanelRequest & ConversationRequest; response: ConversationFeed }
   /**
@@ -64,16 +64,19 @@ export type AgentInvokeContract = {
     response: FeedItem[] | null
   }
   /** /status: строка SESSION в ленте - id разговора и как продолжить его в терминале. */
-  'agent:showSessionInfo': { request: PanelRequest & ConversationRequest; response: ClaudeState }
-  'agent:newConversation': { request: PanelRequest & ProjectRequest; response: ClaudeState }
+  'agent:showSessionInfo': {
+    request: PanelRequest & ConversationRequest
+    response: AgentPanelState
+  }
+  'agent:newConversation': { request: PanelRequest & ProjectRequest; response: AgentPanelState }
   'agent:activateConversation': {
     request: PanelRequest & ConversationRequest
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Сообщение человека. Во время хода - подсказка модели на её следующем шаге. */
   'agent:send': {
     request: PanelRequest & ConversationRequest & OutgoingRequest
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Отложить сообщение до конца хода. before - сосед, перед которым встать (сообщение
@@ -81,54 +84,81 @@ export type AgentInvokeContract = {
    */
   'agent:enqueue': {
     request: PanelRequest & ConversationRequest & OutgoingRequest & { before?: string | null }
-    response: ClaudeState
+    response: AgentPanelState
   }
   'agent:removeQueued': {
     request: PanelRequest & ConversationRequest & { queuedId: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Отправить отложенное сейчас: модель прочтёт его на следующем шаге. */
   'agent:sendQueued': {
     request: PanelRequest & ConversationRequest & { queuedId: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Довериться папке проекта: Claude Code прочитает её настройки, хуки и CLAUDE.md. В
    * режиме потока CLI сам об этом не спрашивает - спрашивает панель.
    */
-  'agent:trustProject': { request: PanelRequest & ProjectRequest; response: ClaudeState }
+  'agent:trustProject': { request: PanelRequest & ProjectRequest; response: AgentPanelState }
   /** Остановить ход: CLI закончит его сам. */
-  'agent:interrupt': { request: PanelRequest & ConversationRequest; response: ClaudeState }
+  'agent:interrupt': { request: PanelRequest & ConversationRequest; response: AgentPanelState }
   /** CLI не ответил на остановку - погасить его процесс. */
-  'agent:forceStop': { request: PanelRequest & ConversationRequest; response: ClaudeState }
+  'agent:forceStop': { request: PanelRequest & ConversationRequest; response: AgentPanelState }
   /** Ответ на вопрос CLI: разрешение, выбор, план. */
   'agent:respond': {
     request: PanelRequest & ConversationRequest & { requestId: string; response: RequestResponse }
-    response: ClaudeState
+    response: AgentPanelState
   }
   'agent:setOptions': {
     request: PanelRequest & ConversationRequest & { options: ConversationOptions }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Прошлые разговоры проекта из транскриптов CLI. */
   'agent:listHistory': { request: PanelRequest & ProjectRequest; response: HistoryEntry[] }
   'agent:openHistory': {
     request: PanelRequest & ProjectRequest & { sessionId: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Поискать CLI заново: его могли поставить, пока IDE открыта. */
-  'agent:recheckCli': { request: PanelRequest; response: ClaudeState }
+  'agent:recheckCli': { request: PanelRequest; response: AgentPanelState }
+  /** Освежить лимиты аккаунтов панели; чаще своего шага панель аккаунт не спрашивает. */
+  'agent:refreshUsage': {
+    request: PanelRequest & { accountIds: string[] }
+    response: AgentPanelState
+  }
+  /** Вход аккаунта провайдера с экрана входа; ответ - сразу, конец входа придёт состоянием. */
+  'agent:signIn': { request: PanelRequest & { accountId: string }; response: AgentPanelState }
+  'agent:cancelSignIn': { request: PanelRequest; response: AgentPanelState }
+  /** Вошёл ли аккаунт в работе - заново (человек мог войти мимо панели). */
+  'agent:checkSignIn': { request: PanelRequest; response: AgentPanelState }
+  /** Выйти из аккаунта строки (у Claude - только из обычного входа). */
+  'agent:signOut': { request: PanelRequest & { accountId: string }; response: AgentPanelState }
+  /** Новый аккаунт провайдера: вход в него начинается сразу, панель ждёт его сама. */
+  'agent:addAccount': { request: PanelRequest; response: AgentPanelState }
+  /** Выбрать аккаунт для всех разговоров панели: процессы перейдут, как освободятся. */
+  'agent:selectAccount': {
+    request: PanelRequest & { accountId: string }
+    response: AgentPanelState
+  }
+  'agent:renameAccount': {
+    request: PanelRequest & { accountId: string; alias: string }
+    response: AgentPanelState
+  }
+  'agent:forgetAccount': {
+    request: PanelRequest & { accountId: string }
+    response: AgentPanelState
+  }
   /**
    * Команда «!» в папке проекта: выполняет панель, а не агент; карточка живёт в ленте.
    * Ответ - сразу, не дожидаясь конца команды.
    */
   'agent:runShell': {
     request: PanelRequest & ConversationRequest & { command: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   'agent:stopShell': {
     request: PanelRequest & ConversationRequest & { runId: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Остановить задачу разговора - субагента или фоновую команду (stop_task CLI), не
@@ -136,7 +166,7 @@ export type AgentInvokeContract = {
    */
   'agent:stopTask': {
     request: PanelRequest & ConversationRequest & { taskId: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Откатить файл последнего хода (path null - все его файлы); restore - вернуть
@@ -145,7 +175,7 @@ export type AgentInvokeContract = {
   'agent:revertChanges': {
     request: PanelRequest &
       ConversationRequest & { turnId: string; path: string | null; restore: boolean }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Картинка сообщения целиком (data URL): в ленте только миниатюры. null - её нет. */
   'agent:getImage': {
@@ -160,7 +190,7 @@ export type AgentInvokeContract = {
   /** Откатить разговор и/или код к сообщению человека: оно и всё после уходит. */
   'agent:rewind': {
     request: PanelRequest & ConversationRequest & { messageId: string; scope: RewindScope }
-    response: { state: ClaudeState; outcome: RewindOutcome }
+    response: { state: AgentPanelState; outcome: RewindOutcome }
   }
   /**
    * Форк в новой вкладке. beforeMessageId - форк несёт разговор до этого сообщения,
@@ -168,7 +198,7 @@ export type AgentInvokeContract = {
    */
   'agent:fork': {
     request: PanelRequest & ConversationRequest & { beforeMessageId: string | null }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Закрыть вкладку; закрытую человеком можно вернуть (agent:reopenClosed). hasDraft -
@@ -176,7 +206,7 @@ export type AgentInvokeContract = {
    */
   'agent:closeConversation': {
     request: PanelRequest & { conversationId: string; hasDraft?: boolean }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /**
    * Вернуть закрытую вкладку на прежнее место, в прежнюю группу и под прежним id.
@@ -184,40 +214,43 @@ export type AgentInvokeContract = {
    */
   'agent:reopenClosed': {
     request: PanelRequest & { projectId: string; closedId: string | null }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Имя от человека: перебивает любое, уходит в транскрипт (история, `claude --resume`). */
   'agent:rename': {
     request: PanelRequest & { conversationId: string; title: string }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Переставить форк внутри своей группы: перед вкладкой beforeId, null - в конец группы. */
   'agent:moveTab': {
     request: PanelRequest & { conversationId: string; beforeId: string | null }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Переставить группу форков целиком перед группой beforeId, null - в конец полосы. */
   'agent:moveGroup': {
     request: PanelRequest & { groupId: string; beforeId: string | null }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Вынуть сообщение из очереди в поле: пока его правят, оно вне очереди и не уйдёт. */
   'agent:takeQueued': {
     request: PanelRequest & ConversationRequest & { queuedId: string }
-    response: { state: ClaudeState; taken: TakenQueued | null }
+    response: { state: AgentPanelState; taken: TakenQueued | null }
   }
   /** Переставить сообщение очереди на место toIndex. */
   'agent:moveQueued': {
     request: PanelRequest & ConversationRequest & { queuedId: string; toIndex: number }
-    response: ClaudeState
+    response: AgentPanelState
   }
   /** Настройки панели (Settings): что не названо в патче - не меняется. */
-  'agent:setPrefs': { request: PanelRequest & { patch: PanelPrefsPatch }; response: ClaudeState }
+  'agent:setPrefs': {
+    request: PanelRequest & { patch: PanelPrefsPatch }
+    response: AgentPanelState
+  }
 }
 
 export type AgentEventContract = {
   /** Состояние панели провайдера целиком - после любого изменения. */
-  'agent:state': { provider: ProviderId; state: ClaudeState }
+  'agent:state': { provider: ProviderId; state: AgentPanelState }
   /** Изменение ленты разговора панели провайдера. */
   'agent:feed': { provider: ProviderId; patch: FeedPatch }
   /** Разговор панели провайдера позвал человека (звук, свечение вкладки). */
@@ -245,6 +278,15 @@ export const AGENT_CHANNELS = {
   'agent:listHistory': true,
   'agent:openHistory': true,
   'agent:recheckCli': true,
+  'agent:refreshUsage': true,
+  'agent:signIn': true,
+  'agent:cancelSignIn': true,
+  'agent:checkSignIn': true,
+  'agent:signOut': true,
+  'agent:addAccount': true,
+  'agent:selectAccount': true,
+  'agent:renameAccount': true,
+  'agent:forgetAccount': true,
   'agent:runShell': true,
   'agent:stopShell': true,
   'agent:stopTask': true,

@@ -40,13 +40,15 @@ export type TaskSchedule = {
 
 /**
  * Режим разрешений прогона. default - каждый вопрос разрешения уходит в уведомления и ждёт
- * человека; остальные - режимы CLI, как у вкладки панели.
+ * человека; остальные - режимы провайдера, как у вкладки его панели: `auto` - только у Claude
+ * Code, `readOnly` - у Codex и открытых моделей. Плана нет: задание без человека за столом.
  */
-export type TaskMode = 'default' | 'acceptEdits' | 'auto' | 'bypassPermissions'
+export type TaskMode = 'default' | 'acceptEdits' | 'readOnly' | 'auto' | 'bypassPermissions'
 
 export const TASK_MODES: readonly TaskMode[] = [
   'default',
   'acceptEdits',
+  'readOnly',
   'auto',
   'bypassPermissions',
 ]
@@ -108,6 +110,8 @@ export type TaskTrigger = 'schedule' | 'catchUp' | 'manual' | 'reply'
 /** Почему прогон не дошёл до конца - кодом, текст у окна. */
 export type TaskFailure =
   | 'noClaude'
+  /** CLI провайдера задания (Codex, OpenCode) не найден. */
+  | 'noCli'
   | 'untrusted'
   | 'folderMissing'
   | 'startFailed'
@@ -127,6 +131,8 @@ export type TaskRun = {
   taskId: string
   /** Имя задания на момент прогона: удалённое задание оставляет историю с именем. */
   taskName: string
+  /** Провайдер прогона: его разговор продолжается им же, даже если задание сменило провайдера. */
+  provider: ProviderId
   projectPath: string
   /** Разговор CLI прогона; пусто - прогона не было (skipped). */
   sessionId: string

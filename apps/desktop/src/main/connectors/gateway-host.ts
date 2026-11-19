@@ -5,7 +5,8 @@ import type { ConnectorRegistry } from './connector-registry'
 import { ConnectorGateway } from './gateway/gateway'
 import type { GatewayServer } from './gateway/gateway'
 import { GatewayLaunches } from './gateway/launches'
-import type { Launch, McpLaunch } from './gateway/launches'
+import type { Launch, McpLaunch, GatewayLaunch } from './gateway/launches'
+import type { GatewayEntry } from './gateway/mcp-config'
 
 /**
  * Что шлюз сообщает живым коннекторам (LiveConnectors): процесс кончился, работа разговора
@@ -87,10 +88,29 @@ export class GatewayHost {
 
   /**
    * Конфиг для нового процесса разговора в этом проекте: коннекторы, видимые в нём, и
-   * попрошенные свои серверы IDE, со своим ключом. Шлюз не поднят или коннекторов в проекте нет - null, флага не нужно.
-   * Файл не записался - ошибка: процесс поднимется без коннекторов и скажет об этом.
+   * попрошенные свои серверы IDE, со своим ключом. Шлюз не поднят или коннекторов в проекте
+   * нет - null, флага не нужно. Файл не записался - ошибка: процесс поднимется без коннекторов
+   * и скажет об этом.
    */
   open(projectPath: string, ideServers: readonly string[] = []): Promise<McpLaunch | null> {
+    const plan = this.planFor(projectPath, ideServers)
+
+    return plan
+      ? this.launches.issue(projectPath, plan.entries, plan.allowed)
+      : Promise.resolve(null)
+  }
+
+  /** То же без файла - процессу, который берёт серверы флагами, а ключ из окружения (Codex). */
+  openInMemory(projectPath: string, ideServers: readonly string[] = []): GatewayLaunch | null {
+    const plan = this.planFor(projectPath, ideServers)
+
+    return plan && this.launches.issueInMemory(projectPath, plan.entries, plan.allowed)
+  }
+
+  private planFor(
+    projectPath: string,
+    ideServers: readonly string[],
+  ): { entries: GatewayEntry[]; allowed: string[] } | null {
     const own = ideServers.flatMap((name) => {
       const url = this.ide.has(name) ? this.gateway.urlOf(name) : null
 
@@ -117,10 +137,7 @@ export class GatewayHost {
     const all = [...own, ...entries]
 
     return all.length
-      ? this.launches.issue(projectPath, all, [
-          ...allowed,
-          ...own.map((entry) => `mcp__${entry.name}`),
-        ])
-      : Promise.resolve(null)
+      ? { entries: all, allowed: [...allowed, ...own.map((entry) => `mcp__${entry.name}`)] }
+      : null
   }
 }

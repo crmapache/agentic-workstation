@@ -3,7 +3,7 @@ import { stat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 
-import type { FleetTranscript } from '@shared/claude-feed'
+import type { FleetTranscript } from '@shared/conversation-feed'
 
 import { transcriptDirs } from '../history/transcript-paths'
 import { isAgentName, MISSING_TRANSCRIPT, FleetTranscriptReader } from './fleet-transcript'

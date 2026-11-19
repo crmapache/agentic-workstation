@@ -1,17 +1,21 @@
+import { capabilitiesOf } from '@shared/panel-capabilities'
+
 import type { WorkspaceService } from '../workspace/workspace-service'
 import type { PanelRegistry } from '../agents/panel/panel-registry'
+import { assertAlias, assertAccountId, assertAccountIds } from './account-ids'
 import {
   assertUuid,
   assertIndex,
   parseOptions,
   assertCliName,
   parseOutgoing,
-  assertSessionId,
+  assertMessageId,
   parseQueuePlace,
   assertFeedItemId,
   parseFeedItemIds,
   parseRewindScope,
   assertShellCommand,
+  assertAgentSessionId,
   parseRequestResponse,
 } from './claude-validate'
 import type { InvokeHandlers } from './handle'
@@ -90,12 +94,29 @@ export const createAgentHandlers = (
         .actions.respond(id(conversationId), requestId, parseRequestResponse(response))
     },
     'agent:setOptions': ({ provider, conversationId, options }) =>
-      panels.get(provider).actions.setOptions(id(conversationId), parseOptions(options)),
+      panels
+        .get(provider)
+        .actions.setOptions(id(conversationId), parseOptions(options, capabilitiesOf(provider))),
     'agent:listHistory': ({ provider, projectId }) =>
       panels.get(provider).listHistory(root(projectId)),
     'agent:openHistory': ({ provider, projectId, sessionId }) =>
-      panels.get(provider).openHistory(root(projectId), assertSessionId(sessionId)),
+      panels.get(provider).openHistory(root(projectId), assertAgentSessionId(sessionId)),
     'agent:recheckCli': ({ provider }) => panels.get(provider).recheckCli(),
+    'agent:refreshUsage': ({ provider, accountIds }) =>
+      panels.get(provider).refreshUsage(assertAccountIds(accountIds)),
+    'agent:signIn': ({ provider, accountId }) =>
+      panels.get(provider).signIn(assertAccountId(accountId)),
+    'agent:cancelSignIn': ({ provider }) => panels.get(provider).cancelSignIn(),
+    'agent:checkSignIn': ({ provider }) => panels.get(provider).checkSignIn(),
+    'agent:signOut': ({ provider, accountId }) =>
+      panels.get(provider).signOut(assertAccountId(accountId)),
+    'agent:addAccount': ({ provider }) => panels.get(provider).addAccount(),
+    'agent:selectAccount': ({ provider, accountId }) =>
+      panels.get(provider).selectAccount(assertAccountId(accountId)),
+    'agent:renameAccount': ({ provider, accountId, alias }) =>
+      panels.get(provider).renameAccount(assertAccountId(accountId), assertAlias(alias)),
+    'agent:forgetAccount': ({ provider, accountId }) =>
+      panels.get(provider).forgetAccount(assertAccountId(accountId)),
     'agent:runShell': ({ provider, conversationId, command }) =>
       panels.get(provider).actions.runShell(id(conversationId), assertShellCommand(command)),
     'agent:stopShell': ({ provider, conversationId, runId }) =>
@@ -114,29 +135,19 @@ export const createAgentHandlers = (
     'agent:getImage': ({ provider, conversationId, messageId, index }) =>
       panels
         .get(provider)
-        .actions.getImage(
-          id(conversationId),
-          assertUuid(messageId, 'messageId'),
-          assertIndex(index),
-        ),
+        .actions.getImage(id(conversationId), assertMessageId(messageId), assertIndex(index)),
     'agent:previewRewind': ({ provider, conversationId, messageId }) =>
-      panels
-        .get(provider)
-        .actions.previewRewind(id(conversationId), assertUuid(messageId, 'messageId')),
+      panels.get(provider).actions.previewRewind(id(conversationId), assertMessageId(messageId)),
     'agent:rewind': ({ provider, conversationId, messageId, scope }) =>
       panels
         .get(provider)
-        .actions.rewind(
-          id(conversationId),
-          assertUuid(messageId, 'messageId'),
-          parseRewindScope(scope),
-        ),
+        .actions.rewind(id(conversationId), assertMessageId(messageId), parseRewindScope(scope)),
     'agent:fork': ({ provider, conversationId, beforeMessageId }) =>
       panels
         .get(provider)
         .fork(
           id(conversationId),
-          beforeMessageId === null ? null : assertUuid(beforeMessageId, 'beforeMessageId'),
+          beforeMessageId === null ? null : assertMessageId(beforeMessageId, 'beforeMessageId'),
         ),
     'agent:closeConversation': ({ provider, conversationId, hasDraft }) =>
       panels.get(provider).tabs.close(id(conversationId), hasDraft === true),

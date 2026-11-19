@@ -226,3 +226,11 @@ export type ProjectChipsProps = {
 export type GoogleSetupMenuProps = {
   onOpenFailed: (app: AgentApp | null) => void
 }
+
+/** Кто собирает коннектор: провайдер, модель, усилие просьбы. */
+export type AiBuilderPicksProps = {
+  request: GenerateConnectorRequest
+  /** Человек выбрал провайдера: модель и усилие - его по умолчанию. */
+  onProvider: (provider: string) => void
+  onChange: (patch: Partial<GenerateConnectorRequest>) => void
+}

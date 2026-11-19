@@ -1,10 +1,8 @@
-import type { ConversationUsage } from '@shared/claude'
-
 import { callForResult, callFromMessage } from '../calls/call-reasons'
 import { announceAgentEdit } from '../changes/agent-edits-tap'
 import type { CliMessage } from '../cli/cli-messages'
 import { recordField, stringField } from '../cli/cli-messages'
-import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import type { TurnEnd, ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { claudeOf } from './claude-conversation'
 import { mergeCommands, modelsFromReply, commandsFromInit, commandsFromChange } from './cli-replies'
 import { COMMAND_RESULT_GRACE_MS } from './conversation.constants'
@@ -67,37 +65,22 @@ const askContext = (runtime: ConversationRuntime) => {
 /** Строки хода, которые после отката к нему уже не относятся к разговору. */
 const STRAY_TYPES = new Set(['result', 'assistant', 'stream_event', 'user'])
 
-/** Чем кончился ход: остановкой, ошибкой и с какими цифрами. */
-type TurnEnd = { interrupted: boolean; isError: boolean; usage: ConversationUsage }
-
 /** Ход закрыт - по итогу CLI или без него: вкладка свободна, цифры контекста, очередь, сон. */
 const closeTurn = (runtime: ConversationRuntime, end: TurnEnd) => {
-  const { feed } = claudeOf(runtime)
+  const claude = claudeOf(runtime)
 
-  claudeOf(runtime).freshProcess = false
-  claudeOf(runtime).turnCommand = null
+  claude.freshProcess = false
+  claude.turnCommand = null
   // Файлы хода - по точным правкам и сверкой с диском, пока их никто не тронул. Список
   // уточняется синхронно, до отправки окну: промежуточного окно не видит.
-  claudeOf(runtime)
-    .turnRevert.captureEnd()
-    .catch((error: unknown) => {
-      console.warn('[claude] файлы хода не сверились:', error)
-    })
-  feed.flush()
-
-  runtime.turnActive = false
-  runtime.update({
-    turnStartedAt: null,
-    stopRequestedAt: null,
-    usage: end.usage,
-    outcome: end.isError ? 'error' : end.interrupted ? 'interrupted' : 'done',
+  claude.turnRevert.captureEnd().catch((error: unknown) => {
+    console.warn('[claude] файлы хода не сверились:', error)
   })
-  // Вопросы фоновых субагентов переживают конец хода: CLI ждёт на них ответа.
-  runtime.syncStatus()
-
+  // Лента, свободная вкладка, исход - общее для провайдеров. Цифры контекста и расход
+  // спрашиваются у процесса до очереди: она может сменить процесс (отложенный перезапуск).
+  runtime.settleTurn(end)
   askContext(runtime)
-
-  claudeOf(runtime).host.onUsageHint(runtime)
+  claude.host.onUsageHint(runtime)
   runtime.afterTurn(!end.interrupted && !end.isError)
 }
 

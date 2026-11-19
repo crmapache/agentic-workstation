@@ -1,7 +1,7 @@
 import type { ScenarioCode, ScenarioOutcome } from '@shared/scenarios'
 import type { RunPlace, ScenariosInvokeContract } from '@shared/ipc/scenarios.contract'
 
-import type { ClaudeService } from '../claude/claude-service'
+import type { ProviderSources } from '../providers/provider-registry'
 import { listProviders } from '../providers/provider-registry'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { WorkspaceService } from '../workspace/workspace-service'
@@ -29,7 +29,7 @@ const outcome = (code: ScenarioCode | null): ScenarioOutcome =>
 /** Каналы сценариев (ADR 0039): проверить запрос и позвать сервис. */
 export const createScenariosHandlers = (
   workspace: WorkspaceService,
-  claude: ClaudeService,
+  providers: ProviderSources,
   scenarios: ScenarioService,
 ): Pick<InvokeHandlers, ScenariosChannels> => {
   const root = (projectId: unknown) => projectRootOf(workspace, projectId)
@@ -52,7 +52,7 @@ export const createScenariosHandlers = (
   }
 
   return {
-    'providers:list': () => listProviders(claude),
+    'providers:list': () => listProviders(providers),
     'scenarios:shelves': ({ projectId }) => scenarios.shelves.view(root(projectId)),
     'scenarios:fetch': ({ projectId, id, scope }) =>
       scenarios.shelves.fetch(root(projectId), text(id, 'id'), text(scope, 'scope')),

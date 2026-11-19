@@ -1,4 +1,4 @@
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 /**
  * Элементы ленты по порядку и по id, плюс список тронутых с прошлого сбора. Лента

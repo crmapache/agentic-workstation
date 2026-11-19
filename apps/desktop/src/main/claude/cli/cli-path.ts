@@ -3,7 +3,7 @@ import { constants } from 'node:fs'
 import { stat, access } from 'node:fs/promises'
 import { join, delimiter, isAbsolute } from 'node:path'
 
-import type { CliPathRefusal } from '@shared/claude-panel'
+import type { CliPathRefusal } from '@shared/panel-extras'
 
 import { IS_WINDOWS } from '../../platform'
 import type { Environment } from '../../process/shell-env'

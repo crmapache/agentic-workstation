@@ -1,6 +1,6 @@
 import { it, vi, expect, describe, afterEach } from 'vitest'
 
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { ConversationCall } from '@shared/panel-prefs'
 
 import { CALL_SETTLE_MS } from '../../agents/calls/calls.constants'
 import { ConversationCalls } from '../../agents/calls/conversation-calls'

@@ -1,4 +1,4 @@
-import type { TitleSource } from '@shared/claude'
+import type { TitleSource } from '@shared/conversation'
 
 import { recordField, stringField, parseCliLine } from '../cli/cli-messages'
 import { userTextOf } from '../feed/user-text'

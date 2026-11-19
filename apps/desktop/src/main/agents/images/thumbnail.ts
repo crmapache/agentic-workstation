@@ -1,6 +1,6 @@
 import { nativeImage } from 'electron'
 
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 
 import { THUMBNAIL_EDGE, THUMBNAIL_QUALITY } from './images.constants'
 

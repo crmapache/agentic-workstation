@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
-import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
 import type { AiJob, AiProposal, AiJobActivity } from '@shared/connector-spec'
+import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 
 import { ANSWER_TOOL } from './ai-job.constants'
 import { hostOf } from './ConnectorsView/ConnectorsView.utils'

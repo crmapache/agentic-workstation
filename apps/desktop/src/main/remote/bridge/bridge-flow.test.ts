@@ -1,6 +1,6 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type { ConversationFeed } from '@shared/claude-feed'
+import type { ConversationFeed } from '@shared/conversation-feed'
 import type { ScenarioStartOutcome } from '@shared/scenario-queues'
 
 import {
@@ -43,7 +43,7 @@ const START_ARGS = {
 const slowFeed = (setup: ReturnType<typeof bridgeSetup>) => {
   const feed = gate<ConversationFeed>()
 
-  setup.ide.ports.conversations.getFeed = () => feed.promise
+  setup.ide.claude.getFeed = () => feed.promise
 
   return () => feed.release(setup.ide.feed)
 }
@@ -295,7 +295,7 @@ describe('спящий телефон и новая линия', () => {
 
     bridge.feedPatched({ conversationId: CONVERSATION_ID, upserts: [itemOf('a4', 'while asleep')] })
     ide.state.conversations = [conversationOf({ status: 'running', workStartedAt: 9 })]
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     ide.queues.queues = [{ ...QUEUE, name: 'Renamed while asleep' }]
     bridge.queuesChanged()
     await settle(250)
@@ -310,7 +310,7 @@ describe('спящий телефон и новая линия', () => {
   })
 
   it('новая линия: тем, кто на связи, - «переспроси», и состояние уходит заново', async () => {
-    const { ide, bridge, awake, say, next, sentTo } = bridgeSetup()
+    const { bridge, awake, say, next, sentTo } = bridgeSetup()
 
     say({ k: 'subscribe', conversationId: CONVERSATION_ID })
     await next('feed')
@@ -324,7 +324,7 @@ describe('спящий телефон и новая линия', () => {
     expect(sentTo(OTHER_PHONE)).toEqual([])
 
     // Тот же разговор, то же состояние - но после новой линии оно уходит снова.
-    bridge.claudeChanged(ide.state)
+    bridge.panelChanged()
     expect((await next('conversation', mark)).conversation.id).toBe(CONVERSATION_ID)
   })
 })

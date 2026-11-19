@@ -1,5 +1,5 @@
-import type { CliStatus, ModelInfo, SlashCommand } from '@shared/claude'
-import type { CliSearch } from '@shared/claude-panel'
+import type { CliStatus, ModelInfo, SlashCommand } from '@shared/conversation'
+import type { CliSearch } from '@shared/panel-extras'
 
 import { modelsFromReply, builtinsFromReply } from '../conversation/cli-replies'
 import { loginShellEnv } from '../../process/shell-env'

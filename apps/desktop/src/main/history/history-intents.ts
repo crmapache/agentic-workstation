@@ -1,9 +1,8 @@
 import { isAbsolute } from 'node:path'
 
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 import type { HistoryCause } from '@shared/local-history'
 
-import { EDIT_TOOL_PATH_FIELD } from '../claude/changes/changes.constants'
 import { AGENT_GRACE_MS, AGENT_RUNNING_MAX_MS } from './history.constants'
 
 /** Причина, которую ждёт путь, и до какого времени она в силе. */
@@ -50,7 +49,8 @@ export class HistoryIntents {
 export type AgentEdit = { id: string; path: string; until: number; running: boolean }
 
 /**
- * Правки агента в заплатке ленты: инструменты правки (Edit, Write, ...) с абсолютным путём.
+ * Правки агента в заплатке ленты: вызовы правки и записи (вид действия, ADR 0083 - у любого
+ * провайдера) с абсолютным путём.
  * Идущий - в силе до потолка от начала; кончившийся - ещё немного после конца (слежение
  * копит пачку). Старые вызовы, приехавшие с подгрузкой разговора, уже не в силе: их конец
  * давно прошёл.
@@ -59,10 +59,10 @@ export const agentEditsOf = (patch: FeedPatch, now: number): AgentEdit[] =>
   patch.upserts.flatMap((item): AgentEdit[] => {
     if (item.kind !== 'tool') return []
 
-    const field = EDIT_TOOL_PATH_FIELD[item.name]
-    const path = field ? item.input[field] : undefined
+    const { action } = item
+    const path = action.kind === 'edit' || action.kind === 'write' ? action.path : ''
 
-    if (typeof path !== 'string' || !isAbsolute(path)) return []
+    if (!path || !isAbsolute(path)) return []
 
     if (item.status === 'running') {
       const started = item.startedAt > 0 ? item.startedAt : now

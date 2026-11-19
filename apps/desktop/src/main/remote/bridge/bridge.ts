@@ -1,5 +1,4 @@
-import type { ClaudeState } from '@shared/claude'
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
@@ -22,6 +21,7 @@ import { FeedDesk } from './feed-desk'
 import type { Redact } from './fit'
 import { InventoryDesk } from './inventory-desk'
 import { ModeGate } from './mode-gate'
+import { ownerOf, panelOf, ownedConversations } from './panels'
 import { PhoneChains } from './phone-chain'
 import { ProjectKeys } from './project-keys'
 import { machineRoots, pathRedactor } from './redact'
@@ -49,7 +49,8 @@ export type Lens = { keys: ProjectKeys; redact: Redact }
 
 /**
  * Мост Remote Control к IDE: инвентарь машины, подписки (лента и состояние разговора, прогон,
- * очереди), команды телефона. Подписки одного телефона - строго по очереди; команда в очереди
+ * очереди), команды телефона. Разговоры - всех панелей провайдеров (ADR 0083): по id разговора
+ * мост находит его панель. Подписки одного телефона - строго по очереди; команда в очереди
  * только начинается, а её итог уходит, когда готов: долгий запуск сценария не держит «стоп».
  */
 export class Bridge {
@@ -71,12 +72,29 @@ export class Bridge {
     this.chains = new PhoneChains(host.known)
     // Запрет bypass прочитан или перечитан иным - телефонам новое, как при перемене разговоров.
     this.modes = new ModeGate({
-      read: (projectPath) => ports.conversations.bypassDisabled(projectPath),
-      refused: () => ports.conversations.getState().refusedModes,
-      changed: () => this.claudeChanged(ports.conversations.getState()),
+      panel: (provider) => {
+        const panel = panelOf(ports.panels, provider)
+        const state = panel?.getState()
+
+        return panel && state
+          ? {
+              modes: state.capabilities.modes,
+              refused: state.refusedModes,
+              read: (state.capabilities.settingsLayers && panel.bypassDisabled) || null,
+            }
+          : null
+      },
+      providers: () => ports.panels.list().map((panel) => panel.provider),
+      changed: () => this.panelChanged(),
     })
     this.feeds = new FeedDesk({
-      getFeed: (conversationId) => ports.conversations.getFeed(conversationId),
+      getFeed: (conversationId) => {
+        const owner = ownerOf(ports.panels, conversationId)
+
+        if (!owner) return Promise.reject(new Error(`Разговора ${conversationId} нет`))
+
+        return owner.panel.getFeed(conversationId)
+      },
       send: (deviceId, message) => host.send(deviceId, message),
       awake: host.awake,
       redact,
@@ -85,8 +103,8 @@ export class Bridge {
     this.watches = new WatchDesk({
       send: (deviceId, message) => host.send(deviceId, message),
       awake: host.awake,
-      conversations: () => ports.conversations.getState().conversations,
-      modesOff: (conversation) => this.modes.offFor(conversation),
+      conversations: () => ownedConversations(ports.panels),
+      modesOff: (provider, conversation) => this.modes.offFor(provider, conversation),
       keys,
       redact,
       clock: this.clock,
@@ -135,8 +153,11 @@ export class Bridge {
     return this.ledger.seen(deviceId, commandId) !== null
   }
 
-  claudeChanged(state: ClaudeState): void {
-    const alive = new Set(state.conversations.map((conversation) => conversation.id))
+  /** Состояние панели какого-то провайдера поменялось: разговоры, ход, вопросы, каталог. */
+  panelChanged(): void {
+    const alive = new Set(
+      ownedConversations(this.host.ports.panels).map(({ conversation }) => conversation.id),
+    )
 
     this.clock.keep(alive)
 

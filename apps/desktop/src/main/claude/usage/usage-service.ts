@@ -1,7 +1,7 @@
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { AccountUsage } from '@shared/claude-usage'
+import type { AccountUsage } from '@shared/account-usage'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import type { CliProcess } from '../cli/cli-process'

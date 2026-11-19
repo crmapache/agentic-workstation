@@ -34,6 +34,7 @@ const scenario = (stages: ScenarioStage[], inputs: string[] = []): Scenario => (
   inputs: inputs.map((name) => ({ id: name, name, label: name, placeholder: '', required: false })),
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: '',

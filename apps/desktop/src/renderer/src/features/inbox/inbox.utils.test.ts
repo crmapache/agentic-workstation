@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { Question } from '@shared/claude'
+import type { Question } from '@shared/conversation'
 import type { InboxItem } from '@shared/inbox'
 
 import { itemsOf, answersOf, previewOf, togglePick, answersAtOnce } from './inbox.utils'

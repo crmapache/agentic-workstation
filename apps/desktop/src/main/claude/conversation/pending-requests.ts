@@ -1,4 +1,4 @@
-import type { Question, PermissionMode, RequestResponse } from '@shared/claude'
+import type { Question, PermissionMode, RequestResponse } from '@shared/conversation'
 
 import type { ControlRequest } from '../cli/cli-messages'
 import { recordField, stringField, recordsField } from '../cli/cli-messages'

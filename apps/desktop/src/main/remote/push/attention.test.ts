@@ -1,5 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
+import type { Conversation } from '@shared/conversation'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -14,6 +15,7 @@ import {
   conversationOf,
   CONVERSATION_ID,
 } from '../__fixtures__/fake-ide'
+import type { OwnedConversation } from '../bridge/panels'
 import { ProjectKeys } from '../bridge/project-keys'
 import { machineRoots, pathRedactor } from '../bridge/redact'
 import type { AttentionInput } from './attention'
@@ -21,13 +23,19 @@ import { attentionId, attentionOf } from './attention'
 
 const HOME = '/Users/someone'
 
+/** Разговор панели Claude Code - так их и держит мост (panels.ts). */
+const claude = (conversation: Conversation): OwnedConversation => ({
+  provider: 'claude',
+  conversation,
+})
+
 const inputOf = (over: Partial<AttentionInput> = {}): AttentionInput => {
   const ide = fakeIde()
   const workspace = ide.workspace
   const queues: ScenarioQueuesView = { queues: [QUEUE], live: [] }
 
   return {
-    conversations: [conversationOf()],
+    conversations: [claude(conversationOf())],
     events: [],
     queues,
     runs: new Map(),
@@ -42,10 +50,12 @@ describe('поводы пуша из состояния IDE', () => {
     const [attention] = attentionOf(
       inputOf({
         conversations: [
-          conversationOf({
-            pending: PERMISSION,
-            title: `Fix ${PROJECT_PATH}/src/login.ts`,
-          }),
+          claude(
+            conversationOf({
+              pending: PERMISSION,
+              title: `Fix ${PROJECT_PATH}/src/login.ts`,
+            }),
+          ),
         ],
       }),
     )
@@ -67,10 +77,30 @@ describe('поводы пуша из состояния IDE', () => {
     expect(parsePushNotice({ p: 1, ...attention?.notice, at: 1 })).not.toBeNull()
   })
 
+  it('вопрос и событие разговора Codex - пуш называет его провайдера', () => {
+    const codex = conversationOf({ id: 'codex-1', pending: PERMISSION, title: 'Port the API' })
+    const events = [{ conversationId: 'codex-1', reason: 'limit' as const, at: 300 }]
+    const found = attentionOf(
+      inputOf({
+        conversations: [claude(conversationOf()), { provider: 'codex', conversation: codex }],
+        events,
+      }),
+    )
+
+    expect(found.map((one) => [one.tag, one.reason, one.notice.provider])).toEqual([
+      ['c-codex-1', 'permission', 'codex'],
+      ['c-codex-1', 'limit', 'codex'],
+    ])
+    expect(parsePushNotice({ p: 1, ...found[1]?.notice, at: 1 })).toMatchObject({
+      provider: 'codex',
+      route: { screen: 'conversation', conversationId: 'codex-1' },
+    })
+  })
+
   it('разговор закрытого проекта не будит; длинное имя режется', () => {
     const closed = conversationOf({ pending: PERMISSION, projectPath: '/Users/someone/elsewhere' })
     const long = conversationOf({ id: 'long-1', pending: PERMISSION, title: 'x'.repeat(300) })
-    const found = attentionOf(inputOf({ conversations: [closed, long] }))
+    const found = attentionOf(inputOf({ conversations: [claude(closed), claude(long)] }))
 
     expect(found.map((one) => one.tag)).toEqual(['c-long-1'])
     expect(found[0]?.notice.title).toHaveLength(80)
@@ -83,7 +113,7 @@ describe('поводы пуша из состояния IDE', () => {
       { conversationId: CONVERSATION_ID, reason: 'limit' as const, at: 200 },
     ]
     const waiting = conversationOf({ carryOn: { until: 5000, guess: false } })
-    const found = attentionOf(inputOf({ conversations: [waiting], events }))
+    const found = attentionOf(inputOf({ conversations: [claude(waiting)], events }))
 
     expect(found.map((one) => [one.reason, one.since, one.notice.until])).toEqual([
       ['trouble', 100, 0],
@@ -94,7 +124,7 @@ describe('поводы пуша из состояния IDE', () => {
     const moved = conversationOf({ turnStartedAt: 150 })
 
     expect(
-      attentionOf(inputOf({ conversations: [moved], events })).map((one) => one.reason),
+      attentionOf(inputOf({ conversations: [claude(moved)], events })).map((one) => one.reason),
     ).toEqual(['limit'])
   })
 

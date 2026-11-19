@@ -1,0 +1,71 @@
+import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
+
+import { GAUGE_VIVID_CALM, GAUGE_VIVID_FULL } from '@shared/panel-prefs'
+
+import { Card } from '@agentic-workstation/ui/Card'
+import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
+import { RingMeter } from '@agentic-workstation/ui/RingMeter'
+import { Slider } from '@agentic-workstation/ui/Slider'
+
+import { useConversationActions } from '../conversation-actions.hooks'
+import { usePanelPrefs } from '../panel.queries'
+import { usageTone } from '../usage.utils'
+import { PanelScreen } from '../PanelScreen/PanelScreen'
+import { SLIDER_SAVE_MS } from '../../../lib/delayed-save.constants'
+import { useDelayedSave } from '../../../lib/delayed-save.hooks'
+import { CALM_LADDER, CALM_BAR_PERCENT } from './CalmColorsScreen.constants'
+import styles from './CalmColorsScreen.module.scss'
+import { vividStyle } from './CalmColorsScreen.utils'
+
+/**
+ * Спокойные цвета (Settings → No-stress colors): сколько цвета остаётся шкалам - кольцам
+ * контекста и лимитов, полосам и процентам аккаунтов. Образец собран из тех же примитивов
+ * и ступеней, что настоящие шкалы, и перекрашивается под пальцем. Ошибки остаются
+ * красными: это то, что случилось, а не настроение.
+ */
+export const CalmColorsScreen = () => {
+  const { t } = useTranslation()
+  const prefs = usePanelPrefs()
+  const { setPrefs } = useConversationActions()
+  const [vivid, setVivid] = useDelayedSave(
+    prefs.gaugeVivid,
+    (gaugeVivid) => setPrefs({ gaugeVivid }),
+    SLIDER_SAVE_MS,
+  )
+  const percent = (value: number) => t('agentPanel.calmColors.percent', { value })
+
+  return (
+    <PanelScreen title={t('agentPanel.menu.titles.calmColors.title')}>
+      <Card title={t('agentPanel.calmColors.sample')}>
+        {/* eslint-disable-next-line no-restricted-syntax -- доля цвета образца меняется под пальцем */}
+        <div className={styles.sample} style={vividStyle(vivid)} data-gauge-calm="">
+          <ProgressBar
+            value={CALM_BAR_PERCENT / 100}
+            tone={usageTone(CALM_BAR_PERCENT, '')}
+            label={percent(CALM_BAR_PERCENT)}
+          />
+          <div className={styles.ladder}>
+            {CALM_LADDER.map((step) => (
+              <span key={step.value} className={clsx(styles.step, styles[step.tone])}>
+                <RingMeter value={step.value} tone={step.tone} label={percent(step.value)} />
+                {percent(step.value)}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
+      <div className={styles.control}>
+        <Slider
+          label={t('agentPanel.calmColors.label')}
+          value={vivid}
+          min={GAUGE_VIVID_CALM}
+          max={GAUGE_VIVID_FULL}
+          valueText={percent(vivid)}
+          onChange={setVivid}
+        />
+        <span className={styles.hint}>{t('agentPanel.calmColors.hint')}</span>
+      </div>
+    </PanelScreen>
+  )
+}

@@ -101,7 +101,7 @@ export class MachineCommands {
 
   /** Список аккаунтов; fresh - сначала освежить лимиты вошедших, но не дольше терпения. */
   private async accounts(fresh: boolean): Promise<Outcome> {
-    const state = () => this.ports.conversations.getState().accounts
+    const state = () => this.ports.accounts.state()
 
     if (fresh) {
       const signedIn = state()
@@ -123,6 +123,6 @@ export class MachineCommands {
   }
 
   private account(id: string) {
-    return this.ports.conversations.getState().accounts.accounts.find((one) => one.id === id)
+    return this.ports.accounts.state().accounts.find((one) => one.id === id)
   }
 }

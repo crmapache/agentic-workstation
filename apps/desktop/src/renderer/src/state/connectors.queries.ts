@@ -1,4 +1,3 @@
-import type { ConversationFeed } from '@shared/claude-feed'
 import type { ComputerPermission } from '@shared/computer'
 import type { ConnectorAvailability } from '@shared/connector-availability'
 import type { GenerateConnectorRequest } from '@shared/connector-spec'
@@ -10,6 +9,7 @@ import type {
   ConnectorInProject,
   AddConnectorRequest,
 } from '@shared/connectors'
+import type { ConversationFeed } from '@shared/conversation-feed'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'

@@ -1,4 +1,4 @@
-import type { CarryOnReason } from '@shared/claude-panel'
+import type { CarryOnReason } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, recordField, stringField } from '../cli/cli-messages'

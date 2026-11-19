@@ -3,8 +3,8 @@ import { homedir } from 'node:os'
 
 import { nativeImage } from 'electron'
 
-import type { ImageAttachment } from '@shared/claude'
-import type { PictureView, PicturePlace } from '@shared/claude-draft'
+import type { ImageAttachment } from '@shared/conversation'
+import type { PictureView, PicturePlace } from '@shared/message-draft'
 
 import {
   PREVIEW_EDGE,

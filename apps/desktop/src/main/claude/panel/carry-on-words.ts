@@ -1,5 +1,5 @@
-import type { CarryOnReason } from '@shared/claude-panel'
-import { CARRY_ON_REASONS } from '@shared/claude-panel'
+import type { CarryOnReason } from '@shared/panel-extras'
+import { CARRY_ON_REASONS } from '@shared/panel-extras'
 
 import type { Owed } from './carry-ons'
 import { CARRY_ON_TAG } from './panel.constants'

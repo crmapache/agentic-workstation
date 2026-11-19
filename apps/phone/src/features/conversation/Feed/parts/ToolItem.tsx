@@ -13,6 +13,7 @@ import type { RunningTask } from '../Feed.types'
 import {
   text,
   fields,
+  actionOf,
   inputText,
   toolLabel,
   editCounts,
@@ -41,8 +42,10 @@ const StatusIcon = ({ status }: { status: string }) => {
 
 /**
  * Вызов инструмента одной строкой: что и о чём, правка - итогом +N -M (большая правка без
- * диффа CLI - «±», как в IDE), у субагента - сколько шагов внутри. Нажатие раскрывает вход и вывод. За вызовом идёт задача (субагент, фоновая
- * команда) - рядом «остановить» её одну, не трогая ход: как у карточки задачи в панели IDE.
+ * диффа CLI - «±», как в IDE), у субагента - сколько шагов внутри. Строка - по виду действия
+ * (у любого провайдера), у IDE постарше - по имени инструмента Claude Code. Нажатие раскрывает
+ * вход и вывод. За вызовом идёт задача (субагент, фоновая команда) - рядом «остановить» её одну,
+ * не трогая ход: как у карточки задачи в панели IDE.
  */
 export const ToolItem = ({
   item,
@@ -58,9 +61,10 @@ export const ToolItem = ({
   const task = onStopTask ? runningTask(item) : null
   const name = text(item, 'name')
   const input = fields(item, 'input') ?? {}
+  const action = actionOf(item)
   const result = fields(item, 'result')
   const status = text(item, 'status')
-  const counts = editCounts(name, input, result)
+  const counts = editCounts(name, input, result, action)
   const output = result ? text(result, 'stdout') || text(result, 'text') : ''
   const errors = result ? text(result, 'stderr') : ''
 
@@ -70,9 +74,9 @@ export const ToolItem = ({
         <div className={styles.toolRowMain}>
           <Disclosure size="touch" expanded={isOpen} onClick={() => setIsOpen((open) => !open)}>
             <StatusIcon status={status} />
-            <span className={styles.toolName}>{toolLabel(name) || t('feed.tool')}</span>
+            <span className={styles.toolName}>{toolLabel(name, action) || t('feed.tool')}</span>
             <span className={styles.toolSummary}>
-              <PathText text={toolSummary(name, input)} />
+              <PathText text={toolSummary(name, input, action)} />
             </span>
             {counts && (
               <span className={styles.counts}>
@@ -103,7 +107,7 @@ export const ToolItem = ({
       {isOpen && (
         <div className={styles.toolBody}>
           <pre className={styles.output}>
-            <PathText text={inputText(name, input)} />
+            <PathText text={inputText(name, input, action)} />
           </pre>
           {output && (
             <pre className={styles.output}>

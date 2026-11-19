@@ -65,6 +65,7 @@ export const blankScenario = (
   inputs: [],
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'default',

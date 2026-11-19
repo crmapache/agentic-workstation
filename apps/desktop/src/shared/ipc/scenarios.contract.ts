@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '../claude'
+import type { ImageAttachment } from '../conversation'
 import type { ProviderId, ProviderInfo } from '../providers'
 import type {
   QueueAction,

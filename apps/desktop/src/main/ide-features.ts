@@ -1,8 +1,10 @@
 import type { BrowserWindow } from 'electron'
 
-import type { ClaudeState } from '@shared/claude'
-import type { FeedPatch } from '@shared/claude-feed'
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { AgentPanelState } from '@shared/conversation'
+import type { FeedPatch } from '@shared/conversation-feed'
+import type { ConversationCall } from '@shared/panel-prefs'
+import type { ProviderId } from '@shared/providers'
+import { PROVIDER_IDS } from '@shared/providers'
 import { SECOND_MS } from '@shared/time-units'
 
 import type { ClaudeService } from './claude/claude-service'
@@ -13,17 +15,20 @@ import type { InboxLink } from './inbox/inbox-agent'
 import type { InboxService } from './inbox/inbox-service'
 import { broadcast } from './ipc/broadcast'
 import { ProviderWatch } from './providers/provider-registry'
+import type { ScenarioProvider } from './providers/scenario-provider'
 import type { RemoteService } from './remote/remote-service'
 import { startRemote } from './remote/remote-setup'
 import type { ScenarioService } from './scenarios/scenario-service'
 import type { ScenarioTaps } from './scenarios/scenarios-setup'
 import { startScenarios } from './scenarios/scenarios-setup'
+import type { ServiceAiService } from './service-ai/service-ai-service'
 import type { Statistics } from './statistics/statistics-wiring'
 import { startStatistics } from './statistics/statistics-wiring'
 import type { TaskAuthor } from './tasks/task-author'
 import type { TaskService } from './tasks/task-service'
 import { startTasks } from './tasks/tasks-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
+import type { PanelRegistry } from './agents/panel/panel-registry'
 import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
 import type { TasksPort } from './remote/bridge/bridge-ports'
@@ -50,11 +55,14 @@ export type IdeFeatures = {
    * ⌘ + наведением в коде, а не со стартом IDE.
    */
   definitions: DefinitionService
-  /** Состояние панели Claude поменялось: статистике, Remote Control и списку провайдеров. */
-  observeClaude: (state: ClaudeState) => void
-  /** Живая заплатка ленты разговора: Remote Control (телефонам, которые смотрят разговор). */
+  /** Состояние панели любого провайдера: список провайдеров, статистика, Remote Control. */
+  observeState: (provider: ProviderId, state: AgentPanelState) => void
+  /**
+   * Живая заплатка ленты разговора любой панели: Remote Control (телефонам, которые смотрят
+   * разговор) и капсула Computer.
+   */
   observeFeed: (patch: FeedPatch) => void
-  /** Разговор позвал человека: Remote Control будит телефон не на связи. */
+  /** Разговор любой панели позвал человека: Remote Control будит телефон не на связи. */
   observeCall: (call: ConversationCall) => void
   /** Проекты открыли или закрыли. */
   projectsChanged: () => void
@@ -70,6 +78,12 @@ export type IdeFeatures = {
  */
 export const startIdeFeatures = async (setup: {
   claude: ClaudeService
+  /** Панели всех провайдеров: задания, уведомления и сценарии ведут разговоры любой из них. */
+  panels: PanelRegistry
+  /** Провайдер служебной работы IDE (Settings → AI). */
+  serviceAi: ServiceAiService
+  /** Исполнители провайдеров без вкладки (run-providers.ts): сценарии и задания. */
+  runners: ReadonlyMap<ProviderId, ScenarioProvider>
   workspace: WorkspaceService
   /** Поиск по разговорам и коннекторы - телефону Remote Control (чтение и переподключение). */
   search: SearchDesk
@@ -86,12 +100,27 @@ export const startIdeFeatures = async (setup: {
   const taps: ScenarioTaps = { onQueues: () => undefined, onRun: () => undefined }
   // Прогоны заданий телефону: задания встают позже Remote Control, ручка заполняется после них.
   const taskRuns: TasksPort = { runs: () => [] }
-  const scenarios = await startScenarios({ ...setup, taps })
-  const statistics = await startStatistics({ dataDir: setup.dataDir, scenarios, workspace })
+  const { runners } = setup
+  const scenarios = await startScenarios({
+    ...setup,
+    providers: [...runners.values()],
+    service: () => setup.serviceAi.value.provider,
+    taps,
+  })
+  const statistics = await startStatistics({
+    dataDir: setup.dataDir,
+    scenarios,
+    workspace,
+    chatIdOf: (provider, sessionId) =>
+      runners.get(provider)?.chatIdOf(sessionId) ?? Promise.resolve(sessionId),
+  })
   const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns })
   // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
   const automation = await startTasks({
     claude,
+    panels: setup.panels,
+    providers: runners,
+    serviceAi: setup.serviceAi,
     connectors: setup.connectors,
     workspace,
     stats: statistics.stats,
@@ -103,13 +132,17 @@ export const startIdeFeatures = async (setup: {
   })
   const definitions = createDefinitionService()
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
-  const providers = new ProviderWatch((list) => broadcast('providers:changed', list))
+  const providers = new ProviderWatch((list) => broadcast('providers:changed', list), setup.panels)
 
   // Stop в капсуле Computer останавливает и ход разговора панели, который держал компьютер, - как
   // Stop в чате (ADR 0060). Процесс без разговора панели (сценарий) узнаёт об остановке отказом шага.
   setup.connectors.computer.stopped = (key) => {
-    if (claude.getState().conversations.some((conversation) => conversation.id === key)) {
-      claude.actions.interrupt(key)
+    for (const provider of PROVIDER_IDS) {
+      const panel = setup.panels.find(provider)
+
+      if (panel?.getState().conversations.some((conversation) => conversation.id === key)) {
+        panel.actions.interrupt(key)
+      }
     }
   }
   // Прогоны, поднятые до этой строки (наверстывание при старте), телефон узнаёт сразу.
@@ -117,7 +150,7 @@ export const startIdeFeatures = async (setup: {
   remote.tasksChanged()
   taps.onQueues = () => remote.queuesChanged()
   taps.onRun = (run) => remote.runChanged(run)
-  statistics.observeClaude(claude.getState())
+  statistics.observe('claude', claude.getState())
 
   return {
     scenarios,
@@ -127,10 +160,10 @@ export const startIdeFeatures = async (setup: {
     inbox: automation.inbox,
     taskAuthor: automation.author,
     definitions,
-    observeClaude: (state) => {
-      statistics.observeClaude(state)
-      remote.claudeChanged(state)
-      providers.claudeChanged(state)
+    observeState: (provider, state) => {
+      providers.changed(provider, state)
+      statistics.observe(provider, state)
+      remote.panelChanged()
     },
     observeFeed: (patch) => {
       remote.feedPatched(patch)
@@ -141,7 +174,7 @@ export const startIdeFeatures = async (setup: {
 
       if (saying) setup.connectors.computer.heard(patch.conversationId, saying)
     },
-    observeCall: (call) => remote.claudeCalled(call),
+    observeCall: (call) => remote.called(call),
     projectsChanged: () => {
       statistics.projectsChanged()
       scenarios.projectsChanged(workspace.getState().projects.map((project) => project.rootPath))
@@ -153,7 +186,7 @@ export const startIdeFeatures = async (setup: {
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
         await definitions.close().catch(warnShutdown)
-        automation.shutdown()
+        await automation.shutdown().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)
         await scenarios.shutdown().catch(warnShutdown)
         await statistics.stats.close().catch(warnShutdown)

@@ -5,7 +5,7 @@ import type { QueueWorkdir, ScenarioQueue } from '@shared/scenario-queues'
 
 import type { QueueStatus } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
-import { useProviders } from '../../../state/scenarios.queries'
+import { useProviders } from '../../../state/providers.queries'
 import { PROVIDER_LIST } from './QueueCard.constants'
 
 /**

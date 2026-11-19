@@ -7,6 +7,7 @@ import type {
   InboxReminderRequest,
 } from '@shared/inbox'
 import { isInboxAsking } from '@shared/inbox'
+import type { ProviderId } from '@shared/providers'
 import type { Task, TaskRun, TaskOutcome } from '@shared/tasks'
 
 import type { JsonFile } from '../storage/json-file'
@@ -21,13 +22,14 @@ import { itemOf, closeItem, pruneItems, settleStale } from './inbox-rules'
 export type StoredInbox = { items: InboxItem[] }
 
 /** Разговор панели, приславший уведомление: куда вернуть нажатие кнопки. */
-export type ChatOrigin = { conversationId: string; sessionId: string }
+export type ChatOrigin = { provider: ProviderId; conversationId: string; sessionId: string }
 
 /** Куда уходят нажатия: прогоны заданий, разговоры панели, доверие папке, открыть файл. */
 export type InboxRoutes = {
   tasks: Pick<TaskService, 'answer' | 'tell' | 'resume' | 'again' | 'openChat'>
   sendToChat: (origin: ChatOrigin, projectPath: string, text: string) => Promise<boolean>
-  trust: (projectPath: string) => Promise<unknown>
+  /** Довериться папке прогона - у провайдера этого прогона. */
+  trust: (projectPath: string, runId: string) => Promise<unknown>
   openPath: (path: string) => Promise<boolean>
   openUrl: (url: string) => boolean
 }
@@ -275,7 +277,7 @@ export class InboxService implements TaskInboxPort {
       case 'resume':
         return done(await routes.tasks.resume(runId))
       case 'trust':
-        await routes.trust(item.projectPath)
+        await routes.trust(item.projectPath, runId)
 
         return done(await routes.tasks.again(runId))
     }

@@ -1,18 +1,11 @@
 import type { TaskAuthorError } from '@shared/task-author'
 import type { Task, TaskDraft } from '@shared/tasks'
 
-import type { Choice, ScheduleForm } from '../tasks.types'
+import type { ScheduleForm } from '../tasks.types'
 
 export type TaskModalProps = {
   /** Правка задания по id; null - новое. */
   taskId: string | null
-}
-
-export type ChoiceFieldProps = {
-  label: string
-  value: string
-  choices: readonly Choice[]
-  onPick: (value: string) => void
 }
 
 export type ScheduleFieldsProps = {

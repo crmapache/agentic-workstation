@@ -1,7 +1,7 @@
 import type { AppInfo, ResourceUsage } from '../app-info'
-import type { ClaudeState } from '../claude'
-import type { FleetTranscript } from '../claude-feed'
 import type { PluginScope, PluginAction, PluginCatalog, PluginsOutcome } from '../claude-tools'
+import type { AgentPanelState } from '../conversation'
+import type { FleetTranscript } from '../conversation-feed'
 import type { DirectoryEntry } from '../fs'
 import type {
   GitHead,
@@ -101,25 +101,9 @@ export type InvokeContract = {
   /** Токены за сегодня по всем проектам машины (из транскриптов CLI). */
   'claude:getTodayTokens': { request: void; response: number }
   /** Аккаунты Claude: спросить хранилища, вошёл ли CLI, и перечитать аккаунты ACC. */
-  'accounts:refresh': { request: void; response: ClaudeState }
-  /**
-   * Освежить лимиты аккаунтов: живой разговор или свой процесс CLI, каждый аккаунт не
-   * чаще своего шага (сервер отбивает частые вопросы). Ответ - когда цифры пришли.
-   */
-  'accounts:refreshUsage': { request: { accountIds: string[] }; response: ClaudeState }
-  /** Новый аккаунт: Терминал с входом, панель ждёт, пока вход состоится. */
-  'accounts:add': { request: void; response: ClaudeState }
-  /** Войти заново (вход истёк). Пустой id - обычный вход Claude Code. */
-  'accounts:signIn': { request: { accountId: string }; response: ClaudeState }
-  'accounts:cancelSignIn': { request: void; response: ClaudeState }
-  /** Выбрать аккаунт для всех разговоров: процессы перезапустятся, как освободятся. */
-  'accounts:select': { request: { accountId: string }; response: ClaudeState }
-  'accounts:rename': { request: { accountId: string; alias: string }; response: ClaudeState }
-  'accounts:forget': { request: { accountId: string }; response: ClaudeState }
-  /** Выйти из обычного входа Claude Code (отзывает вход на всех машинах). */
-  'accounts:logout': { request: void; response: ClaudeState }
+  'accounts:refresh': { request: void; response: AgentPanelState }
   /** Взять аккаунт amazing-claude-code: его хранилище, без повторного входа. */
-  'accounts:import': { request: { sourceId: string }; response: ClaudeState }
+  'accounts:import': { request: { sourceId: string }; response: AgentPanelState }
   /** Плагины: установленные для проекта, каталог маркетплейсов и сами маркетплейсы. */
   'plugins:catalog': { request: ProjectRequest; response: PluginCatalog }
   'plugins:act': {
@@ -198,14 +182,6 @@ export const INVOKE_CHANNELS = Object.keys({
   'git:getPullRequest': true,
   'claude:getTodayTokens': true,
   'accounts:refresh': true,
-  'accounts:refreshUsage': true,
-  'accounts:add': true,
-  'accounts:signIn': true,
-  'accounts:cancelSignIn': true,
-  'accounts:select': true,
-  'accounts:rename': true,
-  'accounts:forget': true,
-  'accounts:logout': true,
   'accounts:import': true,
   'plugins:catalog': true,
   'plugins:act': true,

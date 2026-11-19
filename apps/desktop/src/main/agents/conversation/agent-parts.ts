@@ -4,14 +4,14 @@ import type {
   ImageAttachment,
   RequestResponse,
   ConversationOptions,
-} from '@shared/claude'
+} from '@shared/conversation'
 import type {
   FeedItem,
   NoticeCode,
   StopReason,
   ClosedReason,
   ConversationFeed,
-} from '@shared/claude-feed'
+} from '@shared/conversation-feed'
 import type { SoundEvent } from '@shared/sounds'
 
 import type { WorkClock } from '../feed/work-clock'
@@ -25,7 +25,12 @@ import type { Outgoing } from './outbox'
  */
 
 /** Вопрос, на котором стоит ход: что видит окно. Своё для ответа драйвер держит в том же объекте. */
-export type HeldRequest = { pending: PendingRequest }
+/**
+ * Вопрос к человеку, который держит разговор. ownAfterTurn - вопрос задала сама панель после
+ * хода (план Codex): Stop без идущего хода снимает только такие - вопрос фонового субагента
+ * CLI ждёт человека и после хода.
+ */
+export type HeldRequest = { pending: PendingRequest; ownAfterTurn?: boolean | undefined }
 
 /** Коннекторы IDE процесса разговора (ADR 0029): работа встала, разговор закрыт насовсем. */
 export type ConnectorsHandle = { idle: () => void; end: () => void }

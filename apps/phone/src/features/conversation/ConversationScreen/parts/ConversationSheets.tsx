@@ -63,6 +63,7 @@ export const ConversationSheets = ({
           draftKey={`${agentId}|${conversationId}`}
           running={conversation.status !== 'idle'}
           queued={conversation.queue.length}
+          allowedScopes={provider?.rewindScopes}
           onClose={() => sheets.setRewindTo(null)}
         />
       )}

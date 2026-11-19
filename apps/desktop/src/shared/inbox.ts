@@ -1,4 +1,5 @@
-import type { Question, QuestionAnswers } from './claude'
+import type { Question, QuestionAnswers } from './conversation'
+import type { ProviderId } from './providers'
 
 /**
  * Уведомления IDE (ADR 0069) - одно место, куда приходит всё, что ждёт человека: вопросы и
@@ -54,7 +55,7 @@ export type InboxAction = {
 /** Откуда уведомление: прогон задания, разговор панели или ни то ни другое. */
 export type InboxOrigin =
   | { kind: 'task'; taskId: string; runId: string }
-  | { kind: 'chat'; conversationId: string; sessionId: string }
+  | { kind: 'chat'; provider: ProviderId; conversationId: string; sessionId: string }
   | { kind: 'none' }
 
 export type InboxTone = 'info' | 'attention' | 'success' | 'danger'

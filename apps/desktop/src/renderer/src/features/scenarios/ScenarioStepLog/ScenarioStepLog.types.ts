@@ -1,4 +1,4 @@
-import type { ConversationFeed } from '@shared/claude-feed'
+import type { ConversationFeed } from '@shared/conversation-feed'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import type { RunPlace } from '@shared/ipc/scenarios.contract'
 

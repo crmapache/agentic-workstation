@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { ToolFeedItem } from '@shared/claude-feed'
+import type { ToolFeedItem } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { withStep } from './agent-tasks'

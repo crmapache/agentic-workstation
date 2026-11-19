@@ -1,4 +1,4 @@
-import type { ModelInfo, SlashCommand } from '@shared/claude'
+import type { ModelInfo, SlashCommand } from '@shared/conversation'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, stringField, recordsField } from '../cli/cli-messages'

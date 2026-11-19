@@ -1,4 +1,4 @@
-import type { PermissionMode, ConversationOptions } from '@shared/claude'
+import type { PermissionMode, ConversationOptions } from '@shared/conversation'
 
 import { cliPermissionMode } from '../cli/cli-args'
 import type { CliProcess } from '../cli/cli-process'

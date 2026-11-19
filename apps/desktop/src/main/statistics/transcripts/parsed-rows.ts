@@ -1,5 +1,11 @@
 import type { AnswerFact } from './line-facts'
 
+/**
+ * Строки журнала провайдера, разобранные в записи базы. Формат записей один на всех
+ * провайдеров: разбор Claude (file-parser.ts), Codex (codex/) и OpenCode (opencode/) отдаёт их
+ * в RowWriter.
+ */
+
 /** Вызов, прочитанный в прошлый проход: его строка уже в базе, а результат пришёл сейчас. */
 export type KnownTool = { name: string; skipEdits: boolean }
 
@@ -19,7 +25,11 @@ export type FileContext = {
 /** Где запись: время, папка (cwd) и сессия. */
 export type LinePlace = { ts: number; cwd: string; session: string }
 
-export type AnswerRow = LinePlace & AnswerFact & { key: number; subagent: boolean }
+/**
+ * Ответ модели. cost - стоимость, которую записал сам провайдер (OpenCode); у Claude и Codex
+ * её нет - считает таблица цен IDE (pricing.ts).
+ */
+export type AnswerRow = LinePlace & AnswerFact & { key: number; subagent: boolean; cost?: number }
 
 export type ToolCallRow = LinePlace & {
   key: number
@@ -73,4 +83,6 @@ export const mergeAnswer = (known: AnswerRow, row: AnswerRow): void => {
   known.cacheWrite = Math.max(known.cacheWrite, row.cacheWrite)
   known.cacheWrite1h = Math.max(known.cacheWrite1h, row.cacheWrite1h)
   known.fast ||= row.fast
+
+  if (row.cost !== undefined) known.cost = Math.max(known.cost ?? 0, row.cost)
 }

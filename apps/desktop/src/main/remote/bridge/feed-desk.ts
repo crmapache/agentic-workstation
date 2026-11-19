@@ -1,4 +1,4 @@
-import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
+import type { FeedPatch, ConversationFeed } from '@shared/conversation-feed'
 
 import type {
   AgentMessage,

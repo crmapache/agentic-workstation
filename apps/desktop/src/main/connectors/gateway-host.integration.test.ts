@@ -1,4 +1,4 @@
-import { rm, stat, mkdtemp, readFile } from 'node:fs/promises'
+import { rm, stat, mkdtemp, readdir, readFile } from 'node:fs/promises'
 import { request } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -146,6 +146,24 @@ describe('GatewayHost', () => {
     expect(await status(servers['everywhere']!)).toBe(401)
     expect(released).toHaveBeenCalledOnce()
     await vi.waitFor(async () => expect(await stat(launch.path).catch(() => null)).toBeNull())
+  })
+
+  it('ключ без файла (Codex): серверы и ключ - в памяти, на диске ничего, ключ работает', async () => {
+    const launch = host.openInMemory('/p/a')!
+    const everywhere = launch.servers.find((entry) => entry.name === 'everywhere')!
+    const entry = { url: everywhere.url, headers: { Authorization: `Bearer ${launch.token}` } }
+
+    expect(launch.servers.map((item) => item.name)).toEqual(['everywhere', 'only-a', 'not-b'])
+    expect(await readdir(join(dir, 'configs')).catch(() => [])).toEqual([])
+    expect(await status(entry)).not.toBe(404)
+
+    launch.release()
+
+    expect(await status(entry)).toBe(401)
+    expect(released).toHaveBeenCalledOnce()
+    expect(host.openInMemory('/p/none-visible')?.servers.map((item) => item.name)).toEqual([
+      'everywhere',
+    ])
   })
 
   it('процесс назван разговором: шлюз видит разговор и папку, конец разговора - после процесса', async () => {

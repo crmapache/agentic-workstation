@@ -1,4 +1,4 @@
-import type { PanelKeyCommand } from '../claude'
+import type { PanelKeyCommand } from '../conversation'
 
 /**
  * Часть контракта (contract.ts) про полосу вкладок разговоров: закрытие и возврат,

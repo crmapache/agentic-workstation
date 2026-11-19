@@ -23,18 +23,20 @@ import { ConversationSheets } from './parts/ConversationSheets'
 import { ConversationSubtitle } from './parts/ConversationSubtitle'
 
 /**
- * Разговор с провайдером (сейчас Claude Code): лента с ранними сообщениями по просьбе, решение
- * хода над полем, очередь, поле с фото и Stop идущего хода - всё в низу, под пальцем. Пока ход
- * идёт, новое сообщение встаёт в очередь IDE. Вопрос сбоку и настройки разговора (модель,
- * усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте; выделенное в
- * ответе - цитатой в поле кнопкой над лентой.
+ * Разговор с провайдером (Claude Code, Codex, открытые модели): лента с ранними сообщениями по
+ * просьбе, решение хода над полем, очередь, поле с фото и Stop идущего хода - всё в низу, под
+ * пальцем. Пока ход идёт, новое сообщение встаёт в очередь IDE. Вопрос сбоку и настройки
+ * разговора (модель, усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте;
+ * выделенное в ответе - цитатой в поле кнопкой над лентой. Чего провайдер не умеет (вопрос
+ * сбоку, откат, остановка задачи), того на экране нет.
  */
 export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }) => {
   const { t } = useTranslation()
   const screen = useConversationScreen(route)
   const commands = useConversationCommands(route.agentId, route.conversationId)
-  const sheets = useConversationSheets()
   const { conversation, feed, inventory } = screen
+  const provider = inventory?.providers.find((one) => one.id === conversation?.provider)
+  const sheets = useConversationSheets(provider)
   const working = useWorkingText(conversation, inventory)
   const draftKey = `${route.agentId}|${route.conversationId}`
   const quotable = useQuotableSelection(screen.bodyRef)
@@ -45,7 +47,6 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
 
     if (quote) addQuote(draftKey, quote)
   }
-  const provider = inventory?.providers.find((one) => one.id === conversation?.provider)
   const offset = inventory ? inventory.at - inventory.receivedAt : 0
 
   if (conversation === null) {
@@ -75,12 +76,14 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
       actions={
         conversation && (
           <>
-            <IconButton
-              icon={MessagesSquare}
-              size="touch"
-              label={t('aside.open')}
-              onClick={() => sheets.setIsAsideOpen(true)}
-            />
+            {provider?.aside !== false && (
+              <IconButton
+                icon={MessagesSquare}
+                size="touch"
+                label={t('aside.open')}
+                onClick={() => sheets.setIsAsideOpen(true)}
+              />
+            )}
             <IconButton
               icon={SlidersHorizontal}
               size="touch"

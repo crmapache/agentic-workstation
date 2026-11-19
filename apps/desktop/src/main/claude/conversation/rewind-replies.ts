@@ -1,5 +1,5 @@
-import type { RewindPreview, RewindRefusal } from '@shared/claude-rewind'
-import { REWIND_FILES_LISTED } from '@shared/claude-rewind'
+import type { RewindPreview, RewindRefusal } from '@shared/rewind'
+import { REWIND_FILES_LISTED } from '@shared/rewind'
 
 import { numberField, stringField } from '../cli/cli-messages'
 import { CliExitedError } from '../cli/cli-process'

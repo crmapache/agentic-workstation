@@ -33,6 +33,7 @@ const asking = (input: Record<string, unknown>) =>
       status: 'waiting',
       pendingCount: 1,
     }),
+    'claude',
     KEY,
     0,
     [],

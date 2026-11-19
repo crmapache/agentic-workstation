@@ -38,6 +38,7 @@ const scenario = (id: string): Scenario => ({
   inputs: [],
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'acceptEdits',
@@ -104,6 +105,8 @@ const provider = (fakes: FakeCli[], titles: string[]): ScenarioProvider => ({
   draft: () => Promise.resolve({ ok: false, error: 'no', cancelled: false }),
   cancelDraft: () => undefined,
   openChat: () => Promise.resolve(true),
+  stepFeed: () => Promise.resolve(null),
+  chatIdOf: (sessionId) => Promise.resolve(sessionId),
 })
 
 /** Подождать, пока условие станет правдой: движок и запись на диск идут своими тактами. */

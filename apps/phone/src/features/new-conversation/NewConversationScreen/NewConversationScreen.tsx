@@ -5,7 +5,7 @@ import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
 
-import { modeOptions, modelOptions, effortOptions } from '../../../lib/options.utils'
+import { effortsOf, modeOptions, modelOptions, effortOptions } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { navigateFromHere } from '../../../lib/router.store'
 import { useCommand } from '../../../state/commands.hooks'
@@ -19,8 +19,9 @@ type NewArgs = CommandArgs<'conversation.new'>
 
 /**
  * Новый разговор в открытом проекте: провайдер, модель, усилие и режим - любой, в котором окно
- * IDE начало бы вкладку этого проекта (ADR 0076; погашенное у окна погашено и здесь). Первое
- * сообщение пишется уже в самом разговоре.
+ * IDE начало бы вкладку этого проекта (ADR 0076; погашенное у окна погашено и здесь). Модель,
+ * усилие и режим - списками выбранного провайдера: другой провайдер начинает выбор заново, другая
+ * модель снимает усилие, которого у неё нет. Первое сообщение пишется уже в самом разговоре.
  */
 export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversation'> }) => {
   const { t } = useTranslation()
@@ -34,6 +35,21 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
   const [mode, setMode] = useState('default')
   const create = useCommand(agentId, 'conversation.new')
   const provider = providers.find((one) => one.id === providerId) ?? providers[0]
+
+  const handleProvider = (id: string) => {
+    if (id === provider?.id) return
+
+    setProviderId(id)
+    setModel('')
+    setEffort('')
+    setMode('default')
+  }
+
+  const handleModel = (value: string) => {
+    setModel(value)
+
+    if (provider && effort && !effortsOf(provider, value).includes(effort)) setEffort('')
+  }
 
   const handleCreate = async () => {
     if (!provider) return
@@ -81,7 +97,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
                 label={t('newConversation.provider')}
                 options={providers.map((one) => ({ value: one.id, label: one.label }))}
                 isSelected={(value) => value === provider.id}
-                onSelect={setProviderId}
+                onSelect={handleProvider}
               />
             </Section>
           )}
@@ -90,13 +106,13 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
               label={t('conversation.settings.model')}
               options={modelOptions(t, provider)}
               isSelected={(value) => value === model}
-              onSelect={setModel}
+              onSelect={handleModel}
             />
           </Section>
           <Section size="sm" title={t('conversation.settings.effort')}>
             <OptionList
               label={t('conversation.settings.effort')}
-              options={effortOptions(t, provider)}
+              options={effortOptions(t, provider, model)}
               isSelected={(value) => value === effort}
               onSelect={setEffort}
             />

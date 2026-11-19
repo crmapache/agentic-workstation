@@ -1,20 +1,22 @@
 import type { StatementSync } from 'node:sqlite'
 
-import { costOf } from '../pricing'
+import type { ProviderId } from '@shared/providers'
+
+import { answerCostOf } from '../pricing'
 import { keyOf } from '../stats-keys'
 import type { StatsStore } from '../stats-store'
-import { TRANSCRIPT_PROVIDER } from '../stats.constants'
 import type { CopyTable, KnownTool, ParsedRows } from './parsed-rows'
 
-/** Таблицы, где записи помнят свой транскрипт: укоротившийся файл стирает их. */
+/** Таблицы, где записи помнят свой журнал: укоротившийся файл стирает их. */
 const FILE_TABLES = ['answers', 'edits', 'tool_calls', 'prompts', 'permissions', 'spans'] as const
 
 /**
- * Запись разобранного транскрипта в базу. Вызывающий держит транзакцию: строки и смещение
- * файла пишутся вместе, так что оборванный проход не задвоит и не потеряет записей.
+ * Запись разобранного журнала провайдера в базу. Вызывающий держит транзакцию: строки и
+ * смещение файла пишутся вместе, так что оборванный проход не задвоит и не потеряет записей.
  *
  * Ответ пишется «по наибольшему»: его строки могли попасть в разные проходы. Остальное -
- * «первый прочитанный», ключи - id CLI (вызов, uuid), копии из форков совпадают с ними.
+ * «первый прочитанный», ключи - id провайдера (вызов, сообщение, ответ API), копии из форков
+ * совпадают с ними. Сессии - разговоры этого провайдера: id у провайдеров свои.
  */
 export class RowWriter {
   private readonly answer: StatementSync
@@ -62,11 +64,11 @@ export class RowWriter {
     this.tool = db.prepare('SELECT tool, skip_edits FROM tool_calls WHERE key = ?')
   }
 
-  /** Записать строки файла; ответ - сессии, чьи ходы надо пересчитать. */
-  write(file: number, rows: ParsedRows): Set<number> {
+  /** Записать строки файла провайдера; ответ - сессии, чьи ходы надо пересчитать. */
+  write(file: number, rows: ParsedRows, provider: ProviderId): Set<number> {
     const touched = new Set<number>()
     const place = (cwd: string) => this.store.placeId(cwd)
-    const session = (uuid: string) => this.store.sessionId(uuid, TRANSCRIPT_PROVIDER)
+    const session = (uuid: string) => this.store.sessionId(uuid, provider)
 
     for (const row of rows.answers) {
       this.answer.run(
@@ -82,7 +84,7 @@ export class RowWriter {
         row.cacheWrite,
         row.cacheWrite1h,
         row.fast ? 1 : 0,
-        costOf(row.model, row),
+        answerCostOf(provider, row.model, row, row.cost),
         row.subagent ? 1 : 0,
       )
     }

@@ -1,12 +1,12 @@
 import type { GoogleAppError, GoogleAppState } from '@shared/connectors'
 
+import type { Vault } from '../storage/vault'
 import type { LiveConnector } from './connector-live'
 import type { ConnectorRegistry } from './connector-registry'
 import type { StoredConnector } from './connector-store'
 import { GoogleApp } from './google-app'
 import { sharesGoogleGrant } from './google-grant'
 import { SignInDesk } from './sign-in'
-import type { Vault } from './vault'
 import { signsInWithBrowser } from './kinds/sources'
 import { revokeGoogleToken } from './oauth/google-oauth'
 import type { GoogleClient } from './oauth/google-oauth'

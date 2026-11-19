@@ -4,6 +4,7 @@ import { nextDue } from '@shared/task-clock'
 import { TASK_REPEATS } from '@shared/tasks'
 import type { TaskRepeat } from '@shared/tasks'
 
+import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
 import { DateField } from '@agentic-workstation/ui/DateField'
 import { Tabs } from '@agentic-workstation/ui/Tabs'
 import { TimeField } from '@agentic-workstation/ui/TimeField'
@@ -21,7 +22,6 @@ import {
   weekdayDayLabel,
 } from '../../../../lib/dates.utils'
 import { useNow } from '../../../../lib/now.hooks'
-import { ChoiceField } from './ChoiceField'
 
 /**
  * Ритм задания: вкладками - вручную, один раз, каждый час, день, по дням недели, раз в месяц;
@@ -104,7 +104,7 @@ export const ScheduleFields = ({ schedule, onChange }: ScheduleFieldsProps) => {
             <ChoiceField
               label={t('tasks.form.monthDay')}
               value={String(schedule.monthDay)}
-              choices={monthDays}
+              options={monthDays}
               onPick={(day) => onChange({ ...schedule, monthDay: Number(day) })}
             />
           )}

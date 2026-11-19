@@ -1,8 +1,13 @@
-import type { ClaudeState, RefusedModes, PermissionMode, ConversationOptions } from '@shared/claude'
-import { modeModel } from '@shared/claude'
-import type { AccountsState } from '@shared/claude-accounts'
-import type { CliSearch, CarryOnReason, PanelTerminalCommand } from '@shared/claude-panel'
-import type { PanelPrefs } from '@shared/claude-prefs'
+import type { AccountsState } from '@shared/accounts'
+import type {
+  RefusedModes,
+  PermissionMode,
+  AgentPanelState,
+  ConversationOptions,
+} from '@shared/conversation'
+import { modeModel } from '@shared/conversation'
+import type { CliSearch, CarryOnReason, PanelTerminalCommand } from '@shared/panel-extras'
+import type { PanelPrefs } from '@shared/panel-prefs'
 
 import type { ClaudeService } from '../claude-service'
 import { AccountChoices } from '../accounts/account-choices'
@@ -211,7 +216,7 @@ export class PanelDesk implements PanelHooks {
    * Вход в Claude Design или выход - Терминал в хранилище аккаунта в работе (как в ACC).
    * После выхода вход спрашивается заново, пока Терминал открыт: экран входа встанет сам.
    */
-  async terminalCommand(command: PanelTerminalCommand): Promise<ClaudeState> {
+  async terminalCommand(command: PanelTerminalCommand): Promise<AgentPanelState> {
     const { accounts } = this.service
     const cli = await this.service.cli.locate()
     const drawer = accounts.drawerFor(accounts.current)
@@ -234,7 +239,7 @@ export class PanelDesk implements PanelHooks {
   }
 
   /** Путь к CLI руками: проверить, запомнить и искать заново. */
-  async setCliPath(path: string): Promise<{ state: ClaudeState; search: CliSearch }> {
+  async setCliPath(path: string): Promise<{ state: AgentPanelState; search: CliSearch }> {
     this.service.setPrefs({ cliPath: path.trim() })
     await this.service.recheckCli()
 

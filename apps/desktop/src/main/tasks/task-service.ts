@@ -41,13 +41,13 @@ export type TaskServiceOptions = {
   host: TaskDeskHost
   /** Папка - проект, который IDE знает (открытый, недавний, дом): окну не верим. */
   folderKnown: (path: string) => boolean
-  /** Разговор прогона - вкладкой панели: проект открывается, вкладка выбирается. */
-  openChat: (projectPath: string, sessionId: string) => Promise<boolean>
+  /** Разговор прогона - вкладкой панели его провайдера: проект открывается, вкладка выбирается. */
+  openChat: (run: Pick<TaskRun, 'projectPath' | 'sessionId' | 'provider'>) => Promise<boolean>
   /**
    * Разговор прогона уже открыт вкладкой панели - слова идут туда сообщением, а не вторым
    * процессом на тот же разговор. false - вкладки нет.
    */
-  sendToChat: (sessionId: string, text: string) => Promise<boolean>
+  sendToChat: (run: Pick<TaskRun, 'sessionId' | 'provider'>, text: string) => Promise<boolean>
   onState: (state: TasksState) => void
   /** Прогон кончился - статистике (сессия IDE, не человек). */
   onRunFinished: (run: TaskRun) => void
@@ -243,11 +243,7 @@ export class TaskService {
     }
 
     // Прогон открыли чатом - он теперь разговор панели: второй процесс писал бы в него наперегонки.
-    if (
-      !this.desk.isLive(runId) &&
-      run.sessionId &&
-      (await this.options.sendToChat(run.sessionId, text))
-    ) {
+    if (!this.desk.isLive(runId) && run.sessionId && (await this.options.sendToChat(run, text))) {
       return { ok: true, state: this.view() }
     }
 
@@ -299,7 +295,12 @@ export class TaskService {
     // Идущий прогон читают заново: его транскрипт растёт.
     if (this.desk.isLive(runId) && !past) this.logs.forget(sessionId)
 
-    return this.logs.page(run.projectPath, sessionId, earlier)
+    return this.logs.page(
+      this.options.host.provider(run.provider)?.stepFeed ?? null,
+      run.projectPath,
+      sessionId,
+      earlier,
+    )
   }
 
   /** Разговор прогона - обычной вкладкой панели; идущий не отдаётся: CLI на нём уже есть. */
@@ -312,7 +313,7 @@ export class TaskService {
 
     await this.hiddenOf(run.projectPath).release(run.sessionId)
 
-    return (await this.options.openChat(run.projectPath, run.sessionId))
+    return (await this.options.openChat(run))
       ? { ok: true, state: this.view() }
       : { ok: false, code: 'noTranscript' }
   }
@@ -366,10 +367,12 @@ export class TaskService {
     }
   }
 
-  shutdown(): void {
+  /** Выход из IDE: сторожа и процессы гаснут, записи книг дописываются до конца. */
+  async shutdown(): Promise<void> {
     this.goals.patrol.shutdown()
     this.desk.shutdown()
     setHiddenConversations('tasks', null)
+    await Promise.all([this.book.settled(), this.options.goals.book.settled()])
   }
 
   private async skip(task: Task, dueAt: number, skip: 'busy' | 'missed') {

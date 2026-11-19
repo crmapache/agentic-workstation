@@ -1,4 +1,4 @@
-import type { AccountCapability } from '@shared/claude-panel'
+import type { AccountCapability } from '@shared/panel-extras'
 
 import type { AuthStatus } from './auth-status'
 

@@ -1,8 +1,9 @@
 import { it, expect, describe } from 'vitest'
 
+import { CLAUDE_CAPABILITIES } from '@shared/panel-capabilities'
 import type { ProviderInfo } from '@shared/providers'
 
-import { providerModels, defaultProvider } from './scenarios-providers.utils'
+import { providerModels } from './scenarios-providers.utils'
 
 const OPUS = { value: 'opus', displayName: 'Opus', description: '', custom: false }
 
@@ -11,16 +12,12 @@ const provider = (available: boolean, models?: ProviderInfo['models']): Provider
   label: 'Claude Code',
   available,
   unavailable: available ? null : 'noCli',
+  modes: CLAUDE_CAPABILITIES.modes,
+  efforts: CLAUDE_CAPABILITIES.efforts,
   ...(models ? { models } : {}),
 })
 
 describe('провайдер сценария', () => {
-  it('по умолчанию - первый на месте, иначе первый, пусто - никого', () => {
-    expect(defaultProvider([provider(false), provider(true)])?.available).toBe(true)
-    expect(defaultProvider([provider(false)])?.available).toBe(false)
-    expect(defaultProvider([])).toBeNull()
-  })
-
   it('модели - из описания провайдера; нет провайдера или моделей - пусто', () => {
     expect(providerModels(provider(true, [OPUS]))).toEqual([OPUS])
     expect(providerModels(provider(true))).toEqual([])

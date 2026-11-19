@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import type { ClaudeState, Conversation, ImageAttachment, ClosedConversation } from '@shared/claude'
+import type {
+  Conversation,
+  AgentPanelState,
+  ImageAttachment,
+  ClosedConversation,
+} from '@shared/conversation'
 
 import type { ConversationRuntime } from '../conversation/conversation-runtime'
 import { outranks, ownTitle } from '../tabs/tab-names'
@@ -28,7 +33,7 @@ export type TabStripHost = {
   /** Новый разговор вкладки - с хостом сервиса. */
   spawn: (conversation: Conversation) => ConversationRuntime
   changed: () => void
-  state: () => ClaudeState
+  state: () => AgentPanelState
   /** Журнал разговора на диске у провайдера: вкладку с ходами без него не вернуть. */
   hasJournal: (stored: StoredConversation) => Promise<boolean>
   /** Имя от человека - провайдеру: живой сессии словами её CLI, иначе в журнал. */
@@ -92,7 +97,7 @@ export class TabStrip {
    * Закрыть вкладку. Была выбранной - выбор переходит к соседу справа, у последней - к
    * соседу слева. Закрытую человеком можно вернуть: помнится всё, кроме пустой «New chat».
    */
-  async close(conversationId: string, hasDraft: boolean): Promise<ClaudeState> {
+  async close(conversationId: string, hasDraft: boolean): Promise<AgentPanelState> {
     const runtime = this.runtime(conversationId)
     const { projectPath } = runtime.meta
     const refs = this.refs()
@@ -123,7 +128,7 @@ export class TabStrip {
    * Транскрипт пропал (CLI чистит старые) - вкладка возвращается только ради черновика,
    * имени от человека или очереди, пустой от разговора; иначе - следующая.
    */
-  async reopen(projectPath: string, closedId: string | null): Promise<ClaudeState> {
+  async reopen(projectPath: string, closedId: string | null): Promise<AgentPanelState> {
     const runtimes = this.host.runtimes()
     const ofProject = this.closed.filter((tab) => tab.stored.projectPath === projectPath)
     const { tab } = takeClosed(ofProject, closedId, (id) => runtimes.has(id))
@@ -147,7 +152,7 @@ export class TabStrip {
   }
 
   /** Имя от человека: перебивает любое, едет в транскрипт. Пустое - имя прежнее. */
-  async rename(conversationId: string, text: string): Promise<ClaudeState> {
+  async rename(conversationId: string, text: string): Promise<AgentPanelState> {
     const runtime = this.runtime(conversationId)
     const title = ownTitle(text)
 
@@ -161,7 +166,7 @@ export class TabStrip {
   }
 
   /** Перенести группу форков целиком перед группой before (null - в конец). */
-  moveGroup(groupId: string, before: string | null): ClaudeState {
+  moveGroup(groupId: string, before: string | null): AgentPanelState {
     const next = moveGroup(this.refs(), groupId, before)
 
     if (next) this.reorder(next)
@@ -170,7 +175,7 @@ export class TabStrip {
   }
 
   /** Переставить форк внутри своей группы перед вкладкой before (null - в конец группы). */
-  moveTab(conversationId: string, before: string | null): ClaudeState {
+  moveTab(conversationId: string, before: string | null): AgentPanelState {
     const next = moveWithinGroup(this.refs(), conversationId, before)
 
     if (next) this.reorder(next)

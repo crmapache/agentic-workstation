@@ -1,4 +1,4 @@
-import type { Question, QuestionAnswers } from '@shared/claude'
+import type { Question, QuestionAnswers } from '@shared/conversation'
 import type { InboxItem, InboxState } from '@shared/inbox'
 import { isInboxOpen, isInboxAsking, isInboxScheduled } from '@shared/inbox'
 

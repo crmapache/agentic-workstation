@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
-import type { QueueHold, QueuedMessage, ImageAttachment } from '@shared/claude'
-import type { EditorRef, TakenQueued, MessageDraft } from '@shared/claude-draft'
-import type { CarryOnReason } from '@shared/claude-panel'
+import type { QueueHold, QueuedMessage, ImageAttachment } from '@shared/conversation'
+import type { EditorRef, TakenQueued, MessageDraft } from '@shared/message-draft'
+import type { CarryOnReason } from '@shared/panel-extras'
 
 import type { ConversationRuntime } from './conversation-runtime'
 import { isSlashCommand } from './conversation.utils'

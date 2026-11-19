@@ -1,4 +1,4 @@
-import type { FeedItem, ToolInput, FileChange, ToolFeedItem } from '@shared/claude-feed'
+import type { FeedItem, ToolInput, FileChange, ToolFeedItem } from '@shared/conversation-feed'
 
 import { isRecord } from '../cli/cli-messages'
 import { patchLines, writtenLines } from '../../agents/changes/line-counts'

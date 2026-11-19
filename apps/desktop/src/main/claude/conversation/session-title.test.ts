@@ -1,6 +1,6 @@
 import { it, vi, expect, describe } from 'vitest'
 
-import type { TitleSource } from '@shared/claude'
+import type { TitleSource } from '@shared/conversation'
 
 import type { CliProcess } from '../cli/cli-process'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'

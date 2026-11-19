@@ -49,7 +49,14 @@ const callmate: ImportCandidate = {
   pending: false,
 }
 
-const request = { service: 'Callmate', goal: 'Read my calls', docsUrl: '' }
+const request = {
+  service: 'Callmate',
+  goal: 'Read my calls',
+  docsUrl: '',
+  provider: 'claude' as const,
+  model: '',
+  effort: '',
+}
 
 const setup = (stored: StoredAiJobs | null = null) => {
   const chats: FakeChat[] = []

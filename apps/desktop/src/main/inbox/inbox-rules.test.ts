@@ -19,6 +19,7 @@ const run = (patch: Partial<TaskRun>): TaskRun => ({
   id: 'r1',
   taskId: 't1',
   taskName: 'Invoice',
+  provider: 'claude',
   projectPath: '/p',
   sessionId: 's1',
   trigger: 'schedule',

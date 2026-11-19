@@ -1,5 +1,5 @@
-import type { PermissionMode } from '@shared/claude'
-import type { CarryOnReason } from '@shared/claude-panel'
+import type { PermissionMode } from '@shared/conversation'
+import type { CarryOnReason } from '@shared/panel-extras'
 
 import type { CliMessage } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'

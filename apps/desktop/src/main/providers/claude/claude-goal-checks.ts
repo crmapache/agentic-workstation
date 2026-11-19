@@ -35,6 +35,8 @@ export const claudeGoalChecks = (
   claude: ClaudeService,
   connectors: ConnectorsService,
   dataDir: string,
+  /** Модель из Settings → AI; пусто - Haiku. */
+  model: () => string = () => '',
 ): GoalChecker => {
   const ask = async (
     request: Omit<AskRequest, 'model' | 'effort' | 'cwd' | 'signal'>,
@@ -48,7 +50,7 @@ export const claudeGoalChecks = (
       { ...cli, env: claude.accounts.envFor(cli.env) },
       {
         ...request,
-        model: CHECK_MODEL,
+        model: model() || CHECK_MODEL,
         effort: CHECK_EFFORT,
         cwd: join(dataDir, 'goal-checks'),
         signal: AbortSignal.any([signal, AbortSignal.timeout(request.timeoutMs)]),

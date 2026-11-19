@@ -13,6 +13,7 @@ import type {
 import type { EditorPlace } from '../scenarios-editor.utils'
 import type { ScenariosModal } from '../scenarios.types'
 import type { ScenariosProject } from '../ScenariosView/ScenariosView.types'
+import type { ModeTone } from '../../../lib/permission-modes.constants'
 
 export type EditorModalProps = {
   project: ScenariosProject
@@ -31,9 +32,6 @@ export type RunsOnValue = Pick<ScenarioCard, 'model' | 'effort' | 'permissionMod
 
 /** Чьё «пусто» у RunsOn: голова наследует новый чат, карточка - голову. */
 export type RunsOnFallback = 'newTab' | 'head'
-
-/** Тон слова режима: насколько свободно действует модель. */
-export type ModeTone = 'quiet' | 'info' | 'accent' | 'danger'
 
 /** Вариант селектора: id - значение в сценарии, подпись и пояснение - для меню. */
 export type PickerOption = {
@@ -79,6 +77,8 @@ export type EditorPaneProps = {
   at: EditorPlace
   canShare: boolean
   onChange: DraftChange
+  /** Сценарий под другого провайдера: голова и все карточки меняются вместе. */
+  onProvider: (provider: string) => void
   onRemoveStage: (stageId: string) => void
 }
 
@@ -87,6 +87,7 @@ export type NamePaneProps = { draft: Scenario; canShare: boolean; onChange: Draf
 export type HeadPaneProps = {
   head: HeadSettings
   onHead: (patch: Partial<HeadSettings>) => void
+  onProvider: (provider: string) => void
 }
 
 export type InputsPaneProps = {

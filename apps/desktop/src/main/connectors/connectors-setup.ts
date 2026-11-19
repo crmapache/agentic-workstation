@@ -1,29 +1,22 @@
 import { join } from 'node:path'
 
-import { app, safeStorage } from 'electron'
+import { app } from 'electron'
 import type { BrowserWindow } from 'electron'
 
 import { createBrowserRuntime } from '../browser/browser-setup'
 import { ComputerRuntime } from '../computer/computer-runtime'
 import type { InboxLink } from '../inbox/inbox-agent'
 import { broadcast } from '../ipc/broadcast'
+import { ELECTRON_CIPHER } from '../storage/electron-cipher'
 import { JsonFile } from '../storage/json-file'
+import { Vault } from '../storage/vault'
 import { openExternalWeb } from '../window/open-external'
 import { pickGoogleClientFile } from './connector-dialogs'
 import type { StoredConnectors } from './connector-store'
 import { ConnectorsService } from './connectors-service'
 import { VAULT_FILE, AI_JOBS_FILE, MCP_CONFIG_DIR, CONNECTORS_FILE } from './connectors.constants'
-import { Vault } from './vault'
-import type { VaultCipher } from './vault'
 import type { OpenAiChat } from './ai/ai-chat'
 import type { StoredAiJobs } from './ai/ai-jobs-file'
-
-/** Шифр хранилища - safeStorage Electron: ключ в Keychain самой IDE, не провайдера. */
-const ELECTRON_CIPHER: VaultCipher = {
-  available: () => safeStorage.isEncryptionAvailable(),
-  encrypt: (text) => safeStorage.encryptString(text),
-  decrypt: (data) => safeStorage.decryptString(data),
-}
 
 /** Что коннекторам надо от провайдеров: перезапустить процессы или переподключить сервер. */
 export type ProviderLinks = {

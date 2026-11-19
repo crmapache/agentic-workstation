@@ -1,5 +1,5 @@
-import type { ModelInfo, ConversationOptions } from '@shared/claude'
-import { losesFastMode } from '@shared/claude-fast-mode'
+import type { ModelInfo, ConversationOptions } from '@shared/conversation'
+import { losesFastMode } from '@shared/fast-mode'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, recordField, stringField } from '../cli/cli-messages'

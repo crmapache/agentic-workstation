@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { DEFAULT_PANEL_PREFS } from '@shared/claude-prefs'
+import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 
 import { applyPrefsPatch, parsePanelPrefs } from './panel-prefs'
 

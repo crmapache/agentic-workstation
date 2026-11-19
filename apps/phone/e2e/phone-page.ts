@@ -2,7 +2,7 @@ import { join } from 'node:path'
 
 import type { Page } from 'playwright-core'
 
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 /**
  * Страница телефона в мобильном Chromium для сквозной проверки: лента с разным содержимым,

@@ -1,4 +1,3 @@
-import type { FeedPatch, ConversationFeed } from '../claude-feed'
 import type { ConnectorAvailability } from '../connector-availability'
 import type { GenerateConnectorRequest } from '../connector-spec'
 import type {
@@ -13,6 +12,7 @@ import type {
   AddConnectorOutcome,
   AddConnectorRequest,
 } from '../connectors'
+import type { FeedPatch, ConversationFeed } from '../conversation-feed'
 
 type ConnectorRequest = { id: string }
 

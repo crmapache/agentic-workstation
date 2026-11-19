@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { EFFORT_LEVELS } from '@shared/claude'
-import { MODEL_NAME_PATTERN } from '@shared/claude-prefs'
+import { EFFORT_LEVELS } from '@shared/conversation'
+import { MODEL_NAME_PATTERN } from '@shared/panel-prefs'
 
 import { cliPermissionMode } from '../claude/cli/cli-args'
 import type { CliFeatures } from '../claude/cli/cli-features'

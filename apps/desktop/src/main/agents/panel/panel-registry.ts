@@ -28,4 +28,9 @@ export class PanelRegistry {
   has(provider: ProviderId): boolean {
     return this.panels.has(provider)
   }
+
+  /** Панель провайдера, если она есть в IDE. */
+  find(provider: ProviderId): AgentPanel | undefined {
+    return this.panels.get(provider)
+  }
 }

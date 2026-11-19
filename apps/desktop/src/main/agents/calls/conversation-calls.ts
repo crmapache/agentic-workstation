@@ -1,4 +1,4 @@
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { ConversationCall } from '@shared/panel-prefs'
 import type { SoundEvent } from '@shared/sounds'
 
 import { strongestCall } from './call-priority'

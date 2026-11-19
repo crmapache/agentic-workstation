@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { costOf, priceOf } from './pricing'
+import { costOf, priceOf, answerCostOf } from './pricing'
 
 const tokens = (patch: Partial<Parameters<typeof costOf>[1]> = {}) => ({
   input: 0,
@@ -41,5 +41,44 @@ describe('costOf', () => {
     expect(priceOf('claude-fable-5').cacheRead).toBe(1)
     expect(priceOf('claude-sonnet-4-6').input).toBe(3)
     expect(priceOf('claude-opus-4-1').input).toBe(15)
+  })
+})
+
+describe('answerCostOf', () => {
+  it('prices Codex models by the OpenAI card, fresh input apart from the cache', () => {
+    // 100 тысяч свежего входа по 2, чтения кеша по 0.2 и выхода по 10 за миллион.
+    expect(
+      answerCostOf('codex', 'gpt-6-sol', tokens({ input: 1e5, cacheRead: 1e5, output: 1e5 })),
+    ).toBeCloseTo(1.22, 6)
+    expect(answerCostOf('codex', 'gpt-6-luna', tokens({ cacheWrite: 1e5 }))).toBeCloseTo(0.0125, 6)
+    // Весь вход с кешем больше 272 тысяч - вся просьба по длинной карточке.
+    expect(answerCostOf('codex', 'gpt-6-sol', tokens({ input: 1e5, cacheRead: 2e5 }))).toBeCloseTo(
+      0.48,
+      6,
+    )
+  })
+
+  it('switches a Codex answer to the long card above 272k input tokens and doubles Fast', () => {
+    expect(answerCostOf('codex', 'gpt-6.1-sol', tokens({ input: 272_000 }))).toBeCloseTo(0.544, 6)
+    expect(answerCostOf('codex', 'gpt-6.1-sol', tokens({ input: 300_000 }))).toBeCloseTo(1.2, 6)
+    expect(
+      answerCostOf('codex', 'gpt-6.1-sol', tokens({ input: 300_000, fast: true })),
+    ).toBeCloseTo(2.4, 6)
+  })
+
+  it('stores no cost for a Codex model or tier it does not know', () => {
+    expect(answerCostOf('codex', 'gpt-5.1-codex', tokens({ input: 1e6 }))).toBe(0)
+    // У GPT-5.5 Fast длинного запроса не опубликован.
+    expect(answerCostOf('codex', 'gpt-5.5', tokens({ input: 300_000, fast: true }))).toBe(0)
+    expect(answerCostOf('codex', 'gpt-5.5', tokens({ input: 100_000, fast: true }))).toBeCloseTo(
+      1.25,
+      6,
+    )
+  })
+
+  it('takes the cost OpenCode stored and never prices a model by name', () => {
+    expect(answerCostOf('opencode', 'claude-opus-5-5', tokens({ input: 1e6 }), 0.3)).toBe(0.3)
+    expect(answerCostOf('opencode', 'qwen3-coder:30b', tokens({ input: 1e6 }))).toBe(0)
+    expect(answerCostOf('claude', 'claude-opus-5-5', tokens({ input: 1e6 }), 99)).toBeCloseTo(4, 6)
   })
 })

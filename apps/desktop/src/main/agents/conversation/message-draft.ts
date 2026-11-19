@@ -1,6 +1,12 @@
-import type { ImageAttachment } from '@shared/claude'
-import type { ChipKind, DraftChip, EditorRef, DraftToken, MessageDraft } from '@shared/claude-draft'
-import { CHIP_KINDS } from '@shared/claude-draft'
+import type { ImageAttachment } from '@shared/conversation'
+import type {
+  ChipKind,
+  DraftChip,
+  EditorRef,
+  DraftToken,
+  MessageDraft,
+} from '@shared/message-draft'
+import { CHIP_KINDS } from '@shared/message-draft'
 
 /**
  * Куски сообщения (чипы и цитаты) из окна или с диска. Не верим ни тому, ни другому:

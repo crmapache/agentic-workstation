@@ -1,4 +1,5 @@
-import type { Conversation } from '@shared/claude'
+import type { Conversation } from '@shared/conversation'
+import type { ProviderId } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
@@ -11,6 +12,7 @@ import { conversationWire } from './conversation-wire'
 import type { Redact } from './fit'
 import { fitValue } from './fit'
 import { fitRun, fitConversation } from './fit-pending'
+import type { OwnedConversation } from './panels'
 import type { ProjectKeys } from './project-keys'
 import { runWire, queueWire, runProjectPath, runSummaryWire } from './scenario-wire'
 
@@ -18,9 +20,10 @@ export type WatchDeskHost = {
   send: (deviceId: string, message: AgentMessage) => boolean
   /** Телефон на связи: спящему состояние не шлётся, проснувшись, он получит последнее. */
   awake: (deviceId: string) => boolean
-  conversations: () => Conversation[]
+  /** Разговоры всех панелей с провайдером каждого. */
+  conversations: () => OwnedConversation[]
   /** Режимы, которые окно гасит этой вкладке в меню MODE (ModeGate.offFor). */
-  modesOff: (conversation: Conversation) => readonly string[]
+  modesOff: (provider: ProviderId, conversation: Conversation) => readonly string[]
   keys: () => ProjectKeys
   redact: () => Redact
   clock: StatusClock
@@ -54,9 +57,9 @@ export class WatchDesk {
    */
   conversation(deviceId: string, conversationId: string): boolean {
     const keys = this.host.keys()
-    const conversation = this.host.conversations().find((one) => one.id === conversationId)
+    const owned = this.host.conversations().find((one) => one.conversation.id === conversationId)
 
-    if (!conversation || !keys.isOpen(conversation.projectPath)) {
+    if (!owned || !keys.isOpen(owned.conversation.projectPath)) {
       this.conversationPrints.delete(deviceId)
       this.host.send(deviceId, { p: PROTOCOL_VERSION, k: 'conversationGone', conversationId })
 
@@ -65,11 +68,13 @@ export class WatchDesk {
 
     if (!this.host.awake(deviceId)) return true
 
+    const { provider, conversation } = owned
     const wire = conversationWire(
       conversation,
+      provider,
       keys.keyOf(conversation.projectPath),
       this.host.clock.since(conversation, Date.now()),
-      this.host.modesOff(conversation),
+      this.host.modesOff(provider, conversation),
     )
     const fitted = fitConversation(wire, this.host.redact())
     const print = JSON.stringify(fitted)

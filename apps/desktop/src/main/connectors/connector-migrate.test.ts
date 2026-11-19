@@ -5,12 +5,12 @@ import { join } from 'node:path'
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import { JsonFile } from '../storage/json-file'
+import type { Vault } from '../storage/vault'
 import { adoptPlaywright, assignCustomTypes } from './connector-migrate'
 import { ConnectorRegistry } from './connector-registry'
 import { secretsKey, typeSecretsKey } from './connector-secrets'
 import { blankConnector, parseStoredConnectors } from './connector-store'
 import type { StoredConnectors } from './connector-store'
-import type { Vault } from './vault'
 
 /** Хранилище в памяти: шифрование здесь не проверяется, только что куда легло. */
 const memoryVault = (entries: Record<string, string>) => {

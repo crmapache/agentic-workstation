@@ -6,7 +6,14 @@ import { NamePane } from './NamePane'
 import { StagePane } from './StagePane'
 
 /** Правая часть редактора - та часть сценария, на которой стоит оглавление. */
-export const EditorPane = ({ draft, at, canShare, onChange, onRemoveStage }: EditorPaneProps) => {
+export const EditorPane = ({
+  draft,
+  at,
+  canShare,
+  onChange,
+  onProvider,
+  onRemoveStage,
+}: EditorPaneProps) => {
   if (at.part === 'name') return <NamePane draft={draft} canShare={canShare} onChange={onChange} />
 
   if (at.part === 'head')
@@ -14,6 +21,7 @@ export const EditorPane = ({ draft, at, canShare, onChange, onRemoveStage }: Edi
       <HeadPane
         head={draft.head}
         onHead={(patch) => onChange((one) => ({ ...one, head: { ...one.head, ...patch } }))}
+        onProvider={onProvider}
       />
     )
 

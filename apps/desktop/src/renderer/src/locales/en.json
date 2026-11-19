@@ -2,6 +2,7 @@
   "common": {
     "close": "Close",
     "cancel": "Cancel",
+    "notInstalled": "Not installed on this computer",
     "notBuiltYet": "not built yet"
   },
   "settings": {
@@ -10,13 +11,27 @@
     "sectionsLabel": "Settings sections",
     "sections": {
       "appearance": "Appearance",
-      "sounds": "Sounds"
+      "sounds": "Sounds",
+      "ai": "AI"
+    },
+    "ai": {
+      "description": "Which AI does the background work of the IDE",
+      "provider": "Provider",
+      "providerHint": "Names queues, checks goals, drafts tasks and scenarios",
+      "model": "Model",
+      "modelHint": "Default: a cheap model for checks and a stronger one for drafts",
+      "defaultModel": "Default for each job",
+      "missing": "Not installed on this computer",
+      "help": {
+        "label": "About background AI",
+        "text": "Besides your chats, the IDE asks an AI for small jobs on its own: a short name for a scenario queue, a check whether something a goal waits for has happened, a draft of a task or a scenario from your words. Here you choose who does them.\n\nClaude Code uses Haiku for checks and Sonnet or better for drafts unless you pick a model. Codex and open models use the model you pick, or their own default. A local model costs nothing but may write weaker drafts."
+      }
     },
     "appearanceDescription": "How the IDE looks",
     "textSize": {
       "label": "Text size",
       "value": "{{percent}}%",
-      "hint": "Every font in the IDE grows and shrinks together: panels, editor and Claude Code. {{bigger}}, {{smaller}} and {{reset}} work from anywhere.",
+      "hint": "Every font in the IDE grows and shrinks together: panels, editor and chats. {{bigger}}, {{smaller}} and {{reset}} work from anywhere.",
       "reset": "Reset",
       "helpLabel": "About text size",
       "description": "Every font in the IDE at once: panels, editor and chats"
@@ -373,6 +388,12 @@
       "goal": "What should the AI be able to do?",
       "goalPlaceholder": "Read my tasks and projects, add and complete tasks",
       "docs": "API docs URL (optional)",
+      "provider": "Built by",
+      "providerMissing": "Not installed on this computer",
+      "model": "Model",
+      "defaultModel": "Default model",
+      "effort": "Effort",
+      "defaultEffort": "Default effort",
       "docsPlaceholder": "https://developer.todoist.com",
       "generate": "Build connector",
       "auth": {
@@ -387,7 +408,7 @@
       "password": "Password",
       "add": "Add connector",
       "errors": {
-        "cli-missing": "Claude Code is not installed, and it does this work.",
+        "cli-missing": "The AI chosen for this connector is not installed or could not be found.",
         "timeout": "The AI didn't finish this step in 10 minutes. Write to it to go on, maybe with a link to the API docs.",
         "invalid": "What the AI proposed didn't pass the check. Write to it to fix that.",
         "failed": "The AI stopped with an error. Write to it to try again."
@@ -657,6 +678,8 @@
   "providerViews": {
     "label": "LLM providers",
     "claudeCode": "Claude Code",
+    "codex": "Codex",
+    "openModels": "Open models",
     "resize": "Resize LLM panel"
   },
   "terminal": {
@@ -1030,8 +1053,9 @@
       "worktreeFailed": "The worktree could not be created or used.",
       "worktreeDirty": "The worktree has changes that are not committed.",
       "providerMissing": "This AI provider is not available.",
+      "noCli": "The AI provider of this run is not installed or not found.",
       "noClaude": "Claude Code is not installed or not found.",
-      "untrusted": "Trust this project folder in the Claude Code panel first.",
+      "untrusted": "Trust this project folder in the panel of the AI that runs it first.",
       "runBusy": "This run is still going.",
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued from where it stopped.",
@@ -1385,7 +1409,7 @@
         "card": "Card"
       },
       "chat": "Continue in a chat",
-      "chatHint": "Open the main thread as an ordinary chat in the Claude Code panel. It stops being the main thread and can change files again."
+      "chatHint": "Open the main thread as an ordinary chat in the panel of its AI. It stops being the main thread and can change files again."
     },
     "editor": {
       "save": "Save",
@@ -1438,6 +1462,8 @@
         "noRepository": "This project has no folder to keep it in"
       },
       "head": {
+        "provider": "AI",
+        "providerMissing": "Not installed on this computer",
         "title": "Main thread",
         "note": "it reads this and judges every card by it",
         "briefingHint": "What this round of work is for, in your own words. The main thread reads this and judges every card by it.",
@@ -1465,22 +1491,27 @@
         "mode": "Mode",
         "otherModels": "Other models",
         "efforts": {
+          "minimal": "Minimal",
           "low": "Low",
           "medium": "Medium",
           "high": "High",
           "xhigh": "Extra high",
-          "max": "Max"
+          "max": "Max",
+          "ultra": "Ultra"
         },
         "effortHints": {
+          "minimal": "Answers right away, barely thinks",
           "low": "Quick answers, little thinking",
           "medium": "Balanced speed and depth",
           "high": "Thinks things through",
           "xhigh": "Deep work on hard problems",
-          "max": "Everything it has, slowest"
+          "max": "Everything it has, slowest",
+          "ultra": "Beyond max, for the hardest problems"
         },
         "modes": {
           "default": "Ask before edits",
           "acceptEdits": "Accept edits",
+          "readOnly": "Read only",
           "plan": "Plan mode",
           "auto": "Auto",
           "bypassPermissions": "Bypass permissions"
@@ -1488,6 +1519,7 @@
         "modeHints": {
           "default": "Asks before editing files or running commands",
           "acceptEdits": "File edits go through, commands still ask",
+          "readOnly": "Reads and answers, asks before changing anything",
           "plan": "Explores and plans, changes nothing",
           "auto": "Decides what is safe to run on its own",
           "bypassPermissions": "Nothing asks. Only where mistakes are cheap"
@@ -1577,8 +1609,8 @@
     },
     "author": {
       "title": "New scenario",
-      "description": "Say what the work is - Claude writes it down",
-      "reading": "Claude is reading the project",
+      "description": "Say what the work is - AI writes it down",
+      "reading": "AI is reading the project",
       "what": "What the work is",
       "placeholder": "Describe the round of work: what to do, in what order, and what has to be true at the end.",
       "keptIn": "Kept in",
@@ -1589,20 +1621,21 @@
       "noRepository": "This project has no folder to keep a shared scenario in.",
       "byHand": "Build it myself",
       "write": "Write it for me",
-      "writing": "Claude is writing it…",
-      "writingLabel": "Claude is writing the scenario",
-      "failed": "Claude could not write it: {{error}}",
+      "writing": "AI is writing it…",
+      "writingLabel": "AI is writing the scenario",
+      "failed": "AI could not write it: {{error}}",
       "help": {
         "label": "About writing a scenario",
-        "text": "Say in your own words what the round of work is, and Claude writes it down as stages and cards. It reads the project and your skills first; at a high effort this can take a few minutes.\n\nWhat it writes is not saved: it opens in the editor, you look it over and press Save. Build it myself opens an empty scenario instead."
+        "text": "Say in your own words what the round of work is, and AI (Settings → AI) writes it down as stages and cards. It reads the project and your skills first; at a high effort this can take a few minutes.\n\nWhat it writes is not saved: it opens in the editor, you look it over and press Save. Build it myself opens an empty scenario instead."
       },
       "errors": {
         "noClaude": "Claude Code is not installed or could not be found.",
-        "untrusted": "Trust this folder in a chat first: Claude reads the project to write the scenario.",
+        "noCli": "The AI that writes drafts (Settings → AI) is not installed or could not be found.",
+        "untrusted": "Trust this folder in a chat first: AI reads the project to write the scenario.",
         "outdated": "This Claude Code is too old to write a scenario. Update it and try again.",
         "timeout": "No answer in ten minutes. Try a shorter description, or build it yourself.",
         "empty": "Say what the work is first.",
-        "unreadable": "Claude answered, but not with a scenario. Try again, or build it yourself.",
+        "unreadable": "AI answered, but not with a scenario. Try again, or build it yourself.",
         "failed": "The draft could not be written. Try again, or build it yourself."
       }
     },
@@ -1759,7 +1792,7 @@
   },
   "statistics": {
     "title": "Statistics",
-    "error": "Statistics could not be read right now. They come back when the IDE reads Claude Code transcripts again.",
+    "error": "Statistics could not be read right now. They come back when the IDE reads the agents' history again.",
     "empty": {
       "title": "No statistics yet",
       "text": "Numbers appear after the first agent turn on this computer or the first minute of work in the IDE."
@@ -1767,6 +1800,7 @@
     "filters": {
       "period": "Period",
       "source": "Whose agents",
+      "provider": "Provider",
       "scope": "Projects"
     },
     "periods": {
@@ -1798,13 +1832,19 @@
       "ide": "In IDE",
       "outside": "Outside IDE"
     },
+    "providers": {
+      "all": "All providers",
+      "claude": "Claude Code",
+      "codex": "Codex",
+      "opencode": "Open models"
+    },
     "scopes": {
       "all": "All projects",
       "project": "This project"
     },
     "scan": {
-      "label": "Reading Claude Code transcripts",
-      "progress": "Reading Claude Code transcripts: {{files}} of {{filesTotal}} files, {{bytes}} of {{bytesTotal}}. The numbers below are still growing."
+      "label": "Reading agent history",
+      "progress": "Reading agent history: {{files}} of {{filesTotal}} files, {{bytes}} of {{bytesTotal}}. The numbers below are still growing."
     },
     "delta": {
       "new": "new",
@@ -1873,7 +1913,7 @@
       "withoutYou": "Agents worked without you",
       "summed": "Agent turns, summed",
       "wall": "Agents, wall-clock",
-      "estimated": "Estimated from transcripts",
+      "estimated": "Estimated from agent history",
       "presence": "Your presence"
     },
     "habits": {
@@ -1948,19 +1988,19 @@
       "label": "About these numbers",
       "page": {
         "title": "Statistics",
-        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code session on it, read from its transcripts. Claude Code keeps them for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nDay is one day, 7 days and 30 days end on the chosen day: today unless you pick another one. The arrows move to the previous or next period of the same length, the date opens a calendar, and Today brings you back. While a period is still going, each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. A past period is compared with the whole period before it. There is no comparison when the previous period starts before the data does.\n\nThe charts show a day and 7 days by the hour, with a line between days and weekends shaded, and longer periods by the day.\n\nIn IDE means conversations in the Claude Code panel and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code in a terminal. Your presence and code by hand are always yours and do not depend on this filter. This project keeps only work in the folder of the project that is open now."
+        "text": "What your agents and you did over the chosen period. Agent numbers cover the whole computer: every Claude Code, Codex and OpenCode session on it, read from the history each of them keeps. Claude Code keeps its transcripts for about 30 days, so older history is whatever is still on disk. Your own numbers, presence and code by hand, are counted only in this IDE window and only from the day statistics appeared.\n\nDay is one day, 7 days and 30 days end on the chosen day: today unless you pick another one. The arrows move to the previous or next period of the same length, the date opens a calendar, and Today brings you back. While a period is still going, each number is compared with the same stretch of the previous period up to the same point: today is compared with yesterday by this time. A past period is compared with the whole period before it. There is no comparison when the previous period starts before the data does.\n\nThe charts show a day and 7 days by the hour, with a line between days and weekends shaded, and longer periods by the day.\n\nIn IDE means conversations in the IDE panels and scenario runs started by this IDE. Outside IDE is everything else, such as Claude Code or Codex in a terminal. Provider keeps the work of one provider only: Claude Code, Codex or open models (OpenCode). Your presence and code by hand are always yours and do not depend on these filters. This project keeps only work in the folder of the project that is open now."
       },
       "overview": {
         "title": "Overview",
-        "text": "Code: lines added and removed, by you in the IDE editor and by agents through successful file edits. The bar shows whose lines they are.\n\nAgent time: how long agent turns ran, added up, so two agents working for an hour make two hours. Wall-clock is the time when at least one agent was working. Part of the time outside the IDE is an estimate from transcripts, and the bar shows how much.\n\nYour presence: minutes when the IDE window was focused and you typed, clicked or scrolled within the last 3 minutes.\n\nTokens and cost: everything the models read and wrote. Cost is at public API prices, not what a subscription charges you."
+        "text": "Code: lines added and removed, by you in the IDE editor and by agents through successful file edits. The bar shows whose lines they are.\n\nAgent time: how long agent turns ran, added up, so two agents working for an hour make two hours. Wall-clock is the time when at least one agent was working. Part of the time outside the IDE is an estimate from agent history, and the bar shows how much.\n\nYour presence: minutes when the IDE window was focused and you typed, clicked or scrolled within the last 3 minutes.\n\nTokens and cost: everything the models read and wrote. Cost is at public API prices, not what a subscription charges you. Open models cost what OpenCode reports, so local models cost nothing."
       },
       "code": {
         "title": "Code",
-        "text": "Code by hand is what you typed in the IDE editor. Each save is compared with the previous save, and only your own changes count: files reloaded from disk, undo and redo do not. Typed and pasted characters are counted separately.\n\nCode by agents comes from successful file edits in Claude Code transcripts, including edits made with shell commands. Failed edits do not count. Each file is counted once. Languages are grouped by file extension."
+        "text": "Code by hand is what you typed in the IDE editor. Each save is compared with the previous save, and only your own changes count: files reloaded from disk, undo and redo do not. Typed and pasted characters are counted separately.\n\nCode by agents comes from successful file edits in the agents' history: Claude Code edits, including edits made with shell commands, Codex patches and OpenCode edits. Failed edits do not count. Each file is counted once. Languages are grouped by file extension."
       },
       "time": {
         "title": "Time",
-        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from transcripts: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nOn the chart, the lower part of a bar is your presence and the upper part is agent wall-clock time while you were away, so a bar never adds up to more than the hour, day or week it covers. The tooltip also shows how long agents worked in total.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
+        "text": "Agent turns, summed: each turn from your message to the agent's last step. Turns that run at the same time add up. In the IDE this is measured live, without the time an agent waits for your answer. Outside the IDE it is an estimate from agent history: a turn ends at its last entry, and gaps longer than 15 minutes are not counted.\n\nWall-clock: time when at least one agent was working. Agents worked without you: wall-clock time outside your presence minutes.\n\nOn the chart, the lower part of a bar is your presence and the upper part is agent wall-clock time while you were away, so a bar never adds up to more than the hour, day or week it covers. The tooltip also shows how long agents worked in total.\n\nYour presence: a minute counts when the IDE window was focused and you used the keyboard, mouse or scroll within the last 3 minutes."
       },
       "habits": {
         "title": "When you work",
@@ -1968,7 +2008,7 @@
       },
       "tokens": {
         "title": "Tokens & cost",
-        "text": "Tokens from every answer of every model, subagents included, each counted once. Cost is calculated at public API prices for each model, with cache reads and writes at their own rates. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
+        "text": "Tokens from every answer of every model, subagents included, each counted once. Claude and Codex models are priced at public API prices, with cache reads and writes at their own rates, and a model without a published price shows no cost. Open models cost what OpenCode reports, so local models cost nothing. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
       },
       "scenarios": {
         "title": "Scenarios",
@@ -1976,12 +2016,12 @@
       },
       "tools": {
         "title": "Tools",
-        "text": "Tool calls by agents, from transcripts. Connector tools (MCP) are grouped by their server. Permission questions are the ones you answered in the IDE panel: how many were asked, allowed and denied."
+        "text": "Tool calls by agents, from their history, under the names each provider gives its tools. Connector tools (MCP) are grouped by their server. Permission questions are the ones you answered in the IDE panel: how many were asked, allowed and denied."
       }
     }
   },
-  "claudeCode": {
-    "title": "Claude Code",
+  "agentPanel": {
+    "title": "{{cli}}",
     "conversationLog": {
       "label": "Conversation",
       "speakers": {
@@ -2007,7 +2047,7 @@
         "stopped": "Stopped before it returned.",
         "turnEnded": "The turn ended before this returned.",
         "untracked": "Still running - the panel no longer follows it.",
-        "restarted": "Claude Code was restarted here, and this agent did not survive it."
+        "restarted": "{{cli}} was restarted here, and this agent did not survive it."
       },
       "commandEnded": "Background command {{outcome}} after {{duration}}.",
       "commandEndedNoTime": "Background command {{outcome}}.",
@@ -2067,7 +2107,7 @@
     "tabs": {
       "dot": {
         "idle": "Idle",
-        "running": "Claude is working",
+        "running": "{{agent}} is working",
         "done": "Turn finished",
         "attention": "Waiting for you",
         "crashed": "Session stopped unexpectedly"
@@ -2178,19 +2218,19 @@
     "historyToday": "Today",
     "historyEarlier": "Earlier",
     "noProjectTitle": "Open a project to start",
-    "noProjectText": "Claude Code works inside a project folder: it reads, edits and runs things there.",
-    "cliMissingTitle": "Claude Code is not installed",
+    "noProjectText": "{{cli}} works inside a project folder: it reads, edits and runs things there.",
+    "cliMissingTitle": "{{cli}} is not installed",
     "cliMissingText": "Install it in a terminal and sign in once. The panel finds it by itself after that.",
     "checkAgain": "Check again",
     "welcome": {
-      "title": "Ask Claude about this project",
+      "title": "Ask {{agent}} about this project",
       "text": "@ for files · / for commands"
     },
     "composer": {
-      "label": "Message to Claude",
-      "placeholder": "Ask Claude to build, fix or explain something…",
+      "label": "Message to {{agent}}",
+      "placeholder": "Ask {{agent}} to build, fix or explain something…",
       "placeholderPlan": "Describe what to plan…",
-      "placeholderRunning": "Add to the conversation - Claude reads it at its next step",
+      "placeholderRunning": "Add to the conversation - {{agent}} reads it at its next step",
       "placeholderWaiting": "Or answer in your own words…",
       "send": "Send",
       "queue": "Queue",
@@ -2200,14 +2240,15 @@
       "run": "Run",
       "slash": "Slash commands",
       "queueHint": "Send after the current run finishes",
-      "runHint": "Run in your shell - Claude sees the output with your next message",
-      "forceStopHint": "Claude isn’t confirming the stop"
+      "runHint": "Run in your shell - {{agent}} sees the output with your next message",
+      "forceStopHint": "{{agent}} isn’t confirming the stop"
     },
     "modes": {
       "menu": "Permission mode ({{key}})",
       "labels": {
         "default": "Ask before edits",
         "acceptEdits": "Accept edits",
+        "readOnly": "Read only",
         "plan": "Plan mode",
         "auto": "Auto",
         "bypassPermissions": "Bypass permissions"
@@ -2215,6 +2256,7 @@
       "short": {
         "default": "Ask",
         "acceptEdits": "Accept",
+        "readOnly": "Read",
         "plan": "Plan",
         "auto": "Auto",
         "bypassPermissions": "Bypass"
@@ -2222,6 +2264,7 @@
       "hints": {
         "default": "Claude asks before editing files or running commands",
         "acceptEdits": "File edits go through, commands still ask",
+        "readOnly": "{{agent}} reads and answers, asks before changing anything",
         "plan": "Claude explores and plans, changes nothing",
         "auto": "Claude decides what is safe to run on its own",
         "bypassPermissions": "Nothing asks. Only where mistakes are cheap"
@@ -2230,26 +2273,30 @@
     "model": {
       "menu": "Model",
       "default": "Default",
-      "defaultHint": "The model set in Claude Code settings",
+      "defaultHint": "The model set in {{cli}} settings",
       "other": "Other models"
     },
     "effort": {
       "menu": "Effort",
       "default": "Default effort",
-      "defaultHint": "As set in Claude Code settings",
+      "defaultHint": "As set in {{cli}} settings",
       "levels": {
+        "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",
         "high": "High",
         "xhigh": "Extra high",
-        "max": "Max"
+        "max": "Max",
+        "ultra": "Ultra"
       },
       "hints": {
+        "minimal": "Answers right away, barely thinks",
         "low": "Quick answers, little thinking",
         "medium": "Balanced speed and depth",
         "high": "Thinks things through",
         "xhigh": "Deep work on hard problems",
-        "max": "Everything it has, slowest"
+        "max": "Everything it has, slowest",
+        "ultra": "Beyond max, for the hardest problems"
       }
     },
     "context": {
@@ -2259,7 +2306,7 @@
       "empty": "Context fills up as the conversation goes"
     },
     "stream": {
-      "thinking": "Claude is thinking",
+      "thinking": "{{agent}} is thinking",
       "waitingForYou": "Waiting for you",
       "waitingForSubagent": "Waiting for subagent",
       "waitingForSubagents": "Waiting for {{count}} subagents",
@@ -2315,11 +2362,11 @@
         "count_other": "{{count}} tools",
         "closed": {
           "replay": "The saved conversation keeps no result for this call.",
-          "exited": "Claude Code stopped responding before this finished.",
+          "exited": "{{cli}} stopped responding before this finished.",
           "stopped": "Stopped before it finished.",
           "turnEnded": "The turn ended before this finished.",
           "untracked": "Still running in the background - the panel no longer follows it.",
-          "restarted": "Claude Code was restarted here, and this did not survive it."
+          "restarted": "{{cli}} was restarted here, and this did not survive it."
         },
         "closedMeta": {
           "replay": "· not in the transcript",
@@ -2360,8 +2407,8 @@
     "notice": {
       "interrupted": "Stopped by you",
       "interruptedForAccount": "Stopped to switch account",
-      "startFailed": "Claude Code could not start",
-      "notLoggedIn": "Claude Code is not signed in, or the sign-in has expired.",
+      "startFailed": "{{cli}} could not start",
+      "notLoggedIn": "{{cli}} is not signed in, or the sign-in has expired.",
       "logIn": "Log in",
       "switchAccount": "Switch account",
       "sendAgainAfter": "Finish the login in the terminal, then send your message again.",
@@ -2411,7 +2458,7 @@
       },
       "model": {
         "label": "MODEL",
-        "note": "switched by Claude Code, not by you"
+        "note": "switched by {{cli}}, not by you"
       },
       "limit": {
         "label": "LIMIT",
@@ -2440,6 +2487,7 @@
           "notFirstParty": "It works only with the Anthropic API directly.",
           "disabledByEnv": "It is switched off on this machine.",
           "modelNotAllowed": "Opus is not among the models your organization allows.",
+          "notServed": "{{cli}} answered at standard speed.",
           "unknown": "It is unavailable right now."
         }
       },
@@ -2450,8 +2498,8 @@
       "sampling": "The newest models no longer accept a sampling parameter, and this request carried one. Claude Code adds none of its own, so it comes from whatever the requests are routed through - usually a gateway or proxy set by an address in the settings.",
       "crash": {
         "label": "SESSION",
-        "text": "Claude Code stopped unexpectedly.",
-        "withCode": "Claude Code stopped unexpectedly (exit code {{code}})."
+        "text": "{{cli}} stopped unexpectedly.",
+        "withCode": "{{cli}} stopped unexpectedly (exit code {{code}})."
       },
       "session": {
         "label": "SESSION",
@@ -2467,22 +2515,22 @@
     },
     "permission": {
       "title": "Permission",
-      "run": "Claude wants to run a command",
-      "edit": "Claude wants to edit {{file}}",
-      "write": "Claude wants to create {{file}}",
-      "fetch": "Claude wants to reach {{target}}",
-      "use": "Claude wants to use {{tool}}",
+      "run": "{{agent}} wants to run a command",
+      "edit": "{{agent}} wants to edit {{file}}",
+      "write": "{{agent}} wants to create {{file}}",
+      "fetch": "{{agent}} wants to reach {{target}}",
+      "use": "{{agent}} wants to use {{tool}}",
       "allow": "Allow",
       "allowAlways": "Always allow",
       "allowSession": "Allow edits this chat",
       "deny": "Deny",
-      "orType": "Or type below to tell Claude what to do instead",
+      "orType": "Or type below to tell {{agent}} what to do instead",
       "more_one": "{{count}} more waiting",
       "more_other": "{{count}} more waiting",
       "underMode": "under {{mode}}"
     },
     "question": {
-      "title": "Claude asks",
+      "title": "{{agent}} asks",
       "pickAny": "pick any",
       "other": "Other",
       "otherPlaceholder": "Your own answer",
@@ -2537,11 +2585,13 @@
       },
       "builtin": {
         "model": "switch the model for this conversation",
-        "effort": "set how long Claude thinks before acting",
+        "effort": "set how long {{agent}} thinks before acting",
         "context": "what fills the context window right now",
         "cost": "spend and usage windows of this session",
         "usage": "subscription windows and when they reset",
-        "code-review": "review a pull request"
+        "code-review": "review a pull request",
+        "compact": "free up context - {{agent}} sums up the conversation so far",
+        "review": "{{agent}} reviews the uncommitted changes, or what you name"
       }
     },
     "blocked": {
@@ -2552,9 +2602,9 @@
       "missingTitle": "Project folder not found",
       "missingText": "It was moved or deleted while the project was open. Put it back, then try again. Your message is waiting in the queue.",
       "retry": "Try again",
-      "cliTitle": "Claude Code is not installed",
+      "cliTitle": "{{cli}} is not installed",
       "cliText": "Install it, then check again. Your message is waiting in the queue.",
-      "startTitle": "Claude Code didn't start",
+      "startTitle": "{{cli}} didn't start",
       "startText": "Something went wrong while preparing the conversation. The details are in the IDE log. Your message is waiting in the queue."
     },
     "forkChat": "Fork this chat",
@@ -2568,20 +2618,22 @@
       "code": "Code",
       "both": "Both",
       "codeLead": "The code goes back to how it was before this message.",
-      "checking": "Checking what Claude changed since…",
+      "checking": "Checking what {{agent}} changed since…",
       "files_one": "{{count}} file changed since",
       "files_other": "{{count}} files changed since",
       "more": "and {{count}} more",
-      "none": "Claude changed no files since this message.",
+      "none": "{{agent}} changed no files since this message.",
       "off": "Code is not kept: \"Rewind code (checkpoints)\" is off in the Claude Code settings.",
       "notTracked": "Code is not kept for this conversation yet - its Claude Code was started without keeping copies of files.",
       "noCheckpoint": "No copy of the code was kept when this message was sent.",
-      "unavailable": "Claude Code can't restore the code here: {{detail}}",
+      "changedSince": "Files {{agent}} edited were changed afterwards - the code can't go back without losing those changes.",
+      "outsideProject": "{{agent}} edited files outside the project - the code doesn't go back there.",
+      "unavailable": "{{cli}} can't restore the code here: {{detail}}",
       "queued_one": "The queued message is dropped too.",
       "queued_other": "The {{count}} queued messages are dropped too.",
       "running": "The turn that is running stops.",
-      "codeWhileRunning": "Claude is still working - stop the turn before restoring code alone.",
-      "forkWhileRunning": "While Claude works here, the code can't be put back alongside a fork - choose Conversation to fork without it, or stop the turn first.",
+      "codeWhileRunning": "{{agent}} is still working - stop the turn before restoring code alone.",
+      "forkWhileRunning": "While {{agent}} works here, the code can't be put back alongside a fork - choose Conversation to fork without it, or stop the turn first.",
       "cancel": "Cancel",
       "close": "Close",
       "go": "Rewind",
@@ -2590,15 +2642,15 @@
       "forkHint": "Leave this tab as it is and open a fork without this message and what came after",
       "working": "Rewinding…",
       "refused": {
-        "busy": "Claude is busy with something that cannot be stopped from here. Try again in a moment.",
-        "gone": "Claude no longer holds this message - a compaction folded it away. Only messages after the last compaction can be rewound to.",
+        "busy": "{{agent}} is busy with something that cannot be stopped from here. Try again in a moment.",
+        "gone": "{{agent}} no longer holds this message - a compaction folded it away. Only messages after the last compaction can be rewound to.",
         "moved": "The conversation moved on while this was open - a message arrived that this window has not shown yet. Look again and retry.",
         "midCall": "This message sits inside a tool call and its answer, so the conversation can't be cut there.",
-        "notSaved": "Claude Code couldn't record the rewind, so it didn't make it.",
-        "unsupported": "This version of Claude Code cannot rewind. Update Claude Code and try again.",
-        "noProcess": "Claude Code couldn't be started for this conversation.",
-        "ended": "Claude Code stopped while the rewind was under way, so it is not known whether the cut was made. To see what the conversation holds now, open it again from the history.",
-        "other": "Claude Code refused: {{detail}}",
+        "notSaved": "{{cli}} couldn't record the rewind, so it didn't make it.",
+        "unsupported": "This version of {{cli}} cannot rewind. Update {{cli}} and try again.",
+        "noProcess": "{{cli}} couldn't be started for this conversation.",
+        "ended": "{{cli}} stopped while the rewind was under way, so it is not known whether the cut was made. To see what the conversation holds now, open it again from the history.",
+        "other": "{{cli}} refused: {{detail}}",
         "failed": "The rewind didn't go through. Try again."
       },
       "filesFailed": "The conversation was rewound, but the code could not be restored: {{detail}}",
@@ -2617,7 +2669,7 @@
       "reuseLostImages_other": "Back into the input field - but the {{count}} pasted images cannot come with it, attach them again",
       "rewind": "Rewind to here",
       "rewindSub": "This message and everything after it leave the conversation",
-      "rewindSteering": "Written while Claude was working - rewind to the message that started that turn",
+      "rewindSteering": "Written while {{agent}} was working - rewind to the message that started that turn",
       "pastedLines_one": "{{count}} line pasted",
       "pastedLines_other": "{{count}} lines pasted",
       "pasteClose": "Collapse it back",
@@ -2651,7 +2703,7 @@
       "clickToCopy": "Click to copy"
     },
     "shell": {
-      "hint": "Runs in the project folder. Claude sees the output with your next message.",
+      "hint": "Runs in the project folder. {{agent}} sees the output with your next message.",
       "ok": "OK",
       "exitCode": "Exit {{code}}",
       "stopped": "Stopped",
@@ -2816,7 +2868,7 @@
           "title": "Plugins"
         },
         "accounts": {
-          "title": "Claude accounts"
+          "title": "{{agent}} accounts"
         },
         "settings": {
           "title": "Settings"
@@ -2850,6 +2902,9 @@
         },
         "customModels": {
           "title": "Custom models"
+        },
+        "connections": {
+          "title": "Connections"
         }
       },
       "rows": {
@@ -2862,7 +2917,7 @@
           "sub": "Installed, browse, marketplaces"
         },
         "accounts": {
-          "label": "Claude accounts",
+          "label": "{{agent}} accounts",
           "sub": "Switch without signing out"
         },
         "settings": {
@@ -2930,7 +2985,7 @@
         "label": "Tokens today",
         "sub": "Across all projects on this machine"
       },
-      "noLimits": "Limit rings show up here once Claude Code reports the limits of this account."
+      "noLimits": "Limit rings show up here once {{cli}} reports the limits of this account."
     },
     "newChats": {
       "rows": {
@@ -3041,7 +3096,7 @@
       "open": "Open {{name}}"
     },
     "editor": {
-      "on": "Claude sees {{place}} with this message · click to choose",
+      "on": "{{agent}} sees {{place}} with this message · click to choose",
       "off": "{{place}} is left out of this message · click to choose",
       "muted": "{{place}} is not sent - sending the open file is off · click to choose",
       "menu": "Open file in messages",
@@ -3113,9 +3168,11 @@
       "offSub": "Off · Opus up to 2.5× faster, paid from usage credits",
       "waitingSub": "On from the next message · paid from usage credits",
       "onSub": "On · paid from usage credits",
+      "onSettingsSub": "On in your {{agent}} settings · turn it off here for this conversation",
       "cooldownSub": "Paused after a rate limit - comes back on by itself",
       "unavailableSub": "Unavailable. {{reason}}",
       "chipOn": "Fast mode is on",
+      "chipOnSettings": "Fast mode is on in your {{agent}} settings",
       "chipWaiting": "Fast mode turns on with the next message",
       "chipCooldown": "Fast mode is paused after a rate limit",
       "chipUnavailable": "Fast mode is unavailable. {{reason}}",
@@ -3125,8 +3182,8 @@
     "modelNote": {
       "label": "MODEL",
       "stuck": "picked, but the answers keep coming on {{running}}",
-      "stuckTip": "The change did not reach Claude Code - try picking the model again.",
-      "switchedHint": "Model: {{model}} - Claude Code switched to it on its own, off {{from}}",
+      "stuckTip": "The change did not reach {{cli}} - try picking the model again.",
+      "switchedHint": "Model: {{model}} - {{cli}} switched to it on its own, off {{from}}",
       "stuckHint": "Model: {{model}} - {{picked}} was picked and did not take"
     },
     "carryOn": {
@@ -3141,7 +3198,7 @@
       }
     },
     "loginGate": {
-      "signIn": "Sign in to Claude Code",
+      "signIn": "Sign in to {{cli}}",
       "signInAs": "Sign in as {{account}}",
       "text": "Signing in happens once, in the Terminal: Claude opens a browser and waits for you to come back. The panel picks it up on its own.",
       "logIn": "Log in",
@@ -3162,7 +3219,7 @@
     },
     "crash": {
       "title": "The panel hit an error",
-      "text": "Reloading is safe: your conversations live in the Claude Code processes behind the panel and survive it.",
+      "text": "Reloading is safe: your conversations live in the {{cli}} processes behind the panel and survive it.",
       "button": "Reload the panel"
     }
   },
@@ -3377,7 +3434,7 @@
     "help": {
       "label": "What the phone can do",
       "title": "What the phone can do",
-      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code now), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation, rename it and change its model, effort, fast mode or permission mode (the modes the IDE offers it, Auto and Bypass permissions included).\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
+      "text": "The phone sees open and recent projects, the conversations of each provider (Claude Code, Codex and open models), the scenario queues, the provider accounts and the IDE connectors. The phone knows a project by a key, not by its folder: in what it reads, the project, worktree and home folders are shortened to {project}, {worktree} and ~. Account and connector email addresses reach it in full.\n\nIn a conversation the phone can read the feed, write a message with photos or queue it while a turn runs, reorder, remove or send a queued message now, answer a permission request, a question or a plan, dismiss a question, stop the turn or force-stop its process, stop a background agent, say Don't continue after a usage limit, ask a side question, rewind to a message, search past conversations, start a new conversation with any provider, rename it and change its model, effort, fast mode or permission mode (the modes the IDE offers it, Auto and Bypass permissions included). Side questions, fast mode, stopping a background agent, searching past conversations and accounts work where the provider has them in the IDE.\n\nIn scenarios the phone can read a scenario in full, duplicate or delete it, let AI draft a new one, schedule runs, start a scenario in a new or existing queue, pause, resume and stop a run, answer its head, write to it, read a step's log, continue after a limit, star or delete past runs, and remove, move, rename, clear or stop a queue after an item.\n\nOn this computer the phone can open a recent project, see account usage, switch, rename, forget or sign out of an account, and reconnect a connector.\n\nThe phone cannot use the terminal or ! commands, edit files, install plugins, change IDE or provider settings, add accounts or sign in, add, remove or sign in to connectors, pair other phones, allow a tool \"always\", close a queue or delete worktrees.\n\nEverything travels end-to-end encrypted through your own relay, which only routes frames by address and cannot read them. The relay also serves the phone app, so the phone trusts that server to send the genuine app. Revoke a phone here and its key stops working at once."
     }
   },
   "tasks": {
@@ -3385,7 +3442,7 @@
     "help": {
       "label": "About tasks",
       "title": "Tasks",
-      "text": "A task is a prompt Claude Code runs on its own in this project - with its CLAUDE.md, hooks and connectors. Tasks belong to their project: you see here the tasks of the project that is open. To move a task to another project, edit it and pick the project.\n\nOn schedule: each run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done. If the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nUntil done: a goal that may take days - write to someone, wait for the reply, go on. Claude works, then goes to sleep and says what it waits for. The IDE watches for it without a model, asks a cheap model only when something changed, and wakes Claude when the awaited thing happens. A goal survives an IDE restart and stops at its budget or after its days.\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
+      "text": "A task is a prompt an AI runs on its own in this project - with the project's instructions (CLAUDE.md, AGENTS.md) and connectors. Tasks belong to their project: you see here the tasks of the project that is open. To move a task to another project, edit it and pick the project.\n\nOn schedule: each run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done. If the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nUntil done: a goal that may take days - write to someone, wait for the reply, go on. Claude works, then goes to sleep and says what it waits for. The IDE watches for it without a model, asks a cheap model only when something changed, and wakes Claude when the awaited thing happens. A goal survives an IDE restart and stops at its budget or after its days.\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
     },
     "tabs": {
       "label": "Tasks sections",
@@ -3405,7 +3462,7 @@
     },
     "empty": {
       "title": "No tasks yet",
-      "note": "A task runs Claude Code on its own: on a schedule (a monthly invoice, a morning digest) or until done (agree on a call with someone, get an answer from support)."
+      "note": "A task runs an AI on its own (Claude Code, Codex or an open model): on a schedule (a monthly invoice, a morning digest) or until done (agree on a call with someone, get an answer from support)."
     },
     "runsEmpty": {
       "title": "No runs yet",
@@ -3456,10 +3513,11 @@
     },
     "failures": {
       "noClaude": "Claude Code is not installed or not found.",
+      "noCli": "The AI provider of this task is not installed or not found.",
       "untrusted": "The project folder is not trusted yet. Trust it to let tasks run there.",
       "folderMissing": "The project folder is gone.",
-      "startFailed": "Claude Code did not start.",
-      "crashed": "Claude Code stopped unexpectedly.",
+      "startFailed": "The AI did not start.",
+      "crashed": "The AI stopped unexpectedly.",
       "turnError": "The run ended with an error.",
       "tooLong": "The run worked for more than 3 hours and was stopped.",
       "ideClosed": "The run was interrupted when the IDE closed.",
@@ -3481,10 +3539,11 @@
       "notWritten": "Tasks could not be saved to disk.",
       "noTranscript": "The conversation of this run is not on disk.",
       "noClaude": "Claude Code is not installed or not found.",
+      "noCli": "The AI provider of this task is not installed or not found.",
       "untrusted": "The project folder is not trusted yet.",
       "folderMissing": "The project folder is gone.",
-      "startFailed": "Claude Code did not start.",
-      "crashed": "Claude Code stopped unexpectedly.",
+      "startFailed": "The AI did not start.",
+      "crashed": "The AI stopped unexpectedly.",
       "turnError": "The run ended with an error.",
       "tooLong": "The run took too long.",
       "ideClosed": "The run was interrupted.",
@@ -3548,28 +3607,35 @@
       "project": "Project",
       "moveNote": "Saving moves the task to {{name}}. Past runs stay in this project.",
       "moveBusy": "A run of this task is going or waits - stop it before moving the task.",
+      "provider": "AI",
+      "providerMissing": "Not installed on this computer",
       "model": "Model",
       "defaultModel": "Default model",
       "effort": "Effort",
       "defaultEffort": "Default effort",
       "efforts": {
+        "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",
         "high": "High",
         "xhigh": "Extra high",
-        "max": "Max"
+        "max": "Max",
+        "ultra": "Ultra"
       },
       "effortHints": {
+        "minimal": "Answers right away, barely thinks",
         "low": "Quick answers, little thinking",
         "medium": "Balanced speed and depth",
         "high": "Thinks things through",
         "xhigh": "Deep work on hard problems",
-        "max": "Everything it has, slowest"
+        "max": "Everything it has, slowest",
+        "ultra": "Beyond max, for the hardest problems"
       },
       "mode": "Permissions",
       "modes": {
         "default": "Ask me in Notifications",
         "acceptEdits": "Accept file edits",
+        "readOnly": "Read only (no file edits)",
         "auto": "Auto (Claude decides what is safe)",
         "bypassPermissions": "Allow everything"
       },
@@ -3587,11 +3653,11 @@
         },
         "drafts": {
           "label": "Drafts only",
-          "note": "Claude prepares drafts, you send them."
+          "note": "The AI prepares drafts, you send them."
         },
         "free": {
           "label": "Send on its own",
-          "note": "Claude writes to people without asking."
+          "note": "The AI writes to people without asking."
         }
       },
       "budget": "Budget",
@@ -3599,7 +3665,7 @@
       "lifeDays": "Give up after",
       "lifeDaysValue_one": "{{count}} day",
       "lifeDaysValue_other": "{{count}} days",
-      "goalNote": "Claude works, then sleeps until what it waits for happens. The IDE watches without a model and asks a cheap one only when something changed.",
+      "goalNote": "The AI works, then sleeps until what it waits for happens. The IDE watches without a model and asks a cheap one only when something changed.",
       "save": "Save",
       "cancel": "Cancel",
       "remove": "Delete task",
@@ -3664,7 +3730,7 @@
     "help": {
       "label": "About notifications",
       "title": "Notifications",
-      "text": "Everything that needs you lands here: questions and permission requests of task runs, their reports and failures, and notifications or reminders Claude sends you from any chat or task.\n\nCards show only their header: what it is, from whom and when. Click the header or the arrow to read the rest. Questions, permissions and plans that wait for your answer stay open, and so does a card you came to from a banner.\n\nButtons answer right here: allow a command, pick an option, open the file, or send your choice back into the conversation that asked.\n\nWhen the IDE is in the background, a system banner shows up too. Sounds follow Settings → Sounds."
+      "text": "Everything that needs you lands here: questions and permission requests of task runs, their reports and failures, and notifications or reminders an AI sends you from any chat or task.\n\nCards show only their header: what it is, from whom and when. Click the header or the arrow to read the rest. Questions, permissions and plans that wait for your answer stay open, and so does a card you came to from a banner.\n\nButtons answer right here: allow a command, pick an option, open the file, or send your choice back into the conversation that asked.\n\nWhen the IDE is in the background, a system banner shows up too. Sounds follow Settings → Sounds."
     },
     "tabs": {
       "label": "Notifications sections",
@@ -3765,6 +3831,72 @@
       "today": "Today",
       "tomorrow": "Tomorrow",
       "yesterday": "Yesterday"
+    }
+  },
+  "providerWords": {
+    "claude": {
+      "agent": "Claude",
+      "cli": "Claude Code"
+    },
+    "codex": {
+      "agent": "Codex",
+      "cli": "Codex"
+    },
+    "opencode": {
+      "agent": "OpenCode",
+      "cli": "OpenCode"
+    }
+  },
+  "openModels": {
+    "connections": {
+      "title": "Connections",
+      "help": "Open models come from connections. Ollama and LM Studio are found by themselves on this computer once they run. OpenRouter and any OpenAI-compatible address are added here with a key. Only models that can call tools are offered: without tools the model cannot read or edit your project. Keys are stored encrypted on this computer and go only to OpenCode.",
+      "detected": "On this computer",
+      "states": {
+        "checking": "Checking",
+        "offline": "Not running",
+        "unauthorized": "Key not accepted",
+        "failed": "Not answering",
+        "ok_one": "{{count}} model",
+        "ok_other": "{{count}} models"
+      },
+      "checkAgain": "Check again",
+      "edit": "Edit",
+      "remove": "Remove",
+      "addOpenRouter": "Add OpenRouter",
+      "addCustom": "Add an address",
+      "noKeys": "This computer cannot encrypt keys, so connections with a key cannot be saved.",
+      "dialog": {
+        "addTitle": "New connection",
+        "editTitle": "Edit {{name}}",
+        "label": "Name",
+        "baseUrl": "Address",
+        "baseUrlHint": "An OpenAI-compatible address, for example http://192.168.1.20:8000/v1",
+        "key": "API key",
+        "keyKept": "Leave empty to keep the saved key",
+        "removeKey": "Remove the saved key",
+        "save": "Save",
+        "add": "Add",
+        "cancel": "Cancel",
+        "failed": "Couldn't save the connection. Check the address and try again.",
+        "keyMoved": "The saved key stays with the old address - enter it again for this one"
+      },
+      "removeTitle": "Remove {{name}}?",
+      "removeText": "Its models leave the menu and its key is deleted from this computer.",
+      "noTools_one": "{{count}} without tools - not offered",
+      "noTools_other": "{{count}} without tools - not offered",
+      "credits": "Spent ${{used}} of ${{limit}}",
+      "creditsNoLimit": "Spent ${{used}}, no limit on this key"
+    },
+    "menu": {
+      "rowLabel": "Connections",
+      "rowSub": "Where the models come from",
+      "rowHint": "{{count}} working",
+      "connections": "Connections",
+      "connectionsHint": "Add OpenRouter or another address",
+      "noModels": "No models yet - start Ollama or LM Studio, or add a connection",
+      "context": "{{tokens}} context",
+      "smallContext": "Small context ({{tokens}}) - the agent may lose track"
     }
   }
 }

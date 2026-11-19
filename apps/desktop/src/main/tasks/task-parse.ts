@@ -1,7 +1,7 @@
-import { EFFORT_LEVELS } from '@shared/claude'
-import { MODEL_NAME_PATTERN } from '@shared/claude-prefs'
+import { ALL_EFFORT_LEVELS } from '@shared/conversation'
 import { DEFAULT_GOAL, GOAL_OUTBOUNDS } from '@shared/goals'
 import type { GoalSettings } from '@shared/goals'
+import { MODEL_NAME_PATTERN } from '@shared/panel-prefs'
 import { isProviderId } from '@shared/providers'
 import { nextDue, parseDay } from '@shared/task-clock'
 import type {
@@ -62,7 +62,8 @@ const modelOf = (value: unknown) => {
   return MODEL_NAME_PATTERN.test(model) && !model.startsWith('-') ? model : ''
 }
 
-const effortOf = (value: unknown) => EFFORT_LEVELS.find((level) => level === value) ?? ''
+/** Уровень усилия любого провайдера: каким он годится модели, решает переводчик провайдера. */
+const effortOf = (value: unknown) => ALL_EFFORT_LEVELS.find((level) => level === value) ?? ''
 
 /** Задание с диска: чужое и битое поле - значением по умолчанию, а не отказом всего файла. */
 export const taskOf = (raw: unknown): Task | null => {
@@ -101,6 +102,7 @@ const RUN_STATES = [
 const TRIGGERS = ['schedule', 'catchUp', 'manual', 'reply'] as const
 const FAILURES = [
   'noClaude',
+  'noCli',
   'untrusted',
   'folderMissing',
   'startFailed',
@@ -125,6 +127,8 @@ export const runOf = (raw: unknown): TaskRun | null => {
     id: raw['id'],
     taskId: raw['taskId'],
     taskName: text(raw['taskName'], NAME_MAX),
+    // Прогоны до провайдеров (этап 5) шли на Claude Code.
+    provider: isProviderId(raw['provider']) ? raw['provider'] : 'claude',
     projectPath: text(raw['projectPath'], 4096),
     sessionId: text(raw['sessionId'], 64),
     trigger: TRIGGERS.find((one) => one === raw['trigger']) ?? 'manual',
@@ -219,6 +223,7 @@ export const skippedRun = (
   id,
   taskId: task.id,
   taskName: task.name,
+  provider: task.provider,
   projectPath: task.projectPath,
   sessionId: '',
   trigger: 'schedule',

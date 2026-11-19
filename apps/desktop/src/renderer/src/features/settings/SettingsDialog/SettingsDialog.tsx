@@ -7,6 +7,7 @@ import { Tabs } from '@agentic-workstation/ui/Tabs'
 import { useSettingsStore } from '../settings.store'
 import { SETTINGS_SECTIONS } from './SettingsDialog.constants'
 import { AppearancePane } from './parts/AppearancePane'
+import { ServiceAiPane } from './parts/ServiceAiPane'
 import { SoundsPane } from './parts/SoundsPane'
 
 /**
@@ -47,7 +48,9 @@ export const SettingsDialog = () => {
         />
       }
       onClose={close}>
-      {section === 'appearance' ? <AppearancePane /> : <SoundsPane />}
+      {section === 'appearance' && <AppearancePane />}
+      {section === 'sounds' && <SoundsPane />}
+      {section === 'ai' && <ServiceAiPane />}
     </Modal>
   )
 }

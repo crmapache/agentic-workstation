@@ -9,12 +9,12 @@ import type { ConversationLog } from '../../state/conversation-log.context'
  */
 export const CONVERSATION_LOG: ConversationLog = {
   Feed: lazy(() =>
-    import('../../features/claude-code/ConversationLog/ConversationLog').then((module) => ({
+    import('../../features/agent-panel/ConversationLog/ConversationLog').then((module) => ({
       default: module.ConversationLog,
     })),
   ),
   Text: lazy(() =>
-    import('../../features/claude-code/Markdown/Markdown').then((module) => ({
+    import('../../features/agent-panel/Markdown/Markdown').then((module) => ({
       default: module.Markdown,
     })),
   ),

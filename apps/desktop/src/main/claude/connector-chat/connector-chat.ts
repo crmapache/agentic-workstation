@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
-import type { ImageAttachment } from '@shared/claude'
-import type { ConversationFeed } from '@shared/claude-feed'
+import type { ImageAttachment } from '@shared/conversation'
+import type { ConversationFeed } from '@shared/conversation-feed'
 
 import type { CliMessage, ControlRequest } from '../cli/cli-messages'
 import { ConversationFeedSync } from '../conversation/conversation-feed'
@@ -200,6 +200,17 @@ export class ConnectorChat implements AiChat {
   /** Спросить разрешения не у кого (dontAsk): любой вопрос CLI - отказ, иначе ход повиснет. */
   private refuse(process: SessionProcess, request: ControlRequest) {
     if (request.type === 'control_cancel_request') return
+
+    // Вопрос разрешения - отказом словами вопроса: его понимают и `claude -p`, и переводчики
+    // Codex и OpenCode (они не читают управляющие ответы, записанные в поток).
+    if (request.request?.subtype === 'can_use_tool') {
+      process.respond(request.request_id, {
+        behavior: 'deny',
+        message: 'Not available in this conversation.',
+      })
+
+      return
+    }
 
     process.write({
       type: 'control_response',

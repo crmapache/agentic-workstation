@@ -8,7 +8,7 @@ import { askStructured } from '../../claude/structured-ask'
 import { SERVICE_NAME } from '../../connectors/connector-view'
 import type { ConnectorsService } from '../../connectors/connectors-service'
 import { TaskAuthor } from '../../tasks/task-author'
-import type { AuthorAnswer } from '../../tasks/task-author'
+import type { AuthorAnswer, TaskAuthorHost } from '../../tasks/task-author'
 
 /** Одно задание - один ответ модели: дольше трёх минут ждать незачем. */
 const AUTHOR_MS = 3 * MINUTE_MS
@@ -34,9 +34,17 @@ export const claudeTaskAuthor = (
   claude: ClaudeService,
   connectors: ConnectorsService,
   dataDir: string,
+  /** Модель из Settings → AI; пусто - модель новой вкладки (не ниже Sonnet). */
+  model: () => string = () => '',
+  /** Провайдер служебной работы сейчас не Claude Code - его вопрос; null - спрашивать Claude Code. */
+  route: () => TaskAuthorHost['ask'] | null = () => null,
 ): TaskAuthor =>
   new TaskAuthor({
     ask: async (prompt, schema, signal): Promise<AuthorAnswer> => {
+      const routed = route()
+
+      if (routed) return routed(prompt, schema, signal)
+
       const cli = await claude.cli.locate()
 
       if (!cli) return { failure: 'noClaude', detail: '' }
@@ -49,7 +57,7 @@ export const claudeTaskAuthor = (
           prompt,
           schema,
           tools: [],
-          model: authorModel(prefs.newTabModel ?? ''),
+          model: authorModel(model() || (prefs.newTabModel ?? '')),
           effort: AUTHOR_EFFORT,
           cwd: join(dataDir, 'task-author'),
           timeoutMs: AUTHOR_MS + CLI_GRACE_MS,

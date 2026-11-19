@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { StatsSource } from '@shared/statistics'
+import type { StatsSource, StatsProviderFilter } from '@shared/statistics'
 
 import type { ScopeKind, PeriodKind, CalendarMetric } from './statistics.types'
 
@@ -12,19 +12,22 @@ type StatisticsStore = {
    */
   lastDay: number | null
   source: StatsSource
+  /** Чьи журналы: все провайдеры или один (Claude Code, Codex, открытые модели). */
+  provider: StatsProviderFilter
   scope: ScopeKind
   /** null - календарь выбирает сам: присутствие, если оно уже есть, иначе токены. */
   calendar: CalendarMetric | null
   setPeriod: (period: PeriodKind) => void
   setLastDay: (lastDay: number | null) => void
   setSource: (source: StatsSource) => void
+  setProvider: (provider: StatsProviderFilter) => void
   setScope: (scope: ScopeKind) => void
   setCalendar: (calendar: CalendarMetric) => void
 }
 
 /**
- * Фильтры вида статистики: период и его последний день, чьи агенты, какие проекты, что
- * красит календарь. Живут дольше вида: ушёл в редактор и вернулся - тот же срез. Числа - в
+ * Фильтры вида статистики: период и его последний день, чьи агенты, какой провайдер, какие
+ * проекты, что красит календарь. Живут дольше вида: ушёл в редактор и вернулся - тот же срез. Числа - в
  * кэше React Query (state/statistics.queries.ts), не здесь. Сегодняшние сутки - по
  * умолчанию: чаще всего ищут цифры дня, который идёт. Смена периода день не сбрасывает:
  * с 12 ноября на «7 days» - неделя по 12-е.
@@ -33,11 +36,13 @@ export const useStatisticsStore = create<StatisticsStore>((set) => ({
   period: 'day',
   lastDay: null,
   source: 'all',
+  provider: 'all',
   scope: 'all',
   calendar: null,
   setPeriod: (period) => set({ period }),
   setLastDay: (lastDay) => set({ lastDay }),
   setSource: (source) => set({ source }),
+  setProvider: (provider) => set({ provider }),
   setScope: (scope) => set({ scope }),
   setCalendar: (calendar) => set({ calendar }),
 }))

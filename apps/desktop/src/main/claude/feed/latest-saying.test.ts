@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { FeedItem } from '@shared/claude-feed'
+import type { FeedItem } from '@shared/conversation-feed'
 
 import { lastSentence, latestSaying } from './latest-saying'
 

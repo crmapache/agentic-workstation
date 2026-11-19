@@ -1,14 +1,16 @@
-import type { ClaudeState, Conversation, PendingRequest } from '@shared/claude'
-import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
+import type { Conversation, PendingRequest, AgentPanelState } from '@shared/conversation'
+import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
+import { CLAUDE_CAPABILITIES } from '@shared/panel-capabilities'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioSchedule } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
 
-import type { BridgePorts } from '../bridge/bridge-ports'
+import type { BridgePorts, ConversationsPort } from '../bridge/bridge-ports'
 import { accountsOf, historyRunOf, historySummaryOf } from './fake-extras'
 import {
   searchOf,
   controlsOf,
+  saveFileOf,
   accountsPortOf,
   workspacePortOf,
   connectorsPortOf,
@@ -19,8 +21,9 @@ import { shelfPortOf } from './fake-shelf'
 
 /**
  * IDE для тестов Remote Control: проект с разговором Claude Code, очередь сценариев с идущим
- * прогоном и подделки сервисов, которые записывают каждый вызов. Пути - настоящие на вид:
- * тесты проверяют, что ни один не уходит телефону.
+ * прогоном и подделки сервисов, которые записывают каждый вызов. Панели других провайдеров тест
+ * добавляет сам (fake-panels.ts). Пути - настоящие на вид: тесты проверяют, что ни один не
+ * уходит телефону.
  */
 
 export const RECENT_PATH = '/Users/someone/Projects/old-thing'
@@ -95,7 +98,8 @@ export const fakeIde = () => {
     models: [],
     accounts: accountsOf(),
     refusedModes: { bypass: false, autoModels: [] },
-  } as unknown as ClaudeState
+    capabilities: CLAUDE_CAPABILITIES,
+  } as unknown as AgentPanelState
   /** Слои настроек проекта для режима: тест запрещает bypass руками. */
   const settings = { bypassDisabled: false }
   const feed: ConversationFeed = {
@@ -122,53 +126,65 @@ export const fakeIde = () => {
     { projectPath: PROJECT_PATH, state: 'running' as const },
     { projectPath: PROJECT_PATH, state: 'waiting' as const },
   ]
+  const claude: ConversationsPort = {
+    provider: 'claude',
+    info: () => ({
+      id: 'claude',
+      label: 'Claude Code',
+      available: true,
+      unavailable: null,
+      modes: CLAUDE_CAPABILITIES.modes,
+      efforts: CLAUDE_CAPABILITIES.efforts,
+    }),
+    getState: () => state,
+    getFeed: () => Promise.resolve(feed),
+    send: (id, message) => Promise.resolve(record('send', id, message)),
+    respond: (id, requestId, response) => record('respond', id, requestId, response),
+    interrupt: (id) => record('interrupt', id),
+    // Как ClaudeService.openConversation: выбор ложится на вкладку сразу, ответ - её id.
+    newConversation: (projectPath, options) => {
+      record('newConversation', projectPath, options)
+      state.conversations = [
+        ...state.conversations,
+        conversationOf({ id: 'new-1', title: '', projectPath, ...options }),
+      ]
+
+      return Promise.resolve('new-1')
+    },
+    close: (id) => {
+      record('close', id)
+      state.conversations = state.conversations.filter((one) => one.id !== id)
+
+      return Promise.resolve(null)
+    },
+    setOptions: (id, options) => record('setOptions', id, options),
+    // Чтение файлов настроек, а не действие: в calls не пишется.
+    bypassDisabled: () => Promise.resolve(settings.bypassDisabled),
+    rename: (id, title) => Promise.resolve(record('rename', id, title)),
+    ...readsOf({
+      record,
+      state,
+      feed,
+      earlier,
+      images,
+      projectPath: PROJECT_PATH,
+      conversationId: CONVERSATION_ID,
+      conversationOf,
+    }),
+    ...controlsOf(extras),
+  }
+  /** Панели IDE по порядку: тест добавляет Codex и открытые модели (fake-panels.ts). */
+  const panels: ConversationsPort[] = [claude]
   const ports: BridgePorts = {
     tasks: { runs: () => taskRuns },
     workspace: workspacePortOf(record, workspace),
     search: searchOf(record, PROJECT_PATH),
     accounts: accountsPortOf(record, state),
     connectors: connectorsPortOf(record),
-    conversations: {
-      getState: () => state,
-      getFeed: () => Promise.resolve(feed),
-      send: (id, message) => Promise.resolve(record('send', id, message)),
-      respond: (id, requestId, response) => record('respond', id, requestId, response),
-      interrupt: (id) => record('interrupt', id),
-      // Как ClaudeService.openConversation: выбор ложится на вкладку сразу, ответ - её id.
-      newConversation: (projectPath, options) => {
-        record('newConversation', projectPath, options)
-        state.conversations = [
-          ...state.conversations,
-          conversationOf({ id: 'new-1', title: '', projectPath, ...options }),
-        ]
-
-        return Promise.resolve('new-1')
-      },
-      close: (id) => {
-        record('close', id)
-        state.conversations = state.conversations.filter((one) => one.id !== id)
-
-        return Promise.resolve(null)
-      },
-      setOptions: (id, options) => record('setOptions', id, options),
-      // Чтение файлов настроек, а не действие: в calls не пишется.
-      bypassDisabled: () => Promise.resolve(settings.bypassDisabled),
-      rename: (id, title) => Promise.resolve(record('rename', id, title)),
-      providers: () =>
-        Promise.resolve([
-          { id: 'claude', label: 'Claude Code', available: true, unavailable: null },
-        ]),
-      ...readsOf({
-        record,
-        state,
-        feed,
-        earlier,
-        images,
-        projectPath: PROJECT_PATH,
-        conversationId: CONVERSATION_ID,
-        conversationOf,
-      }),
-      ...controlsOf(extras),
+    panels: {
+      list: () => panels,
+      refresh: () => Promise.resolve(null),
+      saveFile: saveFileOf(record),
     },
     pictures: picturesOf(record),
     scenarios: {
@@ -216,5 +232,19 @@ export const fakeIde = () => {
     },
   }
 
-  return { ports, calls, state, settings, feed, workspace, queues, earlier, images, schedules }
+  return {
+    ports,
+    claude,
+    panels,
+    calls,
+    record,
+    state,
+    settings,
+    feed,
+    workspace,
+    queues,
+    earlier,
+    images,
+    schedules,
+  }
 }

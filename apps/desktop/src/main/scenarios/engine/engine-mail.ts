@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import { listKey } from '@shared/scenario-rules'
 
 import { askAgain } from './engine-asking'

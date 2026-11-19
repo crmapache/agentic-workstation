@@ -20,6 +20,13 @@ describe('откат с телефона: что можно вернуть', () 
     expect(rewindScopes(ready, true)).toEqual(['both', 'conversation'])
   })
 
+  it('чего провайдер не умеет, не предлагается: у OpenCode код - только с разговором', () => {
+    const openCode = ['conversation', 'both']
+
+    expect(rewindScopes(ready, false, openCode)).toEqual(['both', 'conversation'])
+    expect(rewindScopes(undefined, false, openCode)).toEqual(['conversation'])
+  })
+
   it('выбор, ставший недоступным, - первое доступное', () => {
     expect(effectiveScope(null, ['both', 'conversation'])).toBe('both')
     expect(effectiveScope('code', ['both', 'conversation'])).toBe('both')

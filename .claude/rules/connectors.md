@@ -1,6 +1,9 @@
 ---
 paths:
   - 'apps/desktop/src/main/connectors/**'
+  - 'apps/desktop/src/main/storage/vault.ts'
+  - 'apps/desktop/src/main/storage/electron-cipher.ts'
+  - 'apps/desktop/src/main/opencode/connections/**'
   - 'apps/desktop/src/main/claude/connectors-bridge.ts'
   - 'apps/desktop/src/main/claude/connector-chat/**'
   - 'apps/desktop/src/shared/connectors.ts'
@@ -16,7 +19,8 @@ paths:
   запись в `~/.claude.json` для коннекторов - иначе вход снова уедет вместе с аккаунтом
   Claude.
 - **Без шифрования секрет не пишется** (`Vault.set` отказывает). Открытым текстом на диск -
-  никогда, даже «временно».
+  никогда, даже «временно». То же для ключей подключений панели открытых моделей: свой файл
+  `Vault` (`open-models.vault`), окну ключ не возвращается.
 - **Имя сервера - тип и подпись** (`gmail-work`): по нему хук владельца `block-outbound.sh`
   узнаёт отправку (`*gmail*send*`, `*slack*send*`). Тип в начале имени не убирать.
 - **Отправка людям - ступень `outbound`**, по умолчанию выключена (`isToolEnabled`), включает

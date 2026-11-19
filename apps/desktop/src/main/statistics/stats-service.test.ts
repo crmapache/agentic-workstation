@@ -16,7 +16,7 @@ const day = { from: atMs(-600), to: atMs(840) }
 const make = (onChanged = () => undefined, changedThrottleMs = 0) => {
   service = new StatsService({
     dataDir: join(root, 'data'),
-    projectsDir: () => Promise.resolve(join(root, 'projects')),
+    sources: () => Promise.resolve([{ provider: 'claude', path: join(root, 'projects') }]),
     link: inlineEngineLink,
     onChanged,
     now: () => atMs(120),
@@ -59,7 +59,7 @@ describe('StatsService', () => {
     await stats.start((cwd) => (cwd.startsWith('/work/app') ? '/work/app' : null))
     await stats.scanNow()
 
-    const report = await stats.query(day, { source: 'all', project: '/work/app' })
+    const report = await stats.query(day, { source: 'all', project: '/work/app', provider: 'all' })
 
     expect(report.totals.tokens.output).toBe(4)
     expect(report.totals.prompts).toBe(1)
@@ -106,7 +106,7 @@ describe('StatsService', () => {
     })
 
     await vi.waitFor(async () => {
-      const report = await stats.query(day, { source: 'ide', project: null })
+      const report = await stats.query(day, { source: 'ide', project: null, provider: 'claude' })
 
       expect(report.totals).toMatchObject({
         presenceMinutes: 1,

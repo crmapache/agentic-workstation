@@ -1,0 +1,33 @@
+{
+  "agentPanel": {
+    "modes": {
+      "labels": {
+        "default": "Ask every time",
+        "acceptEdits": "Auto",
+        "plan": "Plan mode",
+        "bypassPermissions": "Full access"
+      },
+      "short": {
+        "default": "Ask",
+        "acceptEdits": "Auto",
+        "plan": "Plan",
+        "bypassPermissions": "Full"
+      },
+      "hints": {
+        "default": "The model asks before editing files or running commands",
+        "acceptEdits": "Edits files on its own, asks before commands and the web",
+        "plan": "The model explores and plans, changes nothing",
+        "bypassPermissions": "No questions at all. Only where mistakes are cheap"
+      }
+    },
+    "blocked": {
+      "trustText": "OpenCode will read, edit and run commands in this folder, with this project's OpenCode settings. Trust only folders you know."
+    },
+    "permission": {
+      "allowAlways": "Allow for this chat"
+    },
+    "model": {
+      "defaultHint": "The first model of your connections"
+    }
+  }
+}

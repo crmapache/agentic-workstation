@@ -1,6 +1,6 @@
 import { it, vi, expect, describe, afterEach } from 'vitest'
 
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import type { AiChatEvents } from '../../connectors/ai/ai-chat'
@@ -30,7 +30,11 @@ class FakeProcess implements SessionProcess {
     return Promise.resolve({})
   }
 
-  respond(): void {}
+  readonly answered: [string, Record<string, unknown>][] = []
+
+  respond(requestId: string, response: Record<string, unknown>): void {
+    this.answered.push([requestId, response])
+  }
 
   stop(): Promise<void> {
     this.isAlive = false
@@ -77,7 +81,15 @@ const setup = (resume = false) => {
     onTurnEnded: vi.fn<AiChatEvents['onTurnEnded']>(),
   }
   const chat = new ConnectorChat(
-    { sessionId: 's', resume, instructions: 'rules', schema: { type: 'object' } },
+    {
+      provider: 'claude',
+      model: '',
+      effort: '',
+      sessionId: 's',
+      resume,
+      instructions: 'rules',
+      schema: { type: 'object' },
+    },
     {
       spawn: (again, wires) => {
         const process = new FakeProcess(again, wires)
@@ -251,9 +263,25 @@ describe('ConnectorChat', () => {
       request: { subtype: 'can_use_tool', tool_name: 'Bash' },
     })
 
+    // Ответ вопросу - его словами (respond): его понимают и `claude -p`, и переводчики.
+    expect(processes[0]?.answered).toEqual([
+      ['r1', { behavior: 'deny', message: 'Not available in this conversation.' }],
+    ])
+  })
+
+  it('на чужой управляющий запрос - ошибка «не поддерживается»', async () => {
+    const { processes, tell } = setup()
+
+    await tell('go')
+    processes[0]?.wires.onControlRequest({
+      type: 'control_request',
+      request_id: 'r2',
+      request: { subtype: 'mcp_message' },
+    })
+
     expect(processes[0]?.written.at(-1)).toEqual({
       type: 'control_response',
-      response: { subtype: 'error', request_id: 'r1', error: 'Unsupported request' },
+      response: { subtype: 'error', request_id: 'r2', error: 'Unsupported request' },
     })
   })
 })

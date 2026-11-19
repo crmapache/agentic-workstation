@@ -5,17 +5,13 @@ import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { Scenario } from '@shared/scenarios'
 import { useMutation } from '@tanstack/react-query'
 
-import { defaultProvider } from '../scenarios-providers.utils'
 import { folderNeighbours } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import type { ScenariosProject } from '../ScenariosView/ScenariosView.types'
 import { invoke } from '../../../lib/ipc'
 import { useGitChanges } from '../../../state/git-changes.queries'
-import {
-  useProviders,
-  useScenarioQueues,
-  useScenarioShelves,
-} from '../../../state/scenarios.queries'
+import { useProviders, effectiveProvider } from '../../../state/providers.queries'
+import { useScenarioQueues, useScenarioShelves } from '../../../state/scenarios.queries'
 import type { StartRequest, LaunchRequest } from './LaunchModal.types'
 import {
   initialPick,
@@ -58,7 +54,8 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
   const scenario = findScenario(scenarios, pick)
   const queues = (view?.queues ?? []).filter((queue) => queue.projectPath === project.rootPath)
   const target = currentWhere(where, queues)
-  const provider = providers.find((one) => one.id === providerId) ?? defaultProvider(providers)
+  // Пока человек не выбрал сам - провайдер, под которого написан сценарий, если он на месте.
+  const provider = effectiveProvider(providers, providerId, scenario?.head.provider ?? null)
   const isBroken = scenario !== null && !isRunnable(scenario)
   const isNotGit = changes?.kind === 'notGit'
   // Папка не в git - worktree не из чего делать: галочка гаснет, а не обещает невозможное.

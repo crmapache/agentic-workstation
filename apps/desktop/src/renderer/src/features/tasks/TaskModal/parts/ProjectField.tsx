@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next'
 
+import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
+
 import styles from '../TaskModal.module.scss'
 import type { ProjectFieldProps } from '../TaskModal.types'
 import { isMoveBlocked, projectChoices } from '../TaskModal.utils'
 import { useAppInfo } from '../../../../state/app-info.queries'
 import { useTasks } from '../../../../state/tasks.queries'
 import { useWorkspace } from '../../../../state/workspace.queries'
-import { ChoiceField } from './ChoiceField'
 
 /**
  * Проект задания при правке (ADR 0081): другой проект - перенос. Под полем - что будет при
@@ -27,7 +28,7 @@ export const ProjectField = ({ task, value, onPick }: ProjectFieldProps) => {
       <ChoiceField
         label={t('tasks.form.project')}
         value={value}
-        choices={choices}
+        options={choices}
         onPick={onPick}
       />
       {moving && (

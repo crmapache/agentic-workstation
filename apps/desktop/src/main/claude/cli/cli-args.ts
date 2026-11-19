@@ -1,4 +1,4 @@
-import type { EffortLevel, PermissionMode } from '@shared/claude'
+import type { EffortLevel, PermissionMode } from '@shared/conversation'
 
 import type { CliFeatures } from './cli-features'
 import { PANEL_BRIEFING } from './cli.constants'

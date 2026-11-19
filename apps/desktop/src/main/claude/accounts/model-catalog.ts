@@ -1,4 +1,4 @@
-import type { ModelInfo } from '@shared/claude'
+import type { ModelInfo } from '@shared/conversation'
 
 import { modelKey, sameModel } from '../panel/model-watch'
 

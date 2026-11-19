@@ -7,12 +7,12 @@ import type {
   AddConnectorOutcome,
 } from '@shared/connectors'
 
+import type { Vault } from '../storage/vault'
 import { newConnection } from './connector-add'
 import type { NewConnector } from './connector-add'
 import type { ConnectorRegistry } from './connector-registry'
 import { SecretsOf, typeSecretsKey } from './connector-secrets'
 import { capitalized } from './connector-types'
-import type { Vault } from './vault'
 
 type TypeDeskDeps = {
   registry: ConnectorRegistry

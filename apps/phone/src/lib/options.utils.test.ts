@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
 
-import { modeOptions, modeShortLabel } from './options.utils'
+import { effortsOf, modeOptions, effortOptions, modeShortLabel } from './options.utils'
 
 /** Подстановка вместо i18next: видно, какой ключ взят. */
 const t = ((key: string) => key) as unknown as TFunction
@@ -21,6 +21,42 @@ const offOf = (unavailable?: readonly string[], current?: string) =>
   modeOptions(t, provider, unavailable, current)
     .filter((option) => option.disabled)
     .map((option) => option.value)
+
+describe('усилие на телефоне - уровнями модели провайдера', () => {
+  const codex: ProviderCaps = {
+    id: 'codex',
+    label: 'Codex',
+    available: true,
+    models: [
+      { value: 'gpt-5.5', label: 'GPT-5.5', description: '', efforts: ['minimal', 'low', 'high'] },
+      { value: 'gpt-5.5-mini', label: 'Mini', description: '' },
+    ],
+    efforts: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
+    permissionModes: ['default', 'readOnly'],
+  }
+
+  it('у модели свои уровни - её, иначе провайдера; ultra и minimal - словами протокола', () => {
+    expect(effortsOf(codex, 'gpt-5.5')).toEqual(['minimal', 'low', 'high'])
+    expect(effortsOf(codex, 'gpt-5.5-mini')).toEqual(codex.efforts)
+    expect(effortsOf(codex, null)).toEqual(codex.efforts)
+    expect(effortOptions(t, codex).map((option) => option.value)).toEqual([
+      '',
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+      'max',
+      'ultra',
+    ])
+  })
+
+  it('уровень, которого протокол не знает (IDE новее), не предлагается', () => {
+    expect(
+      effortOptions(t, { ...codex, efforts: ['low', 'warp'] }).map((option) => option.value),
+    ).toEqual(['', 'low'])
+  })
+})
 
 describe('режимы разрешений на телефоне (ADR 0076)', () => {
   it('все режимы провайдера словами окна, погашено то, что гасит IDE', () => {

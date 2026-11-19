@@ -14,6 +14,8 @@ import { scopeOf, parseScenario } from './store/scenario-parse'
 export type ShelvesHost = {
   desk: (projectPath: string) => RunDesk
   provider: (id: ProviderId) => ScenarioProvider | null
+  /** Провайдер служебной работы (Settings → AI): им пишутся черновики; нет - Claude Code. */
+  service?: (() => ProviderId) | undefined
   dataDir: string
   onShelves: (projectPath: string) => void
 }
@@ -87,21 +89,30 @@ export class ScenarioShelves {
     return refusal
   }
 
-  /** Черновик пишет модель провайдера; сейчас провайдер один - Claude Code. */
+  /** Черновик пишет модель провайдера служебной работы (Settings → AI). */
   draft(
     projectPath: string,
     draftId: string,
     description: string,
     scope: string,
   ): Promise<ScenarioDraftOutcome> {
-    const provider = this.host.provider('claude')
+    const id = this.host.service?.() ?? 'claude'
+    const provider = this.host.provider(id)
 
-    if (!provider) return Promise.resolve({ ok: false, error: 'noClaude', cancelled: false })
+    if (!provider) {
+      return Promise.resolve({
+        ok: false,
+        error: id === 'claude' ? 'noClaude' : 'noCli',
+        cancelled: false,
+      })
+    }
 
     return provider.draft(projectPath, draftId, description, scopeOf(scope))
   }
 
   cancelDraft(draftId: string): void {
+    // Настройку могли сменить, пока черновик писался: отмена - у обоих.
+    this.host.provider(this.host.service?.() ?? 'claude')?.cancelDraft(draftId)
     this.host.provider('claude')?.cancelDraft(draftId)
   }
 

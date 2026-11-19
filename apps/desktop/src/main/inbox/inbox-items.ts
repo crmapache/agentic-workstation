@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { Question } from '@shared/claude'
+import type { Question } from '@shared/conversation'
 import type { InboxItem, InboxAction, InboxActionKind } from '@shared/inbox'
 import type { Task, TaskRun, TaskFailure } from '@shared/tasks'
 

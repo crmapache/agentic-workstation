@@ -1,5 +1,5 @@
-import type { ClaudeState } from '../claude'
-import type { AsideView, CliSearch, AsideThread, PanelTerminalCommand } from '../claude-panel'
+import type { AgentPanelState } from '../conversation'
+import type { AsideView, CliSearch, AsideThread, PanelTerminalCommand } from '../panel-extras'
 
 type ConversationRequest = { conversationId: string }
 
@@ -34,17 +34,15 @@ export type ClaudePanelInvokeContract = {
    * «Don't continue» под планом продолжения: слова панели снимаются, ожидание лимита
    * остаётся тихим - очередь уйдёт в момент сброса.
    */
-  'claudePanel:cancelCarryOn': { request: ConversationRequest; response: ClaudeState }
+  'claudePanel:cancelCarryOn': { request: ConversationRequest; response: AgentPanelState }
   /**
    * Команда CLI, которую потоковый CLI не выполняет, - в Терминале, в хранилище аккаунта в
    * работе: вход в Claude Design (`/design-login`) и выход (`/logout`).
    */
   'claudePanel:terminalCommand': {
     request: { command: PanelTerminalCommand }
-    response: ClaudeState
+    response: AgentPanelState
   }
-  /** Проверить вход аккаунта в работе (экран входа «Check again»). */
-  'claudePanel:checkSignIn': { request: void; response: ClaudeState }
   /** Где панель искала CLI и какой путь назван руками (экран «Claude Code not found»). */
   'claudePanel:cliSearch': { request: void; response: CliSearch }
   /**
@@ -53,7 +51,7 @@ export type ClaudePanelInvokeContract = {
    */
   'claudePanel:setCliPath': {
     request: { path: string }
-    response: { state: ClaudeState; search: CliSearch }
+    response: { state: AgentPanelState; search: CliSearch }
   }
 }
 
@@ -70,7 +68,6 @@ export const CLAUDE_PANEL_CHANNELS = {
   'claudePanel:showAside': true,
   'claudePanel:cancelCarryOn': true,
   'claudePanel:terminalCommand': true,
-  'claudePanel:checkSignIn': true,
   'claudePanel:cliSearch': true,
   'claudePanel:setCliPath': true,
 } satisfies Record<keyof ClaudePanelInvokeContract, true>

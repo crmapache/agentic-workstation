@@ -4,13 +4,13 @@ import { join } from 'node:path'
 import type { BrowserWindow } from 'electron'
 import { Notification, powerMonitor } from 'electron'
 
+import type { ProviderId } from '@shared/providers'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
-import type { ClaudeService } from '../claude/claude-service'
 import { broadcast } from '../ipc/broadcast'
+import type { ScenarioProvider } from '../providers/scenario-provider'
 import type { WorkspaceService } from '../workspace/workspace-service'
-import { loadReleasedHeads } from '../claude/history/released-heads'
-import { claudeScenarioProvider } from '../providers/claude/claude-scenarios'
+import { loadReleasedHeads } from '../agents/history/released-runs'
 import { ScenarioService } from './scenario-service'
 
 /** Worktree очередей - вне проектов и без пробелов в пути (решение владельца, ADR 0039). */
@@ -26,7 +26,10 @@ export type ScenarioTaps = {
 }
 
 export type ScenariosSetup = {
-  claude: ClaudeService
+  /** Исполнители провайдеров (run-providers.ts): прогон идёт на провайдере элемента очереди. */
+  providers: readonly ScenarioProvider[]
+  /** Провайдер служебной работы (Settings → AI): имена очередей и черновики сценариев. */
+  service: () => ProviderId
   workspace: WorkspaceService
   dataDir: string
   getWindow: () => BrowserWindow | null
@@ -41,7 +44,7 @@ export type ScenariosSetup = {
  * нему поднимает окно.
  */
 export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioService> => {
-  const { claude, workspace, getWindow } = setup
+  const { workspace, getWindow } = setup
   const notify = (title: string, body: string) => {
     if (!Notification.isSupported()) return
 
@@ -60,7 +63,8 @@ export const startScenarios = async (setup: ScenariosSetup): Promise<ScenarioSer
   const service = await ScenarioService.load({
     dataDir: setup.dataDir,
     worktreesRoot: WORKTREES_ROOT,
-    providers: [claudeScenarioProvider(claude, setup.dataDir)],
+    providers: setup.providers,
+    service: setup.service,
     events: {
       onQueues: (view) => {
         broadcast('scenarios:queues', view)

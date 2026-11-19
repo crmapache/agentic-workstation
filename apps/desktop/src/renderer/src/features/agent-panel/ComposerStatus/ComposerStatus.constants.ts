@@ -1,0 +1,115 @@
+import type { ParseKeys } from 'i18next'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Cpu,
+  Gem,
+  Leaf,
+  Wind,
+  Brain,
+  Flame,
+  Scale,
+  Rabbit,
+  Feather,
+  BookOpen,
+  Settings,
+  Sparkles,
+  BrainCircuit,
+  ClipboardList,
+} from 'lucide-react'
+
+import type { PanelModelFamily } from '@shared/claude-models'
+import type { ModelInfo, EffortLevel } from '@shared/conversation'
+import { MINUTE_MS } from '@shared/time-units'
+
+import type { SetupSection } from './ComposerStatus.types'
+
+/**
+ * Иконка пункта «по умолчанию» в разделах Model и Effort: значение берётся из настроек
+ * Claude Code, а не выбрано здесь.
+ */
+export const DEFAULT_CHOICE_ICON: LucideIcon = Settings
+
+/**
+ * Иконка уровня усилия - по смыслу подсказки, как у режимов: сразу, быстро, баланс, думает,
+ * думает глубоко, всё, что есть, сверх того (minimal и ultra - уровни Codex). Полоски сигнала в 16 пикселях у нижних уровней
+ * пропадали до пары точек.
+ */
+export const EFFORT_ICONS: Record<EffortLevel, LucideIcon> = {
+  minimal: Wind,
+  low: Rabbit,
+  medium: Scale,
+  high: Brain,
+  xhigh: BrainCircuit,
+  max: Flame,
+  ultra: Sparkles,
+}
+
+/**
+ * Иконка модели по семье: fable - самоцвет (самая сильная), opus - книга (большой труд),
+ * sonnet - перо, haiku - лист, opusplan - план. Дальше в меню старые версии той же семьи -
+ * с той же иконкой.
+ */
+export const MODEL_ICONS: Record<PanelModelFamily, LucideIcon> = {
+  fable: Gem,
+  opus: BookOpen,
+  opusplan: ClipboardList,
+  sonnet: Feather,
+  haiku: Leaf,
+}
+
+/** Модель без семьи Claude: своя через прокси или шлюз, чужого провайдера. */
+export const OTHER_MODEL_ICON: LucideIcon = Cpu
+
+/** Части значения индикатора: «Opus 5.5 · High effort · Auto». Знак, а не текст: не переводится. */
+export const SETUP_SEPARATOR = ' · '
+
+/** Разделы панели индикатора по порядку: стрелки влево и вправо ходят по ним по кругу. */
+export const SETUP_SECTIONS: readonly SetupSection[] = ['model', 'effort', 'mode']
+
+/** Подпись раздела на его вкладке и имя меню раздела для скринридера. */
+export const SECTION_TEXTS: Record<SetupSection, { tab: ParseKeys; menu: ParseKeys }> = {
+  model: { tab: 'agentPanel.status.modelCaption', menu: 'agentPanel.model.menu' },
+  effort: { tab: 'agentPanel.status.effortCaption', menu: 'agentPanel.effort.menu' },
+  mode: { tab: 'agentPanel.status.modeCaption', menu: 'agentPanel.modes.menu' },
+}
+
+/** Клавиши, которыми из списка раздела переходят в соседний. */
+export const SECTION_STEPS: Readonly<Record<string, 1 | -1>> = { ArrowLeft: -1, ArrowRight: 1 }
+
+/** Значение каталога CLI «модель по умолчанию» - в панели это «как в настройках». */
+export const DEFAULT_MODEL_VALUE = 'default'
+
+/** Сколько моделей каталога показывать сразу; остальные - в свёрнутой группе. */
+export const MAIN_MODELS = 5
+
+/**
+ * Группа подключения в меню моделей больше этого - свёрнута, пока выбранная модель не в ней:
+ * у OpenRouter моделей сотни, а у локального сервера их горстка.
+ */
+export const OPEN_GROUP_MAX = 8
+
+/**
+ * Порядок основных моделей в меню - сильнейшая первой. Каталог CLI ставит Opus раньше
+ * Fable, а Fable сильнее («for your toughest challenges»).
+ */
+export const MODEL_RANK: readonly PanelModelFamily[] = [
+  'fable',
+  'opus',
+  'opusplan',
+  'sonnet',
+  'haiku',
+]
+
+/**
+ * Модели, пока CLI не прислал свой каталог (до первого хода в IDE). Имена - данные
+ * CLI, а не текст интерфейса: их не переводят.
+ */
+export const FALLBACK_MODELS: readonly ModelInfo[] = [
+  { value: 'opus', displayName: 'Opus', description: '' },
+  { value: 'fable', displayName: 'Fable', description: '' },
+  { value: 'sonnet', displayName: 'Sonnet', description: '' },
+  { value: 'haiku', displayName: 'Haiku', description: '' },
+]
+
+/** Как часто освежать токены за день: главный процесс дочитывает только дописанное. */
+export const TODAY_TOKENS_REFRESH_MS = MINUTE_MS

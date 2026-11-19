@@ -7,6 +7,9 @@ export type ChatLaunch = {
   /** Разговор уже на диске: продолжить его, а не начинать под этим id. */
   resume: boolean
   schema: object
+  /** Модель и усилие, выбранные при создании коннектора; пусто - как по умолчанию у CLI. */
+  model: string
+  effort: string
   /** Файл правил для ИИ: в аргументе им было бы тесно, и переводы строк там не к месту. */
   instructionsFile: string
 }
@@ -18,7 +21,12 @@ export type ChatLaunch = {
  * есть не у всех версий CLI - без него процесс не поднялся бы вовсе.
  */
 export const connectorChatArgs = (launch: ChatLaunch, features: CliFeatures): string[] => {
-  const fence = fenceArgs({ schema: launch.schema, tools: CHAT_TOOLS })
+  const fence = fenceArgs({
+    schema: launch.schema,
+    tools: CHAT_TOOLS,
+    model: launch.model,
+    effort: launch.effort,
+  })
 
   return [
     '-p',

@@ -18,6 +18,7 @@ export const SCENARIO: Scenario = {
   inputs: [{ id: 'what', name: 'what', label: 'What', placeholder: '', required: true }],
   head: {
     briefing: `Keep ${PROJECT_PATH} tidy`,
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'default',

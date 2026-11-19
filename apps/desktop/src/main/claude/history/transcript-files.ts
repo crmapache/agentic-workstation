@@ -1,7 +1,7 @@
 import { open, stat, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { HistoryEntry } from '@shared/claude'
+import type { HistoryEntry } from '@shared/conversation'
 
 import { stringField, parseCliLine } from '../cli/cli-messages'
 import { hiddenConversations } from './hidden-conversations'

@@ -65,6 +65,11 @@ export class GoalBook {
     void this.save()
   }
 
+  /** Все начатые записи дописаны: выход из IDE ждёт их. */
+  settled(): Promise<boolean> {
+    return this.writing
+  }
+
   private save(): Promise<boolean> {
     const snapshot: StoredGoals = { lives: this.lives }
 

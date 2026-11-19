@@ -1,4 +1,4 @@
-import type { PanelPrefs } from '@shared/claude-prefs'
+import type { PanelPrefs } from '@shared/panel-prefs'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import type { CliMessage } from '../cli/cli-messages'

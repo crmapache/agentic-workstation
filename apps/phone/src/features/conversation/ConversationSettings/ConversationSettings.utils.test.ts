@@ -32,6 +32,19 @@ describe('быстрый режим разговора', () => {
     ).toBe(true)
   })
 
+  it('у провайдера без быстрого режима - не виден, даже у модели с fast и уже попрошенный', () => {
+    const without = { ...provider, fastMode: false }
+
+    expect(fastOffered(conversation({ model: 'opus' }), without)).toBe(false)
+    expect(
+      fastOffered(conversation({ model: 'opus', fast: { asked: true, state: null } }), without),
+    ).toBe(false)
+    // IDE постарше флага не шлёт - решает каталог.
+    expect(fastOffered(conversation({ model: 'opus' }), { ...provider, fastMode: undefined })).toBe(
+      true,
+    )
+  })
+
   it('под переключателем - что CLI сказал; попросили, а он молчит, - со следующим сообщением', () => {
     expect(fastStateKey(undefined)).toBeNull()
     expect(fastStateKey({ asked: false, state: null })).toBeNull()

@@ -1,7 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
-import type { ClaudeState } from '@shared/claude'
-import { DEFAULT_PANEL_PREFS } from '@shared/claude-prefs'
+import type { AgentPanelState } from '@shared/conversation'
+import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 
 import { claudeModels, claudeProviderOf, CLAUDE_FALLBACK_MODELS } from './claude-provider'
 
@@ -12,10 +12,10 @@ const CATALOG = [
 ]
 
 const stateOf = (
-  cli: ClaudeState['cli'],
-  models: ClaudeState['models'],
+  cli: AgentPanelState['cli'],
+  models: AgentPanelState['models'],
   customModels: string[] = [],
-): Pick<ClaudeState, 'cli' | 'models' | 'prefs'> => ({
+): Pick<AgentPanelState, 'cli' | 'models' | 'prefs'> => ({
   cli,
   models,
   prefs: { ...DEFAULT_PANEL_PREFS, customModels },

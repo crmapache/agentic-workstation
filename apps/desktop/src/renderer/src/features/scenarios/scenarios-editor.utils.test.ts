@@ -15,6 +15,7 @@ import {
   runsPerItem,
   withoutCard,
   promptPieces,
+  withProvider,
   placeOfProblem,
   withCopiedCard,
 } from './scenarios-editor.utils'
@@ -48,6 +49,7 @@ const scenario = (stages: ScenarioStage[]): Scenario => ({
   inputs: [],
   head: {
     briefing: '',
+    provider: 'claude',
     model: '',
     effort: '',
     permissionMode: 'default',
@@ -179,5 +181,35 @@ describe('есть ли что терять', () => {
     expect(isDirty(saved, [saved])).toBe(false)
     expect(isDirty({ ...saved, name: 'Other' }, [saved])).toBe(true)
     expect(isDirty({ ...saved, scope: 'user' }, [saved])).toBe(true)
+  })
+
+  it('другой провайдер: модели и уровни головы и карточек - его по умолчанию, чужой режим - default', () => {
+    const base = scenario([stage('s1', [card('c1'), card('c2')])])
+    const before: Scenario = {
+      ...base,
+      head: { ...base.head, model: 'opus', effort: 'max', permissionMode: 'auto' },
+      stages: base.stages.map((one) => ({
+        ...one,
+        cards: one.cards.map((item) => ({
+          ...item,
+          model: 'sonnet',
+          effort: 'high',
+          permissionMode: '',
+        })),
+      })),
+    }
+    const after = withProvider(before, 'codex', ['default', 'acceptEdits', 'readOnly', 'plan'])
+
+    expect(after.head).toMatchObject({
+      provider: 'codex',
+      model: '',
+      effort: '',
+      permissionMode: 'default',
+    })
+    expect(after.stages.flatMap((stage) => stage.cards)).toEqual(
+      before.stages
+        .flatMap((stage) => stage.cards)
+        .map((item) => ({ ...item, model: '', effort: '', permissionMode: '' })),
+    )
   })
 })

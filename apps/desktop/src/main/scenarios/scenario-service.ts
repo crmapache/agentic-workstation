@@ -1,6 +1,6 @@
 import { sep, join } from 'node:path'
 
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
 import type {
   QueueAction,
@@ -56,6 +56,8 @@ export type ScenarioServiceOptions = {
   accHome?: string
   worktreesRoot: string
   providers: readonly ScenarioProvider[]
+  /** Провайдер служебной работы (Settings → AI): имена очередей и черновики сценариев. */
+  service?: (() => ProviderId) | undefined
   events: ScenarioEvents
 }
 
@@ -87,6 +89,7 @@ export class ScenarioService {
       book,
       desk: (path) => this.desk(path),
       provider: (id) => this.providers.get(id) ?? null,
+      service: options.service,
       worktreesRoot: options.worktreesRoot,
       onQueues: () => this.sendQueues(),
       notify: options.events.notify,
@@ -96,6 +99,7 @@ export class ScenarioService {
     this.shelves = new ScenarioShelves({
       desk: (path) => this.desk(path),
       provider: (id) => this.providers.get(id) ?? null,
+      service: options.service,
       dataDir: options.dataDir,
       onShelves: (path) => this.sendShelves(path),
     })
@@ -269,7 +273,12 @@ export class ScenarioService {
     // Идущую карточку читают заново: её транскрипт растёт.
     if (!step || step.finishedAt === 0) this.logs.forget(conversationId)
 
-    return this.logs.page(run.cwd || projectPath, conversationId, earlier)
+    return this.logs.page(
+      this.providers.get(run.provider)?.stepFeed ?? null,
+      run.cwd || projectPath,
+      conversationId,
+      earlier,
+    )
   }
 
   /**

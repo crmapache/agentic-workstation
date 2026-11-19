@@ -65,11 +65,15 @@ export type AiSearchWire =
  * Что вернёт откат кода к сообщению: ready - файлы, которые с тех пор правили инструменты
  * агента (путями с метками папок), count - сколько всего; none - ничего не правилось; off - копии
  * файлов выключены в настройках Claude Code; notTracked и noCheckpoint - копии для этого
- * сообщения нет; unavailable - CLI не ответил (detail - его слова).
+ * сообщения нет; changedSince - файлы после правок агента меняли (Codex: откат обратными
+ * правками); outsideProject - правки шли вне проекта; unavailable - CLI не ответил (detail -
+ * его слова).
  */
 export type RewindPreviewWire =
   | { state: 'ready'; files: string[]; count: number; insertions: number; deletions: number }
-  | { state: 'none' | 'off' | 'notTracked' | 'noCheckpoint' }
+  | {
+      state: 'none' | 'off' | 'notTracked' | 'noCheckpoint' | 'changedSince' | 'outsideProject'
+    }
   | { state: 'unavailable'; detail: string }
 
 /**

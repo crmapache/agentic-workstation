@@ -27,6 +27,7 @@ export const useRewindSheet = ({
   messageId,
   draftKey,
   running,
+  allowedScopes,
   onClose,
 }: RewindSheetProps) => {
   const client = useClient()
@@ -46,7 +47,7 @@ export const useRewindSheet = ({
     staleTime: 0,
     gcTime: 0,
   })
-  const scopes = rewindScopes(preview.data, running)
+  const scopes = rewindScopes(preview.data, running, allowedScopes)
   const scope = effectiveScope(chosen, scopes)
 
   const handleRewind = async () => {

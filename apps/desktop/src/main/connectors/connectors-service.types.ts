@@ -1,12 +1,12 @@
-import type { FeedPatch } from '@shared/claude-feed'
 import type { ConnectorsState } from '@shared/connectors'
+import type { FeedPatch } from '@shared/conversation-feed'
 
 import type { BrowserRuntime } from '../browser/browser-runtime'
 import type { ComputerRuntime } from '../computer/computer-runtime'
 import type { InboxLink } from '../inbox/inbox-agent'
 import type { JsonFile } from '../storage/json-file'
+import type { Vault } from '../storage/vault'
 import type { StoredConnectors } from './connector-store'
-import type { Vault } from './vault'
 import type { OpenAiChat } from './ai/ai-chat'
 import type { StoredAiJobs } from './ai/ai-jobs-file'
 

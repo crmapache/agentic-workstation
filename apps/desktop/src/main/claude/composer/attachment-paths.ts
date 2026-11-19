@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises'
 import { sep, extname, relative, isAbsolute } from 'node:path'
 
-import type { AttachmentPath } from '@shared/claude-draft'
+import type { AttachmentPath } from '@shared/message-draft'
 
 import { PICTURE_EXTENSIONS } from '../../agents/images/images.constants'
 import { MAX_ATTACH_PATHS } from './composer.constants'

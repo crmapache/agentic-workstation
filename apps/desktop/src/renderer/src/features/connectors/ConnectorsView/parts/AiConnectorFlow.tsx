@@ -8,6 +8,7 @@ import { TextField } from '@agentic-workstation/ui/TextField'
 import { useAiConnector } from '../ConnectorsView.hooks'
 import styles from '../ConnectorsView.module.scss'
 import type { AiConnectorFlowProps } from '../ConnectorsView.types'
+import { AiBuilderPicks } from './AiBuilderPicks'
 
 /**
  * Просьба к ИИ (ADR 0029, 0050): человек называет сервис, что с ним делать и, если знает,
@@ -42,6 +43,11 @@ export const AiConnectorFlow = ({ onStarted, onCancel }: AiConnectorFlowProps) =
         value={flow.request.docsUrl}
         onChange={flow.setField('docsUrl')}
         onKeyDown={flow.handleKeyDown}
+      />
+      <AiBuilderPicks
+        request={flow.request}
+        onProvider={flow.chooseProvider}
+        onChange={flow.change}
       />
       <div className={styles.formActions}>
         <Button size="sm" variant="ghost" onClick={onCancel}>

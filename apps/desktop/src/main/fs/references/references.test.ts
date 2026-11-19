@@ -63,15 +63,18 @@ describe('ссылки при переименовании и переносе',
         'apps/desktop/tsconfig.base.json':
           '{ /* общий */ "compilerOptions": { "paths": { "@shared/*": ["src/shared/*"] }, } }',
         'apps/desktop/tsconfig.web.json': '{ "extends": "./tsconfig.base" }',
-        'apps/desktop/src/shared/claude.ts': 'export {}',
-        'apps/desktop/src/renderer/a.ts': "import type { X } from '@shared/claude'",
-        'apps/phone/src/b.ts': "import type { X } from '@shared/claude'",
+        'apps/desktop/src/shared/conversation.ts': 'export {}',
+        'apps/desktop/src/renderer/a.ts': "import type { X } from '@shared/conversation'",
+        'apps/phone/src/b.ts': "import type { X } from '@shared/conversation'",
       },
       ['apps/desktop/tsconfig.base.json', 'apps/desktop/tsconfig.web.json'],
     )
 
     expect(
-      rename({ from: 'apps/desktop/src/shared/claude.ts', to: 'apps/desktop/src/shared/agent.ts' }),
+      rename({
+        from: 'apps/desktop/src/shared/conversation.ts',
+        to: 'apps/desktop/src/shared/agent.ts',
+      }),
     ).toEqual({ 'apps/desktop/src/renderer/a.ts': "import type { X } from '@shared/agent'" })
   })
 

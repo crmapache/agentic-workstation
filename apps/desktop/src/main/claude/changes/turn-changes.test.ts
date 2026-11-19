@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { FeedItem, ToolFeedItem } from '@shared/claude-feed'
+import type { FeedItem, ToolFeedItem } from '@shared/conversation-feed'
 
 import { claudeToolAction } from '../feed/tool-action'
 import { turnTools, turnChanges } from './turn-changes'

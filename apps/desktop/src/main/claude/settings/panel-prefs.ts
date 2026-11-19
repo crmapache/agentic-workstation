@@ -1,13 +1,14 @@
 import { isAbsolute } from 'node:path'
 
-import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/claude'
-import type { PanelPrefs, PanelPrefsPatch } from '@shared/claude-prefs'
+import type { EffortLevel, PermissionMode } from '@shared/conversation'
+import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/conversation'
+import type { PanelPrefs, PanelPrefsPatch } from '@shared/panel-prefs'
 import {
   GAUGE_VIVID_CALM,
   GAUGE_VIVID_FULL,
   MODEL_NAME_PATTERN,
   DEFAULT_PANEL_PREFS,
-} from '@shared/claude-prefs'
+} from '@shared/panel-prefs'
 
 /** Своих моделей не больше тридцати: это список для меню, а не каталог. */
 const MAX_CUSTOM_MODELS = 30
@@ -74,16 +75,21 @@ const meterKeys = (value: unknown): string[] | undefined =>
 const pinned = <T extends string>(value: unknown, options: readonly T[]): T | null | undefined =>
   value === null ? null : oneOf(value, options)
 
+/** Что провайдер панели принимает в настройках: его уровни усилия и режимы (ADR 0083). */
+export type PrefsRules = { efforts: readonly EffortLevel[]; modes: readonly PermissionMode[] }
+
+const CLAUDE_RULES: PrefsRules = { efforts: EFFORT_LEVELS, modes: PERMISSION_MODES }
+
 /**
  * Только то, что в записи узнаваемо: чужое и битое отбрасывается поле за полем, а не
- * роняет все настройки разом.
+ * роняет все настройки разом. Уровни и режимы - провайдера панели (у Codex свои).
  */
-const parseFields = (value: unknown): PanelPrefsPatch => {
+const parseFields = (value: unknown, rules: PrefsRules): PanelPrefsPatch => {
   const input = record(value)
   const fields: { [Key in keyof PanelPrefs]: PanelPrefs[Key] | undefined } = {
     newTabModel: input['newTabModel'] === null ? null : usableModel(input['newTabModel']),
-    newTabEffort: pinned(input['newTabEffort'], EFFORT_LEVELS),
-    newTabMode: pinned(input['newTabMode'], PERMISSION_MODES),
+    newTabEffort: pinned(input['newTabEffort'], rules.efforts),
+    newTabMode: pinned(input['newTabMode'], rules.modes),
     pasteCollapse: clamp(input['pasteCollapse'], 0, MAX_PASTE_LINES),
     gaugeVivid: clamp(input['gaugeVivid'], GAUGE_VIVID_CALM, GAUGE_VIVID_FULL),
     shareEditor: typeof input['shareEditor'] === 'boolean' ? input['shareEditor'] : undefined,
@@ -100,18 +106,22 @@ const parseFields = (value: unknown): PanelPrefsPatch => {
 }
 
 /** Настройки с диска: чего нет или что не разобралось - по умолчанию. */
-export const parsePanelPrefs = (value: unknown): PanelPrefs => ({
+export const parsePanelPrefs = (value: unknown, rules: PrefsRules = CLAUDE_RULES): PanelPrefs => ({
   ...DEFAULT_PANEL_PREFS,
-  ...parseFields(value),
+  ...parseFields(value, rules),
 })
 
 /**
  * Изменение из окна поверх текущих. Названное, но негодное поле - ошибка, а не тихий
  * пропуск: окно не должно думать, что настройка встала.
  */
-export const applyPrefsPatch = (prefs: PanelPrefs, patch: unknown): PanelPrefs => {
+export const applyPrefsPatch = (
+  prefs: PanelPrefs,
+  patch: unknown,
+  rules: PrefsRules = CLAUDE_RULES,
+): PanelPrefs => {
   const named = Object.keys(record(patch))
-  const parsed = parseFields(patch)
+  const parsed = parseFields(patch, rules)
   const rejected = named.filter((key) => !(key in parsed))
 
   if (rejected.length > 0) throw new Error(`Недопустимые настройки: ${rejected.join(', ')}`)

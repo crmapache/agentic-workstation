@@ -53,14 +53,6 @@ export const useScenarioRun = (place: RunPlace | null, runId: string | null) =>
   })
 
 /**
- * Провайдеры ИИ и их модели - для запуска и редактора сценариев. Перемены (каталог моделей,
- * свои модели, CLI нашёлся) главный процесс присылает сам; CLI, поставленный, пока окно
- * открыто, никто не ищет - поэтому свежие и на показ.
- */
-export const useProviders = () =>
-  useQuery({ queryKey: QUERY_KEYS.providers, queryFn: () => invoke('providers:list') })
-
-/**
  * Сколько прогонов проекта ждут человека - число на иконке вида сценариев. Вид показывает только
  * свой проект (ADR 0072): прогон другого проекта зовёт точкой на вкладке своего проекта.
  */
@@ -76,9 +68,6 @@ const projectIdOf = (workspace: WorkspaceState | undefined, projectPath: string)
 export const useScenariosSync = () => {
   const queryClient = useQueryClient()
 
-  useIpcEvent('providers:changed', (providers) => {
-    queryClient.setQueryData(QUERY_KEYS.providers, providers)
-  })
   useIpcEvent('scenarios:queues', (view) => {
     queryClient.setQueryData(QUERY_KEYS.scenarioQueues, view)
   })

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { DraftChip } from '@shared/claude-draft'
+import type { DraftChip } from '@shared/message-draft'
 
 /** Кусок для открытого чата провайдера ИИ: чей проект и чип, который встанет в поле. */
 export type ChatHandoff = { projectId: string; chip: DraftChip }

@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { fastModeShown, losesFastMode, modelHasFastMode } from '@shared/claude-fast-mode'
+import { fastModeShown, losesFastMode, modelHasFastMode } from '@shared/fast-mode'
 
 import { fastReportOf } from './fast-mode'
 

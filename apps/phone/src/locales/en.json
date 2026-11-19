@@ -7,7 +7,9 @@
     "title": "Agentic Workstation",
     "body": "Your IDE needs you.",
     "providers": {
-      "claude": "Claude"
+      "claude": "Claude",
+      "codex": "Codex",
+      "opencode": "Open model"
     },
     "scenario": "Scenario",
     "titles": {
@@ -67,11 +69,13 @@
     "crashed": "Crashed"
   },
   "effort": {
+    "minimal": "Minimal effort",
     "low": "Low effort",
     "medium": "Medium effort",
     "high": "High effort",
     "xhigh": "Extra high effort",
-    "max": "Max effort"
+    "max": "Max effort",
+    "ultra": "Ultra effort"
   },
   "options": {
     "defaultModel": "Default (as in the IDE settings)",
@@ -81,22 +85,27 @@
     "default": {
       "label": "Ask before edits",
       "short": "Ask",
-      "description": "Claude asks before editing files or running commands"
+      "description": "The model asks before editing files or running commands"
     },
     "acceptEdits": {
       "label": "Accept edits",
       "short": "Accept",
       "description": "File edits go through, commands still ask"
     },
+    "readOnly": {
+      "label": "Read only",
+      "short": "Read",
+      "description": "The model reads and answers, asks before changing anything"
+    },
     "plan": {
       "label": "Plan mode",
       "short": "Plan",
-      "description": "Claude explores and plans, changes nothing"
+      "description": "The model explores and plans, changes nothing"
     },
     "auto": {
       "label": "Auto",
       "short": "Auto",
-      "description": "Claude decides what is safe to run on its own"
+      "description": "The model decides what is safe to run on its own"
     },
     "bypassPermissions": {
       "label": "Bypass permissions",
@@ -140,6 +149,8 @@
       "worktreeFailed": "The worktree could not be made.",
       "worktreeDirty": "The worktree has changes that are not committed.",
       "providerMissing": "This provider is not available on the computer.",
+      "notSupported": "The provider of this conversation cannot do this.",
+      "effortUnavailable": "The provider of this conversation does not offer this effort.",
       "noClaude": "Claude Code is not found on the computer.",
       "untrusted": "The project is not trusted yet. Trust it in the IDE.",
       "runBusy": "The run is busy. Try again in a moment.",
@@ -148,7 +159,7 @@
       "runOver": "This run is over.",
       "runForeign": "This run belongs to the ACC plugin: here it can only be viewed.",
       "permissionMode": "The new conversation did not start in the mode you chose, so the IDE closed it.",
-      "modeUnavailable": "The IDE does not offer this mode here: the project's or your organization's settings switch it off, or Claude Code refused it.",
+      "modeUnavailable": "The IDE does not offer this mode here: the provider has no such mode, the project's or your organization's settings switch it off, or the provider refused it.",
       "imageTooBig": "This photo is too big to send to the phone.",
       "askTaken": "This side question is already asked. Ask again.",
       "notRecent": "The IDE no longer lists this project among its recent ones.",
@@ -297,11 +308,11 @@
       "description": "It was closed in the IDE, or its project was closed."
     },
     "errors": {
-      "cli-not-found": "Claude Code is not found on the computer.",
+      "cli-not-found": "The provider's CLI is not found on the computer.",
       "untrusted": "The project is not trusted yet. Trust it in the IDE.",
       "project-missing": "The project folder is gone.",
-      "start-failed": "Claude Code did not start.",
-      "other": "Claude Code cannot run: {{code}}"
+      "start-failed": "The provider's CLI did not start.",
+      "other": "The provider cannot run: {{code}}"
     },
     "working": "Working · {{time}}",
     "stop": "Stop",
@@ -336,8 +347,8 @@
     },
     "forceStop": {
       "button": "Force stop",
-      "title": "Force stop Claude Code?",
-      "text": "Claude Code did not stop, so its process is ended. The unfinished work of this turn is lost."
+      "title": "Force stop the agent?",
+      "text": "The agent did not stop, so its process is ended. The unfinished work of this turn is lost."
     },
     "fast": {
       "label": "Fast mode",
@@ -400,8 +411,8 @@
     },
     "notice": {
       "interrupted": "Stopped",
-      "start-failed": "Claude Code did not start",
-      "process-exited": "Claude Code exited",
+      "start-failed": "The agent did not start",
+      "process-exited": "The agent exited",
       "cli-error": "Error",
       "not-logged-in": "Not logged in",
       "rate-limited": "Rate limited",
@@ -448,7 +459,7 @@
       "modelSays": "The model says"
     },
     "question": {
-      "title": "Claude asks",
+      "title": "The model asks",
       "own": "Your own answer",
       "ownPlaceholder": "Optional, replaces the choice",
       "send": "Answer",
@@ -459,7 +470,7 @@
       "approve": "Approve",
       "refine": "Keep planning",
       "feedback": "What to change",
-      "feedbackPlaceholder": "Tell Claude what to change in the plan",
+      "feedbackPlaceholder": "Tell the model what to change in the plan",
       "sendFeedback": "Send"
     },
     "tooLong": "Too long to review on the phone - decide at the Mac. You can still deny it here."
@@ -655,16 +666,18 @@
       "conversation": "Conversation only",
       "code": "Code only"
     },
-    "checking": "Checking what Claude changed since",
+    "checking": "Checking what the agent changed since",
     "files_one": "{{count}} file changed since",
     "files_other": "{{count}} files changed since",
     "more_one": "and {{count}} more",
     "more_other": "and {{count}} more",
-    "none": "Claude changed no files since this message.",
+    "none": "The agent changed no files since this message.",
     "off": "Code is not kept: Rewind code (checkpoints) is off in the Claude Code settings.",
     "notTracked": "Code is not kept for this conversation yet: its Claude Code was started without keeping copies of files.",
     "noCheckpoint": "No copy of the code was kept when this message was sent.",
-    "unavailable": "Claude Code cannot restore the code here: {{detail}}",
+    "changedSince": "Files the agent edited were changed afterwards - the code can't go back without losing those changes.",
+    "outsideProject": "Some edits went to files outside the project - the code doesn't go back there.",
+    "unavailable": "The provider cannot restore the code here: {{detail}}",
     "running": "The turn that is running stops.",
     "queued_one": "The queued message is dropped too.",
     "queued_other": "The {{count}} queued messages are dropped too.",
@@ -673,16 +686,16 @@
     "notDone": "The conversation was not rewound",
     "filesFailed": "The conversation was rewound, but the files did not come back",
     "refused": {
-      "busy": "Claude is busy with something that cannot be stopped from here. Try again in a moment.",
-      "gone": "Claude no longer holds this message: a compaction folded it away.",
+      "busy": "The agent is busy with something that cannot be stopped from here. Try again in a moment.",
+      "gone": "The conversation no longer holds this message: a compaction folded it away.",
       "moved": "The conversation moved on while this was open. Look again and retry.",
       "midCall": "This message sits inside a tool call and its answer, so the conversation cannot be cut there.",
-      "notSaved": "Claude Code could not record the rewind, so it did not make it.",
+      "notSaved": "The provider could not record the rewind, so it did not make it.",
       "code": "Stop the turn before restoring the code alone.",
-      "unsupported": "This version of Claude Code cannot rewind. Update it at the computer.",
-      "noProcess": "Claude Code could not be started for this conversation.",
-      "ended": "Claude Code stopped during the rewind, so it is not known whether the cut was made.",
-      "other": "Claude Code refused: {{detail}}"
+      "unsupported": "This version of the provider's CLI cannot rewind. Update it at the computer.",
+      "noProcess": "The agent could not be started for this conversation.",
+      "ended": "The agent stopped during the rewind, so it is not known whether the cut was made.",
+      "other": "The provider refused: {{detail}}"
     }
   },
   "aside": {
@@ -848,12 +861,12 @@
     "placeholder": "For example: review the open pull request, fix what the review finds, run the tests",
     "shelf": "Shelf",
     "write": "Write",
-    "writing": "Claude is writing the scenario · {{time}}",
-    "progress": "Claude is writing the scenario",
+    "writing": "AI is writing the scenario · {{time}}",
+    "progress": "AI is writing the scenario",
     "save": "Save to shelf",
     "discard": "Discard",
     "cancelled": "Cancelled.",
-    "failed": "Claude could not write it: {{error}}"
+    "failed": "AI could not write it: {{error}}"
   },
   "accounts": {
     "title": "Accounts",

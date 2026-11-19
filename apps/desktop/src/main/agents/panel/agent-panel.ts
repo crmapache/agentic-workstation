@@ -1,15 +1,15 @@
-import { randomUUID } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import type {
   ForkOrigin,
-  ClaudeState,
   Conversation,
   HistoryEntry,
   PermissionMode,
-} from '@shared/claude'
-import type { ConversationFeed } from '@shared/claude-feed'
-import type { PanelPrefs, ConversationCall } from '@shared/claude-prefs'
+  AgentPanelState,
+  ConversationOptions,
+} from '@shared/conversation'
+import type { ConversationFeed } from '@shared/conversation-feed'
+import type { PanelPrefs, ConversationCall } from '@shared/panel-prefs'
 
 import { ConversationCalls } from '../calls/conversation-calls'
 import type { AgentHost } from '../conversation/agent-parts'
@@ -32,6 +32,11 @@ import { TabStrip } from './tab-strip'
  * доверие к папке, поиск CLI. Разговор внутри - через AgentDriver (agent-parts.ts).
  */
 export type PanelDriver = {
+  /**
+   * id сессии новой вкладки. У Claude его выбираем мы (имя транскрипта, `--session-id`), у
+   * Codex id потока даёт сервер - до первого хода он пустой.
+   */
+  newSessionId: () => string
   /** Журнал разговора на диске у провайдера (у Claude - транскрипт). */
   hasJournal: (projectPath: string, sessionId: string) => Promise<boolean>
   /** Имя прошлого разговора из журнала; undefined - журнала нет. */
@@ -39,10 +44,14 @@ export type PanelDriver = {
   /** Прошлые разговоры проекта; open - id сессий, которые сейчас открыты вкладками. */
   listHistory: (projectPath: string, open: ReadonlySet<string>) => Promise<HistoryEntry[]>
   /**
-   * Откуда форк: точка в журнале источника до сообщения (beforeMessageId null - разговор
-   * целиком). null - форку не от чего идти: вкладка начнёт новый разговор.
+   * Сессия вкладки-форка и откуда она ответвлена: до сообщения (beforeMessageId null -
+   * разговор целиком). origin null - форку не от чего идти: вкладка начнёт новый разговор.
+   * Claude выбирает id сам и режет при первом сообщении; Codex создаёт ветку потока сразу.
    */
-  forkOrigin: (source: Conversation, beforeMessageId: string | null) => Promise<ForkOrigin | null>
+  forkSession: (
+    source: Conversation,
+    beforeMessageId: string | null,
+  ) => Promise<{ sessionId: string; origin: ForkOrigin | null }>
   /** Имя от человека - провайдеру: живой сессии словами её CLI, иначе в журнал. */
   saveTitle: (runtime: ConversationRuntime, title: string) => Promise<void>
   /** Режим новой вкладки, когда его не дали ни закреплённые настройки, ни соседняя вкладка. */
@@ -59,7 +68,7 @@ export type PanelDriver = {
 
 /** Куда панель сообщает: состояние окну, зов человека. */
 export type PanelEvents = {
-  onState: (state: ClaudeState) => void
+  onState: (state: AgentPanelState) => void
   onCall: (call: ConversationCall) => void
 }
 
@@ -113,10 +122,28 @@ export abstract class AgentPanel {
   }
 
   /** Состояние для окна: общее (coreState) и своё провайдера. */
-  abstract getState(): ClaudeState
+  abstract getState(): AgentPanelState
 
   /** Настройки панели (Settings): патч поверх текущих, негодное поле - отказ целиком. */
-  abstract setPrefs(patch: unknown): ClaudeState
+  abstract setPrefs(patch: unknown): AgentPanelState
+
+  /** Освежить лимиты аккаунтов панели (кольца под полем); чаще своего шага не спрашивает. */
+  abstract refreshUsage(accountIds: readonly string[]): Promise<AgentPanelState>
+
+  /**
+   * Вход аккаунта провайдера (экран входа вместо панели): Claude - в Терминале, в хранилище
+   * этого аккаунта; Codex - в браузере через сам Codex. Ответ - сразу, вход ждётся дальше.
+   */
+  abstract signIn(accountId: string): Promise<AgentPanelState>
+  abstract cancelSignIn(): Promise<AgentPanelState>
+  /** Спросить заново, вошёл ли аккаунт в работе: человек мог войти мимо панели. */
+  abstract checkSignIn(): Promise<AgentPanelState>
+  abstract signOut(accountId: string): Promise<AgentPanelState>
+  /** Аккаунты провайдера: новый (сразу со входом), выбор для всех разговоров, имя, забыть. */
+  abstract addAccount(): Promise<AgentPanelState>
+  abstract selectAccount(accountId: string): Promise<AgentPanelState>
+  abstract renameAccount(accountId: string, alias: string): Promise<AgentPanelState>
+  abstract forgetAccount(accountId: string): Promise<AgentPanelState>
 
   /** Что о панели хранится на диске сверх вкладок: доверие, настройки. */
   protected abstract storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'>
@@ -138,7 +165,7 @@ export abstract class AgentPanel {
 
   /** Общее состояние вкладок для окна. */
   protected coreState(): Pick<
-    ClaudeState,
+    AgentPanelState,
     'conversations' | 'activeByProject' | 'closedByProject' | 'commandsByProject'
   > {
     return {
@@ -163,13 +190,25 @@ export abstract class AgentPanel {
    * Новая вкладка. Модель, усилие и режим - закреплённые в Settings → New chats, иначе
    * как у выбранной вкладки проекта.
    */
-  async newConversation(projectPath: string): Promise<ClaudeState> {
-    await this.addRuntime(projectPath, randomUUID(), null)
+  async newConversation(projectPath: string): Promise<AgentPanelState> {
+    await this.openConversation(projectPath, {})
 
     return this.getState()
   }
 
-  activateConversation(conversationId: string): ClaudeState {
+  /**
+   * Новая вкладка с выбором сразу, до подъёма процесса (телефон): ответ - id созданной, а не
+   * догадка по разнице списков, которую сбила бы вкладка, открытая в окне в ту же секунду.
+   */
+  async openConversation(projectPath: string, options: ConversationOptions): Promise<string> {
+    const id = await this.addRuntime(projectPath, this.driver.newSessionId(), null)
+
+    this.actions.setOptions(id, options)
+
+    return id
+  }
+
+  activateConversation(conversationId: string): AgentPanelState {
     this.setActive(this.runtime(conversationId).meta.projectPath, conversationId)
 
     return this.getState()
@@ -189,7 +228,7 @@ export abstract class AgentPanel {
   }
 
   /** Человек доверился папке: разговоры, которые на этом стояли, отправляют ждавшее. */
-  async trustProject(projectPath: string): Promise<ClaudeState> {
+  async trustProject(projectPath: string): Promise<AgentPanelState> {
     this.driver.trust(projectPath)
     await Promise.all(
       [...this.runtimes.values()]
@@ -215,7 +254,7 @@ export abstract class AgentPanel {
    * журнале писали бы в него наперегонки. Журнала нет - отказ: с чужим id вкладка начала
    * бы новую сессию под id, который выбрало окно. Имя берётся из журнала, а не из запроса.
    */
-  async openHistory(projectPath: string, sessionId: string): Promise<ClaudeState> {
+  async openHistory(projectPath: string, sessionId: string): Promise<AgentPanelState> {
     const open = [...this.runtimes.values()].find(
       (runtime) => runtime.meta.projectPath === projectPath && runtime.meta.sessionId === sessionId,
     )
@@ -232,17 +271,17 @@ export abstract class AgentPanel {
   }
 
   /** Форк в новой вкладке рядом: тот же разговор до точки, дальше - своя ветка. */
-  async fork(conversationId: string, beforeMessageId: string | null): Promise<ClaudeState> {
+  async fork(conversationId: string, beforeMessageId: string | null): Promise<AgentPanelState> {
     const source = this.runtime(conversationId).meta
-    const origin = await this.driver.forkOrigin(source, beforeMessageId)
+    const { sessionId, origin } = await this.driver.forkSession(source, beforeMessageId)
 
-    await this.addRuntime(source.projectPath, randomUUID(), null, source, origin)
+    await this.addRuntime(source.projectPath, sessionId, null, source, origin)
 
     return this.getState()
   }
 
   /** Поискать CLI заново: человек поставил его, пока IDE была открыта. */
-  async recheckCli(): Promise<ClaudeState> {
+  async recheckCli(): Promise<AgentPanelState> {
     if (await this.driver.recheckCli()) {
       await Promise.all(
         [...this.runtimes.values()].map((runtime) => runtime.resolveError('cli-not-found')),

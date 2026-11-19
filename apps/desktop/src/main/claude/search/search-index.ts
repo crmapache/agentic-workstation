@@ -1,7 +1,7 @@
 import { stat, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import type { TitleSource } from '@shared/claude'
+import type { TitleSource } from '@shared/conversation'
 
 import { stringField, parseCliLine } from '../cli/cli-messages'
 import { dropRewound } from '../history/transcript-rewinds'

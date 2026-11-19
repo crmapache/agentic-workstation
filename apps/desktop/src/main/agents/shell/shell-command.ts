@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-import type { ShellStatus } from '@shared/claude-feed'
+import type { ShellStatus } from '@shared/conversation-feed'
 
 import { SPAWN_DETACHED } from '../../platform'
 import { ProcessGroup } from '../../process/process-group'

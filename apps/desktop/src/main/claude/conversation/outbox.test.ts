@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { QueuedMessage } from '@shared/claude'
+import type { QueuedMessage } from '@shared/conversation'
 
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { ConversationOutbox } from '../../agents/conversation/outbox'

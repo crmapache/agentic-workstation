@@ -1,4 +1,10 @@
-import type { StatsSource, StatsManualNote, StatsPresenceNote } from '@shared/statistics'
+import { PROVIDER_IDS } from '@shared/providers'
+import type {
+  StatsSource,
+  StatsManualNote,
+  StatsPresenceNote,
+  StatsProviderFilter,
+} from '@shared/statistics'
 import type { ManualEntry, StatisticsInvokeContract } from '@shared/ipc/statistics.contract'
 
 import type { StatsService } from '../statistics/stats-service'
@@ -11,6 +17,9 @@ type StatisticsChannels = keyof StatisticsInvokeContract
 
 /** Пачка окна - не больше часа минут и сотни строк правок: больше за полминуты не бывает. */
 const MAX_ENTRIES = 600
+
+/** Провайдеры фильтра: все или один из тех, что знает IDE. */
+const PROVIDER_FILTERS: readonly StatsProviderFilter[] = ['all', ...PROVIDER_IDS]
 
 const count = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : 0
@@ -31,7 +40,7 @@ export const createStatisticsHandlers = (
     typeof projectId === 'string' ? (workspace.findProject(projectId)?.rootPath ?? '') : ''
 
   return {
-    'stats:report': ({ period, source, projectId }) => {
+    'stats:report': ({ period, source, projectId, provider }) => {
       if (!isRecord(period)) throw new Error('Ожидался период')
 
       return stats.query(
@@ -39,6 +48,7 @@ export const createStatisticsHandlers = (
         {
           source: assertOneOf<StatsSource>(source, ['all', 'ide', 'outside'], 'source'),
           project: projectId === null ? null : projectRootOf(workspace, projectId),
+          provider: assertOneOf(provider, PROVIDER_FILTERS, 'provider'),
         },
       )
     },

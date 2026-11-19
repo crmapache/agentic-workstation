@@ -1,4 +1,4 @@
-import type { FeedPatch } from '@shared/claude-feed'
+import type { FeedPatch } from '@shared/conversation-feed'
 
 /** Фраза для строки, которая следит за работой, не длиннее этого: строка одна. */
 const SAYING_MAX = 140

@@ -16,7 +16,8 @@ export class StatsStore {
       'INSERT INTO places (path) VALUES (?) ON CONFLICT(path) DO UPDATE SET path = excluded.path RETURNING id',
     )
     this.insertSession = db.prepare(
-      'INSERT INTO sessions (uuid, provider) VALUES (?, ?) ON CONFLICT(uuid) DO UPDATE SET uuid = excluded.uuid RETURNING id',
+      `INSERT INTO sessions (uuid, provider) VALUES (?, ?)
+       ON CONFLICT(provider, uuid) DO UPDATE SET uuid = excluded.uuid RETURNING id`,
     )
   }
 
@@ -44,14 +45,16 @@ export class StatsStore {
     return row.id
   }
 
+  /** id разговора провайдера: у каждого провайдера свои id, разговор - пара (провайдер, id). */
   sessionId(uuid: string, provider: string): number {
-    const known = this.sessions.get(uuid)
+    const cacheKey = `${provider}\n${uuid}`
+    const known = this.sessions.get(cacheKey)
 
     if (known !== undefined) return known
 
     const row = this.insertSession.get(uuid, provider) as { id: number }
 
-    this.sessions.set(uuid, row.id)
+    this.sessions.set(cacheKey, row.id)
 
     return row.id
   }

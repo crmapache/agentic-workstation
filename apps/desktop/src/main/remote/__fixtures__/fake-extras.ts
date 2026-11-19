@@ -1,6 +1,6 @@
-import type { AccountsState } from '@shared/claude-accounts'
-import type { FeedItem } from '@shared/claude-feed'
+import type { AccountsState } from '@shared/accounts'
 import type { Connector } from '@shared/connectors'
+import type { FeedItem } from '@shared/conversation-feed'
 import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
 import type { ScenarioHourRequest } from '@shared/scenario-view'
 import type { ScenarioSchedule } from '@shared/scenarios'

@@ -43,6 +43,8 @@ export const connectorChats =
               sessionId: options.sessionId,
               resume,
               schema: options.schema,
+              model: options.model,
+              effort: options.effort,
               instructionsFile,
             }
 

@@ -7,9 +7,11 @@ import type {
 /**
  * Быстрый режим предлагается у модели, которая его умеет (каталог провайдера), - выбранной или
  * той, что назвал провайдер. Уже попросили - переключатель виден всегда: выключить его надо
- * уметь и у модели, о которой каталог молчит.
+ * уметь и у модели, о которой каталог молчит. Провайдер без быстрого режима (fastMode false) -
+ * не предлагается вовсе; IDE постарше флага не шлёт - решает каталог.
  */
 export const fastOffered = (conversation: ConversationWire, provider: ProviderCaps): boolean => {
+  if (provider.fastMode === false) return false
   if (conversation.fast?.asked) return true
 
   const models = [conversation.model, conversation.activeModel].filter(Boolean)

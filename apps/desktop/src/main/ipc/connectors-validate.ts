@@ -18,6 +18,9 @@ import {
   CONNECTOR_DESCRIPTION_MAX,
   CONNECTOR_INSTRUCTIONS_MAX,
 } from '@shared/connectors'
+import { ALL_EFFORT_LEVELS } from '@shared/conversation'
+import { MODEL_NAME_PATTERN } from '@shared/panel-prefs'
+import { isProviderId } from '@shared/providers'
 
 import { assertOneOf, assertString } from './validate'
 
@@ -112,10 +115,23 @@ export const assertGenerate = (value: unknown): GenerateConnectorRequest => {
 
   if (docsUrl && !/^https?:\/\//i.test(docsUrl)) throw new Error('Адрес документации - сайт')
 
+  const provider = record['provider']
+  const model = field(record['model'] ?? '', 'model', 200).trim()
+  const effort = record['effort'] ?? ''
+
+  if (!isProviderId(provider)) throw new Error('Неизвестный провайдер')
+  if (model && !MODEL_NAME_PATTERN.test(model)) throw new Error('Плохое имя модели')
+  if (effort !== '' && !ALL_EFFORT_LEVELS.some((level) => level === effort)) {
+    throw new Error('Плохой уровень усилия')
+  }
+
   return {
     service: field(record['service'], 'service', 200),
     goal: field(record['goal'], 'goal', 4000),
     docsUrl,
+    provider,
+    model,
+    effort: typeof effort === 'string' ? effort : '',
   }
 }
 

@@ -1,4 +1,4 @@
-import type { Conversation, RequestResponse } from '@shared/claude'
+import type { Conversation, RequestResponse } from '@shared/conversation'
 
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { claudeOf } from './claude-conversation'

@@ -4,20 +4,28 @@ import type { RunState } from './scenario-runs'
 
 /**
  * Статистика IDE (docs/workplan/20-statistics.md): что делали агенты и человек за период.
- * Агентская часть - по всей машине (транскрипты CLI), с разбивкой «в IDE / вне IDE»;
- * человеческая (присутствие, код руками) - только из окна IDE, с момента выпуска.
+ * Агентская часть - по всей машине (журналы провайдеров: транскрипты Claude Code, журналы
+ * Codex, база OpenCode), с разбивкой «в IDE / вне IDE» и по провайдеру; человеческая
+ * (присутствие, код руками) - только из окна IDE, с момента выпуска.
  * Время - эпоха в мс; дни и часы - по местному поясу машины.
  */
 
 /** Чьи агенты: все, только сессии, которые запускала IDE, или только остальные. */
 export type StatsSource = 'all' | 'ide' | 'outside'
 
+/** Какой провайдер: все или один (Claude Code, Codex, открытые модели). */
+export type StatsProviderFilter = 'all' | ProviderId
+
 /**
  * Фильтр выборки. project - путь проекта (как его знает IDE); null - все проекты.
- * Источник действует на агентские числа; присутствие и код руками - про человека, их
- * источник не делит.
+ * Источник и провайдер действуют на агентские числа; присутствие и код руками - про
+ * человека, их ни источник, ни провайдер не делят.
  */
-export type StatsFilter = { source: StatsSource; project: string | null }
+export type StatsFilter = {
+  source: StatsSource
+  project: string | null
+  provider: StatsProviderFilter
+}
 
 /** Период [from, to) в мс. Границы дней по местному времени считает окно. */
 export type StatsPeriod = { from: number; to: number }
@@ -28,13 +36,16 @@ export type StatsTokens = { input: number; output: number; cacheRead: number; ca
 /** Вопросы разрешений: спрошено человека, разрешено, отказано. */
 export type StatsPermissions = { asked: number; allowed: number; denied: number }
 
-/** Сводка периода. Стоимость - «на ценах API», в долларах, а не счёт подписки. */
+/**
+ * Сводка периода. Стоимость - «на ценах API», в долларах, а не счёт подписки: Claude и Codex -
+ * по таблицам цен IDE, открытые модели - сколько насчитал сам OpenCode (локальные - ноль).
+ */
 export type StatsTotals = {
   tokens: StatsTokens
   cost: number
   /** Доля чтения кеша во всём входе модели (0..1); 0 - входа не было. */
   cacheShare: number
-  /** Ответов модели (без дублей строк транскрипта). */
+  /** Ответов модели (без дублей строк журнала). */
   answers: number
   agentLinesAdded: number
   agentLinesRemoved: number
@@ -82,10 +93,16 @@ export type StatsSeriesPoint = {
 
 export type StatsSeries = { bucket: StatsBucketSize; points: StatsSeriesPoint[] }
 
-/** Семья модели для подписи в рейтинге; other - не Claude («<synthetic>», модель шлюза). */
+/**
+ * Семья модели для подписи в рейтинге - только у моделей Claude; other - всё остальное:
+ * модель шлюза у Claude Code, модели Codex и открытые модели (их имя подстрокой могло бы
+ * совпасть с семьёй Claude, а семьёй они не бывают).
+ */
 export type StatsModelFamily = ClaudeModelFamily | 'other'
 
+/** Модель периода у своего провайдера: одна модель у двух провайдеров - две строки. */
 export type StatsModelRow = {
+  provider: ProviderId
   model: string
   family: StatsModelFamily
   tokens: StatsTokens
@@ -164,10 +181,13 @@ export type StatsScenarios = {
   top: StatsScenarioRow[]
 }
 
-/** Чтение транскриптов: идёт ли, сколько сделано - окно показывает «считаю» (stats:scan). */
+/**
+ * Чтение журналов провайдеров: идёт ли, сколько сделано - окно показывает «считаю»
+ * (stats:scan). Файл - журнал на диске; база OpenCode - тоже файл, без байтов.
+ */
 export type StatsScanProgress = {
   running: boolean
-  /** Первый полный проход по транскриптам уже был: числа истории полные. */
+  /** Первый полный проход по журналам уже был: числа истории полные. */
   firstPassDone: boolean
   filesDone: number
   filesTotal: number
@@ -215,7 +235,7 @@ export type StatsTurnNote = {
   workMs: number
 }
 
-/** Ответ человека на вопрос разрешения. toolUseId сводит его с той же записью транскрипта. */
+/** Ответ человека на вопрос разрешения. toolUseId сводит его с той же записью журнала. */
 export type StatsPermissionNote = {
   provider: ProviderId
   session: string

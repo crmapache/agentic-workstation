@@ -1,15 +1,15 @@
-import type { NoticeCode, StopReason, NoticeExtra, ClosedReason } from '@shared/claude-feed'
+import type { NoticeCode, StopReason, NoticeExtra, ClosedReason } from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { numberField, stringField } from '../cli/cli-messages'
 import type { FeedStore } from '../../agents/feed/feed-store'
+import type { TurnTracker } from '../../agents/feed/turn-tracker'
 import type { WorkClock } from '../../agents/feed/work-clock'
 import type { AgentTasks } from './agent-tasks'
 import { overSampling } from './api-errors'
 import type { AssistantBlocks } from './assistant-blocks'
 import { saidInTurn } from './replayed-user'
 import type { ServiceRows } from './service-rows'
-import type { TurnTracker } from './turn-tracker'
 
 /** Что концу хода нужно от сборщика ленты: его части, часы, id и обычная отметка. */
 export type TurnCloserHost = {

@@ -1,4 +1,4 @@
-import type { RequestResponse } from '@shared/claude'
+import type { RequestResponse } from '@shared/conversation'
 
 import type { HeldRequest } from './agent-parts'
 

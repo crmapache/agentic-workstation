@@ -1,7 +1,10 @@
 import { useRef, useMemo, useState, useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire-types'
+import type {
+  ProviderCaps,
+  ConversationWire,
+} from '@agentic-workstation/remote-protocol/wire-types'
 
 import { STICK_THRESHOLD_PX } from '../Feed/Feed.constants'
 import type { FeedActions, RunningTask } from '../Feed/Feed.types'
@@ -176,16 +179,22 @@ export const useConversationCommands = (agentId: string, conversationId: string)
 
 /**
  * Что открыто поверх разговора: настройки, вопросы сбоку, откат к сообщению, «остановить
- * задачу?». Действия ленты - стабильной ссылкой: строки ленты - memo.
+ * задачу?». Действия ленты - стабильной ссылкой: строки ленты - memo. Чего провайдер разговора
+ * не умеет (stopTask, rewind false), в ленте нет; IDE постарше флагов не шлёт - есть всё.
  */
-export const useConversationSheets = () => {
+export const useConversationSheets = (provider: ProviderCaps | undefined) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isAsideOpen, setIsAsideOpen] = useState(false)
   const [rewindTo, setRewindTo] = useState<string | null>(null)
   const [stoppingTask, setStoppingTask] = useState<RunningTask | null>(null)
+  const canStopTask = provider?.stopTask !== false
+  const canRewind = provider?.rewind !== false
   const feedActions = useMemo<FeedActions>(
-    () => ({ onStopTask: setStoppingTask, onRewind: setRewindTo }),
-    [],
+    () => ({
+      onStopTask: canStopTask ? setStoppingTask : undefined,
+      onRewind: canRewind ? setRewindTo : undefined,
+    }),
+    [canStopTask, canRewind],
   )
 
   return {

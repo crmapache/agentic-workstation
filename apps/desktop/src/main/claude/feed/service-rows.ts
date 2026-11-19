@@ -1,4 +1,9 @@
-import type { NoticeCode, RetryReason, RetryOutcome, CompactFeedItem } from '@shared/claude-feed'
+import type {
+  NoticeCode,
+  RetryReason,
+  RetryOutcome,
+  CompactFeedItem,
+} from '@shared/conversation-feed'
 
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'

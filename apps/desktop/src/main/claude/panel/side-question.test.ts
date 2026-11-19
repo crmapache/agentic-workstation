@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { AsideThread, AsideExchange } from '@shared/claude-panel'
+import type { AsideThread, AsideExchange } from '@shared/panel-extras'
 
 import {
   answerOf,

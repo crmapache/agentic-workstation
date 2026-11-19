@@ -1,5 +1,5 @@
-import type { HistoryEntry } from '@shared/claude'
-import type { FeedItem, ConversationFeed } from '@shared/claude-feed'
+import type { HistoryEntry } from '@shared/conversation'
+import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 
 import type {
   HistoryWire,

@@ -2,7 +2,7 @@ import { rm, mkdtemp } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-import type { AccountCapability } from '@shared/claude-panel'
+import type { AccountCapability } from '@shared/panel-extras'
 
 import type { ClaudeCli } from '../cli/cli-locator'
 import { environmentFor } from './account-env'

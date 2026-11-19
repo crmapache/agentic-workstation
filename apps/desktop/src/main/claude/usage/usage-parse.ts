@@ -1,4 +1,4 @@
-import type { UsageWindow, AccountUsage } from '@shared/claude-usage'
+import type { UsageWindow, AccountUsage } from '@shared/account-usage'
 
 import { isRecord, recordField, stringField, recordsField } from '../cli/cli-messages'
 

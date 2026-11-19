@@ -1,9 +1,9 @@
-import type { Conversation } from '@shared/claude'
+import type { Conversation } from '@shared/conversation'
 import type { RunSummary } from '@shared/scenario-runs'
 import { isRunAsking } from '@shared/scenario-runs'
 import type { TaskRunSummary } from '@shared/tasks'
 
-import type { TabCall } from '../../features/claude-code/claude.types'
+import type { TabCall } from '../../features/agent-panel/panel.types'
 import type { ProjectCall } from '../../features/projects/ProjectTab/ProjectTab.types'
 
 /** Прогон сценария, каким его видит зов: чей, ждёт ли человека и с какого момента. */

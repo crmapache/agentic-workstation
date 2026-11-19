@@ -1,4 +1,4 @@
-import type { AccountsState } from '@shared/claude-accounts'
+import type { AccountsState } from '@shared/accounts'
 import type { Connector } from '@shared/connectors'
 
 import type {

@@ -1,4 +1,5 @@
 import type { ProviderId } from '@shared/providers'
+import { PROVIDER_IDS } from '@shared/providers'
 
 import type { PanelSide, MainViewId, SideViewId, ProviderViewId } from './layout.types'
 
@@ -12,7 +13,7 @@ export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'connectors',
   'inbox',
 ]
-export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code']
+export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code', 'codex', 'open-models']
 
 /** Панель провайдера в полосе зоны 3: зов, звук и переход к разговору - в панель своего провайдера. */
 export const PROVIDER_VIEW_OF: Readonly<Record<ProviderId, ProviderViewId>> = {
@@ -20,6 +21,11 @@ export const PROVIDER_VIEW_OF: Readonly<Record<ProviderId, ProviderViewId>> = {
   codex: 'codex',
   opencode: 'open-models',
 }
+
+/** Провайдеры, чья панель уже есть в окне (её вид - в PROVIDER_VIEW_IDS), по порядку полосы. */
+export const PANEL_PROVIDERS: readonly ProviderId[] = PROVIDER_IDS.filter((id) =>
+  PROVIDER_VIEW_IDS.includes(PROVIDER_VIEW_OF[id]),
+)
 
 /**
  * Зазор между листами окна - --space-2 (Workbench.module.scss). Место середины и левой

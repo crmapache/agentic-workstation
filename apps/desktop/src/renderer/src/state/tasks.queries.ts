@@ -1,4 +1,6 @@
+import type { ProviderId } from '@shared/providers'
 import type { TaskRun, TasksState } from '@shared/tasks'
+import type { QueryClient } from '@tanstack/react-query'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'
@@ -19,6 +21,11 @@ export const useTasks = () =>
     queryFn: () => invoke('tasks:get'),
     staleTime: Infinity,
   })
+
+/** Провайдер прогона по зеркалу заданий: его разговор открывается в панели этого провайдера. */
+export const runProviderOf = (queryClient: QueryClient, runId: string): ProviderId =>
+  queryClient.getQueryData<TasksState>(QUERY_KEYS.tasks)?.runs.find((run) => run.id === runId)
+    ?.provider ?? 'claude'
 
 /** Прогон целиком, с отчётом; перечитывается, когда его сводка поменялась. */
 export const useTaskRun = (runId: string | null) =>

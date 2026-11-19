@@ -1,12 +1,12 @@
 import { isAbsolute } from 'node:path'
 
-import type { ForkOrigin, TurnOutcome, QueuedMessage, PermissionMode } from '@shared/claude'
-import { EFFORT_LEVELS, TITLE_SOURCES } from '@shared/claude'
+import type { ForkOrigin, TurnOutcome, QueuedMessage, PermissionMode } from '@shared/conversation'
+import { EFFORT_LEVELS, TITLE_SOURCES, PERMISSION_MODES } from '@shared/conversation'
 
 import { parseMessageDraft } from '../agents/conversation/message-draft'
 import { parseClosed } from '../agents/panel/closed-tabs'
 import type { StoredPanel, StoredContext, StoredConversation } from '../agents/panel/panel-state'
-import { toPanelMode } from './settings/default-mode'
+import type { PrefsRules } from './settings/panel-prefs'
 import { parsePanelPrefs } from './settings/panel-prefs'
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '')
@@ -44,7 +44,15 @@ const parseQueue = (value: unknown): QueuedMessage[] =>
       })
     : []
 
-const parseConversation = (value: unknown): StoredConversation | null => {
+/** Как читать вкладки файла: уровни усилия провайдера и можно ли вкладке быть без id сессии. */
+/** Что провайдер принимает с диска: уровни, режимы, разговоры без id сессии (Codex). */
+type ParseRules = PrefsRules & { sessionless: boolean }
+
+/** Режим с диска - из режимов провайдера; старое «manual» - это «спрашивать». */
+const modeOf = (value: unknown, modes: readonly PermissionMode[]): PermissionMode =>
+  modes.find((mode) => mode === (value === 'manual' ? 'default' : value)) ?? 'default'
+
+const parseConversation = (value: unknown, rules: ParseRules): StoredConversation | null => {
   if (typeof value !== 'object' || value === null) return null
 
   const record = value as Record<string, unknown>
@@ -52,10 +60,10 @@ const parseConversation = (value: unknown): StoredConversation | null => {
   const projectPath = text(record['projectPath'])
   const sessionId = text(record['sessionId'])
 
-  if (!id || !projectPath || !sessionId) return null
+  if (!id || !projectPath || (!sessionId && !rules.sessionless)) return null
 
-  const effort = EFFORT_LEVELS.find((level) => level === record['effort']) ?? null
-  const permissionMode: PermissionMode = toPanelMode(record['permissionMode']) ?? 'default'
+  const effort = rules.efforts.find((level) => level === record['effort']) ?? null
+  const permissionMode = modeOf(record['permissionMode'], rules.modes)
 
   return {
     id,
@@ -78,7 +86,7 @@ const parseTabFields = (record: Record<string, unknown>) => ({
   groupId: text(record['groupId']) || undefined,
   depth: Number.isInteger(record['depth']) ? Math.max(0, record['depth'] as number) : undefined,
   outcome: typeof record['outcome'] === 'string' ? toOutcome(record['outcome']) : undefined,
-  fastMode: record['fastMode'] === true || undefined,
+  fastMode: typeof record['fastMode'] === 'boolean' ? record['fastMode'] : undefined,
   context: parseContext(record['context']),
 })
 
@@ -98,12 +106,20 @@ const parseContext = (value: unknown): StoredContext | undefined => {
 const toOutcome = (value: string): TurnOutcome => (value === 'none' ? 'none' : 'done')
 
 /** Сохранённое состояние с диска. Битое или чужое - пустое, а не падение IDE. */
-export const parseStoredClaude = (value: unknown): StoredPanel => {
+/**
+ * Файл панели. rules - уровни усилия провайдера (у Codex свои: чужой уровень на диске - «по
+ * умолчанию», а не отказ всего файла) и вкладки без id сессии (у Codex id потока даёт сервер
+ * на первом ходе - новая вкладка до него без id).
+ */
+export const parseStoredClaude = (
+  value: unknown,
+  rules: ParseRules = { efforts: EFFORT_LEVELS, modes: PERMISSION_MODES, sessionless: false },
+): StoredPanel => {
   const record =
     typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
   const conversations = Array.isArray(record['conversations'])
     ? record['conversations']
-        .map(parseConversation)
+        .map((item) => parseConversation(item, rules))
         .filter((item): item is StoredConversation => item !== null)
     : []
   const active =
@@ -124,10 +140,10 @@ export const parseStoredClaude = (value: unknown): StoredPanel => {
 
   return {
     conversations,
-    closed: parseClosed(record['closed'], parseConversation),
+    closed: parseClosed(record['closed'], (item) => parseConversation(item, rules)),
     activeByProject,
     trustedProjects,
-    prefs: parsePanelPrefs(record['prefs']),
+    prefs: parsePanelPrefs(record['prefs'], rules),
     commandsByProject: parseCommandNames(record['commandsByProject']),
   }
 }

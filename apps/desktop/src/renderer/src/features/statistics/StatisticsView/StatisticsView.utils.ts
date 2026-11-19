@@ -1,4 +1,5 @@
 import { modelLabelOf } from '@shared/claude-models'
+import type { ProviderId } from '@shared/providers'
 import type {
   StatsPeak,
   StatsReport,
@@ -92,16 +93,25 @@ export const calendarMetricOf = (
 /** Число строки рейтинга токенов: «3.1M · $12.40». */
 type RowValue = (tokens: number, cost: number) => string
 
+/** Имя провайдера для людей - из i18n окна. */
+type ProviderLabel = (provider: ProviderId) => string
+
 /**
- * Модели по цене: имя - по семье, которую уже решил главный процесс («Opus 4.5»), полное имя
- * модели - в подсказке; полоса - цена (по ней и порядок).
+ * Модели по цене: имя - по семье, которую уже решил главный процесс («Opus 4.5»), у моделей
+ * Codex и открытых - их id как есть; провайдер и полное имя модели - в подсказке («Codex ·
+ * gpt-6-sol»): одна модель бывает у двух провайдеров. Полоса - цена (по ней и порядок), у
+ * локальных моделей цены нет - их строки без полосы, но с токенами в числе.
  */
-export const modelRows = (models: readonly StatsModelRow[], rowValue: RowValue): RankedRow[] =>
+export const modelRows = (
+  models: readonly StatsModelRow[],
+  rowValue: RowValue,
+  providerLabel: ProviderLabel,
+): RankedRow[] =>
   models.map((model) => ({
-    key: model.model,
+    key: `${model.provider}\n${model.model}`,
     label: modelLabelOf(model.model, model.family === 'other' ? undefined : model.family),
     value: rowValue(tokensOf(model.tokens), model.cost),
-    hint: model.model,
+    hint: `${providerLabel(model.provider)} · ${model.model}`,
     parts: [{ key: 'cost', value: model.cost, tone: AGENTS_TONE }],
   }))
 

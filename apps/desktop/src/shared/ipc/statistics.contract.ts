@@ -1,4 +1,10 @@
-import type { StatsPeriod, StatsReport, StatsSource, StatsScanProgress } from '../statistics'
+import type {
+  StatsPeriod,
+  StatsReport,
+  StatsSource,
+  StatsScanProgress,
+  StatsProviderFilter,
+} from '../statistics'
 
 /** Минута присутствия человека в окне - по id проекта: путь знает главный процесс. */
 export type PresenceEntry = { minute: number; projectId: string | null }
@@ -16,16 +22,21 @@ export type ManualEntry = {
 
 /**
  * Часть контракта (contract.ts) про статистику (docs/workplan/20-statistics.md): отчёт за период
- * с фильтрами, как идёт чтение транскриптов и живые пачки окна - присутствие человека и код
- * руками. Правила - .claude/rules/ipc-contract.md.
+ * с фильтрами, как идёт чтение журналов провайдеров и живые пачки окна - присутствие человека и
+ * код руками. Правила - .claude/rules/ipc-contract.md.
  */
 export type StatisticsInvokeContract = {
   'stats:report': {
-    request: { period: StatsPeriod; source: StatsSource; projectId: string | null }
+    request: {
+      period: StatsPeriod
+      source: StatsSource
+      projectId: string | null
+      provider: StatsProviderFilter
+    }
     response: StatsReport
   }
   /**
-   * Как идёт чтение транскриптов - одно на окно, а не в каждом отчёте: отчёты считаются по
+   * Как идёт чтение журналов - одно на окно, а не в каждом отчёте: отчёты считаются по
    * периодам и фильтрам, а чтение у них общее. Свежее приносит stats:changed.
    */
   'stats:scan': { request: void; response: StatsScanProgress }
@@ -37,7 +48,7 @@ export type StatisticsInvokeContract = {
 
 export type StatisticsEventContract = {
   /**
-   * Данные поменялись (дочитаны транскрипты, пришли живые события): отчёты пора перезапросить.
+   * Данные поменялись (дочитаны журналы, пришли живые события): отчёты пора перезапросить.
    * Несёт то же, что stats:scan, - как идёт чтение сейчас.
    */
   'stats:changed': StatsScanProgress

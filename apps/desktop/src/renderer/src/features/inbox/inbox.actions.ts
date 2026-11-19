@@ -1,12 +1,14 @@
-import type { QuestionAnswers } from '@shared/claude'
+import type { QuestionAnswers } from '@shared/conversation'
 import type { InboxItem, InboxAction, InboxOutcome, InboxReminderRequest } from '@shared/inbox'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
 import { useInboxUiStore } from '../../state/inbox-ui.store'
+import { PROVIDER_VIEW_OF } from '../../state/layout.constants'
 import { useLayoutStore } from '../../state/layout.store'
 import { QUERY_KEYS } from '../../state/query-keys'
 import { useTaskRunStore } from '../../state/task-run.store'
+import { runProviderOf } from '../../state/tasks.queries'
 import { useInboxStore } from './inbox.store'
 
 /**
@@ -48,7 +50,16 @@ export const useInboxActions = () => {
     )
 
     if (ok) dropToast(item.id)
-    if (ok && action.kind === 'openChat') useLayoutStore.getState().showProviderView('claude-code')
+    if (ok && action.kind === 'openChat') {
+      const provider =
+        item.origin.kind === 'task'
+          ? runProviderOf(queryClient, item.origin.runId)
+          : item.origin.kind === 'chat'
+            ? item.origin.provider
+            : 'claude'
+
+      useLayoutStore.getState().showProviderView(PROVIDER_VIEW_OF[provider])
+    }
 
     return ok
   }

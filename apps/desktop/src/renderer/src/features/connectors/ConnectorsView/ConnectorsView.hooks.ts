@@ -6,6 +6,7 @@ import type { Connector, ImportOutcome, AddConnectorError } from '@shared/connec
 
 import { useImportCandidates } from '../connectors.queries'
 import { useConnectorActions } from '../../../state/connectors.queries'
+import { useProviders, effectiveProvider } from '../../../state/providers.queries'
 import {
   NOTHING_SAID,
   EMPTY_ADD_FIELDS,
@@ -74,13 +75,28 @@ export const useAiConnector = (onStarted: () => void) => {
   const actions = useConnectorActions()
   const [request, setRequest] = useState<GenerateConnectorRequest>(EMPTY_AI_REQUEST)
 
+  const providers = useProviders().data ?? []
+  // Провайдер, пока человек его не выбрал, считается при показе: первый, что стоит на машине.
+  const [providerChosen, setProviderChosen] = useState(false)
+  const provider = effectiveProvider(providers, providerChosen ? request.provider : null)
+  const shown = providerChosen || !provider ? request : { ...request, provider: provider.id }
   const setField = (key: keyof GenerateConnectorRequest) => (value: string) =>
     setRequest((previous) => ({ ...previous, [key]: value }))
+  const change = (patch: Partial<GenerateConnectorRequest>) =>
+    setRequest((previous) => ({ ...previous, ...patch }))
+  const chooseProvider = (id: string) => {
+    const picked = providers.find((one) => one.id === id)
+
+    if (!picked || picked.id === shown.provider) return
+
+    setProviderChosen(true)
+    change({ provider: picked.id, model: '', effort: '' })
+  }
 
   const start = () => {
-    if (!request.service.trim()) return
+    if (!shown.service.trim()) return
 
-    actions.startAiJob(request)
+    actions.startAiJob(shown)
     onStarted()
   }
 
@@ -91,7 +107,7 @@ export const useAiConnector = (onStarted: () => void) => {
     start()
   }
 
-  return { request, setField, start, handleKeyDown }
+  return { request: shown, setField, change, chooseProvider, start, handleKeyDown }
 }
 
 /**

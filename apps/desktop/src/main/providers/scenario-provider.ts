@@ -1,3 +1,4 @@
+import type { ConversationFeed } from '@shared/conversation-feed'
 import type { ProviderId } from '@shared/providers'
 import type { ScenarioDraftOutcome } from '@shared/scenario-view'
 import type { ScenarioCode, ScenarioScope } from '@shared/scenarios'
@@ -8,6 +9,18 @@ import type {
   SessionWires,
   SessionProcess,
 } from '../scenarios/engine/scenario-session'
+import type { AskOnce, AskOnceResult } from './run-stream/ask-once'
+
+/**
+ * Лента разговора шага для окна (журнал шага): последняя страница, ранние - по просьбе. Живых
+ * заплат нет: окно спрашивает страницы, а не слушает поток.
+ */
+export type StepFeed = {
+  ensureLoaded: () => Promise<void>
+  loadEarlier: () => Promise<ConversationFeed>
+  snapshot: () => ConversationFeed
+  dispose: () => void
+}
 
 /**
  * Что сценариям нужно от провайдера ИИ. Движок прогона говорит с сессиями на потоке
@@ -30,6 +43,16 @@ export type ScenarioProvider = {
   ) => SessionProcess | null
   /** Папки, где провайдер пишет разговоры, сделанные в cwd. */
   transcriptDirs: (cwd: string) => Promise<string[]>
+  /**
+   * Лента разговора сессии движка (журнал шага в окне) - журналом самого провайдера; null -
+   * разговора нет.
+   */
+  stepFeed: (cwd: string, sessionId: string) => Promise<StepFeed | null>
+  /**
+   * id разговора сессии движка в панели провайдера (вкладка, история, статистика): у Claude -
+   * тот же, у Codex - поток, у OpenCode - сессия; null - разговора у провайдера ещё нет.
+   */
+  chatIdOf: (sessionId: string) => Promise<string | null>
   /** Модель и усилие новой вкладки - на них идут пустые поля сценария. */
   defaults: () => { model: string; effort: string }
   accounts: EngineAccounts
@@ -48,4 +71,16 @@ export type ScenarioProvider = {
    * роль главного потока с разговора снимается. cwd - папка прогона (проект или worktree).
    */
   openChat: (cwd: string, sessionId: string) => Promise<boolean>
+  /**
+   * Разовый вопрос служебной работы (проверка поручения, черновик задания) у провайдера без
+   * своего `claude -p`: Codex и открытые модели. У Claude Code его нет - его служебная работа
+   * идёт прежним путём (structured-ask.ts).
+   */
+  askOnce?: ((ask: AskOnce) => Promise<AskOnceResult>) | undefined
+  /**
+   * Разговор прогона открывают чатом: снять роль прогона (указания головы или задания живут в
+   * самом разговоре Codex и OpenCode). У Claude Code их несёт процесс, а не разговор: снимать
+   * нечего, кроме роли головы, - это делает его openChat.
+   */
+  releaseChat?: ((chatId: string) => Promise<void>) | undefined
 }

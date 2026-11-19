@@ -1,6 +1,12 @@
+import type { ProviderId } from '@shared/providers'
+
+import { openAiCostOf } from './openai-pricing'
+
 /**
  * Цены моделей Claude на API, долларов за миллион токенов. Стоимость в статистике -
  * «на ценах API»: сколько стоило бы то же самое по счёту API, а не сколько списала подписка.
+ * Модели Codex - по своей таблице (openai-pricing.ts), открытые модели - по стоимости,
+ * которую записал сам OpenCode (answerCostOf).
  *
  * Цены сняты 2026-11-10 из скилла claude-api (его таблица моделей от 2026-10-06); у старых
  * моделей, которых в таблице скилла уже нет (Opus 4/4.1, Haiku 3/3.5), - последние
@@ -8,10 +14,11 @@
  * каждой модели своё (Fable 5.1 - 0.025, Opus 5.5 - 0.05, остальные - 0.1). Быстрый режим
  * (usage.speed = 'fast') - вдвое дороже обычного.
  *
- * Поменялись цены - поправить таблицу и поднять PRICES_VERSION: при запуске стоимость всех
- * ответов в базе пересчитается (stats-engine.ts).
+ * Поменялись цены (здесь или в openai-pricing.ts) - поправить таблицу и поднять
+ * PRICES_VERSION: при запуске стоимость ответов Claude и Codex в базе пересчитается
+ * (stats-engine.ts).
  */
-export const PRICES_VERSION = '2026-11-10'
+export const PRICES_VERSION = '2026-11-18'
 
 /** Цена за миллион токенов. */
 export type Price = {
@@ -89,4 +96,25 @@ export const costOf = (model: string, tokens: AnswerTokens): number => {
     hour * rate.cacheWrite1h
 
   return (dollars / 1_000_000) * (tokens.fast ? 2 : 1)
+}
+
+/** Провайдеры, чью стоимость считает таблица IDE: её и пересчитывает смена цен. */
+export const PRICED_PROVIDERS: readonly ProviderId[] = ['claude', 'codex']
+
+/**
+ * Стоимость ответа у провайдера: Claude - по таблице выше, Codex - по таблице OpenAI,
+ * открытые модели - сколько записал OpenCode (stored; локальные модели - ноль). Провайдер,
+ * которого IDE не знает, стоимости не получает.
+ */
+export const answerCostOf = (
+  provider: string,
+  model: string,
+  tokens: AnswerTokens,
+  stored = 0,
+): number => {
+  if (provider === 'claude') return costOf(model, tokens)
+  if (provider === 'codex') return openAiCostOf(model, tokens)
+  if (provider === 'opencode') return Number.isFinite(stored) && stored > 0 ? stored : 0
+
+  return 0
 }

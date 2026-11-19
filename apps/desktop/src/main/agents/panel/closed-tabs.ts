@@ -1,4 +1,4 @@
-import type { ClosedConversation } from '@shared/claude'
+import type { ClosedConversation } from '@shared/conversation'
 
 import type { TabPlace } from '../tabs/tab-order'
 import type { StoredConversation } from './panel-state'

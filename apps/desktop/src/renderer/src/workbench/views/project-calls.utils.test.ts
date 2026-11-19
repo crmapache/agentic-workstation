@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import type { TabCall } from '../../features/claude-code/claude.types'
+import type { TabCall } from '../../features/agent-panel/panel.types'
 import type { CallingRun } from './project-calls.utils'
 import { taskCalls, projectCalls } from './project-calls.utils'
 

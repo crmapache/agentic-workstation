@@ -4,8 +4,15 @@ paths:
   - 'apps/desktop/src/main/agents/**'
   - 'apps/desktop/src/main/process/**'
   - 'apps/desktop/src/shared/claude*.ts'
+  - 'apps/desktop/src/shared/conversation*.ts'
+  - 'apps/desktop/src/shared/message-draft.ts'
+  - 'apps/desktop/src/shared/panel-*.ts'
+  - 'apps/desktop/src/shared/rewind.ts'
+  - 'apps/desktop/src/shared/accounts.ts'
+  - 'apps/desktop/src/shared/account-usage.ts'
+  - 'apps/desktop/src/shared/fast-mode*.ts'
   - 'apps/desktop/src/main/ipc/claude-*.ts'
-  - 'apps/desktop/src/renderer/src/features/claude-code/**'
+  - 'apps/desktop/src/renderer/src/features/agent-panel/**'
 ---
 
 # GUI Claude Code
@@ -277,7 +284,7 @@ paths:
   сообщение человека список помечает (`markCarried`), а не выбрасывает: первая новая задача после
   него начинает список заново, TaskUpdate по прежней задаче оставляет список этому запросу.
   Иначе старый закрытый список вставал над полем на каждом ходе, а новые задачи дописывались к нему.
-- Окно протокола не знает: рисует элементы `shared/claude-feed.ts`. Что делает вызов,
+- Окно протокола не знает: рисует элементы `shared/conversation-feed.ts`. Что делает вызов,
   говорит его вид действия (`ToolAction`, ADR 0083): ставит драйвер (у Claude -
   `feed/tool-action.ts` по имени и входу), окно по нему решает вид строки (`toolKind` в
   `feed-rows.utils.ts`), чип и тон (`tool-icons.ts`), цель, итог и вывод
@@ -317,7 +324,7 @@ paths:
   полями ленты (строка под `content-visibility` своих полей наружу не схлопывает).
   Боковое поле панели - один токен `--size-panel-gutter` (лента, поле ввода, док, полка
   закреплённых): не писать в них `--space-*` на месте.
-- Настройки панели (Settings) - `shared/claude-prefs.ts`, владелец - главный процесс
+- Настройки панели (Settings) - `shared/panel-prefs.ts`, владелец - главный процесс
   (`settings/panel-prefs.ts`, в `claude.json`), в окно - `ClaudeState.prefs`, патчем -
   `claude:setPrefs`. Новое поле - тип, значение по умолчанию, разбор и тест; убранное поле
   из старой записи разбор молча отбрасывает. Держит их и то, что за ними,

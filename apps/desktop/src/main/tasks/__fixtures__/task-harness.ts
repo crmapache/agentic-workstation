@@ -21,7 +21,7 @@ import type { FakeScript } from '../../scenarios/engine/__fixtures__/fake-cli'
 
 export type HarnessOptions = {
   prepare?: () => Promise<ScenarioCode | null>
-  chat?: (sessionId: string, text: string) => Promise<boolean>
+  chat?: (run: { sessionId: string }, text: string) => Promise<boolean>
   probe?: GoalProbe
   checker?: GoalChecker
   /** Ещё проекты, которые IDE знает, кроме временной папки: куда переносить задание. */
@@ -79,7 +79,8 @@ export class TaskHarness {
     const tasks = new TaskService(book, {
       dataDir: this.dir,
       host: {
-        sessions: {
+        provider: () => ({
+          id: 'claude',
           prepare: options.prepare ?? (() => Promise.resolve(null)),
           spawn: (spec, _place, wires) => {
             const cli = new FakeCli(spec, wires, script)
@@ -88,9 +89,23 @@ export class TaskHarness {
 
             return cli
           },
-        },
-        defaults: () => ({ model: 'sonnet', effort: '' }),
-        accountId: () => '',
+          // Разговоров на диске у подделки нет: продолжение законченного - новым процессом.
+          transcriptDirs: () => Promise.resolve([]),
+          stepFeed: () => Promise.resolve(null),
+          chatIdOf: (sessionId) => Promise.resolve(sessionId),
+          defaults: () => ({ model: 'sonnet', effort: '' }),
+          accounts: {
+            current: () => '',
+            label: () => '',
+            candidates: () => [],
+            same: (left, right) => left === right,
+            noteRefused: () => undefined,
+          },
+          suggestTitle: () => Promise.resolve(null),
+          draft: () => Promise.resolve({ ok: false, error: '', cancelled: false }),
+          cancelDraft: () => undefined,
+          openChat: () => Promise.resolve(false),
+        }),
       },
       folderKnown: (path) => path === this.dir || Boolean(options.folders?.includes(path)),
       openChat: () => Promise.resolve(true),

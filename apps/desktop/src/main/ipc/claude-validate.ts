@@ -4,9 +4,10 @@ import type {
   RequestResponse,
   PermissionDecision,
   ConversationOptions,
-} from '@shared/claude'
-import { EFFORT_LEVELS, PERMISSION_MODES, IMAGE_MEDIA_TYPES } from '@shared/claude'
-import type { RewindScope } from '@shared/claude-rewind'
+} from '@shared/conversation'
+import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
+import type { PanelCapabilities } from '@shared/panel-capabilities'
+import type { RewindScope } from '@shared/rewind'
 
 import { parseEditorRef, parseMessageDraft } from '../agents/conversation/message-draft'
 import type { Outgoing } from '../agents/conversation/outbox'
@@ -54,6 +55,34 @@ export const assertUuid = (value: unknown, name: string): string => {
 }
 
 export const assertSessionId = (value: unknown): string => assertUuid(value, 'sessionId')
+
+/**
+ * id сообщения и сессии у OpenCode - свои: `msg_...`, `ses_...` (у форка - с номером `_4`).
+ * Только буквы, цифры и подчёркивание: в путь запроса к серверу OpenCode они встают как есть.
+ */
+const OPENCODE_ID_PATTERN = /^(msg|ses)_[A-Za-z0-9]{1,64}(?:_\d{1,6})?$/
+
+/** id сообщения ленты: UUID (Claude, Codex, своё сообщение панели) или `msg_...` из журнала OpenCode. */
+export const assertMessageId = (value: unknown, name = 'messageId'): string => {
+  assertString(value, name)
+
+  if (!UUID_PATTERN.test(value) && !OPENCODE_ID_PATTERN.test(value)) {
+    throw new Error(`Недопустимый id в поле ${name}`)
+  }
+
+  return value
+}
+
+/** id сессии провайдера: UUID (Claude, Codex) или `ses_...` (OpenCode). */
+export const assertAgentSessionId = (value: unknown): string => {
+  assertString(value, 'sessionId')
+
+  if (!UUID_PATTERN.test(value) && !OPENCODE_ID_PATTERN.test(value)) {
+    throw new Error('Недопустимый id в поле sessionId')
+  }
+
+  return value
+}
 
 /**
  * Имя задачи или агента CLI (task_id, agentId): буквы, цифры, дефис. agentId встаёт в путь
@@ -197,7 +226,15 @@ export const parseRequestResponse = (value: unknown): RequestResponse => {
 }
 
 /** Новые настройки разговора: что не пришло - не меняется, null - «как в CLI». */
-export const parseOptions = (value: unknown): ConversationOptions => {
+/**
+ * Выбор модели, усилия и режима из окна - только то, что умеет провайдер панели: уровни и
+ * режимы его списка, быстрый режим - если он есть. Окно другого и не предложит, а канал
+ * проверяет сам.
+ */
+export const parseOptions = (
+  value: unknown,
+  capabilities: PanelCapabilities,
+): ConversationOptions => {
   const record = asRecord(value, 'options')
   const options: ConversationOptions = {}
 
@@ -214,19 +251,22 @@ export const parseOptions = (value: unknown): ConversationOptions => {
 
   if ('effort' in record) {
     options.effort =
-      record['effort'] === null ? null : assertOneOf(record['effort'], EFFORT_LEVELS, 'effort')
+      record['effort'] === null
+        ? null
+        : assertOneOf(record['effort'], capabilities.efforts, 'effort')
   }
 
   if ('permissionMode' in record) {
     options.permissionMode = assertOneOf(
       record['permissionMode'],
-      PERMISSION_MODES,
+      capabilities.modes,
       'permissionMode',
     )
   }
 
   if ('fastMode' in record) {
     if (typeof record['fastMode'] !== 'boolean') throw new Error('Ожидалось да или нет: fastMode')
+    if (!capabilities.fastMode) throw new Error('У провайдера нет быстрого режима')
 
     options.fastMode = record['fastMode']
   }

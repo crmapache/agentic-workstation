@@ -1,5 +1,6 @@
-import type { FeedPatch, ConversationFeed } from '@shared/claude-feed'
 import type { AiJobActivity } from '@shared/connector-spec'
+import type { FeedPatch, ConversationFeed } from '@shared/conversation-feed'
+import type { ProviderId } from '@shared/providers'
 
 /**
  * Чем кончился ход разговора: ответ по схеме, остановка (нами - человеком или по времени) или
@@ -22,6 +23,10 @@ export type AiChatEvents = {
 }
 
 export type AiChatOptions = {
+  /** Кто собирает коннектор: провайдер, модель и усилие (пусто - его по умолчанию). */
+  provider: ProviderId
+  model: string
+  effort: string
   /** id разговора CLI: под ним он поднимается и продолжается после перерыва. */
   sessionId: string
   /** Разговор уже был: продолжить его транскрипт, а не начинать новый. */

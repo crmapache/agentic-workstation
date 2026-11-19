@@ -176,6 +176,8 @@ export const scenarioOf = (answer: Raw, scope: ScenarioScope): Scenario | null =
     inputs,
     head: {
       briefing: text(answer, 'briefing'),
+      // Чей автор - того и сценарий: ставит тот, кто спрашивал (Claude Code - по умолчанию).
+      provider: 'claude',
       model: '',
       effort: '',
       permissionMode: mode && MODES.has(mode) ? mode : 'default',

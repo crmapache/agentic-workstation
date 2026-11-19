@@ -1,11 +1,12 @@
 import { join } from 'node:path'
 
-import { app, shell } from 'electron'
+import { app } from 'electron'
 import type { BrowserWindow } from 'electron'
 
-import type { ClaudeState } from '@shared/claude'
-import type { FeedPatch } from '@shared/claude-feed'
-import type { ConversationCall } from '@shared/claude-prefs'
+import type { AgentPanelState } from '@shared/conversation'
+import type { FeedPatch } from '@shared/conversation-feed'
+import type { ConversationCall } from '@shared/panel-prefs'
+import type { ProviderId } from '@shared/providers'
 import type { SoundPrefs } from '@shared/sounds'
 import type { WorkspaceState } from '@shared/workspace'
 
@@ -13,9 +14,8 @@ import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
 import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
-import { ClaudeService } from './claude/claude-service'
+import { attachGateway, connectorLinks, startProviderPanels } from './provider-panels'
 import { startConnectors } from './connectors/connectors-setup'
-import { AI_CHATS_DIR } from './connectors/connectors.constants'
 import { OutsideWatchers } from './fs/outside-watchers'
 import { ProjectWatchers } from './fs/project-watchers'
 import { settleWrites } from './fs/text-write'
@@ -27,7 +27,10 @@ import { registerInvokeHandlers } from './ipc/handle'
 import { createInvokeHandlers } from './ipc/register-handlers'
 import { ProcessGroup } from './process/process-group'
 import { loginShellEnv } from './process/shell-env'
+import { connectorChatsOf } from './providers/run-chats'
+import { runProviders } from './providers/run-providers'
 import { SearchService } from './search/search-service'
+import { ServiceAiService } from './service-ai/service-ai-service'
 import { SoundsService } from './sounds/sounds-service'
 import { JsonFile } from './storage/json-file'
 import { createTerminalService } from './terminal/terminal-setup'
@@ -41,12 +44,8 @@ import { hideConsoleWindows } from './windows/console-hide'
 import { homeFolderPath } from './workspace/home-folder'
 import { pickAndOpenProject } from './workspace/project-dialogs'
 import { WorkspaceService } from './workspace/workspace-service'
-import { PanelRegistry } from './agents/panel/panel-registry'
-import type { StoredPanel } from './agents/panel/panel-state'
-import type { StoredAccounts } from './claude/accounts/account-store'
 import { watchAgentEdits } from './claude/changes/agent-edits-tap'
 import { locateClaudeCli } from './claude/cli/cli-locator'
-import { connectorChats } from './claude/connector-chat/connector-chats'
 import { SearchDesk } from './claude/search/search-desk'
 import { SEARCH_DIR_NAME } from './claude/search/search.constants'
 
@@ -88,9 +87,9 @@ const bootstrap = async () => {
   // Поиску по разговорам - что проекты открыли и закрыли: он поднимается позже, после
   // разговоров.
   let onWorkspace = (): void => undefined
-  // Статистике и Remote Control - состояние панели Claude и заплатки лент: они поднимаются
-  // позже панели.
-  let observeClaude = (_state: ClaudeState): void => undefined
+  // Статистике, Remote Control и локальной истории - состояние, заплатки лент и зов панелей
+  // всех провайдеров: они поднимаются позже панелей.
+  let observeState = (_provider: ProviderId, _state: AgentPanelState): void => undefined
   let observeFeed = (_patch: FeedPatch): void => undefined
   let observeCall = (_call: ConversationCall): void => undefined
   const workspace = await WorkspaceService.load(
@@ -120,38 +119,27 @@ const bootstrap = async () => {
     new JsonFile<unknown>(join(app.getPath('userData'), 'claude.json')),
     (prefs) => broadcast('sounds:changed', prefs),
   )
-  const claude = await ClaudeService.load(
-    new JsonFile<StoredPanel>(join(app.getPath('userData'), 'claude.json')),
-    {
-      onState: (state) => {
-        broadcast('agent:state', { provider: 'claude', state })
-        observeClaude(state)
-      },
-      onFeed: (patch) => {
-        broadcast('agent:feed', { provider: 'claude', patch })
-        observeFeed(patch)
-      },
-      // Телефону - каждый повод, окну - только не выключенный в Settings → Sounds.
-      onCall: (call) => {
-        observeCall(call)
-        if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider: 'claude', call })
-      },
-      openPath: (path) => shell.openPath(path),
+  // Кто делает служебную работу IDE (Settings → AI): до заданий и сценариев - они спрашивают его.
+  const serviceAi = await ServiceAiService.open(app.getPath('userData'))
+  const providerPanels = await startProviderPanels({
+    userData: app.getPath('userData'),
+    version: app.getVersion(),
+    homeFolder: homeFolderPath(PROFILE_DIR),
+    sounds,
+    observers: {
+      state: (provider, state) => observeState(provider, state),
+      feed: (patch) => observeFeed(patch),
+      call: (call) => observeCall(call),
     },
-    {
-      file: new JsonFile<StoredAccounts>(join(app.getPath('userData'), 'claude-accounts.json')),
-      dir: join(app.getPath('userData'), 'claude-accounts'),
-    },
-  )
-  // Панели провайдеров ИИ (ADR 0083): каналы agent:* находят панель по провайдеру.
-  const panels = new PanelRegistry()
-
-  panels.add('claude', claude)
-  // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
-  claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
-  // Дом - папка, которую создала сама IDE, чужих хуков и настроек в ней нет: вопроса о доверии
-  // на первом сообщении дома не будет (ADR 0059).
-  void claude.trustProject(homeFolderPath(PROFILE_DIR))
+  })
+  const { claude, codex, openModels, registry: panels } = providerPanels
+  // Исполнители провайдеров без вкладки - один набор на IDE: сценарии, задания, коннектор от ИИ.
+  const userData = app.getPath('userData')
+  const runners = runProviders({
+    ...providerPanels,
+    dataDir: userData,
+    service: () => serviceAi.value,
+  })
   // Уведомления IDE поднимутся с заданиями, а коннектор уведомлений нужен шлюзу уже сейчас:
   // связь между ними ставится заранее (ADR 0069).
   const inboxLink = new InboxLink()
@@ -159,18 +147,17 @@ const bootstrap = async () => {
   // процесса разговора, его серверы процессы получают файлом --mcp-config.
   const connectors = await startConnectors({
     rendererUrl: RENDERER_URL,
-    serversChanged: (affects) => claude.connectors.serversChanged(affects),
-    serverChanged: (serverName) => claude.connectors.serverChanged(serverName),
+    ...connectorLinks(providerPanels),
     getWindow: () => mainWindow,
     shellEnv: loginShellEnv,
     projectPaths: () => workspace.getState().projects.map((project) => project.rootPath),
     isTrusted: (projectPath) => claude.isTrusted(projectPath),
-    chats: connectorChats(claude, join(app.getPath('userData'), AI_CHATS_DIR)),
+    // Коннектор от ИИ собирает провайдер, выбранный при создании (ADR 0050).
+    chats: connectorChatsOf(claude, runners, app.getPath('userData')),
     inbox: inboxLink,
   })
 
-  claude.connectors.configFor = (projectPath, ideServers) =>
-    connectors.mcpConfigFor(projectPath, ideServers)
+  attachGateway(providerPanels, connectors)
   // Поиск по разговорам панели - своим модулем (main/claude/search): индекс по проекту,
   // первая сборка - через 20 секунд после открытия проекта, поиск модели - на аккаунте панели.
   const conversationSearch = new SearchDesk({
@@ -242,6 +229,9 @@ const bootstrap = async () => {
   // возможности всей IDE поверх провайдеров.
   const features = await startIdeFeatures({
     claude,
+    runners,
+    serviceAi,
+    panels,
     workspace,
     search: conversationSearch,
     connectors,
@@ -252,10 +242,10 @@ const bootstrap = async () => {
     inboxLink,
   })
 
-  observeClaude = features.observeClaude
+  observeState = features.observeState
   observeFeed = (patch) => {
-    features.observeFeed(patch)
     history.agentFeed(patch)
+    features.observeFeed(patch)
   }
   observeCall = features.observeCall
   searchProjects()
@@ -268,6 +258,7 @@ const bootstrap = async () => {
   }
 
   const services = {
+    serviceAi,
     workspace,
     updates,
     search,
@@ -284,6 +275,7 @@ const bootstrap = async () => {
     tasks: features.tasks,
     taskAuthor: features.taskAuthor,
     inbox: features.inbox,
+    openModels,
     history,
     sounds,
     definitions: features.definitions,
@@ -314,7 +306,13 @@ const bootstrap = async () => {
       outsideWatchers.dispose()
       // Прогоны сценариев - раньше процессов панели: их сессии пишутся остановленными.
       await features.shutdown()
-      await Promise.allSettled([claude.shutdown(), settleWrites(), terminals.shutdown()])
+      await Promise.allSettled([
+        claude.shutdown(),
+        codex.shutdown(),
+        openModels.shutdown(),
+        settleWrites(),
+        terminals.shutdown(),
+      ])
       // История - после записей: возврат версии, идущий в эту секунду, ещё сверяется.
       await history.close()
       // Шлюз - после процессов разговоров: они ходят в него до последнего хода.

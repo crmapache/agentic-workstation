@@ -80,9 +80,10 @@ describe('белый список команд', () => {
 
     expect(respond({ kind: 'permission', allow: true }).ok).toBe(true)
     expect(respond({ kind: 'permission', behavior: 'allowAlways' }).ok).toBe(false)
-    // Режимы - все пять, что у окна IDE (ADR 0076); доступность решает IDE, а не протокол.
+    // Режимы - все, что у окна IDE (ADR 0076, 0083); доступность решает IDE, а не протокол.
     expect(newIn('bypassPermissions')).toBe(true)
     expect(newIn('auto')).toBe(true)
+    expect(newIn('readOnly')).toBe(true)
     expect(newIn('dontAsk')).toBe(false)
     expect(parseCommand('scenarios.queue', { queueId: 'q1', action: { kind: 'close' } }).ok).toBe(
       false,
@@ -109,6 +110,14 @@ describe('белый список команд', () => {
         projectKey: project,
         provider: 'claude',
         sessionId: CONVERSATION,
+      }).ok,
+    ).toBe(true)
+    // Сессия OpenCode - `ses_…`: подчёркивание можно, разделители путей - нет.
+    expect(
+      parseCommand('conversation.openHistory', {
+        projectKey: project,
+        provider: 'opencode',
+        sessionId: 'ses_0a1b2c3d4e5f60718293a4b5c6d7e8f9',
       }).ok,
     ).toBe(true)
     expect(

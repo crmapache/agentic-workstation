@@ -1,10 +1,12 @@
 import { CalendarClock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import type { ProviderId } from '@shared/providers'
 import { SCENARIO_REPEATS } from '@shared/scenarios'
 import type { ScenarioRepeat } from '@shared/scenarios'
 
 import { Button } from '@agentic-workstation/ui/Button'
+import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
 import { Switch } from '@agentic-workstation/ui/Switch'
@@ -15,10 +17,10 @@ import styles from '../ScheduleModal.module.scss'
 import type { ScheduleFormProps } from '../ScheduleModal.types'
 import { schedulable } from '../ScheduleModal.utils'
 import { WEEKDAYS, weekdayName } from '../../scenarios-hours.utils'
-import { useProviders } from '../../../../state/scenarios.queries'
+import { providerChoices } from '../../../../lib/provider-choices'
+import { useProviders } from '../../../../state/providers.queries'
 import { HourPicker } from './HourPicker'
 import { InputFields } from './InputFields'
-import { ProviderPicker } from './ProviderPicker'
 import { ScenarioPicker } from './ScenarioPicker'
 
 /**
@@ -116,7 +118,12 @@ export const ScheduleForm = (props: ScheduleFormProps) => {
         {scenario && asksSomething && (
           <InputFields scenario={scenario} values={form.values} onChange={when.setValues} />
         )}
-        <ProviderPicker providers={providers} value={form.provider} onPick={when.setProvider} />
+        <ChoiceField
+          label={t('scenarios.schedule.form.provider')}
+          value={when.provider?.id ?? ''}
+          options={providerChoices(providers, t)}
+          onPick={(id) => when.setProvider(id as ProviderId)}
+        />
         <Switch
           label={t('scenarios.schedule.form.worktree')}
           description={t('scenarios.schedule.form.worktreeHint')}

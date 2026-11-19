@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import type { RunStep, RunState, RunFailure, ScenarioRun } from '@shared/scenario-runs'
 import { isStepOver, isStepBegun } from '@shared/scenario-runs'
 import type { Scenario, ScenarioCard, ScenarioStage } from '@shared/scenarios'

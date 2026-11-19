@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '@shared/claude'
+import type { ImageAttachment } from '@shared/conversation'
 import { planOf } from '@shared/scenario-rules'
 import type { RunStep, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
 

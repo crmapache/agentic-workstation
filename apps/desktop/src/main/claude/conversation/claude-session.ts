@@ -1,4 +1,4 @@
-import type { RequestResponse } from '@shared/claude'
+import type { RequestResponse } from '@shared/conversation'
 
 import type { CliMessage, ControlRequest } from '../cli/cli-messages'
 import type { CliProcess } from '../cli/cli-process'

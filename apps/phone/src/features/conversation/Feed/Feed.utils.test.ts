@@ -1,8 +1,10 @@
 import { it, expect, describe } from 'vitest'
 
 import {
+  actionOf,
   topLevel,
   canRewind,
+  inputText,
   shortPath,
   toolLabel,
   editCounts,
@@ -61,6 +63,44 @@ describe('лента телефона: чтение элементов', () => {
     expect(toolSummary('Mystery', { count: 3, what: 'thing' })).toBe('thing')
     expect(toolLabel('mcp__github__create_issue')).toBe('github: create_issue')
     expect(shortPath('/a/b/c.ts')).toBe('b/c.ts')
+  })
+
+  it('вызов любого провайдера - по виду действия, а не по имени инструмента', () => {
+    const shell = { command: 'pnpm test -- --run', description: '' }
+    const patch = { kind: 'edit', path: '{project}/src/app.ts' }
+    const created = { kind: 'write', path: '{project}/src/new.ts', lines: 12 }
+    const mcp = { kind: 'mcp', server: 'github', tool: 'create_issue', target: 'Bug', path: '' }
+
+    expect(actionOf({ action: patch })).toEqual(patch)
+    expect(actionOf({ action: 'edit' })).toBeNull()
+    expect(actionOf({})).toBeNull()
+    // Codex: shell и apply_patch - строка, как у Bash и Edit Claude Code.
+    expect(
+      toolSummary('shell', { command: ['bash', '-lc', 'x'] }, { kind: 'command', ...shell }),
+    ).toBe('pnpm test -- --run')
+    expect(inputText('shell', { cwd: '/x' }, { kind: 'command', ...shell })).toBe(shell.command)
+    expect(toolSummary('apply_patch', { path: 'x' }, patch)).toBe('src/app.ts')
+    expect(editCounts('apply_patch', {}, null, patch)).toBeNull()
+    expect(
+      editCounts('apply_patch', {}, { changeCounts: { added: 2, removed: 1 } }, patch),
+    ).toEqual({ added: 2, removed: 1 })
+    // Новый файл, пока идёт: строки знает IDE.
+    expect(editCounts('write', {}, null, created)).toEqual({ added: 12, removed: 0 })
+    expect(toolLabel('read_mcp', mcp)).toBe('github: create_issue')
+    expect(toolSummary('read_mcp', { title: 'other' }, mcp)).toBe('Bug')
+    expect(
+      toolSummary('task', {}, { kind: 'agent', description: '', prompt: 'Find\nthe bug' }),
+    ).toBe('Find')
+    // Вид действия знает, что Read Claude - не правка, даже если имя похоже.
+    expect(editCounts('Edit', {}, null, { kind: 'read', path: 'a', line: null })).toBeNull()
+  })
+
+  it('вид действия незнакомый (IDE новее) - строка по имени, как у IDE без вида действия', () => {
+    const future = { kind: 'teleport', target: 'mars' }
+
+    expect(toolSummary('Bash', { command: 'ls' }, future)).toBe('ls')
+    expect(toolLabel('Bash', future)).toBe('Bash')
+    expect(inputText('Bash', { command: 'ls' }, future)).toBe('{\n  "command": "ls"\n}')
   })
 
   it('правка файла итогом +N -M: цифры CLI, иначе по диффу, у нового файла - по строкам', () => {

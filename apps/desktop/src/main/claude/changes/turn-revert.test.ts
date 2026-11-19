@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
-import type { FeedItem, FileChange, ToolFeedItem, TurnFeedItem } from '@shared/claude-feed'
+import type { FeedItem, FileChange, ToolFeedItem, TurnFeedItem } from '@shared/conversation-feed'
 
 import type { ConversationFeedSync } from '../conversation/conversation-feed'
 import { claudeToolAction } from '../feed/tool-action'

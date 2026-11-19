@@ -1,10 +1,6 @@
-import type { LucideIcon } from 'lucide-react'
-import { Zap, FilePen, ShieldOff, ShieldCheck, ClipboardList } from 'lucide-react'
-
-import type { PermissionMode } from '@shared/claude'
+import type { PermissionMode } from '@shared/conversation'
+import { PERMISSION_MODES } from '@shared/conversation'
 import { MAX_CARD_RETRIES, MAX_STAGE_REPEAT } from '@shared/scenarios'
-
-import type { ModeTone } from './EditorModal.types'
 
 /**
  * Режимы, которые сценарий даёт голове и карточкам, как в ACC: спрашивать, принимать правки,
@@ -17,29 +13,11 @@ export const SCENARIO_MODES: readonly PermissionMode[] = [
   'bypassPermissions',
 ]
 
+/** Режимы всех провайдеров: `readOnly` есть у Codex и открытых моделей, у Claude его нет. */
+export const ALL_MODES: readonly PermissionMode[] = [...PERMISSION_MODES, 'readOnly']
+
 /** Старое имя режима «спрашивать» в файлах сценариев: читается как default. */
 export const LEGACY_DEFAULT_MODE = 'manual'
-
-/** Знак режима в меню - тот же, что у режима под полем ввода панели Claude Code. */
-export const MODE_ICONS: Record<PermissionMode, LucideIcon> = {
-  default: ShieldCheck,
-  acceptEdits: FilePen,
-  plan: ClipboardList,
-  auto: Zap,
-  bypassPermissions: ShieldOff,
-}
-
-/**
- * Тон слова режима: обычный - тихий, план - мятный (только смотрит), принятие правок - оранжевый
- * (правки идут без вопроса), без вопросов вовсе - красный. Как под полем ввода панели.
- */
-export const MODE_TONES: Record<PermissionMode, ModeTone> = {
-  default: 'quiet',
-  acceptEdits: 'accent',
-  plan: 'info',
-  auto: 'accent',
-  bypassPermissions: 'danger',
-}
 
 /** Вариант RUNS «по проходу на пункт списка» - последним, после чисел. */
 export const PER_ITEM = 'each'

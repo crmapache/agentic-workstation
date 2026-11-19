@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { OWN_TITLE_MAX } from '@shared/claude'
+import { OWN_TITLE_MAX } from '@shared/conversation'
 
 import { rankOf, outranks, ownTitle } from './tab-names'
 

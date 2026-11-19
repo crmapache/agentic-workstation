@@ -23,7 +23,12 @@ const project = (path: string | null, tokens: number): StatsProjectRow => ({
   agentWorkMs: 60_000,
 })
 
-const model = (id: string, family: StatsModelRow['family']): StatsModelRow => ({
+const model = (
+  id: string,
+  family: StatsModelRow['family'],
+  provider: StatsModelRow['provider'] = 'claude',
+): StatsModelRow => ({
+  provider,
   model: id,
   family,
   tokens: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 },
@@ -57,14 +62,28 @@ describe('правила вида статистики', () => {
     expect(rows[1]?.current).toBe(false)
   })
 
-  it('модель - по семье из отчёта, полное имя - в подсказке; не Claude - как есть', () => {
+  it('модель - по семье из отчёта, провайдер и полное имя - в подсказке; не Claude - как есть', () => {
     const rows = modelRows(
-      [model('claude-3-5-haiku-20241022', 'haiku'), model('<synthetic>', 'other')],
+      [
+        model('claude-3-5-haiku-20241022', 'haiku'),
+        model('<synthetic>', 'other'),
+        model('gpt-6-sol', 'other', 'codex'),
+        model('gpt-6-sol', 'other', 'opencode'),
+      ],
       () => '',
+      (provider) => provider.toUpperCase(),
     )
 
-    expect(rows.map((row) => row.label)).toEqual(['Haiku 3.5', '<synthetic>'])
-    expect(rows[0]?.hint).toBe('claude-3-5-haiku-20241022')
+    expect(rows.map((row) => row.label)).toEqual([
+      'Haiku 3.5',
+      '<synthetic>',
+      'gpt-6-sol',
+      'gpt-6-sol',
+    ])
+    expect(rows[0]?.hint).toBe('CLAUDE · claude-3-5-haiku-20241022')
+    expect(rows[2]?.hint).toBe('CODEX · gpt-6-sol')
+    // Одна модель у двух провайдеров - две строки со своими ключами.
+    expect(new Set(rows.map((row) => row.key)).size).toBe(4)
   })
 })
 

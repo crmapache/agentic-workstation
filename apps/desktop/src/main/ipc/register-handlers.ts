@@ -8,9 +8,11 @@ import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
 import type { LocalHistory } from '../history/local-history'
 import type { InboxService } from '../inbox/inbox-service'
+import type { OpenModelsService } from '../opencode/opencode-service'
 import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
 import type { SearchService } from '../search/search-service'
+import type { ServiceAiService } from '../service-ai/service-ai-service'
 import type { SoundsService } from '../sounds/sounds-service'
 import type { StatsService } from '../statistics/stats-service'
 import type { TaskAuthor } from '../tasks/task-author'
@@ -38,10 +40,12 @@ import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
 import { createInboxHandlers } from './inbox-handlers'
 import { createLocalHistoryHandlers } from './local-history-handlers'
+import { createOpenModelsHandlers } from './open-models-handlers'
 import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createRemoteHandlers } from './remote-handlers'
 import { createScenariosHandlers } from './scenarios-handlers'
 import { createSearchHandlers } from './search-handlers'
+import { createServiceAiHandlers } from './service-ai-handlers'
 import { createSoundsHandlers } from './sounds-handlers'
 import { createStatisticsHandlers } from './statistics-handlers'
 import { createTasksHandlers } from './tasks-handlers'
@@ -76,6 +80,8 @@ type Services = HandlerContext & {
   history: LocalHistory
   /** Звуки IDE (ADR 0046): чем и как громко зовут разговоры. */
   sounds: SoundsService
+  /** Провайдер служебной работы IDE (Settings → AI). */
+  serviceAi: ServiceAiService
   /** «Где определено» для редактора (ADR 0061): компилятор TypeScript в своём процессе. */
   definitions: DefinitionService
   /** Задания по расписанию (ADR 0069): задания, прогоны, их журналы. */
@@ -84,6 +90,8 @@ type Services = HandlerContext & {
   taskAuthor: TaskAuthor
   /** Уведомления IDE (ADR 0069): вопросы прогонов, отчёты, напоминания от ИИ. */
   inbox: InboxService
+  /** Панель открытых моделей (ADR 0084): её подключения - своими каналами. */
+  openModels: OpenModelsService
 }
 
 /**
@@ -108,8 +116,10 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ),
     ...createLocalHistoryHandlers(workspace, history),
     ...createSoundsHandlers(services.sounds),
+    ...createServiceAiHandlers(services.serviceAi),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),
     ...createInboxHandlers(services.inbox),
+    ...createOpenModelsHandlers(services.openModels),
     ...createEditorHandlers(workspace, history, services.definitions),
     ...createProjectSyncHandlers(workspace, services.gitStatus, services.outsideWatchers),
     ...createGitChangesHandlers(workspace, services.gitStatus),
@@ -125,7 +135,15 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createConnectorsHandlers(services.connectors),
     ...createComputerHandlers(services.connectors.computer),
     ...createTerminalHandlers(workspace, services.terminals),
-    ...createScenariosHandlers(workspace, claude, services.scenarios),
+    ...createScenariosHandlers(
+      workspace,
+      {
+        claude,
+        codex: services.panels.find('codex'),
+        opencode: services.panels.find('opencode'),
+      },
+      services.scenarios,
+    ),
     ...createStatisticsHandlers(workspace, services.stats),
     ...createRemoteHandlers(services.remote),
 
