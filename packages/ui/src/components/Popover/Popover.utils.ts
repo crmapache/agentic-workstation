@@ -21,3 +21,11 @@ export const openWhenReleased = (event: Pick<MouseEvent, 'buttons'>, open: () =>
   )
   window.addEventListener('pointercancel', () => controller.abort(), options)
 }
+
+/**
+ * Своё ли событие toggle у панели. React отдаёт onToggle и то, что пришло от панелей внутри неё:
+ * подсказка у пути в коде, закрываясь, «закрывала» и саму панель - та оставалась открытой, но
+ * пустой рамкой (жалоба владельца на панель фоновой команды).
+ */
+export const isOwnToggle = (event: Pick<Event, 'target' | 'currentTarget'>): boolean =>
+  event.target === event.currentTarget

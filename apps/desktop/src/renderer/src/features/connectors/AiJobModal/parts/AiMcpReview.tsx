@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
+import { isForeignHost } from '@shared/ai-proposal'
+
 import type { AiMcpReviewProps } from '../AiJobModal.types'
 import styles from '../../ConnectorsView/ConnectorsView.module.scss'
-import { hostOf, isForeignHost } from '../../ConnectorsView/ConnectorsView.utils'
+import { hostOf } from '../../ConnectorsView/ConnectorsView.utils'
 import { AddConnectorForm } from '../../ConnectorsView/parts/AddConnectorForm'
 
 /**

@@ -1,6 +1,6 @@
 import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
-import { openWhenReleased } from './Popover.utils'
+import { isOwnToggle, openWhenReleased } from './Popover.utils'
 
 describe('openWhenReleased', () => {
   beforeEach(() => {
@@ -48,5 +48,15 @@ describe('openWhenReleased', () => {
     vi.runAllTimers()
 
     expect(open).not.toHaveBeenCalled()
+  })
+})
+
+describe('isOwnToggle', () => {
+  it('своё - событие самой панели, а не подсказки внутри неё', () => {
+    const panel = {} as EventTarget
+    const tip = {} as EventTarget
+
+    expect(isOwnToggle({ target: panel, currentTarget: panel })).toBe(true)
+    expect(isOwnToggle({ target: tip, currentTarget: panel })).toBe(false)
   })
 })

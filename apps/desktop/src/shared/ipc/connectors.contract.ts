@@ -132,6 +132,8 @@ export type ConnectorsEventContract = {
   'connectors:state': ConnectorsState
   /** Изменения ленты разговора работы ИИ - пачкой, как у панели Claude Code. */
   'connectors:aiJobPatch': { jobId: string; patch: FeedPatch }
+  /** Готовое от ИИ IDE добавила сама (ADR 0086): работы больше нет, есть коннектор. */
+  'connectors:aiJobAdded': { jobId: string; connectorId: string }
 }
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
@@ -173,4 +175,5 @@ export const CONNECTORS_CHANNELS = {
 export const CONNECTORS_EVENTS = {
   'connectors:state': true,
   'connectors:aiJobPatch': true,
+  'connectors:aiJobAdded': true,
 } satisfies Record<keyof ConnectorsEventContract, true>

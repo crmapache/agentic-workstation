@@ -14,13 +14,35 @@
   font-size: var(--font-size-xs);
 }
 
-// Путь забирает всё свободное место и прижимает остальное к правому краю.
-.path {
-  @include truncate;
-
+// Ячейка пути забирает всё свободное место и прижимает остальное к правому краю, а нажимается
+// только сам путь: пустое место справа от него ничего не копирует.
+.pathCell {
+  display: flex;
   flex: 1;
   min-width: 0;
+}
+
+.path {
+  @include button-reset;
+  @include truncate;
+
+  min-width: 0;
+  color: inherit;
   font-family: var(--font-code);
+  font-size: inherit;
+  transition: color var(--duration-fast) var(--easing-standard);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--color-fg);
+    }
+  }
+}
+
+// Скопировано: подсказку закрыло нажатие, и ответом служит цвет «в порядке» на пару секунд.
+.copied,
+.copied:hover {
+  color: var(--color-success);
 }
 
 // Части справа - ячейки с полем кнопки sm (телефон Remote Control - кнопка): от черты до

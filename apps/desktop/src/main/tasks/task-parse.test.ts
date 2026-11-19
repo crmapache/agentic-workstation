@@ -26,10 +26,17 @@ const task = (patch: Partial<Task> = {}): Task => ({
   createdAt: 1,
   updatedAt: 1,
   nextAt: new Date(2026, 11, 1, 9, 0).getTime(),
+  skipAt: 0,
   ...patch,
 })
 
-const draftOf = ({ createdAt: _c, updatedAt: _u, nextAt: _n, ...rest }: Task): TaskDraft => rest
+const draftOf = ({
+  createdAt: _c,
+  updatedAt: _u,
+  nextAt: _n,
+  skipAt: _s,
+  ...rest
+}: Task): TaskDraft => rest
 
 const known = () => true
 
@@ -44,6 +51,37 @@ describe('draftToTask', () => {
     )
 
     expect(saved).toMatchObject({ name: 'Invoice ReClick', nextAt: previous.nextAt })
+  })
+
+  it('keeps a skipped due time skipped when only the name changed', () => {
+    const previous = task({ skipAt: new Date(2026, 11, 1, 9, 0).getTime() })
+    const saved = draftToTask({ ...draftOf(previous), name: 'Renamed' }, previous, known, now)
+
+    expect(saved).toMatchObject({ nextAt: previous.nextAt, skipAt: previous.nextAt })
+  })
+
+  it('drops the skip when the rhythm changed and the due time moved', () => {
+    const previous = task({ skipAt: new Date(2026, 11, 1, 9, 0).getTime() })
+    const saved = draftToTask(
+      { ...draftOf(previous), schedule: { ...previous.schedule, monthDay: 2 } },
+      previous,
+      known,
+      now,
+    )
+
+    expect(saved).toMatchObject({ skipAt: 0 })
+  })
+
+  it('takes no skip from the window', () => {
+    const previous = task()
+    const saved = draftToTask(
+      { ...draftOf(previous), skipAt: previous.nextAt } as TaskDraft,
+      previous,
+      known,
+      now,
+    )
+
+    expect(saved).toMatchObject({ skipAt: 0 })
   })
 
   it('moves the due time when the rhythm changed', () => {

@@ -47,6 +47,11 @@
   visibility: hidden;
 }
 
+// Без папок рядом столбец стрелок не нужен: файлы встают к краю панели.
+.absent {
+  display: none;
+}
+
 .name {
   @include truncate;
 }

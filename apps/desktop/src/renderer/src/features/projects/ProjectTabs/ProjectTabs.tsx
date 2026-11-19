@@ -10,8 +10,8 @@ import type { ProjectTabsProps } from './ProjectTabs.types'
 import { HomeTab } from './parts/HomeTab'
 
 /**
- * Строка вкладок открытых проектов под шапкой: первой - дом (ADR 0059), закреплённый квадрат,
- * за ним проекты делят ширину окна поровну, а не влезли на своём минимуме (узкое окно, много
+ * Строка вкладок открытых проектов под шапкой: первой - дом (ADR 0059), закреплённый квадрат
+ * ровно над кнопками полосы видов под ним, за ним проекты делят ширину окна поровну, а не влезли на своём минимуме (узкое окно, много
  * проектов) - ряд проектов листается вбок, колесом тоже, а дом остаётся на месте. Сама полоса
  * стоит всегда, даже до загрузки списка, - иначе первый ответ сдвигал бы всё окно вниз. Открыть
  * проект - переключатель в шапке. У каждой вкладки - точки разговоров проекта, которые позвали
@@ -37,13 +37,15 @@ export const ProjectTabs = ({ callsOf, workOf }: ProjectTabsProps) => {
       {all.length > 0 && (
         <div role="tablist" aria-label={t('projects.tabsLabel')} className={styles.tabs}>
           {home && (
-            <HomeTab
-              project={home}
-              isActive={home.id === data?.activeProjectId}
-              calls={callsOf?.(home.rootPath) ?? NO_CALLS}
-              work={workOf?.(home.rootPath) ?? NO_WORK}
-              onActivate={activateProject}
-            />
+            <div className={styles.homeSlot}>
+              <HomeTab
+                project={home}
+                isActive={home.id === data?.activeProjectId}
+                calls={callsOf?.(home.rootPath) ?? NO_CALLS}
+                work={workOf?.(home.rootPath) ?? NO_WORK}
+                onActivate={activateProject}
+              />
+            </div>
           )}
           {projects.length > 0 && (
             <div

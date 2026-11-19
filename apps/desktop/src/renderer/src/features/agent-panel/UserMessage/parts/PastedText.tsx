@@ -8,8 +8,8 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import styles from '../UserMessage.module.scss'
 import type { PastedTextProps } from '../UserMessage.types'
 import { pasteLineCount } from '../../chips.utils'
-import { useCopy } from '../../clipboard.hooks'
 import { pasteBody, pasteBlockPreview } from '../../message.utils'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 import { SentChip } from './SentChip'
 
 /**

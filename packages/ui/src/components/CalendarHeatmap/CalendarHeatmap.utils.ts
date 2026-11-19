@@ -37,3 +37,13 @@ export const monthRow = (days: readonly CalendarHeatmapDay[]): string[] =>
       days.slice(week * WEEK_DAYS, (week + 1) * WEEK_DAYS).find((day) => day.monthLabel)
         ?.monthLabel ?? '',
   )
+
+/**
+ * Недель, которые влезают в ширину клетками не меньше cell с зазором gap: не больше, чем есть, и
+ * хотя бы одна. Ширины ещё нет (окно не разложено) - все.
+ */
+export const weeksThatFit = (width: number, cell: number, gap: number, total: number): number => {
+  if (!(width > 0) || !(cell > 0)) return total
+
+  return Math.max(1, Math.min(total, Math.floor((width + (gap || 0)) / (cell + (gap || 0)))))
+}

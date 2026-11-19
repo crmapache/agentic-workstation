@@ -10,7 +10,8 @@ import { depthStyle } from '../FileTreeNode.utils'
 import { useDirectory } from '../../file-tree.queries'
 
 /**
- * Содержимое раскрытой папки. Читается с диска только когда папку раскрыли.
+ * Содержимое раскрытой папки. Читается с диска только когда папку раскрыли. В корне без папок
+ * строки встают к краю панели, без столбца стрелок.
  * Пустая папка и ошибка чтения показываются строкой на месте содержимого - под именами
  * файлов, как они встали бы. У корня строк над ней нет, и такая строка висела бы со
  * сдвигом посреди пустой панели: там - пустое состояние на всю панель. Ошибка
@@ -44,7 +45,17 @@ export const DirectoryChildren = ({ projectId, relativePath, depth }: DirectoryC
     )
   }
 
+  // В корне без единой папки раскрывать нечего - файлы встают к краю. Глубже место стрелки
+  // остаётся: иконки файлов идут ступенькой под иконкой своей папки.
+  const flat = relativePath === '' && !data?.some((entry) => entry.kind === 'directory')
+
   return data?.map((entry) => (
-    <FileTreeNode key={entry.relativePath} projectId={projectId} entry={entry} depth={depth} />
+    <FileTreeNode
+      key={entry.relativePath}
+      projectId={projectId}
+      entry={entry}
+      depth={depth}
+      flat={flat}
+    />
   ))
 }

@@ -108,5 +108,10 @@ export const blankDraft = (projectPath: string): TaskDraft => ({
   goal: DEFAULT_GOAL,
 })
 
-export const draftOf = ({ createdAt: _c, updatedAt: _u, nextAt: _n, ...task }: Task): TaskDraft =>
-  task
+export const draftOf = ({
+  createdAt: _c,
+  updatedAt: _u,
+  nextAt: _n,
+  skipAt: _s,
+  ...task
+}: Task): TaskDraft => task

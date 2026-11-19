@@ -411,7 +411,8 @@
         "cli-missing": "The AI chosen for this connector is not installed or could not be found.",
         "timeout": "The AI didn't finish this step in 10 minutes. Write to it to go on, maybe with a link to the API docs.",
         "invalid": "What the AI proposed didn't pass the check. Write to it to fix that.",
-        "failed": "The AI stopped with an error. Write to it to try again."
+        "failed": "The AI stopped with an error. Write to it to try again.",
+        "not-added": "The connector is ready, but the IDE couldn't add it by itself. Open it and add it by hand."
       },
       "host": "Calls only",
       "foreignHost": "This address is not on the docs site ({{docs}}). Make sure it's the official API of the service before adding your key.",
@@ -423,6 +424,11 @@
       "status": {
         "working": "Working",
         "ready": "Ready",
+        "adding": "Adding",
+        "needs": {
+          "key": "Needs your key",
+          "host": "Check the address"
+        },
         "asking": "Waiting for you",
         "stopped": "Stopped",
         "failed": "Failed"
@@ -498,7 +504,7 @@
       },
       "aiJobs": {
         "title": "Building with AI",
-        "text": "Each item is a conversation with the AI about one new connector. It goes on when you close the window or switch views, and stays after an IDE restart.\n\nOpen an item to see what the AI searches and reads. Write to it at any time: point it to the docs, answer its question, ask for other tools. It picks up your words while it works.\n\nWhen it proposes a connector, check it on the right and add it: the item then leaves the list. Stop ends the current step, and you can go on by writing again. The trash icon removes the whole conversation."
+        "text": "Each item is a conversation with the AI about one new connector. It goes on when you close the window or switch views, and stays after an IDE restart.\n\nOpen an item to see what the AI searches and reads. Write to it at any time: point it to the docs, answer its question, ask for other tools. It picks up your words while it works.\n\nWhen the connector is ready and needs nothing from you, the IDE adds it to Your connectors by itself and the item leaves the list. If it needs your key, or its address isn't on the docs site you gave, the item waits: open it, check it on the right and add it. Stop ends the current step, and you can go on by writing again. The trash icon removes the whole conversation."
       },
       "description": {
         "title": "Description",
@@ -532,7 +538,7 @@
         "playwright": "A browser the AI drives through the Playwright MCP server on this computer. Each conversation starts its own copy of it, like in Claude Code.\n\nClean each time: the browser forgets everything between runs. Saved: it keeps cookies and sign-ins in its folder, so the AI stays signed in to sites. A saved profile works in one conversation at a time.\n\nVersion: latest by default. Pin a number if latest breaks your saved profile.",
         "mcp": "Any remote MCP server by its address.\n\nBrowser: the server asks you to sign in. Token: sent with every request as Authorization: Bearer. None: an open server, or one on this computer.",
         "command": "An MCP server this computer starts: npx, node or a script. Each conversation starts its own copy, like in Claude Code.\n\nEnvironment variables are kept encrypted in the IDE, not in any config file. The command runs from your home folder with your shell PATH.",
-        "http": "Describe a service, and the AI finds how to connect it: first among your MCP servers from Claude Code (that's how your own products connect), then the service's official MCP server, then its REST API with a personal key, described as a list of HTTP requests, not code.\n\nThe work goes on by itself in Building with AI on this page, so this window closes right away. Open the item there to watch the AI and to write to it.\n\nCheck what the AI proposes before adding it. Keys are stored encrypted in the IDE; the AI never sees them.",
+        "http": "Describe a service, and the AI finds how to connect it: first among your MCP servers from Claude Code (that's how your own products connect), then the service's official MCP server, then its REST API with a personal key, described as a list of HTTP requests, not code.\n\nThe work goes on by itself in Building with AI on this page, so this window closes right away. Open the item there to watch the AI and to write to it.\n\nA ready connector that needs no key moves to Your connectors by itself. One with a key waits for you to check it and enter the key. Keys are stored encrypted in the IDE; the AI never sees them.",
         "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
         "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own.",
         "computer": "The AI works on your computer with the real mouse and keyboard, looking at screenshots: other apps, system settings, and the parts of Chrome the extension can't reach. While it acts, the mouse is its; a capsule at the bottom of the screen shows that and lets you pause or stop it.\n\nAdd the connector. On a Mac, then allow Accessibility and Screen Recording for Agentic Workstation - the buttons are in the connector window. Windows asks for nothing."
@@ -3224,6 +3230,8 @@
     }
   },
   "statusBar": {
+    "copyPath": "Click to copy the full path",
+    "pathCopied": "Copied",
     "version": "v{{version}}",
     "cpu": "CPU",
     "cpuValue": "{{value}}%",
@@ -3442,7 +3450,7 @@
     "help": {
       "label": "About tasks",
       "title": "Tasks",
-      "text": "A task is a prompt an AI runs on its own in this project - with the project's instructions (CLAUDE.md, AGENTS.md) and connectors. Tasks belong to their project: you see here the tasks of the project that is open. To move a task to another project, edit it and pick the project.\n\nOn schedule: each run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done. If the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs).\n\nUntil done: a goal that may take days - write to someone, wait for the reply, go on. Claude works, then goes to sleep and says what it waits for. The IDE watches for it without a model, asks a cheap model only when something changed, and wakes Claude when the awaited thing happens. A goal survives an IDE restart and stops at its budget or after its days.\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
+      "text": "A task is a prompt an AI runs on its own in this project - with the project's instructions (CLAUDE.md, AGENTS.md) and connectors. Tasks belong to their project: you see here the tasks of the project that is open. To move a task to another project, edit it and pick the project.\n\nOn schedule: each run is a separate conversation that nobody watches live. When it needs you - a permission, a question, a plan - it waits in Notifications with buttons to answer, and a short report lands there when it is done. If the computer was asleep or the IDE was closed at the due time, the task runs once as soon as the IDE is open again (Catch up missed runs). To pass one due time without turning the task off, press the skip button in its row; press it again to take the run back.\n\nUntil done: a goal that may take days - write to someone, wait for the reply, go on. Claude works, then goes to sleep and says what it waits for. The IDE watches for it without a model, asks a cheap model only when something changed, and wakes Claude when the awaited thing happens. A goal survives an IDE restart and stops at its budget or after its days.\n\nRuns are hidden from the chat history. Open in chat turns a finished run into a normal chat tab."
     },
     "tabs": {
       "label": "Tasks sections",
@@ -3457,6 +3465,8 @@
       "openChat": "Open in chat",
       "runAgain": "Run again",
       "enable": "Run on schedule",
+      "skipNext": "Skip the next run",
+      "unskipNext": "Don't skip the next run",
       "start": "Start",
       "wake": "Wake now"
     },
@@ -3470,6 +3480,7 @@
     },
     "row": {
       "next": "Next {{when}}",
+      "nextSkipping": "Next {{when}}, skipping {{skipped}}",
       "paused": "Paused",
       "lastRun": "Last run {{when}}",
       "neverRun": "Not run yet",
@@ -3509,7 +3520,8 @@
     },
     "skips": {
       "busy": "The previous run was still going",
-      "missed": "The computer was off at the due time"
+      "missed": "The computer was off at the due time",
+      "person": "You skipped this run"
     },
     "failures": {
       "noClaude": "Claude Code is not installed or not found.",
@@ -3603,6 +3615,7 @@
       "monthDay": "Day of month",
       "lastDay": "Last day",
       "next": "Next run: {{when}}",
+      "nextSkipping": "Next run: {{when}}, skipping {{skipped}}",
       "noNext": "No next run",
       "project": "Project",
       "moveNote": "Saving moves the task to {{name}}. Past runs stay in this project.",

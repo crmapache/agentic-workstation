@@ -72,6 +72,8 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
     {
       onState: (state) => broadcast('connectors:state', state),
       onAiJobFeed: (jobId, patch) => broadcast('connectors:aiJobPatch', { jobId, patch }),
+      onAiJobAdded: (jobId, connectorId) =>
+        broadcast('connectors:aiJobAdded', { jobId, connectorId }),
       onServersChanged: links.serversChanged,
       onServerChanged: links.serverChanged,
       openExternal: openExternalWeb,

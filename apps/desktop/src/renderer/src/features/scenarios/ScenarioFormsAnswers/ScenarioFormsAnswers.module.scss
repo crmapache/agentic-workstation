@@ -18,5 +18,18 @@
 .value {
   @include truncate;
 
+  min-width: 0;
   font-family: var(--font-code);
+}
+
+// Ссылку режет начало: строка идёт справа налево и прячет лишнее слева, многоточием там же, а
+// сам адрес (bdi) читается слева направо, как написан. Влезла целиком - стоит слева, как текст.
+.link {
+  direction: rtl;
+  text-align: left;
+}
+
+.text {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

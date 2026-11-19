@@ -39,13 +39,16 @@
 // длинный черновик не отъедает ленту, а потолок в строках, а не в доле окна, одинаков на
 // любом экране. lh - строка самого поля, и в моноширинном «!» тоже ровно пять его строк.
 .field {
+  // Кегль поля - и для середины строки, по которой встают чипы (.chip).
+  --field-font-size: var(--font-size-md);
+
   min-height: calc(2lh + var(--space-3) + var(--space-1));
   max-height: calc(5lh + var(--space-3) + var(--space-1));
   padding: var(--space-3) var(--space-3) var(--space-1);
   overflow-y: auto;
   outline: none;
   color: var(--color-fg-strong);
-  font-size: var(--font-size-md);
+  font-size: var(--field-font-size);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -59,16 +62,29 @@
 
   // Команда в терминал - моноширинным, как в терминале.
   &[data-shell] {
+    --field-font-size: var(--font-size-sm);
+
     font-family: var(--font-code);
-    font-size: var(--font-size-sm);
   }
 }
 
 // Узел чипа в поле: неделимый, внутренности рисует React порталом. Выделение не заходит
 // внутрь плашки: протяжка по полю берёт чип целиком, а не кусок его подписи.
+// Плашка в поле - по середине строки, а не строчных букв, как в ленте: рядом мигает каретка, а
+// она стоит ровно по строке, и плашка по строчным сидела бы на полтора пикселя ниже неё. Сверху
+// строки и с полем в половину разницы высот - середина плашки точно на середине строки; подпись
+// внутри при этом встаёт на базовую линию текста вокруг.
 .chip {
   display: inline;
   user-select: none;
+
+  // Плашка - корень DraftChipView с data-kind: селектор сильнее её собственного поля.
+  > [data-kind] {
+    --chip-gap: calc((var(--field-font-size) - var(--font-size-sm)) * var(--line-height-normal));
+
+    margin-block: calc(var(--chip-gap) / 2 - var(--border-width));
+    vertical-align: top;
+  }
 
   // Стрелка остановилась на чипе: Backspace уберёт именно его.
   &[data-selected] > * {

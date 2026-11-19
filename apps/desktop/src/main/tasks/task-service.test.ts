@@ -225,6 +225,47 @@ describe('TaskService', () => {
     expect(tasks.task(taskId)?.nextAt).toBeGreaterThan(Date.now())
   })
 
+  it('passes a due time the person skipped and runs the one after it', async () => {
+    const { tasks, book } = await start(() => ({ kind: 'say', text: 'ok' }))
+    const taskId = await saved(tasks, {
+      schedule: { repeat: 'hourly', at: 0, days: [], monthDay: 1, date: '' },
+    })
+    const due = tasks.task(taskId)?.nextAt ?? 0
+
+    expect((await tasks.skipNext(taskId, true)).ok).toBe(true)
+    expect(tasks.task(taskId)?.skipAt).toBe(due)
+
+    const task = tasks.task(taskId)
+
+    if (!task) throw new Error('no task')
+
+    const came = Date.now() - MINUTE_MS
+
+    await book.putTask({ ...task, nextAt: came, skipAt: came })
+    await tasks.tick()
+
+    expect(tasks.view().runs[0]).toMatchObject({ state: 'skipped', skip: 'person' })
+    expect(clis).toHaveLength(0)
+    expect(tasks.task(taskId)).toMatchObject({ skipAt: 0 })
+    expect(tasks.task(taskId)?.nextAt).toBeGreaterThan(Date.now())
+  })
+
+  it('gives a skipped due time back and refuses to skip a task without a next one', async () => {
+    const { tasks } = await start(() => ({ kind: 'say', text: 'ok' }))
+    const hourly = await saved(tasks, {
+      schedule: { repeat: 'hourly', at: 0, days: [], monthDay: 1, date: '' },
+    })
+    const manual = await saved(tasks, {
+      schedule: { repeat: 'manual', at: 0, days: [], monthDay: 1, date: '' },
+    })
+
+    await tasks.skipNext(hourly, true)
+    await tasks.skipNext(hourly, false)
+
+    expect(tasks.task(hourly)?.skipAt).toBe(0)
+    expect(await tasks.skipNext(manual, true)).toEqual({ ok: false, code: 'badSchedule' })
+  })
+
   it('marks a long missed task as skipped when it does not catch up', async () => {
     const { tasks, book } = await start(() => ({ kind: 'say', text: 'ok' }))
     const taskId = await saved(tasks, {

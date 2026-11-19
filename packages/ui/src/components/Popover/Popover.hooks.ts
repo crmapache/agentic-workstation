@@ -1,6 +1,8 @@
 import { useId, useRef, useState, useEffect, useCallback, useLayoutEffect } from 'react'
 import type { RefObject, ToggleEvent } from 'react'
 
+import { isOwnToggle } from './Popover.utils'
+
 /**
  * Клик в другое приложение или по рабочему столу браузер кликом мимо не считает, а
  * системное меню в этот момент закрывается - так же ведёт себя и открытая панель.
@@ -37,7 +39,7 @@ export const usePopover = () => {
   const close = useCallback(() => ref.current?.hidePopover(), [])
 
   const handleToggle = useCallback((event: ToggleEvent<HTMLDivElement>) => {
-    setIsOpen(event.newState === 'open')
+    if (isOwnToggle(event)) setIsOpen(event.newState === 'open')
   }, [])
 
   return {
@@ -75,7 +77,7 @@ export const useAnchoredPopover = (anchor: HTMLElement | null, onClose: () => vo
   useHideOnWindowBlur(ref, anchor !== null)
 
   const handleToggle = (event: ToggleEvent<HTMLDivElement>) => {
-    if (event.newState === 'closed') onClose()
+    if (isOwnToggle(event) && event.newState === 'closed') onClose()
   }
 
   return { id, ref, onToggle: handleToggle }

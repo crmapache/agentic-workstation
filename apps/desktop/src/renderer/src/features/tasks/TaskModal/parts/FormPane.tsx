@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { TASK_KINDS } from '@shared/tasks'
+import { TASK_KINDS, isNextSkipped } from '@shared/tasks'
 import type { TaskKind } from '@shared/tasks'
 
 import { Tabs } from '@agentic-workstation/ui/Tabs'
@@ -56,7 +56,11 @@ export const FormPane = ({ task, draft, schedule, onChange, onChangeSchedule }: 
       {isGoal ? (
         <GoalFields draft={draft} onChange={onChange} />
       ) : (
-        <ScheduleFields schedule={schedule} onChange={onChangeSchedule} />
+        <ScheduleFields
+          schedule={schedule}
+          skipAt={task && isNextSkipped(task) ? task.skipAt : 0}
+          onChange={onChangeSchedule}
+        />
       )}
       {task && (
         <ProjectField

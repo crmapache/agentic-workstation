@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { monthRow, heatLevels } from './CalendarHeatmap.utils'
+import { monthRow, heatLevels, weeksThatFit } from './CalendarHeatmap.utils'
 
 describe('heatLevels', () => {
   it('пустой день - ноль, остальные - четвертями среди непустых', () => {
@@ -43,5 +43,18 @@ describe('monthRow', () => {
     ]
 
     expect(monthRow(days)).toEqual(['', 'Dec'])
+  })
+})
+
+describe('weeksThatFit', () => {
+  it('недели клетками не меньше своего размера, не больше, чем есть, и хотя бы одна', () => {
+    expect(weeksThatFit(700, 12, 2, 53)).toBe(50)
+    expect(weeksThatFit(2000, 12, 2, 53)).toBe(53)
+    expect(weeksThatFit(5, 12, 2, 53)).toBe(1)
+  })
+
+  it('ширины ещё нет - все недели', () => {
+    expect(weeksThatFit(0, 12, 2, 53)).toBe(53)
+    expect(weeksThatFit(700, Number.NaN, 2, 53)).toBe(53)
   })
 })

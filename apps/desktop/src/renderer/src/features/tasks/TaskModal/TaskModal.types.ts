@@ -10,6 +10,8 @@ export type TaskModalProps = {
 
 export type ScheduleFieldsProps = {
   schedule: ScheduleForm
+  /** Срок, который сохранённое задание пропускает; 0 - пропуска нет. */
+  skipAt: number
   onChange: (schedule: ScheduleForm) => void
 }
 

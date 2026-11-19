@@ -10,8 +10,8 @@ import { runProviderOf } from '../../state/tasks.queries'
 import { useTasksStore } from './tasks.store'
 
 /**
- * Действия с заданиями: сохранить, удалить, включить, запустить, остановить, сказать прогону,
- * открыть его разговор вкладкой панели. Новое состояние - в кэш, отказ - в угол окна.
+ * Действия с заданиями: сохранить, удалить, включить, пропустить срок, запустить, остановить,
+ * сказать прогону, открыть его разговор вкладкой панели. Новое состояние - в кэш, отказ - в угол окна.
  */
 export const useTaskActions = () => {
   const queryClient = useQueryClient()
@@ -36,6 +36,10 @@ export const useTaskActions = () => {
   const setEnabled = async (taskId: string, enabled: boolean) =>
     took(await invoke('tasks:setEnabled', { taskId, enabled }))
 
+  /** Пропустить ближайший срок по расписанию или вернуть его. */
+  const skipNext = async (taskId: string, skip: boolean) =>
+    took(await invoke('tasks:skipNext', { taskId, skip }))
+
   /** Запустить сейчас и сразу показать прогон. */
   const runNow = async (taskId: string) => {
     const started = await invoke('tasks:runNow', { taskId })
@@ -59,5 +63,5 @@ export const useTaskActions = () => {
     useLayoutStore.getState().showProviderView(PROVIDER_VIEW_OF[runProviderOf(queryClient, runId)])
   }
 
-  return { save, remove, setEnabled, runNow, stop, tell, wake, openChat }
+  return { save, remove, setEnabled, skipNext, runNow, stop, tell, wake, openChat }
 }

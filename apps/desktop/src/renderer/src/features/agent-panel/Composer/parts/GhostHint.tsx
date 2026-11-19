@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 
 import styles from '../Composer.module.scss'
 import type { GhostHintProps } from '../Composer.types'
+import { caretLineBox } from '../Composer.utils'
 import { caretRect } from '../../field-caret'
 
 /**
  * Синтаксис аргумента серым прямо в поле - там, где встанет следующий символ, как в
- * терминале. Не часть поля: слой поверх, в черновик не попадает.
+ * терминале: в строке поля и на её базовой линии, вровень с кареткой и чипом команды. Не часть
+ * поля: слой поверх, в черновик не попадает.
  */
 export const GhostHint = ({ hint, fieldRef, boxRef }: GhostHintProps) => {
   const [place, setPlace] = useState<ReturnType<typeof caretRect>>(null)
@@ -16,7 +18,9 @@ export const GhostHint = ({ hint, fieldRef, boxRef }: GhostHintProps) => {
       const root = fieldRef.current
       const box = boxRef.current
 
-      setPlace(root && box ? caretRect(root, box) : null)
+      const place = root && box ? caretRect(root, box) : null
+
+      setPlace(place && root && caretLineBox(place, parseFloat(getComputedStyle(root).lineHeight)))
     }
     const frame = requestAnimationFrame(update)
 

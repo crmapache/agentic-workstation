@@ -24,8 +24,9 @@ import { RunPage } from './parts/RunPage'
 /**
  * Окно прогона (вкладка прогона в ACC, здесь - Modal lg вида сценариев, ADR 0030): шапка с
  * паузой, стопом и продолжением, строка цифр, вопрос, таймлайн и поле главному потоку внизу; на
- * месте таймлайна - журнал шага или разговор главного потока. Запись прогона держит кэш (событие
- * scenarios:run приносит свежую, пока окно открыто), что открыто внутри - само окно.
+ * месте таймлайна - журнал шага или разговор главного потока. Окно сразу во всю высоту: журнал
+ * грузится и растёт, таймлайн прибавляет шаги, а окно не тянется вслед. Запись прогона держит кэш
+ * (событие scenarios:run приносит свежую, пока окно открыто), что открыто внутри - само окно.
  */
 export const RunModal = ({ request }: RunModalProps) => {
   const { t } = useTranslation()
@@ -51,6 +52,7 @@ export const RunModal = ({ request }: RunModalProps) => {
     <Modal
       open
       size="lg"
+      tall
       icon={Workflow}
       title={run?.scenarioName ?? t('scenarios.run.loading')}
       description={description || undefined}

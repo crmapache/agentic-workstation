@@ -1,7 +1,6 @@
-import { answerLabel } from '@shared/scenario-rules'
 import type { ScenarioScope } from '@shared/scenarios'
 
-import { MARK_CHARS } from './scenarios.constants'
+import { LINK_ANSWER, LINK_SCHEME } from './scenarios.constants'
 
 /**
  * Арифметика форм хаба и полос очереди и расписания (то, что в ACC жило внутри QueueBand,
@@ -42,14 +41,23 @@ export const draftErrorCode = (error: string): DraftErrorCode | null =>
 /** Фраза без точки в конце - чтобы встать внутрь другой фразы, а не дать «..». */
 export const withoutStop = (text: string): string => text.trim().replace(/\.+$/, '')
 
-/** Ответ чипом: имя вопроса и короткое значение - ссылка хвостом, многострочное - первой строкой. */
-export type AnswerChip = { name: string; value: string }
+/**
+ * Ответ чипом: имя вопроса и значение первой строкой. Ссылка - без протокола и www, и режет её
+ * чип с начала (link): ссылки начинаются одинаково, различает их хвост.
+ */
+export type AnswerChip = { name: string; value: string; link: boolean }
 
-/** Ответы, которые есть что показать, по порядку; пустые не рисуются. */
+/** Ответы, которые есть что показать, по порядку; пустые не рисуются. Длину режет место чипа. */
 export const answerChips = (inputs: Readonly<Record<string, string>>): AnswerChip[] =>
   Object.entries(inputs)
     .filter(([, value]) => value.trim().length > 0)
-    .map(([name, value]) => ({ name, value: answerLabel({ [name]: value }, MARK_CHARS) }))
+    .map(([name, value]) => {
+      const line = value.trim().split('\n')[0]?.trim() ?? ''
+
+      return LINK_ANSWER.test(line)
+        ? { name, value: line.replace(LINK_SCHEME, '').replace(/\/$/, ''), link: true }
+        : { name, value: line, link: false }
+    })
 
 const DAY_MINUTES = 24 * 60
 

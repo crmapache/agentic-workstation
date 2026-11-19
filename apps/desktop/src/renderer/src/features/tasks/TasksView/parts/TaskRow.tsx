@@ -1,6 +1,8 @@
 import clsx from 'clsx'
-import { Play, Pencil, AlarmClock } from 'lucide-react'
+import { Play, Pencil, AlarmClock, SkipForward } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
+import { isNextSkipped, isRepeatingSchedule } from '@shared/tasks'
 
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -17,8 +19,8 @@ import { useTaskRunStore } from '../../../../state/task-run.store'
 /**
  * Задание строкой: имя, под ним ритм словами с ближайшим сроком (у поручения - где оно и чего
  * ждёт) и последний прогон (метка открывает его); справа - «по расписанию» переключателем,
- * запуск или «разбудить» и правка. Выключенное - тише. Сроки - под именем, а не колонкой: в
- * узкой середине колонка съедала бы ритм.
+ * пропуск ближайшего срока, запуск или «разбудить» и правка. Выключенное - тише. Сроки - под
+ * именем, а не колонкой: в узкой середине колонка съедала бы ритм.
  */
 export const TaskRow = ({ task, lastRun, life, now }: TaskRowProps) => {
   const { t } = useTranslation()
@@ -30,11 +32,9 @@ export const TaskRow = ({ task, lastRun, life, now }: TaskRowProps) => {
   const scheduled = !isGoal && task.schedule.repeat !== 'manual'
   const lifeState = life && lastRun?.id === life.runId ? lastRun.state : null
   // У задания «вручную» срока нет - это уже сказано ритмом слева.
-  const next = !scheduled
-    ? null
-    : task.enabled && task.nextAt
-      ? t('tasks.row.next', { when: words.moment(task.nextAt, now) })
-      : t('tasks.row.paused')
+  const next = scheduled ? words.next(task, now) : null
+  const canSkip = scheduled && task.nextAt > 0 && isRepeatingSchedule(task.schedule)
+  const skipped = isNextSkipped(task)
   const line = isGoal
     ? words.goal(life, lifeState, now)
     : [words.schedule(task.schedule), next].filter(Boolean).join(' · ')
@@ -62,6 +62,15 @@ export const TaskRow = ({ task, lastRun, life, now }: TaskRowProps) => {
             label={t('tasks.actions.enable')}
             checked={task.enabled}
             onChange={(enabled) => void actions.setEnabled(task.id, enabled)}
+          />
+        )}
+        {canSkip && (
+          <IconButton
+            icon={SkipForward}
+            size="sm"
+            active={skipped}
+            label={skipped ? t('tasks.actions.unskipNext') : t('tasks.actions.skipNext')}
+            onClick={() => void actions.skipNext(task.id, !skipped)}
           />
         )}
         {life && lifeState === 'sleeping' ? (

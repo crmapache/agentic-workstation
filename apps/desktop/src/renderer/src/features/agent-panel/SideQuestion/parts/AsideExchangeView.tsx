@@ -5,9 +5,9 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../SideQuestion.module.scss'
 import type { AsideExchangeProps } from '../SideQuestion.types'
-import { useCopy } from '../../clipboard.hooks'
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../../panel.constants'
 import { Markdown } from '../../Markdown/Markdown'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 import { AsideAsking } from './AsideAsking'
 import { AsideUnanswered } from './AsideUnanswered'
 

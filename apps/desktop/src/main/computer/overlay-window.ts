@@ -27,6 +27,10 @@ export const createOverlayWindow = (
     type: IS_MAC ? 'panel' : 'toolbar',
     show: false,
     frame: false,
+    // Без своих углов системы: окну без рамки macOS и Windows 11 скругляют углы маской (на новых
+    // macOS - почти в полкапсулы) и рисуют по краю свою светлую кайму. Маска срезала рамку
+    // капсулы на скруглениях, а стрелке ИИ - острие в углу окна. Углы рисует страница.
+    roundedCorners: false,
     transparent: true,
     hasShadow: false,
     resizable: false,

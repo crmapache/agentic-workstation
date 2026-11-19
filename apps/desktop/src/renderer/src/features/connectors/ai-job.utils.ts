@@ -1,9 +1,12 @@
 import type { TFunction } from 'i18next'
 
+import { proposalNeed } from '@shared/ai-proposal'
 import type { AiJob, AiProposal, AiJobActivity } from '@shared/connector-spec'
 import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 
-import { ANSWER_TOOL } from './ai-job.constants'
+import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
+
+import { ANSWER_TOOL, AI_JOB_TONES } from './ai-job.constants'
 import { hostOf } from './ConnectorsView/ConnectorsView.utils'
 
 /** Страница коротко: хост и путь без протокола - полный адрес в строку не влезет. */
@@ -67,6 +70,22 @@ export const jobLine = (t: TFunction, job: AiJob): string => {
     case 'failed':
       return failureLine(t, job)
   }
+}
+
+/**
+ * Метка работы на плитке и в шапке окна. Готовое предложение говорит, чего ждёт (ADR 0086):
+ * ключа или взгляда на адрес - внимание; ничего - IDE уже добавляет его сама.
+ */
+export const jobBadge = (t: TFunction, job: AiJob): { tone: BadgeTone; label: string } => {
+  if (job.status !== 'ready' || !job.proposal) {
+    return { tone: AI_JOB_TONES[job.status], label: t(`connectors.ai.status.${job.status}`) }
+  }
+
+  const need = proposalNeed(job.proposal, job.request.docsUrl)
+
+  return need
+    ? { tone: 'warning', label: t(`connectors.ai.status.needs.${need}`) }
+    : { tone: 'info', label: t('connectors.ai.status.adding') }
 }
 
 /**

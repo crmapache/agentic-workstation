@@ -58,6 +58,11 @@ export const createTasksHandlers = (
 
     return tasks.setEnabled(taskId, enabled === true)
   },
+  'tasks:skipNext': ({ taskId, skip }) => {
+    assertString(taskId, 'taskId')
+
+    return tasks.skipNext(taskId, skip === true)
+  },
   'tasks:runNow': ({ taskId }) => {
     assertString(taskId, 'taskId')
 

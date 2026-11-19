@@ -1,5 +1,6 @@
 import { it, vi, expect, describe, afterEach } from 'vitest'
 
+import type { AiJob } from '@shared/connector-spec'
 import type { ImportCandidate } from '@shared/connectors'
 
 import type { JsonFile } from '../../storage/json-file'
@@ -58,9 +59,16 @@ const request = {
   effort: '',
 }
 
-const setup = (stored: StoredAiJobs | null = null) => {
+/** Добавление готового по умолчанию не кончается: тесты хода не видят, как работа уходит. */
+const adding = () => new Promise<string | null>(() => undefined)
+
+const setup = (
+  stored: StoredAiJobs | null = null,
+  adopt: (job: AiJob) => Promise<string | null> = adding,
+) => {
   const chats: FakeChat[] = []
   const written: StoredAiJobs[] = []
+  const adopted: [string, string][] = []
   const file = {
     read: () => Promise.resolve(stored),
     write: (value: StoredAiJobs) => {
@@ -81,6 +89,8 @@ const setup = (stored: StoredAiJobs | null = null) => {
     candidates: () => Promise.resolve([callmate]),
     changed: () => undefined,
     onFeed: () => undefined,
+    adopt,
+    adopted: (jobId, connectorId) => adopted.push([jobId, connectorId]),
   })
 
   /** Первая работа и её разговор, когда первое слово уже ушло. */
@@ -93,7 +103,7 @@ const setup = (stored: StoredAiJobs | null = null) => {
     return { chat, job: () => desk.list[0] }
   }
 
-  return { desk, chats, written, started }
+  return { desk, chats, written, adopted, started }
 }
 
 afterEach(() => {
@@ -228,5 +238,75 @@ describe('AiConnectorDesk', () => {
 
     expect(desk.list).toEqual([])
     await vi.waitFor(() => expect(written.at(-1)).toEqual({ jobs: [] }))
+  })
+
+  it('готовое без ключа IDE добавляет сама, и работа уходит из очереди', async () => {
+    const adopt = vi.fn((_job: AiJob) => Promise.resolve('connector-1'))
+    const { desk, adopted, started } = setup(null, adopt)
+    const { chat, job } = await started()
+    const id = job()?.id ?? ''
+
+    chat.events.onTurnEnded({
+      kind: 'answer',
+      output: { outcome: 'existing', message: 'It is already set up', existing: 'Callmate' },
+    })
+
+    await vi.waitFor(() => expect(desk.list).toEqual([]))
+
+    expect(adopt.mock.calls[0]?.[0]).toMatchObject({ id, proposal: { kind: 'existing' } })
+    expect(adopted).toEqual([[id, 'connector-1']])
+    expect(chat.disposed).toBe(true)
+  })
+
+  it('не добавилось само - сбой работы, предложение ждёт добавления руками', async () => {
+    const { started } = setup(null, () => Promise.resolve(null))
+    const { chat, job } = await started()
+
+    chat.events.onTurnEnded({
+      kind: 'answer',
+      output: { outcome: 'existing', message: 'It is already set up', existing: 'Callmate' },
+    })
+
+    await vi.waitFor(() => expect(job()).toMatchObject({ status: 'failed', error: 'not-added' }))
+
+    expect(job()?.proposal).toMatchObject({ kind: 'existing', candidate: callmate })
+  })
+
+  it('API с ключом ждёт человека: добавлять без ключа нечего', async () => {
+    const adopt = vi.fn(adding)
+    const { started } = setup(null, adopt)
+    const { chat, job } = await started()
+
+    chat.events.onTurnEnded({
+      kind: 'answer',
+      output: {
+        outcome: 'mcp',
+        message: 'MCP',
+        mcp: { url: 'https://mcp.callmate.com', auth: 'token' },
+      },
+    })
+
+    expect(job()?.status).toBe('ready')
+    expect(adopt).not.toHaveBeenCalled()
+  })
+
+  it('готовое до перезапуска IDE добавляется после подъёма', async () => {
+    const { started, written } = setup()
+    const { chat } = await started()
+
+    chat.events.onTurnEnded({
+      kind: 'answer',
+      output: { outcome: 'existing', message: 'It is already set up', existing: 'Callmate' },
+    })
+    await vi.waitFor(() => expect(written.at(-1)?.jobs[0]?.status).toBe('ready'))
+
+    const adopt = vi.fn((_job: AiJob) => Promise.resolve('connector-1'))
+    const restored = setup(written.at(-1) ?? null, adopt)
+
+    await restored.desk.load()
+    restored.desk.adoptReady()
+    await vi.waitFor(() => expect(restored.desk.list).toEqual([]))
+
+    expect(adopt).toHaveBeenCalledTimes(1)
   })
 })

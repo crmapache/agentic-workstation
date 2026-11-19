@@ -26,15 +26,17 @@ import { useNow } from '../../../../lib/now.hooks'
 /**
  * Ритм задания: вкладками - вручную, один раз, каждый час, день, по дням недели, раз в месяц;
  * под ними - то, что этому ритму нужно (день, дни недели, число месяца, время). Внизу - когда
- * задание пойдёт в следующий раз, тем же счётом, что у главного процесса.
+ * задание пойдёт в следующий раз, тем же счётом, что у главного процесса, и пропущенный срок.
  */
-export const ScheduleFields = ({ schedule, onChange }: ScheduleFieldsProps) => {
+export const ScheduleFields = ({ schedule, skipAt, onChange }: ScheduleFieldsProps) => {
   const { t } = useTranslation()
   const words = useTaskWords()
   const now = useNow(true, CLOCK_TICK_MS)
   const names = weekdayNames()
   const today = new Date(now).setHours(0, 0, 0, 0)
   const due = nextDue(scheduleOf(schedule), now)
+  // Пропуск держится, пока ближайший срок тот же (главный процесс решает так же при сохранении).
+  const after = due > 0 && due === skipAt ? nextDue(scheduleOf(schedule), due) : 0
   const repeats = TASK_REPEATS.map((id) => ({ id, label: t(`tasks.form.repeats.${id}`) }))
   const monthDays = MONTH_DAYS.map((day) => ({
     value: String(day),
@@ -118,7 +120,14 @@ export const ScheduleFields = ({ schedule, onChange }: ScheduleFieldsProps) => {
         </div>
       )}
       <span className={styles.note}>
-        {due ? t('tasks.form.next', { when: words.moment(due, now) }) : t('tasks.form.noNext')}
+        {after
+          ? t('tasks.form.nextSkipping', {
+              when: words.moment(after, now),
+              skipped: words.moment(due, now),
+            })
+          : due
+            ? t('tasks.form.next', { when: words.moment(due, now) })
+            : t('tasks.form.noNext')}
       </span>
     </>
   )

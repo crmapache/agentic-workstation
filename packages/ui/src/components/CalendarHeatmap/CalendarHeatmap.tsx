@@ -1,9 +1,10 @@
-import { useRef, useLayoutEffect } from 'react'
+import { useRef } from 'react'
 import clsx from 'clsx'
 
 import { ChartTip } from '../ChartTip/ChartTip'
 import { useChartTip, useMarkCursor } from '../ChartTip/ChartTip.hooks'
-import { HEAT_LEVELS, CALENDAR_STEPS } from './CalendarHeatmap.constants'
+import { WEEK_DAYS, HEAT_LEVELS, CALENDAR_STEPS } from './CalendarHeatmap.constants'
+import { useFittedWeeks } from './CalendarHeatmap.hooks'
 import styles from './CalendarHeatmap.module.scss'
 import type { CalendarHeatmapProps } from './CalendarHeatmap.types'
 import { monthRow, heatLevels } from './CalendarHeatmap.utils'
@@ -11,8 +12,9 @@ import { monthRow, heatLevels } from './CalendarHeatmap.utils'
 /**
  * Календарь активности за год, как у GitHub: столбец - неделя с понедельника, клетка -
  * день, тон - насколько день занят (пять ступеней одного тона, пустой день - подложкой).
- * Свежая неделя - у правого края: в узком месте за левый край уходят самые старые. Под
- * рукой или стрелками - подсказка с днём и числом; для скринридера - одна фраза о годе.
+ * Недели делят всю ширину, клетки квадратные; свежая неделя - у правого края, а в узком
+ * месте самые старые уходят слева - без прокрутки. Под рукой или стрелками - подсказка с
+ * днём и числом; для скринридера - одна фраза о годе.
  */
 export const CalendarHeatmap = ({
   label,
@@ -24,18 +26,16 @@ export const CalendarHeatmap = ({
   moreLabel,
 }: CalendarHeatmapProps) => {
   const gridRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const { mark, handlers } = useMarkCursor(days.length, CALENDAR_STEPS)
+  const weeksRef = useRef<HTMLDivElement>(null)
+  const weeks = useFittedWeeks(weeksRef, gridRef, Math.ceil(days.length / WEEK_DAYS))
+  // Ступени - по всему году: узкое место прячет старые недели, но не меняет тон свежих.
+  const allLevels = heatLevels(days.map((day) => day.value))
+  const from = Math.max(0, Math.ceil(days.length / WEEK_DAYS) - weeks) * WEEK_DAYS
+  const shown = days.slice(from)
+  const levels = allLevels.slice(from)
+  const { mark, handlers } = useMarkCursor(shown.length, CALENDAR_STEPS)
   const tipRef = useChartTip(gridRef, mark)
-
-  useLayoutEffect(() => {
-    const scroll = scrollRef.current
-
-    if (scroll) scroll.scrollLeft = scroll.scrollWidth
-  }, [days.length])
-
-  const levels = heatLevels(days.map((day) => day.value))
-  const active = mark === null ? undefined : days[mark]
+  const active = mark === null ? undefined : shown[mark]
 
   return (
     <figure className={clsx(styles.calendarHeatmap, styles[tone])}>
@@ -48,9 +48,9 @@ export const CalendarHeatmap = ({
             </span>
           ))}
         </div>
-        <div ref={scrollRef} className={styles.scroll}>
+        <div ref={weeksRef} className={styles.weeks}>
           <div className={styles.months} aria-hidden>
-            {monthRow(days).map((month, week) => (
+            {monthRow(shown).map((month, week) => (
               <span key={week} className={styles.month}>
                 {month}
               </span>
@@ -63,12 +63,13 @@ export const CalendarHeatmap = ({
             tabIndex={0}
             className={styles.grid}
             {...handlers}>
-            {days.map((day, index) => (
+            {shown.map((day, index) => (
               <span
                 key={day.key}
                 data-mark={index}
                 className={clsx(
                   styles.cell,
+                  styles.day,
                   styles[`level${levels[index] ?? 0}`],
                   index === mark && styles.active,
                 )}

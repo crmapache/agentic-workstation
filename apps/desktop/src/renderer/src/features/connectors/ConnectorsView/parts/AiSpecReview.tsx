@@ -1,6 +1,8 @@
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { isForeignHost } from '@shared/ai-proposal'
+
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { Button } from '@agentic-workstation/ui/Button'
 import { TextField } from '@agentic-workstation/ui/TextField'
@@ -9,7 +11,7 @@ import { ACCESS_TONES } from '../ConnectorsView.constants'
 import { useAiSpecAdd } from '../ConnectorsView.hooks'
 import styles from '../ConnectorsView.module.scss'
 import type { AiSpecReviewProps } from '../ConnectorsView.types'
-import { hostOf, isForeignHost } from '../ConnectorsView.utils'
+import { hostOf } from '../ConnectorsView.utils'
 import { TypeNameFields } from './TypeNameFields'
 
 /**

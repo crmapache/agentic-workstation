@@ -6,6 +6,7 @@ import type { ImportSkipReason } from '@shared/connectors'
 
 import { useImportCandidates } from '../connectors.queries'
 import { useConnectorsStore } from '../connectors.store'
+import { useIpcEvent } from '../../../lib/ipc.hooks'
 import { useConnectorActions } from '../../../state/connectors.queries'
 
 /**
@@ -23,6 +24,21 @@ export const useJobAdded = (jobId: string) => {
     if (id) openConnector(id)
     else close()
   }
+}
+
+/**
+ * Готовое от ИИ IDE добавила сама (ADR 0086): окно этой работы, если оно открыто, показывает
+ * новый коннектор - там его вход и проекты. Подписка - у окон вида, а не у окна работы: работа
+ * уходит из состояния раньше, чем приходит это событие.
+ */
+export const useJobAdoption = () => {
+  const openConnector = useConnectorsStore((store) => store.openConnector)
+
+  useIpcEvent('connectors:aiJobAdded', ({ jobId, connectorId }) => {
+    const { panel } = useConnectorsStore.getState()
+
+    if (panel?.kind === 'aiJob' && panel.id === jobId) openConnector(connectorId)
+  })
 }
 
 /**

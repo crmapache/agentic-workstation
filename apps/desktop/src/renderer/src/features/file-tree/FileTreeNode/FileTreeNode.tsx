@@ -20,9 +20,10 @@ import { DirectoryChildren } from './parts/DirectoryChildren'
  * Строка дерева: папка раскрывается и сворачивается, файл выбирается и уходит в
  * редактор. Иконка - по типу файла, цвет имени - по статусу git, как в WebStorm.
  * Вложенное содержимое папки рисует DirectoryChildren - тот же узел на уровень глубже. Меню
- * правой кнопки и клавиши ловит дерево целиком - по атрибутам строки; вырезанная - бледнее.
+ * правой кнопки и клавиши ловит дерево целиком - по атрибутам строки; вырезанная - бледнее. У
+ * файла место стрелки пустое - иконки встают под иконки папок, а без папок (flat) его нет.
  */
-export const FileTreeNode = ({ projectId, entry, depth }: FileTreeNodeProps) => {
+export const FileTreeNode = ({ projectId, entry, depth, flat = false }: FileTreeNodeProps) => {
   const isDirectory = entry.kind === 'directory'
   const isExpanded = useIsExpanded(projectId, entry.relativePath)
   const isSelected = useSelectedPath(projectId) === entry.relativePath
@@ -72,7 +73,7 @@ export const FileTreeNode = ({ projectId, entry, depth }: FileTreeNodeProps) => 
           className={clsx(
             styles.chevron,
             isExpanded && styles.expanded,
-            !isDirectory && styles.hidden,
+            !isDirectory && (flat ? styles.absent : styles.hidden),
           )}
           aria-hidden
         />

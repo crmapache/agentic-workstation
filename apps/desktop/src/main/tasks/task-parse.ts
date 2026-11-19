@@ -8,11 +8,12 @@ import type {
   Task,
   TaskRun,
   TaskCode,
+  TaskSkip,
   TaskDraft,
   TaskSchedule,
   TaskRunSummary,
 } from '@shared/tasks'
-import { TASK_KINDS, TASK_MODES, TASK_REPEATS, LAST_MONTH_DAY } from '@shared/tasks'
+import { TASK_KINDS, TASK_MODES, TASK_SKIPS, TASK_REPEATS, LAST_MONTH_DAY } from '@shared/tasks'
 
 /** Пределы: имя - строка списка, текст - задание, отчёт - концовка разговора. */
 export const NAME_MAX = 120
@@ -87,6 +88,7 @@ export const taskOf = (raw: unknown): Task | null => {
     createdAt: number(raw['createdAt']),
     updatedAt: number(raw['updatedAt']),
     nextAt: number(raw['nextAt']),
+    skipAt: number(raw['skipAt']),
   }
 }
 
@@ -115,7 +117,6 @@ const FAILURES = [
   'expired',
   'gaveUp',
 ] as const
-const SKIPS = ['busy', 'missed'] as const
 
 /** Прогон с диска. Идущий прогон после перезапуска IDE уже не идёт - его чинит книга. */
 export const runOf = (raw: unknown): TaskRun | null => {
@@ -139,7 +140,7 @@ export const runOf = (raw: unknown): TaskRun | null => {
     updatedAt: number(raw['updatedAt']),
     report: text(raw['report'], REPORT_MAX),
     failure: FAILURES.find((one) => one === raw['failure']) ?? null,
-    skip: SKIPS.find((one) => one === raw['skip']) ?? null,
+    skip: TASK_SKIPS.find((one) => one === raw['skip']) ?? null,
     detail: text(raw['detail'], 2000),
     costUsd: number(raw['costUsd']),
     asking: 0,
@@ -188,7 +189,7 @@ export const draftToTask = (
   }
 
   // Поручение сроков не знает: идёт, пока не добьётся своего (ADR 0080).
-  if (task.kind === 'goal') return { ...task, name, prompt, updatedAt: now, nextAt: 0 }
+  if (task.kind === 'goal') return { ...task, name, prompt, updatedAt: now, nextAt: 0, skipAt: 0 }
 
   const sameRhythm =
     previous !== null && JSON.stringify(previous.schedule) === JSON.stringify(task.schedule)
@@ -203,12 +204,17 @@ export const draftToTask = (
       ? previous.nextAt
       : due
 
+  const nextAt = task.enabled ? kept : 0
+
   return {
     ...task,
     name,
     prompt,
     updatedAt: now,
-    nextAt: task.enabled ? kept : 0,
+    nextAt,
+    // Пропуск держится, пока срок тот же: правка имени и текста его не снимает, правка ритма -
+    // снимает (пропускали другой срок).
+    skipAt: previous && previous.skipAt === nextAt && nextAt > 0 ? nextAt : 0,
   }
 }
 
@@ -217,7 +223,7 @@ export const skippedRun = (
   task: Task,
   id: string,
   dueAt: number,
-  skip: 'busy' | 'missed',
+  skip: TaskSkip,
   now: number,
 ): TaskRun => ({
   id,

@@ -38,6 +38,8 @@ export type ConnectorsEvents = {
   onState: (state: ConnectorsState) => void
   /** Лента разговора работы ИИ поменялась. */
   onAiJobFeed: (jobId: string, patch: FeedPatch) => void
+  /** Работа ИИ стала коннектором сама (ADR 0086) и ушла из очереди. */
+  onAiJobAdded: (jobId: string, connectorId: string) => void
   /**
    * Набор серверов поменялся в проектах, для которых affects - да: их процессы перечитают
    * его только при старте.

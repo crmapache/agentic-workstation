@@ -123,22 +123,6 @@ export const knownProjects = (workspace: WorkspaceState | undefined): ProjectRef
   )
 }
 
-/** Домены второго уровня у национальных зон: у co.uk сайт - три части имени, а не две. */
-const SECOND_LEVEL = new Set(['co', 'com', 'net', 'org', 'gov', 'ac', 'edu'])
-
-/** Сайт адреса для сравнения: последние две части имени (три у co.uk и подобных). */
-const siteOf = (url: string): string | null => {
-  try {
-    const parts = new URL(url).hostname.split('.')
-    const [zone = '', second = ''] = parts.slice(-2).reverse()
-    const size = parts.length > 2 && zone.length === 2 && SECOND_LEVEL.has(second) ? 3 : 2
-
-    return parts.slice(-size).join('.')
-  } catch {
-    return null
-  }
-}
-
 /** Хост адреса, куда ходит коннектор: его человек должен узнать с одного взгляда. */
 export const hostOf = (url: string): string => {
   try {
@@ -146,18 +130,6 @@ export const hostOf = (url: string): string => {
   } catch {
     return url
   }
-}
-
-/**
- * Адрес API не на сайте документации, которую дал человек: повод проверить, что это
- * официальный адрес сервиса, а не тот, что подсунула чужая страница. Документации нет -
- * сравнивать не с чем.
- */
-export const isForeignHost = (baseUrl: string, docsUrl: string): boolean => {
-  const docs = docsUrl ? siteOf(docsUrl) : null
-  const base = siteOf(baseUrl)
-
-  return Boolean(docs && base && docs !== base)
 }
 
 /**

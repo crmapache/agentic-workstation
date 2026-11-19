@@ -17,6 +17,8 @@ export type TasksInvokeContract = {
   /** Убрать задание; его прогоны остаются в истории. Идущий прогон останавливается. */
   'tasks:remove': { request: { taskId: string }; response: TaskOutcome }
   'tasks:setEnabled': { request: { taskId: string; enabled: boolean }; response: TaskOutcome }
+  /** Пропустить ближайший срок задания по расписанию (skip false - вернуть его). */
+  'tasks:skipNext': { request: { taskId: string; skip: boolean }; response: TaskOutcome }
   /** Запустить сейчас, вне расписания. */
   'tasks:runNow': { request: { taskId: string }; response: TaskStarted }
   'tasks:stop': { request: RunRequest; response: TaskOutcome }
@@ -59,6 +61,7 @@ export const TASKS_CHANNELS = {
   'tasks:save': true,
   'tasks:remove': true,
   'tasks:setEnabled': true,
+  'tasks:skipNext': true,
   'tasks:runNow': true,
   'tasks:stop': true,
   'tasks:tell': true,

@@ -7,6 +7,7 @@ import type {
 import type { GoalOutbound } from '@shared/goals'
 
 import { maskArgs } from '../claude/tools/secret-mask'
+import type { ConnectorRegistry } from './connector-registry'
 import type { StoredTool, StoredType, StoredConnector } from './connector-store'
 import { toolOpenFor, CONFIRM_NOTE } from './outbound-gate'
 import type { ServiceAnswer } from './service-answer'
@@ -237,3 +238,19 @@ export const disabledToolText = (
   tool?.access === 'outbound'
     ? `Sending to other people is turned off for "${connectorTitle(connector, name)}" by the user. Prepare a draft and let the user send it.`
     : `This tool is turned off by the user in Agentic Workstation → Connectors → ${connectorTitle(connector, name)}.`
+
+/**
+ * Все подключения реестра видом для окна: с тем, что знает о каждом живая IDE (вход, сбой), и
+ * своим типом. Живого нет (только что удалён) - без входа и сбоя.
+ */
+export const connectorViews = (
+  registry: Pick<ConnectorRegistry, 'connectors' | 'findType'>,
+  liveOf: (id: string) => { facts: (connector: StoredConnector) => LiveFacts } | null | undefined,
+): Connector[] =>
+  registry.connectors.map((connector) =>
+    connectorView(
+      connector,
+      liveOf(connector.id)?.facts(connector) ?? NO_LIVE_FACTS,
+      registry.findType(connector.typeId),
+    ),
+  )

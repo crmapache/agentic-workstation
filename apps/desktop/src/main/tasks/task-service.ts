@@ -3,10 +3,11 @@ import { join } from 'node:path'
 
 import type { GoalLife } from '@shared/goals'
 import type { StepLogPage } from '@shared/scenario-view'
-import { afterDue, dueVerdict } from '@shared/task-clock'
+import { afterDue } from '@shared/task-clock'
 import type {
   Task,
   TaskRun,
+  TaskSkip,
   TaskDraft,
   TaskSaved,
   TasksState,
@@ -23,6 +24,7 @@ import type { TaskBook } from './task-book'
 import { RESUME_NOTE } from './task-briefing'
 import { TaskDesk } from './task-desk'
 import type { TaskAnswer, TaskDeskHost } from './task-desk'
+import { cameDue, withSkip } from './task-due'
 import { TaskGoals } from './task-goals'
 import type { GoalParts } from './task-goals'
 import { summaryOf, skippedRun, draftToTask } from './task-parse'
@@ -182,11 +184,25 @@ export class TaskService {
     if (!task) return { ok: false, code: 'taskGone' }
 
     // Включённое снова считает срок от сейчас: время, пока оно было выключено, не наверстывается.
+    // Пропуск снимается: включённое заново начинает ритм с чистого листа.
     const nextAt = enabled ? afterDue(task, Date.now()) : 0
 
     return this.written(
-      await this.book.putTask({ ...task, enabled, nextAt, updatedAt: Date.now() }),
+      await this.book.putTask({ ...task, enabled, nextAt, skipAt: 0, updatedAt: Date.now() }),
     )
+  }
+
+  /**
+   * Пропустить ближайший срок или вернуть его. Срок остаётся сроком: часы дойдут до него,
+   * запишут пропуск и возьмут следующий, а «вернуть» до этого момента ничего не теряет.
+   */
+  async skipNext(taskId: string, skip: boolean): Promise<TaskOutcome> {
+    const task = this.book.task(taskId)
+    const skipped = task ? withSkip(task, skip, Date.now()) : 'taskGone'
+
+    if (typeof skipped === 'string') return { ok: false, code: skipped }
+
+    return this.written(await this.book.putTask(skipped))
   }
 
   async runNow(taskId: string): Promise<TaskStarted> {
@@ -335,25 +351,23 @@ export class TaskService {
 
       // Сначала - новые сроки всем пришедшим, без ожиданий между ними: подъём прогона длится
       // секунды, и правка задания за это время не должна откатиться старым снимком.
-      const came = this.book.tasks.flatMap((task) => {
-        const verdict = dueVerdict(task, now)
-
-        return verdict === 'wait' ? [] : [{ id: task.id, verdict, due: task.nextAt }]
-      })
+      const came = cameDue(this.book.tasks, now)
 
       for (const { id } of came) {
         const task = this.book.task(id)
 
-        if (task) void this.book.putTask({ ...task, nextAt: afterDue(task, now) })
+        if (task) void this.book.putTask({ ...task, nextAt: afterDue(task, now), skipAt: 0 })
       }
 
-      for (const { id, verdict, due } of came) {
+      for (const { id, verdict, due, skipped } of came) {
         // Задание удалили или выключили, пока поднимался прогон соседнего, - его срок не нужен.
         const task = this.book.task(id)
 
         if (!task?.enabled) continue
 
-        if (verdict === 'missed') await this.skip(task, due, 'missed')
+        // Пропущенный человеком срок - запись в истории, а не прогон и не наверстывание.
+        if (skipped) await this.skip(task, due, 'person')
+        else if (verdict === 'missed') await this.skip(task, due, 'missed')
         else if (
           !(await this.desk.start(task, verdict === 'catchUp' ? 'catchUp' : 'schedule', due))
         )
@@ -375,7 +389,7 @@ export class TaskService {
     await Promise.all([this.book.settled(), this.options.goals.book.settled()])
   }
 
-  private async skip(task: Task, dueAt: number, skip: 'busy' | 'missed') {
+  private async skip(task: Task, dueAt: number, skip: TaskSkip) {
     await this.book.putRun(skippedRun(task, randomUUID(), dueAt, skip, Date.now()))
   }
 

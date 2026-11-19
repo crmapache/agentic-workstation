@@ -44,8 +44,8 @@ describe('ответы чипами', () => {
         branch: 'alex/totals\nsecond line',
       }),
     ).toEqual([
-      { name: 'ticket', value: 'ABC-12' },
-      { name: 'branch', value: 'alex/totals' },
+      { name: 'ticket', value: 'tracker.example/browse/ABC-12', link: true },
+      { name: 'branch', value: 'alex/totals', link: false },
     ])
   })
 })

@@ -26,10 +26,11 @@ import { SecretsOf, secretsKey, typeSecretsKey } from './connector-secrets'
 import { parseStoredConnectors } from './connector-store'
 import { ConnectorTypeDesk } from './connector-type-desk'
 import { typeView } from './connector-types'
-import { connectorView, NO_LIVE_FACTS } from './connector-view'
+import { connectorViews } from './connector-view'
 import type { ConnectorsEvents, ConnectorsPlaces } from './connectors-service.types'
 import { GatewayHost } from './gateway-host'
 import { LiveConnectors } from './live-connectors'
+import { adoptAiJob } from './ai/ai-adopt'
 import { AiConnectorDesk } from './ai/ai-connector-desk'
 import type { McpLaunch, GatewayLaunch } from './gateway/launches'
 import { ImportDesk } from './import/import-desk'
@@ -87,7 +88,7 @@ export class ConnectorsService {
 
     this.imports = new ImportDesk({
       serverNames: () => registry.serverNames(),
-      add: (prepared) => this.addPrepared(prepared, { signIn: false }),
+      add: this.addQuietly,
       projectPaths: places.projectPaths,
       isTrusted: places.isTrusted,
       shellEnv: places.shellEnv,
@@ -99,6 +100,8 @@ export class ConnectorsService {
       candidates: () => this.imports.candidates(),
       changed: () => this.broadcast(),
       onFeed: events.onAiJobFeed,
+      adopt: (job) => adoptAiJob(job, { registry, imports: this.imports, add: this.addQuietly }),
+      adopted: events.onAiJobAdded,
     })
     this.browser = new BrowserDesk(places.browser, registry)
     this.types = new ConnectorTypeDesk({
@@ -141,6 +144,8 @@ export class ConnectorsService {
     for (const live of this.live.all()) void live.refresh()
 
     this.browser.sync()
+    // Готовое до перезапуска IDE добавляется теперь, когда коннекторы подняты (ADR 0086).
+    this.ai.adoptReady()
   }
 
   /** Сессии браузера закрываются раньше моста: им ещё отпускать вкладки в Chrome. */
@@ -173,13 +178,7 @@ export class ConnectorsService {
 
   getState(): ConnectorsState {
     return {
-      connectors: this.registry.connectors.map((connector) =>
-        connectorView(
-          connector,
-          this.live.get(connector.id)?.facts(connector) ?? NO_LIVE_FACTS,
-          this.registry.findType(connector.typeId),
-        ),
-      ),
+      connectors: connectorViews(this.registry, (id) => this.live.get(id)),
       types: this.registry.types.map(typeView),
       google: this.access.googleState(),
       vault: this.places.vault.available,
@@ -402,6 +401,10 @@ export class ConnectorsService {
 
     return this.broadcast()
   }
+
+  /** Добавить без входа в браузере: его начинает только человек (перенос, готовое от ИИ). */
+  private readonly addQuietly = (prepared: NewConnector) =>
+    this.addPrepared(prepared, { signIn: false })
 
   /** Ответ на добавление: готовое - в реестр и окну, отказ - кодом. */
   private async addOutcome(result: NewConnector | AddConnectorError): Promise<AddConnectorOutcome> {

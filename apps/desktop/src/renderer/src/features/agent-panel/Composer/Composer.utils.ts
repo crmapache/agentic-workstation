@@ -41,3 +41,16 @@ export const isCompacting = (items: readonly FeedItem[], conversation: Conversat
 /** id строки подсказки: по нему поле говорит скринридеру, какая выбрана. */
 export const suggestOptionId = (listId: string, index: number): string =>
   `${listId}-option-${index}`
+
+/**
+ * Строка поля, на которой стоит каретка: по середине того, что перед ней (символ или чип), во
+ * всю высоту строки поля. Серый синтаксис встаёт в неё - на ту же базовую линию, что набранный
+ * текст, а не на верх соседнего символа, который ниже строки на её межстрочный зазор.
+ */
+export const caretLineBox = (
+  place: { left: number; top: number; height: number },
+  lineHeight: number,
+): { left: number; top: number; height: number } =>
+  Number.isFinite(lineHeight) && lineHeight > 0
+    ? { left: place.left, top: place.top + (place.height - lineHeight) / 2, height: lineHeight }
+    : place

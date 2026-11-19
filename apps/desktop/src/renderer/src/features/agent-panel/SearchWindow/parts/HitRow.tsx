@@ -8,11 +8,11 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../SearchWindow.module.scss'
 import type { HitRowProps } from '../SearchWindow.types'
-import { useCopy } from '../../clipboard.hooks'
 import { useNow } from '../../clock.hooks'
 import { AI_CLOCK_MS, SEARCH_ICON_SIZE, SEARCH_ICON_STROKE } from '../../search.constants'
 import { describeWhen, snippetPieces } from '../../search.utils'
 import { AI_ICON } from '../../../../lib/ai-icon.constants'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 
 /**
  * Одна находка: кто сказал, найденные слова закрашены там, где стоят, и путь в разговор.

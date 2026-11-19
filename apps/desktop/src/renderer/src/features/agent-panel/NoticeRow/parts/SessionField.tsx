@@ -5,8 +5,8 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../NoticeRow.module.scss'
 import type { SessionFieldProps } from '../NoticeRow.types'
-import { useCopy } from '../../clipboard.hooks'
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../../panel.constants'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 
 /** Поле строки SESSION: подпись и значение, которое копируется нажатием. */
 export const SessionField = ({ name, note, value }: SessionFieldProps) => {

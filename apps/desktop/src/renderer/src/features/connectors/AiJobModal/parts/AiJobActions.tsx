@@ -6,7 +6,7 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import type { AiJobPartProps } from '../AiJobModal.types'
-import { AI_JOB_TONES } from '../../ai-job.constants'
+import { jobBadge } from '../../ai-job.utils'
 import { useConnectorsStore } from '../../connectors.store'
 import { ConnectorsHelp } from '../../ConnectorsView/parts/ConnectorsHelp'
 import { useConnectorActions } from '../../../../state/connectors.queries'
@@ -20,6 +20,8 @@ export const AiJobActions = ({ job }: AiJobPartProps) => {
   const actions = useConnectorActions()
   const close = useConnectorsStore((store) => store.close)
 
+  const badge = jobBadge(t, job)
+
   const handleStop = () => actions.stopAiJob(job.id)
 
   const handleRemove = () => {
@@ -29,7 +31,7 @@ export const AiJobActions = ({ job }: AiJobPartProps) => {
 
   return (
     <>
-      <Badge tone={AI_JOB_TONES[job.status]}>{t(`connectors.ai.status.${job.status}`)}</Badge>
+      <Badge tone={badge.tone}>{badge.label}</Badge>
       {job.status === 'working' && (
         <Button size="sm" icon={Square} onClick={handleStop}>
           {t('connectors.ai.stop')}

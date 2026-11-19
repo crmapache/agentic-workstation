@@ -89,17 +89,34 @@ export type Task = {
   updatedAt: number
   /** Ближайший срок (мс); 0 - нет (вручную, выключено, разовый прошёл, поручение). */
   nextAt: number
+  /**
+   * Срок, который человек велел пропустить (мс): часы дойдут до него и возьмут следующий, не
+   * поднимая прогона. Действует, только пока равен nextAt: правка ритма или выключение его
+   * снимают. 0 - пропуска нет.
+   */
+  skipAt: number
 }
 
 /** Задание из окна: новое (id null) или правка. Сроки считает главный процесс. */
-export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'nextAt'> & {
+export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'nextAt' | 'skipAt'> & {
   id: string | null
 }
 
 /**
+ * Ритм, у которого есть «следующий» срок после ближайшего: его можно пропустить. Разовый
+ * пропустить - то же, что выключить, вручную сроков нет вовсе.
+ */
+export const isRepeatingSchedule = (schedule: TaskSchedule): boolean =>
+  schedule.repeat !== 'manual' && schedule.repeat !== 'once'
+
+/** Ближайший срок задания пропускается по слову человека. */
+export const isNextSkipped = (task: Pick<Task, 'nextAt' | 'skipAt'>): boolean =>
+  task.skipAt > 0 && task.skipAt === task.nextAt
+
+/**
  * Где прогон. running - модель работает; waiting - стоит на вопросе к человеку; sleeping -
  * поручение спит до события, процесса нет; skipped - срок пришёл, а прогона не было (прежний
- * ещё идёт, срок пропущен без наверстывания).
+ * ещё идёт, срок пропущен без наверстывания, человек велел его пропустить).
  */
 export type TaskRunState =
   'running' | 'waiting' | 'sleeping' | 'done' | 'failed' | 'stopped' | 'skipped'
@@ -124,7 +141,10 @@ export type TaskFailure =
   | 'expired'
   | 'gaveUp'
 
-export type TaskSkip = 'busy' | 'missed'
+/** Почему срок прошёл без прогона: прежний ещё шёл, машина спала, человек пропустил. */
+export type TaskSkip = 'busy' | 'missed' | 'person'
+
+export const TASK_SKIPS: readonly TaskSkip[] = ['busy', 'missed', 'person']
 
 export type TaskRun = {
   id: string

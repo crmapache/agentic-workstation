@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { useCopy } from '../clipboard.hooks'
+import { useCopy } from '../../../lib/clipboard.hooks'
 import { useCodeRuns } from './CodeBlock.hooks'
 import styles from './CodeBlock.module.scss'
 import type { CodeBlockProps } from './CodeBlock.types'

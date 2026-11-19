@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import { proposalNeed } from '@shared/ai-proposal'
 import type { AiJob, GenerateConnectorRequest } from '@shared/connector-spec'
 import type { ImportCandidate } from '@shared/connectors'
 import type { FeedPatch, ConversationFeed } from '@shared/conversation-feed'
@@ -19,6 +20,13 @@ export type AiDeskHost = {
   candidates: () => Promise<ImportCandidate[]>
   changed: () => void
   onFeed: (jobId: string, patch: FeedPatch) => void
+  /**
+   * Добавить готовое предложение, которому от человека ничего не нужно (ADR 0086): id нового
+   * коннектора или null - добавить не вышло.
+   */
+  adopt: (job: AiJob) => Promise<string | null>
+  /** Работа стала коннектором и ушла из очереди: открытое окно работы показывает его. */
+  adopted: (jobId: string, connectorId: string) => void
 }
 
 /** Работа и всё, что к ней приложено в памяти: разговор, его сервер-список, часы хода. */
@@ -30,6 +38,8 @@ type LiveJob = {
   chat: Promise<{ chat: AiChat; candidates: ImportCandidate[] } | null> | null
   timer: NodeJS.Timeout | null
   timedOut: boolean
+  /** Готовое уже добавляется: второй ответ или старт IDE не добавят его дважды. */
+  adopting: boolean
 }
 
 /**
@@ -56,10 +66,21 @@ export class AiConnectorDesk {
         chat: null,
         timer: null,
         timedOut: false,
+        adopting: false,
       })
     }
 
     this.host.changed()
+  }
+
+  /**
+   * Готовые работы, которым ничего не нужно от человека, - в коннекторы. Зовётся после подъёма
+   * шлюза: так доходят и работы, готовые до перезапуска IDE.
+   */
+  adoptReady(): void {
+    for (const live of this.jobs.values()) {
+      if (live.job.status === 'ready') this.adopt(live)
+    }
   }
 
   /** Работы для окна: новые - первыми. */
@@ -89,6 +110,7 @@ export class AiConnectorDesk {
       chat: null,
       timer: null,
       timedOut: false,
+      adopting: false,
     }
 
     this.jobs.set(id, live)
@@ -227,7 +249,44 @@ export class AiConnectorDesk {
 
     live.timedOut = false
 
-    if (this.jobs.get(live.job.id) === live) this.commit()
+    if (this.jobs.get(live.job.id) !== live) return
+
+    this.commit()
+
+    if (live.job.status === 'ready') this.adopt(live)
+  }
+
+  /**
+   * Готовое предложение без ключа и без чужого адреса IDE добавляет сама (ADR 0086), и работа
+   * уходит из очереди. Не вышло - сбой работы: предложение остаётся, его добавят руками.
+   */
+  private adopt(live: LiveJob) {
+    const { job } = live
+
+    if (live.adopting || !job.proposal || proposalNeed(job.proposal, job.request.docsUrl)) return
+
+    live.adopting = true
+    void this.host
+      .adopt(job)
+      .catch((error: unknown) => {
+        console.warn('[connectors] готовое от ИИ не добавилось', error)
+
+        return null
+      })
+      .then((connectorId) => {
+        live.adopting = false
+
+        if (this.jobs.get(job.id) !== live) return
+
+        if (connectorId) {
+          this.remove(job.id)
+          this.host.adopted(job.id, connectorId)
+        } else if (live.job === job) {
+          // Человек уже пишет ИИ - новый ход решит сам; иначе работа ждёт добавления руками.
+          live.job = { ...job, status: 'failed', error: 'not-added', detail: '' }
+          this.commit()
+        }
+      })
   }
 
   /**

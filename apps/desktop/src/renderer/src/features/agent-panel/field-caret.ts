@@ -67,9 +67,15 @@ export const caretRect = (root: HTMLElement, origin: HTMLElement) => {
 
   if (!place) return null
 
+  // Слой встаёт от края внутри рамки (так считает position: absolute), а прямоугольник - от
+  // внешнего: без её толщины подсказка уезжала на пиксель вправо и вниз.
   const base = origin.getBoundingClientRect()
 
-  return { left: place.left - base.left, top: place.top - base.top, height: place.height }
+  return {
+    left: place.left - base.left - origin.clientLeft,
+    top: place.top - base.top - origin.clientTop,
+    height: place.height,
+  }
 }
 
 /**

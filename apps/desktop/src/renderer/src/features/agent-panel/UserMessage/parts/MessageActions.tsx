@@ -7,7 +7,6 @@ import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import styles from '../UserMessage.module.scss'
 import type { MessageActionsProps } from '../UserMessage.types'
-import { useCopy } from '../../clipboard.hooks'
 import { useFeedScope } from '../../feed-scope.context'
 import { applyDraft } from '../../field-bus'
 import { useReuseDraft } from '../../message.hooks'
@@ -17,6 +16,7 @@ import { usePanelStore } from '../../panel.store'
 import { MessageMenu } from '../../MessageMenu/MessageMenu'
 import { PinButton } from '../../PinButton/PinButton'
 import { PinItem } from '../../PinItem/PinItem'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 
 /**
  * Угол своего сообщения, как в ACC: горящая булавка (только у закреплённого), копия (с

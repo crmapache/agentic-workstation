@@ -2,16 +2,20 @@ import type { ConnectorsModalsProps } from '../ConnectorsView.types'
 import { connectionsOf } from '../ConnectorsView.utils'
 import { useConnectorsStore } from '../../connectors.store'
 import { AiJobModal } from '../../AiJobModal/AiJobModal'
+import { useJobAdoption } from '../../AiJobModal/AiJobModal.hooks'
 import { AddModal } from './AddModal'
 import { ConnectorModal } from './ConnectorModal'
 import { TypeModal } from './TypeModal'
 
 /**
  * Окно по центру, какое открыто: подробности коннектора, добавление, свой тип из каталога или
- * работа ИИ. Коннектор, тип или работу убрали, пока окно было открыто, - окна нет.
+ * работа ИИ. Коннектор, тип или работу убрали, пока окно было открыто, - окна нет; работа,
+ * которая стала коннектором сама, - окно коннектора.
  */
 export const ConnectorsModals = ({ state, projects }: ConnectorsModalsProps) => {
   const panel = useConnectorsStore((store) => store.panel)
+
+  useJobAdoption()
 
   if (panel?.kind === 'add') return <AddModal target={panel.target} google={state.google} />
 

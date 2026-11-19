@@ -7,15 +7,15 @@ import { Tile } from '@agentic-workstation/ui/Tile'
 
 import styles from '../ConnectorsView.module.scss'
 import type { AiJobsProps } from '../ConnectorsView.types'
-import { AI_JOB_TONES } from '../../ai-job.constants'
-import { jobLine } from '../../ai-job.utils'
+import { jobLine, jobBadge } from '../../ai-job.utils'
 import { useConnectorsStore } from '../../connectors.store'
 import { ConnectorsHelp } from './ConnectorsHelp'
 
 /**
  * Очередь работ ИИ над новыми коннекторами (ADR 0050) - над подключёнными, пока в ней что-то
  * есть: работа идёт в главном процессе, окно её не держит. На плитке - сервис, что ИИ делает
- * или предлагает и состояние; нажатие открывает разговор большим окном.
+ * или предлагает и состояние; нажатие открывает разговор большим окном. Готовое без ключа
+ * уходит отсюда в подключённые само (ADR 0086).
  */
 export const AiJobs = ({ jobs }: AiJobsProps) => {
   const { t } = useTranslation()
@@ -30,22 +30,22 @@ export const AiJobs = ({ jobs }: AiJobsProps) => {
       count={jobs.length}
       help={<ConnectorsHelp topic="aiJobs" />}>
       <div className={styles.grid}>
-        {jobs.map((job) => (
-          <Tile
-            key={job.id}
-            icon={WandSparkles}
-            iconTone="success"
-            title={job.request.service}
-            description={jobLine(t, job)}
-            status={
-              <Badge tone={AI_JOB_TONES[job.status]}>
-                {t(`connectors.ai.status.${job.status}`)}
-              </Badge>
-            }
-            selected={panel?.kind === 'aiJob' && panel.id === job.id}
-            onClick={() => openAiJob(job.id)}
-          />
-        ))}
+        {jobs.map((job) => {
+          const badge = jobBadge(t, job)
+
+          return (
+            <Tile
+              key={job.id}
+              icon={WandSparkles}
+              iconTone="success"
+              title={job.request.service}
+              description={jobLine(t, job)}
+              status={<Badge tone={badge.tone}>{badge.label}</Badge>}
+              selected={panel?.kind === 'aiJob' && panel.id === job.id}
+              onClick={() => openAiJob(job.id)}
+            />
+          )
+        })}
       </div>
     </Section>
   )

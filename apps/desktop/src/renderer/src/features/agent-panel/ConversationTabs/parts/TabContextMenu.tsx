@@ -7,8 +7,8 @@ import { Popover } from '@agentic-workstation/ui/Popover'
 import { useAnchoredPopover } from '@agentic-workstation/ui/Popover.hooks'
 
 import type { TabContextMenuProps } from '../ConversationTabs.types'
-import { useCopy } from '../../clipboard.hooks'
 import { usePanelStore } from '../../panel.store'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 
 /**
  * Меню правой кнопки на вкладке: скопировать ID разговора (для `claude --resume` в

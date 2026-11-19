@@ -44,7 +44,7 @@ const storedJobSchema = z.object({
   status: z.enum(['working', 'ready', 'asking', 'stopped', 'failed']),
   message: z.string(),
   proposal: proposalSchema.nullable(),
-  error: z.enum(['cli-missing', 'timeout', 'invalid', 'failed']).nullable(),
+  error: z.enum(['cli-missing', 'timeout', 'invalid', 'failed', 'not-added']).nullable(),
   detail: z.string(),
 })
 

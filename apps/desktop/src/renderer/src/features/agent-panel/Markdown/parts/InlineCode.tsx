@@ -7,10 +7,10 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 
 import styles from '../Markdown.module.scss'
 import type { InlineCodeProps } from '../Markdown.types'
-import { useCopy } from '../../clipboard.hooks'
 import { useKnownFiles } from '../../paths.hooks'
 import { readPathRef } from '../../paths.utils'
 import { PathLink } from '../../PathLink/PathLink'
+import { useCopy } from '../../../../lib/clipboard.hooks'
 import { useOpenFileAction } from '../../../../state/open-file.context'
 
 /**

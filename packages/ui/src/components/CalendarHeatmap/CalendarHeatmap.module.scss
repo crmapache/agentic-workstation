@@ -21,7 +21,9 @@
   min-width: 0;
 }
 
-// Подписи дней недели - в строку с клетками: над ними пустая строка вровень с месяцами.
+// Подписи дней недели - в строку с клетками: над ними пустая строка вровень с месяцами. Столбец
+// тянется на высоту недель, и семь строк делят её поровну - ровно по клеткам, какими бы они ни
+// выросли.
 .weekdays,
 .grid {
   display: grid;
@@ -30,25 +32,28 @@
 
 .weekdays {
   flex: none;
-  grid-template-rows: repeat(8, var(--size-chart-cell));
+  grid-template-rows: var(--size-chart-cell) repeat(7, minmax(0, 1fr));
 }
 
 .weekday {
+  display: flex;
+  align-items: center;
   white-space: nowrap;
 }
 
-// Недели шире места - прокрутка вбок, а не сжатые клетки.
-.scroll {
+// Недели делят всю ширину (а сколько их влезает клетками не меньше своего размера, считает
+// CalendarHeatmap.hooks): ни прокрутки, ни пустого места справа.
+.weeks {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-0-5);
   min-width: 0;
-  overflow-x: auto;
 }
 
 .months {
   display: grid;
-  grid-auto-columns: var(--size-chart-cell);
+  grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
   column-gap: var(--space-0-5);
 }
@@ -62,9 +67,9 @@
 
 // Кольца фокуса нет (ADR 0023): где фокус, говорит выделенный день с подсказкой.
 .grid {
-  grid-auto-columns: var(--size-chart-cell);
+  grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, var(--size-chart-cell));
+  grid-template-rows: repeat(7, auto);
 }
 
 .cell {
@@ -72,6 +77,13 @@
   height: var(--size-chart-cell);
   border-radius: var(--radius-xs);
   transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
+// День в сетке - во всю свою колонку и квадратом: высота строки идёт от ширины недели.
+.day {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 // Пустой день - подложкой, а не тоном: «ничего» не путается с «чуть-чуть».

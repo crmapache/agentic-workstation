@@ -7,7 +7,6 @@ import {
   addRequest,
   toolGroups,
   connectionsOf,
-  isForeignHost,
   connectorNames,
   connectorTitle,
   profileChoices,
@@ -114,17 +113,6 @@ describe('profileChoices', () => {
       { name: 'Google Chrome', state: 'connected' },
     ])
     expect(profileChoices([], [], null)).toEqual([])
-  })
-})
-
-describe('isForeignHost', () => {
-  it('API на сайте документации - своё, на другом сайте - повод проверить', () => {
-    expect(isForeignHost('https://api.todoist.com/rest/v2', 'https://developer.todoist.com')).toBe(
-      false,
-    )
-    expect(isForeignHost('https://api.bbc.co.uk/v1', 'https://docs.bbc.co.uk')).toBe(false)
-    expect(isForeignHost('https://evil.dev/api', 'https://developer.todoist.com')).toBe(true)
-    expect(isForeignHost('https://evil.dev/api', '')).toBe(false)
   })
 })
 
