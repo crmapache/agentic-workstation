@@ -4,7 +4,7 @@ import { Button } from '@agentic-workstation/ui/Button'
 
 import styles from '../NoticeRow.module.scss'
 import { usePanelAccounts } from '../../panel-accounts.hooks'
-import { usePanelState } from '../../panel.queries'
+import { usePanelState, usePanelCapabilities } from '../../panel.queries'
 import { usePanelStore } from '../../panel.store'
 
 /**
@@ -18,8 +18,13 @@ export const SignInActions = () => {
   const { data: state } = usePanelState()
   const openMenu = usePanelStore((store) => store.openMenu)
   const hasOthers = (state?.accounts.accounts.length ?? 0) > 1
+  // У агента ACP вход идёт по шагам на своём экране (код со страницы): экран открывается сразу.
+  const isAcp = usePanelCapabilities().accounts === 'acp'
 
-  const handleSignIn = () => void panelAccounts.signIn(state?.accounts.current ?? '')
+  const handleSignIn = () => {
+    if (isAcp) openMenu('accounts')
+    void panelAccounts.signIn(state?.accounts.current ?? '')
+  }
 
   const handleSwitch = () => openMenu('accounts')
 

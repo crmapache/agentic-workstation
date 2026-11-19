@@ -9,6 +9,7 @@ import { folderNeighbours } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import type { ScenariosProject } from '../ScenariosView/ScenariosView.types'
 import { invoke } from '../../../lib/ipc'
+import { takesIdeWork } from '../../../lib/provider-choices'
 import { useGitChanges } from '../../../state/git-changes.queries'
 import { useProviders, effectiveProvider } from '../../../state/providers.queries'
 import { useScenarioQueues, useScenarioShelves } from '../../../state/scenarios.queries'
@@ -65,8 +66,14 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
       ? (folderNeighbours(view?.queues ?? [], project.rootPath)[0] ?? null)
       : null
   const isMissing = scenario !== null && missingInputs(scenario, values).length > 0
+  // Провайдер, которого нет на машине или который только для чата (ADR 0094), прогон не возьмёт.
   const canRun =
-    scenario !== null && !isBroken && !isMissing && provider?.available === true && !start.isPending
+    scenario !== null &&
+    !isBroken &&
+    !isMissing &&
+    provider !== null &&
+    takesIdeWork(provider) &&
+    !start.isPending
 
   const choose = (next: Scenario) => {
     setPick({ id: next.id, scope: next.scope })

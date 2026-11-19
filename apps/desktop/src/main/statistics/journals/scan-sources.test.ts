@@ -17,6 +17,10 @@ describe('scanSourcesOf', () => {
       { provider: 'codex', path: '/codex' },
       { provider: 'opencode', path: join('/ide', 'opencode', 'data', 'opencode', 'opencode.db') },
       { provider: 'opencode', path: join('/xdg', 'opencode', 'opencode.db') },
+      { provider: 'antigravity', path: join('/ide', 'antigravity', 'gemini', 'antigravity-cli') },
+      { provider: 'antigravity', path: join('/home/me', '.gemini', 'antigravity-cli') },
+      { provider: 'kimi', path: join('/ide', 'kimi', 'home') },
+      { provider: 'kimi', path: join('/home/me', '.kimi-code') },
     ])
   })
 
@@ -28,6 +32,10 @@ describe('scanSourcesOf', () => {
       join('/home/me', '.codex'),
       join('/ide', 'opencode', 'data', 'opencode', 'opencode.db'),
       join('/home/me', '.local', 'share', 'opencode', 'opencode.db'),
+      join('/ide', 'antigravity', 'gemini', 'antigravity-cli'),
+      join('/home/me', '.gemini', 'antigravity-cli'),
+      join('/ide', 'kimi', 'home'),
+      join('/home/me', '.kimi-code'),
     ])
   })
 })

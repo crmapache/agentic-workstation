@@ -6,7 +6,7 @@ import type {
 } from '@shared/conversation'
 import type { ToolAction } from '@shared/conversation-feed'
 
-import type { RpcId } from '../app-server/rpc-lines'
+import type { RpcId } from '../../process/rpc-lines'
 import type { HeldRequest } from '../../agents/conversation/agent-parts'
 
 /**

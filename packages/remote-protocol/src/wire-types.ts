@@ -61,7 +61,21 @@ export type ProviderCaps = {
   rewind?: boolean | undefined
   /** Что можно откатить: conversation, code, both; нет поля - все три. */
   rewindScopes?: string[] | undefined
+  /**
+   * Работает только в своём чате (ADR 0094: Antigravity на личном входе Google). Свой разговор
+   * человека с телефона - можно; прогон сценария и час расписания с ним IDE откажет
+   * (refused/chatOnly), и телефон показывает его в выборе погашенным. Нет поля - IDE старше
+   * правила: можно всё.
+   */
+  chatOnly?: boolean | undefined
 }
+
+/**
+ * Возьмёт ли провайдер работу без человека, которую ставит телефон (прогон сценария, час
+ * расписания): стоит на машине и не только для своего чата.
+ */
+export const takesUnattendedWork = (provider: Pick<ProviderCaps, 'available' | 'chatOnly'>) =>
+  provider.available && provider.chatOnly !== true
 
 export type ConversationSummary = {
   id: string

@@ -14,7 +14,7 @@ import {
   projectOf,
   listScopeOf,
   PROJECT_ARG,
-  providerArg,
+  unattendedProviderArg,
 } from './workstation-args'
 import { checkScenario, scenarioError } from './workstation-words'
 
@@ -112,7 +112,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
         provider: {
           type: 'string',
           description:
-            'claude, codex or opencode. Default: the provider the scenario is written for.',
+            'claude, codex, kimi or opencode (antigravity works only in its own chat). Default: the provider the scenario is written for.',
         },
         queue_id: { type: 'string', description: 'Add to the end of this queue.' },
         worktree: {
@@ -149,7 +149,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
         scenarioId: scenario.id,
         scope,
         inputs,
-        provider: providerArg(args) ?? scenario.head.provider,
+        provider: unattendedProviderArg(args) ?? scenario.head.provider,
         target,
         hours: queueId ? null : hoursArg(args, 'hours'),
       })

@@ -11,3 +11,6 @@ export type HelpButtonProps = {
   /** Размер кнопки: sm - шапки окна IDE, touch - телефон (под палец). */
   size?: IconButtonSize | undefined
 }
+
+/** Кусок абзаца справки: простой текст или адрес сайта, который открывается в браузере. */
+export type HelpChunk = { kind: 'text' | 'url'; text: string }

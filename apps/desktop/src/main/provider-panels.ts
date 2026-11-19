@@ -4,13 +4,18 @@ import { shell } from 'electron'
 
 import type { AgentPanelState } from '@shared/conversation'
 import type { FeedPatch } from '@shared/conversation-feed'
+import { KIMI_CAPABILITIES, ANTIGRAVITY_CAPABILITIES } from '@shared/panel-capabilities'
 import type { ConversationCall } from '@shared/panel-prefs'
 import type { ProviderId } from '@shared/providers'
 
+import type { StoredAcpAccount } from './acp/acp-account'
+import { AcpPanel } from './acp/acp-panel'
+import { antigravityAgent } from './antigravity/antigravity-agent'
 import { ClaudeService } from './claude/claude-service'
 import { CodexService } from './codex/codex-service'
 import type { ConnectorsService } from './connectors/connectors-service'
 import { broadcast } from './ipc/broadcast'
+import { kimiAgent } from './kimi/kimi-agent'
 import { OpenModelsService } from './opencode/opencode-service'
 import type { SoundsService } from './sounds/sounds-service'
 import { ELECTRON_CIPHER } from './storage/electron-cipher'
@@ -49,6 +54,8 @@ export type PanelObservers = {
 export type ProviderPanels = {
   claude: ClaudeService
   codex: CodexService
+  antigravity: AcpPanel
+  kimi: AcpPanel
   openModels: OpenModelsService
   /** Каналы agent:* находят панель по провайдеру. */
   registry: PanelRegistry
@@ -150,8 +157,51 @@ export const startProviderPanels = async (options: {
     join(userData, 'opencode'),
   )
 
+  /** События панели агента ACP: окну с провайдером, наблюдателям, звук - если не выключен. */
+  const acpEvents = (provider: 'antigravity' | 'kimi') => ({
+    onState: (state: AgentPanelState) => {
+      broadcast('agent:state', { provider, state })
+      observers.state(provider, state)
+    },
+    onFeed: (patch: FeedPatch) => {
+      broadcast('agent:feed', { provider, patch })
+      observers.feed(patch)
+    },
+    onCall: (call: ConversationCall) => {
+      observers.call(call)
+      if (!sounds.isMuted(call.reason)) broadcast('agent:call', { provider, call })
+    },
+    hooks: registry.hooks.forPanel(provider),
+  })
+  const antigravityRoot = join(userData, 'antigravity')
+  const antigravity = await AcpPanel.load(
+    new JsonFile<StoredPanel>(join(userData, 'antigravity.json')),
+    acpEvents('antigravity'),
+    {
+      agent: antigravityAgent(antigravityRoot),
+      capabilities: ANTIGRAVITY_CAPABILITIES,
+      root: antigravityRoot,
+      version: options.version,
+      accountFile: new JsonFile<StoredAcpAccount>(join(antigravityRoot, 'account.json')),
+    },
+  )
+  const kimiRoot = join(userData, 'kimi')
+  const kimi = await AcpPanel.load(
+    new JsonFile<StoredPanel>(join(userData, 'kimi.json')),
+    acpEvents('kimi'),
+    {
+      agent: kimiAgent(kimiRoot),
+      capabilities: KIMI_CAPABILITIES,
+      root: kimiRoot,
+      version: options.version,
+      accountFile: new JsonFile<StoredAcpAccount>(join(kimiRoot, 'account.json')),
+    },
+  )
+
   registry.add('claude', claude)
   registry.add('codex', codex)
+  registry.add('antigravity', antigravity)
+  registry.add('kimi', kimi)
   registry.add('opencode', openModels)
   // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
   claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
@@ -159,9 +209,11 @@ export const startProviderPanels = async (options: {
   // доверии на первом сообщении дома не будет (ADR 0059).
   void claude.trustProject(options.homeFolder)
   void codex.trustProject(options.homeFolder)
+  void antigravity.trustProject(options.homeFolder)
+  void kimi.trustProject(options.homeFolder)
   void openModels.trustProject(options.homeFolder)
 
-  return { claude, codex, openModels, registry }
+  return { claude, codex, antigravity, kimi, openModels, registry }
 }
 
 /**
@@ -173,11 +225,15 @@ export const connectorLinks = (panels: ProviderPanels) => ({
   serversChanged: (affects: (projectPath: string) => boolean) => {
     panels.claude.connectors.serversChanged(affects)
     panels.codex.connectors.serversChanged(affects)
+    panels.antigravity.connectors.serversChanged(affects)
+    panels.kimi.connectors.serversChanged(affects)
     panels.openModels.connectors.serversChanged(affects)
   },
   serverChanged: (serverName: string) => {
     panels.claude.connectors.serverChanged(serverName)
     panels.codex.connectors.serverChanged()
+    panels.antigravity.connectors.serverChanged()
+    panels.kimi.connectors.serverChanged()
     panels.openModels.connectors.serverChanged()
   },
 })
@@ -190,6 +246,10 @@ export const attachGateway = (panels: ProviderPanels, connectors: ConnectorsServ
   panels.claude.connectors.configFor = (projectPath, ideServers) =>
     connectors.mcpConfigFor(projectPath, ideServers)
   panels.codex.connectors.configFor = (projectPath, ideServers) =>
+    connectors.gatewayFor(projectPath, ideServers)
+  panels.antigravity.connectors.configFor = (projectPath, ideServers) =>
+    connectors.gatewayFor(projectPath, ideServers)
+  panels.kimi.connectors.configFor = (projectPath, ideServers) =>
     connectors.gatewayFor(projectPath, ideServers)
   panels.openModels.connectors.configFor = (projectPath, ideServers) =>
     connectors.gatewayFor(projectPath, ideServers)

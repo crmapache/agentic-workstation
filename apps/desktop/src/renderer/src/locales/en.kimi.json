@@ -1,0 +1,44 @@
+{
+  "agentPanel": {
+    "gitBashMissingText": "Kimi Code runs its commands in Git Bash. Install Git for Windows, then check again. If Git is in another folder, set KIMI_SHELL_PATH to its bash.exe and restart the IDE.",
+    "modes": {
+      "labels": {
+        "default": "Default",
+        "auto": "YOLO",
+        "plan": "Plan",
+        "bypassPermissions": "Auto"
+      },
+      "short": {
+        "default": "Ask",
+        "auto": "YOLO",
+        "plan": "Plan",
+        "bypassPermissions": "Auto"
+      },
+      "hints": {
+        "default": "Edits in the project go through, commands and connectors ask",
+        "auto": "Everything goes through, dangerous commands still ask",
+        "plan": "Kimi explores and plans, changes nothing",
+        "bypassPermissions": "Nothing asks. Only where mistakes are cheap"
+      }
+    },
+    "blocked": {
+      "trustText": "Kimi Code will read, edit and run commands in this folder, with this project's AGENTS.md. Trust only folders you know."
+    },
+    "permission": {
+      "allowAlways": "Allow for this chat"
+    },
+    "loginGate": {
+      "text": "Sign in with your Kimi account. Kimi opens the sign-in page in your browser and shows a code to enter there. The panel picks it up on its own.",
+      "openAgain": "Start again",
+      "finish": "Confirm the sign-in on the page - this screen closes by itself.",
+      "noTerminal": "The sign-in didn't go through. Try again."
+    },
+    "message": {
+      "rewind": "Restore code to here",
+      "rewindSub": "Files {{agent}} changed after this message go back. The conversation stays as it is"
+    },
+    "rewind": {
+      "title": "Restore code to this message"
+    }
+  }
+}

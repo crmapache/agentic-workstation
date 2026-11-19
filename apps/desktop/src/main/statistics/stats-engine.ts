@@ -152,17 +152,17 @@ export class StatsEngine {
 
   /**
    * Цены поменялись (PRICES_VERSION) - пересчитать стоимость ответов, которую считает таблица
-   * IDE (Claude, Codex). Стоимость открытых моделей записал сам OpenCode - её не трогаем: из
+   * IDE (PRICED_PROVIDERS). Стоимость открытых моделей записал сам OpenCode - её не трогаем: из
    * токенов её не восстановить.
    */
   private repriceIfNeeded(): void {
     if (readMeta(this.db, PRICES_KEY) === PRICES_VERSION) return
 
-    // Восемь аргументов явно: SQLite узнаёт число аргументов функции по её length.
+    // Девять аргументов явно: SQLite узнаёт число аргументов функции по её length.
     this.db.function(
       'stats_cost',
       { deterministic: true },
-      (provider, model, input, output, cacheRead, cacheWrite, cacheWrite1h, fast) =>
+      (provider, model, input, output, cacheRead, cacheWrite, cacheWrite1h, fast, ts) =>
         answerCostOf(String(provider), String(model), {
           input: Number(input),
           output: Number(output),
@@ -170,12 +170,13 @@ export class StatsEngine {
           cacheWrite: Number(cacheWrite),
           cacheWrite1h: Number(cacheWrite1h),
           fast: Number(fast) === 1,
+          ts: Number(ts),
         }),
     )
     inTransaction(this.db, () => {
       const update = this.db.prepare(
         `UPDATE answers SET cost = stats_cost(:provider, model, input, output, cache_read,
-           cache_write, cache_write_1h, fast)
+           cache_write, cache_write_1h, fast, ts)
          WHERE session IN (SELECT id FROM sessions WHERE provider = :provider)`,
       )
 

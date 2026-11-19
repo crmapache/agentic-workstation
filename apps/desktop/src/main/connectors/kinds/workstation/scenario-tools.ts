@@ -15,7 +15,7 @@ import {
   projectOf,
   recordArg,
   PROJECT_ARG,
-  providerArg,
+  unattendedProviderArg,
 } from './workstation-args'
 import { checkScenario, scenarioError } from './workstation-words'
 
@@ -177,7 +177,8 @@ export const SCENARIO_TOOLS: NativeTool<WorkstationPorts>[] = [
         inputs: { type: 'object', description: 'Answers to the inputs of the scenario.' },
         provider: {
           type: 'string',
-          description: 'claude, codex or opencode. Default: the scenario provider.',
+          description:
+            'claude, codex, kimi or opencode (antigravity works only in its own chat). Default: the scenario provider.',
         },
         worktree: {
           type: 'boolean',
@@ -204,7 +205,7 @@ export const SCENARIO_TOOLS: NativeTool<WorkstationPorts>[] = [
           weekday: weekdayArg(args),
           inputs: inputsArg(args),
           worktree: booleanArg(args, 'worktree', false),
-          provider: providerArg(args) ?? scenario.head.provider,
+          provider: unattendedProviderArg(args) ?? scenario.head.provider,
         }),
       )
 

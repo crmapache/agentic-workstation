@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { defaultUnattendedProvider } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { navigateFromHere } from '../../../lib/router.store'
 import { inputsReady, scenarioKey } from '../../../lib/scenarios.utils'
@@ -18,7 +19,7 @@ export const useStartScenario = (route: RouteOf<'startScenario'>) => {
   const queues = useQueues(agentId, projectKey).data
   const inventory = useInventory(agentId).data
   const start = useCommand(agentId, 'scenarios.start')
-  const providers = inventory?.providers.filter((one) => one.available) ?? []
+  const providers = inventory?.providers ?? []
   const [form, setForm] = useState<StartForm>({
     scenario: route.scenario ?? '',
     inputs: {},
@@ -27,7 +28,8 @@ export const useStartScenario = (route: RouteOf<'startScenario'>) => {
     provider: '',
   })
   const scenario = shelves.data?.scenarios.find((one) => scenarioKey(one) === form.scenario)
-  const provider = form.provider || providers[0]?.id || ''
+  // Пока человек не выбрал - первый, кто возьмёт работу без человека (не только для чата).
+  const provider = form.provider || defaultUnattendedProvider(providers)
   const openQueues = queues?.queues.filter((queue) => queue.closedAt === 0) ?? []
 
   useWatch(agentId, { kind: 'queues', scope: projectKey })

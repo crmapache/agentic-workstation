@@ -26,8 +26,8 @@ export type FileContext = {
 export type LinePlace = { ts: number; cwd: string; session: string }
 
 /**
- * Ответ модели. cost - стоимость, которую записал сам провайдер (OpenCode); у Claude и Codex
- * её нет - считает таблица цен IDE (pricing.ts).
+ * Ответ модели. cost - стоимость, которую записал сам провайдер (OpenCode); у остальных
+ * провайдеров её нет - считает таблица цен IDE (pricing.ts).
  */
 export type AnswerRow = LinePlace & AnswerFact & { key: number; subagent: boolean; cost?: number }
 

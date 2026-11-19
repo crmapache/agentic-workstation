@@ -151,6 +151,8 @@ export type ScenarioCode =
   | 'worktreeFailed'
   | 'worktreeDirty'
   | 'providerMissing'
+  /** Провайдер работает только в своём чате (Antigravity, ADR 0094): прогон без человека - нет. */
+  | 'chatOnly'
   | 'noClaude'
   | 'noCli'
   | 'untrusted'

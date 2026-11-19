@@ -19,7 +19,7 @@ export type MainViewId =
  * GUI провайдеров LLM в зоне 7 (правая панель), переключаются иконками зоны 3 (ADR 0083):
  * Claude Code, Codex, открытые модели. Какие из них уже есть - PROVIDER_VIEW_IDS.
  */
-export type ProviderViewId = 'claude-code' | 'codex' | 'open-models'
+export type ProviderViewId = 'claude-code' | 'codex' | 'antigravity' | 'kimi' | 'open-models'
 
 /** Область окна с видами: какой вид выбран и развёрнута ли она. Такова середина окна. */
 export type ViewAreaState<ViewId extends string> = {

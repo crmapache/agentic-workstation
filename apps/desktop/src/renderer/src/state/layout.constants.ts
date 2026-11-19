@@ -14,12 +14,20 @@ export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'inbox',
   'extensions',
 ]
-export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = ['claude-code', 'codex', 'open-models']
+export const PROVIDER_VIEW_IDS: readonly ProviderViewId[] = [
+  'claude-code',
+  'codex',
+  'antigravity',
+  'kimi',
+  'open-models',
+]
 
 /** Панель провайдера в полосе зоны 3: зов, звук и переход к разговору - в панель своего провайдера. */
 export const PROVIDER_VIEW_OF: Readonly<Record<ProviderId, ProviderViewId>> = {
   claude: 'claude-code',
   codex: 'codex',
+  antigravity: 'antigravity',
+  kimi: 'kimi',
   opencode: 'open-models',
 }
 

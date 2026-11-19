@@ -1,4 +1,4 @@
-import { isProviderId } from '@shared/providers'
+import { isProviderId, worksUnattended } from '@shared/providers'
 import type { Scenario, ScenarioScope } from '@shared/scenarios'
 
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
@@ -159,6 +159,9 @@ export class ShelfCommands {
 
     if (!path) return fail('notOpen')
     if (!isProviderId(provider)) return fail('refused', 'providerMissing')
+    // Прогон идёт без человека: провайдер только для чата (Antigravity, ADR 0094) - отказ своим
+    // словом, а не «провайдера нет»: он на машине, ему нельзя.
+    if (!worksUnattended(provider)) return fail('refused', 'chatOnly')
 
     return scenarioOutcome(await this.ports.scenarios.schedule(path, { ...hour, provider }))
   }

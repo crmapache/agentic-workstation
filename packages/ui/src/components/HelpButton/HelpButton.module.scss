@@ -12,3 +12,18 @@
   line-height: var(--line-height-normal);
   white-space: pre-line;
 }
+
+// Адрес в справке - как ссылка в ответе ИИ: цвет ссылки, подчёркивание по наведению. Длинный
+// адрес переносится где угодно, а не распирает окно.
+.link {
+  color: var(--color-info);
+  text-decoration: none;
+  text-underline-offset: var(--space-0-5);
+  overflow-wrap: anywhere;
+
+  @media (hover: hover) {
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

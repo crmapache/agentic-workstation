@@ -7,7 +7,8 @@ import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 import type { FeedItem } from '@shared/conversation-feed'
 
 import { toolItemsOf } from '../feed/codex-tools'
-import { previewOf, changesFrom, planCodeRevert, writeCodeRevert } from './codex-code-rewind'
+import { previewOf, planCodeRevert, writeCodeRevert } from '../../agents/changes/code-revert'
+import { changesFrom } from './codex-code-rewind'
 
 let dir = ''
 

@@ -1,4 +1,4 @@
-import { isProviderId } from '@shared/providers'
+import { isProviderId, worksUnattended } from '@shared/providers'
 import type { ProviderId } from '@shared/providers'
 import type { QueueHours } from '@shared/scenario-queues'
 import type { ProjectRef } from '@shared/workspace'
@@ -81,10 +81,24 @@ export const providerArg = (args: Record<string, unknown>): ProviderId | undefin
   const value = args['provider']
 
   if (value === undefined || value === null || value === '') return undefined
-  if (!isProviderId(value)) throw new ArgumentError('"provider" is claude, codex or opencode')
+  if (!isProviderId(value))
+    throw new ArgumentError('"provider" is claude, codex, antigravity, kimi or opencode')
 
   return value
 }
+
+/** Провайдер работы без человека (сценарий, очередь, задание): Antigravity - нет (ADR 0094). */
+export const unattendedProviderArg = (args: Record<string, unknown>): ProviderId | undefined => {
+  const value = providerArg(args)
+
+  if (value && !worksUnattended(value)) throw new ArgumentError(CHAT_ONLY)
+
+  return value
+}
+
+/** Отказ словами: Antigravity работает только в чате человека (условия Google). */
+export const CHAT_ONLY =
+  'antigravity works only in its own chat, typed by the person: Google does not allow it to run unattended or take messages from other agents'
 
 const CLOCK = /^(\d{1,2}):(\d{2})$/
 

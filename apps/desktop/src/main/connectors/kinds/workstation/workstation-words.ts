@@ -23,6 +23,8 @@ const SCENARIO_WORDS: Record<ScenarioCode, string> = {
   worktreeFailed: 'The worktree could not be made or is gone.',
   worktreeDirty: 'The worktree has uncommitted changes.',
   providerMissing: 'That provider is not in the IDE.',
+  chatOnly:
+    'antigravity works only in its own chat, typed by the person: Google does not allow it to run unattended.',
   noClaude: 'Claude Code CLI is not found on this computer.',
   noCli: 'The CLI of that provider is not found on this computer.',
   untrusted:
@@ -36,6 +38,8 @@ const SCENARIO_WORDS: Record<ScenarioCode, string> = {
 }
 
 const TASK_WORDS: Record<TaskCode, string> = {
+  chatOnly:
+    'antigravity works only in its own chat, typed by the person: Google does not allow it to run unattended.',
   taskGone: 'There is no such task.',
   runGone: 'There is no such run.',
   runBusy: 'The run is busy: wait until it finishes.',

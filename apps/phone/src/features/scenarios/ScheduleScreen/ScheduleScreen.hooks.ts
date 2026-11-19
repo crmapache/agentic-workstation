@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { defaultUnattendedProvider } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { navigateFromHere } from '../../../lib/router.store'
 import { inputsReady, scenarioKey } from '../../../lib/scenarios.utils'
@@ -25,8 +26,9 @@ export const useScheduleScreen = (route: RouteOf<'schedule'>) => {
   const scenario = shelves.data?.scenarios.find(
     (one) => scenarioKey(one) === scenarioKey({ scope, id: scenarioId }),
   )
-  const providers = inventory?.providers.filter((one) => one.available) ?? []
-  const provider = form.provider || providers[0]?.id || ''
+  const providers = inventory?.providers ?? []
+  // Пока человек не выбрал - первый, кто возьмёт работу без человека (не только для чата).
+  const provider = form.provider || defaultUnattendedProvider(providers)
   const args = scenario ? scheduleArgs(projectKey, scenario, { ...form, provider }) : null
 
   const update = (patch: Partial<ScheduleForm>) => setForm((current) => ({ ...current, ...patch }))

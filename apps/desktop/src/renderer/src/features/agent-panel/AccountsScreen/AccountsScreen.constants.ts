@@ -12,6 +12,7 @@ export const OUTCOME_VIEWS: Record<AccountOutcome, { tone: 'info' | 'danger'; ke
   'open-failed': { tone: 'danger', key: 'agentPanel.accounts.openFailed' },
   'logout-failed': { tone: 'danger', key: 'agentPanel.accounts.logoutFailed' },
   'design-no-account': { tone: 'danger', key: 'agentPanel.accounts.designNoAccount' },
+  'sign-in-failed': { tone: 'danger', key: 'agentPanel.accounts.acp.failed' },
 }
 
 /**

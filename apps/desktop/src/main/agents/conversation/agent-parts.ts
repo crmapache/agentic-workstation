@@ -79,6 +79,11 @@ export type AgentShells = {
 export type AgentSession = {
   readonly isAlive: boolean
   readonly isStopping: boolean
+  /**
+   * Принимает ли сессия сообщение посреди хода. false - сообщение ждёт в очереди разговора до
+   * конца хода (агенты ACP); нет поля - принимает (Claude, Codex, OpenCode).
+   */
+  readonly steers?: boolean
   /** Сообщение человека; steering - посреди идущего хода. */
   send: (message: Outgoing, steering: boolean) => void
   /** Человек написал в чат, пока ход стоит на вопросе: сообщение и отказ - в порядке CLI. */

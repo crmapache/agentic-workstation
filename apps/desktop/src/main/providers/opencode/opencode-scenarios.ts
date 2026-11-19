@@ -5,28 +5,16 @@ import { titleOf, TITLE_MS, titlePrompt, TITLE_SCHEMA } from '../scenario-titles
 import { ProviderAuthor } from '../run-stream/provider-author'
 import { setRunJournals } from '../run-stream/run-history'
 import { RunJournal } from '../run-stream/run-journal'
+import { SINGLE_ACCOUNT } from '../run-stream/single-account'
 import type { OpenModelsService } from '../../opencode/opencode-service'
 import { releaseHead } from '../../agents/history/released-runs'
 import { makeThumbnail } from '../../agents/images/thumbnail'
 import { OpenCodeFeedSync } from '../../opencode/conversation/opencode-feed'
-import type { EngineAccounts } from '../../scenarios/engine/engine-core'
 import { askOpenCodeOnce } from './opencode-ask'
 import { OpenCodeRunProcess } from './opencode-run-process'
 
 /** Папка журналов сессий прогонов OpenCode в данных IDE (run-journal.ts). */
 export const OPENCODE_RUNS_DIR = join('run-sessions', 'opencode')
-
-/**
- * Аккаунтов у открытых моделей нет (ключи подключений - не вход): прогон идёт на одном «аккаунте»
- * без имени, выручки на лимите нет - упавший на лимите провайдера ход - обычный сбой.
- */
-const NO_ACCOUNTS: EngineAccounts = {
-  current: () => '',
-  label: () => '',
-  candidates: () => [],
-  same: (left, right) => left === right,
-  noteRefused: () => undefined,
-}
 
 /**
  * Открытые модели (OpenCode) как исполнитель сценариев и заданий (docs/plan-providers/50-ide.md):
@@ -83,7 +71,7 @@ export const openCodeScenarioProvider = (
         : null
     },
     defaults,
-    accounts: NO_ACCOUNTS,
+    accounts: SINGLE_ACCOUNT,
     suggestTitle: async (description) => {
       const answer = await askOpenCodeOnce(host, {
         prompt: titlePrompt(description),

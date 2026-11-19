@@ -23,6 +23,13 @@ export type ClaudeAccount = {
 /** Аккаунт из amazing-claude-code, который можно взять сюда без повторного входа. */
 export type ImportableAccount = { sourceId: string; alias: string; email: string; plan: string }
 
+/**
+ * Шаг входа агента ACP (ADR 0092): адрес страницы входа и что сделать на ней. needsCode - страница
+ * покажет код, его надо вставить в окно IDE (`agy`); userCode - код устройства, который надо
+ * ввести на странице (Kimi); opened - CLI сам открыл страницу в браузере.
+ */
+export type AcpSignInStep = { url: string; userCode: string; needsCode: boolean; opened?: boolean }
+
 export type AccountsState = {
   /** Выбранный аккаунт: на нём идут все разговоры. */
   current: string
@@ -44,6 +51,10 @@ export type AccountsState = {
    * другом пойдёт сразу. Нет записи - отказа не было или он прошёл.
    */
   refusedUntil?: Record<string, number> | undefined
+  /** Вход агента ACP идёт: адрес и код (окно ведёт человека по шагу). */
+  step?: AcpSignInStep | null | undefined
+  /** Где поднять тариф (Antigravity: `_meta.antigravity.tier.upgradeUri`). */
+  upgradeUrl?: string | undefined
 }
 
 /**
@@ -60,3 +71,5 @@ export type AccountOutcome =
   | 'open-failed'
   | 'logout-failed'
   | 'design-no-account'
+  /** CLI агента ACP отказал во входе (неверный код со страницы, вход отклонён). */
+  | 'sign-in-failed'

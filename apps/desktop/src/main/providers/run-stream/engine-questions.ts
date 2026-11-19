@@ -44,8 +44,9 @@ export const engineQuestionOf = (pending: PendingRequest): EngineQuestion => {
     }
   }
 
+  // План - как его показывает Claude Code: голова судит одобрение по тексту плана.
   if (pending.kind !== 'permission') {
-    return { toolName: 'ExitPlanMode', input: {}, description: '' }
+    return { toolName: 'ExitPlanMode', input: { plan: pending.plan }, description: '' }
   }
 
   const { action, description } = pending

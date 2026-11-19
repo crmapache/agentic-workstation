@@ -5,7 +5,9 @@ import type { ProviderId } from '@shared/providers'
 
 import type { StatsStore } from '../stats-store'
 import { TimedBatch } from '../timed-batch'
+import { antigravityJournal } from '../antigravity/antigravity-journal'
 import { codexJournal } from '../codex/codex-journal'
+import { kimiJournal } from '../kimi/kimi-journal'
 import { OpenCodeSource } from '../opencode/opencode-source'
 import { claudeJournal } from '../transcripts/claude-journal'
 import { RowWriter } from '../transcripts/row-writer'
@@ -28,10 +30,16 @@ type KnownFile = { id: number; offset: number; carry: string | null }
 /** Файл журнала в работе прохода: чей он и чем его разбирать. */
 type Work = JournalFile & { provider: ProviderId; format: JournalFormat }
 
-/** JSONL-журналы провайдеров; OpenCode держит разговоры в базе - он читается отдельно. */
-const JOURNALS: Partial<Record<ProviderId, JournalFormat>> = {
+/**
+ * JSONL-журналы провайдеров - таблица на всех (ADR 0093); OpenCode держит разговоры в базе -
+ * он читается отдельно (null).
+ */
+const JOURNALS: Record<ProviderId, JournalFormat | null> = {
   claude: claudeJournal,
   codex: codexJournal,
+  antigravity: antigravityJournal,
+  kimi: kimiJournal,
+  opencode: null,
 }
 
 /**

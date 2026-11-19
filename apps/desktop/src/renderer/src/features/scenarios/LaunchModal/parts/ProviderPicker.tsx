@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import type { ProviderInfo } from '@shared/providers'
+import { isProviderId } from '@shared/providers'
 
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
@@ -11,19 +11,23 @@ import { SelectField } from '@agentic-workstation/ui/SelectField'
 import styles from '../LaunchModal.module.scss'
 import type { LaunchPartProps } from '../LaunchModal.types'
 import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
+import { providerChoices, providerRefusal } from '../../../../lib/provider-choices'
 
 /**
- * Кто исполняет сценарий - провайдер ИИ. Сейчас он один (Claude Code), но выбор уже здесь: у
- * каждого элемента очереди свой провайдер. Того, кого нет на машине, выбрать нельзя - и под
- * кнопкой сказано почему, если другого нет.
+ * Кто исполняет сценарий - провайдер ИИ, у каждого элемента очереди свой. Варианты - общим
+ * правилом окна (provider-choices): кого нет на машине и кто работает только в своём чате
+ * (Antigravity, ADR 0094), выбрать нельзя, а если таким вышел выбор по умолчанию - под кнопкой
+ * сказано почему.
  */
 export const ProviderPicker = ({ form }: LaunchPartProps) => {
   const { t } = useTranslation()
   const popover = usePopover()
   const { provider } = form
+  const refusal = provider && providerRefusal(provider, t)
 
-  const reason = (one: ProviderInfo): string | undefined =>
-    one.available ? undefined : t(`scenarios.launch.unavailable.${one.unavailable ?? 'noCli'}`)
+  const handlePick = (value: string) => {
+    if (isProviderId(value)) form.setProviderId(value)
+  }
 
   return (
     <div className={styles.group}>
@@ -36,24 +40,22 @@ export const ProviderPicker = ({ form }: LaunchPartProps) => {
       <Popover {...popover.popoverProps} width="field">
         {popover.isOpen && (
           <Menu label={t('scenarios.launch.provider')} autoFocus>
-            {form.providers.map((one) => (
+            {providerChoices(form.providers, t).map((one) => (
               <MenuItem
-                key={one.id}
+                key={one.value}
                 label={one.label}
-                description={reason(one)}
+                description={one.description}
                 wrapDescription
                 selection="single"
-                checked={one.id === provider?.id}
-                disabled={!one.available}
-                onSelect={() => form.setProviderId(one.id)}
+                checked={one.value === provider?.id}
+                disabled={one.disabled}
+                onSelect={() => handlePick(one.value)}
               />
             ))}
           </Menu>
         )}
       </Popover>
-      {provider && !provider.available && (
-        <ScenarioAlert tone="danger">{reason(provider) ?? ''}</ScenarioAlert>
-      )}
+      {refusal && <ScenarioAlert tone="danger">{refusal}</ScenarioAlert>}
     </div>
   )
 }

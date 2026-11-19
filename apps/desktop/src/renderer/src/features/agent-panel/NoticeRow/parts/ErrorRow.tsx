@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
+import { ERROR_TITLE_KEYS } from '../NoticeRow.constants'
 import styles from '../NoticeRow.module.scss'
 import type { NoticeItemProps } from '../NoticeRow.types'
 import { useFeedStore } from '../../feed.store'
@@ -12,7 +13,7 @@ import { SignInActions } from './SignInActions'
 
 /**
  * Ошибка, как в ACC: красная плашка с текстом CLI (адреса и пути в нём - ссылки) и
- * крестиком. Протухший вход - кнопки войти и сменить аккаунт, отказ шлюза из-за параметра
+ * крестиком; у знакомых сбоев (не вошёл, квота, отказ по условиям) - заголовок своими словами. Протухший вход - кнопки войти и сменить аккаунт, отказ шлюза из-за параметра
  * выборки - объяснение (как в ACC): параметр послала не панель, а шлюз или прокси из
  * настроек. Но только у живой записи: у прочитанной из истории входить и чинить уже нечего.
  */
@@ -24,12 +25,8 @@ export const ErrorRow = ({ item }: NoticeItemProps) => {
   const canSignIn = usePanelCapabilities().accounts !== 'none'
   // Форк не удалось разрезать на выбранном сообщении - он несёт весь разговор (ACC).
   const text = item.code === 'fork-whole' ? t('agentPanel.rewind.forkWhole') : item.detail
-  const title =
-    item.code === 'start-failed'
-      ? t('agentPanel.notice.startFailed')
-      : item.code === 'not-logged-in'
-        ? t('agentPanel.notice.notLoggedIn')
-        : ''
+  const titleKey = ERROR_TITLE_KEYS[item.code]
+  const title = titleKey ? t(titleKey) : ''
 
   const handleDismiss = () => dismiss(item.id)
 

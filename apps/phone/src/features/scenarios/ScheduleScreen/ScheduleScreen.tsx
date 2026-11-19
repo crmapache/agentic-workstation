@@ -4,6 +4,7 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
 import { Switch } from '@agentic-workstation/ui/Switch'
 
+import { unattendedProviderOptions } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { failureText } from '../../../state/commands.utils'
 import { LinkWait } from '../../../shell/LinkWait/LinkWait'
@@ -22,6 +23,7 @@ export const ScheduleScreen = ({ route }: { route: RouteOf<'schedule'> }) => {
   const { t } = useTranslation()
   const screen = useScheduleScreen(route)
   const { shelves, scenario, form, update } = screen
+  const providerOptions = unattendedProviderOptions(t, screen.providers)
 
   return (
     <Screen
@@ -58,11 +60,11 @@ export const ScheduleScreen = ({ route }: { route: RouteOf<'schedule'> }) => {
               onChange={(worktree) => update({ worktree })}
             />
           </Section>
-          {screen.providers.length > 1 && (
+          {providerOptions.length > 1 && (
             <Section size="sm" title={t('newConversation.provider')}>
               <OptionList
                 label={t('newConversation.provider')}
-                options={screen.providers.map((one) => ({ value: one.id, label: one.label }))}
+                options={providerOptions}
                 isSelected={(value) => value === screen.provider}
                 onSelect={(provider) => update({ provider })}
               />

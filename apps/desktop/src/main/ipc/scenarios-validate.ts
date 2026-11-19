@@ -1,5 +1,5 @@
 import type { ProviderId } from '@shared/providers'
-import { PROVIDER_IDS } from '@shared/providers'
+import { UNATTENDED_PROVIDER_IDS } from '@shared/providers'
 import { DAY_MINUTES } from '@shared/queue-hours'
 import type { QueueHours, QueueAction, QueueTarget, WorktreeAction } from '@shared/scenario-queues'
 import type { ScenarioRunControl, ScenarioHourRequest } from '@shared/scenario-view'
@@ -53,8 +53,9 @@ export const parseInputs = (value: unknown): Record<string, string> => {
   )
 }
 
+/** Провайдер прогона, задания или сценария: только тот, кому можно работать без человека (ADR 0094). */
 export const parseProvider = (value: unknown): ProviderId =>
-  assertOneOf(value, PROVIDER_IDS, 'provider')
+  assertOneOf(value, UNATTENDED_PROVIDER_IDS, 'provider')
 
 export const parseTarget = (value: unknown): QueueTarget => {
   const record = asRecord(value, 'target')

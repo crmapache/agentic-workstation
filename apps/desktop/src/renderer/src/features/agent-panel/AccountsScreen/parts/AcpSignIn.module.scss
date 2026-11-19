@@ -1,0 +1,53 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.card,
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.name {
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-md);
+}
+
+.plan,
+.hint {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.link {
+  color: var(--color-fg-accent);
+  font-size: var(--font-size-sm);
+}
+
+// Код устройства Kimi: его переписывают на странице входа глазами.
+.code {
+  color: var(--color-fg-strong);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.1em;
+}
+
+.codeForm {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

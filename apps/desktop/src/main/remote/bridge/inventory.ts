@@ -77,6 +77,8 @@ const capsOf = (info: ProviderInfo, state: AgentPanelState): ProviderCaps => {
     stopTask: capabilities.stopTask,
     rewind: capabilities.rewind,
     rewindScopes: [...capabilities.rewindScopes],
+    // Только свой чат (ADR 0094): телефон гасит его в выборе прогона и часа, а не узнаёт отказом.
+    chatOnly: info.chatOnly === true,
   }
 }
 

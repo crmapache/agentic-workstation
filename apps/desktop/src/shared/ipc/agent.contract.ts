@@ -129,6 +129,8 @@ export type AgentInvokeContract = {
   /** Вход аккаунта провайдера с экрана входа; ответ - сразу, конец входа придёт состоянием. */
   'agent:signIn': { request: PanelRequest & { accountId: string }; response: AgentPanelState }
   'agent:cancelSignIn': { request: PanelRequest; response: AgentPanelState }
+  /** Код со страницы входа - CLI агента, который его ждёт (`agy`, ADR 0092). */
+  'agent:submitSignInCode': { request: PanelRequest & { code: string }; response: AgentPanelState }
   /** Вошёл ли аккаунт в работе - заново (человек мог войти мимо панели). */
   'agent:checkSignIn': { request: PanelRequest; response: AgentPanelState }
   /** Выйти из аккаунта строки (у Claude - только из обычного входа). */
@@ -281,6 +283,7 @@ export const AGENT_CHANNELS = {
   'agent:refreshUsage': true,
   'agent:signIn': true,
   'agent:cancelSignIn': true,
+  'agent:submitSignInCode': true,
   'agent:checkSignIn': true,
   'agent:signOut': true,
   'agent:addAccount': true,

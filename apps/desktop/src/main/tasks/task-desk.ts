@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 
 import type { ProviderId } from '@shared/providers'
+import { worksUnattended } from '@shared/providers'
 import type { Task, TaskRun, TaskCode, TaskFailure, TaskTrigger } from '@shared/tasks'
 import { HOUR_MS } from '@shared/time-units'
 
@@ -224,6 +225,12 @@ export class TaskDesk {
   }
 
   private async raise(run: TaskRun, task: Task | null, text: string, resume: boolean) {
+    // Провайдер только для чата (Antigravity, ADR 0094): задание без человека - отказ в точке
+    // запуска, а не только в окне (файл заданий мог прийти откуда угодно).
+    if (!worksUnattended(run.provider)) {
+      return this.ended(resume ? run : { ...run, sessionId: '' }, 'chatOnly')
+    }
+
     const provider = this.host.provider(run.provider)
     const refused = provider ? await this.refusal(run.projectPath, provider) : 'noCli'
 

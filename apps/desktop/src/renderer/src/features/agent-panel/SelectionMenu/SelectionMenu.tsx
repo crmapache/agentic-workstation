@@ -29,7 +29,9 @@ const keepSelection = (event: MouseEvent) => event.preventDefault()
 export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuProps) => {
   const { t } = useTranslation()
   const { fork } = useConversationActions()
-  const canFork = usePanelCapabilities().fork
+  // Форк с выделенного места - только у провайдера, который режет разговор по сообщению.
+  const { fork: offersFork, forkAtMessage } = usePanelCapabilities()
+  const canFork = offersFork && forkAtMessage
   const insertChip = usePanelStore((store) => store.insertChip)
   const { selection, clear } = useFeedSelection(areaRef)
   const menuRef = useRef<HTMLDivElement>(null)

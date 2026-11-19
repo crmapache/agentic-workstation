@@ -1,7 +1,14 @@
 /**
- * Строки JSON-RPC `codex app-server` (без поля `jsonrpc`, по объекту на строку). Разбор -
- * чистые функции: процесс (app-server-process.ts) только раскладывает строки по видам.
+ * Строки JSON-RPC построчно, по объекту на строку: `codex app-server` пишет без поля
+ * `jsonrpc`, агенты ACP (ADR 0092) - с `"jsonrpc": "2.0"`. Разбор одинаковый и поля версии не
+ * требует; писать его или нет, решает dialect. Чистые функции: процессы только раскладывают
+ * строки по видам.
  */
+
+/** Как писать строки: Codex - без поля версии, JSON-RPC 2.0 (ACP) - с ним. */
+export type RpcDialect = 'bare' | 'jsonrpc2'
+
+const head = (dialect: RpcDialect) => (dialect === 'jsonrpc2' ? { jsonrpc: '2.0' } : {})
 
 export type RpcId = number | string
 
@@ -10,7 +17,8 @@ export type RpcResponse = {
   kind: 'response'
   id: RpcId
   result: unknown
-  error: { code: number; message: string } | null
+  /** data - подробности сервера (у ACP «Internal error» настоящая причина - там). */
+  error: { code: number; message: string; data?: unknown } | null
 }
 
 /** Уведомление сервера: событие без ответа. */
@@ -33,6 +41,7 @@ const errorOf = (value: unknown): RpcResponse['error'] => {
   return {
     code: typeof value['code'] === 'number' ? value['code'] : 0,
     message: typeof value['message'] === 'string' ? value['message'] : '',
+    ...(value['data'] !== undefined && { data: value['data'] }),
   }
 }
 
@@ -66,15 +75,25 @@ export const parseRpcLine = (line: string): RpcLine | null => {
 }
 
 /** Наш запрос строкой. */
-export const requestLine = (id: number, method: string, params: unknown): string =>
-  `${JSON.stringify(params === undefined ? { id, method } : { id, method, params })}\n`
+export const requestLine = (
+  id: number,
+  method: string,
+  params: unknown,
+  dialect: RpcDialect = 'bare',
+): string =>
+  `${JSON.stringify({ ...head(dialect), id, method, ...(params !== undefined && { params }) })}\n`
 
 /** Наше уведомление строкой. */
-export const notificationLine = (method: string, params?: unknown): string =>
-  `${JSON.stringify(params === undefined ? { method } : { method, params })}\n`
+export const notificationLine = (
+  method: string,
+  params?: unknown,
+  dialect: RpcDialect = 'bare',
+): string =>
+  `${JSON.stringify({ ...head(dialect), method, ...(params !== undefined && { params }) })}\n`
 
 /** Ответ на запрос сервера строкой: результат или ошибка. */
 export const responseLine = (
   id: RpcId,
   outcome: { result: unknown } | { error: { code: number; message: string } },
-): string => `${JSON.stringify({ id, ...outcome })}\n`
+  dialect: RpcDialect = 'bare',
+): string => `${JSON.stringify({ ...head(dialect), id, ...outcome })}\n`

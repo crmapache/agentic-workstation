@@ -1,6 +1,7 @@
 import { effortLevelOf } from '@shared/conversation'
 import type { ConversationOptions } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
+import { worksUnattended } from '@shared/providers'
 
 import { numberArg, stringArg, ArgumentError } from '../native-tools'
 import type { NativeTool } from '../native-tools'
@@ -10,6 +11,7 @@ import { ownerOf, feedText, conversationView } from './conversation-views'
 import {
   timeOf,
   callerOf,
+  CHAT_ONLY,
   projectOf,
   listScopeOf,
   PROJECT_ARG,
@@ -19,7 +21,8 @@ import {
 
 const PROVIDER_ARG = {
   type: 'string',
-  description: 'claude (Claude Code), codex or opencode (open models). Default claude.',
+  description:
+    'claude (Claude Code), codex, antigravity (Google Antigravity), kimi (Kimi Code) or opencode (open models). Default claude.',
 }
 
 const panelOf = (ports: WorkstationPorts, provider: ProviderId): ConversationsPort => {
@@ -46,6 +49,9 @@ const optionsOf = (args: Record<string, unknown>): ConversationOptions => {
  * после хода. Посреди чужого хода или вопроса оно ответило бы за человека.
  */
 const deliver = async (port: ConversationsPort, conversationId: string, text: string) => {
+  // Сообщение от агента - не от человека: Antigravity его не берёт (ADR 0094).
+  if (!worksUnattended(port.provider)) throw new ArgumentError(CHAT_ONLY)
+
   const conversation = port.getState().conversations.find((one) => one.id === conversationId)
   const free = conversation?.status === 'idle' && !conversation.pending
   const message = { text, images: [] }
@@ -61,7 +67,7 @@ export const CONVERSATION_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'list_conversations',
     description:
-      'Open conversations (tabs) of the provider panels: Claude Code, Codex, open models. Status idle, running or waiting (on a permission, question or plan of the person). The one marked you is this conversation.',
+      'Open conversations (tabs) of the provider panels: Claude Code, Codex, Antigravity, Kimi Code, open models. Status idle, running or waiting (on a permission, question or plan of the person). The one marked you is this conversation.',
     access: 'read',
     inputSchema: {
       type: 'object',

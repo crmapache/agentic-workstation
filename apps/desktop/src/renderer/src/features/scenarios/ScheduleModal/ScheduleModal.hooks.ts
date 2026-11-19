@@ -7,6 +7,7 @@ import type { Scenario } from '@shared/scenarios'
 import type { ScheduledHour } from '../scenarios-hours.utils'
 import { useScenarioActions } from '../scenarios.actions'
 import { useScenariosStore } from '../scenarios.store'
+import { takesIdeWork } from '../../../lib/provider-choices'
 import { useProviders, effectiveProvider } from '../../../state/providers.queries'
 import type { ScheduleFormProps } from './ScheduleModal.types'
 import { scenarioOf } from './ScheduleModal.utils'
@@ -23,14 +24,16 @@ export const useScheduleForm = ({ project, request, scenarios, initial }: Schedu
   const [saving, setSaving] = useState(false)
   const scenario = scenarioOf(scenarios, form.scenario)
   const providers = useProviders().data ?? []
-  // Пока человек не выбрал сам - провайдер сценария, если он на месте, иначе первый на месте.
+  // Пока человек не выбрал сам - провайдер сценария, если он возьмёт работу, иначе первый, кто возьмёт.
   const provider = effectiveProvider(providers, form.provider, scenario?.head.provider ?? null)
   const isMissing = scenario ? missingInputs(scenario, form.values).length > 0 : true
+  // Час, сохранённый под провайдером только для чата (ADR 0094), не сохранить снова: он бы не пошёл.
   const canSave =
     scenario !== null &&
     isRunnable(scenario) &&
     !isMissing &&
-    provider?.available === true &&
+    provider !== null &&
+    takesIdeWork(provider) &&
     !saving
 
   const save = async () => {

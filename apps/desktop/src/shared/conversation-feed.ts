@@ -73,6 +73,11 @@ export type ToolAction =
   | { kind: 'plan'; plan: string }
   | { kind: 'question'; questions: string[] }
   | { kind: 'todo' }
+  /**
+   * Артефакт агента (Antigravity: план, отчёт, список задач - файл в папке разговора): описание
+   * и путь; review - агент ждёт отзыва человека (ADR 0092).
+   */
+  | { kind: 'artifact'; path: string; summary: string; review: boolean }
   | { kind: 'other'; target: string; path: string }
 
 export type ToolActionKind = ToolAction['kind']
@@ -317,6 +322,10 @@ export type NoticeCode =
   | 'cli-error'
   | 'not-logged-in'
   | 'rate-limited'
+  /** Квота провайдера кончилась (у `agy` - на модель): detail - его слова. */
+  | 'quota-exhausted'
+  /** Провайдер отказал по своим условиям (Google: `403 TOS_VIOLATION`); повторять нельзя. */
+  | 'terms-blocked'
   | 'rewound'
   | 'forked'
   /**

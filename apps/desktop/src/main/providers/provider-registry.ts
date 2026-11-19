@@ -1,6 +1,6 @@
 import type { ModelInfo, AgentPanelState } from '@shared/conversation'
 import type { ProviderId, ProviderInfo, ProviderModel } from '@shared/providers'
-import { PROVIDER_IDS } from '@shared/providers'
+import { PROVIDER_IDS, worksUnattended } from '@shared/providers'
 
 import type { ClaudeService } from '../claude/claude-service'
 import type { AgentPanel } from '../agents/panel/agent-panel'
@@ -8,10 +8,21 @@ import type { PanelRegistry } from '../agents/panel/panel-registry'
 import { claudeProvider, claudeProviderOf } from './claude/claude-provider'
 
 /** Имена провайдеров для всего, что не панель (как подписи их панелей). */
-const LABELS: Record<Exclude<ProviderId, 'claude'>, string> = {
+const LABELS: Record<ProviderId, string> = {
+  claude: 'Claude Code',
   codex: 'Codex',
+  antigravity: 'Antigravity',
+  kimi: 'Kimi Code',
   opencode: 'Open models',
 }
+
+/** Имя провайдера вне его панели: ещё и словами сбоя прогона, которые движок покажет человеку. */
+export const providerLabel = (provider: ProviderId): string => LABELS[provider]
+
+/** Провайдеры, у которых панель - только ядро AgentPanel (не Claude Code). */
+export const PANEL_PROVIDERS = PROVIDER_IDS.filter(
+  (id): id is Exclude<ProviderId, 'claude'> => id !== 'claude',
+)
 
 /** Модель панели - моделью провайдера: уровни усилия, «по умолчанию» и группа едут с ней. */
 const modelOf = (model: ModelInfo): ProviderModel => ({
@@ -44,6 +55,7 @@ export const panelProviderOf = (
         models: state.models.map(modelOf),
         modes: state.capabilities.modes,
         efforts: state.capabilities.efforts,
+        ...(!worksUnattended(provider) && { chatOnly: true }),
       }
 
 /** Что из состояния панели нужно провайдеру. */
@@ -53,24 +65,23 @@ type PanelFacts = Pick<AgentPanelState, 'cli' | 'models' | 'prefs' | 'capabiliti
 export const providerOf = (provider: ProviderId, state: PanelFacts): ProviderInfo | null =>
   provider === 'claude' ? claudeProviderOf(state) : panelProviderOf(provider, state)
 
-/** Откуда берутся провайдеры: панель Claude и панели остальных, какие есть. */
+/** Откуда берутся провайдеры: панель Claude и панели остальных, какие есть в IDE. */
 export type ProviderSources = {
   claude: ClaudeService
-  codex?: AgentPanel | undefined
-  opencode?: AgentPanel | undefined
+  panel: (id: Exclude<ProviderId, 'claude'>) => AgentPanel | undefined
 }
 
 /**
  * Провайдеры ИИ для окна (docs/plan-providers/50-ide.md): кто есть, на месте ли, на каких
  * моделях, с какими режимами и уровнями. CLI Claude ищется заново на каждый вопрос: его могли
- * поставить, пока IDE открыта; у Codex и OpenCode, если ещё не искали, - поиск сейчас.
+ * поставить, пока IDE открыта; у остальных, если ещё не искали, - поиск сейчас.
  */
 export const listProviders = async (sources: ProviderSources): Promise<ProviderInfo[]> => {
   const { claude } = sources
   const cli = await claude.cli.locate()
   const others = await Promise.all(
-    (['codex', 'opencode'] as const).map(async (id) => {
-      const panel = sources[id]
+    PANEL_PROVIDERS.map(async (id) => {
+      const panel = sources.panel(id)
 
       if (!panel) return null
       if (panel.getState().cli === 'unknown') await panel.recheckCli()

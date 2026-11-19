@@ -10,7 +10,8 @@ import { pairingUrl, parsePairingFragment } from './pairing-url'
 import { MAX_PARTS, splitIntoParts } from './parts'
 import { parseHandshake, parsePhoneMessage } from './phone-messages'
 import { splitPlaceholders } from './placeholders'
-import { isFeedStub } from './wire-types'
+import type { ProviderCaps } from './wire-types'
+import { isFeedStub, takesUnattendedWork } from './wire-types'
 
 const AGENT = 'A'.repeat(22)
 
@@ -388,5 +389,28 @@ describe('лента на телефоне', () => {
     // «far» уже считали заплатки - их число живое; «old» знает только страница.
     expect(prepended?.steps).toEqual({ call: 401, far: 9, old: 3 })
     expect(prepended?.items.map((one) => one.id)).toEqual(['far', 'call'])
+  })
+})
+
+describe('провайдер для работы без человека (ADR 0094)', () => {
+  const caps = (over: Partial<ProviderCaps>): ProviderCaps => ({
+    id: 'claude',
+    label: 'Claude Code',
+    available: true,
+    models: [],
+    efforts: [],
+    permissionModes: ['default'],
+    ...over,
+  })
+
+  it('только для чата - нет; не на машине - нет', () => {
+    expect(takesUnattendedWork(caps({ id: 'antigravity', chatOnly: true }))).toBe(false)
+    expect(takesUnattendedWork(caps({ available: false }))).toBe(false)
+    expect(takesUnattendedWork(caps({ chatOnly: false }))).toBe(true)
+  })
+
+  it('IDE старше правила флага не шлёт - можно всё, что на машине', () => {
+    expect(takesUnattendedWork(caps({}))).toBe(true)
+    expect(parseAgentMessage({ p: 1, k: 'inventory', providers: [caps({})] })).not.toBeNull()
   })
 })

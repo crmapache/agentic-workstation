@@ -183,11 +183,11 @@ interface Editor {
   open(path: string, options?: { project?: string; line?: number }): Promise<void>
 }
 
-type Provider = 'claude' | 'codex' | 'opencode'
+type Provider = 'claude' | 'codex' | 'antigravity' | 'kimi' | 'opencode'
 
 interface Agent {
   /**
-   * Before a message of the person goes to the model (Claude Code, Codex, open models):
+   * Before a message of the person goes to the model (Claude Code, Codex, Antigravity, Kimi Code, open models):
    * return new text, or nothing to keep it. Slash commands are not shown to you. 3 s limit.
    */
   onBeforeSend(listener: (message: { conversationId: string; provider: Provider; projectPath: string; text: string }) => unknown): Promise<Disposable>

@@ -2,6 +2,7 @@ import { sep, join } from 'node:path'
 
 import type { ImageAttachment } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
+import { worksUnattended } from '@shared/providers'
 import type {
   QueueAction,
   WorktreeFacts,
@@ -180,6 +181,11 @@ export class ScenarioService {
    * подключённые), - отказ сразу, а не очередь, которая тут же встанет на отказе.
    */
   start(request: ScenarioStartRequest): Promise<ScenarioStartOutcome> {
+    // Провайдер только для чата (Antigravity, ADR 0094) - отказ здесь, в точке запуска: сценарий
+    // мог прийти из чужого репозитория, а не из выбора в окне.
+    if (!worksUnattended(request.provider)) {
+      return Promise.resolve({ ok: false, code: 'chatOnly' })
+    }
     if (!this.providers.has(request.provider)) {
       return Promise.resolve({ ok: false, code: 'providerMissing' })
     }
@@ -307,9 +313,11 @@ export class ScenarioService {
 
   /** Час расписания; провайдера, которого в IDE нет, - отказ, а не час, который каждый раз откажет. */
   schedule(projectPath: string, hour: ScenarioHourRequest) {
-    const code = this.providers.has(hour.provider)
-      ? scheduleHour(this.desk(projectPath), hour)
-      : Promise.resolve<ScenarioCode | null>('providerMissing')
+    const code = !worksUnattended(hour.provider)
+      ? Promise.resolve<ScenarioCode | null>('chatOnly')
+      : this.providers.has(hour.provider)
+        ? scheduleHour(this.desk(projectPath), hour)
+        : Promise.resolve<ScenarioCode | null>('providerMissing')
 
     return this.afterShelves(projectPath, code)
   }

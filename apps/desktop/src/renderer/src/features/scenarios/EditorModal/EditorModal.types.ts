@@ -39,6 +39,8 @@ export type PickerOption = {
   label: string
   description?: string | undefined
   icon?: LucideIcon | undefined
+  /** Виден, но не выбирается: провайдер только для своего чата (ADR 0094). */
+  disabled?: boolean | undefined
 }
 
 export type EditorFooterProps = {

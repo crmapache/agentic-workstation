@@ -107,6 +107,14 @@ export const createAgentHandlers = (
     'agent:signIn': ({ provider, accountId }) =>
       panels.get(provider).signIn(assertAccountId(accountId)),
     'agent:cancelSignIn': ({ provider }) => panels.get(provider).cancelSignIn(),
+    'agent:submitSignInCode': ({ provider, code }) => {
+      assertString(code, 'code')
+
+      // Код со страницы входа - строка без переводов строки: он уходит в stdin CLI.
+      if (code.length > 2048 || /[\r\n]/.test(code)) throw new Error('Недопустимый код входа')
+
+      return panels.get(provider).submitSignInCode(code)
+    },
     'agent:checkSignIn': ({ provider }) => panels.get(provider).checkSignIn(),
     'agent:signOut': ({ provider, accountId }) =>
       panels.get(provider).signOut(assertAccountId(accountId)),

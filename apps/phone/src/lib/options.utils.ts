@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next'
 
 import { EFFORTS } from '@agentic-workstation/remote-protocol/commands'
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
+import { takesUnattendedWork } from '@agentic-workstation/remote-protocol/wire-types'
 
 import type { OptionItem } from '../shell/OptionList/OptionList.types'
 
@@ -60,3 +61,25 @@ export const modeOptions = (
  */
 export const modeShortLabel = (t: TFunction, mode: string): string | null =>
   mode === 'default' ? null : t(`modes.${mode}.short`, { defaultValue: mode })
+
+/**
+ * Провайдеры для работы без человека, которую ставит телефон (прогон сценария, час расписания):
+ * те, что стоят на машине. Кто работает только в своём чате (Antigravity, ADR 0094), виден
+ * погашенным с причиной, а не пропадает: в разговорах он есть, и человек видит, почему его здесь
+ * не выбрать, а не узнаёт отказом IDE.
+ */
+export const unattendedProviderOptions = (
+  t: TFunction,
+  providers: readonly ProviderCaps[],
+): OptionItem<string>[] =>
+  providers
+    .filter((one) => one.available)
+    .map((one) => ({
+      value: one.id,
+      label: one.label,
+      ...(!takesUnattendedWork(one) && { description: t('options.chatOnly'), disabled: true }),
+    }))
+
+/** Провайдер прогона, пока человек не выбрал: первый, кто возьмёт работу без человека; никто - пусто. */
+export const defaultUnattendedProvider = (providers: readonly ProviderCaps[]): string =>
+  providers.find(takesUnattendedWork)?.id ?? ''

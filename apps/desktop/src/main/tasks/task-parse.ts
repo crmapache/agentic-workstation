@@ -2,7 +2,7 @@ import { ALL_EFFORT_LEVELS } from '@shared/conversation'
 import { DEFAULT_GOAL, GOAL_OUTBOUNDS } from '@shared/goals'
 import type { GoalSettings } from '@shared/goals'
 import { MODEL_NAME_PATTERN } from '@shared/panel-prefs'
-import { isProviderId } from '@shared/providers'
+import { isProviderId, worksUnattended } from '@shared/providers'
 import { nextDue, parseDay } from '@shared/task-clock'
 import type {
   Task,
@@ -182,6 +182,8 @@ export const draftToTask = (
 
   if (!name) return 'noName'
   if (!prompt) return 'noPrompt'
+  // Задание идёт без человека: провайдер только для чата (Antigravity, ADR 0094) - нет.
+  if (!worksUnattended(task.provider)) return 'chatOnly'
   // Папка прежнего задания остаётся его папкой, даже если ушла из недавних проектов; новая
   // папка (новое задание или перенос) - только проект, который IDE знает.
   if (task.projectPath !== previous?.projectPath && !folderKnown(task.projectPath)) {

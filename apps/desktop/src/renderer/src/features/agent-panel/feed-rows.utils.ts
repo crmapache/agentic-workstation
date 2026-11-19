@@ -22,6 +22,7 @@ export const toolKind = (action: ToolAction): ToolKind => {
     case 'agent':
     case 'plan':
     case 'question':
+    case 'artifact':
       return action.kind
     default:
       return 'plain'

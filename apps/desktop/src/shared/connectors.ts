@@ -305,8 +305,9 @@ export const CHROME_EXTENSIONS_URL = 'chrome://extensions'
 
 /**
  * Вход в IDE снаружи (ADR 0090): сервер workstation на постоянном порту 127.0.0.1 для чужих
- * агентов - Claude Code в терминале, Codex, любого клиента MCP. off - выключен человеком;
- * on - слушает; port-busy - порт занят другим процессом; failed - не поднялся по другой причине.
+ * агентов - Claude Code в терминале, Codex, Antigravity CLI, Kimi Code, любого клиента MCP.
+ * off - выключен человеком; on - слушает; port-busy - порт занят другим процессом; failed - не
+ * поднялся по другой причине.
  */
 export type OutsideStatus = 'off' | 'on' | 'port-busy' | 'failed'
 
@@ -319,10 +320,19 @@ export type OutsideAccessState = {
   vault: boolean
 }
 
-/** Что положить в буфер обмена: команда Claude Code, запись Codex, JSON для любого клиента. */
-export type OutsideCopy = 'claude' | 'codex' | 'json'
+/**
+ * Что положить в буфер обмена: команда Claude Code, запись Codex, команда Antigravity CLI, запись
+ * Kimi Code, JSON для любого клиента.
+ */
+export type OutsideCopy = 'claude' | 'codex' | 'antigravity' | 'kimi' | 'json'
 
-export const OUTSIDE_COPIES: readonly OutsideCopy[] = ['claude', 'codex', 'json']
+export const OUTSIDE_COPIES: readonly OutsideCopy[] = [
+  'claude',
+  'codex',
+  'antigravity',
+  'kimi',
+  'json',
+]
 
 export type ConnectorsState = {
   connectors: Connector[]

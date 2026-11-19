@@ -1,4 +1,4 @@
-import { isProviderId } from '@shared/providers'
+import { isProviderId, worksUnattended } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 
 import type { Command, CommandArgs } from '@agentic-workstation/remote-protocol/commands'
@@ -84,6 +84,9 @@ export class ScenarioCommands {
 
     if (!path) return fail('notOpen')
     if (!isProviderId(provider)) return fail('refused', 'providerMissing')
+    // Прогон идёт без человека: провайдер только для чата (Antigravity, ADR 0094) - отказ своим
+    // словом, а не «провайдера нет»: он на машине, ему нельзя.
+    if (!worksUnattended(provider)) return fail('refused', 'chatOnly')
 
     const started = await this.ports.scenarios.start({ ...rest, projectPath: path, provider })
 

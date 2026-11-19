@@ -78,6 +78,8 @@ const actionText = (action: ToolAction): string => {
       return action.questions.join(' / ')
     case 'todo':
       return 'todo list'
+    case 'artifact':
+      return `${action.summary} ${action.path}`.trim()
   }
 }
 

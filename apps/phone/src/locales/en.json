@@ -9,6 +9,8 @@
     "providers": {
       "claude": "Claude",
       "codex": "Codex",
+      "antigravity": "Antigravity",
+      "kimi": "Kimi",
       "opencode": "Open model"
     },
     "scenario": "Scenario",
@@ -79,7 +81,8 @@
   },
   "options": {
     "defaultModel": "Default (as in the IDE settings)",
-    "defaultEffort": "Default (as in the IDE settings)"
+    "defaultEffort": "Default (as in the IDE settings)",
+    "chatOnly": "Only in its own chat"
   },
   "modes": {
     "default": {
@@ -149,6 +152,7 @@
       "worktreeFailed": "The worktree could not be made.",
       "worktreeDirty": "The worktree has changes that are not committed.",
       "providerMissing": "This provider is not available on the computer.",
+      "chatOnly": "This AI works only in its own chat: Google does not allow Antigravity to run unattended.",
       "notSupported": "The provider of this conversation cannot do this.",
       "effortUnavailable": "The provider of this conversation does not offer this effort.",
       "noClaude": "Claude Code is not found on the computer.",
@@ -416,6 +420,8 @@
       "cli-error": "Error",
       "not-logged-in": "Not logged in",
       "rate-limited": "Rate limited",
+      "quota-exhausted": "Quota used up",
+      "terms-blocked": "Refused under the provider's terms",
       "rewound": "Conversation rewound",
       "forked": "Forked",
       "fork-whole": "Forked as a whole",

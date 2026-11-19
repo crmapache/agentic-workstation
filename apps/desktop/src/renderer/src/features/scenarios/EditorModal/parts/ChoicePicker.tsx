@@ -54,6 +54,7 @@ export const ChoicePicker = ({
                 label={option.label}
                 description={option.description}
                 current={option.id === value}
+                disabled={option.disabled}
                 onSelect={() => {
                   popover.close()
                   onPick(option.id)

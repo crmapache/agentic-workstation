@@ -215,8 +215,12 @@ export type ExtensionDraftRequest = {
   provider: string
 }
 
-/** Причина отказа действия с расширением - словами окна. */
-export type ExtensionActionError = 'not-found' | 'exists' | 'invalid-name' | 'io' | 'no-provider'
+/**
+ * Причина отказа действия с расширением - словами окна. chat-only - провайдер работает только в
+ * своём чате (ADR 0094), а разговор с ИИ над расширением начинает IDE своим первым сообщением.
+ */
+export type ExtensionActionError =
+  'not-found' | 'exists' | 'invalid-name' | 'io' | 'no-provider' | 'chat-only'
 
 /** Ответ на действие с расширениями: новое состояние целиком или причина отказа. */
 export type ExtensionsActionResult =

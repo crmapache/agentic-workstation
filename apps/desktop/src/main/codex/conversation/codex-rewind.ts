@@ -1,7 +1,8 @@
 import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/rewind'
 
+import { previewOf, planCodeRevert, writeCodeRevert } from '../../agents/changes/code-revert'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
-import { previewOf, changesFrom, planCodeRevert, writeCodeRevert } from './codex-code-rewind'
+import { changesFrom } from './codex-code-rewind'
 import { codexOf } from './codex-conversation'
 
 /** Сколько ждать, пока остановленный ход отпустит разговор, прежде чем резать. */

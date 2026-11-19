@@ -263,6 +263,10 @@ export class ConversationOutbox {
 
     if (question) return runtime.answerInChat(question, message)
 
+    // Сессия без слов посреди хода (агенты ACP: у `agy` второй промпт вытесняет первый) -
+    // сообщение ждёт в очереди и уходит само после хода, как команда.
+    if (!runtime.isFree && runtime.session?.steers === false) return this.push(message, place)
+
     // Ждавшие не обгоняются: новое встаёт за ними, первой уходит голова очереди.
     const [head] = runtime.meta.queue
 

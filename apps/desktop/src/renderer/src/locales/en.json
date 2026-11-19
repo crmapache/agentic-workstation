@@ -3,7 +3,8 @@
     "close": "Close",
     "cancel": "Cancel",
     "notInstalled": "Not installed on this computer",
-    "notBuiltYet": "not built yet"
+    "notBuiltYet": "not built yet",
+    "chatOnly": "Only in its own chat"
   },
   "settings": {
     "title": "Settings",
@@ -24,7 +25,7 @@
       "missing": "Not installed on this computer",
       "help": {
         "label": "About background AI",
-        "text": "Besides your chats, the IDE asks an AI for small jobs on its own: a short name for a scenario queue, a check whether something a goal waits for has happened, a draft of a task or a scenario from your words. Here you choose who does them.\n\nClaude Code uses Haiku for checks and Sonnet or better for drafts unless you pick a model. Codex and open models use the model you pick, or their own default. A local model costs nothing but may write weaker drafts."
+        "text": "Besides your chats, the IDE asks an AI for small jobs on its own: a short name for a scenario queue, a check whether something a goal waits for has happened, a draft of a task or a scenario from your words. Here you choose who does them.\n\nClaude Code uses Haiku for checks and Sonnet or better for drafts unless you pick a model. Codex, Kimi Code and open models use the model you pick, or their own default. A local model costs nothing but may write weaker drafts.\n\nAntigravity works only in its own chat. With a personal Google sign-in, Google's terms don't allow it to work unattended or on prompts written by another app, so the IDE gives it none of these jobs and no scenarios, tasks, connectors or extensions.\nTerms: https://antigravity.google/terms?hl=en\nFAQ: https://antigravity.google/docs/faq.md"
       }
     },
     "appearanceDescription": "How the IDE looks",
@@ -571,7 +572,7 @@
       },
       "outside": {
         "title": "Control from outside",
-        "text": "The IDE's own tools - projects, scenarios and queues, tasks and chats - for agents that run outside it: Claude Code in a terminal, Codex, Cursor or any MCP client on this computer. Chats inside the IDE have them already.\n\nTurn it on, then Copy setup: the command or config goes to the clipboard with the key in it. Paste it where your agent keeps its MCP servers. The server listens only on this computer, and nothing gets in without the key.\n\nNew key cuts off every client that has the old one. Turning this off stops the server; the key stays until you make a new one.\n\nWhat the tools may do is the same as inside: switch tools off on the right, or turn the whole connector off."
+        "text": "The IDE's own tools - projects, scenarios and queues, tasks and chats - for agents that run outside it: Claude Code in a terminal, Codex, Antigravity CLI, Kimi Code, Cursor or any MCP client on this computer. Chats inside the IDE have them already.\n\nTurn it on, then Copy setup: the command or config goes to the clipboard with the key in it. Run a command in a terminal; add a config entry where your agent keeps its MCP servers: ~/.codex/config.toml for Codex, ~/.kimi-code/mcp.json for Kimi Code. The server listens only on this computer, and nothing gets in without the key.\n\nNew key cuts off every client that has the old one. Turning this off stops the server; the key stays until you make a new one.\n\nWhat the tools may do is the same as inside: switch tools off on the right, or turn the whole connector off."
       }
     },
     "inProject": {
@@ -637,7 +638,7 @@
     "outside": {
       "title": "Control from outside",
       "switch": "Let agents outside the IDE control it",
-      "switchHint": "Claude Code in a terminal, Codex or any MCP client on this computer, with a key",
+      "switchHint": "Claude Code in a terminal, Codex, Antigravity, Kimi Code or any MCP client on this computer, with a key",
       "noVault": "Secure storage isn't available here, so the key can't be kept.",
       "status": {
         "off": "Off",
@@ -654,6 +655,8 @@
       "copyFor": {
         "claude": "Claude Code command",
         "codex": "Codex config.toml",
+        "antigravity": "Antigravity CLI command",
+        "kimi": "Kimi Code mcp.json",
         "json": "JSON for other MCP clients"
       },
       "renew": "New key"
@@ -724,6 +727,8 @@
     "label": "LLM providers",
     "claudeCode": "Claude Code",
     "codex": "Codex",
+    "antigravity": "Antigravity",
+    "kimi": "Kimi Code",
     "openModels": "Open models",
     "resize": "Resize LLM panel"
   },
@@ -1105,7 +1110,8 @@
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued from where it stopped.",
       "runOver": "This run has already ended.",
-      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed."
+      "runForeign": "This run belongs to the ACC plugin: here it can only be viewed.",
+      "chatOnly": "This AI works only in its own chat: Google does not allow Antigravity to run unattended."
     },
     "queues": {
       "emptyTitle": "No queues in this project",
@@ -1304,9 +1310,6 @@
       "newScenario": "New scenario",
       "required": "{{label}} · required",
       "provider": "Provider",
-      "unavailable": {
-        "noCli": "Not installed or not found"
-      },
       "where": "Where",
       "newQueue": "New queue",
       "addTo": "Add to a queue",
@@ -1881,6 +1884,8 @@
       "all": "All providers",
       "claude": "Claude Code",
       "codex": "Codex",
+      "antigravity": "Antigravity",
+      "kimi": "Kimi Code",
       "opencode": "Open models"
     },
     "scopes": {
@@ -2053,7 +2058,7 @@
       },
       "tokens": {
         "title": "Tokens & cost",
-        "text": "Tokens from every answer of every model, subagents included, each counted once. Claude and Codex models are priced at public API prices, with cache reads and writes at their own rates, and a model without a published price shows no cost. Open models cost what OpenCode reports, so local models cost nothing. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
+        "text": "Tokens from every answer of every model, subagents included, each counted once. Claude, Codex, Antigravity and Kimi models are priced at public API prices of their makers (Gemini at Google's), with cache reads and writes at their own rates, and a model without a published price shows no cost. Open models cost what OpenCode reports, so local models cost nothing. It is not what a subscription charges you.\n\nCache read is the part of the model input that came from the prompt cache: the larger it is, the cheaper long conversations get. A session belongs to the project of the folder it ran in; Other folders are those outside any project the IDE knows."
       },
       "scenarios": {
         "title": "Scenarios",
@@ -2266,6 +2271,8 @@
     "noProjectText": "{{cli}} works inside a project folder: it reads, edits and runs things there.",
     "cliMissingTitle": "{{cli}} is not installed",
     "cliMissingText": "Install it in a terminal and sign in once. The panel finds it by itself after that.",
+    "gitBashMissingTitle": "{{cli}} needs Git for Windows",
+    "gitBashMissingText": "{{cli}} runs its commands in Git Bash. Install Git for Windows, then check again.",
     "checkAgain": "Check again",
     "welcome": {
       "title": "Ask {{agent}} about this project",
@@ -2447,6 +2454,10 @@
         "stoppedBare": "Stopped by you",
         "movedAccount": "Stopped to switch account · {{time}}",
         "movedAccountBare": "Stopped to switch account"
+      },
+      "artifact": {
+        "label": "Artifact",
+        "review": "Waiting for your feedback in the chat"
       }
     },
     "notice": {
@@ -2454,6 +2465,8 @@
       "interruptedForAccount": "Stopped to switch account",
       "startFailed": "{{cli}} could not start",
       "notLoggedIn": "{{cli}} is not signed in, or the sign-in has expired.",
+      "quotaExhausted": "The {{agent}} quota is used up for now. Pick another model or wait until it resets.",
+      "termsBlocked": "{{agent}} refused this request under its provider's terms. The IDE does not send it again.",
       "logIn": "Log in",
       "switchAccount": "Switch account",
       "sendAgainAfter": "Finish the login in the terminal, then send your message again.",
@@ -2870,6 +2883,16 @@
         "ignored": "This Claude Code cannot keep two sign-ins apart. Update it and open this screen again.",
         "notSignedIn": "Sign in to Claude Code first, then add a second account here.",
         "apiKey": "This machine signs in with an API key, which applies to every conversation. Accounts cannot be switched while it is set."
+      },
+      "acp": {
+        "account": "Account",
+        "waiting": "Finish signing in on the page that opened in your browser.",
+        "openPage": "Open the sign-in page",
+        "enterCode": "Enter this code on the page:",
+        "pasteCode": "Code from the page",
+        "submit": "Sign in",
+        "upgrade": "Upgrade plan",
+        "failed": "The sign-in didn't go through. Check the code and try again."
       }
     },
     "usage": {
@@ -3575,7 +3598,8 @@
       "overBudget": "The goal reached its budget. Raise it in the task and continue.",
       "wakeLimit": "The goal woke up too many times today and was stopped.",
       "expired": "The goal ran out of its days without a result.",
-      "gaveUp": "The goal could not be reached."
+      "gaveUp": "The goal could not be reached.",
+      "chatOnly": "Antigravity works only in its own chat: Google does not allow it to run unattended."
     },
     "codes": {
       "taskGone": "The task is gone.",
@@ -3894,6 +3918,14 @@
       "agent": "Codex",
       "cli": "Codex"
     },
+    "antigravity": {
+      "agent": "Antigravity",
+      "cli": "Antigravity CLI"
+    },
+    "kimi": {
+      "agent": "Kimi",
+      "cli": "Kimi Code"
+    },
     "opencode": {
       "agent": "OpenCode",
       "cli": "OpenCode"
@@ -4097,7 +4129,8 @@
       "exists": "An extension with this name already exists.",
       "invalid-name": "Fill in the name and what it should do.",
       "io": "Could not write the extension folder.",
-      "no-provider": "Pick an AI provider that is installed."
+      "no-provider": "Pick an AI provider that is installed.",
+      "chat-only": "Antigravity works only in its own chat: Google does not allow it to run on prompts the IDE writes."
     },
     "view": {
       "empty": "This view is empty",

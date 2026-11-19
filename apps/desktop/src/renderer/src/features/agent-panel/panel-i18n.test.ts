@@ -1,7 +1,10 @@
 import { it, expect, describe } from 'vitest'
 
+import antigravityEn from '../../locales/en.antigravity.json'
 import codexEn from '../../locales/en.codex.json'
 import en from '../../locales/en.json'
+import kimiEn from '../../locales/en.kimi.json'
+import openCodeEn from '../../locales/en.opencode.json'
 import { panelI18n, withOverrides } from './panel-i18n'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -14,10 +17,12 @@ const leaves = (value: Record<string, unknown>, prefix = ''): string[] =>
   )
 
 describe('переводы панели провайдера', () => {
-  it('строки Codex - только поверх существующих ключей', () => {
+  it('строки провайдеров - только поверх существующих ключей', () => {
     const known = new Set(leaves(en))
 
-    expect(leaves(codexEn).filter((key) => !known.has(key))).toEqual([])
+    for (const own of [codexEn, antigravityEn, kimiEn, openCodeEn]) {
+      expect(leaves(own).filter((key) => !known.has(key))).toEqual([])
+    }
   })
 
   it('поверх общих ложится своё, общие не меняются', () => {
@@ -34,5 +39,12 @@ describe('переводы панели провайдера', () => {
     expect(t('agentPanel.cliMissingTitle')).toBe('Codex is not installed')
     expect(t('agentPanel.modes.labels.acceptEdits')).toBe('Auto')
     expect(t('agentPanel.composer.placeholder', { agent: 'X' })).toContain('Ask X')
+  })
+
+  it('панели Antigravity и Kimi говорят своими именами и режимами', () => {
+    expect(panelI18n('antigravity').t('agentPanel.cliMissingTitle')).toBe(
+      'Antigravity CLI is not installed',
+    )
+    expect(panelI18n('kimi').t('agentPanel.modes.labels.auto')).toBe('YOLO')
   })
 })

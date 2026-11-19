@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { AiJob } from '@shared/connector-spec'
 import { MCP_AUTHS } from '@shared/connectors'
+import { PROVIDER_IDS } from '@shared/providers'
 
 import { specSchema } from '../kinds/http/http-spec'
 
@@ -36,7 +37,7 @@ const storedJobSchema = z.object({
     service: z.string(),
     goal: z.string(),
     docsUrl: z.string(),
-    provider: z.enum(['claude', 'codex', 'opencode']).default('claude'),
+    provider: z.enum(PROVIDER_IDS).default('claude'),
     model: z.string().default(''),
     effort: z.string().default(''),
   }),

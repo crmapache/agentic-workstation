@@ -41,6 +41,14 @@ const draftOf = ({
 const known = () => true
 
 describe('draftToTask', () => {
+  it('refuses a provider that works only in its own chat (Antigravity, ADR 0094)', () => {
+    const previous = task()
+
+    expect(
+      draftToTask({ ...draftOf(previous), provider: 'antigravity' }, previous, known, now),
+    ).toBe('chatOnly')
+  })
+
   it('keeps a due time that has come when the rhythm did not change', () => {
     const previous = task()
     const saved = draftToTask(

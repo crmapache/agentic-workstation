@@ -146,11 +146,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createTerminalHandlers(workspace, services.terminals),
     ...createScenariosHandlers(
       workspace,
-      {
-        claude,
-        codex: services.panels.find('codex'),
-        opencode: services.panels.find('opencode'),
-      },
+      { claude, panel: (id) => services.panels.find(id) },
       services.scenarios,
     ),
     ...createStatisticsHandlers(workspace, services.stats),

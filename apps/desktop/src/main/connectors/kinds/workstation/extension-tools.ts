@@ -129,7 +129,11 @@ export const EXTENSION_TOOLS: NativeTool<WorkstationPorts>[] = [
       type: 'object',
       properties: {
         command: { type: 'string' },
-        args: { type: 'array', description: 'Arguments for the command, if it takes any.' },
+        args: {
+          type: 'array',
+          items: {},
+          description: 'Arguments for the command, if it takes any.',
+        },
       },
       required: ['command'],
     },

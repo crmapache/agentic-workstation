@@ -34,11 +34,13 @@ export const HeadPane = ({ head, onHead, onProvider }: HeadPaneProps) => {
           caption={t('scenarios.editor.head.provider')}
           menuLabel={t('scenarios.editor.head.provider')}
           value={provider?.id ?? head.provider}
-          // Сценарий можно писать и под провайдера, которого нет на этой машине.
+          // Сценарий можно писать и под провайдера, которого нет на этой машине, но не под
+          // провайдера только для чата (ADR 0094): прогон сценария всегда идёт без человека.
           options={providerChoices(providers, t, true).map((one) => ({
             id: one.value,
             label: one.label,
             description: one.description,
+            disabled: one.disabled,
           }))}
           onPick={onProvider}
         />

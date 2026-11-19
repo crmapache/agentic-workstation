@@ -44,7 +44,7 @@ export const RewindDialog = ({ target, conversation }: RewindDialogProps) => {
       <Button type="button" onClick={dialog.close}>
         {t('agentPanel.rewind.cancel')}
       </Button>
-      {!keepsConversation && capabilities.fork && (
+      {!keepsConversation && capabilities.fork && capabilities.forkAtMessage && (
         <Tooltip label={t('agentPanel.rewind.forkHint')}>
           <Button
             type="button"
@@ -81,7 +81,7 @@ export const RewindDialog = ({ target, conversation }: RewindDialogProps) => {
           <div className={styles.lead}>
             {keepsConversation ? t('agentPanel.rewind.codeLead') : t('agentPanel.rewind.lead')}
           </div>
-          {offersCode && (
+          {offersCode && choices.length > 1 && (
             <Tabs
               label={t('agentPanel.rewind.what')}
               items={choices}
@@ -100,7 +100,7 @@ export const RewindDialog = ({ target, conversation }: RewindDialogProps) => {
               {t('agentPanel.rewind.queued', { count: dialog.queued })}
             </div>
           )}
-          {dialog.isBlocked && (
+          {dialog.isBlocked && dialog.isRunning && (
             <div className={styles.warning}>{t('agentPanel.rewind.codeWhileRunning')}</div>
           )}
           {dialog.isForkHeld && (

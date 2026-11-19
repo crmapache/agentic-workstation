@@ -1,32 +1,39 @@
 import type { Conversation, AgentPanelState } from '@shared/conversation'
 import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
-import { CODEX_CAPABILITIES, OPENCODE_CAPABILITIES } from '@shared/panel-capabilities'
+import { capabilitiesOf } from '@shared/panel-capabilities'
+import { worksUnattended } from '@shared/providers'
 
 import type { ConversationsPort } from '../bridge/bridge-ports'
 import { PROJECT_PATH, conversationOf } from './fake-ide'
 import type { fakeIde } from './fake-ide'
 
 /**
- * Панели Codex и открытых моделей для тестов моста: только ядро AgentPanel (без своего Claude
- * Code), свои разговоры, каталог и лента. Каждый вызов пишется в общий журнал IDE с приставкой
+ * Панели Codex, открытых моделей и Antigravity для тестов моста: только ядро AgentPanel (без
+ * своего Claude Code), свои разговоры, каталог и лента. Каждый вызов пишется в общий журнал IDE с приставкой
  * провайдера (`codex.send`) - по нему тест видит, какая панель получила команду.
  */
 
-export type CoreProvider = 'codex' | 'opencode'
+export type CoreProvider = 'codex' | 'opencode' | 'antigravity'
 
 /** id разговоров - UUID вкладок, у панелей разные. */
 export const PANEL_CONVERSATION: Record<CoreProvider, string> = {
   codex: '7c0d1e2f-3a4b-4c5d-8e9f-a0b1c2d3e4f5',
   opencode: '8d1e2f3a-4b5c-4d6e-9f0a-b1c2d3e4f5a6',
+  antigravity: '9e2f3a4b-5c6d-4e7f-8a0b-c2d3e4f5a6b7',
 }
 
 /** Прошлый разговор панели, которого нет вкладкой. */
 export const PANEL_PAST: Record<CoreProvider, string> = {
   codex: '019a2b3c-4d5e-4f60-8172-839405162738',
   opencode: 'ses_0a1b2c3d4e5f60718293a4b5c6d7e8f9',
+  antigravity: '1f2e3d4c-5b6a-4978-8695-a4b3c2d1e0f9',
 }
 
-const LABELS: Record<CoreProvider, string> = { codex: 'Codex', opencode: 'Open models' }
+const LABELS: Record<CoreProvider, string> = {
+  codex: 'Codex',
+  opencode: 'Open models',
+  antigravity: 'Antigravity',
+}
 
 /** Каталог панели: у Codex - уровни у модели и быстрый режим, у открытых - подключение. */
 const MODELS: Record<CoreProvider, AgentPanelState['models']> = {
@@ -49,6 +56,7 @@ const MODELS: Record<CoreProvider, AgentPanelState['models']> = {
       group: { id: 'ollama', label: 'Ollama' },
     },
   ],
+  antigravity: [{ value: 'gemini-3-pro', displayName: 'Gemini 3 Pro', description: '' }],
 }
 
 /** Вызов Codex в ленте - с видом действия и диффом по входу, как его собирает панель. */
@@ -75,7 +83,7 @@ export const toolItemOf = (id: string): FeedItem => ({
  * выбором, прошлый разговор открывается вкладкой). Добавляется в список панелей IDE сразу.
  */
 export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider) => {
-  const capabilities = provider === 'codex' ? CODEX_CAPABILITIES : OPENCODE_CAPABILITIES
+  const capabilities = capabilitiesOf(provider)
   const id = PANEL_CONVERSATION[provider]
   const own = (over: Partial<Conversation> = {}) =>
     conversationOf({ id, title: `${LABELS[provider]} chat`, model: null, effort: null, ...over })
@@ -105,6 +113,8 @@ export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider
       models: state.models.map((model) => ({ ...model, custom: false })),
       modes: capabilities.modes,
       efforts: capabilities.efforts,
+      // Как у реестра провайдеров: Antigravity - только свой чат (ADR 0094).
+      ...(!worksUnattended(provider) && { chatOnly: true }),
     }),
     getState: () => state,
     getFeed: () => Promise.resolve(feed),

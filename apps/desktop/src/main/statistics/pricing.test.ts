@@ -9,6 +9,7 @@ const tokens = (patch: Partial<Parameters<typeof costOf>[1]> = {}) => ({
   cacheWrite: 0,
   cacheWrite1h: 0,
   fast: false,
+  ts: Date.UTC(2026, 10, 19),
   ...patch,
 })
 
@@ -74,6 +75,41 @@ describe('answerCostOf', () => {
       1.25,
       6,
     )
+  })
+
+  it('prices Antigravity by the model it ran: Claude by the Claude card, the rest by Google', () => {
+    expect(
+      answerCostOf('antigravity', 'claude-opus-4-6-thinking', tokens({ input: 1e6 })),
+    ).toBeCloseTo(5, 6)
+    expect(answerCostOf('antigravity', 'claude-sonnet-4-6', tokens({ output: 1e6 }))).toBeCloseTo(
+      15,
+      6,
+    )
+    expect(answerCostOf('antigravity', 'gemini-3.8-flash-low', tokens({ input: 1e6 }))).toBeCloseTo(
+      0.75,
+      6,
+    )
+    expect(answerCostOf('antigravity', 'gpt-oss-120b-medium', tokens({ output: 1e6 }))).toBeCloseTo(
+      0.36,
+      6,
+    )
+  })
+
+  it('leaves an Antigravity step without a model unpriced', () => {
+    expect(answerCostOf('antigravity', '', tokens({ input: 1e6, output: 1e6 }))).toBe(0)
+  })
+
+  it('prices Kimi Code models by the Moonshot platform card', () => {
+    expect(answerCostOf('kimi', 'kimi-code/k3', tokens({ input: 1e6 }))).toBeCloseTo(3, 6)
+    expect(answerCostOf('kimi', 'kimi-code/kimi-for-coding', tokens({ output: 1e6 }))).toBeCloseTo(
+      4,
+      6,
+    )
+    expect(answerCostOf('kimi', '__kimi_env_model__', tokens({ input: 1e6 }))).toBe(0)
+  })
+
+  it('stores no cost for a provider the IDE does not know', () => {
+    expect(answerCostOf('cursor', 'claude-opus-5-5', tokens({ input: 1e6 }))).toBe(0)
   })
 
   it('takes the cost OpenCode stored and never prices a model by name', () => {

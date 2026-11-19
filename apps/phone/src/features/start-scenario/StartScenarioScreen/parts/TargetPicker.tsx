@@ -4,6 +4,7 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import type { useStartScenario } from '../StartScenarioScreen.hooks'
 import styles from '../StartScenarioScreen.module.scss'
+import { unattendedProviderOptions } from '../../../../lib/options.utils'
 import { OptionList } from '../../../../shell/OptionList/OptionList'
 
 const NEW = 'new'
@@ -11,12 +12,13 @@ const NEW = 'new'
 /**
  * Куда поставить: новая очередь (своя worktree - работа не трогает файлы проекта) или в конец
  * открытой очереди - там сценарий стартует, когда предыдущий сделан. И провайдер, если их больше
- * одного.
+ * одного; кто только для своего чата (ADR 0094), виден погашенным.
  */
 export const TargetPicker = ({ start }: { start: ReturnType<typeof useStartScenario> }) => {
   const { t } = useTranslation()
   const { form, update, openQueues, providers } = start
   const target = form.target.kind === 'new' ? NEW : form.target.queueId
+  const providerOptions = unattendedProviderOptions(t, providers)
 
   return (
     <>
@@ -59,11 +61,11 @@ export const TargetPicker = ({ start }: { start: ReturnType<typeof useStartScena
           )}
         </div>
       </Section>
-      {providers.length > 1 && (
+      {providerOptions.length > 1 && (
         <Section size="sm" title={t('newConversation.provider')}>
           <OptionList
             label={t('newConversation.provider')}
-            options={providers.map((one) => ({ value: one.id, label: one.label }))}
+            options={providerOptions}
             isSelected={(value) => value === start.provider}
             onSelect={(value) => update({ provider: value })}
           />

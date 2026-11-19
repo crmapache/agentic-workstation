@@ -4,7 +4,14 @@ import type { Task, TaskMode, TaskDraft, TaskSchedule } from '@shared/tasks'
 
 import { numberArg, stringArg, booleanArg, ArgumentError } from '../native-tools'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
-import { timeOf, clockOf, oneOfArg, minutesOf, recordArg, providerArg } from './workstation-args'
+import {
+  timeOf,
+  clockOf,
+  oneOfArg,
+  minutesOf,
+  recordArg,
+  unattendedProviderArg,
+} from './workstation-args'
 import { taskError } from './workstation-words'
 
 const PREVIEW_MAX = 400
@@ -102,7 +109,7 @@ const textArg = (args: Record<string, unknown>, key: string): string | undefined
  * есть, иначе «спрашивать». Названный режим, которого у провайдера нет, - отказ.
  */
 const runnerOf = (args: Record<string, unknown>, base: TaskDraft, ports: WorkstationPorts) => {
-  const provider = providerArg(args) ?? base.provider
+  const provider = unattendedProviderArg(args) ?? base.provider
   const switched = provider !== base.provider
   const modes =
     ports

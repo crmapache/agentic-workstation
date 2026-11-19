@@ -7,6 +7,8 @@ import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 
+import { portableTools } from './tool-schema'
+
 /**
  * Что шлюз знает об одном сервере: пояснение для модели, инструменты и их вызов. signal -
  * провайдер ушёл, не дождавшись ответа (ход остановлен): вызов можно отменить у сервиса.
@@ -176,7 +178,9 @@ export class ConnectorGateway<Launch> {
     // Playwright), поток шлёт отметки «жив», и клиент не обрывает ответ по тайм-ауту.
     const transport = new StreamableHTTPServerTransport()
 
-    server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: await target.tools() }))
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: portableTools(await target.tools()),
+    }))
     server.setRequestHandler(CallToolRequestSchema, (call, extra) =>
       target.call(call.params.name, call.params.arguments ?? {}, extra.signal),
     )

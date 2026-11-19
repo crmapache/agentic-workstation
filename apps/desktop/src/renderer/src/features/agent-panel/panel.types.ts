@@ -22,7 +22,7 @@ import type { ClosableTabCall } from '@agentic-workstation/ui/ClosableTab.types'
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
 import type { TooltipDetails } from '@agentic-workstation/ui/Tooltip.types'
 
-export type ToolKind = 'hidden' | 'plain' | 'edit' | 'agent' | 'plan' | 'question'
+export type ToolKind = 'hidden' | 'plain' | 'edit' | 'agent' | 'plan' | 'question' | 'artifact'
 
 /** Строка ленты для отрисовки: элемент как есть или группа подряд идущих вызовов. */
 export type FeedRow =
@@ -38,6 +38,8 @@ export type FeedRow =
   | { kind: 'edit'; id: string; item: ToolFeedItem }
   | { kind: 'agent'; id: string; item: ToolFeedItem; children: FeedItem[] }
   | { kind: 'plan'; id: string; item: ToolFeedItem }
+  /** Артефакт агента (Antigravity: план, отчёт) - своей карточкой с документом. */
+  | { kind: 'artifact'; id: string; item: ToolFeedItem }
   | { kind: 'question'; id: string; item: ToolFeedItem }
   | { kind: 'turn'; id: string; item: TurnFeedItem }
   | { kind: 'notice'; id: string; item: NoticeFeedItem }

@@ -4,6 +4,7 @@ import { stat, access } from 'node:fs/promises'
 import { join, delimiter } from 'node:path'
 
 import { IS_WINDOWS } from '../platform'
+import { launchTarget } from '../windows/cmd-launch'
 import type { Environment } from './shell-env'
 
 /** Сколько ждать `command -v` и `--version` у CLI. */
@@ -20,11 +21,24 @@ export const isExecutableFile = async (file: string): Promise<boolean> => {
   }
 }
 
-/** Вывод команды или пусто: CLI, который не ответил вовремя, - тот же «нет ответа». */
+/**
+ * Вывод команды или пусто: CLI, который не ответил вовремя, - тот же «нет ответа». Обёртка
+ * `.cmd` на Windows (CLI из npm) - через cmd.exe (`launchTarget`).
+ */
 export const runQuiet = (file: string, args: string[], env: Environment): Promise<string> =>
   new Promise<string>((resolve) => {
-    execFile(file, args, { env, timeout: PROBE_TIMEOUT_MS, encoding: 'utf8' }, (_error, stdout) =>
-      resolve(stdout),
+    const target = launchTarget(file, args)
+
+    execFile(
+      target.file,
+      target.args,
+      {
+        env,
+        timeout: PROBE_TIMEOUT_MS,
+        encoding: 'utf8',
+        windowsVerbatimArguments: target.verbatim,
+      },
+      (_error, stdout) => resolve(stdout),
     )
   })
 

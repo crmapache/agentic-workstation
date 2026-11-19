@@ -5,6 +5,8 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import { SPAWN_DETACHED } from '../../platform'
 import { ProcessGroup } from '../../process/process-group'
+import type { RpcId, RpcLine } from '../../process/rpc-lines'
+import { requestLine, parseRpcLine, responseLine, notificationLine } from '../../process/rpc-lines'
 import type { Environment } from '../../process/shell-env'
 import {
   METHOD_NOT_FOUND,
@@ -13,8 +15,6 @@ import {
   HANDSHAKE_TIMEOUT_MS,
   STDIN_CLOSE_GRACE_MS,
 } from './app-server.constants'
-import type { RpcId, RpcLine } from './rpc-lines'
-import { requestLine, parseRpcLine, responseLine, notificationLine } from './rpc-lines'
 
 export type AppServerEvents = {
   onNotification: (method: string, params: unknown) => void

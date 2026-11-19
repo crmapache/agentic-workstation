@@ -131,7 +131,7 @@ const bootstrap = async () => {
       call: (call) => observeCall(call),
     },
   })
-  const { claude, codex, openModels, registry: panels } = providerPanels
+  const { claude, codex, antigravity, kimi, openModels, registry: panels } = providerPanels
   // Исполнители провайдеров без вкладки - один набор на IDE: сценарии, задания, коннектор от ИИ.
   const userData = app.getPath('userData')
   const runners = runProviders({
@@ -300,6 +300,8 @@ const bootstrap = async () => {
       await features.shutdown()
       await Promise.allSettled([
         claude.shutdown(),
+        antigravity.shutdown(),
+        kimi.shutdown(),
         codex.shutdown(),
         openModels.shutdown(),
         settleWrites(),

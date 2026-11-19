@@ -96,6 +96,9 @@ importers:
         specifier: 7.8.5
         version: 7.8.5
     devDependencies:
+      '@agentclientprotocol/sdk':
+        specifier: 2.8.0
+        version: 2.8.0(zod@4.6.7)
       '@agentic-workstation/browser-protocol':
         specifier: workspace:*
         version: link:../../packages/browser-protocol
@@ -428,6 +431,15 @@ importers:
         version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
 
 packages:
+
+  '@agentclientprotocol/sdk@2.8.0':
+    resolution: {integrity: sha512-EjsvoRX8nEH2z3PAVI2ILsVXAefVcSlLPeXGjlQoFgkJE71F2J0Fj7N6oL/k7SnP0vY+9hmONPFz/K2zalnTiw==}
+    peerDependencies:
+      '@modelcontextprotocol/server': ^2.4.0
+      zod: ^3.25.76 || ^4.0.0
+    peerDependenciesMeta:
+      '@modelcontextprotocol/server':
+        optional: true
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -4111,6 +4123,10 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
+
+  '@agentclientprotocol/sdk@2.8.0(zod@4.6.7)':
+    dependencies:
+      zod: 4.6.7
 
   '@babel/code-frame@7.29.7':
     dependencies:

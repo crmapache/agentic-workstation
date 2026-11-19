@@ -3,6 +3,7 @@ import { memo } from 'react'
 import type { FeedRowViewProps } from '../Feed.types'
 import { sameRow } from '../../feed-rows.utils'
 import { AgentCard } from '../../AgentCard/AgentCard'
+import { ArtifactCard } from '../../ArtifactCard/ArtifactCard'
 import { AssistantMessage } from '../../AssistantMessage/AssistantMessage'
 import { EditCard } from '../../EditCard/EditCard'
 import { NoticeRow } from '../../NoticeRow/NoticeRow'
@@ -35,6 +36,8 @@ export const FeedRowView = memo(
         return <AgentCard tool={row.item} steps={row.children} />
       case 'plan':
         return <PlanCard tool={row.item} />
+      case 'artifact':
+        return <ArtifactCard tool={row.item} />
       case 'question':
         return <QuestionCard tool={row.item} />
       case 'turn':

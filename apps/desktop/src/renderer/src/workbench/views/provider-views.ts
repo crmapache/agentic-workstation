@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { Boxes, Aperture } from 'lucide-react'
+import { Boxes, Orbit, Aperture, MoonStar } from 'lucide-react'
 
 import { AI_ICON } from '../../lib/ai-icon.constants'
 import type { ProviderViewId } from '../../state/layout.types'
@@ -31,6 +31,28 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
     Component: lazy(() =>
       import('../../features/agent-panel/CodexPanel/CodexPanel').then((module) => ({
         default: module.CodexPanel,
+      })),
+    ),
+  },
+  {
+    // Google Antigravity (ADR 0092): `agy acp`, только чат человека (ADR 0094). Иконка - орбита.
+    id: 'antigravity',
+    icon: Orbit,
+    labelKey: 'providerViews.antigravity',
+    Component: lazy(() =>
+      import('../../features/agent-panel/AntigravityPanel/AntigravityPanel').then((module) => ({
+        default: module.AntigravityPanel,
+      })),
+    ),
+  },
+  {
+    // Kimi Code (ADR 0092): `kimi acp`. Иконка - луна со звездой: Moonshot AI.
+    id: 'kimi',
+    icon: MoonStar,
+    labelKey: 'providerViews.kimi',
+    Component: lazy(() =>
+      import('../../features/agent-panel/KimiPanel/KimiPanel').then((module) => ({
+        default: module.KimiPanel,
       })),
     ),
   },

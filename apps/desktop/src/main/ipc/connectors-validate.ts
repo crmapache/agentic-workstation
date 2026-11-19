@@ -20,7 +20,7 @@ import {
 } from '@shared/connectors'
 import { ALL_EFFORT_LEVELS } from '@shared/conversation'
 import { MODEL_NAME_PATTERN } from '@shared/panel-prefs'
-import { isProviderId } from '@shared/providers'
+import { isUnattendedProviderId } from '@shared/providers'
 
 import { assertOneOf, assertString } from './validate'
 
@@ -119,7 +119,8 @@ export const assertGenerate = (value: unknown): GenerateConnectorRequest => {
   const model = field(record['model'] ?? '', 'model', 200).trim()
   const effort = record['effort'] ?? ''
 
-  if (!isProviderId(provider)) throw new Error('Неизвестный провайдер')
+  // Коннектор от ИИ собирается без человека: провайдер чата (Antigravity, ADR 0094) - нет.
+  if (!isUnattendedProviderId(provider)) throw new Error('Неизвестный провайдер')
   if (model && !MODEL_NAME_PATTERN.test(model)) throw new Error('Плохое имя модели')
   if (effort !== '' && !ALL_EFFORT_LEVELS.some((level) => level === effort)) {
     throw new Error('Плохой уровень усилия')

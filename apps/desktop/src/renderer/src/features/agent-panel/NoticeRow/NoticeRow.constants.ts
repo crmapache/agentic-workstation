@@ -1,6 +1,6 @@
 import type { ParseKeys } from 'i18next'
 
-import type { StopReason, RetryReason, RetryOutcome } from '@shared/conversation-feed'
+import type { NoticeCode, StopReason, RetryReason, RetryOutcome } from '@shared/conversation-feed'
 
 /** Часы процента компакта и отсчёта повтора. */
 export const COMPACT_TICK_MS = 500
@@ -50,3 +50,11 @@ export const LIMIT_WINDOW_KEYS: Record<string, ParseKeys> = {
 
 /** Подробность отметки «прервано»: ход сняла панель ради переезда на другой аккаунт. */
 export const ACCOUNT_STOP: StopReason = 'account'
+
+/** Заголовки красной плашки у сбоев, которые панель узнаёт; прочие - только текст CLI. */
+export const ERROR_TITLE_KEYS: Partial<Record<NoticeCode, ParseKeys>> = {
+  'start-failed': 'agentPanel.notice.startFailed',
+  'not-logged-in': 'agentPanel.notice.notLoggedIn',
+  'quota-exhausted': 'agentPanel.notice.quotaExhausted',
+  'terms-blocked': 'agentPanel.notice.termsBlocked',
+}

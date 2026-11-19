@@ -73,11 +73,19 @@ export const assertMessageId = (value: unknown, name = 'messageId'): string => {
   return value
 }
 
-/** id сессии провайдера: UUID (Claude, Codex) или `ses_...` (OpenCode). */
+/** id сессии Kimi Code: `session_<uuid>` (ADR 0092). */
+const KIMI_SESSION_PATTERN =
+  /^session_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** id сессии провайдера: UUID (Claude, Codex, Antigravity), `ses_...` (OpenCode), `session_<uuid>` (Kimi). */
 export const assertAgentSessionId = (value: unknown): string => {
   assertString(value, 'sessionId')
 
-  if (!UUID_PATTERN.test(value) && !OPENCODE_ID_PATTERN.test(value)) {
+  if (
+    !UUID_PATTERN.test(value) &&
+    !OPENCODE_ID_PATTERN.test(value) &&
+    !KIMI_SESSION_PATTERN.test(value)
+  ) {
     throw new Error('Недопустимый id в поле sessionId')
   }
 

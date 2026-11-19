@@ -1,0 +1,47 @@
+{
+  "agentPanel": {
+    "modes": {
+      "labels": {
+        "default": "Default",
+        "acceptEdits": "Accept edits",
+        "auto": "Auto",
+        "plan": "Plan",
+        "bypassPermissions": "Skip permissions"
+      },
+      "short": {
+        "default": "Ask",
+        "acceptEdits": "Accept",
+        "auto": "Auto",
+        "plan": "Plan",
+        "bypassPermissions": "Skip"
+      },
+      "hints": {
+        "default": "Antigravity asks before edits and commands",
+        "acceptEdits": "File edits in the project go through, commands still ask",
+        "auto": "Edits and safe commands go through, irreversible actions ask",
+        "plan": "Antigravity plans carefully before doing anything",
+        "bypassPermissions": "Nothing asks except denylisted commands. Only where mistakes are cheap"
+      }
+    },
+    "blocked": {
+      "trustText": "Antigravity will read, edit and run commands in this folder, with this project's Antigravity rules, skills and MCP servers. Trust only folders you know."
+    },
+    "loginGate": {
+      "text": "Sign in with your Google account. Antigravity opens the sign-in page; paste the code it shows here. The same sign-in serves agy in your terminal.",
+      "openAgain": "Start again",
+      "finish": "Paste the code from the page below - this screen closes by itself.",
+      "noTerminal": "The sign-in didn't go through. Try again."
+    },
+    "notice": {
+      "quotaExhausted": "The Antigravity quota for this model is used up. Pick another model or wait until it resets.",
+      "termsBlocked": "Google refused this request as a Terms of Service violation. The IDE does not send it again: check your account at https://antigravity.google."
+    },
+    "message": {
+      "rewind": "Restore code to here",
+      "rewindSub": "Files {{agent}} changed after this message go back. The conversation stays as it is"
+    },
+    "rewind": {
+      "title": "Restore code to this message"
+    }
+  }
+}

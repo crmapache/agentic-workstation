@@ -107,7 +107,10 @@ export const TASK_TOOLS: NativeTool<WorkstationPorts>[] = [
           description: 'Run once as soon as the IDE is back after a missed time. Default true.',
         },
         report: { type: 'boolean', description: 'Post the report of every run. Default true.' },
-        provider: { type: 'string', description: 'claude, codex or opencode.' },
+        provider: {
+          type: 'string',
+          description: 'claude, codex, kimi or opencode (antigravity works only in its own chat).',
+        },
         model: { type: 'string', description: 'Empty - the default of a new tab.' },
         effort: { type: 'string' },
         permission_mode: { type: 'string', enum: [...AGENT_MODES] },

@@ -6,6 +6,7 @@ import { EmptyState } from '@agentic-workstation/ui/EmptyState'
 
 import { usePanelAccounts } from '../panel-accounts.hooks'
 import { accountTitle } from '../AccountsScreen/AccountsScreen.utils'
+import { AcpSignInStep } from '../AccountsScreen/parts/AcpSignInStep'
 import { useSignInCheck } from './LoginGate.hooks'
 import styles from './LoginGate.module.scss'
 import type { LoginGateProps } from './LoginGate.types'
@@ -50,6 +51,8 @@ export const LoginGate = ({ accounts }: LoginGateProps) => {
             </p>
           )}
           {isWaiting && <p className={styles.waiting}>{t('agentPanel.loginGate.finish')}</p>}
+          {/* Агент ACP: страница входа и код - здесь же, без похода в меню (ADR 0092). */}
+          {accounts.step && <AcpSignInStep step={accounts.step} />}
           {others.length > 0 && (
             <div className={styles.switch}>
               <p className={styles.waiting}>{t('agentPanel.loginGate.orSwitch')}</p>

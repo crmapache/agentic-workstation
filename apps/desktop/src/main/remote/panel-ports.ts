@@ -1,7 +1,7 @@
 import type { ProviderId } from '@shared/providers'
 
 import type { ClaudeService } from '../claude/claude-service'
-import { providerOf, listProviders } from '../providers/provider-registry'
+import { providerOf, listProviders, PANEL_PROVIDERS } from '../providers/provider-registry'
 import type { AgentPanel } from '../agents/panel/agent-panel'
 import type { PanelRegistry } from '../agents/panel/panel-registry'
 import { findTranscript } from '../claude/history/transcript-paths'
@@ -82,15 +82,12 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
   cancelAside: (id, askId) => claude.panel.aside.cancel(id, askId),
 })
 
-/** Провайдеры, у которых панель - только ядро AgentPanel. */
-const CORE_PROVIDERS = ['codex', 'opencode'] as const
-
 /**
  * Все панели IDE - мосту: первой Claude Code, за ней Codex и открытые модели, какие есть.
  * Файлы с телефона - в общий каталог вставок IDE (claude:savePasted зовёт поле любой панели).
  */
 export const panelsPort = (claude: ClaudeService, registry: PanelRegistry): PanelsPort => {
-  const others = CORE_PROVIDERS.flatMap((provider) => {
+  const others = PANEL_PROVIDERS.flatMap((provider) => {
     const panel = registry.find(provider)
 
     return panel ? [panelPort(provider, panel)] : []
@@ -99,12 +96,7 @@ export const panelsPort = (claude: ClaudeService, registry: PanelRegistry): Pane
 
   return {
     list: () => list,
-    refresh: () =>
-      listProviders({
-        claude,
-        codex: registry.find('codex'),
-        opencode: registry.find('opencode'),
-      }),
+    refresh: () => listProviders({ claude, panel: (id) => registry.find(id) }),
     saveFile: (name, data) => claude.composer.savePasted(name, data),
   }
 }

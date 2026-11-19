@@ -3,14 +3,18 @@ import type { i18n } from 'i18next'
 
 import type { ProviderId } from '@shared/providers'
 
+import antigravityEn from '../../locales/en.antigravity.json'
 import codexEn from '../../locales/en.codex.json'
 import en from '../../locales/en.json'
+import kimiEn from '../../locales/en.kimi.json'
 import openCodeEn from '../../locales/en.opencode.json'
 
 /** Строки провайдера поверх общих - только там, где он говорит иначе, чем Claude. */
 const OVERRIDES: Record<ProviderId, object> = {
   claude: {},
   codex: codexEn,
+  antigravity: antigravityEn,
+  kimi: kimiEn,
   opencode: openCodeEn,
 }
 

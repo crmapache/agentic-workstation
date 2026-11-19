@@ -314,6 +314,9 @@ export type SlashCommand = {
 /** Нашёлся ли Claude Code на машине. unknown - ещё ищем. */
 export type CliStatus = 'unknown' | 'found' | 'missing'
 
+/** Программа, без которой найденный CLI не работает: Git Bash у Kimi Code на Windows. */
+export type CliNeed = 'git-bash'
+
 /**
  * Вкладка, закрытая человеком: её можно вернуть на прежнее место - с моделью, очередью
  * и черновиком (черновик держит окно под тем же id).
@@ -349,6 +352,11 @@ export type AgentPanelState = {
   /** Каталог моделей от CLI. Пустой - CLI ещё не спрашивали, окно берёт свой список. */
   models: ModelInfo[]
   cli: CliStatus
+  /**
+   * При cli missing: CLI на месте, но ему не хватает программы - экран «не найден» говорит, что
+   * поставить. Нет поля - не нашёлся сам CLI.
+   */
+  cliNeed?: CliNeed | undefined
   accounts: AccountsState
   /** Настройки панели: экран Settings бокового меню. */
   prefs: PanelPrefs

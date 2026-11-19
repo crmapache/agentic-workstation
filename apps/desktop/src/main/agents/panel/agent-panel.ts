@@ -150,6 +150,14 @@ export abstract class AgentPanel {
   abstract renameAccount(accountId: string, alias: string): Promise<AgentPanelState>
   abstract forgetAccount(accountId: string): Promise<AgentPanelState>
 
+  /**
+   * Код со страницы входа (вход агента ACP `agy`, ADR 0092). У кого вход идёт без кода, этот
+   * канал не зовут: окно поле не показывает.
+   */
+  submitSignInCode(_code: string): Promise<AgentPanelState> {
+    return Promise.resolve(this.getState())
+  }
+
   /** Что о панели хранится на диске сверх вкладок: доверие, настройки. */
   protected abstract storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'>
 

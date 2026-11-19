@@ -14,6 +14,9 @@ export const actionWire = (action: ToolAction): ToolActionWire => {
       return { kind: 'edit', path: action.path }
     case 'write':
       return { kind: 'write', path: action.path, lines: action.lines }
+    // Артефакта протокол телефона не знает: строкой «другое» с описанием и путём.
+    case 'artifact':
+      return { kind: 'other', target: action.summary, path: action.path }
     default:
       return action
   }

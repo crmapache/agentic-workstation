@@ -3,7 +3,14 @@ import { it, expect, describe } from 'vitest'
 
 import type { ProviderCaps } from '@agentic-workstation/remote-protocol/wire-types'
 
-import { effortsOf, modeOptions, effortOptions, modeShortLabel } from './options.utils'
+import {
+  effortsOf,
+  modeOptions,
+  effortOptions,
+  modeShortLabel,
+  defaultUnattendedProvider,
+  unattendedProviderOptions,
+} from './options.utils'
 
 /** Подстановка вместо i18next: видно, какой ключ взят. */
 const t = ((key: string) => key) as unknown as TFunction
@@ -82,5 +89,39 @@ describe('режимы разрешений на телефоне (ADR 0076)', (
     expect(modeShortLabel(t, 'default')).toBeNull()
     expect(modeShortLabel(t, 'bypassPermissions')).toBe('modes.bypassPermissions.short')
     expect(modeShortLabel(t, 'plan')).toBe('modes.plan.short')
+  })
+})
+
+describe('провайдер прогона и часа с телефона (ADR 0094)', () => {
+  const antigravity: ProviderCaps = {
+    ...provider,
+    id: 'antigravity',
+    label: 'Antigravity',
+    chatOnly: true,
+  }
+  const codexMissing: ProviderCaps = { ...provider, id: 'codex', label: 'Codex', available: false }
+
+  it('кто только для чата - виден погашенным с причиной, кого нет на машине - не виден', () => {
+    expect(unattendedProviderOptions(t, [provider, codexMissing, antigravity])).toEqual([
+      { value: 'claude', label: 'Claude Code' },
+      {
+        value: 'antigravity',
+        label: 'Antigravity',
+        description: 'options.chatOnly',
+        disabled: true,
+      },
+    ])
+  })
+
+  it('по умолчанию - первый, кто возьмёт работу; только чат и только отсутствующие - пусто', () => {
+    expect(defaultUnattendedProvider([antigravity, codexMissing, provider])).toBe('claude')
+    expect(defaultUnattendedProvider([antigravity, codexMissing])).toBe('')
+  })
+
+  it('IDE старше правила флага не шлёт - выбрать можно любого на машине', () => {
+    const old: ProviderCaps = { ...provider, id: 'antigravity', label: 'Antigravity' }
+
+    expect(unattendedProviderOptions(t, [old]).map((one) => one.disabled)).toEqual([undefined])
+    expect(defaultUnattendedProvider([old])).toBe('antigravity')
   })
 })

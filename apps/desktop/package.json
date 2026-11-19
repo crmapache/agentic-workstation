@@ -30,6 +30,7 @@
     "semver": "7.8.5"
   },
   "devDependencies": {
+    "@agentclientprotocol/sdk": "2.8.0",
     "@agentic-workstation/browser-protocol": "workspace:*",
     "@agentic-workstation/relay": "workspace:*",
     "@agentic-workstation/remote-protocol": "workspace:*",

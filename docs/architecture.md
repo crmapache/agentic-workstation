@@ -244,7 +244,8 @@ GPU, служебные), те же цифры, что в «Мониторинг
 ([ADR 0008](adr/0008-resource-usage.md)).
 
 **Панели провайдеров** (зона 7, [ADR 0083](adr/0083-provider-panels-shared-core.md)) - у
-каждого провайдера своя иконка в полосе и своя панель: Claude Code, ниже Codex. Общее только
+каждого провайдера своя иконка в полосе и своя панель: Claude Code, Codex, Antigravity, Kimi
+Code, открытые модели. Общее только
 в коде. Главный процесс: ядро `main/agents/` (разговор, очередь, лента, учёт ходов, команды
 `!`, базовый сервис панели `AgentPanel`) и драйверы - `main/claude/` и `main/codex/` (Codex
 через `codex app-server`, построчный JSON-RPC; модели, вход и лимиты - процессом-каталогом,
@@ -254,6 +255,20 @@ GPU, служебные), те же цифры, что в «Мониторинг
 обёртки `ClaudeCodePanel` и `CodexPanel`) показывает только объявленное. Интерфейсное
 состояние у каждой панели своё (стор панели на провайдера), слова - тоже: имя провайдера
 подставляется в общие строки, свои строки Codex - `locales/en.codex.json` поверх общих.
+Список провайдеров - один (`PROVIDER_IDS`, порядок иконок), всё, что от него зависит, -
+таблицы `Record<ProviderId, ...>` (ADR 0093).
+
+**Агенты ACP** (Google Antigravity и Kimi Code, [ADR 0092](adr/0092-acp-providers-antigravity-kimi.md)) -
+одно ядро клиента ACP в `main/acp/`: процесс агента и JSON-RPC 2.0 (`client/`), лента из
+`session/update` (`feed/`, вид вызова по `kind` ACP), разговор и вопросы (`conversation/`:
+разрешения, план, формы `elicitation/create`, модели и режимы через
+`session/set_config_option`), процесс-каталог для истории и повтора старых разговоров
+(`catalog/`), вход силами CLI агента (`acp-account.ts`, `acp-sign-in.ts`) и сервис панели
+`AcpPanel`. Своё агента - описание `AcpAgent` в `main/antigravity/` и `main/kimi/`: поиск CLI,
+своя папка IDE (`--gemini-dir`, `KIMI_CODE_HOME`), режимы, линза вызовов (артефакты
+Antigravity, коннекторы, вопросы). Записи живого протокола - `main/acp/__fixtures__/`.
+Antigravity работает только в своём чате: работа без человека - по правилу провайдера
+(`worksUnattended`, [ADR 0094](adr/0094-background-work-per-provider.md)).
 
 **Claude Code** (зона 7, [ADR 0009](adr/0009-claude-code-gui.md)) - своя реализация, а
 не панель amazing-claude-code. Главный процесс (`main/claude/`) находит CLI в PATH
@@ -426,7 +441,7 @@ iframe под их строкой и ссылками `f2e7` (`page-frames.ts`: 
 (`workstation-scope.ts`), а режим без вопросов заданию и сценарию ставит только человек. Вход
 снаружи (`connectors/outside/`) - второй шлюз с одним этим сервером на постоянном порту 127.0.0.1
 (собранная IDE 4461, dev 4462), с ключом из хранилища; включается в окне коннектора, там же
-копируется настройка для Claude Code, Codex или любого клиента MCP.
+копируется настройка для Claude Code, Codex, Antigravity CLI, Kimi Code или любого клиента MCP.
 
 **Расширения IDE** ([ADR 0091](adr/0091-extensions-sandbox-and-store.md)) - вид середины окна
 `features/extensions` (иконка-пазл, вкладки Installed и Store), главный процесс - `main/extensions/`.

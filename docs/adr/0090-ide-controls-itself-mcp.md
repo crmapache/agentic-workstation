@@ -61,6 +61,9 @@ Control). Новая очередь принимает рабочие часы �
 `AGENTIC_WORKSTATION_OUTSIDE_PORT`), выключен, пока человек не включит в окне коннектора; ключ -
 в хранилище (`safeStorage`), сравнение хешей за постоянное время, Host - только 127.0.0.1 и
 localhost; готовую настройку с ключом главный процесс кладёт в буфер, окно ключа не видит.
+Настройка - команды Claude Code (`claude mcp add`) и Antigravity CLI (`agy mcp add`), записи Codex
+(`~/.codex/config.toml`) и Kimi Code (`~/.kimi-code/mcp.json`: команды добавить сервер у Kimi Code
+2.7.0 нет) и JSON для остальных клиентов.
 
 ## Факты и замеры
 

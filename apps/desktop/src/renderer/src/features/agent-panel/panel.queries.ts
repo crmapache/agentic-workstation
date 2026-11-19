@@ -1,4 +1,5 @@
 import type {
+  CliNeed,
   ModelInfo,
   EffortLevel,
   Conversation,
@@ -95,6 +96,11 @@ export const useEffortLevels = (model: string | null): EffortLevel[] =>
 export const useRefusedModes = (): RefusedModes =>
   useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.refusedModes })
     .data ?? NO_REFUSALS
+
+/** Чего не хватает найденному CLI (Git Bash у Kimi на Windows); null - не нашёлся сам CLI. */
+export const useCliNeed = (): CliNeed | null =>
+  useQuery({ ...panelStateQuery(usePanelProvider()), select: (state) => state.cliNeed ?? null })
+    .data ?? null
 
 /**
  * Свои команды CLI (/compact, /clear…) - служебным запросом при старте IDE, без разговора;

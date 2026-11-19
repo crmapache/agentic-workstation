@@ -246,3 +246,76 @@ describe('новый разговор и история - у провайдер�
     expect(callsOf('openHistory')).toEqual([])
   })
 })
+
+describe('провайдер только для чата (ADR 0094) - Antigravity с телефона', () => {
+  /** Мост с Claude Code и Antigravity: его панель - только ядро AgentPanel, как у Codex. */
+  const withAntigravity = () => {
+    const setup = bridgeSetup()
+
+    addPanel(setup.ide, 'antigravity')
+
+    const callsOf = (name: string) =>
+      setup.ide.calls.filter((call) => call.name === name).map((call) => call.args)
+
+    return { ...setup, callsOf }
+  }
+
+  it('список машины говорит, кто только для чата: телефон гасит его в выборе прогона', async () => {
+    const { say, next } = withAntigravity()
+
+    say({ k: 'hello' })
+
+    const { providers } = await next('inventory')
+
+    expect(providers.map((one) => [one.id, one.chatOnly])).toEqual([
+      ['claude', false],
+      ['antigravity', true],
+    ])
+  })
+
+  it('прогон и час с ним - отказ своим словом, до сервиса сценариев', async () => {
+    const { command, callsOf } = withAntigravity()
+    const shelf = { projectKey: PROJECT, scenarioId: 'tidy', scope: 'project' }
+
+    expect(
+      await command('scenarios.start', {
+        ...shelf,
+        inputs: {},
+        provider: 'antigravity',
+        target: { kind: 'new', worktree: true },
+      }),
+    ).toMatchObject(refusedFor('chatOnly'))
+    expect(
+      await command('scenarios.schedule', {
+        ...shelf,
+        scheduleId: '',
+        at: 540,
+        repeat: 'daily',
+        weekday: 1,
+        inputs: {},
+        worktree: true,
+        provider: 'antigravity',
+      }),
+    ).toMatchObject(refusedFor('chatOnly'))
+    // Провайдера нет вовсе - по-прежнему «нет провайдера».
+    expect(
+      await command('scenarios.start', {
+        ...shelf,
+        inputs: {},
+        provider: 'gemini',
+        target: { kind: 'new', worktree: true },
+      }),
+    ).toMatchObject(refusedFor('providerMissing'))
+    expect(callsOf('scenarios.start')).toEqual([])
+    expect(callsOf('scenarios.schedule')).toEqual([])
+  })
+
+  it('свой разговор человека с телефона - можно: телефон - это человек', async () => {
+    const { command, callsOf } = withAntigravity()
+
+    expect(
+      await command('conversation.new', { projectKey: PROJECT, provider: 'antigravity' }),
+    ).toMatchObject({ ok: true, data: { conversationId: 'antigravity-new' } })
+    expect(callsOf('antigravity.newConversation')).toHaveLength(1)
+  })
+})

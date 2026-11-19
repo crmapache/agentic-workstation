@@ -7,7 +7,7 @@ import { useConversationActions } from '../conversation-actions.hooks'
 import { applyDraft } from '../field-bus'
 import { useReuseDraft } from '../message.hooks'
 import { messageDraft, answersBefore, messageClipboard } from '../message.utils'
-import { useRewindPreview, useConversationFeed } from '../panel.queries'
+import { useRewindPreview, useConversationFeed, usePanelCapabilities } from '../panel.queries'
 import { usePanelStore } from '../panel.store'
 import type { RewindTarget } from '../panel.types'
 import { usePinsStore } from '../pins.store'
@@ -28,7 +28,9 @@ export const useRewindDialog = (target: RewindTarget, conversation: Conversation
   const reuseDraft = useReuseDraft()
   const { data: feed } = useConversationFeed(conversationId)
   const preview = useRewindPreview(conversationId, messageId)
-  const [choice, setChoice] = useState<RewindScope>('conversation')
+  // Первая область, которую умеет провайдер: у агентов ACP откат - только кода.
+  const firstScope = usePanelCapabilities().rewindScopes[0] ?? 'conversation'
+  const [choice, setChoice] = useState<RewindScope>(firstScope)
   const [isWorking, setIsWorking] = useState(false)
   const [refusal, setRefusal] = useState<ShownRefusal | null>(null)
   const [filesFailed, setFilesFailed] = useState<string | null>(null)
@@ -39,7 +41,8 @@ export const useRewindDialog = (target: RewindTarget, conversation: Conversation
   const draft = item ? messageDraft(item, answersBefore(items, item.id)) : null
   const code = preview.data
   const isRunning = conversation.status !== 'idle'
-  const isBlocked = choice === 'code' && isRunning
+  // Код один, а возвращать нечего (или нельзя) - нажимать нечего.
+  const isBlocked = choice === 'code' && (isRunning || code?.state !== 'ready')
   const isForkHeld = forkBlocked(choice, code, isRunning)
 
   /** Сообщение для поля - собирается до отката: после него сообщения в ленте нет. */

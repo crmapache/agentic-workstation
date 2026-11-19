@@ -1,17 +1,41 @@
 import type { EffortLevel, PermissionMode } from './conversation'
 
 /**
- * Провайдеры ИИ на уровне IDE (ADR 0083): Claude Code, Codex и открытые модели (OpenCode),
- * у каждого своя панель. Всё, что не панель провайдера (сценарии, статистика, удалённый
- * доступ), говорит о провайдере этим словом, а не «Claude». Какие из них сейчас в IDE -
- * знает реестр панелей главного процесса (providers:list), а не этот список.
+ * Провайдеры ИИ на уровне IDE (ADR 0083, 0092): Claude Code, Codex, Google Antigravity, Kimi
+ * Code и открытые модели (OpenCode), у каждого своя панель. Всё, что не панель провайдера
+ * (сценарии, статистика, удалённый доступ), говорит о провайдере этим словом, а не «Claude».
+ * Порядок списка - порядок иконок панелей. Какие из них сейчас в IDE - знает реестр панелей
+ * главного процесса (providers:list). Таблицы по провайдеру - `Record<ProviderId, ...>`, а не
+ * развилки: новый провайдер не скомпилируется, пока его нет в каждой (ADR 0093).
  */
-export type ProviderId = 'claude' | 'codex' | 'opencode'
+export const PROVIDER_IDS = ['claude', 'codex', 'antigravity', 'kimi', 'opencode'] as const
 
-export const PROVIDER_IDS: readonly ProviderId[] = ['claude', 'codex', 'opencode']
+export type ProviderId = (typeof PROVIDER_IDS)[number]
 
 export const isProviderId = (value: unknown): value is ProviderId =>
   typeof value === 'string' && (PROVIDER_IDS as readonly string[]).includes(value)
+
+/**
+ * Может ли провайдер работать без человека (ADR 0094): сценарии, задания, цели, служебная
+ * работа, коннектор от ИИ, сообщения от других агентов. Antigravity на личном входе Google - нет:
+ * условия Google это запрещают; он работает только в своём чате.
+ */
+const UNATTENDED: Record<ProviderId, boolean> = {
+  claude: true,
+  codex: true,
+  antigravity: false,
+  kimi: true,
+  opencode: true,
+}
+
+export const worksUnattended = (provider: ProviderId): boolean => UNATTENDED[provider]
+
+/** Провайдеры, которым можно работать без человека, по порядку. */
+export const UNATTENDED_PROVIDER_IDS: readonly ProviderId[] = PROVIDER_IDS.filter(worksUnattended)
+
+/** Провайдер, который может работать без человека. */
+export const isUnattendedProviderId = (value: unknown): value is ProviderId =>
+  isProviderId(value) && worksUnattended(value)
 
 /** Почему провайдер сейчас не работает - кодом, текст у окна. */
 export type ProviderUnavailable = 'noCli'
@@ -57,6 +81,8 @@ export type ProviderInfo = {
   modes: readonly PermissionMode[]
   /** Уровни усилия провайдера - у модели без своего списка. */
   efforts: readonly EffortLevel[]
+  /** Работает только в своём чате (ADR 0094): в выборе фоновой работы погашен. */
+  chatOnly?: boolean | undefined
 }
 
 /** Модель, на которой пойдёт пустое поле модели: «по умолчанию» провайдера, иначе первая. */

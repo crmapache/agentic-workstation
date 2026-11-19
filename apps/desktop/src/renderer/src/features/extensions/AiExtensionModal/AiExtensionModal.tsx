@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { ProviderId } from '@shared/providers'
+import { isProviderId } from '@shared/providers'
 
 import { Button } from '@agentic-workstation/ui/Button'
 import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
@@ -12,6 +13,7 @@ import { TextField } from '@agentic-workstation/ui/TextField'
 
 import { useExtensionActions } from '../extensions.actions'
 import { useExtensionsStore } from '../extensions.store'
+import { takesIdeWork, providerChoices } from '../../../lib/provider-choices'
 import { PROVIDER_VIEW_OF } from '../../../state/layout.constants'
 import { useLayoutStore } from '../../../state/layout.store'
 import { useProviders, effectiveProvider } from '../../../state/providers.queries'
@@ -34,8 +36,17 @@ export const AiExtensionModal = ({ extension }: AiExtensionModalProps) => {
   const [chosen, setChosen] = useState<ProviderId | null>(null)
   const [busy, setBusy] = useState(false)
   const provider = effectiveProvider(providers, chosen)
+  // Первое сообщение разговора пишет IDE вокруг просьбы человека - провайдеру только для чата
+  // (Antigravity, ADR 0094) такое нельзя, как и не установленному.
   const ready =
-    request.trim() !== '' && (extension !== null || name.trim() !== '') && provider?.available
+    request.trim() !== '' &&
+    (extension !== null || name.trim() !== '') &&
+    provider !== null &&
+    takesIdeWork(provider)
+
+  const handleProvider = (value: string) => {
+    if (isProviderId(value)) setChosen(value)
+  }
 
   const handleStart = async () => {
     if (!provider || !ready) return
@@ -100,12 +111,8 @@ export const AiExtensionModal = ({ extension }: AiExtensionModalProps) => {
         <ChoiceField
           label={t('extensions.ai.provider')}
           value={provider?.id ?? ''}
-          options={providers.map((one) => ({
-            value: one.id,
-            label: one.label,
-            disabled: !one.available,
-          }))}
-          onPick={(value) => setChosen(value as ProviderId)}
+          options={providerChoices(providers, t)}
+          onPick={handleProvider}
         />
         <p className={styles.hint}>{t('extensions.ai.hint')}</p>
         {error && <p className={styles.failure}>{t(`extensions.errors.${error}`)}</p>}

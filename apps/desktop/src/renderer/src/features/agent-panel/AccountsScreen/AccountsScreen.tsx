@@ -11,6 +11,7 @@ import styles from './AccountsScreen.module.scss'
 import type { AccountsListProps } from './AccountsScreen.types'
 import { AccountCard } from './parts/AccountCard'
 import { AccountDialogs } from './parts/AccountDialogs'
+import { AcpSignIn } from './parts/AcpSignIn'
 import { DesignSignIn } from './parts/DesignSignIn'
 import { ImportableList } from './parts/ImportableList'
 
@@ -22,8 +23,12 @@ import { ImportableList } from './parts/ImportableList'
  */
 export const AccountsScreen = () => {
   const accounts = usePanelState().data?.accounts
+  // Агент ACP - один вход силами его CLI, а не список аккаунтов (ADR 0092).
+  const isAcp = usePanelCapabilities().accounts === 'acp'
 
-  return accounts ? <AccountsList accounts={accounts} /> : null
+  if (!accounts) return null
+
+  return isAcp ? <AcpSignIn accounts={accounts} /> : <AccountsList accounts={accounts} />
 }
 
 const AccountsList = ({ accounts }: AccountsListProps) => {

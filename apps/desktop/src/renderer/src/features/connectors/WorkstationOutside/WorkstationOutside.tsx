@@ -22,8 +22,9 @@ import type { WorkstationOutsideProps } from './WorkstationOutside.types'
 
 /**
  * Вход в IDE снаружи в окне коннектора Agentic Workstation (ADR 0090): переключатель, состояние
- * сервера с адресом, настройка для Claude Code, Codex или любого клиента MCP - в буфер вместе с
- * ключом, и новый ключ. Ключ окно не видит: текст кладёт в буфер главный процесс.
+ * сервера с адресом, настройка для Claude Code, Codex, Antigravity CLI, Kimi Code или любого клиента
+ * MCP - в буфер вместе с ключом, и новый ключ. Ключ окно не видит: текст кладёт в буфер главный
+ * процесс.
  */
 export const WorkstationOutside = ({ outside }: WorkstationOutsideProps) => {
   const { t } = useTranslation()

@@ -17,6 +17,7 @@ export const usePanelAccounts = () => {
     () => ({
       signIn: (accountId: string) => run(invoke('agent:signIn', { provider, accountId })),
       cancelSignIn: () => run(invoke('agent:cancelSignIn', { provider })),
+      submitCode: (code: string) => run(invoke('agent:submitSignInCode', { provider, code })),
       check: () => run(invoke('agent:checkSignIn', { provider })),
       signOut: (accountId: string) => run(invoke('agent:signOut', { provider, accountId })),
       add: () => run(invoke('agent:addAccount', { provider })),

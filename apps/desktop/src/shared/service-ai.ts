@@ -1,6 +1,6 @@
 import { MODEL_NAME_PATTERN } from './panel-prefs'
 import type { ProviderId } from './providers'
-import { isProviderId } from './providers'
+import { isUnattendedProviderId } from './providers'
 
 /**
  * Кто делает служебную работу IDE (Settings → AI, docs/plan-providers/50-ide.md): имена
@@ -22,7 +22,9 @@ export const parseServiceAi = (value: unknown): ServiceAi => {
   const model = typeof raw['model'] === 'string' ? raw['model'].trim() : ''
 
   return {
-    provider: isProviderId(raw['provider']) ? raw['provider'] : DEFAULT_SERVICE_AI.provider,
+    provider: isUnattendedProviderId(raw['provider'])
+      ? raw['provider']
+      : DEFAULT_SERVICE_AI.provider,
     model: model && MODEL_NAME_PATTERN.test(model) ? model : '',
   }
 }

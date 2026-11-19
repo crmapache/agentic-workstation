@@ -2,7 +2,7 @@ import { join } from 'node:path'
 
 import type { ExtensionActionError } from '@shared/extensions'
 import type { ProviderId } from '@shared/providers'
-import { PROVIDER_IDS } from '@shared/providers'
+import { isProviderId, worksUnattended } from '@shared/providers'
 
 import { writeGuides, extensionIdFor, scaffoldExtension } from './scaffold'
 
@@ -60,7 +60,10 @@ export class ExtensionAuthoring {
     const wish = request.trim().slice(0, 20_000)
 
     if (!cleanName || !wish) return 'invalid-name'
-    if (!isProvider(provider)) return 'no-provider'
+    if (!isProviderId(provider)) return 'no-provider'
+    // Первое сообщение пишет IDE вокруг просьбы человека - провайдеру только для чата (Antigravity,
+    // ADR 0094) это запрещено условиями. Отказ здесь, где сообщение уходит, а не только в окне.
+    if (!worksUnattended(provider)) return 'chat-only'
 
     const id = extensionIdFor(cleanName, (candidate) => this.deps.exists(candidate))
     const description = wish.split('\n')[0]?.slice(0, 200) ?? ''
@@ -89,7 +92,8 @@ export class ExtensionAuthoring {
 
     if (!this.deps.exists(id)) return 'not-found'
     if (!wish) return 'invalid-name'
-    if (!isProvider(provider)) return 'no-provider'
+    if (!isProviderId(provider)) return 'no-provider'
+    if (!worksUnattended(provider)) return 'chat-only'
 
     const dir = join(this.deps.root, id)
 
@@ -110,6 +114,3 @@ export class ExtensionAuthoring {
     return this.deps.converse(provider, dir, message)
   }
 }
-
-const isProvider = (value: string): value is ProviderId =>
-  (PROVIDER_IDS as readonly string[]).includes(value)

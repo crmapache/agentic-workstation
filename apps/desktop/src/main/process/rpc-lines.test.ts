@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import { requestLine, parseRpcLine, responseLine } from './rpc-lines'
 
-describe('строки JSON-RPC app-server', () => {
+describe('строки JSON-RPC', () => {
   it('ответ, уведомление и запрос сервера различаются по id и method', () => {
     expect(parseRpcLine('{"id":3,"result":{"ok":true}}')).toEqual({
       kind: 'response',
@@ -44,5 +44,19 @@ describe('строки JSON-RPC app-server', () => {
     expect(responseLine('s1', { result: { decision: 'accept' } })).toBe(
       '{"id":"s1","result":{"decision":"accept"}}\n',
     )
+  })
+
+  it('у JSON-RPC 2.0 (ACP) поле версии в каждой строке', () => {
+    expect(requestLine(1, 'session/new', { cwd: '/p' }, 'jsonrpc2')).toBe(
+      '{"jsonrpc":"2.0","id":1,"method":"session/new","params":{"cwd":"/p"}}\n',
+    )
+    expect(responseLine(4, { result: {} }, 'jsonrpc2')).toBe(
+      '{"jsonrpc":"2.0","id":4,"result":{}}\n',
+    )
+    expect(parseRpcLine('{"jsonrpc":"2.0","method":"session/update","params":{}}')).toEqual({
+      kind: 'notification',
+      method: 'session/update',
+      params: {},
+    })
   })
 })

@@ -37,6 +37,7 @@ export const ROW_RHYTHM: Record<FeedRow['kind'], RowRhythm> = {
   user: 'block',
   assistant: 'block',
   plan: 'block',
+  artifact: 'block',
   question: 'block',
   shell: 'block',
   compact: 'block',

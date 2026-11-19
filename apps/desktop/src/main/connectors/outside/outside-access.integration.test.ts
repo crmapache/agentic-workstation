@@ -193,7 +193,7 @@ describe('OutsideAccess', () => {
     expect(await plain.setupText('claude')).toBeNull()
   })
 
-  it('настройка для Claude Code и Codex - с адресом и ключом заголовком', async () => {
+  it('настройка для Claude Code, Codex, Antigravity и Kimi Code - с адресом и ключом заголовком', async () => {
     const url = outside.state().url
     const key = keyOf(await outside.setupText('json'))
 
@@ -203,5 +203,15 @@ describe('OutsideAccess', () => {
     expect(await outside.setupText('codex')).toBe(
       `[mcp_servers.agentic-workstation]\nurl = "${url}"\nhttp_headers = { "Authorization" = "Bearer ${key}" }`,
     )
+    // Флаг agy - до имени сервера: после имени agy 1.5.12 его отвергает.
+    expect(await outside.setupText('antigravity')).toBe(
+      `agy mcp add --header "Authorization: Bearer ${key}" agentic-workstation ${url}`,
+    )
+    // Kimi Code узнаёт HTTP по url без transport; type из общего JSON ему не нужен.
+    expect(JSON.parse((await outside.setupText('kimi')) ?? '{}')).toEqual({
+      mcpServers: {
+        'agentic-workstation': { url, headers: { Authorization: `Bearer ${key}` } },
+      },
+    })
   })
 })
