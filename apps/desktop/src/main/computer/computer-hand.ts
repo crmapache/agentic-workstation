@@ -7,11 +7,13 @@ import {
   wheelTicks,
   doubleGapMs,
 } from '../browser/human-motion'
+import { isMultiline, normalizeBreaks, multilineSubmitRefused } from '../browser/typed-lines'
 import { ComputerError, asComputerError } from './computer-error'
 import { isApart } from './computer-geometry'
 import type { Rect } from './computer-geometry'
 import { parseChord, PLATFORM_KEYMAP } from './computer-keys'
 import type { KeyChord } from './computer-keys'
+import { pieces } from './computer-text'
 import {
   STILL_MS,
   STILL_POLL_MS,
@@ -225,12 +227,18 @@ export class ComputerHand {
    * Текст в то, что сейчас в фокусе. Есть у системы буфер для руки (Windows) - текст вставляется:
    * знаки по одному Windows доставляет занятому приложению вперемешку (ADR 0058). Не взяло
    * вставку - дальше знаками: короткий текст - ритмом руки, длинный - темпом системы. Перевод
-   * строки - Return, табуляция - Tab, и между вставками тоже: Return в мессенджере - отправка, и
-   * модель на это рассчитывает. Человек кликнул или нажал клавишу посреди набора - фокус мог
+   * строки - Shift+Return (пустая строка - два), табуляция - Tab, и между вставками тоже: голый
+   * Return в мессенджере отправил бы сообщение на полуслове (ADR 0095). submit - Return после
+   * текста, только однострочного. Человек кликнул или нажал клавишу посреди набора - фокус мог
    * уйти, и набор обрывается.
    */
-  async type(text: string, signal: AbortSignal): Promise<void> {
-    const isRhythm = text.length <= TYPE_RHYTHM_MAX
+  async type(text: string, signal: AbortSignal, submit = false): Promise<void> {
+    const typed = normalizeBreaks(text)
+    const isRhythm = typed.length <= TYPE_RHYTHM_MAX
+
+    if (submit && isMultiline(typed)) {
+      throw new ComputerError('failed', multilineSubmitRefused('press Return with key'))
+    }
 
     this.checkReach(null)
     this.placed = this.input.cursor()
@@ -239,12 +247,17 @@ export class ComputerHand {
     let isPasting = paste !== null
 
     try {
-      for (const run of pieces(text, Infinity)) {
+      for (const run of pieces(typed, Infinity)) {
         this.checkKeyboard(signal)
         this.guard(true)
 
         if (run === '\n' || run === '\t') {
-          await this.tap(run === '\n' ? this.keys.returnKey : this.keys.tabKey, 0, signal)
+          const chord: KeyChord =
+            run === '\n'
+              ? parseChord('shift+return', this.keys)
+              : { modifiers: [], key: this.keys.tabKey }
+
+          await this.hit(chord, signal)
           await this.motion.sleep(this.gap(run, isRhythm), signal)
           continue
         }
@@ -254,6 +267,12 @@ export class ComputerHand {
       }
     } finally {
       await paste?.close()
+    }
+
+    if (submit) {
+      await this.motion.sleep(this.gap(typed.at(-1) ?? '', isRhythm), signal)
+      this.checkKeyboard(signal)
+      await this.tap(this.keys.returnKey, 0, signal)
     }
   }
 
@@ -270,23 +289,24 @@ export class ComputerHand {
       if (time > 0) await sleep(keyGapMs('', random), signal)
 
       this.checkKeyboard(signal)
-      await this.holding(chord.modifiers, signal, (flags) =>
-        chord.key === null ? Promise.resolve() : this.tap(chord.key, flags, signal),
-      )
+      await this.hit(chord, signal)
     }
   }
 
   /** Вставить кусок текста: в буфер, cmd+v (на Windows - Ctrl+V), взяло ли приложение. */
   private async paste(session: PasteSession, text: string, signal: AbortSignal): Promise<boolean> {
-    const chord = parseChord('cmd+v', this.keys)
-
     if (!(await session.offer(text))) return false
 
-    await this.holding(chord.modifiers, signal, (flags) =>
-      chord.key === null ? Promise.resolve() : this.tap(chord.key, flags, signal),
-    )
+    await this.hit(parseChord('cmd+v', this.keys), signal)
 
     return session.taken(signal)
+  }
+
+  /** Сочетание один раз: модификаторы своими клавишами вокруг клавиши (её может не быть). */
+  private hit(chord: KeyChord, signal: AbortSignal): Promise<void> {
+    return this.holding(chord.modifiers, signal, (flags) =>
+      chord.key === null ? Promise.resolve() : this.tap(chord.key, flags, signal),
+    )
   }
 
   /** Текст знаками: короткий - по одному ритмом руки, длинный - кусками темпом системы. */
@@ -391,36 +411,4 @@ export class ComputerHand {
       throw new ComputerError('interrupted', INTERRUPTED)
     }
   }
-}
-
-/**
- * Текст кусками: переводы строк и табуляции - отдельно (их жмут клавишей), остальное - не
- * длиннее size UTF-16 знаков и без разрыва суррогатной пары.
- */
-export const pieces = (text: string, size: number): string[] => {
-  const out: string[] = []
-  let chunk = ''
-
-  for (const char of text) {
-    if (char === '\n' || char === '\t') {
-      if (chunk) out.push(chunk)
-
-      out.push(char)
-      chunk = ''
-      continue
-    }
-
-    // Знак из двух половин UTF-16 (эмодзи) длиннее куска в один знак: пустой кусок не нужен -
-    // он стал бы нажатием клавиши без текста.
-    if (chunk && chunk.length + char.length > size) {
-      out.push(chunk)
-      chunk = ''
-    }
-
-    chunk += char
-  }
-
-  if (chunk) out.push(chunk)
-
-  return out
 }

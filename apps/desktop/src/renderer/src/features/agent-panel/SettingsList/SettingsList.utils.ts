@@ -13,6 +13,8 @@ export const offersRow = (screen: SettingsScreen, capabilities: PanelCapabilitie
       return capabilities.config
     case 'customModels':
       return capabilities.customModels
+    case 'presets':
+      return capabilities.presets
     default:
       return true
   }
@@ -20,7 +22,8 @@ export const offersRow = (screen: SettingsScreen, capabilities: PanelCapabilitie
 
 /**
  * Значение справа от строки Settings: ответ на вопрос, ради которого экран открыли бы
- * («6 on», «One tone», «From 2 lines»). Пусто у экранов, чьё содержимое в слово не сложить.
+ * («6 on», «One tone», «From 2 lines», «2 buttons»). Пусто у экранов, чьё содержимое в слово
+ * не сложить.
  */
 export const settingValue = (screen: SettingsScreen, prefs: PanelPrefs, t: TFunction): string => {
   switch (screen) {
@@ -41,6 +44,10 @@ export const settingValue = (screen: SettingsScreen, prefs: PanelPrefs, t: TFunc
       return prefs.pasteCollapse
         ? t('agentPanel.settings.values.fromLines', { count: prefs.pasteCollapse })
         : t('agentPanel.settings.values.never')
+    case 'presets':
+      return prefs.presetCount > 0
+        ? t('agentPanel.settings.values.buttons', { count: prefs.presetCount })
+        : t('agentPanel.settings.values.off')
     case 'customModels':
       return prefs.customModels.length > 0
         ? String(prefs.customModels.length)

@@ -59,4 +59,17 @@ describe('клавиши для CDP', () => {
     expect(charEvents('Z')[0]).toMatchObject({ type: 'keyDown', key: 'Z', text: 'Z', code: 'KeyZ' })
     expect(charEvents('ё')[0]).toMatchObject({ key: 'ё', text: 'ё', windowsVirtualKeyCode: 0 })
   })
+
+  // Голый Enter в мессенджере отправил бы сообщение на полуслове (ADR 0095).
+  it('перевод строки по клавише - Shift+Enter, а не Enter', () => {
+    const events = charEvents('\n')
+
+    expect(events).toEqual(keyEvents('Shift+Enter'))
+    expect(events.map((event) => `${event.type}:${event.key}:${event.modifiers}`)).toEqual([
+      'rawKeyDown:Shift:8',
+      'keyDown:Enter:8',
+      'keyUp:Enter:8',
+      'keyUp:Shift:8',
+    ])
+  })
 })

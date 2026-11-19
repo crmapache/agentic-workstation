@@ -1,6 +1,6 @@
 # 0058. Computer Use на Windows - SendInput и SetCursorPos через koffi, текст вставкой из буфера
 
-- **Статус:** Принято
+- **Статус:** Частично заменено [0095](0095-line-breaks-shift-enter-check-before-send.md) (перевод строки - Shift+Enter, а не Enter)
 - **Дата:** 2026-11-13
 
 Дополняет [0057](0057-computer-use.md) и заменяет его пункт «только мак»: стол, рука, пауза,

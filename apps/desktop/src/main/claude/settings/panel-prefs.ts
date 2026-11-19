@@ -2,10 +2,12 @@ import { isAbsolute } from 'node:path'
 
 import type { EffortLevel, PermissionMode } from '@shared/conversation'
 import { EFFORT_LEVELS, PERMISSION_MODES } from '@shared/conversation'
-import type { PanelPrefs, PanelPrefsPatch } from '@shared/panel-prefs'
+import type { PanelPrefs, SetupPreset, PanelPrefsPatch } from '@shared/panel-prefs'
 import {
+  PRESET_NAME_MAX,
   GAUGE_VIVID_CALM,
   GAUGE_VIVID_FULL,
+  MAX_SETUP_PRESETS,
   MODEL_NAME_PATTERN,
   DEFAULT_PANEL_PREFS,
 } from '@shared/panel-prefs'
@@ -20,6 +22,9 @@ const MAX_HIDDEN_METERS = 50
 
 /** Ключ показания - группа окна и имя модели от сервера: строка без переводов строк. */
 const METER_KEY_PATTERN = /^[^\n\r\0]{1,120}$/
+
+/** Имя пресета - подпись кнопки: одна строка без управляющих знаков. */
+const CONTROL_CHARS = /\p{Cc}/u
 
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -81,6 +86,61 @@ export type PrefsRules = { efforts: readonly EffortLevel[]; modes: readonly Perm
 const CLAUDE_RULES: PrefsRules = { efforts: EFFORT_LEVELS, modes: PERMISSION_MODES }
 
 /**
+ * Один пресет или null, если он негоден: имя - короткая строка, модель - пусто или имя для
+ * аргумента запуска, усилие и режим - из списков провайдера панели (ADR 0096).
+ */
+const parsePreset = (value: unknown, rules: PrefsRules): SetupPreset | null => {
+  const input = record(value)
+  const name = typeof input['name'] === 'string' ? input['name'].trim() : ''
+
+  if (!name || name.length > PRESET_NAME_MAX || CONTROL_CHARS.test(name)) return null
+
+  const model = input['model'] === null ? null : usableModel(input['model'])
+  const effort = pinned(input['effort'], rules.efforts)
+  const mode = oneOf(input['mode'], rules.modes)
+
+  if (model === undefined || effort === undefined || mode === undefined) return null
+
+  return { name, model, effort, mode }
+}
+
+/**
+ * Пресеты из записи: негодный пропускается, остальные - по порядку, не больше трёх. Уровень
+ * или режим, которого провайдер больше не знает, снимает только свой пресет, а не все.
+ */
+const parsePresets = (value: unknown, rules: PrefsRules): SetupPreset[] | undefined =>
+  Array.isArray(value)
+    ? value
+        .map((item) => parsePreset(item, rules))
+        .filter((preset) => preset !== null)
+        .slice(0, MAX_SETUP_PRESETS)
+    : undefined
+
+/**
+ * Годен ли каждый пресет патча из окна: негодный - отказ всего поля, а не тихая потеря кнопки,
+ * которую человек только что настроил.
+ */
+const presetsIntact = (value: unknown, rules: PrefsRules): boolean =>
+  Array.isArray(value) &&
+  value.length <= MAX_SETUP_PRESETS &&
+  value.every((item) => parsePreset(item, rules) !== null)
+
+/**
+ * Кнопок не больше, чем пресетов: кнопка без пресета ничего бы не ставила. Удалённая своя
+ * модель снимается с пресетов, как с новых вкладок: иначе кнопка ставила бы имя, которого в
+ * меню больше нет.
+ */
+const settlePresets = (prefs: PanelPrefs, removedModels: readonly string[]): PanelPrefs => {
+  const presets = prefs.presets.map((preset) =>
+    preset.model !== null && removedModels.includes(preset.model)
+      ? { ...preset, model: null }
+      : preset,
+  )
+
+  return { ...prefs, presets, presetCount: Math.min(prefs.presetCount, presets.length) }
+}
+
+/**
  * Только то, что в записи узнаваемо: чужое и битое отбрасывается поле за полем, а не
  * роняет все настройки разом. Уровни и режимы - провайдера панели (у Codex свои).
  */
@@ -100,16 +160,16 @@ const parseFields = (value: unknown, rules: PrefsRules): PanelPrefsPatch => {
         ].slice(0, MAX_CUSTOM_MODELS)
       : undefined,
     cliPath: cliPath(input['cliPath']),
+    presetCount: clamp(input['presetCount'], 0, MAX_SETUP_PRESETS),
+    presets: parsePresets(input['presets'], rules),
   }
 
   return Object.fromEntries(Object.entries(fields).filter(([, field]) => field !== undefined))
 }
 
 /** Настройки с диска: чего нет или что не разобралось - по умолчанию. */
-export const parsePanelPrefs = (value: unknown, rules: PrefsRules = CLAUDE_RULES): PanelPrefs => ({
-  ...DEFAULT_PANEL_PREFS,
-  ...parseFields(value, rules),
-})
+export const parsePanelPrefs = (value: unknown, rules: PrefsRules = CLAUDE_RULES): PanelPrefs =>
+  settlePresets({ ...DEFAULT_PANEL_PREFS, ...parseFields(value, rules) }, [])
 
 /**
  * Изменение из окна поверх текущих. Названное, но негодное поле - ошибка, а не тихий
@@ -120,9 +180,11 @@ export const applyPrefsPatch = (
   patch: unknown,
   rules: PrefsRules = CLAUDE_RULES,
 ): PanelPrefs => {
-  const named = Object.keys(record(patch))
+  const input = record(patch)
   const parsed = parseFields(patch, rules)
-  const rejected = named.filter((key) => !(key in parsed))
+  const rejected = Object.keys(input).filter(
+    (key) => !(key in parsed) || (key === 'presets' && !presetsIntact(input[key], rules)),
+  )
 
   if (rejected.length > 0) throw new Error(`Недопустимые настройки: ${rejected.join(', ')}`)
 
@@ -131,7 +193,10 @@ export const applyPrefsPatch = (
 
   // Удалённая своя модель снимается и с новых вкладок: иначе каждая новая вкладка
   // стартовала бы на имени, которого в меню больше нет.
-  return next.newTabModel !== null && removed.includes(next.newTabModel)
-    ? { ...next, newTabModel: null }
-    : next
+  return settlePresets(
+    next.newTabModel !== null && removed.includes(next.newTabModel)
+      ? { ...next, newTabModel: null }
+      : next,
+    removed,
+  )
 }

@@ -1,14 +1,15 @@
 import { BrowserError } from './browser-error'
 import { SET_VALUE, setsValue, sameFieldValue, fieldValueRefused } from './field-values'
-import { holdMs, pickMs, keyGapMs, settleMs, doubleGapMs, TYPE_BY_KEYS_MAX } from './human-motion'
+import { holdMs, pickMs, keyGapMs, settleMs, doubleGapMs } from './human-motion'
 import type { Page } from './page'
-import { keyEvents, charEvents } from './page-keys'
-import type { KeyEvent } from './page-keys'
 import { callOn, nodeCdp } from './page-nodes'
 import type { Point, Target } from './page-nodes'
 import { mouse, wheel, moveTo, viewportOf } from './page-pointer'
 import type { MouseButton } from './page-pointer'
 import { aimOf, revealByHand } from './page-reveal'
+import { press, typeInto, checkField, focusedField } from './page-typing'
+import type { FieldCheck } from './page-typing'
+import { isMultiline, normalizeBreaks, multilineSubmitRefused } from './typed-lines'
 
 /**
  * Действия во вкладке через CDP (ADR 0040, 0044): клики и ввод - `Input.*`, как от настоящей
@@ -19,6 +20,8 @@ import { aimOf, revealByHand } from './page-reveal'
  */
 
 export type { MouseButton } from './page-pointer'
+export type { FieldCheck } from './page-typing'
+export { press } from './page-typing'
 
 const pause = (page: Page, ms: number) => page.motion.sleep(ms, page.signal)
 
@@ -73,68 +76,14 @@ const SELECT_CONTENTS = `function () {
   }
 }`
 
-/**
- * События клавиш с человеческой выдержкой: клавиша держится, модификатор нажат раньше и
- * отпущен позже неё.
- */
-const keys = async (page: Page, events: readonly KeyEvent[]) => {
-  const held = new Map<string, KeyEvent>()
-
-  try {
-    for (const [index, event] of events.entries()) {
-      if (index > 0) await pause(page, Math.round(holdMs(page.motion.random) / 2))
-
-      await page.cdp('Input.dispatchKeyEvent', event)
-
-      const id = `${event.code}|${event.key}`
-
-      if (event.type === 'keyUp') held.delete(id)
-      else held.set(id, event)
-    }
-  } finally {
-    // Stop посреди сочетания: зажатые клавиши отпускаются, иначе Chrome держал бы ⌘ нажатым.
-    for (const { key, code, windowsVirtualKeyCode, modifiers } of [...held.values()].reverse()) {
-      await page
-        .cdp(
-          'Input.dispatchKeyEvent',
-          { type: 'keyUp', key, code, windowsVirtualKeyCode, modifiers },
-          { unstoppable: true },
-        )
-        .catch(() => undefined)
-    }
-  }
-}
-
-export const press = async (page: Page, combos: readonly string[]): Promise<void> => {
-  for (const [index, combo] of combos.entries()) {
-    if (index > 0) await pause(page, keyGapMs(combos[index - 1] ?? '', page.motion.random))
-
-    await keys(page, keyEvents(combo))
-  }
-}
-
-/**
- * Набрать текст по клавише: короткий - неровным ритмом руки; длинный (slowly для подсказок
- * на сотни знаков) - без пауз между знаками, иначе он печатался бы минутами.
- */
-const typeByKeys = async (page: Page, text: string) => {
-  const paced = text.length <= TYPE_BY_KEYS_MAX
-  let previous = ''
-
-  for (const char of text) {
-    if (previous && paced) await pause(page, keyGapMs(previous, page.motion.random))
-
-    await keys(page, charEvents(char))
-    previous = char
-  }
-}
-
 export type TypeOptions = {
   ref?: string
   text: string
   submit?: boolean
   slowly?: boolean
   append?: boolean
+  /** Вернуть с проверкой поля и его картинку (редактор, без submit). */
+  picture?: boolean
 }
 
 const DESCRIBE = `function () {
@@ -162,22 +111,39 @@ const setFieldValue = async (page: Page, ref: string, type: string, value: strin
   }
 }
 
+const oneLineRefused = (ref: string | undefined) =>
+  `${ref ? `Element ${ref}` : 'The focused field'} is a one-line field: it can't hold line breaks. Type the text as one line.`
+
 /**
  * Ввод: нажать в поле (мышь подъезжает), заменить содержимое (или дописать), набрать. Короткий
- * текст печатается по клавише - с нажатиями, которые видят сайт и его подсказки; длинный (или
- * с переводами строк) вставляется разом, как человек вставил бы его из буфера. slowly - по
- * клавише всегда. Поле даты, времени, цвета или ползунка не печатает - ему значение ставится
- * целиком.
+ * текст печатается по клавише - с нажатиями, которые видят сайт и его подсказки; длинный
+ * вставляется, как человек вставил бы его из буфера. slowly - по клавише всегда. Поле даты,
+ * времени, цвета или ползунка не печатает - ему значение ставится целиком.
+ *
+ * Перевод строки (ADR 0095) - Shift+Enter, пустая строка - два подряд, голого Enter внутри текста
+ * нет; многострочный текст с submit - отказ до первого действия, в однострочное поле - тоже отказ.
+ * Ответ без submit - что поле показывает теперь (checkField), если там есть что сверять.
  */
-export const typeText = async (page: Page, options: TypeOptions): Promise<void> => {
+export const typeText = async (page: Page, options: TypeOptions): Promise<FieldCheck | null> => {
+  const text = normalizeBreaks(options.text)
+  const multiline = isMultiline(text)
+
+  if (multiline && options.submit) {
+    throw new BrowserError('bad-request', multilineSubmitRefused('press Enter with press'))
+  }
+
   const field = options.ref ? await callOn<FieldInfo>(page, options.ref, DESCRIBE) : null
 
   if (options.ref && field && setsValue(field.tag, field.type)) {
-    await setFieldValue(page, options.ref, field.type, options.text)
+    await setFieldValue(page, options.ref, field.type, text)
 
     if (options.submit) await press(page, ['Enter'])
 
-    return
+    return null
+  }
+
+  if (multiline && field?.tag === 'input') {
+    throw new BrowserError('bad-request', oneLineRefused(options.ref))
   }
 
   if (options.ref) {
@@ -186,22 +152,25 @@ export const typeText = async (page: Page, options: TypeOptions): Promise<void> 
     if (!options.append) await callOn(page, options.ref, SELECT_CONTENTS)
   }
 
-  const byKeys =
-    options.slowly || (options.text.length <= TYPE_BY_KEYS_MAX && !options.text.includes('\n'))
+  // Куда пойдут строки, видно только по полю с фокусом: ссылка бывает обёрткой редактора.
+  const kind = multiline ? (await focusedField(page, options.ref)).kind : null
 
-  if (options.text && byKeys) {
-    await typeByKeys(page, options.text)
-  } else if (options.text) {
-    await pause(page, settleMs(page.motion.random))
-    await page.cdp('Input.insertText', { text: options.text })
+  if (kind === 'input') throw new BrowserError('bad-request', oneLineRefused(options.ref))
+
+  if (text) {
+    await typeInto(page, text, { slowly: options.slowly ?? false, whole: kind === 'textarea' })
   } else if (options.ref && !options.append) {
     await press(page, ['Delete'])
   }
 
   if (options.submit) {
-    await pause(page, keyGapMs(options.text.at(-1) ?? '', page.motion.random))
+    await pause(page, keyGapMs(text.at(-1) ?? '', page.motion.random))
     await press(page, ['Enter'])
+
+    return null
   }
+
+  return checkField(page, options.ref, { multiline, picture: options.picture ?? false })
 }
 
 /** Выбрать варианты в <select> по значению или подписи; ответ - выбранные значения. */
@@ -231,21 +200,26 @@ export const selectOptions = async (page: Page, ref: string, values: readonly st
 
 /**
  * Значение поля формы словами модели: флажок - true/false, список - вариант, дата, время, цвет
- * и ползунок - значение в своём формате, иначе текст.
+ * и ползунок - значение в своём формате, иначе текст. Ответ - что показывает текстовое поле после
+ * набора (как у typeText, без картинки), у остальных - null.
  */
-export const fillField = async (page: Page, ref: string, value: string): Promise<void> => {
+export const fillField = async (
+  page: Page,
+  ref: string,
+  value: string,
+): Promise<FieldCheck | null> => {
   const field = await callOn<FieldInfo>(page, ref, DESCRIBE)
 
   if (setsValue(field.tag, field.type)) {
     await setFieldValue(page, ref, field.type, value)
 
-    return
+    return null
   }
 
   if (field.tag === 'select') {
     await selectOptions(page, ref, [value])
 
-    return
+    return null
   }
 
   if (field.type === 'checkbox' || field.type === 'radio') {
@@ -253,10 +227,10 @@ export const fillField = async (page: Page, ref: string, value: string): Promise
 
     if (field.checked !== wanted) await click(page, { ref })
 
-    return
+    return null
   }
 
-  await typeText(page, { ref, text: value })
+  return typeText(page, { ref, text: value })
 }
 
 /**

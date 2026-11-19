@@ -2959,6 +2959,18 @@
         "newChatMode": {
           "title": "Default mode"
         },
+        "presets": {
+          "title": "Quick presets"
+        },
+        "preset1": {
+          "title": "Preset 1"
+        },
+        "preset2": {
+          "title": "Preset 2"
+        },
+        "preset3": {
+          "title": "Preset 3"
+        },
         "shareEditor": {
           "title": "Editor in messages"
         },
@@ -3008,6 +3020,10 @@
           "label": "New chats",
           "sub": "Model, effort and permission mode"
         },
+        "presets": {
+          "label": "Quick presets",
+          "sub": "Model, effort and mode in one click"
+        },
         "shareEditor": {
           "label": "Open file and selection",
           "sub": "What goes along with each message"
@@ -3037,7 +3053,9 @@
         "calm": "One tone",
         "percent": "{{value}}%",
         "fromLines_one": "From {{count}} line",
-        "fromLines_other": "From {{count}} lines"
+        "fromLines_other": "From {{count}} lines",
+        "buttons_one": "{{count}} button",
+        "buttons_other": "{{count}} buttons"
       }
     },
     "calmColors": {
@@ -3074,6 +3092,18 @@
       "lastUsedNow": "Follows the last pick - {{value}}",
       "custom": "Added by you",
       "bypassOff": "Bypass permissions is not offered: this project's or your organization's settings switch it off."
+    },
+    "presets": {
+      "group": "Quick presets",
+      "countLabel": "Buttons under the message box",
+      "none": "None",
+      "count_one": "{{count}} button",
+      "count_other": "{{count}} buttons",
+      "list": "Presets",
+      "defaultName": "Preset {{number}}",
+      "name": "Button name",
+      "nameEmpty": "The button needs a name",
+      "help": "Up to three buttons to the right of the model, effort and mode under the message box. Each one sets its model, effort and permission mode for the chat in one click.\n\nA button stays lit while the chat runs on its model and effort. Changing the mode, with Shift+Tab or when a plan is accepted, keeps it lit, and a click puts the preset's mode back. Pick another model or effort by hand and the button goes dark, unless that matches another preset - then that one lights up.\n\nA new button starts from what the current chat uses. Fewer buttons don't lose the hidden presets: raise the count again and they come back as they were."
     },
     "claudeConfig": {
       "help": "Claude Code's own settings - the ones /config changes in a terminal, and they apply there too. Claude Code writes every change itself.",

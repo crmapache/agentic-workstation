@@ -15,7 +15,7 @@ import {
   uploadFiles,
   selectOptions,
 } from '../../../browser/page-actions'
-import type { MouseButton } from '../../../browser/page-actions'
+import type { FieldCheck, MouseButton } from '../../../browser/page-actions'
 import { realPathInside } from '../../../browser/project-files'
 import {
   refArg,
@@ -29,6 +29,7 @@ import {
   TAB_PROPERTY,
   POINT_PROPERTIES,
 } from './browser-args'
+import { typedAnswer } from './browser-typed'
 
 const BUTTONS: readonly MouseButton[] = ['left', 'right', 'middle']
 
@@ -138,9 +139,11 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
     },
   },
   {
+    // Перевод строки - Shift+Enter, многострочный текст с submit - отказ, ответ редактора - его
+    // текст по строкам и картинка (ADR 0095): сообщение людям не уходит вслепую.
     name: 'type',
     description:
-      'Type text into an element (ref): clicks it, replaces its content (append keeps it), types. submit presses Enter after. slowly types key by key - for fields that react to each key (suggestions). Without ref types into the focused element.',
+      'Type text into an element (ref): clicks it, replaces its content (append keeps it), types. Without ref types into the focused element. A line break in text is Shift+Enter (a blank line is two), never Enter, so a chat does not send early. Into a rich editor (a chat composer) without submit it answers with what the field reads, line by line (trust it over innerText, which doubles line breaks in chat editors), and a picture of the field: before you send a message with Enter (press), check them - the lines, the blank lines, the right chat. submit presses Enter after one-line text only. slowly types key by key - for fields that react to each key (suggestions).',
     access: 'write',
     inputSchema: schema(
       {
@@ -157,22 +160,26 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
       const page = await agent.page(agentCall(call), tabArg(args))
       const text = typeof args['text'] === 'string' ? args['text'] : ''
       const ref = refArg(args)
+      let check: FieldCheck | null = null
 
-      return act(page, () =>
-        typeText(page, {
+      const result = await act(page, async () => {
+        check = await typeText(page, {
           text,
           ...(ref ? { ref } : {}),
           submit: booleanArg(args, 'submit', false),
           slowly: booleanArg(args, 'slowly', false),
           append: booleanArg(args, 'append', false),
-        }),
-      )
+          picture: true,
+        })
+      })
+
+      return check ? typedAnswer(result, check) : result
     },
   },
   {
     name: 'fill',
     description:
-      'Fill several form fields in one call, the way a person does: your pointer goes to each field in turn, types text, ticks checkboxes and radios, picks options. fields = [{ ref, value }]. Text fields take the text, checkboxes and radios take true or false, selects take an option value or label.',
+      'Fill several form fields in one call, the way a person does: your pointer goes to each field in turn, types text, ticks checkboxes and radios, picks options. fields = [{ ref, value }]. Text fields take the text (a line break is Shift+Enter, as in type), checkboxes and radios take true or false, selects take an option value or label. The answer has fieldText - what rich editors and multi-line fields read now.',
     access: 'write',
     inputSchema: schema(
       {
@@ -192,9 +199,17 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
       const page = await agent.page(agentCall(call), tabArg(args))
       const fields = fieldsArg(args)
 
-      return act(page, async () => {
-        for (const field of fields) await fillField(page, field.ref, field.value)
+      const fieldText: Record<string, string> = {}
+
+      const result = await act(page, async () => {
+        for (const field of fields) {
+          const check = await fillField(page, field.ref, field.value)
+
+          if (check) fieldText[field.ref] = check.text
+        }
       })
+
+      return Object.keys(fieldText).length ? { ...result, fieldText } : result
     },
   },
   {

@@ -32,5 +32,6 @@ export const SCREEN_HELP: Partial<Record<MenuScreen, ParseKeys>> = {
   calmColors: 'agentPanel.calmColors.help',
   shareEditor: 'agentPanel.shareEditor.help',
   pasteCollapse: 'agentPanel.pasteCollapse.help',
+  presets: 'agentPanel.presets.help',
   claudeConfig: 'agentPanel.claudeConfig.help',
 }

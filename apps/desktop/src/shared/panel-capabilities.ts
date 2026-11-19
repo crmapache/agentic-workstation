@@ -60,6 +60,11 @@ export type PanelCapabilities = {
   commands: readonly string[]
   /** Команды и навыки с диска проекта и пользователя. */
   diskCommands: boolean
+  /**
+   * Пресеты модели, усилия и режима кнопками под полем и их экран в Settings (ADR 0096): у
+   * Claude Code, Codex, Kimi и Antigravity - по просьбе владельца; у открытых моделей нет.
+   */
+  presets: boolean
 }
 
 /** Возможности Claude Code: всё, что умеет панель. */
@@ -87,6 +92,7 @@ export const CLAUDE_CAPABILITIES: PanelCapabilities = {
   carryOn: true,
   commands: ['context', 'cost', 'usage', 'code-review'],
   diskCommands: true,
+  presets: true,
 }
 
 /**
@@ -118,6 +124,7 @@ export const CODEX_CAPABILITIES: PanelCapabilities = {
   carryOn: false,
   commands: ['compact', 'review'],
   diskCommands: false,
+  presets: true,
 }
 
 /**
@@ -150,6 +157,7 @@ export const OPENCODE_CAPABILITIES: PanelCapabilities = {
   carryOn: false,
   commands: ['compact'],
   diskCommands: false,
+  presets: false,
 }
 
 /**
@@ -179,6 +187,7 @@ const ACP_BASE: Omit<PanelCapabilities, 'provider' | 'modes' | 'efforts'> = {
   carryOn: false,
   commands: [],
   diskCommands: false,
+  presets: true,
 }
 
 /**

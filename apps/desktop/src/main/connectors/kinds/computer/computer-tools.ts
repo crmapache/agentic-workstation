@@ -6,11 +6,11 @@ import { WAIT_MAX_S, WHEEL_NOTCH_PX, WHEEL_NOTCHES_MAX } from '../../../computer
 import {
   schema,
   stepOf,
-  textArg,
   chordArg,
   deskCall,
   oneOfArg,
   pointArg,
+  typeArgs,
   POINT_PROPERTIES,
 } from './computer-args'
 
@@ -104,7 +104,8 @@ export const COMPUTER_TOOLS: NativeTool<ComputerAgent>[] = [
         clicks: { type: 'number', description: '2 - double click, 3 - triple click. Default: 1.' },
         modifiers: {
           type: 'string',
-          description: 'Keys held during the click, like "cmd" or "shift+option".',
+          description:
+            'Keys held during the click, like "cmd" or "shift+option" (on Windows cmd is Ctrl).',
         },
       },
       ['x', 'y'],
@@ -178,12 +179,23 @@ export const COMPUTER_TOOLS: NativeTool<ComputerAgent>[] = [
     },
   },
   {
+    // Перевод строки - Shift+Return, многострочный текст с submit - отказ (ADR 0095): сообщение
+    // людям не уходит вслепую, модель сверяет его по снимку до Return.
     name: 'type',
-    description: `Type text into whatever has the keyboard focus. A new line presses Return. ${AFTER}`,
+    description: `Type text into whatever has the keyboard focus. A line break in text is Shift+Return (a blank line is two), never a bare Return, so a chat does not send early. Before you send a message with Return (key), check the field in the screenshot - the text, the lines, the right chat. submit presses Return after one-line text only. ${AFTER}`,
     access: 'write',
-    inputSchema: schema({ text: { type: 'string' } }, ['text']),
-    run: async (args, agent, call) =>
-      answer(await agent.type(deskCall(call, stepOf(args, 'type')), textArg(args))),
+    inputSchema: schema(
+      {
+        text: { type: 'string' },
+        submit: { type: 'boolean', description: 'Press Return after one-line text.' },
+      },
+      ['text'],
+    ),
+    run: async (args, agent, call) => {
+      const { text, submit } = typeArgs(args)
+
+      return answer(await agent.type(deskCall(call, stepOf(args, 'type')), text, submit))
+    },
   },
   {
     name: 'key',

@@ -1,0 +1,7 @@
+// Поля пресета столбцом, с тем же полем по бокам, что у строк меню на соседних экранах.
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}

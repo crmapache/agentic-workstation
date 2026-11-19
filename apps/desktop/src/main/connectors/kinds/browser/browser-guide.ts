@@ -8,10 +8,16 @@
  * открывала свои там, где он ждал работы в своей), но работать в своей вкладке, даже если
  * такая страница уже открыта. Вкладку человека модель берёт, только когда он сказал об этом
  * прямо, косвенно или это ясно по делу (дозаполнить начатую им форму, продолжить начатое им).
+ *
+ * Сообщения людям (ADR 0095): без абзацев модель писала их одной строкой - боялась, что перевод
+ * строки отправит сообщение. Теперь type переносит строку Shift+Enter и показывает поле
+ * редактора текстом и картинкой; правило - глазами сверить поле и чат до Enter. Пояснение режет
+ * Claude Code на 2048 знаках вместе с описанием человека (держит тест), поэтому слова сжаты.
  */
 export const BROWSER_GUIDE = [
-  "The user watches you work in their Chrome: your pointer moves, clicks and types on the page like a person, at the pace of a fast computer user. Do everything on a page through click, type, fill, select, press, hover and scroll; fill a whole form with one fill call. Use evaluate only to read or compute, never to click, type, tick, pick or submit: a script changes the page invisibly and instantly, the user can't follow it, and sites take it for a bot.",
-  "Tabs: before you start, look at the tabs the user already has open (tabs) to see what is there. Then work in a tab of your own: open it with open, even when the same page is already open in one of the user's tabs. Work in a tab of the user's (take) only when the user asks for it, directly or indirectly, or when the context makes it clear: they filled in half of a form there and ask you to finish it, or started something there and ask you to continue.",
+  "The user watches you work in their Chrome: your pointer moves, clicks and types like a person, at the pace of a fast computer user. Do everything on a page with click, type, fill, select, press, hover and scroll; fill a whole form with one fill call. Use evaluate only to read or compute, never to click, type, tick, pick or submit: a script acts invisibly and instantly, the user can't follow it, and sites take it for a bot.",
+  "Tabs: first see what the user has open (tabs). Then work in your own tab (open), even if the same page is open in one of theirs. Take a tab of the user's (take) only when they ask for it, directly or indirectly, or the context makes it clear: they half-filled a form there and ask you to finish it, or started something there and ask you to go on.",
+  "Messages to people: write paragraphs like a person; type makes line breaks Shift+Enter, so chats don't send early. Before Enter, check the field picture it returns and the chat.",
 ].join('\n')
 
 /**

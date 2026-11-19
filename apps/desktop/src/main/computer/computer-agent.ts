@@ -1,5 +1,6 @@
 import type { ComputerState, ComputerPermission } from '@shared/computer'
 
+import { isMultiline } from '../browser/typed-lines'
 import { assertComputerAccess } from './computer-access'
 import { openApp } from './computer-apps'
 import type { DeskCall, ComputerDesk } from './computer-desk'
@@ -168,11 +169,19 @@ export class ComputerAgent {
     })
   }
 
-  type(call: DeskCall, text: string): Promise<ComputerAnswer> {
+  /**
+   * Набор текста; submit - Return после него. Без submit модель сверяет набранное по снимку до
+   * Return: сообщение людям не уходит вслепую, строки легли Shift+Return (ADR 0095).
+   */
+  type(call: DeskCall, text: string, submit: boolean): Promise<ComputerAnswer> {
     return this.act(call, NOWHERE, async (_frame, signal) => {
-      await this.port.hand.type(text, signal)
+      await this.port.hand.type(text, signal, submit)
 
-      return `Typed ${text.length} characters.`
+      if (submit) return `Typed ${text.length} characters and pressed Return.`
+
+      const lines = isMultiline(text) ? '; line breaks went in as Shift+Return' : ''
+
+      return `Typed ${text.length} characters${lines}. Before you send a message with Return, check the field in this screenshot: the text, the lines, the right chat.`
     })
   }
 

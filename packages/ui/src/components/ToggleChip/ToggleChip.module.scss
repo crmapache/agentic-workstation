@@ -11,18 +11,31 @@
   align-items: center;
   gap: var(--space-1-5);
   max-width: 100%;
-  height: var(--size-control-md);
-  padding: 0 var(--space-3);
   border: var(--border-width) dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
   color: var(--color-fg-subtle);
-  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   transition:
     background-color var(--duration-normal) var(--easing-standard),
     border-color var(--duration-normal) var(--easing-standard),
     color var(--duration-normal) var(--easing-standard);
+}
+
+.md {
+  height: var(--size-control-md);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+// Плотная строка под полем: высота и кегль - как у тихого индикатора рядом (DropdownButton
+// sm), скругление - как у его подложки.
+.sm {
+  min-width: 0;
+  height: var(--size-control-sm);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
 }
 
 // Со знаком слева - поле слева меньше: от рамки до знака столько же, сколько сверху и снизу.

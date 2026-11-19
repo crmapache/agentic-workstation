@@ -111,7 +111,7 @@ describe('instructionsFor', () => {
     expect(inProject).toContain('Chrome profile "Improving"')
     expect(inProject).toContain('in this project: Engage lives at engage.example')
     // Правила вкладок - у Browser всегда, а не только там, где сказано что-то своё.
-    expect(instructionsFor(browser, live, null, '/p/other')).toContain('a tab of your own')
+    expect(instructionsFor(browser, live, null, '/p/other')).toContain('your own tab')
     expect(instructionsFor(browser, live, null, '/p/other')).not.toContain('Engage')
     expect(instructionsFor(browser, live, null, null)).not.toContain('Improving')
     // Профиль Chrome - только у браузера; выключенному коннектору инструкции не нужны.
@@ -192,6 +192,8 @@ describe('instructionsFor', () => {
 
       expect(text.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
       expect(text).toContain(description)
+      // Правило сообщений людям (ADR 0095) - в пояснении обоих, а не только в описании type.
+      expect(text).toMatch(/Messages to people: write paragraphs.*Shift\+(Enter|Return)/)
     }
 
     // На Windows у Computer Use строкой больше - и она тоже должна влезать.

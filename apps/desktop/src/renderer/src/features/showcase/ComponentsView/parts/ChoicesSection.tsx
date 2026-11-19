@@ -25,6 +25,7 @@ import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { DatePickerSpecimens } from './DatePickerSpecimens'
+import { PresetChipsSpecimen } from './PresetChipsSpecimen'
 import { TabStripSpecimen } from './TabStripSpecimen'
 
 /**
@@ -158,6 +159,8 @@ export const ChoicesSection = () => {
           />
         ))}
       </Specimen>
+
+      <PresetChipsSpecimen />
 
       <Specimen label={t('specimens.menuChoices')} layout="column">
         <div className={styles.menuBox}>

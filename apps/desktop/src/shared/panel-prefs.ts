@@ -33,6 +33,23 @@ export const DEFAULT_PASTE_COLLAPSE = 2
  */
 export const TODAY_TOKENS_METER = 'todayTokens'
 
+/** Кнопок пресетов под полем - не больше трёх: строка под полем одна и узкая (ADR 0096). */
+export const MAX_SETUP_PRESETS = 3
+
+/** Имя пресета - подпись кнопки под полем: короткое слово, а не фраза. */
+export const PRESET_NAME_MAX = 16
+
+/**
+ * Пресет - модель, усилие и режим одной кнопкой под полем ввода (ADR 0096). null у модели и
+ * усилия - «по умолчанию», как в индикаторе: так и уходит разговору.
+ */
+export type SetupPreset = {
+  name: string
+  model: string | null
+  effort: EffortLevel | null
+  mode: PermissionMode
+}
+
 export type PanelPrefs = {
   /** Модель новой вкладки; null - как в последней выбранной вкладке. */
   newTabModel: string | null
@@ -54,6 +71,13 @@ export type PanelPrefs = {
    * что терминал. Пусто - искать самой; путь, который не отвечает как Claude Code, не берётся.
    */
   cliPath: string
+  /** Сколько кнопок пресетов стоит под полем, 0 - ни одной (ADR 0096). */
+  presetCount: number
+  /**
+   * Пресеты по порядку кнопок. Те, что за presetCount, не видны, но хранятся: убрал кнопку и
+   * вернул - пресет тот же, а не заново.
+   */
+  presets: SetupPreset[]
 }
 
 export const DEFAULT_PANEL_PREFS: PanelPrefs = {
@@ -66,6 +90,8 @@ export const DEFAULT_PANEL_PREFS: PanelPrefs = {
   hiddenMeters: [],
   customModels: [],
   cliPath: '',
+  presetCount: 0,
+  presets: [],
 }
 
 /** Изменение настроек: что не названо - остаётся как было. */

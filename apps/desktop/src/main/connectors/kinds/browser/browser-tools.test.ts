@@ -86,6 +86,62 @@ describe('инструменты браузера', () => {
     expect(hub.calls('tabs.open')).toHaveLength(1)
   })
 
+  /** Вкладка агента, где фокус уже в поле этого вида (ввод без ссылки). */
+  const withFocus = async (kind: 'editable' | 'input') => {
+    const tools = setup()
+
+    tools.hub.cdp.set('Runtime.evaluate', () => ({
+      result: {
+        value: { kind, text: 'ok', length: 2, box: { x: 10, y: 10, width: 200, height: 30 } },
+      },
+    }))
+    tools.hub.cdp.set('Page.getLayoutMetrics', () => ({
+      cssVisualViewport: { pageX: 0, pageY: 0, clientWidth: 800, clientHeight: 600 },
+    }))
+    tools.hub.cdp.set('Page.captureScreenshot', () => ({ data: 'PNGDATA' }))
+    await tools.call('open', { url: 'https://chat.example/' })
+
+    return tools
+  }
+
+  // Сообщение людям не уходит вслепую (ADR 0095): строки и чат модель сверяет до Enter.
+  it('type в редактор без submit отвечает текстом поля и его картинкой, в обычное поле - нет', async () => {
+    const editor = await withFocus('editable')
+    const typed = await editor.call('type', { text: 'ok' })
+
+    expect(typed.isError).toBeFalsy()
+    expect(typed.content.map((item) => item.type)).toEqual(['text', 'text', 'image'])
+    expect(text(typed)).toContain('The field now reads "ok"')
+    expect(typed.content[2]).toMatchObject({ data: 'PNGDATA', mimeType: 'image/png' })
+
+    const input = await withFocus('input')
+    const plain = await input.call('type', { text: 'ok' })
+
+    expect(plain.content.map((item) => item.type)).toEqual(['text'])
+    expect(
+      input.hub.calls('cdp').some((item) => item.params['method'] === 'Page.captureScreenshot'),
+    ).toBe(false)
+  })
+
+  it('type не берёт многострочный текст с submit и ничего не нажимает', async () => {
+    const { hub, call } = await withFocus('editable')
+    const refused = await call('type', { text: 'Hi Ana,\n\nThanks', submit: true })
+
+    expect(refused.isError).toBe(true)
+    expect(text(refused)).toMatch(/without submit/)
+    expect(
+      hub.calls('cdp').some((item) => String(item.params['method']).startsWith('Input.')),
+    ).toBe(false)
+  })
+
+  it('описание type говорит модели про Shift+Enter и проверку до Enter', async () => {
+    const { source } = setup()
+    const type = (await source.listTools()).find((tool) => tool.name === 'type')
+
+    expect(type?.description).toMatch(/Shift\+Enter.*never Enter/)
+    expect(type?.description).toMatch(/picture of the field/)
+  })
+
   it('заметка сессии уходит с ответом инструмента', async () => {
     const { hub, call } = setup()
     const human = hub.addTab('work', { title: 'Draft' })

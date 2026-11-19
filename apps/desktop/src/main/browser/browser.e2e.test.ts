@@ -172,7 +172,56 @@ const framesPage = (cross: string) => `<!doctype html><title>Frames</title><body
 <div style="height:900px"></div>
 <iframe title="Cross frame" src="${cross}/frame-cross" style="margin-left:15px;width:440px;height:360px;border:3px solid #000;padding:4px"></iframe>`
 
+/**
+ * Чат, где Enter без Shift отправляет (ADR 0095): запоминает сообщение и чистит поле, как
+ * WhatsApp, Telegram и Slack. plain - редактор Chrome (Shift+Enter ставит <br>), lexical - как
+ * Lexical в WhatsApp: строка - свой <p>, Shift+Enter - новый абзац, и innerText показывает между
+ * абзацами пустую строку, которой в сообщении нет. area - чат на textarea, line - однострочное поле.
+ */
+const CHAT = `<!doctype html><title>Chat</title>
+<style>.composer{border:1px solid #888;min-height:40px;width:480px;margin:12px;padding:6px;font:16px sans-serif}p{margin:0}</style>
+<h1>Chat with Ana</h1>
+<div id="plain" class="composer" contenteditable="true" role="textbox" aria-label="Plain composer"></div>
+<div id="lexical" class="composer" contenteditable="true" role="textbox" aria-label="Lexical composer"><p><br></p></div>
+<textarea id="area" class="composer" aria-label="Area composer"></textarea>
+<input id="line" class="composer" aria-label="One line">
+<script>
+  window.sent = []
+  window.enters = []
+  const lexicalText = (el) => [...el.childNodes].map((node) => node.nodeType === 3 ? node.data : node.innerText.replace(/\\n$/, '')).join('\\n')
+  const textOf = { plain: (el) => el.innerText, lexical: lexicalText, area: (el) => el.value }
+  const newParagraph = (el) => {
+    const selection = getSelection()
+    let node = selection.anchorNode
+    while (node && node.parentNode !== el) node = node.parentNode
+    const p = document.createElement('p')
+    p.appendChild(document.createElement('br'))
+    el.insertBefore(p, node ? node.nextSibling : null)
+    const range = document.createRange()
+    range.setStart(p, 0)
+    range.collapse(true)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
+  for (const id of ['plain', 'lexical', 'area', 'line']) {
+    const el = document.getElementById(id)
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      window.enters.push([id, event.shiftKey])
+      if (event.shiftKey) {
+        if (id === 'lexical') { event.preventDefault(); newParagraph(el) }
+        return
+      }
+      event.preventDefault()
+      window.sent.push([id, id === 'line' ? el.value : textOf[id](el)])
+      if (id === 'area' || id === 'line') el.value = ''
+      else el.innerHTML = id === 'lexical' ? '<p><br></p>' : ''
+    })
+  }
+</script>`
+
 const PAGES: Record<string, string> = {
+  '/chat': CHAT,
   '/second': SECOND,
   '/blue': BLUE,
   '/modal': MODAL,
@@ -546,6 +595,123 @@ describe.skipIf(!ready)(
       expect(after.tabs.some((tab) => tab.tabId === tabId)).toBe(false)
       expect(after.groups.some((item) => item.groupId === group?.groupId)).toBe(false)
     }, 120_000)
+
+    it('сообщение в чат: строки - Shift+Enter, ничего не ушло, поле видно текстом и картинкой, Enter - одно сообщение', async () => {
+      json(await call('open', { url: `${base}/chat` }))
+
+      const chat = text(await call('snapshot'))
+      const sentNow = async () =>
+        JSON.parse(text(await call('evaluate', { expression: 'window.sent' }))) as [
+          string,
+          string,
+        ][]
+      /** Ответ type с проверкой поля: шапка JSON, текст поля, картинка. */
+      const typed = async (args: Record<string, unknown>) => {
+        const result = await call('type', args)
+
+        if (result.isError) throw new Error(text(result))
+
+        const [, note, image] = result.content
+        const field = /The field now reads (".*") \(/s.exec(
+          note?.type === 'text' ? note.text : '',
+        )?.[1]
+
+        return {
+          field: field ? (JSON.parse(field) as string) : null,
+          image: image?.type === 'image' ? image : null,
+          parts: result.content.length,
+        }
+      }
+
+      // Короткий текст - по клавише: перевод строки - Shift+Enter, Chrome ставит <br>.
+      const short = 'Hi Ana,\n\nSee you at 5.\nBye!'
+      const plain = await typed({ ref: refOf(chat, '- textbox "Plain composer"'), text: short })
+
+      expect(plain.field).toBe(short)
+      expect(await sentNow()).toEqual([])
+
+      // Картинка - само поле с полями вокруг, а не всё окно в 900 точек.
+      const shot = decodePng(Buffer.from(plain.image?.data ?? '', 'base64'))
+
+      expect(shot.width).toBeGreaterThan(400)
+      expect(shot.width).toBeLessThan(700)
+      expect(shot.height).toBeLessThan(250)
+
+      json(await call('press', { keys: 'Enter' }))
+      expect(await sentNow()).toEqual([['plain', short]])
+
+      // Длинный текст - каждая строка вставкой; редактор вроде Lexical держит строки абзацами <p>,
+      // и проверка показывает строки, как они уйдут, а не innerText с лишними пустыми строками.
+      const message = [
+        'Hello Ana,',
+        '',
+        'I have two questions about the trip next week:',
+        '1. When do we leave?',
+        '2. Who else is coming?',
+        '',
+        'Thanks!',
+      ].join('\n')
+      const lexical = await typed({
+        ref: refOf(chat, '- textbox "Lexical composer"'),
+        text: message,
+      })
+
+      expect(lexical.field).toBe(message)
+      expect(lexical.image?.mimeType).toBe('image/png')
+      // innerText того же поля показал бы между «1.» и «2.» пустую строку, которой не уйдёт.
+      expect(
+        JSON.parse(
+          text(
+            await call('evaluate', {
+              expression:
+                "document.getElementById('lexical').innerText.includes('leave?\\n\\n2. Who')",
+            }),
+          ),
+        ),
+      ).toBe(true)
+      expect(await sentNow()).toHaveLength(1)
+
+      json(await call('press', { keys: 'Enter' }))
+      expect((await sentNow())[1]).toEqual(['lexical', message])
+
+      // Многострочный текст с submit не уходит одним вызовом - и ничего не набирается.
+      const blind = await call('type', {
+        ref: refOf(chat, '- textbox "Plain composer"'),
+        text: 'one\ntwo',
+        submit: true,
+      })
+
+      expect(blind.isError).toBe(true)
+      expect(text(blind)).toContain('without submit')
+
+      // textarea берёт переводы строк знаками; картинки нет - она для редакторов чатов.
+      const area = await typed({
+        ref: refOf(chat, '- textbox "Area composer"'),
+        text: 'one\n\ntwo',
+      })
+
+      expect(area).toMatchObject({ field: 'one\n\ntwo', image: null, parts: 2 })
+
+      // Однострочное поле переводы строк не держит: отказ, а не склеенные строки.
+      const line = await call('type', { ref: refOf(chat, '- textbox "One line"'), text: 'a\nb' })
+
+      expect(text(line)).toContain('one-line field')
+
+      const enters = JSON.parse(text(await call('evaluate', { expression: 'window.enters' }))) as [
+        string,
+        boolean,
+      ][]
+
+      // Голый Enter - только два, которыми отправили; все переводы строк - с Shift.
+      expect(enters.filter(([, shift]) => !shift)).toEqual([
+        ['plain', false],
+        ['lexical', false],
+      ])
+      expect(enters.filter(([, shift]) => shift)).toHaveLength(3 + 6)
+      expect(await sentNow()).toHaveLength(2)
+
+      json(await call('finish'))
+    }, 90_000)
 
     it('фреймы: снимок видит iframe своего и чужого процесса, клик, ввод и выбор по ссылкам внутри', async () => {
       const opened = json<{ tab: string }>(await call('open', { url: `${base}/frames` }))

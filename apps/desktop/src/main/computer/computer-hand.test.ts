@@ -2,8 +2,9 @@ import { it, expect, describe } from 'vitest'
 
 import type { Motion } from '../browser/human-motion'
 import { ComputerError } from './computer-error'
-import { pieces, ComputerHand } from './computer-hand'
+import { ComputerHand } from './computer-hand'
 import { parseChord, WINDOWS_KEYMAP } from './computer-keys'
+import { pieces } from './computer-text'
 import type { Point, InputDriver, TextClipboard } from './computer.types'
 
 const AREA = { x: 0, y: 0, width: 1000, height: 800 }
@@ -78,6 +79,21 @@ const fakePaste = (taken = true, canSave = true) => {
 }
 
 const signal = () => new AbortController().signal
+
+const MAC_SHIFT = parseChord('shift').modifiers[0]
+const WINDOWS_SHIFT = parseChord('shift', WINDOWS_KEYMAP).modifiers[0]
+
+/** Shift+Return событиями руки: Shift своей клавишей вокруг Return. */
+const shiftReturn = (returnKey: number, shift = MAC_SHIFT) => {
+  const { code = 0, flag = 0 } = shift ?? {}
+
+  return [
+    `key↓:${code}:${flag}`,
+    `key↓:${returnKey}:${flag}`,
+    `key↑:${returnKey}:${flag}`,
+    `key↑:${code}:0`,
+  ]
+}
 
 describe('computer hand', () => {
   it('walks the cursor to the point and presses and releases the button', async () => {
@@ -198,12 +214,46 @@ describe('computer hand', () => {
     expect(ups).toEqual([{ x: 900, y: 700 }])
   })
 
-  it('types short text key by key and presses Return for a new line', async () => {
+  // Голый Return в мессенджере отправил бы сообщение на полуслове (ADR 0095).
+  it('types short text key by key, and a new line is Shift+Return - never a bare Return', async () => {
     const { input, events } = fakeInput()
 
     await new ComputerHand(input, instant()).type('hi\nyo', signal())
 
-    expect(events).toEqual(['text:h', 'text:i', 'key↓:36:0', 'key↑:36:0', 'text:y', 'text:o'])
+    expect(events).toEqual(['text:h', 'text:i', ...shiftReturn(36, MAC_SHIFT), 'text:y', 'text:o'])
+  })
+
+  it('a blank line is two Shift+Return in a row; Windows and old Mac line ends count as one', async () => {
+    const { input, events } = fakeInput()
+
+    await new ComputerHand(input, instant()).type('a\r\n\r\nb\rc', signal())
+
+    expect(events).toEqual([
+      'text:a',
+      ...shiftReturn(36, MAC_SHIFT),
+      ...shiftReturn(36, MAC_SHIFT),
+      'text:b',
+      ...shiftReturn(36, MAC_SHIFT),
+      'text:c',
+    ])
+    expect(events.filter((event) => event === 'key↓:36:0')).toEqual([])
+  })
+
+  it('submit presses a bare Return after one-line text, and refuses text with line breaks', async () => {
+    const { input, events } = fakeInput()
+    const hand = new ComputerHand(input, instant())
+
+    await hand.type('ok', signal(), true)
+
+    expect(events).toEqual(['text:o', 'text:k', 'key↓:36:0', 'key↑:36:0'])
+
+    events.length = 0
+
+    await expect(hand.type('one\ntwo', signal(), true)).rejects.toMatchObject({
+      code: 'failed',
+      message: expect.stringContaining('without submit') as unknown,
+    })
+    expect(events).toEqual([])
   })
 
   it('presses the modifiers as keys around the chord and lets go of them in reverse', async () => {
@@ -297,15 +347,15 @@ describe('computer hand', () => {
     expect(events).toEqual([])
   })
 
-  it('presses Return from the keymap of the system it runs on', async () => {
+  it('presses Shift+Enter from the keymap of the system it runs on', async () => {
     const { input, events } = fakeInput()
 
     await new ComputerHand(input, instant(), WINDOWS_KEYMAP).type('a\nb', signal())
 
-    expect(events).toContain('key↓:13:0')
+    expect(events).toEqual(['text:a', ...shiftReturn(13, WINDOWS_SHIFT), 'text:b'])
   })
 
-  it('pastes text where the system has a clipboard, with Return between the lines', async () => {
+  it('pastes text where the system has a clipboard, with Shift+Enter between the lines', async () => {
     const { input, events } = fakeInput()
     const { clipboard, log } = fakePaste()
 
@@ -317,7 +367,7 @@ describe('computer hand', () => {
     const paste = ['key↓:17:262144', 'key↓:86:262144', 'key↑:86:262144', 'key↑:17:0']
 
     expect(log).toEqual(['open', 'offer:hello', 'taken', 'offer:world', 'taken', 'close'])
-    expect(events).toEqual([...paste, 'key↓:13:0', 'key↑:13:0', ...paste])
+    expect(events).toEqual([...paste, ...shiftReturn(13, WINDOWS_SHIFT), ...paste])
   })
 
   it('types by keys what the app would not take as a paste, and everything after it', async () => {

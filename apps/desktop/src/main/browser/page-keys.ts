@@ -149,10 +149,14 @@ export const keyEvents = (combo: string): KeyEvent[] => {
   ]
 }
 
-/** Нажатия одного знака текста - для ввода «медленно», по клавише (подсказки, автодополнение). */
+/**
+ * Нажатия одного знака текста - для ввода по клавише (подсказки, автодополнение). Перевод строки -
+ * Shift+Enter, а не Enter: в мессенджере Enter отправил бы сообщение на полуслове (ADR 0095).
+ */
 export const charEvents = (char: string): KeyEvent[] => {
-  const def =
-    char === '\n' ? (NAMED['enter'] as KeyDef) : charKey(char, char !== char.toLowerCase())
+  if (char === '\n') return keyEvents('Shift+Enter')
+
+  const def = charKey(char, char !== char.toLowerCase())
   const base = { key: def.key, code: def.code, windowsVirtualKeyCode: def.keyCode, modifiers: 0 }
 
   return [

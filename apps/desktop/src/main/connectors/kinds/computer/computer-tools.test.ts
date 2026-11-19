@@ -144,8 +144,41 @@ describe('computer tools', () => {
     await computer.callTool('type', { text: '\n' }, undefined, LAUNCH)
     const empty = await computer.callTool('type', { text: '' }, undefined, LAUNCH)
 
-    expect(calls[0]?.args).toEqual(['\n'])
+    expect(calls[0]?.args).toEqual(['\n', false])
     expect(empty).toMatchObject({ isError: true })
+  })
+
+  // Сообщение в несколько строк не уходит одним слепым вызовом (ADR 0095).
+  it('refuses text with line breaks together with submit before touching the keyboard', async () => {
+    const { source: computer, calls } = source()
+
+    const refused = await computer.callTool(
+      'type',
+      { text: 'Hi Ana,\r\n\r\nTwo questions', submit: true },
+      undefined,
+      LAUNCH,
+    )
+
+    expect(refused.isError).toBe(true)
+    expect(refused.content).toEqual([
+      {
+        type: 'text',
+        text: expect.stringMatching(/without submit.*press Return with key/) as unknown,
+      },
+    ])
+    expect(calls).toHaveLength(0)
+
+    await computer.callTool('type', { text: 'ls -la', submit: true }, undefined, LAUNCH)
+
+    expect(calls[0]?.args).toEqual(['ls -la', true])
+  })
+
+  it('tells the model that a line break is Shift+Return and to check before Return', () => {
+    const type = COMPUTER_TOOLS.find((tool) => tool.name === 'type')
+
+    expect(type?.description).toMatch(/Shift\+Return.*never a bare Return/)
+    expect(type?.description).toMatch(/check the field in the screenshot/)
+    expect(type?.inputSchema.properties).toHaveProperty('submit')
   })
 
   it('passes the user pressing Stop on to the model as text', async () => {

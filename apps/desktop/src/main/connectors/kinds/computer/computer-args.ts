@@ -3,8 +3,9 @@ import { basename } from 'node:path'
 import type { ComputerActionKind } from '@shared/computer'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 
-import { numberArg, ArgumentError } from '../native-tools'
+import { numberArg, booleanArg, ArgumentError } from '../native-tools'
 import type { NativeCall } from '../native-tools'
+import { isMultiline, multilineSubmitRefused } from '../../../browser/typed-lines'
 import type { DeskCall, DeskStep } from '../../../computer/computer-desk'
 import { parseChord, KeyNameError } from '../../../computer/computer-keys'
 import type { KeyChord } from '../../../computer/computer-keys'
@@ -59,7 +60,7 @@ export const pointArg = (args: Record<string, unknown>, x = 'x', y = 'y') => {
  * Текст для набора как есть: пробел, перевод строки и табуляция - тоже текст (stringArg их
  * отбросил бы как пустоту). Пустой - ошибка.
  */
-export const textArg = (args: Record<string, unknown>): string => {
+const textArg = (args: Record<string, unknown>): string => {
   const value = args['text']
 
   if (typeof value !== 'string' || value === '') {
@@ -67,6 +68,21 @@ export const textArg = (args: Record<string, unknown>): string => {
   }
 
   return value
+}
+
+/**
+ * Текст и submit инструмента type. Многострочный текст с submit - отказ до всякого действия
+ * (ADR 0095): такое сообщение ушло бы одним вызовом, и модель не увидела бы, как легли строки.
+ */
+export const typeArgs = (args: Record<string, unknown>): { text: string; submit: boolean } => {
+  const text = textArg(args)
+  const submit = booleanArg(args, 'submit', false)
+
+  if (submit && isMultiline(text)) {
+    throw new ArgumentError(multilineSubmitRefused('press Return with key'))
+  }
+
+  return { text, submit }
 }
 
 /** Сочетание клавиш: пусто - null, неизвестное имя - понятная модели ошибка. */

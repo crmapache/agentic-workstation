@@ -7,15 +7,25 @@ import type { ToggleChipProps } from './ToggleChip.types'
 /**
  * Плашка-переключатель в ряду таких же: выбор нескольких из набора (проекты, где виден
  * коннектор). Включённая залита, выключенная - пунктир и тише. Ряд переносится. Одна
- * настройка с подписью и пояснением - Switch; один вариант из нескольких - Tabs.
+ * настройка с подписью и пояснением - Switch; один вариант из нескольких - Tabs. sm - в
+ * плотной строке под полем ввода, рядом с тихим индикатором (пресеты).
  */
-export const ToggleChip = ({ label, pressed, leading, hint, onChange }: ToggleChipProps) => {
+export const ToggleChip = ({
+  label,
+  pressed,
+  leading,
+  hint,
+  hintPlacement,
+  size = 'md',
+  onChange,
+}: ToggleChipProps) => {
   const chip = (
     <button
       type="button"
       aria-pressed={pressed}
       className={clsx(
         styles.chip,
+        styles[size],
         pressed && styles.pressed,
         Boolean(leading) && styles.withLeading,
       )}
@@ -25,5 +35,11 @@ export const ToggleChip = ({ label, pressed, leading, hint, onChange }: ToggleCh
     </button>
   )
 
-  return hint ? <Tooltip label={hint}>{chip}</Tooltip> : chip
+  return hint ? (
+    <Tooltip label={hint} placement={hintPlacement}>
+      {chip}
+    </Tooltip>
+  ) : (
+    chip
+  )
 }
