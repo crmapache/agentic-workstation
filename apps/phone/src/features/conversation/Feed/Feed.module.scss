@@ -53,6 +53,16 @@
   color: var(--color-fg-subtle);
 }
 
+// Ответ модели - капсула с рамкой, без заливки, как карточка ответа в панели IDE: видно, где
+// кончились шаги хода и начался ответ, и ответ стоит особняком. Зазор до соседей - обычный
+// зазор ленты, строки журнала между ответами стоят теснее.
+.assistant {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
 .thumbnails {
   display: flex;
   flex-wrap: wrap;
@@ -248,6 +258,23 @@
   justify-content: center;
 }
 
+// Конец хода - тихая подпись у левого края, сразу под ответом, как подпись хода в панели IDE, и
+// на поле текста капсулы над ней. Цифры правок (+N -M) идут своими цветами, как у вызова правки.
+.turn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-1-5);
+  margin: 0;
+  padding: 0 var(--space-3);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.assistant + .turn {
+  margin-top: calc(var(--space-1) - var(--size-feed-gap));
+}
+
 .event,
 .notice {
   margin: 0;
@@ -272,22 +299,62 @@
   @include shimmer;
 }
 
-.tasks {
-  @include disclosure-body;
-
+// Список дел модели - плитка, как над полем в панели IDE: строкой журнала среди вызовов его не
+// замечали и не раскрывали (просьба владельца). Шапка - раскрывашка с радиусом плитки.
+.taskTile {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1-5);
-  margin: var(--space-1) 0 var(--space-2);
-  padding-top: 0;
-  padding-bottom: 0;
+  min-width: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-raised);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+
+  // Раскрытая встаёт в виду с тем же полем снизу, что у ленты, а не впритык к полю ввода.
+  scroll-margin-bottom: var(--space-4);
+}
+
+.taskIcon {
+  flex: none;
+  color: var(--color-fg-subtle);
+}
+
+.taskCurrent {
+  @include truncate;
+
+  flex: 1;
+  min-width: 0;
+  color: var(--color-fg-muted);
+}
+
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3) var(--space-3);
   list-style: none;
 }
 
 .task {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   color: var(--color-fg);
-  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+// Отметка - по центру первой строки пункта: коробка высотой в строку текста ставит её туда сама.
+// Длинный пункт переносится, и отметка у его середины потеряла бы строку, к которой относится.
+.taskMark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: calc(var(--font-size-sm) * var(--line-height-snug));
+}
+
+.taskSubject {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

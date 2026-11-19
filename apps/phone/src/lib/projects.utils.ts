@@ -66,8 +66,8 @@ export const projectWorks = (project: InventoryProject): boolean =>
   backgroundWorking(project) > 0 || chatWorks(project)
 
 /**
- * Работает только фон - прогоны сценариев и заданий, без хода разговора: знак работы приглушён,
- * как на вкладке проекта в IDE.
+ * Работает только фон - прогоны сценариев и заданий, без хода разговора: знак работы - кольцо из
+ * шагов, а не дуга, как на вкладке проекта в IDE (ADR 0097).
  */
 export const projectWorksInBackground = (project: InventoryProject): boolean =>
   backgroundWorking(project) > 0 && !chatWorks(project)

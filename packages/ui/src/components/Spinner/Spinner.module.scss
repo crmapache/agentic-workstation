@@ -33,11 +33,6 @@
   --spinner-tone: var(--color-warning);
 }
 
-// Фоновая работа - тот же знак приглушённым: тон остаётся, отличается яркость.
-.quiet {
-  opacity: var(--opacity-quiet);
-}
-
 // Оборот медленнее шага дуги: два движения не совпадают по фазе, и знак не повторяется
 // одним и тем же рисунком каждые полсекунды.
 .ring {
@@ -45,10 +40,16 @@
   width: 100%;
   height: 100%;
   animation: spinner-turn calc(var(--duration-spin) * 2) linear infinite;
+
+  // Кольцо шагов не вращается: шаги стоят на своих часах, бежит только огонёк по ним.
+  .steps & {
+    animation: none;
+  }
 }
 
 .track,
-.arc {
+.arc,
+.step {
   fill: none;
 }
 
@@ -87,5 +88,36 @@
   100% {
     stroke-dasharray: 65 200;
     stroke-dashoffset: -99;
+  }
+}
+
+// Шагов в кольце - SPINNER_STEP_COUNT в Spinner.constants.ts.
+$step-count: 6;
+
+// Огонёк по шагам, круг медленнее дуги: фоновая работа идёт часами, и быстрый бег дёргал бы
+// глаз. Каждый шаг вспыхивает тоном и гаснет до бледного кольца дуги; задержки сдвигают вспышку
+// на шаг по часовой стрелке - бежит огонёк с хвостом. Без движения (длительности нулевые) все
+// шаги горят ровно: кольцо из штрихов само отличается от дуги.
+.step {
+  --spinner-step-lap: calc(var(--duration-spin) * 1.5);
+
+  stroke: var(--spinner-tone);
+  stroke-linecap: round;
+  animation: spinner-step var(--spinner-step-lap) linear infinite;
+
+  @for $index from 1 through $step-count {
+    &:nth-child(#{$index}) {
+      animation-delay: calc(var(--spinner-step-lap) * #{$index - $step-count} / #{$step-count});
+    }
+  }
+}
+
+@keyframes spinner-step {
+  0% {
+    stroke: var(--spinner-tone);
+  }
+
+  100% {
+    stroke: color-mix(in srgb, var(--spinner-tone) var(--tint-soft), transparent);
   }
 }

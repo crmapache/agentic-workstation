@@ -399,8 +399,8 @@
       "done": "Done",
       "stopped": "Stopped",
       "error": "Ended with an error",
-      "files_one": "{{count}} file +{{added}} -{{removed}}",
-      "files_other": "{{count}} files +{{added}} -{{removed}}"
+      "files_one": "{{count}} file",
+      "files_other": "{{count}} files"
     },
     "toolStatus": {
       "error": "Failed",

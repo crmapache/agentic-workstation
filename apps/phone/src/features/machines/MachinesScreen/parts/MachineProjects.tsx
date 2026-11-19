@@ -69,7 +69,7 @@ export const MachineProjects = ({
                 <Spinner
                   size="sm"
                   tone="warning"
-                  quiet={projectWorksInBackground(project)}
+                  variant={projectWorksInBackground(project) ? 'steps' : 'arc'}
                   label={t('machines.working')}
                 />
               )}

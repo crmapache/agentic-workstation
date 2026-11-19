@@ -161,6 +161,21 @@ describe('телефон в мобильном Chromium против насто�
     )
     await shot('04-project')
 
+    // Низкий экран: тело прокручивается, а плитка строк не сжимается под высоту и не прячет строки.
+    await page.setViewportSize({ width: VIEWPORT.width, height: 420 })
+    const hidden = await page
+      .getByRole('button', { name: /Past conversations/ })
+      .evaluate((row) => {
+        let tile = row.parentElement
+
+        while (tile && getComputedStyle(tile).overflow !== 'hidden') tile = tile.parentElement
+
+        return tile ? tile.scrollHeight - tile.clientHeight : -1
+      })
+
+    expect(hidden).toBe(0)
+    await page.setViewportSize(VIEWPORT)
+
     // Разговор: в транскрипте выше снимка есть ещё - страницей по кнопке.
     ide.ide.feed.hasEarlier = true
     ide.ide.earlier.push(
@@ -199,11 +214,21 @@ describe('телефон в мобильном Chromium против насто�
           activeForm: 'Fixing the endpoint',
           state: 'in_progress',
         },
-        { id: '3', subject: 'Run the tests', activeForm: 'Running the tests', state: 'pending' },
+        {
+          id: '3',
+          subject: 'Run the login tests on staging and on the v2 API, then compare the timings',
+          activeForm: 'Running the tests',
+          state: 'pending',
+        },
       ],
     })
     await page.getByText('Fixed the endpoint in').waitFor()
-    await page.getByText('+4', { exact: true }).waitFor()
+    // +4 правки - у строки вызова; итог хода под ответом несёт те же цифры своей строкой.
+    await page
+      .getByRole('button', { name: /Edit auth\/login\.ts/ })
+      .getByText('+4', { exact: true })
+      .waitFor()
+    await page.getByText('Done · ', { exact: false }).waitFor()
     await page.getByText('Tasks 1 of 3').waitFor()
 
     // Счётчик токенов мысли - кеглем счётчика и тише текста.
@@ -226,6 +251,30 @@ describe('телефон в мобильном Chromium против насто�
       (await boxOf(page, 'button[aria-label="Send"]')).top,
     )
     await shot('05-conversation')
+
+    // Список дел - плиткой; длинный пункт переносится, а его отметка стоит у первой строки.
+    await page.getByRole('button', { name: /Tasks 1 of 3/ }).click()
+    const mark = await page
+      .getByRole('listitem')
+      .filter({ hasText: 'compare the timings' })
+      .evaluate((item) => {
+        const box = (element: Element | null) => element?.getBoundingClientRect()
+        const subject = item.lastElementChild
+        const line = subject ? parseFloat(getComputedStyle(subject).lineHeight) : 0
+        const markBox = box(item.firstElementChild?.firstElementChild ?? null)
+        const textBox = box(subject)
+
+        return {
+          lines: textBox && line ? Math.round(textBox.height / line) : 0,
+          offset:
+            markBox && textBox ? markBox.top + markBox.height / 2 - (textBox.top + line / 2) : 99,
+        }
+      })
+
+    expect(mark.lines).toBeGreaterThan(1)
+    expect(Math.abs(mark.offset)).toBeLessThanOrEqual(1)
+    await shot('05d-tasks')
+    await page.getByRole('button', { name: /Tasks 1 of 3/ }).click()
 
     // Цитата: выделенный кусок ответа - кнопкой «Quote» строкой над полем, в сообщение - «> »
     // сверху, как цитаты поля IDE.

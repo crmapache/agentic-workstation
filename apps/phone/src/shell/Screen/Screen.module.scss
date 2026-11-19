@@ -8,12 +8,18 @@
   height: 100dvh;
   max-width: var(--size-phone-column);
   margin: 0 auto;
+
+  // Приложение с экрана «Домой» на iPhone: там dvh короче экрана на строку статуса (ошибка WebKit),
+  // и под низом оставалась пустая полоса её высоты. vh в этом режиме - весь экран: панелей
+  // браузера, ради которых нужен dvh, там нет, а клавиатура iPhone высоту страницы не меняет.
+  @media (display-mode: standalone) {
+    height: 100vh;
+  }
 }
 
-// Шапка на чёрной раме, как полосы окна IDE; сверху - вырез экрана.
+// Шапка - панелью, как низ экрана: на чёрной раме она сливалась с лентой под ней, и не было
+// видно, где кончается шапка. Шапка и низ рамкой держат ленту между собой; сверху - вырез экрана.
 .header {
-  @include chrome-surface;
-
   display: flex;
   flex: none;
   align-items: center;
@@ -22,6 +28,7 @@
     max(var(--space-1), var(--offset-safe-right)) var(--space-1)
     max(var(--space-1), var(--offset-safe-left));
   border-bottom: var(--border-width) solid var(--color-border);
+  background-color: var(--color-surface-panel);
 }
 
 // Первый экран без «назад»: заголовок стоит на поле, а не прижат к краю.
@@ -92,16 +99,25 @@
     max(var(--size-panel-gutter), var(--offset-safe-left));
   overflow-y: auto;
   overscroll-behavior: contain;
+
+  // Тело прокручивается, а не ужимает блоки под высоту экрана. Блок со скрытым переполнением
+  // (плитка строк ListGroup) иначе сжимался, когда экран не влезал, и прятал свои строки:
+  // «Past conversations» стояла обрезанной, а строки под ней пропадали.
+  > * {
+    flex-shrink: 0;
+  }
 }
 
 // Низ экрана: поле ввода или кнопка формы - над полосой «домой». Уведомления встают над ним.
+// Снизу - поле полосы «домой», а без неё обычный отступ, но не оба сразу: в поле полосы и так
+// есть воздух, и сумма только отнимала место у ленты.
 .footer {
   position: relative;
   display: flex;
   flex: none;
   flex-direction: column;
   padding: var(--space-2) max(var(--size-panel-gutter), var(--offset-safe-right))
-    calc(var(--space-2) + var(--offset-safe-bottom))
+    max(var(--space-2), var(--offset-safe-bottom))
     max(var(--size-panel-gutter), var(--offset-safe-left));
   border-top: var(--border-width) solid var(--color-border);
   background-color: var(--color-surface-panel);

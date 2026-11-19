@@ -23,4 +23,9 @@ body {
 
 #root {
   height: 100dvh;
+
+  // С экрана «Домой» - весь экран: почему не dvh, сказано у Screen.
+  @media (display-mode: standalone) {
+    height: 100vh;
+  }
 }

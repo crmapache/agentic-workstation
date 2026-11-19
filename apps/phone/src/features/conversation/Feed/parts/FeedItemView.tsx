@@ -3,6 +3,7 @@ import { memo } from 'react'
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { isFeedStub } from '@agentic-workstation/remote-protocol/wire-types'
 
+import styles from '../Feed.module.scss'
 import type { OpenPhoto, FeedActions } from '../Feed.types'
 import { text } from '../Feed.utils'
 import { Markdown } from '../../../../shell/Markdown/Markdown'
@@ -11,11 +12,13 @@ import { ShellItem } from './ShellItem'
 import { StubItem } from './StubItem'
 import { ThinkingItem } from './ThinkingItem'
 import { ToolItem } from './ToolItem'
+import { TurnLine } from './TurnLine'
 import { UserItem } from './UserItem'
 
 /**
- * Элемент ленты по виду. Карточка (stub: элемент не влез в кадр и урезанным) - своя строка, а не
- * элемент своего вида без полей. Незнакомый вид (IDE новее телефона) не рисуется вовсе.
+ * Элемент ленты по виду. Ответ модели - в капсуле: видно, где кончились шаги хода и начался
+ * ответ. Карточка (stub: элемент не влез в кадр и урезанным) - своя строка, а не элемент своего
+ * вида без полей. Незнакомый вид (IDE новее телефона) не рисуется вовсе.
  * Действия (остановить задачу, откатить к сообщению, цитировать ответ) - только у ленты живого
  * разговора.
  */
@@ -37,7 +40,11 @@ export const FeedItemView = memo(
       case 'user':
         return <UserItem item={item} onOpenPhoto={onOpenPhoto} onRewind={actions?.onRewind} />
       case 'assistant':
-        return <Markdown text={text(item, 'text')} quotable={!!actions} />
+        return (
+          <div className={styles.assistant}>
+            <Markdown text={text(item, 'text')} quotable={!!actions} />
+          </div>
+        )
       case 'thinking':
         return <ThinkingItem item={item} />
       case 'tool':
@@ -45,6 +52,7 @@ export const FeedItemView = memo(
       case 'shell':
         return <ShellItem item={item} />
       case 'turn':
+        return <TurnLine item={item} />
       case 'notice':
       case 'compact':
       case 'retry':

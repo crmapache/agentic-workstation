@@ -11,14 +11,20 @@ export type SpinnerSize = 'sm' | 'md' | 'around'
  */
 export type SpinnerTone = 'accent' | 'neutral' | 'warning'
 
+/**
+ * arc - дуга бежит по бледному кольцу: работа, за которой следят (ход разговора). steps - кольцо
+ * из шагов, по которым по очереди бежит огонёк: фоновая автоматика, которая идёт сама по шагам
+ * (прогон сценария или задания), а чат молчит. Другая форма и другое движение, а не тот же знак
+ * бледнее: приглушённую дугу рядом с яркой глаз не отличал.
+ */
+export type SpinnerVariant = 'arc' | 'steps'
+
 export type SpinnerProps = {
   size?: SpinnerSize | undefined
   tone?: SpinnerTone | undefined
+  variant?: SpinnerVariant | undefined
   /** Что ждём - для скринридера. Нет - знак декоративный, слова стоят рядом. */
   label?: string | undefined
-  /**
-   * Работа идёт фоном, без человека (прогон сценария или задания), - знак приглушён, чтобы
-   * отличался от работы, за которой следят (разговор в чате), тем же тоном.
-   */
-  quiet?: boolean | undefined
 }
+
+export type SpinnerStepsProps = { radius: number; stroke: number }

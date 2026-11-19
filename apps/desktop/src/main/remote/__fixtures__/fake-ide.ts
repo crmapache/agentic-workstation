@@ -133,6 +133,8 @@ export const fakeIde = () => {
       label: 'Claude Code',
       available: true,
       unavailable: null,
+      // Модели - из состояния панели, как у реестра провайдеров: телефон берёт их отсюда (ADR 0093).
+      models: state.models.map((model) => ({ ...model, custom: false })),
       modes: CLAUDE_CAPABILITIES.modes,
       efforts: CLAUDE_CAPABILITIES.efforts,
     }),

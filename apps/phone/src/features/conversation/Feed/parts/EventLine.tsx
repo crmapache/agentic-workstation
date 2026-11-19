@@ -3,31 +3,15 @@ import { useTranslation } from 'react-i18next'
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 
 import styles from '../Feed.module.scss'
-import { flag, list, text, count, isFields } from '../Feed.utils'
-import { costText, clockText, durationText } from '../../../../lib/time.utils'
+import { flag, text, count } from '../Feed.utils'
+import { clockText } from '../../../../lib/time.utils'
 
-/** Строка одного события ленты словами: конец хода, отметка IDE, сжатие, повтор, лимит, модель. */
+/**
+ * Строка одного события ленты словами: отметка IDE, сжатие, повтор, лимит, модель. Конец хода -
+ * своя строка (TurnLine): у неё цветные итоги правок.
+ */
 const eventText = (t: ReturnType<typeof useTranslation>['t'], item: FeedItemWire): string => {
   switch (item.kind) {
-    case 'turn': {
-      const changes = list(item, 'changes').filter(isFields)
-      const added = changes.reduce((sum, change) => sum + count(change, 'added'), 0)
-      const removed = changes.reduce((sum, change) => sum + count(change, 'removed'), 0)
-      const head = flag(item, 'interrupted')
-        ? t('feed.turn.stopped')
-        : flag(item, 'isError')
-          ? t('feed.turn.error')
-          : t('feed.turn.done')
-
-      return [
-        head,
-        durationText(t, count(item, 'durationMs')),
-        count(item, 'costUsd') > 0 && costText(count(item, 'costUsd')),
-        changes.length > 0 && t('feed.turn.files', { count: changes.length, added, removed }),
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    }
     case 'notice':
       return [
         t(`feed.notice.${text(item, 'code')}`, { defaultValue: text(item, 'code') }),
