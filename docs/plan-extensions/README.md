@@ -62,5 +62,8 @@
   публикация из окна, тема и её снятие. «New extension» на Claude: заготовка, проект, разговор;
   Claude за 55 с написал расширение и сам проверил его `list_extensions`, `extension_logs`,
   `run_extension_command`, `reload_extension`.
-- Не сделано и ждёт владельца: выкладка магазина (приложение Coolify `aw-store`, том `/data`, домен
-  agentic-workstation-store.mzpizote.com, потом `apps/store/scripts/store-deploy.sh`), коммит ветки.
+- 2026-11-19: по слову владельца влито в `main` (877b165 и доводки), рабочая копия и ветка убраны.
+  Магазин выложен: приложение Coolify `aw-store` (uuid `ehhup5cbaagqgkr2l87z6fal`), том `/data`,
+  https://agentic-workstation-store.mzpizote.com; сайт с обновлённой политикой выложен раньше
+  магазина; база магазина - в почасовом бэкапе сервера. До людей расширения доедут следующим
+  выпуском IDE.
