@@ -10,6 +10,8 @@ export const DEFAULT_PORT = 4463
 
 export type Config = {
   port: number
+  /** Метка сборки от скрипта выкладки: по ней видно в /v1/info, что выложено. */
+  build: string
   /** Папка базы SQLite: в контейнере - том. */
   dataDir: string
   /** Ключ модерации: убрать чужое расширение, прочитать жалобы. Пусто - модерации нет. */
@@ -33,6 +35,7 @@ const numberFrom = (value: string | undefined, fallback: number): number => {
 
 export const configFromEnv = (env: NodeJS.ProcessEnv): Config => ({
   port: numberFrom(env['PORT'], DEFAULT_PORT),
+  build: env['STORE_BUILD'] ?? 'dev',
   dataDir: env['STORE_DATA_DIR'] ?? '/data',
   adminToken: env['STORE_ADMIN_TOKEN'] ?? '',
   trustProxy: env['STORE_TRUST_PROXY'] === '1',

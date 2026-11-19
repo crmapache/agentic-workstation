@@ -31,6 +31,9 @@ ENV PORT=4463
 ENV STORE_DATA_DIR=/data
 # За Traefik Coolify: X-Forwarded-For верится только ближнему собеседнику из частной сети.
 ENV STORE_TRUST_PROXY=1
+# Метка сборки от скрипта выкладки (apps/store/scripts/store-deploy.sh): её отдаёт /v1/info.
+ARG BUILD_ID=dev
+ENV STORE_BUILD=$BUILD_ID
 COPY --from=build --chown=node:node /out ./
 RUN mkdir -p /data && chown node:node /data
 VOLUME ["/data"]

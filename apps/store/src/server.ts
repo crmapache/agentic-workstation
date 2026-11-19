@@ -85,7 +85,7 @@ export const createStore = (
 
     if (url.pathname === '/healthz') return send(response, { status: 200, json: { ok: true } })
     if (url.pathname === '/v1/info')
-      return send(response, { status: 200, json: { version: STORE_VERSION } })
+      return send(response, { status: 200, json: { version: STORE_VERSION, build: config.build } })
 
     const ip = clientIp(request, config.trustProxy)
     const limit = method === 'GET' ? reads : writes

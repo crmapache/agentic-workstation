@@ -15,6 +15,7 @@ import { createStore } from './server.ts'
 
 const CONFIG: Config = {
   port: 0,
+  build: 'test',
   dataDir: ':memory:',
   adminToken: 'admin-secret',
   trustProxy: false,

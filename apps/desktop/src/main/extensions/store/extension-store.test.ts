@@ -110,6 +110,7 @@ describe('магазин расширений внутри IDE', () => {
     server = createStore(
       {
         port: 0,
+        build: 'test',
         dataDir: ':memory:',
         adminToken: '',
         trustProxy: false,
