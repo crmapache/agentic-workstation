@@ -66,7 +66,7 @@ const fakeFile = (value: unknown) => {
 }
 
 describe('подключения открытых моделей', () => {
-  it('Ollama: модели с умением инструментов и окном, модели векторов - мимо', async () => {
+  it('Ollama: модели с умением инструментов, модели векторов - мимо, окно без загрузки - догадка', async () => {
     const result = await probeConnection(
       { kind: 'ollama', baseUrl: 'http://ollama/', key: '' },
       fakeFetch({
@@ -86,10 +86,12 @@ describe('подключения открытых моделей', () => {
       state: 'ok',
       error: '',
       models: [
-        { id: 'gpt-oss:20b', name: 'gpt-oss:20b', tools: true, reasoning: true, context: 131072 },
+        { id: 'gpt-oss:20b', name: 'gpt-oss:20b', tools: true, reasoning: true, context: null },
         { id: 'tiny', name: 'tiny', tools: false, reasoning: false, context: null },
       ],
       credits: null,
+      serverWindow: null,
+      unsure: ['gpt-oss:20b', 'tiny'],
     })
   })
 
@@ -232,5 +234,61 @@ describe('подключения открытых моделей', () => {
     expect(modelRefOf('ollama/gpt-oss:20b')).toEqual({ providerID: 'ollama', id: 'gpt-oss:20b' })
     expect(modelRefOf('or1/a/b')).toEqual({ providerID: 'or1', id: 'a/b' })
     expect(modelRefOf('plain')).toBeNull()
+  })
+
+  it('перед запуском OpenCode модель Ollama с неизвестным окном грузится, дальше окно сервера известно', async () => {
+    const loaded = new Map<string, number>()
+    const loads: string[] = []
+    const limits: Record<string, number> = { 'qwen3.8:latest': 262144, small: 8192 }
+    const ollama = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const url = new URL(input instanceof Request ? input.url : input)
+      const { model = '' } = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as {
+        model?: string
+      }
+
+      if (url.port !== '11434') return Promise.reject(new Error('ECONNREFUSED'))
+      if (url.pathname === '/api/generate') {
+        loads.push(model)
+        // Сервер берёт своё окно 32768, но не больше предела модели.
+        loaded.set(model, Math.min(32768, limits[model] ?? 0))
+
+        return Promise.resolve(Response.json({ done: true, done_reason: 'load' }))
+      }
+
+      const body =
+        url.pathname === '/api/tags'
+          ? { models: Object.keys(limits).map((name) => ({ name })) }
+          : url.pathname === '/api/ps'
+            ? { models: [...loaded].map(([name, tokens]) => ({ name, context_length: tokens })) }
+            : {
+                capabilities: ['completion', 'tools'],
+                model_info: { 'qwen.context_length': limits[model] },
+              }
+
+      return Promise.resolve(Response.json(body))
+    }
+    const store = await ConnectionStore.load(fakeFile(null).file, fakeVault())
+    const connections = new ModelConnections(store, () => undefined, ollama)
+    const windows = () =>
+      connections.list.find((row) => row.id === 'ollama')?.models.map((model) => model.context)
+
+    await connections.refresh()
+    expect(windows()).toEqual([null, null])
+
+    await connections.prepare('ollama', 'qwen3.8:latest')
+    expect(loads).toEqual(['qwen3.8:latest'])
+    expect(windows()).toEqual([32768, 8192])
+
+    // Окно сервера известно: другую модель грузить незачем, выгрузка его не стирает.
+    loaded.clear()
+    await connections.prepare('ollama', 'small')
+    await connections.prepare('lmstudio', 'any')
+    expect(loads).toEqual(['qwen3.8:latest'])
+    expect(windows()).toEqual([32768, 8192])
+    expect(
+      providersConfig(connections.list, (connection) => ({ baseURL: openAiBaseUrl(connection) })),
+    ).toMatchObject({
+      ollama: { models: { 'qwen3.8:latest': { limit: { context: 32768, output: 8192 } } } },
+    })
   })
 })

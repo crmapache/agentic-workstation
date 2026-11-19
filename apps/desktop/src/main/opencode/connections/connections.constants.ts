@@ -4,6 +4,13 @@ import type { ModelConnectionKind } from '@shared/open-models'
 export const PROBE_TIMEOUT_MS = 8_000
 
 /**
+ * Сколько ждать, пока Ollama загрузит модель, чтобы назвать её окно: большая модель с диска
+ * грузится секунды, на медленном диске - дольше. Не дождались - процесс OpenCode идёт с тем
+ * окном, что знали, а загрузку сервер доведёт сам.
+ */
+export const LOAD_TIMEOUT_MS = 120_000
+
+/**
  * Адреса подключений по умолчанию. Ollama и LM Studio - их обычные порты на этом компьютере;
  * OpenRouter - его API в формате OpenAI.
  */

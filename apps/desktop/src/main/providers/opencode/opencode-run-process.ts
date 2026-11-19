@@ -38,10 +38,14 @@ export type OpenCodeRunHost = {
   dirs: () => OpenCodeDirs
   /**
    * Конфиг процесса: подключения через прокси IDE, коннекторы проекта и свои серверы IDE.
+   * directory - папка, где процесс работает (её правила - у компактных указаний, ADR 0089).
+   * model - модель прогона (пусто - по умолчанию панели): модель Ollama к запуску готовится.
    * servers - только эти серверы коннекторов (пусто - ни одного); нет - все серверы проекта.
    */
   launch: (
     projectPath: string,
+    directory: string,
+    model: string | null,
     ideServers: readonly string[],
     servers?: readonly string[],
   ) => Promise<OpenCodeLaunch>
@@ -169,7 +173,12 @@ export class OpenCodeRunProcess implements SessionProcess {
 
     if (!cli) return this.failed(new Error('OpenCode is not installed or not found.'))
 
-    const launched = await host.launch(place.projectPath, spec.ideServers ?? [])
+    const launched = await host.launch(
+      place.projectPath,
+      place.cwd,
+      spec.model,
+      spec.ideServers ?? [],
+    )
 
     this.launched = launched
     // Сессия - свой разговор у коннекторов: вкладки браузера и файлы - из её папки.
@@ -181,7 +190,7 @@ export class OpenCodeRunProcess implements SessionProcess {
       {
         binary: cli.binary,
         cwd: place.cwd,
-        env: cli.env,
+        env: { ...cli.env, ...launched.env },
         dirs: host.dirs(),
         config: launched.config,
       },
@@ -303,7 +312,14 @@ export class OpenCodeRunProcess implements SessionProcess {
     const held =
       type === 'form.created'
         ? holdForm(requestId, form)
-        : holdPermission(requestId, data, null, runModeOf(this.spec.permissionMode), this.place.cwd)
+        : holdPermission(
+            requestId,
+            data,
+            null,
+            runModeOf(this.spec.permissionMode),
+            this.place.cwd,
+            this.launched?.servers,
+          )
     const question = engineQuestionOf(held.pending)
 
     this.questions.set(requestId, held)

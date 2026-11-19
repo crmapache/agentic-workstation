@@ -59,27 +59,65 @@ const named = (name: string) => {
 }
 
 /**
+ * Имена серверов шлюза в процессе Codex: имя в шлюзе → имя у Codex. Таблица флага `-c` не
+ * заменяет одноимённый сервер из конфига человека, а сливается с ним: адрес шлюза рядом с его
+ * командой Codex отвергает («url is not supported for stdio») и не открывает разговор вовсе, а
+ * серверу по адресу достались бы его заголовки и списки инструментов. Поэтому занятое имя
+ * получает хвост `-ide`: тип в начале имени остаётся, по нему хуки узнают отправку.
+ */
+export const codexServerNames = (
+  servers: readonly GatewayEntry[],
+  userServers: readonly UserServer[],
+): Map<string, string> => {
+  const theirs = new Set(userServers.map((server) => server.name))
+  const used = new Set(servers.map((server) => server.name).filter((name) => !theirs.has(name)))
+  const names = new Map<string, string>()
+
+  for (const { name } of servers) {
+    let free = name
+
+    for (let count = 1; theirs.has(free) || (free !== name && used.has(free)); count += 1) {
+      free = count === 1 ? `${name}-ide` : `${name}-ide-${count}`
+    }
+
+    used.add(free)
+    names.set(name, free)
+  }
+
+  return names
+}
+
+/**
  * Флаги `-c` процесса Codex (ADR 0029: MCP у провайдера - только коннекторы IDE): серверы
- * шлюза проекта с ключом из окружения и выключенные серверы человека из его конфига Codex -
- * конфиг не правится, выключение действует только на процессы IDE. Сервер - целиком одной
- * встроенной таблицей: флаг пути внутри сервера заменяет его таблицу, и Codex отвергает
- * сервер без транспорта («invalid transport»).
+ * шлюза проекта с ключом из окружения - под именами `codexServerNames` - и выключенные серверы
+ * человека из его конфига Codex, все до одного: конфиг не правится, выключение действует
+ * только на процессы IDE. Сервер - целиком одной встроенной таблицей с транспортом: таблицу
+ * без него Codex отвергал («invalid transport»). С `onlyTools` у сервера шлюза - только эти
+ * инструменты (`enabled_tools`), сервер без своих в нём не идёт вовсе.
  */
 export const connectorArgs = (
   servers: readonly GatewayEntry[],
   userServers: readonly UserServer[],
+  onlyTools?: ReadonlyMap<string, readonly string[]>,
 ): string[] => {
-  const ours = new Set(servers.map((server) => server.name))
+  const names = codexServerNames(servers, userServers)
 
   return [
-    ...servers
-      .filter((server) => named(server.name))
-      .flatMap((server) => [
+    ...servers.flatMap((server) => {
+      const name = names.get(server.name) ?? server.name
+      const tools = onlyTools?.get(server.name)
+
+      if ((onlyTools && !tools) || !named(name)) return []
+
+      const only = tools ? `, enabled_tools=${JSON.stringify(tools)}` : ''
+
+      return [
         '-c',
-        `mcp_servers.${server.name}={url=${JSON.stringify(server.url)}, bearer_token_env_var="${GATEWAY_TOKEN_ENV}"}`,
-      ]),
+        `mcp_servers.${name}={url=${JSON.stringify(server.url)}, bearer_token_env_var="${GATEWAY_TOKEN_ENV}"${only}}`,
+      ]
+    }),
     ...userServers
-      .filter((server) => !ours.has(server.name) && named(server.name))
+      .filter((server) => named(server.name))
       .flatMap((server) => [
         '-c',
         `mcp_servers.${server.name}={${server.transport}, enabled=false}`,

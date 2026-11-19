@@ -13,6 +13,7 @@ import {
 } from '../run-stream/claude-stream'
 import type { JournalSpeaker } from '../run-stream/run-journal'
 import type { CliMessage } from '../../claude/cli/cli-messages'
+import { CODE_MODE_TOOL } from '../../opencode/feed/code-mode'
 import type { OpenCodeEvent } from '../../opencode/server/opencode-server'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -61,6 +62,8 @@ export class OpenCodeTurnTranslator {
   private said = ''
   private speaking = ''
   private readonly helpers = new Set<string>()
+  /** Вызовы изнутри кода Code Mode, уже записанные в журнал: `<id вызова>#<номер>`. */
+  private readonly codeCalls = new Set<string>()
 
   constructor(
     private readonly engineId: string,
@@ -100,10 +103,19 @@ export class OpenCodeTurnTranslator {
 
         return
       case 'session.tool.called':
+        // Код Code Mode в журнал не идёт: туда идут вызовы, которые он сделал (ниже).
+        if (text(data, 'name') === CODE_MODE_TOOL) return
+
         this.sink.note(
           'tool',
           `${text(data, 'name')} ${inputLine(isRecord(data['input']) ? data['input'] : {})}`,
         )
+
+        return
+      case 'session.tool.progress':
+      case 'session.tool.success':
+      case 'session.tool.failed':
+        this.codeModeCalls(text(data, 'id'), data['metadata'])
 
         return
       case 'session.step.ended':
@@ -118,6 +130,28 @@ export class OpenCodeTurnTranslator {
         return
       default:
         return
+    }
+  }
+
+  /**
+   * Вызовы, которые сделал код Code Mode (`metadata.toolCalls`), - в журнал по разу, как прямые:
+   * `<сервер>_<инструмент> <вход>`. Поиск инструментов - не работа прогона.
+   */
+  private codeModeCalls(callId: string, metadata: unknown): void {
+    const calls =
+      isRecord(metadata) && Array.isArray(metadata['toolCalls']) ? metadata['toolCalls'] : []
+
+    for (const [index, call] of calls.entries()) {
+      const key = `${callId}#${index}`
+      const tool = isRecord(call) ? text(call, 'tool') : ''
+
+      if (!isRecord(call) || tool === 'search' || this.codeCalls.has(key)) continue
+
+      this.codeCalls.add(key)
+      this.sink.note(
+        'tool',
+        `${tool.replace('.', '_')} ${inputLine(isRecord(call['input']) ? call['input'] : {})}`,
+      )
     }
   }
 

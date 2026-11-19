@@ -111,6 +111,7 @@ const asked = (session: OpenCodeSession, data: Record<string, unknown>) => {
     factsOf(session, text(source, 'id')),
     runtime.meta.permissionMode,
     runtime.meta.projectPath,
+    openCodeOf(runtime).servers,
   )
 
   runtime.held = [...runtime.held, held]
@@ -177,6 +178,9 @@ export const routeEvent = (session: OpenCodeSession, event: OpenCodeEvent): void
         text(data, 'name'),
         isRecord(data['input']) ? data['input'] : {},
       )
+      break
+    case 'session.tool.progress':
+      builder.toolProgress(text(data, 'id'), data)
       break
     case 'session.tool.success':
     case 'session.tool.failed':

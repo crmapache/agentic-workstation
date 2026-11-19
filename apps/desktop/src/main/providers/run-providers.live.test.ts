@@ -169,6 +169,8 @@ describe.skipIf(process.env['AGENTIC_WORKSTATION_OPENCODE_LIVE'] !== '1')(
               connectors: null,
               servers: [],
               allowedActions: [],
+              env: {},
+              compact: false,
               release: () => undefined,
             }),
           models: () => [

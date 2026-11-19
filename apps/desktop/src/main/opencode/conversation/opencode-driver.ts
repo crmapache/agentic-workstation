@@ -4,6 +4,7 @@ import { OpenCodeServer } from '../server/opencode-server'
 import type { AgentDriver } from '../../agents/conversation/agent-parts'
 import type { OpenCodeHost } from './opencode-conversation'
 import { openCodeOf, attachOpenCode } from './opencode-conversation'
+import { isCompactWindow } from './opencode-instructions'
 import { OpenCodeSession } from './opencode-session'
 
 /**
@@ -39,7 +40,7 @@ export const openCodeDriver = (host: () => OpenCodeHost): AgentDriver => ({
       return null
     }
 
-    const launch = await kit.host.launch(runtime.meta.projectPath)
+    const launch = await kit.host.launch(runtime.meta.projectPath, runtime.meta.model)
     const { connectors } = launch
     let session: OpenCodeSession | null = null
 
@@ -47,12 +48,13 @@ export const openCodeDriver = (host: () => OpenCodeHost): AgentDriver => ({
     if (connectors) runtime.connectors = connectors
     kit.servers = launch.servers
     kit.allowedActions = launch.allowedActions
+    kit.compact = launch.compact
 
     const server = new OpenCodeServer(
       {
         binary: cli.binary,
         cwd: runtime.meta.projectPath,
-        env: cli.env,
+        env: { ...cli.env, ...launch.env },
         dirs: kit.host.dirs(),
         config: launch.config,
       },
@@ -83,12 +85,22 @@ export const openCodeDriver = (host: () => OpenCodeHost): AgentDriver => ({
     return session
   },
 
-  // Всё едет перед ходом (opencode-session.ts): живой сессии сейчас слать нечего.
+  // Всё едет перед ходом (opencode-session.ts): живой сессии сейчас слать нечего. Одно
+  // исключение - модель по ту сторону границы окна (ADR 0089): указания у процесса другие,
+  // и он поднимается заново, как освободится, - до следующего хода.
   setOptions: (runtime, options) => {
     runtime.update({
       ...(options.model !== undefined && { model: options.model }),
       ...(options.effort !== undefined && { effort: options.effort }),
       ...(options.permissionMode !== undefined && { permissionMode: options.permissionMode }),
     })
+
+    const kit = openCodeOf(runtime)
+
+    if (options.model === undefined || kit.compact === null) return
+
+    const model = options.model || (kit.host.defaultModel() ?? '')
+
+    if (isCompactWindow(kit.host.contextWindow(model)) !== kit.compact) runtime.restartSession()
   },
 })

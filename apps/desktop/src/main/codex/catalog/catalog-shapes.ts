@@ -3,6 +3,7 @@ import type { ModelInfo, EffortLevel, HistoryEntry } from '@shared/conversation'
 import { CODEX_EFFORT_LEVELS } from '@shared/conversation'
 
 import type { CodexItem } from '../feed/codex-tools'
+import { lineupFirst } from './model-lineup'
 
 /**
  * Ответы каталога `codex app-server` (model/list, account/read, account/rateLimits/read,
@@ -39,8 +40,8 @@ const fastOf = (model: Record<string, unknown>): boolean | undefined => {
   return tiers.length > 0 ? false : undefined
 }
 
-/** Модели Codex для меню: свои уровни усилия у каждой, скрытые - не в меню. */
-export const modelsFromList = (result: unknown): ModelInfo[] =>
+/** Модели ответа `model/list` в порядке Codex: свои уровни усилия у каждой, скрытые - не в меню. */
+const modelsOf = (result: unknown): ModelInfo[] =>
   records(isRecord(result) ? result['data'] : null)
     .filter((model) => model['hidden'] !== true)
     .map((model) => {
@@ -65,6 +66,9 @@ export const modelsFromList = (result: unknown): ModelInfo[] =>
       }
     })
     .filter((model) => model.value !== '')
+
+/** Модели Codex для меню: линейка - первой, сильнейшая наверху (`lineupFirst`). */
+export const modelsFromList = (result: unknown): ModelInfo[] => lineupFirst(modelsOf(result))
 
 /** Кто вошёл в Codex: вид входа, почта и тариф; не вошёл - null. */
 export type CodexAccount = { kind: 'chatgpt' | 'apiKey' | 'other'; email: string; plan: string }

@@ -9,7 +9,10 @@ import {
   DEFAULT_MODEL_VALUE,
 } from './ComposerStatus/ComposerStatus.constants'
 
-/** Место модели в порядке «сильнейшая первой»; модель без семьи Claude - после всех. */
+/**
+ * Место модели в порядке «сильнейшая первой»; модель без семьи Claude - после всех. Каталог
+ * Codex приходит уже в этом порядке (`main/codex/catalog/model-lineup.ts`): здесь он не меняется.
+ */
 const rankOf = (model: ModelInfo): number => {
   const family = modelFamily(model.value)
 

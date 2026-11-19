@@ -5,6 +5,7 @@ import { structuredPatch } from 'diff'
 import type { PatchHunk, ToolInput, ToolAction, ToolResult } from '@shared/conversation-feed'
 
 import { hunkCounts, hunksOfUnifiedDiff } from '../../agents/feed/unified-diff'
+import { mcpCallAction, CODE_MODE_TOOL, codeModeAction } from './code-mode'
 
 /**
  * Вызовы инструментов OpenCode (ADR 0084) - видом действия ленты. Имена и входы сняты с живого
@@ -14,7 +15,7 @@ import { hunkCounts, hunksOfUnifiedDiff } from '../../agents/feed/unified-diff'
  * prompt}, `patch` {patchText} (правка в виде apply_patch - её получают модели GPT), `question`
  * {questions}, `todowrite`, `skill` {name}. Старые имена (`bash`, `task`, `apply_patch`) - те же
  * инструменты, как их сводит сам OpenCode. Вызов MCP - `<сервер>_<инструмент>` по именам
- * коннекторов.
+ * коннекторов, а в Code Mode - кодом в `execute` {code} (code-mode.ts, ADR 0088).
  */
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -25,8 +26,6 @@ const text = (record: Record<string, unknown>, key: string): string => {
 
   return typeof value === 'string' ? value : ''
 }
-
-const firstLine = (value: string) => value.split('\n')[0]?.trim() ?? ''
 
 /** Старые имена инструментов OpenCode - нынешними, как сводит их он сам. */
 const RENAMED: Readonly<Record<string, string>> = {
@@ -107,11 +106,11 @@ export const openCodeToolAction = (
   const mcp = mcpOf(name, context.servers)
   const path = (from: ToolInput) => pathOf(from, context.root)
 
-  if (mcp) {
-    return { kind: 'mcp', ...mcp, target: firstLine(JSON.stringify(input)).slice(0, 80), path: '' }
-  }
+  if (mcp) return mcpCallAction(mcp.server, mcp.tool, input)
 
   switch (openCodeToolName(name)) {
+    case CODE_MODE_TOOL:
+      return codeModeAction(input, null, context.servers)
     case 'read': {
       const offset = input['offset']
 

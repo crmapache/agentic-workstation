@@ -8,6 +8,8 @@ import type {
 } from '@shared/conversation'
 import type { ToolAction } from '@shared/conversation-feed'
 
+import type { ToolContext } from '../feed/opencode-tools'
+import { openCodeToolAction } from '../feed/opencode-tools'
 import type { HeldRequest } from '../../agents/conversation/agent-parts'
 import { hunksOfUnifiedDiff } from '../../agents/feed/unified-diff'
 
@@ -78,8 +80,22 @@ const actionOfRequest = (
 }
 
 /**
+ * Вызов коннектора, о котором спрашивают: действие - `<сервер>_<инструмент>` известного
+ * сервера, вход - `metadata.input`. Так OpenCode спрашивает и о вызове изнутри кода Code Mode,
+ * где источник вопроса - весь `execute`, а не этот вызов (ADR 0088).
+ */
+const connectorCallOf = (action: string, data: Record<string, unknown>, context: ToolContext) => {
+  const metadata = isRecord(data['metadata']) ? data['metadata'] : {}
+  const input = isRecord(metadata['input']) ? metadata['input'] : {}
+  const called = openCodeToolAction(action, input, context)
+
+  return called.kind === 'mcp' ? { input, action: called } : null
+}
+
+/**
  * Разрешение (`permission.asked`) - карточкой вопроса. Правка несёт готовый дифф в
- * `metadata.files`: он и показывается, даже если вызов в ленте ещё без входа.
+ * `metadata.files`: он и показывается, даже если вызов в ленте ещё без входа. servers - имена
+ * серверов коннекторов процесса: вызов коннектора карточка показывает им самим.
  */
 export const holdPermission = (
   requestId: string,
@@ -87,22 +103,25 @@ export const holdPermission = (
   facts: ToolFacts | null,
   mode: PermissionMode,
   root: string,
+  servers: readonly string[] = [],
 ): OpenCodeHeld => {
   const action = text(data, 'action')
   const resources = strings(data['resources'])
   const source = isRecord(data['source']) ? data['source'] : {}
   const fromRequest = actionOfRequest(action, resources, data, root)
+  const connector = connectorCallOf(action, data, { servers, root })
   const pending: PendingRequest = {
     kind: 'permission',
     requestId,
     toolUseId: text(source, 'id'),
-    toolName: facts?.name ?? action,
-    input: facts?.input ?? { resources },
+    toolName: connector ? action : (facts?.name ?? action),
+    input: connector?.input ?? facts?.input ?? { resources },
     // Дифф правки - из вопроса: вход вызова в ленте может ещё не прийти.
     action:
-      fromRequest.kind === 'edit' && fromRequest.preview.length > 0
+      connector?.action ??
+      (fromRequest.kind === 'edit' && fromRequest.preview.length > 0
         ? fromRequest
-        : (facts?.action ?? fromRequest),
+        : (facts?.action ?? fromRequest)),
     description: resources.join(', '),
     reason: text(data, 'message'),
     alwaysKind: 'rule',

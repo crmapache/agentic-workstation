@@ -18,6 +18,7 @@ import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
 import type { StoredPanel } from '../agents/panel/panel-state'
 import { applyPrefsPatch } from '../claude/settings/panel-prefs'
+import type { GatewayLaunch } from '../connectors/gateway/launches'
 import type { OpenCodeRunHost } from '../providers/opencode/opencode-run-process'
 import { BRIEFING_KEY } from '../providers/opencode/opencode-run-session'
 import { withoutRuns } from '../providers/run-stream/run-history'
@@ -28,8 +29,8 @@ import type { ConnectionInput } from './connections/connection-store'
 import type { ModelConnections } from './connections/model-connections'
 import { ModelProxy } from './connections/model-proxy'
 import { onlyServers } from './connections/only-servers'
-import { openAiBaseUrl, providersConfig } from './connections/opencode-config'
-import type { OpenCodeHost } from './conversation/opencode-conversation'
+import { modelRefOf, openAiBaseUrl, providersConfig } from './connections/opencode-config'
+import type { OpenCodeHost, OpenCodeLaunch } from './conversation/opencode-conversation'
 import { openCodeOf } from './conversation/opencode-conversation'
 import { openCodeDriver } from './conversation/opencode-driver'
 import { forkOpenCode } from './conversation/opencode-fork'
@@ -260,14 +261,12 @@ export class OpenModelsService extends AgentPanel {
     return {
       cli: () => locateOpenCodeCli(),
       dirs: () => this.dirs(),
-      launch: (projectPath, ideServers, servers) =>
-        openCodeLaunch({
-          connections: this.models.list,
-          hasKey: (id) => this.models.keyOf(id) !== '',
-          proxy: this.proxy,
-          connectors: onlyServers(this.connectors.configFor(projectPath, ideServers), servers),
-          model: this.defaultModel(),
-        }),
+      launch: (projectPath, directory, model, ideServers, servers) =>
+        this.launchOn(
+          model,
+          onlyServers(this.connectors.configFor(projectPath, ideServers), servers),
+          directory,
+        ),
       models: () => this.menuModels(),
       messages: (sessionId, cursor) => this.catalog.messages(sessionId, cursor),
       dropBrief: (sessionId) => this.catalog.dropInstructions(sessionId, BRIEFING_KEY),
@@ -279,23 +278,48 @@ export class OpenModelsService extends AgentPanel {
     return this.menuModels()[0]?.value ?? null
   }
 
+  /**
+   * Запуск процесса OpenCode на модели (нет - «по умолчанию» панели): модель Ollama сначала
+   * готовится, чтобы окно в конфиге было тем, с которым её держит сервер (ollama-window.ts),
+   * а не её пределом; потом конфиг из подключений. По этому окну процесс в папке directory
+   * получает полные или компактные указания (ADR 0089).
+   */
+  private async launchOn(
+    model: string | null,
+    connectors: GatewayLaunch | null,
+    directory: string,
+  ): Promise<OpenCodeLaunch> {
+    const value = model || (this.defaultModel() ?? '')
+    const ref = modelRefOf(value)
+
+    if (ref) await this.models.prepare(ref.providerID, ref.id)
+
+    return openCodeLaunch({
+      connections: this.models.list,
+      hasKey: (id) => this.models.keyOf(id) !== '',
+      proxy: this.proxy,
+      connectors,
+      model: this.defaultModel(),
+      directory,
+      window: this.windowOf(value),
+    })
+  }
+
+  /** Окно модели панели (`<подключение>/<модель>`); 0 - неизвестно. */
+  private windowOf(model: string): number {
+    return this.menuModels().find((option) => option.value === model)?.contextWindow ?? 0
+  }
+
   protected readonly host: OpenCodeHost = {
     driver: openCodeDriver(() => this.host),
     cli: () => locateOpenCodeCli(),
     onFeedPatch: (patch) => this.events.onFeed(patch),
     dirs: () => this.dirs(),
     messages: (sessionId, cursor) => this.catalog.messages(sessionId, cursor),
-    launch: (projectPath) =>
-      openCodeLaunch({
-        connections: this.models.list,
-        hasKey: (id) => this.models.keyOf(id) !== '',
-        proxy: this.proxy,
-        connectors: this.connectors.configFor(projectPath),
-        model: this.defaultModel(),
-      }),
+    launch: (projectPath, model) =>
+      this.launchOn(model, this.connectors.configFor(projectPath), projectPath),
     defaultModel: () => this.defaultModel(),
-    contextWindow: (model) =>
-      this.menuModels().find((option) => option.value === model)?.contextWindow ?? 0,
+    contextWindow: (model) => this.windowOf(model),
     efforts: (model) => this.menuModels().find((option) => option.value === model)?.efforts ?? [],
     isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
     onChange: () => this.persist.changed(),

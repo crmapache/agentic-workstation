@@ -5,32 +5,11 @@ import { jsonOf, toolsByServer } from '../run-stream/ask-once'
 import { CODEX_CLIENT } from '../../codex/codex.constants'
 import { AppServerProcess } from '../../codex/app-server/app-server-process'
 import { connectorArgs, GATEWAY_TOKEN_ENV } from '../../codex/conversation/codex-connectors'
-import type { GatewayEntry } from '../../connectors/gateway/mcp-config'
 import { noBuiltInToolsArgs } from './codex-restrictions'
 import type { CodexRunHost } from './codex-run-process'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/**
- * Серверы шлюза только с инструментами чтения (`enabled_tools`): Codex не увидит у сервера
- * ничего другого, а разрешений он здесь не спрашивает. Сервер - целиком одной таблицей, как в
- * connectorArgs: флаг пути внутри сервера заменил бы таблицу без транспорта.
- */
-const readServerArgs = (
-  servers: readonly GatewayEntry[],
-  readable: ReadonlyMap<string, readonly string[]>,
-): string[] =>
-  servers.flatMap((server) => {
-    const tools = readable.get(server.name)
-
-    return tools && /^[\w-]+$/.test(server.name)
-      ? [
-          '-c',
-          `mcp_servers.${server.name}={url=${JSON.stringify(server.url)}, bearer_token_env_var="${GATEWAY_TOKEN_ENV}", enabled_tools=${JSON.stringify(tools)}}`,
-        ]
-      : []
-  })
 
 /**
  * Разовый вопрос Codex: эфемерный поток (в истории его нет), только чтение без вопросов,
@@ -66,10 +45,10 @@ export const askCodexOnce = async (
     {
       binary: cli.binary,
       args: [
-        ...connectorArgs([], userServers),
+        // Серверы шлюза - только с инструментами чтения: разрешений здесь Codex не спрашивает.
+        ...connectorArgs(launch?.servers ?? [], userServers, readable),
         // Автору сценария - чтение проекта командной строкой; остальным - ни команд, ни файлов.
         ...(ask.readProject ? [] : noBuiltInToolsArgs()),
-        ...readServerArgs(launch?.servers ?? [], readable),
         ...(ask.tools?.web ? ['-c', 'web_search="live"'] : []),
       ],
       cwd: ask.cwd,

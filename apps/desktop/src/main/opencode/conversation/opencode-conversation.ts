@@ -19,6 +19,10 @@ export type OpenCodeLaunch = {
   servers: readonly string[]
   /** Действия, разрешённые всегда (уведомления самому себе, ADR 0069): `<сервер>_*`. */
   allowedActions: readonly string[]
+  /** Переменные процесса сверх окружения человека (opencode-instructions.ts). */
+  env: Record<string, string>
+  /** Процесс поднят с компактными указаниями - для модели с маленьким окном (ADR 0089). */
+  compact: boolean
   /** Процесс кончился: его ключ у прокси моделей больше не годится. */
   release: () => void
 }
@@ -29,8 +33,11 @@ export type OpenCodeHost = AgentHost & {
   onFeedPatch: (patch: FeedPatch) => void
   /** Свои папки OpenCode у IDE: конфиг, база разговоров, состояние, кеш. */
   dirs: () => OpenCodeDirs
-  /** Конфиг и коннекторы для нового процесса в проекте. */
-  launch: (projectPath: string) => Promise<OpenCodeLaunch>
+  /**
+   * Конфиг и коннекторы для нового процесса в проекте; model - модель разговора (нет - по
+   * умолчанию панели): модель Ollama к запуску готовится.
+   */
+  launch: (projectPath: string, model: string | null) => Promise<OpenCodeLaunch>
   /** Модель «по умолчанию» панели (`<подключение>/<модель>`); null - моделей нет. */
   defaultModel: () => string | null
   /** Окно контекста модели панели; 0 - не знаем. */
@@ -54,6 +61,8 @@ export class OpenCodeConversation {
   servers: readonly string[] = []
   /** Действия процесса, о которых человека не спрашивают (свои серверы IDE). */
   allowedActions: readonly string[] = []
+  /** Процесс поднят с компактными указаниями (ADR 0089); null - процесса ещё не было. */
+  compact: boolean | null = null
   /**
    * Действия, разрешённые человеком «для этого разговора» (Allow for this chat). Живут с
    * разговором, а не с процессом: сон и перезапуск процесса их не стирают.

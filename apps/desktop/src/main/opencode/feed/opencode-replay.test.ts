@@ -87,6 +87,49 @@ describe('журнал OpenCode в ленте', () => {
     expect(items[4]).toMatchObject({ id: 'p1-turn-1', interrupted: false, isError: false })
   })
 
+  it('Code Mode: каждый вызов коннектора из кода - своей строкой, как в живой ленте', () => {
+    const code = {
+      type: 'tool',
+      id: 'call_x',
+      name: 'execute',
+      state: {
+        status: 'completed',
+        input: { code: 'return Promise.allSettled([...])' },
+        content: [{ type: 'text', text: '["ok","fail"]' }],
+        metadata: {
+          toolCalls: [
+            { tool: 'search', status: 'completed', input: { query: 'mail' } },
+            { tool: 'gmail.get_thread', status: 'completed', input: { id: 't1' } },
+            { tool: 'gmail.get_thread', status: 'error', input: { id: 't2' } },
+          ],
+        },
+      },
+      time: { created: 1 },
+    }
+    const { items } = replayMessages(
+      [user('msg_u', 'go', 1000), assistant('msg_a', [code], 2000), idle('msg_i', 3000)],
+      'p1-',
+      () => '',
+      () => ({ servers: ['gmail'], root: '/p' }),
+    )
+    const tools = items.filter((item) => item.kind === 'tool')
+
+    expect(tools).toMatchObject([
+      {
+        id: 'call_x',
+        action: { kind: 'mcp', server: 'gmail', tool: 'get_thread', target: '{"id":"t1"}' },
+        status: 'done',
+        result: { text: '["ok","fail"]' },
+      },
+      {
+        id: 'call_x#1',
+        input: { id: 't2' },
+        action: { kind: 'mcp', server: 'gmail', tool: 'get_thread', target: '{"id":"t2"}' },
+        status: 'error',
+      },
+    ])
+  })
+
   it('ход без отметки конца (IDE закрылась посреди хода) - прерванный', () => {
     const { items } = replayMessages(
       [user('msg_u', 'go', 1000), assistant('msg_a', [readCall], 2000)],

@@ -1,19 +1,29 @@
 import type { ModelConnection } from '@shared/open-models'
 
 import type { ProbeResult } from './connection-probe'
-import { probeConnection } from './connection-probe'
+import { loadOllamaModel, probeConnection } from './connection-probe'
 import type { ConnectionInput, ConnectionStore } from './connection-store'
 
 /** Подключение без ответа пробы: проба идёт или ещё не начиналась. */
-const CHECKING: ProbeResult = { state: 'checking', error: '', models: [], credits: null }
+const CHECKING: ProbeResult = {
+  state: 'checking',
+  error: '',
+  models: [],
+  credits: null,
+  serverWindow: null,
+  unsure: [],
+}
 
 /**
  * Подключения с их живым состоянием: что лежит в хранилище и что ответила последняя проба.
  * Проба всех идёт разом и не повторяется, пока идёт; правка подключения пробует его заново.
- * changed - состояние поменялось (окну и конфигу процессов).
+ * Пробы одного подключения идут друг за другом: каждая знает окно сервера Ollama, которое
+ * узнала прошлая, и опоздавшая не затрёт свежую. changed - состояние поменялось (окну и
+ * конфигу процессов).
  */
 export class ModelConnections {
   private readonly results = new Map<string, ProbeResult>()
+  private readonly lines = new Map<string, Promise<void>>()
   private probing: Promise<void> | null = null
 
   constructor(
@@ -73,13 +83,54 @@ export class ModelConnections {
     await this.probe(id)
   }
 
+  /**
+   * Перед запуском процесса OpenCode на модели Ollama: окно в его конфиге должно быть тем, с
+   * которым сервер её держит (ollama-window.ts). Окно - догадка (сервер ещё ни одной модели не
+   * загружал) - модель загружается, и сервер его называет. Загрузка та же, что сделал бы первый
+   * запрос; не удалась - процесс идёт с тем, что знали.
+   */
+  async prepare(connectionId: string, modelId: string): Promise<void> {
+    const row = this.store.find(connectionId)
+
+    if (row?.kind !== 'ollama') return
+
+    await this.probe(connectionId)
+
+    const result = this.results.get(connectionId)
+
+    // Сервер не отвечает - грузить не у кого; окно модели известно - грузить незачем.
+    if (result?.state !== 'ok') return
+    if (result.models.some((model) => model.id === modelId) && !result.unsure.includes(modelId)) {
+      return
+    }
+
+    await loadOllamaModel(row.baseUrl, modelId, this.fetcher).catch((error: unknown) => {
+      console.warn('[open-models] модель Ollama не загрузилась, окно - прежнее:', error)
+    })
+    await this.probe(connectionId)
+  }
+
   async remove(id: string): Promise<void> {
     await this.store.remove(id)
-    if (!this.store.find(id)) this.results.delete(id)
+    if (!this.store.find(id)) {
+      this.results.delete(id)
+      this.lines.delete(id)
+    }
     this.changed()
   }
 
-  private async probe(id: string): Promise<void> {
+  private probe(id: string): Promise<void> {
+    const next = (this.lines.get(id) ?? Promise.resolve()).then(() => this.probeNow(id))
+
+    this.lines.set(
+      id,
+      next.catch(() => undefined),
+    )
+
+    return next
+  }
+
+  private async probeNow(id: string): Promise<void> {
     const row = this.store.find(id)
 
     if (!row) return
@@ -87,6 +138,7 @@ export class ModelConnections {
     const result = await probeConnection(
       { kind: row.kind, baseUrl: row.baseUrl, key: this.store.keyOf(id) },
       this.fetcher,
+      this.results.get(id)?.serverWindow ?? null,
     )
 
     // Подключение убрали, пока шла проба, - ответ уже ничей.

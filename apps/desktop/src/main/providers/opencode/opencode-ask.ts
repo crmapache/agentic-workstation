@@ -30,7 +30,13 @@ export const askOpenCodeOnce = async (
   // Коннекторы - проекта, о котором спрашивают; процесс при этом - в своей пустой папке.
   const readable = toolsByServer(mcp?.tools ?? [])
   // В конфиг - только серверы с разрешёнными инструментами; нет инструментов - нет коннекторов.
-  const launched = await host.launch(mcp?.projectPath ?? ask.cwd, [], [...readable.keys()])
+  const launched = await host.launch(
+    mcp?.projectPath ?? ask.cwd,
+    ask.cwd,
+    ask.model,
+    [],
+    [...readable.keys()],
+  )
 
   // Отменили, пока поднимался конфиг: процесс не нужен вовсе.
   if (ask.signal?.aborted) {
@@ -45,7 +51,13 @@ export const askOpenCodeOnce = async (
   let finish: (result: AskOnceResult) => void = () => undefined
   const done = new Promise<AskOnceResult>((resolve) => (finish = resolve))
   const server: OpenCodeServer = new OpenCodeServer(
-    { binary: cli.binary, cwd: ask.cwd, env: cli.env, dirs: host.dirs(), config: launched.config },
+    {
+      binary: cli.binary,
+      cwd: ask.cwd,
+      env: { ...cli.env, ...launched.env },
+      dirs: host.dirs(),
+      config: launched.config,
+    },
     {
       onEvent: ({ type, data }) => {
         if (!sessionId || eventSessionOf(data) !== sessionId) return

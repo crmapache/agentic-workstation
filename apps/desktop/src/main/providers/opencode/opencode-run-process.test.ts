@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
+import { journalPath } from '../run-stream/run-journal'
 import type { CliMessage } from '../../claude/cli/cli-messages'
 import type { CardAsk } from '../../scenarios/engine/run-mail'
 import { ScenarioSession } from '../../scenarios/engine/scenario-session'
@@ -55,6 +56,11 @@ const server = http.createServer((req, res) => {
       if (body.text.includes('approve')) {
         return send('permission.asked', { id: 'per_1', action: 'shell', resources: ['ls'], source: { type: 'tool', messageID: 'msg_a', id: 'call_1' } })
       }
+      if (body.text.includes('connector')) {
+        send('session.tool.called', { assistantMessageID: 'msg_a', id: 'call_m', name: 'execute', input: { code: 'return await tools.gmail.search_threads({ q: "invoice" })' } })
+        send('session.tool.progress', { assistantMessageID: 'msg_a', id: 'call_m', metadata: { toolCalls: [{ tool: 'search', status: 'completed', input: { query: 'mail' } }, { tool: 'gmail.search_threads', status: 'running', input: { q: 'invoice' } }] } })
+        return send('permission.asked', { id: 'per_1', action: 'gmail_search_threads', resources: ['*'], metadata: { input: { q: 'invoice' } }, source: { type: 'tool', messageID: 'msg_a', id: 'call_m' } })
+      }
       if (body.text.includes('helper')) {
         emit('session.created', { sessionID: 'ses_child', parentID: OWN })
         emit('session.execution.started', { sessionID: 'ses_child' })
@@ -98,7 +104,7 @@ type Call = { method: string; url: string; body: Record<string, unknown> | null 
 const calls = async (): Promise<Call[]> =>
   JSON.parse(await readFile(join(dir, 'calls.json'), 'utf8').catch(() => '[]')) as Call[]
 
-const host = (): OpenCodeRunHost => ({
+const host = (servers: readonly string[] = []): OpenCodeRunHost => ({
   cli: () =>
     Promise.resolve({
       binary: join(dir, 'opencode'),
@@ -115,8 +121,10 @@ const host = (): OpenCodeRunHost => ({
     Promise.resolve({
       config: '{}',
       connectors: null,
-      servers: [],
+      servers,
       allowedActions: [],
+      env: {},
+      compact: false,
       release: () => undefined,
     }),
   models: () => [
@@ -132,13 +140,14 @@ const host = (): OpenCodeRunHost => ({
   journalDir: join(dir, 'journals'),
 })
 
-const session = (permissionMode = 'default', briefing = '') => {
+const session = (permissionMode = 'default', briefing = '', servers: readonly string[] = []) => {
   const heard: CliMessage[] = []
   const asks: CardAsk[] = []
   const ended: CliMessage[] = []
   const errors: string[] = []
   const engine = new ScenarioSession(
-    (spec, wires) => new OpenCodeRunProcess(host(), spec, { cwd: dir, projectPath: dir }, wires),
+    (spec, wires) =>
+      new OpenCodeRunProcess(host(servers), spec, { cwd: dir, projectPath: dir }, wires),
     {
       sessionId: SESSION,
       resume: false,
@@ -204,6 +213,32 @@ describe('прогон на открытых моделях через пере�
     expect(
       (await calls()).find((call) => call.url.endsWith('/permission/per_1/reply'))?.body,
     ).toEqual({ decision: 'reject' })
+    run.engine.stop()
+  })
+
+  it('Code Mode: вопрос о вызове коннектора из кода - его именем MCP, в журнале - сам вызов', async () => {
+    const run = session('default', '', ['gmail'])
+
+    run.engine.sendPrompt('use the connector')
+    await expect.poll(() => run.asks.length).toBe(1)
+    // Правила прогона на коннекторы пишутся именами Claude: mcp__<сервер>__<инструмент>.
+    expect(run.asks[0]).toMatchObject({
+      toolName: 'mcp__gmail__search_threads',
+      input: { q: 'invoice' },
+    })
+
+    run.engine.answer(run.asks[0]?.requestId ?? '', true, '', {})
+    await expect.poll(() => run.ended.length).toBe(1)
+
+    await expect
+      .poll(() => readFile(journalPath(join(dir, 'journals'), SESSION), 'utf8').catch(() => ''))
+      .toContain('gmail_search_threads {\\"q\\":\\"invoice\\"}')
+
+    const said = await readFile(journalPath(join(dir, 'journals'), SESSION), 'utf8')
+
+    // Код Code Mode и поиск инструментов в журнал не идут.
+    expect(said).not.toContain('tools.gmail')
+    expect(said).not.toContain('query')
     run.engine.stop()
   })
 

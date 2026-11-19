@@ -5,7 +5,9 @@ import type {
   ModelConnectionKind,
 } from '@shared/open-models'
 
-import { PROBE_TIMEOUT_MS } from './connections.constants'
+import { LOAD_TIMEOUT_MS, PROBE_TIMEOUT_MS } from './connections.constants'
+import type { ServerWindow, OllamaWindowFacts } from './ollama-window'
+import { isWindowSure, ollamaWindow, ownContextOf, learnServerWindow } from './ollama-window'
 
 /** Что знает проба о подключении: вид, адрес и ключ (пусто - без ключа). */
 export type ProbeTarget = { kind: ModelConnectionKind; baseUrl: string; key: string }
@@ -15,6 +17,10 @@ export type ProbeResult = {
   error: string
   models: ConnectionModel[]
   credits: ConnectionCredits | null
+  /** Окно сервера Ollama по умолчанию, выведенное из загруженных моделей (ollama-window.ts). */
+  serverWindow: ServerWindow
+  /** Модели, чьё окно - догадка: загрузи - и сервер его назовёт. */
+  unsure: readonly string[]
 }
 
 type Fetch = typeof fetch
@@ -52,6 +58,7 @@ const getJson = async (
   url: string,
   key: string,
   body?: unknown,
+  timeoutMs = PROBE_TIMEOUT_MS,
 ): Promise<unknown> => {
   const response = await fetcher(url, {
     method: body === undefined ? 'GET' : 'POST',
@@ -60,7 +67,7 @@ const getJson = async (
       ...(body !== undefined && { 'content-type': 'application/json' }),
     },
     ...(body !== undefined && { body: JSON.stringify(body) }),
-    signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   }).catch((error: unknown) => {
     throw new Offline(error instanceof Error ? error.message : String(error))
   })
@@ -71,35 +78,95 @@ const getJson = async (
   return response.json()
 }
 
+/** Окна загруженных моделей Ollama (`/api/ps`) по имени; не ответил - ничего не загружено. */
+const loadedWindows = async (fetcher: Fetch, base: string): Promise<Map<string, number>> => {
+  const loaded = await getJson(fetcher, `${base}/api/ps`, '').catch(() => null)
+
+  return new Map(
+    records(field(loaded, 'models')).flatMap((model) => {
+      const name = text(model, 'name') || text(model, 'model')
+      const tokens = count(model['context_length'])
+
+      return name && tokens !== null ? [[name, tokens] as const] : []
+    }),
+  )
+}
+
+type OllamaFound = Pick<ProbeResult, 'models' | 'serverWindow' | 'unsure'>
+
 /**
  * Ollama: список (`/api/tags`), у каждой модели - `/api/show`: умения (`tools`; без
- * `completion` - модель векторов, не для разговора) и окно контекста из `model_info`.
+ * `completion` - модель векторов, не для разговора), предел окна из `model_info` и своё
+ * num_ctx. Окно в меню и конфиге - то, с которым сервер держит модель (ollama-window.ts):
+ * загруженные (`/api/ps`) учат окну сервера, learned - что знали до этой пробы.
  */
-const ollamaModels = async (fetcher: Fetch, base: string): Promise<ConnectionModel[]> => {
-  const tags = records(field(await getJson(fetcher, `${base}/api/tags`, ''), 'models'))
-  const models = await Promise.all(
-    tags.map(async (tag): Promise<ConnectionModel | null> => {
+const ollamaModels = async (
+  fetcher: Fetch,
+  base: string,
+  learned: ServerWindow,
+): Promise<OllamaFound> => {
+  const [list, loaded] = await Promise.all([
+    getJson(fetcher, `${base}/api/tags`, ''),
+    loadedWindows(fetcher, base),
+  ])
+  const found = await Promise.all(
+    records(field(list, 'models')).map(async (tag) => {
       const name = text(tag, 'name') || text(tag, 'model')
       const show = await getJson(fetcher, `${base}/api/show`, '', { model: name }).catch(() => null)
       const capabilities = strings(field(show, 'capabilities'))
       const info = field(show, 'model_info')
-      const context = isRecord(info)
+      const parameters = field(show, 'parameters')
+      const max = isRecord(info)
         ? Object.entries(info).find(([key]) => key.endsWith('.context_length'))?.[1]
         : undefined
 
       if (capabilities.length > 0 && !capabilities.includes('completion')) return null
 
+      const facts: OllamaWindowFacts = {
+        max: count(max),
+        own: typeof parameters === 'string' ? ownContextOf(parameters) : null,
+        loaded: loaded.get(name) ?? null,
+      }
+
       return {
-        id: name,
-        name,
-        tools: capabilities.length > 0 ? capabilities.includes('tools') : null,
-        reasoning: capabilities.length > 0 ? capabilities.includes('thinking') : null,
-        context: count(context),
+        facts,
+        model: {
+          id: name,
+          name,
+          tools: capabilities.length > 0 ? capabilities.includes('tools') : null,
+          reasoning: capabilities.length > 0 ? capabilities.includes('thinking') : null,
+        },
       }
     }),
   )
+  const chat = found.filter((entry) => entry !== null)
+  const serverWindow = learnServerWindow(
+    chat.map((entry) => entry.facts),
+    learned,
+  )
 
-  return models.filter((model) => model !== null)
+  return {
+    models: chat.map(({ model, facts }) => ({
+      ...model,
+      context: ollamaWindow(facts, serverWindow),
+    })),
+    serverWindow,
+    unsure: chat
+      .filter(({ facts }) => !isWindowSure(facts, serverWindow))
+      .map(({ model }) => model.id),
+  }
+}
+
+/**
+ * Загрузить модель Ollama (`/api/generate` без промпта): тогда `/api/ps` назовёт её окно. Это та
+ * же загрузка, что сделал бы первый запрос OpenCode, - лишнего ожидания нет.
+ */
+export const loadOllamaModel = async (
+  baseUrl: string,
+  model: string,
+  fetcher: Fetch = fetch,
+): Promise<void> => {
+  await getJson(fetcher, `${trimmed(baseUrl)}/api/generate`, '', { model }, LOAD_TIMEOUT_MS)
 }
 
 /**
@@ -173,35 +240,46 @@ const openAiModels = async (
     context: count(model['context_length'] ?? model['max_context_length']),
   }))
 
+/** Чего не знают подключения, кроме Ollama: окна сервера и догадок об окне у них нет. */
+const NO_WINDOWS = { serverWindow: null, unsure: [] }
+
 /**
  * Проба подключения: модели для меню и что с подключением. Не ответил вовсе - offline (у
  * локального сервера это «не запущен»), ключ не принят - unauthorized, прочее - failed со
- * словами сбоя. Модели без имени не в счёт.
+ * словами сбоя. Модели без имени не в счёт. learned - окно сервера Ollama с прошлой пробы;
+ * не ответил - оно забывается: поднятый заново сервер мог взять другое.
  */
 export const probeConnection = async (
   target: ProbeTarget,
   fetcher: Fetch = fetch,
+  learned: ServerWindow = null,
 ): Promise<ProbeResult> => {
   const base = trimmed(target.baseUrl)
 
   try {
     const found =
       target.kind === 'ollama'
-        ? { models: await ollamaModels(fetcher, base), credits: null }
+        ? { ...(await ollamaModels(fetcher, base, learned)), credits: null }
         : target.kind === 'lmstudio'
-          ? { models: await lmStudioModels(fetcher, base), credits: null }
+          ? { models: await lmStudioModels(fetcher, base), credits: null, ...NO_WINDOWS }
           : target.kind === 'openrouter'
-            ? await openRouter(fetcher, base, target.key)
-            : { models: await openAiModels(fetcher, base, target.key), credits: null }
+            ? { ...(await openRouter(fetcher, base, target.key)), ...NO_WINDOWS }
+            : {
+                models: await openAiModels(fetcher, base, target.key),
+                credits: null,
+                ...NO_WINDOWS,
+              }
 
     return {
       state: 'ok',
       error: '',
       models: found.models.filter((model) => model.id !== ''),
       credits: found.credits,
+      serverWindow: found.serverWindow,
+      unsure: found.unsure,
     }
   } catch (error) {
-    const empty = { models: [], credits: null }
+    const empty = { models: [], credits: null, ...NO_WINDOWS }
 
     if (error instanceof Unauthorized) return { state: 'unauthorized', error: '', ...empty }
     if (error instanceof Offline) return { state: 'offline', error: error.message, ...empty }

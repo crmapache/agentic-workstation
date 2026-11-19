@@ -70,6 +70,7 @@ const BUILT_IN = new Set([
   'skill',
   'batch',
   'invalid',
+  'execute',
 ])
 
 /** Встроенные с `_` в имени - не MCP. */
@@ -85,6 +86,26 @@ const toolOf = (name: string): { tool: string; server: string | null } => {
   const server = tool.slice(0, split)
 
   return { tool: `mcp__${server}__${tool.slice(split + 1)}`, server }
+}
+
+/**
+ * Вызовы коннекторов изнутри кода Code Mode (`execute`, ADR 0088): `metadata.toolCalls` итога,
+ * `<сервер>.<инструмент>` - сервер до первой точки (в именах коннекторов точек нет). Поиск
+ * инструментов и `fetch` - не коннекторы.
+ */
+const codeModeCallsOf = (state: Json): { tool: string; server: string }[] => {
+  const calls = recordOf(state['metadata'])['toolCalls']
+
+  return (Array.isArray(calls) ? calls.filter(isRecord) : []).flatMap((call) => {
+    const name = text(call, 'tool')
+    const split = name.indexOf('.')
+
+    if (split <= 0) return []
+
+    const server = name.slice(0, split)
+
+    return [{ tool: `mcp__${server}__${name.slice(split + 1)}`, server }]
+  })
 }
 
 /** Путь полным: OpenCode пишет его и от папки сессии. */
@@ -179,6 +200,16 @@ const toolsOf = (message: OpenCodeMessage, place: LinePlace, rows: ParsedRows) =
       skipEdits: tool === 'shell' && isNotAuthoredCommand(text(input, 'command')),
       subagent: message.subagent,
     })
+    codeModeCallsOf(state).forEach((call, index) =>
+      rows.toolCalls.push({
+        ...place,
+        ts: at,
+        key: keyOf(`${key}\n${index}`),
+        ...call,
+        skipEdits: false,
+        subagent: message.subagent,
+      }),
+    )
 
     if (!EDITING.has(tool) || state['status'] !== 'completed') continue
 

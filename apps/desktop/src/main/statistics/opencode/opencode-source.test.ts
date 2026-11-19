@@ -128,6 +128,16 @@ describe('OpenCode database', () => {
           tool('call_3', 'edit', 'error', { input: { path: 'src/c.ts' }, error: { type: 'x' } }),
           tool('call_4', 'shell', 'completed', { input: { command: 'git checkout main' } }),
           tool('call_5', 'notifications_notify', 'completed', { input: { title: 'done' } }),
+          // Code Mode: поиск инструментов не в счёт, вызов коннектора из кода - как прямой.
+          tool('call_6', 'execute', 'completed', {
+            input: { code: 'await tools.gmail.get_thread({ id: "t1" })' },
+            metadata: {
+              toolCalls: [
+                { tool: 'search', status: 'completed', input: { query: 'mail' } },
+                { tool: 'gmail.get_thread', status: 'completed', input: { id: 't1' } },
+              ],
+            },
+          }),
         ],
         0.25,
       ),
@@ -161,6 +171,8 @@ describe('OpenCode database', () => {
     expect(all('SELECT tool, server, skip_edits FROM tool_calls ORDER BY ts, tool')).toEqual([
       { tool: 'edit', server: null, skip_edits: 0 },
       { tool: 'edit', server: null, skip_edits: 0 },
+      { tool: 'execute', server: null, skip_edits: 0 },
+      { tool: 'mcp__gmail__get_thread', server: 'gmail', skip_edits: 0 },
       { tool: 'mcp__notifications__notify', server: 'notifications', skip_edits: 0 },
       { tool: 'shell', server: null, skip_edits: 1 },
       { tool: 'write', server: null, skip_edits: 0 },

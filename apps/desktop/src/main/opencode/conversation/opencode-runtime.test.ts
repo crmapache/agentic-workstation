@@ -11,6 +11,7 @@ import { freshConversation } from '../../agents/panel/panel-state'
 import type { OpenCodeHost } from './opencode-conversation'
 import { openCodeOf } from './opencode-conversation'
 import { openCodeDriver } from './opencode-driver'
+import { isCompactWindow } from './opencode-instructions'
 
 /**
  * Поддельный `opencode serve --stdio` по формам живого OpenCode 2.3.2: сессия ses_1, запросы -
@@ -68,6 +69,16 @@ const server = http.createServer((req, res) => {
         emit('session.text.ended', { sessionID: 'ses_child', assistantMessageID: 'msg_c', ordinal: 0, text: 'child' })
         return setTimeout(() => emit('permission.asked', { sessionID: 'ses_child', id: 'per_2', action: 'shell', resources: ['ls'], source: { type: 'tool', messageID: 'msg_c', id: 'call_c' } }), 50)
       }
+      if (body.text.includes('codemode')) {
+        send('session.tool.input.started', { assistantMessageID: 'msg_a', id: 'call_s', name: 'execute' })
+        send('session.tool.called', { assistantMessageID: 'msg_a', id: 'call_s', input: { code: 'return await search({ query: "mail" })' } })
+        send('session.tool.progress', { assistantMessageID: 'msg_a', id: 'call_s', metadata: { toolCalls: [{ tool: 'search', status: 'running', input: { query: 'mail' } }] } })
+        send('session.tool.success', { assistantMessageID: 'msg_a', id: 'call_s', content: [{ type: 'text', text: '[]' }], metadata: { toolCalls: [{ tool: 'search', status: 'completed', input: { query: 'mail' } }] } })
+        send('session.tool.input.started', { assistantMessageID: 'msg_a', id: 'call_m', name: 'execute' })
+        send('session.tool.called', { assistantMessageID: 'msg_a', id: 'call_m', input: { code: 'return await tools.gmail.search_threads({ q: "invoice" })' } })
+        send('session.tool.progress', { assistantMessageID: 'msg_a', id: 'call_m', metadata: { toolCalls: [{ tool: 'gmail.search_threads', status: 'running', input: { q: 'invoice' } }] } })
+        return send('permission.asked', { id: 'per_3', action: 'gmail_search_threads', resources: ['*'], save: ['*'], metadata: { input: { q: 'invoice' } }, source: { type: 'tool', messageID: 'msg_a', id: 'call_m' } })
+      }
       if (body.text.includes('edit')) {
         waiting = 'per_1'
         return send('permission.asked', { id: 'per_1', action: 'edit', resources: ['src/a.ts'], save: ['*'], source: { type: 'tool', messageID: 'msg_a', id: 'call_2' }, metadata: { files: [{ file: 'src/a.ts', patch: '@@ -1 +1 @@\\n-x\\n+y\\n' }] } })
@@ -77,6 +88,12 @@ const server = http.createServer((req, res) => {
     if (req.url.endsWith('/permission/per_1/reply')) {
       json(res, { data: true })
       send('permission.replied', { requestID: 'per_1', reply: body.decision })
+      return finish()
+    }
+    if (req.url.endsWith('/permission/per_3/reply')) {
+      json(res, { data: true })
+      send('permission.replied', { requestID: 'per_3', reply: body.decision })
+      send('session.tool.success', { assistantMessageID: 'msg_a', id: 'call_m', content: [{ type: 'text', text: '{"threads":1}' }], metadata: { toolCalls: [{ tool: 'gmail.search_threads', status: 'completed', input: { q: 'invoice' } }] } })
       return finish()
     }
     if (req.url === '/api/session/ses_1/form/frm_1/reply') {
@@ -108,6 +125,7 @@ let dir = ''
 let binary = ''
 
 beforeEach(async () => {
+  launches = []
   dir = await mkdtemp(join(tmpdir(), 'opencode-runtime-'))
   binary = join(dir, 'opencode')
   await writeFile(binary, FAKE_SERVER)
@@ -121,7 +139,19 @@ afterEach(async () => {
 const calls = async (): Promise<Call[]> =>
   JSON.parse(await readFile(join(dir, 'calls.json'), 'utf8').catch(() => '[]')) as Call[]
 
-const makeRuntime = (permissionMode: PermissionMode = 'acceptEdits') => {
+/** Модели, на которых поднимались процессы, - по порядку. */
+let launches: (string | null)[] = []
+
+/**
+ * windows - окно модели панели; нет - 131 072 (полные указания). Процесс поднимается
+ * компактным по окну своей модели, как у сервиса панели.
+ */
+const makeRuntime = (
+  permissionMode: PermissionMode = 'acceptEdits',
+  servers: readonly string[] = [],
+  windows: Record<string, number> = {},
+) => {
+  const windowOf = (model: string) => windows[model] ?? 131072
   const host: OpenCodeHost = {
     driver: openCodeDriver(() => host),
     cli: () =>
@@ -137,16 +167,21 @@ const makeRuntime = (permissionMode: PermissionMode = 'acceptEdits') => {
       state: join(dir, 's'),
       cache: join(dir, 'k'),
     }),
-    launch: () =>
-      Promise.resolve({
+    launch: (_projectPath, model) => {
+      launches.push(model)
+
+      return Promise.resolve({
         config: '{}',
         connectors: null,
-        servers: [],
+        servers,
         allowedActions: [],
+        env: {},
+        compact: isCompactWindow(windowOf(model || 'ollama/gpt-oss:20b')),
         release: () => undefined,
-      }),
+      })
+    },
     defaultModel: () => 'ollama/gpt-oss:20b',
-    contextWindow: () => 131072,
+    contextWindow: windowOf,
     efforts: () => [],
     messages: () => Promise.resolve({ messages: [], cursor: null }),
     isTrusted: () => Promise.resolve(true),
@@ -232,6 +267,70 @@ describe('разговор OpenCode на ядре', () => {
     const rules = sent.find((call) => call.method === 'PATCH')?.body?.['permissions']
 
     expect(rules).toContainEqual({ action: 'edit', resource: '*', effect: 'allow' })
+    await runtime.dispose()
+  })
+
+  it('Code Mode: поиск инструментов не виден, вызов коннектора - своей строкой и карточкой', async () => {
+    const runtime = makeRuntime('default', ['gmail'])
+
+    await runtime.send({ text: 'codemode', images: [] })
+    await expect.poll(() => runtime.meta.status).toBe('waiting')
+    // Источник вопроса - весь код, а карточка - о вызове коннектора внутри него.
+    expect(runtime.meta.pending).toMatchObject({
+      kind: 'permission',
+      toolUseId: 'call_m',
+      toolName: 'gmail_search_threads',
+      input: { q: 'invoice' },
+      action: { kind: 'mcp', server: 'gmail', tool: 'search_threads', target: '{"q":"invoice"}' },
+    })
+
+    runtime.respond(runtime.meta.pending?.requestId ?? '', {
+      kind: 'permission',
+      decision: { behavior: 'allowAlways' },
+    })
+    await expect.poll(() => runtime.meta.outcome).toBe('done')
+
+    const items = openCodeOf(runtime).feed.builder.items
+
+    expect(items.find((item) => item.id === 'call_s')).toMatchObject({ action: { kind: 'todo' } })
+    expect(items.find((item) => item.id === 'call_m')).toMatchObject({
+      action: { kind: 'mcp', server: 'gmail', tool: 'search_threads' },
+      status: 'done',
+      result: { text: '{"threads":1}' },
+    })
+
+    const rules = (await calls()).find((call) => call.method === 'PATCH')?.body?.['permissions']
+
+    // «Для этого разговора» - тем же действием, каким OpenCode спрашивает о вызове из кода.
+    expect(rules).toContainEqual({ action: 'gmail_search_threads', resource: '*', effect: 'allow' })
+    await runtime.dispose()
+  })
+
+  it('модель через границу окна - процесс заново до следующего хода, по эту сторону - тот же', async () => {
+    const runtime = makeRuntime('acceptEdits', [], {
+      'ollama/qwen3.8': 65_536,
+      'ollama/gpt-oss:20b': 65_536,
+      'openrouter/big': 1_000_000,
+    })
+
+    runtime.setOptions({ model: 'ollama/qwen3.8' })
+    await runtime.send({ text: 'look', images: [] })
+    await expect.poll(() => runtime.meta.outcome).toBe('done')
+    expect(openCodeOf(runtime).compact).toBe(true)
+
+    // Другая модель с маленьким окном: указания те же - процесс остаётся.
+    runtime.setOptions({ model: 'ollama/gpt-oss:20b' })
+    await runtime.send({ text: 'look', images: [] })
+    await expect
+      .poll(() => runtime.feed.builder.items.filter((i) => i.kind === 'turn').length)
+      .toBe(2)
+    expect(launches).toEqual(['ollama/qwen3.8'])
+
+    // Большое окно - полные указания: процесс поднимается заново на новой модели.
+    runtime.setOptions({ model: 'openrouter/big' })
+    await runtime.send({ text: 'look', images: [] })
+    await expect.poll(() => launches).toEqual(['ollama/qwen3.8', 'openrouter/big'])
+    await expect.poll(() => openCodeOf(runtime).compact).toBe(false)
     await runtime.dispose()
   })
 

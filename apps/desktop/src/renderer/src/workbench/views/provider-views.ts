@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { Boxes, SquareTerminal } from 'lucide-react'
+import { Boxes, Aperture } from 'lucide-react'
 
 import { AI_ICON } from '../../lib/ai-icon.constants'
 import type { ProviderViewId } from '../../state/layout.types'
@@ -23,9 +23,10 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
     ),
   },
   {
-    // Codex (ADR 0083): та же панель провайдера, свои вкладки, настройки и лимиты.
+    // Codex (ADR 0083): та же панель провайдера, свои вкладки, настройки и лимиты. Иконка -
+    // диафрагма: терминал занят кнопкой терминала под ней, а знак ИИ - панелью Claude Code.
     id: 'codex',
-    icon: SquareTerminal,
+    icon: Aperture,
     labelKey: 'providerViews.codex',
     Component: lazy(() =>
       import('../../features/agent-panel/CodexPanel/CodexPanel').then((module) => ({

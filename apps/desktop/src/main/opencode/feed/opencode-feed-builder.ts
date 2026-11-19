@@ -16,6 +16,7 @@ import { FeedStore } from '../../agents/feed/feed-store'
 import { toolTurnChanges } from '../../agents/feed/tool-turn-changes'
 import { TurnTracker } from '../../agents/feed/turn-tracker'
 import { WorkClock } from '../../agents/feed/work-clock'
+import { codeModeRows, CODE_MODE_TOOL } from './code-mode'
 import type { ToolContext, OpenCodeFileChange } from './opencode-tools'
 import {
   openCodeToolName,
@@ -203,8 +204,17 @@ export class OpenCodeFeedBuilder implements AgentFeedBuilder {
   }
 
   /**
+   * Ход вызова (`session.tool.progress`): у `execute` Code Mode - вызовы коннекторов, которые
+   * код уже сделал (code-mode.ts).
+   */
+  toolProgress(id: string, data: Record<string, unknown>): void {
+    this.codeModeCalls(id, data, 0)
+  }
+
+  /**
    * Итог вызова (`session.tool.success` / `failed`). `patch` на несколько файлов - строкой на
-   * файл, как правка Codex: строка хода и откат считают файлы по строкам ленты.
+   * файл, как правка Codex: строка хода и откат считают файлы по строкам ленты. `execute` -
+   * строкой на вызов коннектора.
    */
   toolEnded(id: string, data: Record<string, unknown>, failed: boolean): void {
     const known = this.store.get(id)
@@ -223,6 +233,7 @@ export class OpenCodeFeedBuilder implements AgentFeedBuilder {
       result,
       endedAt,
     }))
+    this.codeModeCalls(id, data, endedAt)
 
     if (!split || known?.kind !== 'tool') return
 
@@ -349,6 +360,17 @@ export class OpenCodeFeedBuilder implements AgentFeedBuilder {
 
   private updateTool(id: string, change: (tool: ToolFeedItem) => ToolFeedItem): void {
     this.store.update(id, 'tool', change)
+  }
+
+  /** Строки вызовов коннекторов `execute` по `metadata.toolCalls`; endedAt 0 - код идёт. */
+  private codeModeCalls(id: string, data: Record<string, unknown>, endedAt: number): void {
+    const tool = this.store.get(id)
+
+    if (tool?.kind !== 'tool' || openCodeToolName(tool.name) !== CODE_MODE_TOOL) return
+
+    for (const row of codeModeRows(tool, data['metadata'], this.context().servers, endedAt)) {
+      this.store.put(row)
+    }
   }
 
   /** Незаконченные вызовы - прерванными, текст, который ещё рос, - законченным. */
