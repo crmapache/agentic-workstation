@@ -22,6 +22,7 @@ import { useViewLists, useGoneViewFallback } from '../views/extension-views'
 import { useMainViewBadges } from '../views/main-view-badges'
 import { useProjectCalls } from '../views/project-calls'
 import { useProjectWork } from '../views/project-work'
+import { useProviderCalls } from '../views/provider-calls'
 import { PROVIDER_VIEWS } from '../views/provider-views'
 import { ShowcaseLayer } from '../views/showcase-view'
 import { useSideViewMarks } from '../views/side-view-marks'
@@ -33,6 +34,7 @@ import { OpenFileContext } from '../../state/open-file.context'
 import { InboxCard } from '../../features/inbox/InboxCard/InboxCard'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
+import { MemorySaverButton } from '../../features/settings/MemorySaverButton/MemorySaverButton'
 import { MuteSoundsButton } from '../../features/settings/MuteSoundsButton/MuteSoundsButton'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
 import { useRoomMeasure } from './Workbench.hooks'
@@ -66,6 +68,7 @@ export const Workbench = () => {
   const sideMarks = useSideViewMarks()
   const projectCallsOf = useProjectCalls()
   const projectWorkOf = useProjectWork()
+  const providerCalls = useProviderCalls()
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -146,6 +149,7 @@ export const Workbench = () => {
               edge="end"
               label={t('providerViews.label')}
               views={PROVIDER_VIEWS}
+              calls={providerCalls}
               activeViewId={provider.activeViewId}
               isPanelOpen={provider.isOpen}
               footer={
@@ -167,7 +171,7 @@ export const Workbench = () => {
             )}
           </div>
 
-          <StatusBar items={[<RemoteButton />, <MuteSoundsButton />]} />
+          <StatusBar items={[<RemoteButton />, <MuteSoundsButton />, <MemorySaverButton />]} />
         </div>
 
         <Overlays />

@@ -12,8 +12,8 @@ export type ConversationTabsProps = {
   activeId: string | null
 }
 
-/** Вкладка полосы, как её видит перетаскивание: id и группа. */
-export type StripTab = Pick<Conversation, 'id' | 'groupId'>
+/** Вкладка полосы, как её видит перетаскивание: id, группа и зона (закреплена ли). */
+export type StripTab = Pick<Conversation, 'id' | 'groupId' | 'pinned'>
 
 /** Что делает жест: несёт группу целиком или форк внутри своей группы. */
 export type DragKind = 'group' | 'tab'
@@ -24,6 +24,8 @@ export type Drag = {
   id: string
   /** Группа, в которой идёт жест; у жеста группы - она же. */
   groupId: string
+  /** Жест в зоне закреплённых: группа не выходит из своей зоны и не входит в чужую. */
+  pinned: boolean
 }
 
 /** Сдвиг в пикселях полосы. */

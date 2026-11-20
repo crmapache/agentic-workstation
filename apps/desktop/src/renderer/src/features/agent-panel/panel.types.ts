@@ -58,7 +58,6 @@ export type SettingsScreen =
   | 'preset2'
   | 'preset3'
   | 'shareEditor'
-  | 'pasteCollapse'
   | 'claudeConfig'
   | 'customModels'
 

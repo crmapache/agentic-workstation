@@ -15,12 +15,13 @@ import { chipOfPath } from '../field-clipboard.utils'
 import { takeKeyboard } from '../field-dom'
 import { useFieldInsert } from '../field-insert.hooks'
 import { useField } from '../field.hooks'
-import { usePanelPrefs, useConversationFeed, usePanelCapabilities } from '../panel.queries'
+import { useConversationFeed, usePanelCapabilities } from '../panel.queries'
 import { usePanelStore } from '../panel.store'
 import { useCommandCatalog } from '../slash.hooks'
 import { useSuggestions } from '../suggestions.hooks'
 import { invoke } from '../../../lib/ipc'
 import { useEditorSelection } from '../../../state/editor-selection.store'
+import { useIdePrefs } from '../../../state/ide-prefs.queries'
 import { useSelectedFile } from '../../../state/selection.store'
 import { NO_SENT } from './Composer.constants'
 import styles from './Composer.module.scss'
@@ -33,7 +34,7 @@ import { imageBaseOf, isCompacting, isShellDraft } from './Composer.utils'
  * заводит разговор. Черновик и история - в composer.store, разговор - у главного процесса.
  */
 export const useComposer = ({ project, conversation, draftKey }: ComposerProps) => {
-  const prefs = usePanelPrefs()
+  const idePrefs = useIdePrefs()
   const canAskAside = usePanelCapabilities().sideQuestion
   const actions = useConversationActions()
   const draft = useComposerStore((store) => store.drafts[draftKey] ?? EMPTY_DRAFT)
@@ -73,7 +74,7 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
     field,
     insert,
     projectId: project.id,
-    pasteCollapse: prefs.pasteCollapse,
+    pasteCollapse: idePrefs.pasteCollapse,
     imageBase,
     commands: catalog.commands,
   })

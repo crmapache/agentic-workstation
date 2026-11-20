@@ -10,7 +10,6 @@ const answering = (file: string): DefinitionAsk => ({
       origin: { start: 1, end: 4 },
       target: { file, line: 3, column: 7 },
     }),
-  close: () => Promise.resolve(),
 })
 
 const question = { version: '1', offset: 2 }
@@ -36,7 +35,6 @@ describe('DefinitionService', () => {
   it('answers none when the thread fails', async () => {
     const service = new DefinitionService({
       request: () => Promise.reject(new Error('gone')),
-      close: () => Promise.resolve(),
     })
 
     expect(await service.find('/work/app', '/work/app/src/a.ts', question)).toEqual({

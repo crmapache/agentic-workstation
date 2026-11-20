@@ -18,6 +18,7 @@ export const panelPort = (provider: ProviderId, panel: AgentPanel): Conversation
   provider,
   info: () => providerOf(provider, panel.getState()),
   getState: () => panel.getState(),
+  refreshUsage: () => panel.refreshUsage([panel.getState().accounts.current]),
   getFeed: (id) => panel.getFeed(id),
   send: (id, message) => panel.actions.send(id, message),
   respond: (id, requestId, response) => panel.actions.respond(id, requestId, response),

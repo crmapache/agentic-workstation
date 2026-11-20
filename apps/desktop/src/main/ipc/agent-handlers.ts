@@ -174,6 +174,8 @@ export const createAgentHandlers = (
 
       return panels.get(provider).tabs.moveGroup(groupId, idOrNull(beforeId, 'beforeId'))
     },
+    'agent:setPinned': ({ provider, conversationId, pinned }) =>
+      panels.get(provider).tabs.setPinned(id(conversationId), pinned === true),
     // Разбор и проверка патча - у панели: там же значения по умолчанию и пределы.
     'agent:setPrefs': ({ provider, patch }) => panels.get(provider).setPrefs(patch),
     'agent:takeQueued': ({ provider, conversationId, queuedId }) => {

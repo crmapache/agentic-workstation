@@ -2,6 +2,11 @@ import type { Token, Tokens } from 'marked'
 
 export type MarkdownProps = {
   text: string
+  /**
+   * Текст лежит в тонированной карточке (находки ревью): код и пути - плашкой её тона
+   * (`--tone` карточки), а не тёмной подложкой ответа.
+   */
+  tinted?: boolean | undefined
 }
 
 export type MarkdownTokensProps = {

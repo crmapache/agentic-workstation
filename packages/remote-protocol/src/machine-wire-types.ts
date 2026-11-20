@@ -13,6 +13,15 @@ export type UsageWindowWire = {
   resetsAt: number | null
 }
 
+/** Лимиты аккаунта: окна, доплата сверх тарифа и когда цифры сняты с сервера. */
+export type UsageWire = {
+  windows: UsageWindowWire[]
+  /** Доплата сверх тарифа включена: проценты месячного предела; null - не сказано. */
+  extra: number | null
+  /** Когда цифры сняты с сервера (мс). */
+  fetchedAt: number
+}
+
 /**
  * Аккаунт Claude. id пустой - обычный вход Claude Code на машине. email - целиком: по маске
  * свои аккаунты на одном домене не различить (ADR 0064). signedIn null - IDE ещё не
@@ -27,13 +36,7 @@ export type AccountWire = {
   current: boolean
   /** Лимит отказал аккаунту до этого момента (мс); null - отказа нет. */
   refusedUntil: number | null
-  usage: {
-    windows: UsageWindowWire[]
-    /** Доплата сверх тарифа включена: проценты месячного предела; null - не сказано. */
-    extra: number | null
-    /** Когда цифры сняты с сервера (мс). */
-    fetchedAt: number
-  } | null
+  usage: UsageWire | null
 }
 
 export type AccountsWire = { accounts: AccountWire[] }

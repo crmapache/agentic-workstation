@@ -24,9 +24,6 @@ export const MODEL_NAME_PATTERN = /^[\w.:[\]/@-]{1,120}$/
 export const GAUGE_VIVID_FULL = 100
 export const GAUGE_VIVID_CALM = 0
 
-/** С какого числа строк вставка сворачивается в чип; 0 - никогда. */
-export const DEFAULT_PASTE_COLLAPSE = 2
-
 /**
  * Показание под полем ввода - токены за день. Остальные показания - окна лимитов, их ключ -
  * группа окна и модель (meterKey в окне).
@@ -55,7 +52,6 @@ export type PanelPrefs = {
   newTabModel: string | null
   newTabEffort: EffortLevel | null
   newTabMode: PermissionMode | null
-  pasteCollapse: number
   gaugeVivid: number
   /** Каждое сообщение несёт открытый файл и выделенные строки. */
   shareEditor: boolean
@@ -84,7 +80,6 @@ export const DEFAULT_PANEL_PREFS: PanelPrefs = {
   newTabModel: null,
   newTabEffort: null,
   newTabMode: null,
-  pasteCollapse: DEFAULT_PASTE_COLLAPSE,
   gaugeVivid: GAUGE_VIVID_FULL,
   shareEditor: true,
   hiddenMeters: [],

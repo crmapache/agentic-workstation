@@ -1,5 +1,7 @@
 import type { Ref, ReactNode, MouseEventHandler } from 'react'
 
+import type { CallLightTone } from '../CallLight/CallLight.types'
+
 /**
  * fill - вкладки делят ряд поровну (проекты); fit - по подписи до потолка; grow -
  * полоса в несколько рядов (разговоры): вкладка растёт в свободный конец ряда до своей
@@ -8,8 +10,8 @@ import type { Ref, ReactNode, MouseEventHandler } from 'react'
  */
 export type ClosableTabWidth = 'fill' | 'fit' | 'grow'
 
-/** Вкладка позвала человека: успех, внимание, ошибка - цвет повода (роли состояний). */
-export type ClosableTabCall = 'success' | 'attention' | 'danger'
+/** Вкладка позвала человека: успех, внимание, ошибка - цвет повода (свет CallLight). */
+export type ClosableTabCall = CallLightTone
 
 export type ClosableTabProps = {
   label: string
@@ -73,9 +75,4 @@ export type ClosableTabProps = {
   onContextMenu?: MouseEventHandler<HTMLDivElement> | undefined
   onActivate: () => void
   onClose: () => void
-}
-
-export type CallLightProps = {
-  call: ClosableTabCall | null
-  since: number | undefined
 }

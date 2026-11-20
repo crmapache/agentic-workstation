@@ -6,6 +6,8 @@
  * же формам, а незнакомого показывает его id.
  */
 
+import type { UsageWire } from './machine-wire-types'
+
 /** Как телефон читает разговор: свободен, идёт ход, ждёт человека (разрешение, вопрос, план). */
 export type ConversationStatus = 'idle' | 'running' | 'waiting-for-you'
 
@@ -204,6 +206,12 @@ export type ConversationWire = ConversationSummary & {
    * телефон предлагает все, отказ IDE - последнее слово.
    */
   unavailableModes?: string[] | undefined
+  /**
+   * Лимиты аккаунта, на котором идёт разговор, - окна его провайдера (пять часов, неделя), как
+   * кольца под полем окна IDE. null - цифр нет (не вошёл, ещё не узнали, у провайдера лимитов
+   * нет); нет поля - IDE старше.
+   */
+  usage?: UsageWire | null | undefined
 }
 
 /**

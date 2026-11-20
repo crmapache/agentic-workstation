@@ -86,6 +86,22 @@
   @include tinted-plaque(var(--color-success));
 }
 
+// В тонированной карточке код - плашкой её тона (`--tone` карточки): тёмная подложка на цветном
+// фоне смотрелась вырванной из карточки. Скопированный остаётся зелёным - это ответ на нажатие.
+.tinted {
+  --code-tone: var(--tone, var(--color-fg-muted));
+}
+
+.tinted .inlineCode:not(.copied) {
+  @include tinted-plaque(var(--code-tone));
+
+  @media (hover: hover) {
+    &.copyable:hover {
+      background-color: color-mix(in srgb, var(--code-tone) var(--tint-border), transparent);
+    }
+  }
+}
+
 .link {
   color: var(--color-info);
   text-decoration: none;

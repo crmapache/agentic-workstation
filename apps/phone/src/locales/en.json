@@ -362,6 +362,11 @@
         "cooldown": "Paused after a rate limit",
         "waiting": "Turns on with the next message"
       }
+    },
+    "meters": {
+      "label": "Context and usage limits. Tap to see when they reset",
+      "context": "Context",
+      "resets": "{{label}} resets {{when}}"
     }
   },
   "composer": {

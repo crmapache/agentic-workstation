@@ -7,12 +7,13 @@ import styles from '../ConversationScreen.module.scss'
 import { PendingCard } from '../../PendingCard/PendingCard'
 import { Composer } from '../../../../shell/Composer/Composer'
 import { CarryOnRow } from './CarryOnRow'
+import { ConversationMeters } from './ConversationMeters'
 import { QueuedMessages } from './QueuedMessages'
 import { StopButton } from './StopButton'
 
 /**
  * Низ разговора: решение хода (разрешение, вопрос, план), очередь сообщений в IDE, «продолжит
- * после лимита», поле и - пока ход идёт - Stop в ряду поля, как в IDE: под большим пальцем, а не
+ * после лимита», контекст и лимиты аккаунта, поле и - пока ход идёт - Stop в ряду поля, как в IDE: под большим пальцем, а не
  * в углу шапки. Пока ход идёт, отправленное встаёт в очередь.
  */
 export const ConversationFooter = ({
@@ -52,6 +53,7 @@ export const ConversationFooter = ({
           onCancel={commands.handleCancelCarryOn}
         />
       )}
+      {conversation && <ConversationMeters conversation={conversation} offset={offset} />}
       <Composer
         draftKey={draftKey}
         placeholder={busy ? t('conversation.placeholderQueued') : t('conversation.placeholder')}

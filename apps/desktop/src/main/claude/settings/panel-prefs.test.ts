@@ -23,17 +23,17 @@ describe('настройки панели', () => {
       composerLayout: 'compact',
       hiddenIndicators: ['ringContext'],
       settingSources: { '/p': 'user' },
+      // Сворачивание вставки - общая настройка IDE (shared/ide-prefs.ts): из панели уехало.
       pasteCollapse: 5,
     }
 
-    expect(parsePanelPrefs(stored)).toEqual({ ...DEFAULT_PANEL_PREFS, pasteCollapse: 5 })
+    expect(parsePanelPrefs(stored)).toEqual(DEFAULT_PANEL_PREFS)
   })
 
   it('числа прижимаются к пределам', () => {
-    const prefs = parsePanelPrefs({ gaugeVivid: -5, pasteCollapse: 3.4 })
+    const prefs = parsePanelPrefs({ gaugeVivid: -5 })
 
     expect(prefs.gaugeVivid).toBe(0)
-    expect(prefs.pasteCollapse).toBe(3)
     expect(parsePanelPrefs({ gaugeVivid: 140 }).gaugeVivid).toBe(100)
   })
 

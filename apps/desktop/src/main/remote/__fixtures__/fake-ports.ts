@@ -34,6 +34,7 @@ type Controls = Omit<
   | 'provider'
   | 'info'
   | 'getState'
+  | 'refreshUsage'
   | 'getFeed'
   | 'send'
   | 'respond'

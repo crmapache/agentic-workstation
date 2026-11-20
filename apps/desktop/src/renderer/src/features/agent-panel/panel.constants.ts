@@ -68,7 +68,6 @@ export const MENU_PARENT: Record<MenuScreen, MenuScreen> = {
   preset2: 'presets',
   preset3: 'presets',
   shareEditor: 'settings',
-  pasteCollapse: 'settings',
   claudeConfig: 'settings',
   customModels: 'settings',
 }

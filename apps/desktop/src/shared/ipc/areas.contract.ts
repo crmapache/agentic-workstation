@@ -13,6 +13,8 @@ import type { ClaudeSettingsInvokeContract } from './claude-settings.contract'
 import { CLAUDE_SETTINGS_CHANNELS } from './claude-settings.contract'
 import type { ClaudeTabsEventContract, ClaudeTabsInvokeContract } from './claude-tabs.contract'
 import { CLAUDE_TABS_EVENTS, CLAUDE_TABS_CHANNELS } from './claude-tabs.contract'
+import type { CommitPushInvokeContract } from './commit-push.contract'
+import { COMMIT_PUSH_CHANNELS } from './commit-push.contract'
 import type { ComputerEventContract, ComputerInvokeContract } from './computer.contract'
 import { COMPUTER_EVENTS, COMPUTER_CHANNELS } from './computer.contract'
 import type { ConnectorsEventContract, ConnectorsInvokeContract } from './connectors.contract'
@@ -29,6 +31,8 @@ import type { FsPathsInvokeContract } from './fs-paths.contract'
 import { FS_PATHS_CHANNELS } from './fs-paths.contract'
 import type { GitChangesEventContract, GitChangesInvokeContract } from './git-changes.contract'
 import { GIT_CHANGES_EVENTS, GIT_CHANGES_CHANNELS } from './git-changes.contract'
+import type { IdePrefsEventContract, IdePrefsInvokeContract } from './ide-prefs.contract'
+import { IDE_PREFS_EVENTS, IDE_PREFS_CHANNELS } from './ide-prefs.contract'
 import type { InboxEventContract, InboxInvokeContract } from './inbox.contract'
 import { INBOX_EVENTS, INBOX_CHANNELS } from './inbox.contract'
 import type {
@@ -36,6 +40,8 @@ import type {
   LocalHistoryInvokeContract,
 } from './local-history.contract'
 import { LOCAL_HISTORY_EVENTS, LOCAL_HISTORY_CHANNELS } from './local-history.contract'
+import type { MemorySaverEventContract, MemorySaverInvokeContract } from './memory-saver.contract'
+import { MEMORY_SAVER_EVENTS, MEMORY_SAVER_CHANNELS } from './memory-saver.contract'
 import type { OpenModelsEventContract, OpenModelsInvokeContract } from './open-models.contract'
 import { OPEN_MODELS_EVENTS, OPEN_MODELS_CHANNELS } from './open-models.contract'
 import type { ProjectSyncEventContract, ProjectSyncInvokeContract } from './project-sync.contract'
@@ -82,7 +88,10 @@ export type AreaInvokeContract = AgentInvokeContract &
   StatisticsInvokeContract &
   RemoteInvokeContract &
   SoundsInvokeContract &
+  MemorySaverInvokeContract &
   ServiceAiInvokeContract &
+  IdePrefsInvokeContract &
+  CommitPushInvokeContract &
   TasksInvokeContract &
   InboxInvokeContract &
   OpenModelsInvokeContract &
@@ -105,7 +114,9 @@ export type AreaEventContract = AgentEventContract &
   StatisticsEventContract &
   RemoteEventContract &
   SoundsEventContract &
+  MemorySaverEventContract &
   ServiceAiEventContract &
+  IdePrefsEventContract &
   TasksEventContract &
   InboxEventContract &
   OpenModelsEventContract &
@@ -133,7 +144,10 @@ export const AREA_CHANNELS = {
   ...STATISTICS_CHANNELS,
   ...REMOTE_CHANNELS,
   ...SOUNDS_CHANNELS,
+  ...MEMORY_SAVER_CHANNELS,
   ...SERVICE_AI_CHANNELS,
+  ...IDE_PREFS_CHANNELS,
+  ...COMMIT_PUSH_CHANNELS,
   ...TASKS_CHANNELS,
   ...INBOX_CHANNELS,
   ...OPEN_MODELS_CHANNELS,
@@ -159,7 +173,9 @@ export const AREA_EVENTS = {
   ...STATISTICS_EVENTS,
   ...REMOTE_EVENTS,
   ...SOUNDS_EVENTS,
+  ...MEMORY_SAVER_EVENTS,
   ...SERVICE_AI_EVENTS,
+  ...IDE_PREFS_EVENTS,
   ...TASKS_EVENTS,
   ...INBOX_EVENTS,
   ...OPEN_MODELS_EVENTS,

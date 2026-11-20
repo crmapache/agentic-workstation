@@ -87,6 +87,13 @@
 }
 
 // На выбранной вкладке группы - её тоном, как точка и крестик рядом (--tab-mark).
+// Булавка закреплённой группы - тем же тоном, что знаки выбранной вкладки (--tab-mark).
+.pinMark {
+  display: block;
+  flex-shrink: 0;
+  color: var(--tab-mark, var(--color-fg-subtle));
+}
+
 .forkMark {
   flex-shrink: 0;
   color: var(--tab-mark, var(--color-fg-subtle));

@@ -5,8 +5,17 @@
  * встаёт. Голова группы - её первая вкладка: по ней полоса рисует зазор и цвет.
  */
 
-/** Вкладка, как её видит порядок: своя группа, глубина форка и проект. */
-export type TabRef = { id: string; groupId: string; depth: number; projectPath: string }
+/**
+ * Вкладка, как её видит порядок: своя группа, глубина форка, проект и закреплена ли (у всей
+ * группы одно значение).
+ */
+export type TabRef = {
+  id: string
+  groupId: string
+  depth: number
+  projectPath: string
+  pinned?: boolean | undefined
+}
 
 /**
  * Где стояла закрытая вкладка: группы своего проекта левее её группы и вкладки своей
@@ -21,27 +30,77 @@ const inProject = <T extends TabRef>(tabs: readonly T[], projectPath: string) =>
 const groupsOf = (tabs: readonly TabRef[]): string[] => [...new Set(tabs.map((tab) => tab.groupId))]
 
 /**
- * Группы подряд, каждая собрана к своей первой вкладке. Чинит порядок, сложенный не
- * этими функциями (старый файл, правка руками), а правильный оставляет как есть.
+ * Закреплённые - первыми в своём проекте: одним блоком туда, где начинается проект, в прежнем
+ * порядке между собой. Блоком, а не по местам проекта: группа форков в общем списке остаётся
+ * подряд, вкладка чужого проекта её не разрывает.
+ */
+export const pinnedFirst = <T extends TabRef>(tabs: readonly T[]): T[] => {
+  let next = [...tabs]
+
+  for (const projectPath of new Set(tabs.map((tab) => tab.projectPath))) {
+    const isZone = (tab: T) => tab.projectPath === projectPath && tab.pinned === true
+    const zone = next.filter(isZone)
+
+    if (zone.length === 0) continue
+
+    const start = next.findIndex((tab) => tab.projectPath === projectPath)
+    const rest = next.filter((tab) => !isZone(tab))
+
+    next = [...rest.slice(0, start), ...zone, ...rest.slice(start)]
+  }
+
+  return next
+}
+
+/** Порядок тот же - ничего не сдвинулось, рассылать нечего. */
+const same = <T>(tabs: readonly T[], next: readonly T[]) =>
+  next.every((tab, place) => tabs[place] === tab)
+
+/**
+ * Группы подряд, каждая собрана к своей первой вкладке, закреплённые - первыми в проекте.
+ * Чинит порядок, сложенный не этими функциями (старый файл, правка руками), а правильный
+ * оставляет как есть.
  */
 export const regroup = <T extends TabRef>(tabs: readonly T[]): T[] => {
   const groups = new Map<string, T[]>()
 
   for (const tab of tabs) groups.set(tab.groupId, [...(groups.get(tab.groupId) ?? []), tab])
 
-  return [...groups.values()].flat()
-}
-
-/** Новая вкладка: форк - сразу за последней вкладкой своей группы, остальное - в конец. */
-export const placeNew = <T extends TabRef>(tabs: readonly T[], tab: T): T[] => {
-  const last = tabs.findLastIndex((item) => item.groupId === tab.groupId)
-
-  return last < 0 ? [...tabs, tab] : [...tabs.slice(0, last + 1), tab, ...tabs.slice(last + 1)]
+  return pinnedFirst([...groups.values()].flat())
 }
 
 /**
- * Группа целиком - перед группой before, null - в конец. null в ответе - ничего не
- * сдвинулось, рассылать нечего.
+ * Закрепить или открепить группу целиком. Закреплённая встаёт в конец зоны закреплённых,
+ * откреплённая - в начало остальных. null - уже так.
+ */
+export const pinGroup = <T extends TabRef>(
+  tabs: readonly T[],
+  groupId: string,
+  pinned: boolean,
+): T[] | null => {
+  if (!tabs.some((tab) => tab.groupId === groupId && Boolean(tab.pinned) !== pinned)) return null
+
+  return pinnedFirst(tabs.map((tab) => (tab.groupId === groupId ? { ...tab, pinned } : tab)))
+}
+
+/**
+ * Новая вкладка: форк - сразу за последней вкладкой своей группы (и закреплён, если закреплена
+ * она), остальное - в конец.
+ */
+export const placeNew = <T extends TabRef>(tabs: readonly T[], tab: T): T[] => {
+  const last = tabs.findLastIndex((item) => item.groupId === tab.groupId)
+
+  if (last < 0) return [...tabs, tab]
+
+  const placed = { ...tab, pinned: tabs[last]?.pinned }
+
+  return [...tabs.slice(0, last + 1), placed, ...tabs.slice(last + 1)]
+}
+
+/**
+ * Группа целиком - перед группой before, null - в конец. Закреплённая не уходит из зоны
+ * закреплённых, остальная в неё не входит: брошенная за границу встаёт у границы. null в
+ * ответе - ничего не сдвинулось, рассылать нечего.
  */
 export const moveGroup = <T extends TabRef>(
   tabs: readonly T[],
@@ -55,9 +114,9 @@ export const moveGroup = <T extends TabRef>(
   const rest = tabs.filter((tab) => tab.groupId !== groupId)
   const at = before === null ? -1 : rest.findIndex((tab) => tab.groupId === before)
   const index = at < 0 ? rest.length : at
-  const next = [...rest.slice(0, index), ...moving, ...rest.slice(index)]
+  const next = pinnedFirst([...rest.slice(0, index), ...moving, ...rest.slice(index)])
 
-  return next.every((tab, place) => tabs[place] === tab) ? null : next
+  return same(tabs, next) ? null : next
 }
 
 /**
@@ -143,7 +202,11 @@ export const placeReopened = <T extends TabRef>(
     const head = tabs.findIndex((item) => item.id === tab.groupId)
     const after = left >= 0 ? left : head
     const at = isHead || after < 0 ? groupStart : after + 1
-    const placed = { ...tab, depth: isHead ? 0 : Math.max(tab.depth, 1) }
+    const placed = {
+      ...tab,
+      depth: isHead ? 0 : Math.max(tab.depth, 1),
+      pinned: tabs[groupStart]?.pinned,
+    }
 
     return [...tabs.slice(0, at), placed, ...tabs.slice(at)]
   }

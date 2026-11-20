@@ -47,7 +47,9 @@ const Table = ({ token }: { token: Tokens.Table }) => (
         <tr>
           {token.header.map((cell, index) => (
             <th key={index}>
-              <MarkdownInline tokens={cell.tokens} />
+              <span className={styles.cellText}>
+                <MarkdownInline tokens={cell.tokens} />
+              </span>
             </th>
           ))}
         </tr>
@@ -57,7 +59,9 @@ const Table = ({ token }: { token: Tokens.Table }) => (
           <tr key={rowIndex}>
             {row.map((cell, index) => (
               <td key={index}>
-                <MarkdownInline tokens={cell.tokens} />
+                <span className={styles.cellText}>
+                  <MarkdownInline tokens={cell.tokens} />
+                </span>
               </td>
             ))}
           </tr>

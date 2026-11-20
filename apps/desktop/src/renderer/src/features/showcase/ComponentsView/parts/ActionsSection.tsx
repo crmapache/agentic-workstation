@@ -25,6 +25,7 @@ import { SAMPLE_ICON_SIZE, SAMPLE_ICON_STROKE_WIDTH } from '../ComponentsView.co
 import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
+import { CallLightSpecimen } from './CallLightSpecimen'
 import { TooltipSpecimens } from './TooltipSpecimens'
 import { TouchSpecimens } from './TouchSpecimens'
 
@@ -102,6 +103,8 @@ export const ActionsSection = () => {
         <IconButton icon={ArrowUp} variant="primary" label={t('samples.send')} disabled />
         <IconButton icon={Square} variant="danger" label={t('samples.stop')} />
       </Specimen>
+
+      <CallLightSpecimen />
 
       <Specimen label={t('specimens.dropdowns')}>
         <DropdownButton

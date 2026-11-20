@@ -80,3 +80,62 @@
   flex: 1;
   min-width: 0;
 }
+
+// Показания над полем: контекст и лимиты аккаунта одной строкой, как кольца под полем окна IDE.
+// Не влезли в ширину - листаются вбок, а не переносятся: ряд не растёт в высоту над полем.
+.metersBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.meters {
+  @include button-reset;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.meter {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--size-control-sm);
+}
+
+.meterLabel {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.meterValue {
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+
+  &.success {
+    color: var(--color-gauge-1);
+  }
+
+  &.warning {
+    color: var(--color-gauge-2);
+  }
+
+  &.high {
+    color: var(--color-gauge-3);
+  }
+
+  &.danger {
+    color: var(--color-gauge-4);
+  }
+}
+
+.meterReset {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

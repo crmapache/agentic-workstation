@@ -13,6 +13,7 @@ import type { TabRef } from '../tabs/tab-order'
 import {
   placeOf,
   regroup,
+  pinGroup,
   placeNew,
   moveGroup,
   neighbourOf,
@@ -96,9 +97,12 @@ export class TabStrip {
   /**
    * Закрыть вкладку. Была выбранной - выбор переходит к соседу справа, у последней - к
    * соседу слева. Закрытую человеком можно вернуть: помнится всё, кроме пустой «New chat».
+   * Закреплённая не закрывается ниоткуда (крестик, ⌘W, телефон, MCP), пока её не открепят.
    */
   async close(conversationId: string, hasDraft: boolean): Promise<AgentPanelState> {
     const runtime = this.runtime(conversationId)
+
+    if (runtime.meta.pinned) return this.host.state()
     const { projectPath } = runtime.meta
     const refs = this.refs()
     const stored = toStored(runtime.meta)
@@ -174,6 +178,18 @@ export class TabStrip {
     return this.host.state()
   }
 
+  /**
+   * Закрепить или открепить вкладку - вместе с её группой форков: группа стоит подряд, и зона
+   * закреплённых в начале полосы не режет её надвое.
+   */
+  setPinned(conversationId: string, pinned: boolean): AgentPanelState {
+    const next = pinGroup(this.refs(), this.runtime(conversationId).meta.groupId, pinned)
+
+    if (next) this.reorder(next)
+
+    return this.host.state()
+  }
+
   /** Переставить форк внутри своей группы перед вкладкой before (null - в конец группы). */
   moveTab(conversationId: string, before: string | null): AgentPanelState {
     const next = moveWithinGroup(this.refs(), conversationId, before)
@@ -228,8 +244,14 @@ export class TabStrip {
     runtimes.clear()
 
     for (const ref of next) {
-      if (ref.depth !== ref.runtime.meta.depth || ref.groupId !== ref.runtime.meta.groupId) {
-        ref.runtime.update({ depth: ref.depth, groupId: ref.groupId })
+      const { meta } = ref.runtime
+
+      if (
+        ref.depth !== meta.depth ||
+        ref.groupId !== meta.groupId ||
+        Boolean(ref.pinned) !== Boolean(meta.pinned)
+      ) {
+        ref.runtime.update({ depth: ref.depth, groupId: ref.groupId, pinned: ref.pinned === true })
       }
 
       runtimes.set(ref.id, ref.runtime)
@@ -251,5 +273,6 @@ const refOf = (runtime: ConversationRuntime): Ref => ({
   groupId: runtime.meta.groupId,
   depth: runtime.meta.depth,
   projectPath: runtime.meta.projectPath,
+  pinned: runtime.meta.pinned === true,
   runtime,
 })

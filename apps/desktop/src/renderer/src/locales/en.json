@@ -12,8 +12,10 @@
     "sectionsLabel": "Settings sections",
     "sections": {
       "appearance": "Appearance",
+      "chat": "Chat",
       "sounds": "Sounds",
-      "ai": "AI"
+      "ai": "AI",
+      "git": "Git"
     },
     "ai": {
       "description": "Which AI does the background work of the IDE",
@@ -81,6 +83,33 @@
       "unmuteAll": "Turn sounds back on",
       "muteAllLabel": "Mute all sounds",
       "muteAllHint": "Chats still glow and mark the project tab, just quietly. Same as the speaker in the status bar."
+    },
+    "chat": {
+      "description": "The message box of every provider",
+      "fold": "Fold long pastes",
+      "foldOn": "A long paste turns into a chip you can open",
+      "foldOff": "Everything stays in the field, except a paste over {{thousands}},000 characters",
+      "lines": "From how many lines",
+      "linesHint": "{{min}} to {{max}}",
+      "helpLabel": "About pasted text",
+      "help": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it. The setting is the same for Claude Code, Codex, Kimi Code, Antigravity and open models."
+    },
+    "git": {
+      "description": "The Commit and push button next to the line counts in the header",
+      "commitTitle": "Who writes the commit message",
+      "primary": "Writes the message",
+      "primaryHint": "Asked first",
+      "fallback": "Fallback {{index}}",
+      "fallbackHint": "Asked when the one above fails: a limit, no CLI, an error",
+      "provider": "Provider",
+      "model": "Model",
+      "effort": "Effort",
+      "defaultModel": "Default model",
+      "defaultEffort": "Default effort",
+      "remove": "Remove {{label}}",
+      "addFallback": "Add a fallback",
+      "helpLabel": "About Commit and push",
+      "help": "Commit and push takes every change in the project, as git add -A would, and makes one commit on the current branch, then pushes it. A branch without an upstream is published to the remote, like Push in the branch menu. There is no force push.\n\nThe message is written by the AI you choose here, in the style of the recent commits of the repository. If it fails - a limit, the CLI is missing, an error - the next one in the list is asked. Your staged files are not touched until a message is written, so if nobody answers, nothing changes.\n\nThe default model of Claude Code here is Haiku: it is fast and cheap, and a commit message needs no more."
     }
   },
   "connectors": {
@@ -2168,7 +2197,11 @@
       "menu": {
         "label": "Conversation",
         "copyId": "Copy Session ID",
-        "rename": "Rename"
+        "rename": "Rename",
+        "pin": "Pin",
+        "pinHint": "Keeps it first and stops it from closing",
+        "unpin": "Unpin",
+        "unpinHint": "It can be closed and moved again"
       },
       "closeWorking": {
         "title": "Close a tab that is still working?",
@@ -2181,7 +2214,8 @@
         "button": "Let's start"
       },
       "recentlyClosed": "Recently closed",
-      "closedFork": "{{when}} · fork"
+      "closedFork": "{{when}} · fork",
+      "pinned": "Pinned"
     },
     "search": {
       "title": "Search",
@@ -2974,9 +3008,6 @@
         "shareEditor": {
           "title": "Editor in messages"
         },
-        "pasteCollapse": {
-          "title": "Pasted text"
-        },
         "claudeConfig": {
           "title": "Claude Code settings"
         },
@@ -3028,10 +3059,6 @@
           "label": "Open file and selection",
           "sub": "What goes along with each message"
         },
-        "pasteCollapse": {
-          "label": "Pasted text",
-          "sub": "When a paste folds into a chip"
-        },
         "claudeConfig": {
           "label": "Claude Code settings",
           "sub": "Its own - what /config changes"
@@ -3048,12 +3075,9 @@
         "all": "All",
         "hidden_one": "{{count}} hidden",
         "hidden_other": "{{count}} hidden",
-        "never": "Never",
         "fullColor": "Full colour",
         "calm": "One tone",
         "percent": "{{value}}%",
-        "fromLines_one": "From {{count}} line",
-        "fromLines_other": "From {{count}} lines",
         "buttons_one": "{{count}} button",
         "buttons_other": "{{count}} buttons"
       }
@@ -3222,14 +3246,6 @@
       "label": "Send the open file along",
       "hint": "Each message carries the file open in the editor - the way Claude Code does it in a terminal",
       "help": "The file’s chip under the field has this same switch, and there a single message can go without it, or with it. A slash command never carries it."
-    },
-    "pasteCollapse": {
-      "help": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it.",
-      "never": "Never fold",
-      "neverSub": "Everything stays in the field, except a paste over {{thousands}},000 characters",
-      "fold": "Fold long pastes",
-      "foldSub": "From how many lines - {{min}} to {{max}}",
-      "lines": "From how many lines"
     },
     "aside": {
       "title": "Side question",
@@ -3408,6 +3424,20 @@
         "draft": "draft",
         "merged": "merged",
         "closed": "closed"
+      }
+    },
+    "commitPush": {
+      "label": "Commit and push all changes - AI writes the message",
+      "running": "Committing and pushing…",
+      "pushed": "Committed and pushed",
+      "by": "Message by {{provider}}",
+      "pushFailed": "Committed, but push failed",
+      "committedAs": "The commit is local: {{message}}",
+      "failed": {
+        "nothing": "Nothing to commit",
+        "detached": "Not on a branch",
+        "message": "No AI wrote the commit message",
+        "commit": "Commit failed"
       }
     }
   },
@@ -4259,6 +4289,24 @@
         "server": "The store failed: {{message}}"
       },
       "upgrade": "{{from}} → {{to}}"
+    }
+  },
+  "memorySaver": {
+    "off": "Memory Saver: off. Click to unload TypeScript navigation and its caches.",
+    "on": "Memory Saver: on. TypeScript navigation is stopped in all projects. Click to restore code navigation.",
+    "changing": "Memory Saver: applying your choice...",
+    "loading": "Memory Saver: loading your saved choice...",
+    "unavailable": "Memory Saver status is unavailable. Click to retry.",
+    "unsaved": {
+      "on": "Memory Saver is on, but this choice could not be saved for the next launch. Click to turn it off.",
+      "off": "Memory Saver is off, but this choice could not be saved for the next launch. Click to turn it on."
+    },
+    "errors": {
+      "stop": "Memory Saver: the editor service did not stop. Memory may still be in use. Click to try stopping it again.",
+      "start": "Memory Saver is off, but the TypeScript service could not start. Try code navigation again, or click to turn Memory Saver on.",
+      "crash": "Memory Saver is off, but the TypeScript service crashed. Try code navigation again to restart it, or click to turn Memory Saver on.",
+      "request": "Memory Saver is off, but TypeScript code navigation failed. Try again, or click to turn Memory Saver on.",
+      "connection": "Memory Saver could not be changed. Click to retry."
     }
   }
 }

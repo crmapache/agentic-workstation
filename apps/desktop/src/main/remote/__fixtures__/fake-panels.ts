@@ -92,6 +92,8 @@ export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider
     models: MODELS[provider],
     refusedModes: { bypass: false, autoModels: [] },
     capabilities,
+    // Лимиты ещё не узнали: телефону - usage null.
+    accounts: { current: '', usage: {} },
   } as unknown as AgentPanelState
   const feed: ConversationFeed = {
     conversationId: id,
@@ -117,6 +119,7 @@ export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider
       ...(!worksUnattended(provider) && { chatOnly: true }),
     }),
     getState: () => state,
+    refreshUsage: () => Promise.resolve(null),
     getFeed: () => Promise.resolve(feed),
     send: (conversationId, message) => Promise.resolve(record('send', conversationId, message)),
     respond: (conversationId, requestId, response) =>

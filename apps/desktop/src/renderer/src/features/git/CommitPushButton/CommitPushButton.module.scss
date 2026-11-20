@@ -1,0 +1,9 @@
+// Идёт - спиннер в квадрате кнопки: шапка не прыгает, пока коммит и push не кончатся.
+.running {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+}

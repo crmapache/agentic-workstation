@@ -52,6 +52,11 @@ export type ConversationsPort = {
    */
   info: () => ProviderInfo | null
   getState: () => AgentPanelState
+  /**
+   * Освежить лимиты выбранного аккаунта панели (agent:refreshUsage): телефон смотрит разговор, а
+   * окно, может, показывает другую панель. Чаще своего шага панель аккаунт всё равно не спросит.
+   */
+  refreshUsage: () => Promise<unknown>
   getFeed: (conversationId: string) => Promise<ConversationFeed>
   send: (
     conversationId: string,

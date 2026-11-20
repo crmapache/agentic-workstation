@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import type { CallLightTone } from '@agentic-workstation/ui/CallLight.types'
+
 import type { ViewDescriptor } from '../views/views.types'
 
 /**
@@ -11,6 +13,13 @@ export type ActivityMark = { tone: ActivityMarkTone; label: string }
 
 /** Тон точки - язык цветов git в дереве (ADR 0017): изменено или конфликт. */
 export type ActivityMarkTone = 'modified' | 'conflict'
+
+/**
+ * Свет на иконке вида: там кто-то позвал человека (разговор провайдера закончил ход, спросил,
+ * упал). tone - повод последнего зова, at - его момент (фаза света), label - имя вида и
+ * строки позвавших: подсказка и то, что слышит читалка экрана.
+ */
+export type ActivityCall = { tone: CallLightTone; at: number; label: string }
 
 export type ActivityBarProps<ViewId extends string> = {
   views: readonly ViewDescriptor<ViewId>[]
@@ -29,5 +38,10 @@ export type ActivityBarProps<ViewId extends string> = {
   badges?: Partial<Record<ViewId, number>> | undefined
   /** Точка на иконке вида, когда числа нет: что-то изменилось, но ничего не ждёт ответа. */
   marks?: Partial<Record<ViewId, ActivityMark>> | undefined
+  /**
+   * Свет на иконке вида, где кто-то позвал человека. Показанный вид не горит: свет тогда - на
+   * его собственных вкладках. Нет пропа - у полосы света не бывает.
+   */
+  calls?: Partial<Record<ViewId, ActivityCall>> | undefined
   onSelect: (viewId: ViewId) => void
 }

@@ -43,6 +43,9 @@ export const useConversationActions = () => {
         run(invoke('agent:moveGroup', { provider, groupId, beforeId })),
       moveTab: (conversationId: string, beforeId: string | null) =>
         run(invoke('agent:moveTab', { provider, conversationId, beforeId })),
+      /** Закрепить или открепить вкладку - с её группой форков. */
+      setPinned: (conversationId: string, pinned: boolean) =>
+        run(invoke('agent:setPinned', { provider, conversationId, pinned })),
       send: (conversationId: string, message: OutgoingMessage) =>
         run(invoke('agent:send', { provider, conversationId, ...message })),
       /** before - сосед в очереди, перед которым встать (сообщение вынимали поправить). */

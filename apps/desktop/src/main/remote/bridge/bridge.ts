@@ -1,4 +1,5 @@
 import type { FeedPatch } from '@shared/conversation-feed'
+import type { ProviderId } from '@shared/providers'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
@@ -20,11 +21,13 @@ import { StatusClock } from './conversation-wire'
 import { FeedDesk } from './feed-desk'
 import type { Redact } from './fit'
 import { InventoryDesk } from './inventory-desk'
+import { currentUsageWire } from './machine-wire'
 import { ModeGate } from './mode-gate'
 import { ownerOf, panelOf, ownedConversations } from './panels'
 import { PhoneChains } from './phone-chain'
 import { ProjectKeys } from './project-keys'
 import { machineRoots, pathRedactor } from './redact'
+import { UsageRefresh } from './usage-refresh'
 import { WatchDesk } from './watch-desk'
 
 export type BridgeHost = {
@@ -62,6 +65,7 @@ export class Bridge {
   private readonly chains: PhoneChains
   private readonly clock = new StatusClock()
   private readonly modes: ModeGate
+  private readonly usage: UsageRefresh
   private lensCache: Lens | null = null
 
   constructor(private readonly host: BridgeHost) {
@@ -70,6 +74,7 @@ export class Bridge {
     const keys = () => this.lens().keys
 
     this.chains = new PhoneChains(host.known)
+    this.usage = new UsageRefresh(ports.panels)
     // Запрет bypass прочитан или перечитан иным - телефонам новое, как при перемене разговоров.
     this.modes = new ModeGate({
       panel: (provider) => {
@@ -105,6 +110,11 @@ export class Bridge {
       awake: host.awake,
       conversations: () => ownedConversations(ports.panels),
       modesOff: (provider, conversation) => this.modes.offFor(provider, conversation),
+      usage: (provider) => {
+        const state = panelOf(ports.panels, provider)?.getState()
+
+        return state ? currentUsageWire(state.accounts) : null
+      },
       keys,
       redact,
       clock: this.clock,
@@ -259,10 +269,27 @@ export class Bridge {
     this.inventory.forget(deviceId)
   }
 
-  /** Сердцебиение линии: журналы лент, которые давно никто не смотрит, и старые команды. */
+  /**
+   * Сердцебиение линии: журналы лент, которые давно никто не смотрит, и старые команды; лимиты
+   * провайдеров разговоров, открытых на телефонах, - раз в их шаг.
+   */
   sweep(): void {
     this.feeds.sweep()
     this.ledger.sweep()
+    this.usage.ask(this.watchedProviders(), Date.now())
+  }
+
+  /** Провайдеры разговоров, которые смотрят телефоны на связи. */
+  private watchedProviders(): ProviderId[] {
+    const watched = new Set(
+      [...this.feeds.watchers()]
+        .filter(([deviceId]) => this.host.awake(deviceId))
+        .map(([, conversationId]) => conversationId),
+    )
+
+    return ownedConversations(this.host.ports.panels)
+      .filter(({ conversation }) => watched.has(conversation.id))
+      .map(({ provider }) => provider)
   }
 
   stop(): void {
@@ -280,6 +307,11 @@ export class Bridge {
 
       // Разговора нет (вкладку закрыли, проект закрыт) - телефону уже сказано conversationGone.
       if (!this.watches.conversation(deviceId, message.conversationId)) return
+
+      // Лимиты - сразу свежие: окно освежает только свою открытую панель.
+      const owner = ownerOf(this.host.ports.panels, message.conversationId)
+
+      if (owner) this.usage.ask([owner.panel.provider], Date.now(), true)
 
       return this.feeds.watch(deviceId, message.conversationId, message.since, message.epoch)
     }

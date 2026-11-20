@@ -9,6 +9,7 @@ import { createRelay } from '@agentic-workstation/relay/server'
 
 import { RemoteService } from '../../desktop/src/main/remote/remote-service'
 import type { JsonFile } from '../../desktop/src/main/storage/json-file'
+import { claudeToolAction } from '../../desktop/src/main/claude/feed/tool-action'
 import {
   QUEUE,
   itemOf,
@@ -73,6 +74,21 @@ export const MODELS = [
 
 /** Вопрос разрешения - тот же, что у подделок IDE (fake-ide.ts). */
 export { PERMISSION }
+
+/**
+ * Вопрос разрешения, как его собирает Claude Code в IDE (pending-requests.ts): вид действия -
+ * тем же драйвером из того же ввода. Телефон рисует вызов по виду действия (ADR 0083), и вопрос с
+ * новым вводом, но видом от PERMISSION показал бы чужую команду.
+ */
+export const permissionOf = (
+  over: Pick<Extract<PendingRequest, { kind: 'permission' }>, 'requestId' | 'toolName' | 'input'> &
+    Partial<Pick<Extract<PendingRequest, { kind: 'permission' }>, 'description'>>,
+): Extract<PendingRequest, { kind: 'permission' }> => ({
+  ...PERMISSION,
+  description: '',
+  ...over,
+  action: claudeToolAction(over.toolName, over.input),
+})
 
 export type Harness = Awaited<ReturnType<typeof startHarness>>
 

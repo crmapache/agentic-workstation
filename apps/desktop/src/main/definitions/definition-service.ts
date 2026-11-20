@@ -19,8 +19,8 @@ const insideRoot = (rootPath: string, file: string): string | null => {
 
 /**
  * «Где определено» для редактора (ADR 0061): вопрос - процессу определений, ответ - путём, каким
- * его открывает вкладка: от корня проекта, а за проектом - абсолютным. Сбой процесса - не ошибка
- * для человека: ссылки просто нет.
+ * его открывает вкладка: от корня проекта, а за проектом - абсолютным. При сбое ссылки нет,
+ * а состояние процесса и ошибка показываются кнопкой экономии памяти.
  */
 export class DefinitionService {
   /** Настоящий путь корня: TypeScript отдаёт пути через ссылки раскрытыми (/tmp → /private/tmp). */
@@ -48,10 +48,6 @@ export class DefinitionService {
       origin: answer.origin,
       target: { path: this.projectPath(rootPath, normalize(target)), line, column },
     }
-  }
-
-  close(): Promise<void> {
-    return this.ask.close()
   }
 
   private projectPath(rootPath: string, file: string): string {

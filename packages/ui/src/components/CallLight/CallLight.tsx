@@ -3,16 +3,17 @@ import { useState } from 'react'
 import clsx from 'clsx'
 import { Sparkle } from 'lucide-react'
 
-import { CALL_SPARKS, CALL_PHASE_SPAN_MS } from '../ClosableTab.constants'
-import styles from '../ClosableTab.module.scss'
-import type { CallLightProps } from '../ClosableTab.types'
+import { CALL_SPARKS, CALL_PHASE_SPAN_MS } from './CallLight.constants'
+import styles from './CallLight.module.scss'
+import type { CallLightProps } from './CallLight.types'
 
 /**
- * Свет позвавшей вкладки: плоская плашка цветом повода, как у выбранной вкладки группы, и
- * звёздочки по краям, как в ACC. Стоит во вкладке всегда и проступает или гаснет
- * прозрачностью; повод держится, пока свет гаснет, иначе цвет стекал бы в серый на выходе.
+ * Свет позвавшего элемента - вкладки (ClosableTab call) или иконки полосы (IconButton call):
+ * плоская плашка цветом повода и звёздочки по краям, как в ACC. Ставится внутрь хозяина с
+ * position: relative и проступает или гаснет прозрачностью; повод держится, пока свет гаснет,
+ * иначе цвет стекал бы в серый на выходе. Знак зова вне позвавшего - CallBeacon.
  */
-export const CallLight = ({ call, since }: CallLightProps) => {
+export const CallLight = ({ call, since, calm = false }: CallLightProps) => {
   const [paint, setPaint] = useState(call ? { call, since } : null)
 
   if (call && (call !== paint?.call || since !== paint.since)) setPaint({ call, since })
@@ -26,9 +27,9 @@ export const CallLight = ({ call, since }: CallLightProps) => {
 
   return (
     <span
-      className={clsx(styles.light, paint && styles[paint.call])}
+      className={clsx(styles.callLight, paint && styles[paint.call], calm && styles.calm)}
       data-lit={call ? '' : undefined}
-      // eslint-disable-next-line no-restricted-syntax -- фаза света - от момента зова, у каждой вкладки своя
+      // eslint-disable-next-line no-restricted-syntax -- фаза света - от момента зова, у каждого своя
       style={{ '--call-phase': `${phase}ms` } as CSSProperties}
       aria-hidden
       onTransitionEnd={handleTransitionEnd}>

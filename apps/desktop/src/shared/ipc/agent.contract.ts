@@ -233,6 +233,11 @@ export type AgentInvokeContract = {
     request: PanelRequest & { groupId: string; beforeId: string | null }
     response: AgentPanelState
   }
+  /** Закрепить или открепить вкладку вместе с её группой форков (зона в начале полосы). */
+  'agent:setPinned': {
+    request: PanelRequest & ConversationRequest & { pinned: boolean }
+    response: AgentPanelState
+  }
   /** Вынуть сообщение из очереди в поле: пока его правят, оно вне очереди и не уйдёт. */
   'agent:takeQueued': {
     request: PanelRequest & ConversationRequest & { queuedId: string }
@@ -303,6 +308,7 @@ export const AGENT_CHANNELS = {
   'agent:rename': true,
   'agent:moveTab': true,
   'agent:moveGroup': true,
+  'agent:setPinned': true,
   'agent:takeQueued': true,
   'agent:moveQueued': true,
   'agent:setPrefs': true,

@@ -8,7 +8,9 @@ import { FileOpsService } from '../fs/file-ops-service'
 import type { OutsideWatchers } from '../fs/outside-watchers'
 import type { GitStatusService } from '../git/git-status-service'
 import type { LocalHistory } from '../history/local-history'
+import type { IdePrefsService } from '../ide-prefs/ide-prefs-service'
 import type { InboxService } from '../inbox/inbox-service'
+import type { MemorySaverService } from '../memory-saver/memory-saver-service'
 import type { OpenModelsService } from '../opencode/opencode-service'
 import type { RemoteService } from '../remote/remote-service'
 import type { ScenarioService } from '../scenarios/scenario-service'
@@ -23,6 +25,7 @@ import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
 import type { PanelRegistry } from '../agents/panel/panel-registry'
 import type { SearchDesk } from '../claude/search/search-desk'
+import type { CommitPushDesk } from '../git/commit-push/commit-push'
 import { createAccountsHandlers } from './accounts-handlers'
 import { createAgentHandlers } from './agent-handlers'
 import { createClaudeHandlers } from './claude-handlers'
@@ -30,6 +33,7 @@ import { createClaudePanelHandlers } from './claude-panel-handlers'
 import { createClaudeSearchHandlers } from './claude-search-handlers'
 import { createClaudeSettingsHandlers } from './claude-settings-handlers'
 import { createClaudeToolsHandlers } from './claude-tools-handlers'
+import { createCommitPushHandlers } from './commit-push-handlers'
 import { createComposerHandlers } from './composer-handlers'
 import { createComputerHandlers } from './computer-handlers'
 import { createConnectorsHandlers } from './connectors-handlers'
@@ -41,8 +45,10 @@ import { createFsHandlers } from './fs-handlers'
 import { createGitChangesHandlers } from './git-changes-handlers'
 import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
+import { createIdePrefsHandlers } from './ide-prefs-handlers'
 import { createInboxHandlers } from './inbox-handlers'
 import { createLocalHistoryHandlers } from './local-history-handlers'
+import { createMemorySaverHandlers } from './memory-saver-handlers'
 import { createOpenModelsHandlers } from './open-models-handlers'
 import { createProjectSyncHandlers } from './project-sync-handlers'
 import { createRemoteHandlers } from './remote-handlers'
@@ -85,8 +91,13 @@ type Services = HandlerContext & {
   sounds: SoundsService
   /** Провайдер служебной работы IDE (Settings → AI). */
   serviceAi: ServiceAiService
+  /** Общие настройки IDE (Settings): сворачивание вставки, кто пишет сообщение коммита. */
+  idePrefs: IdePrefsService
+  /** Кнопка Commit and push в шапке: сообщение от ИИ, коммит и push. */
+  commitPush: CommitPushDesk
   /** «Где определено» для редактора (ADR 0061): компилятор TypeScript в своём процессе. */
   definitions: DefinitionService
+  memorySaver: MemorySaverService
   /** Задания по расписанию (ADR 0069): задания, прогоны, их журналы. */
   tasks: TaskService
   /** ИИ пишет задание из слов человека - для формы, без сохранения. */
@@ -121,7 +132,10 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ),
     ...createLocalHistoryHandlers(workspace, history),
     ...createSoundsHandlers(services.sounds),
+    ...createMemorySaverHandlers(services.memorySaver),
     ...createServiceAiHandlers(services.serviceAi),
+    ...createIdePrefsHandlers(services.idePrefs),
+    ...createCommitPushHandlers(workspace, services.commitPush),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),
     ...createInboxHandlers(services.inbox),
     ...createOpenModelsHandlers(services.openModels),

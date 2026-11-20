@@ -129,11 +129,16 @@
   min-width: 0;
 }
 
+// Таблица - своей шириной, а не шириной экрана: ужатая до узкого экрана, она рвала слова по
+// буквам (корень разрешает перенос где угодно). Шире экрана - листается вбок.
 .tableWrap {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
 
@@ -149,6 +154,14 @@
     color: var(--color-fg-strong);
     font-weight: var(--font-weight-semibold);
   }
+}
+
+// Текст ячейки: длинный переносится по словам не шире потолка, слово рвётся, только если само
+// шире его (адрес, путь).
+.cellText {
+  display: block;
+  max-width: var(--size-table-cell-max);
+  overflow-wrap: break-word;
 }
 
 .rule {

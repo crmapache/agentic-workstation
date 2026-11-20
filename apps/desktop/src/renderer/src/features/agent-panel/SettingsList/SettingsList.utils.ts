@@ -40,10 +40,6 @@ export const settingValue = (screen: SettingsScreen, prefs: PanelPrefs, t: TFunc
       return prefs.shareEditor
         ? t('agentPanel.settings.values.on')
         : t('agentPanel.settings.values.off')
-    case 'pasteCollapse':
-      return prefs.pasteCollapse
-        ? t('agentPanel.settings.values.fromLines', { count: prefs.pasteCollapse })
-        : t('agentPanel.settings.values.never')
     case 'presets':
       return prefs.presetCount > 0
         ? t('agentPanel.settings.values.buttons', { count: prefs.presetCount })

@@ -3,15 +3,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { AccountWire } from '@agentic-workstation/remote-protocol/machine-wire-types'
 
-import {
-  planLabel,
-  usageTone,
-  usageShare,
-  accountName,
-  percentText,
-  windowLabel,
-  accountFacts,
-} from './AccountsScreen.utils'
+import { planLabel, accountName, accountFacts } from './AccountsScreen.utils'
 
 const t = ((key: string, values: Record<string, unknown> = {}) =>
   `${key}${JSON.stringify(values)}`) as unknown as TFunction
@@ -54,22 +46,5 @@ describe('аккаунты на телефоне', () => {
       'Max plan · accounts.signedOut',
     )
     expect(accountFacts(plain, account({ plan: '', signedIn: null }))).toBe('')
-  })
-
-  it('окно лимита: неделя одной модели - с её именем', () => {
-    expect(windowLabel(t, { group: 'session', model: '', percent: 1, resetsAt: null })).toBe(
-      'accounts.windows.session{"defaultValue":"session"}',
-    )
-    expect(windowLabel(t, { group: 'weekly', model: 'Opus', percent: 1, resetsAt: null })).toBe(
-      'accounts.windows.weeklyModel{"model":"Opus"}',
-    )
-  })
-
-  it('проценты целыми, полоса до края, тон по ступеням', () => {
-    expect(percentText(42.6)).toBe('43%')
-    expect(percentText(-1)).toBe('0%')
-    expect(usageShare(130)).toBe(1)
-    expect(usageShare(25)).toBe(0.25)
-    expect([10, 55, 85, 100].map(usageTone)).toEqual(['success', 'warning', 'high', 'danger'])
   })
 })

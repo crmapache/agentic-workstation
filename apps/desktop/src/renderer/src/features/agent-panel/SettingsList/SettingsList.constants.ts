@@ -1,14 +1,5 @@
 import type { ComponentType } from 'react'
-import {
-  Cpu,
-  Zap,
-  Gauge,
-  Palette,
-  FileText,
-  SquarePlus,
-  ClipboardList,
-  SquareTerminal,
-} from 'lucide-react'
+import { Cpu, Zap, Gauge, Palette, FileText, SquarePlus, SquareTerminal } from 'lucide-react'
 
 import type { SettingsScreen, MenuScreenProps } from '../panel.types'
 import { CalmColorsScreen } from '../CalmColorsScreen/CalmColorsScreen'
@@ -17,7 +8,6 @@ import { CustomModelsScreen } from '../CustomModelsScreen/CustomModelsScreen'
 import { MetersScreen } from '../MetersScreen/MetersScreen'
 import { NewChatChoiceScreen } from '../NewChatChoiceScreen/NewChatChoiceScreen'
 import { NewChatScreen } from '../NewChatScreen/NewChatScreen'
-import { PasteCollapseScreen } from '../PasteCollapseScreen/PasteCollapseScreen'
 import { PresetScreen } from '../PresetScreen/PresetScreen'
 import { PresetsScreen } from '../PresetsScreen/PresetsScreen'
 import { ShareEditorScreen } from '../ShareEditorScreen/ShareEditorScreen'
@@ -35,7 +25,6 @@ export const SETTINGS_ROWS: readonly SettingsRow[] = [
   { screen: 'newChat', icon: SquarePlus },
   { screen: 'presets', icon: Zap },
   { screen: 'shareEditor', icon: FileText },
-  { screen: 'pasteCollapse', icon: ClipboardList },
   { screen: 'claudeConfig', icon: SquareTerminal },
   { screen: 'customModels', icon: Cpu },
 ]
@@ -56,7 +45,6 @@ export const SETTINGS_VIEWS: Partial<Record<SettingsScreen, ComponentType<MenuSc
   preset2: PresetScreen,
   preset3: PresetScreen,
   shareEditor: ShareEditorScreen,
-  pasteCollapse: PasteCollapseScreen,
   claudeConfig: ClaudeConfigScreen,
   customModels: CustomModelsScreen,
 }

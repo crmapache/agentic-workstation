@@ -1,3 +1,4 @@
+import { PASTE_ALWAYS_FOLDS_CHARS } from '@shared/ide-prefs'
 import type { ChipKind, DraftChip } from '@shared/message-draft'
 
 import { baseName } from '../../lib/path.utils'
@@ -11,7 +12,6 @@ import {
   PASTE_PREVIEW_CHARS,
   PASTE_PREVIEW_WORDS,
   QUOTE_PREVIEW_WORDS,
-  PASTE_ALWAYS_FOLDS_CHARS,
 } from './chips.constants'
 import type { PathChipKind } from './draft.types'
 

@@ -4,9 +4,9 @@ import type { AccountWire } from '@agentic-workstation/remote-protocol/machine-w
 import { ProgressBar } from '@agentic-workstation/ui/ProgressBar'
 
 import styles from '../AccountsScreen.module.scss'
-import { usageTone, usageShare, percentText, windowLabel } from '../AccountsScreen.utils'
 import { useNow } from '../../../../lib/now.hooks'
 import { momentText } from '../../../../lib/time.utils'
+import { usageTone, usageShare, percentText, windowLabel } from '../../../../lib/usage.utils'
 
 /**
  * Лимиты аккаунта: окно за окном - сколько израсходовано и когда сбросится, доплата сверх

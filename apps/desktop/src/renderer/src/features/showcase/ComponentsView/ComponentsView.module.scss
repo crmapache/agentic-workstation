@@ -74,6 +74,14 @@
   gap: var(--space-0-5);
 }
 
+// Голый свет позвавшего - в квадрате кнопки полосы: хозяин даёт место и скругление.
+.callLightSample {
+  position: relative;
+  width: var(--size-control-md);
+  height: var(--size-control-md);
+  border-radius: var(--radius-sm);
+}
+
 // Полоса разговоров переносится в несколько рядов - узкая, чтобы перенос был виден.
 .tabStripWrap {
   display: flex;

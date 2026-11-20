@@ -13,6 +13,7 @@ import { sendSelectionToChat } from '../editor-chat'
 import { GO_TO_DECLARATION_ACTION } from '../editor.constants'
 import { shortcutLabel } from '../../../lib/keys'
 import { isOutsidePath } from '../../../lib/path.utils'
+import { useEditorServicesAvailable } from '../../../state/memory-saver.queries'
 import { useSelectionStore } from '../../../state/selection.store'
 import { EDITOR_MENU, MENU_SOURCE } from './EditorContextMenu.constants'
 import styles from './EditorContextMenu.module.scss'
@@ -34,6 +35,7 @@ export const EditorContextMenu = ({
   onClose,
 }: EditorContextMenuProps) => {
   const { t } = useTranslation()
+  const servicesAvailable = useEditorServicesAvailable()
   // Якорь - точка нажатия. Стоит всегда, а не появляется с точкой: иначе панель открылась бы
   // на рендер позже меню, и меню не поставило бы фокус на первый пункт.
   const [anchor, setAnchor] = useState<HTMLSpanElement | null>(null)
@@ -82,6 +84,7 @@ export const EditorContextMenu = ({
                   icon={LocateFixed}
                   label={t('editor.contextMenu.goToDeclaration')}
                   hint={shortcutLabel('⌘B')}
+                  disabled={!servicesAvailable}
                   onSelect={() => handleRun(GO_TO_DECLARATION_ACTION)}
                 />
                 <MenuSeparator />

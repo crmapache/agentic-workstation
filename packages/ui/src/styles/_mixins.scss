@@ -96,9 +96,11 @@
 
 // Лист на чёрной раме окна: скруглённая зона с тонкой рамкой, без тени. Из таких
 // листов собрано всё окно под шапкой; зазор между ними задаёт раскладка, а не лист.
+// Скругление - как у кнопок и вкладок: лист с углом круглее плашки, что стоит в нём рядом
+// с краем, смотрелся чужим ей.
 @mixin window-sheet($surface: var(--color-surface-panel)) {
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-sm);
   background-color: $surface;
 }
 

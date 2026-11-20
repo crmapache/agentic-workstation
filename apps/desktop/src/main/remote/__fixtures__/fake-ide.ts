@@ -139,6 +139,7 @@ export const fakeIde = () => {
       efforts: CLAUDE_CAPABILITIES.efforts,
     }),
     getState: () => state,
+    refreshUsage: () => Promise.resolve(null),
     getFeed: () => Promise.resolve(feed),
     send: (id, message) => Promise.resolve(record('send', id, message)),
     respond: (id, requestId, response) => record('respond', id, requestId, response),

@@ -1,13 +1,5 @@
 @use '../../styles/mixins' as *;
 
-// Цвет повода зарегистрирован: вкладка, позвавшая по другому поводу, меняет свет плавно, а
-// не щелчком - незарегистрированное свойство не во что интерполировать.
-@property --call-tone {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: transparent;
-}
-
 // Вкладка-плашка в полосе: выбранная залита графитом с тонкой рамкой, остальные -
 // только текстом (в ряду fill - ещё и рамкой, см. .fill). Радиус - как у кнопок (Button,
 // IconButton): вкладки и кнопки стоят в одних полосах рядом, и угол крупнее, чем у кнопки
@@ -126,35 +118,7 @@
   transition: none;
 }
 
-// Позвавшая вкладка горит цветом повода, пока её не откроют: плоская подложка тона, как у
-// выбранной вкладки группы, только цветом повода и без рамки, и по ней загораются
-// звёздочки, как в ACC. Без ауры, бликов и ореолов - объёма нет (ADR 0006,
-// ADR 0022). Подложка медленно дышит и не гаснет до нуля: между вдохами цвет всё равно
-// говорит, какая это вкладка. Без человека рядом (.calm) она замирает, а звёздочки уходят:
-// застывшие на лету, они читались бы пятном. При «меньше движения» длительности - ноль, и
-// плашка горит ровно.
-.light {
-  --call-light: color-mix(in srgb, var(--call-tone) 55%, var(--color-fg-strong));
-
-  position: absolute;
-  inset: calc(var(--border-width) * -1);
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity var(--duration-call-out) var(--easing-standard),
-    --call-tone var(--duration-slow) var(--easing-standard);
-
-  &[data-lit] {
-    opacity: 1;
-    transition:
-      opacity var(--duration-call-in) var(--easing-standard),
-      --call-tone var(--duration-slow) var(--easing-standard);
-  }
-}
-
-// Повод зова - на вкладке (подпись) и на свете (держит цвет, пока гаснет).
+// Повод зова - цвет подписи позвавшей вкладки (свет держит свой - CallLight).
 .success {
   --call-tone: var(--color-success);
 }
@@ -165,106 +129,6 @@
 
 .danger {
   --call-tone: var(--color-danger);
-}
-
-// Плашка: подложка тона повода, без рамки - рамка у выбранной вкладки, и позвавшая
-// с ней не спорит.
-.plaque {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-color: color-mix(in srgb, var(--call-tone) var(--tint-soft), transparent);
-  animation: call-breathe var(--duration-call-breathe) var(--easing-standard) var(--call-phase, 0ms)
-    infinite;
-
-  .calm & {
-    animation-play-state: paused;
-  }
-}
-
-// Звёздочка: распускается, поворачиваясь, и закрывается - треть своего периода. Вдоль
-// верхнего и нижнего края, в стороне от имени: звёздочка поверх буквы читается кляксой.
-// Периоды и задержки у каждой свои, иначе они мигали бы в такт.
-.spark {
-  position: absolute;
-  width: var(--size-call-spark);
-  height: var(--size-call-spark);
-  color: var(--call-light);
-  opacity: 0;
-  animation: call-twinkle var(--duration-call-twinkle) var(--easing-standard) infinite;
-
-  .calm & {
-    animation: none;
-  }
-
-  svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    stroke-width: 0;
-  }
-}
-
-.spark0 {
-  top: var(--space-0-5);
-  left: 16%;
-  animation-duration: calc(var(--duration-call-twinkle) * 0.9);
-  animation-delay: calc(var(--call-phase, 0ms) - var(--duration-call-twinkle) * 0.13);
-}
-
-.spark1 {
-  top: var(--space-1);
-  left: 64%;
-  width: var(--size-call-spark-sm);
-  height: var(--size-call-spark-sm);
-  animation-duration: calc(var(--duration-call-twinkle) * 1.1);
-  animation-delay: calc(var(--call-phase, 0ms) - var(--duration-call-twinkle) * 0.63);
-}
-
-.spark2 {
-  bottom: var(--space-0-5);
-  left: 40%;
-  animation-duration: calc(var(--duration-call-twinkle) * 0.8);
-  animation-delay: calc(var(--call-phase, 0ms) - var(--duration-call-twinkle) * 0.37);
-}
-
-.spark3 {
-  bottom: var(--space-1);
-  left: 82%;
-  width: var(--size-call-spark-sm);
-  height: var(--size-call-spark-sm);
-  animation-duration: calc(var(--duration-call-twinkle) * 1.2);
-  animation-delay: calc(var(--call-phase, 0ms) - var(--duration-call-twinkle) * 0.87);
-}
-
-@keyframes call-breathe {
-  0%,
-  100% {
-    opacity: 0.62;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes call-twinkle {
-  0%,
-  56%,
-  100% {
-    opacity: 0;
-    transform: scale(0.2) rotate(-40deg);
-  }
-
-  72% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-
-  86% {
-    opacity: 0.35;
-    transform: scale(0.55) rotate(28deg);
-  }
 }
 
 .label {

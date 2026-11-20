@@ -1,6 +1,7 @@
 import type { Conversation, PendingRequest } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
 
+import type { UsageWire } from '@agentic-workstation/remote-protocol/machine-wire-types'
 import type {
   PendingWire,
   ConversationWire,
@@ -107,7 +108,8 @@ const pendingOf = (pending: PendingRequest | null): PendingWire | null => {
 
 /**
  * Разговор целиком - тому, кто его смотрит. Папки проекта здесь нет: только ключ.
- * unavailableModes - что окно гасит этой вкладке в меню MODE (ModeGate.offFor).
+ * unavailableModes - что окно гасит этой вкладке в меню MODE (ModeGate.offFor), usage - лимиты
+ * аккаунта, на котором идёт разговор (выбранный в панели его провайдера).
  */
 export const conversationWire = (
   conversation: Conversation,
@@ -115,6 +117,7 @@ export const conversationWire = (
   projectKey: string,
   since: number,
   unavailableModes: readonly string[],
+  usage: UsageWire | null,
 ): ConversationWire => ({
   ...summaryOf(conversation, provider, since),
   projectKey,
@@ -135,4 +138,5 @@ export const conversationWire = (
   carryOn: conversation.carryOn ?? null,
   fast: { asked: conversation.fastMode === true, state: conversation.fastReport?.state ?? null },
   unavailableModes: [...unavailableModes],
+  usage,
 })

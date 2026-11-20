@@ -10,12 +10,15 @@ import { SECOND_MS } from '@shared/time-units'
 import type { ClaudeService } from './claude/claude-service'
 import type { ConnectorsService } from './connectors/connectors-service'
 import type { DefinitionService } from './definitions/definition-service'
-import { createDefinitionService } from './definitions/definition-setup'
+import { createEditorServices } from './definitions/definition-setup'
 import type { ExtensionsRuntime } from './extensions/extensions-setup'
 import { startExtensions } from './extensions/extensions-setup'
+import { IdePrefsService } from './ide-prefs/ide-prefs-service'
 import type { InboxLink } from './inbox/inbox-agent'
 import type { InboxService } from './inbox/inbox-service'
 import { broadcast } from './ipc/broadcast'
+import type { MemorySaverService } from './memory-saver/memory-saver-service'
+import { askProviderOf } from './providers/ask-provider'
 import { ProviderWatch } from './providers/provider-registry'
 import type { ScenarioProvider } from './providers/scenario-provider'
 import type { RemoteService } from './remote/remote-service'
@@ -34,6 +37,7 @@ import { workstationPorts } from './workstation/workstation-ports'
 import type { PanelRegistry } from './agents/panel/panel-registry'
 import { latestSaying } from './claude/feed/latest-saying'
 import type { SearchDesk } from './claude/search/search-desk'
+import { CommitPushDesk } from './git/commit-push/commit-push'
 import type { TasksPort } from './remote/bridge/bridge-ports'
 
 /** Сколько выход из IDE ждёт возможности IDE поверх провайдеров. */
@@ -58,6 +62,11 @@ export type IdeFeatures = {
    * ⌘ + наведением в коде, а не со стартом IDE.
    */
   definitions: DefinitionService
+  memorySaver: MemorySaverService
+  /** Общие настройки IDE (Settings): сворачивание вставки, кто пишет сообщение коммита. */
+  idePrefs: IdePrefsService
+  /** Кнопка Commit and push в шапке: сообщение от ИИ, коммит и push. */
+  commitPush: CommitPushDesk
   /** Состояние панели любого провайдера: список провайдеров, статистика, Remote Control. */
   observeState: (provider: ProviderId, state: AgentPanelState) => void
   /**
@@ -108,6 +117,13 @@ export const startIdeFeatures = async (setup: {
   // Прогоны заданий телефону: задания встают позже Remote Control, ручка заполняется после них.
   const taskRuns: TasksPort = { runs: () => [] }
   const { runners } = setup
+  // Общие настройки IDE и Commit and push: сообщение коммита пишет цепочка из Settings → Git.
+  const idePrefs = await IdePrefsService.open(setup.dataDir)
+  const commitPush = new CommitPushDesk({
+    ask: askProviderOf(claude, runners),
+    chain: () => idePrefs.value.commitAi,
+    dataDir: setup.dataDir,
+  })
   const scenarios = await startScenarios({
     ...setup,
     providers: [...runners.values()],
@@ -137,7 +153,9 @@ export const startIdeFeatures = async (setup: {
     inboxLink: setup.inboxLink,
     onTasks: () => remote.tasksChanged(),
   })
-  const definitions = createDefinitionService()
+  const { definitions, memorySaver } = await createEditorServices(setup.dataDir, (state) =>
+    broadcast('memorySaver:changed', state),
+  )
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
   const providers = new ProviderWatch((list) => broadcast('providers:changed', list), setup.panels)
 
@@ -188,7 +206,10 @@ export const startIdeFeatures = async (setup: {
     inbox: automation.inbox,
     taskAuthor: automation.author,
     definitions,
+    memorySaver,
     extensions,
+    idePrefs,
+    commitPush,
     observeState: (provider, state) => {
       providers.changed(provider, state)
       statistics.observe(provider, state)
@@ -214,14 +235,18 @@ export const startIdeFeatures = async (setup: {
       // постановка сценария в worktree тянется минутами, а ⌘Q и установка обновления - нет.
       // Сбой одного шага не должен оставить IDE незакрываемой.
       const steps = async () => {
+        // Запуск компилятора запрещается сразу, а выхода его процесса ждём параллельно: зависший
+        // процесс не должен отнимать потолок у заданий, сценариев и базы статистики.
+        const editor = memorySaver.close().catch(warnShutdown)
+
         // Расширения - первыми: их хуки и вызовы ходят в то, что гаснет ниже.
         await extensions?.shutdown().catch(warnShutdown)
         setup.connectors.workstation.ports = null
-        await definitions.close().catch(warnShutdown)
         await automation.shutdown().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)
         await scenarios.shutdown().catch(warnShutdown)
         await statistics.stats.close().catch(warnShutdown)
+        await editor
       }
 
       await Promise.race([steps(), delay(FEATURES_SHUTDOWN_MAX_MS)])

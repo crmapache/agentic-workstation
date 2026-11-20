@@ -19,7 +19,7 @@ type ClipboardOptions = {
   field: Field
   insert: FieldInsert
   projectId: string
-  /** Settings → Pasted text: с какого числа строк вставка сворачивается; 0 - никогда. */
+  /** Settings → Chat (вся IDE): с какого числа строк вставка сворачивается; 0 - никогда. */
   pasteCollapse: number
   imageBase: number
   commands: readonly CommandEntry[]

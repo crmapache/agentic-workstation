@@ -38,7 +38,7 @@ export const FindingRow = ({ finding }: FindingRowProps) => {
         )}
       </Disclosure>
       <div className={styles.summary}>
-        <Markdown text={finding.shortSummary ?? finding.summary} />
+        <Markdown text={finding.shortSummary ?? finding.summary} tinted />
       </div>
       {isOpen && (
         <div className={styles.details}>
@@ -46,8 +46,8 @@ export const FindingRow = ({ finding }: FindingRowProps) => {
           <div className={styles.file}>
             {finding.line === undefined ? finding.file : `${finding.file}:${finding.line}`}
           </div>
-          {finding.shortSummary && <Markdown text={finding.summary} />}
-          <Markdown text={finding.failureScenario} />
+          {finding.shortSummary && <Markdown text={finding.summary} tinted />}
+          <Markdown text={finding.failureScenario} tinted />
         </div>
       )}
     </div>

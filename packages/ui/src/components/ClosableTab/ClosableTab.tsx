@@ -2,13 +2,13 @@ import type { MouseEvent, CSSProperties } from 'react'
 import clsx from 'clsx'
 import { X } from 'lucide-react'
 
+import { CallLight } from '../CallLight/CallLight'
 import { IconButton } from '../IconButton/IconButton'
 import { Tooltip } from '../Tooltip/Tooltip'
 import { MIDDLE_MOUSE_BUTTON } from './ClosableTab.constants'
 import { useMiddleCut } from './ClosableTab.hooks'
 import styles from './ClosableTab.module.scss'
 import type { ClosableTabProps } from './ClosableTab.types'
-import { CallLight } from './parts/CallLight'
 
 /**
  * Вкладка, которую можно закрыть: открытый проект, разговор. Выбранная залита
@@ -17,7 +17,7 @@ import { CallLight } from './parts/CallLight'
  * крестика. Закреплённая (pinned, домашний проект) - квадрат со знаком вместо подписи, тоже без
  * крестика. В полосе разговоров (width grow)
  * растёт в свободное место и режет подпись посередине; несёт отступ форка и свет
- * позвавшей (CallLight), справа у крестика - свои знаки (trailing). В ряду fill знак
+ * позвавшей (CallLight, `calm` - замереть), справа у крестика - свои знаки (trailing). В ряду fill знак
  * слева (leading) и знаки справа подпись не сдвигают: она стоит по центру, пока есть место. Ставится в элемент с role="tablist". Вкладки-разделы - Tabs.
  */
 export const ClosableTab = ({
@@ -69,7 +69,6 @@ export const ClosableTab = ({
         groupEnd && styles.groupEnd,
         lifted && styles.lifted,
         !isClosable && styles.fixed,
-        calm && styles.calm,
         call && [styles.calling, styles[call]],
       )}
       // eslint-disable-next-line no-restricted-syntax -- глубина форка и сдвиг под рукой меняются на лету
@@ -77,7 +76,7 @@ export const ClosableTab = ({
       onMouseDown={onMouseDown}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}>
-      {call !== undefined && <CallLight call={call} since={callSince} />}
+      {call !== undefined && <CallLight call={call} since={callSince} calm={calm} />}
       {editor ? (
         <span className={styles.label}>
           {leading}

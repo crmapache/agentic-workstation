@@ -15,8 +15,6 @@ import {
 /** Своих моделей не больше тридцати: это список для меню, а не каталог. */
 const MAX_CUSTOM_MODELS = 30
 
-const MAX_PASTE_LINES = 1000
-
 /** Спрятанных показаний не больше полусотни: их под полем - единицы. */
 const MAX_HIDDEN_METERS = 50
 
@@ -150,7 +148,6 @@ const parseFields = (value: unknown, rules: PrefsRules): PanelPrefsPatch => {
     newTabModel: input['newTabModel'] === null ? null : usableModel(input['newTabModel']),
     newTabEffort: pinned(input['newTabEffort'], rules.efforts),
     newTabMode: pinned(input['newTabMode'], rules.modes),
-    pasteCollapse: clamp(input['pasteCollapse'], 0, MAX_PASTE_LINES),
     gaugeVivid: clamp(input['gaugeVivid'], GAUGE_VIVID_CALM, GAUGE_VIVID_FULL),
     shareEditor: typeof input['shareEditor'] === 'boolean' ? input['shareEditor'] : undefined,
     hiddenMeters: meterKeys(input['hiddenMeters']),

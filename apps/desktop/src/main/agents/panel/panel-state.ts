@@ -31,6 +31,8 @@ type StoredTabFields = {
   outcome?: TurnOutcome | undefined
   /** Быстрый режим ездит с разговором (а новая вкладка стартует без него). */
   fastMode?: boolean | undefined
+  /** Закреплена (зона закреплённых в начале полосы); нет - нет. */
+  pinned?: boolean | undefined
   /**
    * Контекст на последнем известном шаге: вернувшаяся вкладка с длинным разговором не
    * стоит на «ctx 0%», пока процесс не поднят. Без окна цифры не пишутся.
@@ -97,6 +99,7 @@ export const toStored = (conversation: Conversation): StoredConversation => ({
   updatedAt: conversation.updatedAt,
   // Просьба «выключить» тоже хранится: у Codex она перебивает уровень из его настроек.
   ...(conversation.fastMode !== undefined && { fastMode: conversation.fastMode }),
+  ...(conversation.pinned === true && { pinned: true }),
   ...(conversation.usage.contextWindow > 0 && {
     context: { tokens: conversation.usage.contextTokens, window: conversation.usage.contextWindow },
   }),

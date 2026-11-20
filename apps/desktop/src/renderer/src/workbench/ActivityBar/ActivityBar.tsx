@@ -13,7 +13,7 @@ import type { ActivityBarProps } from './ActivityBar.types'
  * Подсказка встаёт в сторону от края полосы, чтобы не закрыть соседние иконки. Внизу
  * полосы - то, что открывается под областью (терминал под панелью провайдера, ADR 0037).
  * На углу иконки - число того, что ждёт человека, или, когда его нет, точка: у вида что-то
- * изменилось.
+ * изменилось. Вид, где кто-то позвал человека, горит светом зова, пока его не покажут.
  */
 export const ActivityBar = <ViewId extends string>({
   views,
@@ -24,6 +24,7 @@ export const ActivityBar = <ViewId extends string>({
   footer,
   badges,
   marks,
+  calls,
   onSelect,
 }: ActivityBarProps<ViewId>) => {
   const { t } = useTranslation()
@@ -34,6 +35,8 @@ export const ActivityBar = <ViewId extends string>({
       {views.map((view) => {
         const count: number = badges?.[view.id] ?? 0
         const mark = count > 0 ? undefined : marks?.[view.id]
+        const isShown = isPanelOpen && view.id === activeViewId
+        const call = isShown ? undefined : calls?.[view.id]
 
         return (
           <span key={view.id} className={styles.item}>
@@ -42,10 +45,13 @@ export const ActivityBar = <ViewId extends string>({
               label={
                 count > 0
                   ? t('activityBar.waiting', { label: viewLabel(view, t), count })
-                  : (mark?.label ?? viewLabel(view, t))
+                  : (call?.label ?? mark?.label ?? viewLabel(view, t))
               }
-              active={isPanelOpen && view.id === activeViewId}
+              active={isShown}
               tooltipPlacement={tooltipPlacement}
+              // Свет стоит в кнопке всегда, когда полоса его знает: гаснет плавно, а не пропадает.
+              call={calls ? (call?.tone ?? null) : undefined}
+              callSince={call?.at}
               onClick={() => onSelect(view.id)}
             />
             {count > 0 && (

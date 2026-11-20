@@ -4,6 +4,7 @@ import type { TabRef } from './tab-order'
 import {
   placeOf,
   regroup,
+  pinGroup,
   placeNew,
   moveGroup,
   neighbourOf,
@@ -82,5 +83,46 @@ describe('порядок полосы вкладок', () => {
     expect(back[1]).toMatchObject({ groupId: 'y', depth: 0 })
     // Левых групп не осталось - в начало проекта.
     expect(ids(placeReopened([tab('z')], tab('y'), place))).toEqual(['y', 'z'])
+  })
+})
+
+describe('закреплённые вкладки', () => {
+  const pinned = (ref: TabRef): TabRef => ({ ...ref, pinned: true })
+  // p - закреплённая группа с форком p1; a, b - обычные; c - другой проект между ними.
+  const zoned = [
+    pinned(tab('p')),
+    pinned(tab('p1', 'p', 1)),
+    tab('a'),
+    tab('c', 'c', 0, '/q'),
+    tab('b'),
+  ]
+
+  it('закреплённая группа встаёт в конец зоны закреплённых, откреплённая - в начало остальных', () => {
+    expect(ids(pinGroup(zoned, 'b', true))).toEqual(['p', 'p1', 'b', 'a', 'c'])
+    expect(ids(pinGroup(zoned, 'p', false))).toEqual(['p', 'p1', 'a', 'c', 'b'])
+    expect(pinGroup(zoned, 'p', true)).toBeNull()
+  })
+
+  it('закрепляется группа целиком, группа форков не разрывается чужим проектом', () => {
+    const between = [tab('a'), tab('c', 'c', 0, '/q'), tab('b'), tab('b1', 'b', 1)]
+    const next = pinGroup(between, 'b', true) ?? []
+
+    expect(ids(next)).toEqual(['b', 'b1', 'a', 'c'])
+    expect(next.filter((item) => item.pinned).map((item) => item.id)).toEqual(['b', 'b1'])
+    expect(ids(moveWithinGroup(next, 'b1', null))).toBeNull()
+  })
+
+  it('группа не уходит из своей зоны и не входит в чужую', () => {
+    // Обычную бросили перед закреплённой - встаёт у границы, первой среди обычных.
+    expect(ids(moveGroup(zoned, 'b', 'p'))).toEqual(['p', 'p1', 'b', 'a', 'c'])
+    // Закреплённую - в конец - остаётся в своей зоне.
+    expect(moveGroup(zoned, 'p', null)).toBeNull()
+  })
+
+  it('форк закреплённой - закреплён, порядок с диска чинится', () => {
+    const forked = placeNew(zoned, tab('p2', 'p', 1))
+
+    expect(forked.find((item) => item.id === 'p2')?.pinned).toBe(true)
+    expect(ids(regroup([tab('a'), pinned(tab('p')), tab('b')]))).toEqual(['p', 'a', 'b'])
   })
 })

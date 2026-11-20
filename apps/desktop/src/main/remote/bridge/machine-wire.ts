@@ -1,7 +1,9 @@
+import type { AccountUsage } from '@shared/account-usage'
 import type { AccountsState } from '@shared/accounts'
 import type { Connector } from '@shared/connectors'
 
 import type {
+  UsageWire,
   AccountsWire,
   ConnectorsWire,
 } from '@agentic-workstation/remote-protocol/machine-wire-types'
@@ -12,33 +14,37 @@ import type {
  * нет вовсе.
  */
 
+/** Лимиты аккаунта числами: окна (проценты и срок) и доплата; не узнали - null. */
+export const usageWire = (usage: AccountUsage | undefined): UsageWire | null =>
+  usage
+    ? {
+        windows: usage.windows.map(({ group, model, percent, resetsAt }) => ({
+          group,
+          model,
+          percent,
+          resetsAt,
+        })),
+        extra: usage.extra?.percent ?? null,
+        fetchedAt: usage.fetchedAt,
+      }
+    : null
+
+/** Лимиты выбранного аккаунта панели - те, на которых идут её разговоры. */
+export const currentUsageWire = (state: AccountsState): UsageWire | null =>
+  usageWire(state.usage[state.current])
+
 /** Аккаунты с лимитами числами: окна (проценты и срок), доплата, отказ лимита. */
 export const accountsWire = (state: AccountsState): AccountsWire => ({
-  accounts: state.accounts.map((account) => {
-    const usage = state.usage[account.id]
-
-    return {
-      id: account.id,
-      alias: account.alias,
-      email: account.email,
-      plan: account.plan,
-      signedIn: account.signedIn,
-      current: account.id === state.current,
-      refusedUntil: state.refusedUntil?.[account.id] ?? null,
-      usage: usage
-        ? {
-            windows: usage.windows.map(({ group, model, percent, resetsAt }) => ({
-              group,
-              model,
-              percent,
-              resetsAt,
-            })),
-            extra: usage.extra?.percent ?? null,
-            fetchedAt: usage.fetchedAt,
-          }
-        : null,
-    }
-  }),
+  accounts: state.accounts.map((account) => ({
+    id: account.id,
+    alias: account.alias,
+    email: account.email,
+    plan: account.plan,
+    signedIn: account.signedIn,
+    current: account.id === state.current,
+    refusedUntil: state.refusedUntil?.[account.id] ?? null,
+    usage: usageWire(state.usage[account.id]),
+  })),
 })
 
 /** Коннекторы: что за сервис, чей вход, на связи ли и сколько инструментов включено. */

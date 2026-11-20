@@ -1,11 +1,12 @@
 import type { MouseEvent } from 'react'
 import { useCallback } from 'react'
+import { Pin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { ClosableTab } from '@agentic-workstation/ui/ClosableTab'
 import { openWhenReleased } from '@agentic-workstation/ui/Popover.utils'
 
-import { FORK_MARK } from '../ConversationTabs.constants'
+import { FORK_MARK, PIN_ICON_SIZE } from '../ConversationTabs.constants'
 import styles from '../ConversationTabs.module.scss'
 import type { Drag, ConversationTabProps } from '../ConversationTabs.types'
 import { tabName } from '../ConversationTabs.utils'
@@ -20,8 +21,9 @@ import { dotState } from '../../StatusDot/StatusDot.utils'
 import { TabNameField } from './TabNameField'
 
 /**
- * Вкладка разговора: точка состояния с подсказкой словами, знак ⑂ и отступ у форка,
- * имя (режется посередине), крестик - кроме последней пустой вкладки. Выбранная - тоном вкладок (tinted), свет со звёздочками -
+ * Вкладка разговора: точка состояния с подсказкой словами, булавка у головы закреплённой
+ * группы, знак ⑂ и отступ у форка, имя (режется посередине), крестик - кроме закреплённой и
+ * последней пустой вкладки. Выбранная - тоном вкладок (tinted), свет со звёздочками -
  * если позвала. Двойной клик - поле имени, правый клик - меню (ID разговора, переименовать),
  * нажатие с движением - перетаскивание (голова несёт группу, форк - себя внутри группы).
  */
@@ -51,10 +53,11 @@ export const ConversationTab = ({
   const name = tabName(conversation, t)
   const state = dotState(conversation, isActive)
   // Форк несёт себя внутри группы; голова и форк в группе из двух - всю группу.
+  const pinned = conversation.pinned === true
   const drag: Drag =
     startsGroup || groupSize < 3
-      ? { kind: 'group', id: groupId, groupId }
-      : { kind: 'tab', id, groupId }
+      ? { kind: 'group', id: groupId, groupId, pinned }
+      : { kind: 'tab', id, groupId, pinned }
   const moving = dragView.drag
   const isCarried =
     moving !== null && (moving.kind === 'tab' ? moving.id === id : moving.id === groupId)
@@ -127,6 +130,13 @@ export const ConversationTab = ({
       leading={
         <>
           <StatusDot status={state} hint={t(`agentPanel.tabs.dot.${state}`)} />
+          {pinned && startsGroup && (
+            <Pin
+              className={styles.pinMark}
+              size={PIN_ICON_SIZE}
+              aria-label={t('agentPanel.tabs.pinned')}
+            />
+          )}
           {conversation.depth > 0 && (
             <span className={styles.forkMark} aria-hidden>
               {FORK_MARK}

@@ -75,3 +75,19 @@
   max-width: 100%;
   transition: opacity var(--duration-normal) var(--easing-standard);
 }
+
+// Звено цепочки ИИ: провайдер, модель и усилие в ряд, «убрать» последним; в узком окне ряд
+// переносится под подпись целиком, как одно управление.
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+// «Добавить запасной» - под цепочкой, через линию, как ещё одна строка.
+.addFallback {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}

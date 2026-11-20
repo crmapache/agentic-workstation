@@ -113,7 +113,8 @@
     "calendarHeatmapSparse": "Calendar heatmap: second tone, few active days",
     "shareBar": "Share bar with legend",
     "shareBarRanked": "Share bar as a ranking row, and empty",
-    "chartTip": "Chart tip"
+    "chartTip": "Chart tip",
+    "callLight": "Call light: a view or tab that called the person - tone of the reason, stills when nobody is around"
   },
   "samples": {
     "choiceHint": "What this option means",
@@ -347,6 +348,9 @@
     "allowOnce": "Allow once",
     "openReducedImage": "Open a reduced image (phone)",
     "imageReduced": "Reduced to fit the phone. The original is in the IDE.",
-    "openSectionsModal": "Open with sections"
+    "openSectionsModal": "Open with sections",
+    "callDone": "Claude Code - a chat finished",
+    "callAsks": "Codex - a chat asks",
+    "callFailed": "Kimi Code - a chat failed"
   }
 }

@@ -1,4 +1,5 @@
 import type { GitBranchKind } from '@shared/git'
+import type { CommitPushInvokeContract } from '@shared/ipc/commit-push.contract'
 import type { GitChangesInvokeContract } from '@shared/ipc/git-changes.contract'
 
 import { createBranch, listBranches, switchBranch, checkoutRevision } from '../git/git-branches'
@@ -12,11 +13,12 @@ import { projectRootOf } from './workspace-handlers'
 
 /**
  * Статус git и список изменений - не здесь: их держит сервис слежения
- * (project-sync-handlers, git-changes-handlers).
+ * (project-sync-handlers, git-changes-handlers). Commit and push - тоже: ему нужен ИИ
+ * (commit-push-handlers).
  */
 type GitChannels = Exclude<
   Extract<keyof InvokeHandlers, `git:${string}`>,
-  'git:getStatus' | keyof GitChangesInvokeContract
+  'git:getStatus' | keyof GitChangesInvokeContract | keyof CommitPushInvokeContract
 >
 
 const BRANCH_KINDS: readonly GitBranchKind[] = ['local', 'remote']

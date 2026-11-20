@@ -250,6 +250,8 @@ const bootstrap = async () => {
 
   const services = {
     serviceAi,
+    idePrefs: features.idePrefs,
+    commitPush: features.commitPush,
     workspace,
     updates,
     search,
@@ -270,6 +272,7 @@ const bootstrap = async () => {
     history,
     sounds,
     definitions: features.definitions,
+    memorySaver: features.memorySaver,
     extensions: features.extensions,
     getWindow: () => mainWindow,
   }

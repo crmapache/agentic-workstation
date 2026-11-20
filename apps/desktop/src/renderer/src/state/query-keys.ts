@@ -74,6 +74,8 @@ export const QUERY_KEYS = {
   gitPullRequest: (projectId: string, branch: string) => ['git', 'pull-request', projectId, branch],
   /** Ключ мутации pull: «git занят» видят все, кто зовёт действия git проекта. */
   gitPull: (projectId: string) => ['git', 'pull', projectId],
+  /** Commit and push проекта: идёт ли - видят кнопка в шапке и поиск везде. */
+  gitCommitPush: (projectId: string) => ['git', 'commitPush', projectId],
   /** Коннекторы к приложениям (ADR 0028): состояние целиком, свежее присылает главный процесс. */
   connectors: ['connectors'],
   /** Живые оболочки терминала всех проектов (ADR 0037); вышедшие убирает главный процесс. */
@@ -118,7 +120,10 @@ export const QUERY_KEYS = {
   agentState: (provider: ProviderId) => ['agent', provider, 'state'],
   /** Звуки IDE (Settings → Sounds): чем и как громко зовут разговоры. */
   soundPrefs: ['sounds', 'prefs'],
+  /** Экономия памяти (ADR 0098): выбор человека и состояние служб редактора одним снимком. */
+  memorySaver: ['memory-saver'],
   serviceAi: ['serviceAi'],
+  idePrefs: ['idePrefs'],
   /** Задания по расписанию и сводки их прогонов (ADR 0069) - одним снимком. */
   tasks: ['tasks', 'state'],
   /** Прогон задания целиком, с отчётом. */

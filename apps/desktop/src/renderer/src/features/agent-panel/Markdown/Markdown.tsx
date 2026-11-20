@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import clsx from 'clsx'
 
 import { lexMarkdown } from '../markdown-lexer'
 import { MarkdownLinksContext } from './Markdown.context'
@@ -12,13 +13,13 @@ import { MarkdownBlocks } from './parts/MarkdownBlocks'
  * innerHTML: HTML из ответа показывается текстом, ссылки открываются в браузере, пути -
  * в IDE.
  */
-export const Markdown = memo(({ text }: MarkdownProps) => {
+export const Markdown = memo(({ text, tinted = false }: MarkdownProps) => {
   const tokens = useMemo(() => lexMarkdown(text), [text])
   const links = Object.keys(tokens.links).join('\n')
 
   return (
     <MarkdownLinksContext value={links}>
-      <div className={styles.markdown}>
+      <div className={clsx(styles.markdown, tinted && styles.tinted)}>
         <MarkdownBlocks tokens={tokens} />
       </div>
     </MarkdownLinksContext>

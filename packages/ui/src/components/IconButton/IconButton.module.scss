@@ -4,6 +4,7 @@
   @include button-reset;
   @include interactive-surface;
 
+  position: relative;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -92,4 +93,29 @@
 .iconButton[aria-expanded='true'] {
   background-color: var(--color-bg-selected);
   color: var(--color-fg-strong);
+}
+
+// Позвавший (свет CallLight внутри): иконка - над светом и светлая, с отсветом повода, как
+// подпись позвавшей вкладки: серая в цветном свете читалась бы грязным пятном. Сильнее
+// наведения и выбора: свет главнее. Повод - атрибутом: класс danger уже занят вариантом.
+.calling {
+  --call-tone: var(--color-accent);
+
+  &[data-call='success'] {
+    --call-tone: var(--color-success);
+  }
+
+  &[data-call='danger'] {
+    --call-tone: var(--color-danger);
+  }
+
+  svg {
+    position: relative;
+  }
+
+  &,
+  &.active,
+  &:not(:disabled):hover {
+    color: color-mix(in srgb, var(--call-tone) 30%, var(--color-fg-strong));
+  }
 }

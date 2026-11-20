@@ -2,7 +2,9 @@ import { useConnectorsSync } from '../../state/connectors.queries'
 import { useExtensionsSync } from '../../state/extensions.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
 import { useGitStatusSync } from '../../state/git-status.queries'
+import { useIdePrefsSync } from '../../state/ide-prefs.queries'
 import { useInboxSync } from '../../state/inbox.queries'
+import { useMemorySaverSync } from '../../state/memory-saver.queries'
 import { useProvidersSync } from '../../state/providers.queries'
 import { useScenariosSync } from '../../state/scenarios.queries'
 import { useServiceAiSync } from '../../state/service-ai.queries'
@@ -46,7 +48,9 @@ export const MainProcessSync = () => {
   useRemoteSync()
   useStatisticsSync()
   useSoundsSync()
+  useMemorySaverSync()
   useServiceAiSync()
+  useIdePrefsSync()
   useProvidersSync()
   useTasksSync()
   useInboxSync()

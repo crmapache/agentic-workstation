@@ -6,16 +6,18 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../ProjectScreen.module.scss'
 import { groupByProvider } from '../ProjectScreen.utils'
-import { useNow } from '../../../../lib/now.hooks'
 import { useRouter } from '../../../../lib/router.store'
 import { conversationBadge } from '../../../../lib/status.constants'
-import { sinceText } from '../../../../lib/time.utils'
 import type { MirroredInventory } from '../../../../state/remote.types'
 import { ListGroup } from '../../../../shell/ListGroup/ListGroup'
 import { ListRow } from '../../../../shell/ListRow/ListRow'
 import { PathText } from '../../../../shell/PathText/PathText'
 
-/** Разговоры проекта по провайдерам: у каждого - состояние и с какого времени. */
+/**
+ * Разговоры проекта по провайдерам: у каждого - состояние и, если ждёт человека, чего ждёт.
+ * Времени нет: «с какого момента в этом состоянии» читалось как длительность работы и только
+ * путало (просьба владельца).
+ */
 export const ConversationGroups = ({
   agentId,
   inventory,
@@ -27,8 +29,6 @@ export const ConversationGroups = ({
 }) => {
   const { t } = useTranslation()
   const navigate = useRouter((state) => state.navigate)
-  const now = useNow(15_000)
-  const offset = inventory.at - inventory.receivedAt
   const groups = groupByProvider(project.conversations, inventory.providers)
 
   // Новый разговор - кнопкой в низу экрана; здесь только честное «пока нет».
@@ -52,12 +52,9 @@ export const ConversationGroups = ({
               <ListRow
                 key={conversation.id}
                 title={<PathText text={conversation.title} />}
-                description={[
-                  conversation.waiting && t(`project.waiting.${conversation.waiting}`),
-                  sinceText(t, conversation.since, now, offset),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
+                description={
+                  conversation.waiting ? t(`project.waiting.${conversation.waiting}`) : undefined
+                }
                 trailing={
                   <Badge tone={conversationBadge(conversation).tone}>
                     {t(conversationBadge(conversation).key)}

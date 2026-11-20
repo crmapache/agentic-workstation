@@ -86,6 +86,25 @@ export const usePushInfo = (projectId: string, enabled: boolean) =>
   })
 
 /**
+ * Перечитать после действия git всё, что оно могло поменять: ветку, ветки, сведения для push,
+ * дерево файлов, статусы git и счёт строк. Слежение за диском сказало бы о том же, но чуть
+ * позже: итог действия человек ждёт сразу.
+ */
+export const useGitRefresh = (projectId: string) => {
+  const queryClient = useQueryClient()
+
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitHead(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitBranches(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitPushInfo(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectDirectories(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitStatus(projectId) }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitLineStats(projectId) }),
+    ])
+}
+
+/**
  * Одно действие git: запустить, после - перечитать, что могло поменяться. Ключ - у
  * действия, занятость которого должны видеть все: хук зовут и шапка, и поиск везде,
  * а у каждого вызова свой экземпляр мутации.
@@ -97,25 +116,14 @@ const useGitAction = <Input>(
 ) => useMutation({ ...(mutationKey && { mutationKey }), mutationFn: run, onSettled: refresh })
 
 /**
- * Действия git над проектом. После любого - перечитать ветку, ветки, сведения для
- * push, дерево файлов, статусы git и счёт строк. Слежение за диском сказало бы о том же, но
- * чуть позже: итог действия человек ждёт сразу. Итог
- * возвращается тому, кто звал: диалоги показывают ошибку у себя.
+ * Действия git над проектом. После любого - перечитать, что могло поменяться (useGitRefresh).
+ * Итог возвращается тому, кто звал: диалоги показывают ошибку у себя.
  */
 export const useGitActions = (projectId: string) => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const show = useActionNoticeStore((state) => state.show)
-
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitHead(projectId) }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitBranches(projectId) }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitPushInfo(projectId) }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.projectDirectories(projectId) }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitStatus(projectId) }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gitLineStats(projectId) }),
-    ])
+  const refresh = useGitRefresh(projectId)
 
   const switchBranch = useGitAction(
     ({ branch, kind }: { branch: string; kind: GitBranchKind }) =>

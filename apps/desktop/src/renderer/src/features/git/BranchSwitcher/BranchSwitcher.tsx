@@ -10,6 +10,7 @@ import { useGitActionRunner } from '../git-actions.hooks'
 import { useGitDialogsStore } from '../git-dialogs.store'
 import { useGitHead, useGitActions } from '../git.queries'
 import { BranchMenu } from '../BranchMenu/BranchMenu'
+import { CommitPushButton } from '../CommitPushButton/CommitPushButton'
 import { GitInputDialog } from '../GitInputDialog/GitInputDialog'
 import { LineStats } from '../LineStats/LineStats'
 import { PullRequestLink } from '../PullRequestLink/PullRequestLink'
@@ -22,7 +23,7 @@ type BranchSwitcherBodyProps = { projectId: string }
 
 /**
  * Ветка активного проекта в шапке, меню ветки, как в WebStorm, справа от неё - счёт строк с
- * последнего коммита и PR ветки. Диалоги (новая ветка, тег или коммит, push) живут здесь, снаружи всплывающей
+ * последнего коммита, Commit and push (только на ветке) и PR ветки. Диалоги (новая ветка, тег или коммит, push) живут здесь, снаружи всплывающей
  * панели: она закрывается при выборе пункта. Папка не репозиторий git - кнопки нет
  * вовсе.
  */
@@ -77,6 +78,7 @@ const BranchSwitcherBody = ({ projectId }: BranchSwitcherBodyProps) => {
         )}
       </Popover>
       <LineStats projectId={projectId} />
+      {head.kind === 'branch' && <CommitPushButton projectId={projectId} />}
       {head.kind === 'branch' && <PullRequestLink projectId={projectId} branch={head.name} />}
       <GitInputDialog
         open={dialog === 'newBranch'}

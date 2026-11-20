@@ -4,6 +4,7 @@ import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
+import type { UsageWire } from '@agentic-workstation/remote-protocol/machine-wire-types'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 import { ALL_PROJECTS } from '@agentic-workstation/remote-protocol/project-key'
 
@@ -24,6 +25,8 @@ export type WatchDeskHost = {
   conversations: () => OwnedConversation[]
   /** Режимы, которые окно гасит этой вкладке в меню MODE (ModeGate.offFor). */
   modesOff: (provider: ProviderId, conversation: Conversation) => readonly string[]
+  /** Лимиты аккаунта, на котором идут разговоры провайдера; не узнали - null. */
+  usage: (provider: ProviderId) => UsageWire | null
   keys: () => ProjectKeys
   redact: () => Redact
   clock: StatusClock
@@ -75,6 +78,7 @@ export class WatchDesk {
       keys.keyOf(conversation.projectPath),
       this.host.clock.since(conversation, Date.now()),
       this.host.modesOff(provider, conversation),
+      this.host.usage(provider),
     )
     const fitted = fitConversation(wire, this.host.redact())
     const print = JSON.stringify(fitted)

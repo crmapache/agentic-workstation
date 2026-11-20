@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { editor } from 'monaco-editor/editor/editor.api.js'
 
+import { useEditorServicesAvailable } from '../../state/memory-saver.queries'
 import { wordStart, watchDefinitionLinks } from './definition-links'
 import { askDefinition, goToDefinition } from './definition-lookup'
 import type { DefinitionOwner } from './definition-lookup'
@@ -13,7 +14,11 @@ import { monaco } from './monaco-setup'
 type Editor = editor.IStandaloneCodeEditor
 
 /** Определение имени под кареткой - и переход к нему; нет определения - ничего. */
-const goToDeclarationAtCaret = async (instance: Editor, owner: DefinitionOwner | null) => {
+const goToDeclarationAtCaret = async (
+  instance: Editor,
+  owner: DefinitionOwner | null,
+  active: () => boolean,
+) => {
   const model = instance.getModel()
   const position = instance.getPosition()
   const start =
@@ -23,7 +28,8 @@ const goToDeclarationAtCaret = async (instance: Editor, owner: DefinitionOwner |
 
   const answer = await askDefinition(owner, model, start)
 
-  if (answer.kind === 'found') goToDefinition(owner, answer.target)
+  if (active() && answer.kind === 'found' && instance.getModel() === model)
+    goToDefinition(owner, answer.target)
 }
 
 /**
@@ -36,23 +42,27 @@ export const useDefinitionLinks = (
   owner: RefObject<DefinitionOwner | null>,
 ) => {
   const { t } = useTranslation()
+  const available = useEditorServicesAvailable()
 
   useEffect(() => {
     const instance = editorRef.current
 
-    if (!instance) return
+    if (!instance || !available) return
+
+    let active = true
 
     const links = watchDefinitionLinks(instance, () => owner.current)
     const action = instance.addAction({
       id: GO_TO_DECLARATION_ACTION,
       label: t('editor.contextMenu.goToDeclaration'),
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB, monaco.KeyCode.F12],
-      run: () => goToDeclarationAtCaret(instance, owner.current),
+      run: () => goToDeclarationAtCaret(instance, owner.current, () => active),
     })
 
     return () => {
+      active = false
       links.dispose()
       action.dispose()
     }
-  }, [editorRef, owner, t])
+  }, [editorRef, owner, t, available])
 }

@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
+import type { CallLightTone } from '../CallLight/CallLight.types'
 import type { TooltipPlacement } from '../Tooltip/Tooltip.types'
 
 /**
@@ -31,4 +32,11 @@ export type IconButtonProps = Omit<
   active?: boolean
   /** Где встаёт подсказка. В боковых полосах - сбоку, чтобы не закрыть соседние кнопки. */
   tooltipPlacement?: TooltipPlacement | undefined
+  /**
+   * Свет позвавшего (CallLight) цветом повода: вид в полосе иконок, где кто-то позвал человека.
+   * null - гаснет; не задано - света у кнопки не бывает вовсе.
+   */
+  call?: CallLightTone | null | undefined
+  /** Момент зова: от него фаза света. */
+  callSince?: number | undefined
 }
