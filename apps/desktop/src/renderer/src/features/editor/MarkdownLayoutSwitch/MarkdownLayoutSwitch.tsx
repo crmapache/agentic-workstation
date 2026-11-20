@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -10,9 +11,9 @@ import type { MarkdownLayoutSwitchProps } from './MarkdownLayoutSwitch.types'
 
 /**
  * Вид файла Markdown: только код, код и просмотр рядом, только просмотр, как в WebStorm.
- * Плавающая панель в правом верхнем углу файла: полупрозрачная, чтобы не закрывать текст
- * под собой, под курсором и с фокусом - в полную силу. Выбранный вид запоминается и для
- * следующих файлов.
+ * Плавающая панель в правом верхнем углу файла, над одним кодом - левее миникарты:
+ * полупрозрачная, чтобы не закрывать текст под собой, под курсором и с фокусом - в полную
+ * силу. Выбранный вид запоминается и для следующих файлов.
  */
 export const MarkdownLayoutSwitch = ({ projectId, path }: MarkdownLayoutSwitchProps) => {
   const { t } = useTranslation()
@@ -22,7 +23,10 @@ export const MarkdownLayoutSwitch = ({ projectId, path }: MarkdownLayoutSwitchPr
   const handleChoose = (option: MarkdownLayout) => choose(projectId, path, option)
 
   return (
-    <div role="group" aria-label={t('editor.markdown.layout')} className={styles.switch}>
+    <div
+      role="group"
+      aria-label={t('editor.markdown.layout')}
+      className={clsx(styles.switch, layout === 'editor' && styles.besideMinimap)}>
       {LAYOUT_OPTIONS.map((option) => (
         <IconButton
           key={option.layout}
