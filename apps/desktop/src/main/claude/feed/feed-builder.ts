@@ -78,6 +78,7 @@ export class FeedBuilder {
     now: () => this.now(),
     nextId: (prefix) => this.nextId(prefix),
     addNotice: (code, detail, extra) => this.addNotice(code, detail, extra),
+    release: (reason, at) => this.releaseBackground(reason, at),
   })
   /** Список задач до каждого сообщения человека: откат к сообщению возвращает его. */
   private readonly tasksBefore = new Map<string, TaskEntry[]>()
@@ -191,6 +192,13 @@ export class FeedBuilder {
     this.store.put(item)
   }
 
+  /** Фон ушёл с процессом: агенты закрыты с причиной, каждая оборванная команда - отметкой. */
+  private releaseBackground(reason: ClosedReason, at: number) {
+    for (const name of this.agents.release(reason, at)) {
+      this.addNotice('command-lost', name, { subject: reason })
+    }
+  }
+
   addNotice(code: NoticeCode, detail = '', extra: NoticeExtra = {}): void {
     this.store.put({
       kind: 'notice',
@@ -232,11 +240,11 @@ export class FeedBuilder {
   }
 
   /**
-   * Процесс ушёл между ходами: фоновые субагенты умерли вместе с ним, за командами
-   * следить некому. reason - почему: умер сам или заменён нарочно (аккаунт, MCP).
+   * Процесс ушёл между ходами: фоновые субагенты и команды умерли вместе с ним. reason -
+   * почему: умер сам или заменён нарочно (аккаунт, MCP).
    */
   abortBackground(reason: ClosedReason = 'exited'): void {
-    this.agents.release(reason, this.now())
+    this.releaseBackground(reason, this.now())
   }
 
   /** Ход оборвался без `result` (процесс умер): незаконченное помечается прерванным. */

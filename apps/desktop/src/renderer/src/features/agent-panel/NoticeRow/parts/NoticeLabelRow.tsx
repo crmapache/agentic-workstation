@@ -9,7 +9,8 @@ import { LabelRow } from './LabelRow'
  * Отметки с подписью, как в ACC: SESSION - процесс упал (с кодом выхода и причиной из
  * stderr), FAST - быстрый режим не включился и почему, SETTINGS - репозиторий перебивает
  * выбранный аккаунт: чьи имена, без значений. CONNECTORS - процесс поднялся без
- * коннекторов IDE.
+ * коннекторов IDE. BACKGROUND - фоновая команда погибла с процессом: её чип пропал, а
+ * агент, который ждал её отчёта, иначе ждал бы молча.
  */
 export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
   const { t } = useTranslation()
@@ -32,6 +33,17 @@ export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
     return (
       <LabelRow label={t('agentPanel.notice.connectorsMissing.label')} tone="warning">
         {t('agentPanel.notice.connectorsMissing.text')}
+      </LabelRow>
+    )
+  }
+
+  if (item.code === 'command-lost') {
+    const why = item.subject === 'restarted' ? 'restarted' : 'exited'
+
+    return (
+      <LabelRow label={t('agentPanel.notice.commandLost.label')} tone="warning">
+        {t(`agentPanel.notice.commandLost.${why}`)}{' '}
+        <span className={styles.modelTo}>{item.detail}</span>
       </LabelRow>
     )
   }

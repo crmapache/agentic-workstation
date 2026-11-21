@@ -49,6 +49,10 @@ const kindOfCall = (name: string): CliTask['kind'] => (name === 'Workflow' ? 'wo
 const isBackgroundCommand = (call: ToolFeedItem) =>
   call.name === 'Bash' && call.input['run_in_background'] === true
 
+/** Как назвать команду в ленте: её описание, без него - сама команда. */
+const commandName = (call: ToolFeedItem) =>
+  call.action.kind === 'command' ? call.action.description || call.action.command : ''
+
 const tagOf = (pattern: RegExp, text: string) => pattern.exec(text)?.[1]?.trim() ?? ''
 
 /** Текст сообщения транскрипта: строка или текстовые блоки. */
@@ -142,11 +146,14 @@ export class AgentTasks {
   }
 
   /**
-   * Процесс ушёл (умер или заменён нарочно): фоновые агенты закрыты с причиной, за
-   * фоновыми командами следить больше некому - они «отпущены», а не прерваны: dev-сервер
-   * переживает CLI, который его поднял.
+   * Процесс ушёл (умер или заменён нарочно): фоновые агенты закрыты с причиной, фоновые
+   * команды остановлены - они дети процесса CLI, и IDE гасит его вместе со всей группой
+   * (CLI и сам добивает их на выходе: в уведомлении - killed). Возвращает имена оборванных
+   * команд: лента скажет о каждой, иначе их чип пропал бы молча, а агент ждал бы отчёта.
    */
-  release(reason: ClosedReason, at: number): void {
+  release(reason: ClosedReason, at: number): string[] {
+    const lost: string[] = []
+
     for (const id of this.background) {
       const call = this.tool(id)
 
@@ -164,10 +171,15 @@ export class AgentTasks {
     for (const id of this.commands.values()) {
       const call = this.tool(id)
 
-      if (call?.task) this.setTask(call, { ...call.task, outcome: 'untracked', endedAt: at })
+      if (!call?.task) continue
+
+      this.setTask(call, { ...call.task, outcome: 'stopped', endedAt: at })
+      lost.push(commandName(call))
     }
 
     this.forget()
+
+    return lost
   }
 
   /** Забыть учёт, не трогая ленту: транскрипт прочитан, страница истории собрана. */

@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 
+import { isAnythingRunning } from '../agents.utils'
 import { projectDraftKey } from '../draft.utils'
 import { PaneKeysContext } from '../pane-keys.context'
 import { usePaneKeys } from '../pane-keys.hooks'
@@ -30,6 +31,8 @@ export const ConversationPane = ({ project, conversation }: ConversationPaneProp
   const rewindTarget = usePanelStore((store) => store.rewindTarget)
   const items = feed?.items ?? []
   const isEmpty = !conversation || (!isPending && items.length === 0)
+  // Ничего не идёт - идущая задача стоит, и крутилка у неё врала бы.
+  const isWorking = conversation !== null && isAnythingRunning(conversation, items)
   const feedRef = useRef<HTMLDivElement>(null)
   const { keys, handleKeyDown } = usePaneKeys(project, conversation, draftKey)
 
@@ -50,6 +53,7 @@ export const ConversationPane = ({ project, conversation }: ConversationPaneProp
             project={project}
             conversation={conversation}
             tasks={feed?.tasks ?? []}
+            isWorking={isWorking}
           />
         )}
         <Composer project={project} conversation={conversation} draftKey={draftKey} />

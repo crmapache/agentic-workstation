@@ -10,7 +10,9 @@ import { owedFor } from './carry-ons'
 const NOW = 1_000_000_000
 
 /** Вкладка ровно с тем, что продолжению нужно: поля, лента, очередь, отправка. */
-const fakeRuntime = (change: { isFree?: boolean; spoken?: boolean } = {}) => {
+const fakeRuntime = (
+  change: { isFree?: boolean; spoken?: boolean; commands?: boolean; agents?: boolean } = {},
+) => {
   const sent: Outgoing[] = []
   const released: number[] = []
   const runtime = {
@@ -20,7 +22,8 @@ const fakeRuntime = (change: { isFree?: boolean; spoken?: boolean } = {}) => {
     isFree: change.isFree ?? true,
     feed: {
       builder: {
-        hasBackgroundWork: false,
+        hasBackgroundWork: change.agents ?? false,
+        hasBackgroundCommands: change.commands ?? false,
         items: change.spoken === false ? [] : [{ kind: 'user' }],
       },
     },
@@ -109,6 +112,30 @@ describe('продолжение после лимита: путь целико�
 
     expect(sent).toEqual([])
     expect(runtime.meta.carryOn).toBeUndefined()
+  })
+})
+
+describe('продолжение после перезапуска', () => {
+  it('оборванная фоновая команда - продолжить словами о погибшем фоне', () => {
+    const { asRuntime, sent } = fakeRuntime({ commands: true })
+    const desk = deskFor(asRuntime)
+
+    desk.oweRestart(asRuntime, NOW)
+    desk.sayNext(asRuntime, NOW)
+
+    expect(sent[0]?.auto).toBe('restart')
+    expect(sent[0]?.text).toContain('agents and commands you had running in the background')
+  })
+
+  it('агент, которого давно не слышно, - не повод; без фона перезапуск ничего не должен', () => {
+    for (const { asRuntime, sent } of [fakeRuntime({ agents: true }), fakeRuntime()]) {
+      const desk = deskFor(asRuntime)
+
+      desk.oweRestart(asRuntime, NOW)
+      desk.sayNext(asRuntime, NOW)
+
+      expect(sent).toEqual([])
+    }
   })
 })
 

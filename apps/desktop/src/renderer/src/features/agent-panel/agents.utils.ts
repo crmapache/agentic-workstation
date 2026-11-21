@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next'
 
+import type { Conversation } from '@shared/conversation'
 import type { CliTask, FeedItem, FleetAgent, ToolFeedItem } from '@shared/conversation-feed'
 
 import { MAX_JOURNAL_STEPS, COMMAND_OUTCOME_KEYS } from './agents.constants'
@@ -7,6 +8,7 @@ import { toolKind } from './feed-rows.utils'
 import { formatTokens, formatDuration } from './panel.utils'
 import type { SelectedStream, StreamSelection } from './streams.types'
 import type { DotState } from './StatusDot/StatusDot.types'
+import { worksOnItsOwn } from './StatusDot/StatusDot.utils'
 
 /** Вызов субагента или флота - по виду действия - или агент, поднятый скиллом. */
 export const isAgentCall = (item: FeedItem): item is ToolFeedItem =>
@@ -41,6 +43,13 @@ export const runningCommands = (items: readonly FeedItem[]): ToolFeedItem[] =>
     (item): item is ToolFeedItem =>
       item.kind === 'tool' && item.task?.kind === 'command' && item.task.outcome === null,
   )
+
+/**
+ * Идёт ли в разговоре хоть что-то: модель работает сама (ход, фоновые агенты) или жива
+ * фоновая команда, о конце которой CLI её разбудит. Нет - всё стоит до слова человека.
+ */
+export const isAnythingRunning = (conversation: Conversation, items: readonly FeedItem[]) =>
+  worksOnItsOwn(conversation) || runningCommands(items).length > 0
 
 /** Как назвать агента: тип субагента; у флота subagent_type нет вовсе. */
 export const agentType = (tool: ToolFeedItem, t: TFunction): string =>
@@ -138,11 +147,10 @@ export const fleetAgentFacts = (
 
 /**
  * Чем кончилась фоновая команда - строкой для её карточки: «Background command failed
- * after 5m 02s.» Ещё идёт - null; отпущена (процесс ушёл) - что следить больше некому.
+ * after 5m 02s.» Ещё идёт - null.
  */
 export const commandEndText = (t: TFunction, task: CliTask): string | null => {
   if (task.kind !== 'command' || task.outcome === null) return null
-  if (task.outcome === 'untracked') return t('agentPanel.agents.commandUntracked')
 
   const outcome = t(COMMAND_OUTCOME_KEYS[task.outcome])
   const ran = task.startedAt && task.endedAt ? task.endedAt - task.startedAt : 0

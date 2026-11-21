@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
+import type { Conversation } from '@shared/conversation'
 import type {
   CliTask,
   FeedItem,
@@ -16,6 +17,7 @@ import {
   fleetAgentFacts,
   runningCommands,
   selectedStreamOf,
+  isAnythingRunning,
 } from './agents.utils'
 import { commandLabel } from './StreamSwitcher/StreamSwitcher.utils'
 
@@ -145,6 +147,40 @@ describe('чипы потоков', () => {
   })
 })
 
+describe('isAnythingRunning', () => {
+  const idle = {
+    status: 'idle',
+    outcome: 'done',
+    pending: null,
+    turnStartedAt: null,
+    backgroundWork: false,
+  } as Conversation
+  const command = tool('cmd', 'Bash', { status: 'done', task: task({ kind: 'command' }) })
+
+  it('ход, фоновые агенты или живая фоновая команда - идёт; всё кончилось - стоит', () => {
+    expect(isAnythingRunning({ ...idle, status: 'running' }, [])).toBe(true)
+    expect(isAnythingRunning({ ...idle, backgroundWork: true }, [])).toBe(true)
+    expect(isAnythingRunning(idle, [command])).toBe(true)
+    expect(isAnythingRunning(idle, [])).toBe(false)
+    expect(
+      isAnythingRunning(idle, [
+        { ...command, task: task({ kind: 'command', outcome: 'stopped' }) },
+      ]),
+    ).toBe(false)
+  })
+
+  it('ход ждёт разрешения человека - сам не идёт', () => {
+    const waiting = {
+      ...idle,
+      status: 'waiting',
+      turnStartedAt: 1,
+      pending: { kind: 'permission' },
+    } as Conversation
+
+    expect(isAnythingRunning(waiting, [])).toBe(false)
+  })
+})
+
 describe('fleetAgentFacts', () => {
   it('попытка, кэш, время, токены и вызовы - через точку', () => {
     const agent = fleetAgent({
@@ -177,13 +213,13 @@ describe('fleetAgentFacts', () => {
 })
 
 describe('commandEndText', () => {
-  it('исход и сколько шла; отпущенная - что следить некому', () => {
+  it('исход и сколько шла; без конца - только исход', () => {
     expect(commandEndText(t, task({ kind: 'command' }))).toBeNull()
     expect(commandEndText(t, task({ kind: 'command', outcome: 'failed', endedAt: 61_000 }))).toBe(
       'commandEnded:failed:1m 00s',
     )
-    expect(commandEndText(t, task({ kind: 'command', outcome: 'untracked' }))).toBe(
-      'commandUntracked',
+    expect(commandEndText(t, task({ kind: 'command', outcome: 'stopped' }))).toBe(
+      'commandEndedNoTime:stopped',
     )
   })
 })

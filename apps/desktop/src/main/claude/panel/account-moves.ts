@@ -16,8 +16,9 @@ export type MovesHost = {
  * вход один раз, при старте, поэтому переезд - новый процесс над тем же транскриптом.
  * Идущий ход прерывается (иначе минуты оплачивала бы покинутая подписка), переезд - по
  * его концу, а упрямый процесс через 8 секунд снимается; потом панель продолжает сама.
- * Простаивающая вкладка с фоновыми агентами меняется сразу - и продолжает, если агенты
- * ещё работали. Та же подписка под другой строкой (склейка дублей) ход не рвёт.
+ * Простаивающая вкладка с фоновыми агентами или командами меняется сразу - и продолжает:
+ * фон погиб с процессом, агент запустит заново то, что ему ещё нужно. Та же подписка под
+ * другой строкой (склейка дублей) ход не рвёт.
  */
 export class AccountMoves {
   /** Вкладки, чей ход прерван ради переезда: id → срок, после которого процесс снимут. */
@@ -49,9 +50,12 @@ export class AccountMoves {
 
       if (this.gentle || this.forced.has(id)) continue
 
+      const { builder } = claudeOf(runtime).feed
+
       if (runtime.turnActive) this.interrupt(runtime)
-      else if (claudeOf(runtime).feed.builder.hasBackgroundWork) this.swapQuietly(runtime, now)
-      else this.host.carryOn.sayNext(runtime, now)
+      else if (builder.hasBackgroundWork || builder.hasBackgroundCommands) {
+        this.swapQuietly(runtime, now)
+      } else this.host.carryOn.sayNext(runtime, now)
     }
   }
 
@@ -68,7 +72,7 @@ export class AccountMoves {
 
   /**
    * Ход кончился: вкладка, прерванная ради переезда, ещё на старом процессе (держали
-   * фоновые агенты) - снять его. Слова продолжения скажут и про фон.
+   * фоновые агенты или команды) - снять его. Слова продолжения скажут и про фон.
    */
   afterTurn(runtime: ConversationRuntime): Promise<void> {
     const timer = this.forced.get(runtime.meta.id)
@@ -79,7 +83,7 @@ export class AccountMoves {
     const process = claudeOf(runtime).process
 
     return process && timer && runtime.accountId !== this.host.currentAccount()
-      ? process.stop()
+      ? runtime.stopNow('restarted')
       : Promise.resolve()
   }
 
@@ -106,13 +110,12 @@ export class AccountMoves {
   }
 
   /**
-   * Простаивающая вкладка с фоновыми агентами: процесс меняется сейчас, агенты гибнут с
-   * ним - и если они ещё работали, панель говорит агенту продолжить.
+   * Простаивающая вкладка с фоновыми агентами или командами: процесс меняется сейчас, фон
+   * гибнет с ним - лента называет причину, и если он ещё работал, панель говорит агенту
+   * продолжить. Долг - до остановки: она снимает учёт фона.
    */
   private swapQuietly(runtime: ConversationRuntime, now: number) {
-    const process = claudeOf(runtime).process
-
     this.host.carryOn.oweRestart(runtime, now)
-    void process?.stop().then(() => this.host.carryOn.sayNext(runtime, Date.now()))
+    void runtime.stopNow('restarted').then(() => this.host.carryOn.sayNext(runtime, Date.now()))
   }
 }

@@ -437,7 +437,8 @@
       "mod": "Mod",
       "model-stuck": "The chosen model did not apply",
       "connectors-missing": "Connectors are not available",
-      "model-swap": "Model changed"
+      "model-swap": "Model changed",
+      "command-lost": "A background command stopped with the agent"
     },
     "tooBig": "Too large to show on the phone. It is in full in the IDE.",
     "kinds": {

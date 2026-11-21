@@ -2136,7 +2136,6 @@
         "failed": "failed",
         "stopped": "was stopped"
       },
-      "commandUntracked": "Still running in the background - the panel no longer follows it.",
       "waiting_one": "Waiting for subagent",
       "waiting_other": "Waiting for {{count}} subagents",
       "fleet": {
@@ -2604,6 +2603,11 @@
       "connectorsMissing": {
         "label": "CONNECTORS",
         "text": "This conversation runs without IDE connectors: their config file couldn't be written. They come back when the conversation restarts."
+      },
+      "commandLost": {
+        "label": "BACKGROUND",
+        "restarted": "{{cli}} was restarted here, and this background command stopped with it:",
+        "exited": "{{cli}} stopped, and this background command stopped with it:"
       }
     },
     "permission": {
@@ -2641,7 +2645,8 @@
     },
     "tasks": {
       "title": "Tasks",
-      "progress": "{{done}} / {{total}}"
+      "progress": "{{done}} / {{total}}",
+      "paused": "Paused: nothing is running in this conversation"
     },
     "queue": {
       "title": "Queued",
@@ -3309,7 +3314,7 @@
       "why": {
         "accountSwitch": "Not written by you: switching the account cut the turn short, and the panel carried it on by itself",
         "limit": "Not written by you: the usage limit stopped the turn, and the panel carried it on once it could go on",
-        "restart": "Not written by you: Claude Code was restarted under the conversation and its background agents were lost, so the panel told it to carry on"
+        "restart": "Not written by you: Claude Code was restarted under the conversation and its background agents and commands were lost, so the panel told it to carry on"
       }
     },
     "loginGate": {

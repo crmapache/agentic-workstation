@@ -5,7 +5,12 @@ import type {
   ConversationUsage,
   ConversationOptions,
 } from '@shared/conversation'
-import type { NoticeCode, StopReason, ConversationFeed } from '@shared/conversation-feed'
+import type {
+  NoticeCode,
+  StopReason,
+  ClosedReason,
+  ConversationFeed,
+} from '@shared/conversation-feed'
 
 import { syncWork } from '../feed/work-clock'
 import type { PanelHooks } from '../hooks/conversation-hooks'
@@ -18,10 +23,10 @@ import type {
   AgentSession,
   ConnectorsHandle,
 } from './agent-parts'
-import { IDLE_SLEEP_MS } from './conversation.constants'
 import type { Outgoing } from './outbox'
 import { ConversationOutbox } from './outbox'
 import { matchesRequest } from './request-match'
+import { SessionRecycle } from './session-recycle'
 
 /** Разговор работает: идёт ход (с вопросами к человеку) или фоновые агенты. */
 const isWorking = (meta: Conversation): boolean => meta.status !== 'idle' || meta.backgroundWork
@@ -58,9 +63,8 @@ export class ConversationRuntime {
    */
   connectors: ConnectorsHandle | null = null
   private opening: Promise<AgentSession | null> | null = null
-  /** Конфиг MCP или аккаунт поменялся: сессия перезапустится, как только освободится. */
-  private restartPending = false
-  private idleTimer: NodeJS.Timeout | null = null
+  /** Перезапуск и сон сессии: когда гасить её, не закрывая разговор. */
+  private readonly recycle = new SessionRecycle(this)
   private disposed = false
 
   constructor(
@@ -222,7 +226,7 @@ export class ConversationRuntime {
   dispose(): Promise<void> {
     this.disposed = true
     this.shells.stopAll()
-    this.clearIdleTimer()
+    this.recycle.clearIdleTimer()
     this.feed.dispose()
     this.connectors?.end()
 
@@ -277,7 +281,7 @@ export class ConversationRuntime {
     if (session !== this.session) return
 
     this.session = null
-    this.clearIdleTimer()
+    this.recycle.clearIdleTimer()
 
     if (exit) this.feed.builder.abortTurn(exit.code, exit.detail)
     else this.feed.builder.abortBackground()
@@ -385,7 +389,7 @@ export class ConversationRuntime {
 
     await this.loadFeed()
     await this.settleStopping()
-    this.clearIdleTimer()
+    this.recycle.clearIdleTimer()
     this.applyPendingRestart()
 
     if (this.session?.isAlive) return this.session
@@ -422,62 +426,24 @@ export class ConversationRuntime {
 
   /**
    * Конфиг MCP или аккаунт поменялся, а CLI читает их только на старте: сессия гасится,
-   * как только свободна (ход, вопросы, фоновые субагенты и откат не рвутся), и
-   * поднимется заново, продолжив разговор.
+   * как только свободна, и поднимется заново, продолжив разговор (session-recycle.ts).
    */
   restartSession(): void {
-    this.restartPending = true
-    this.applyPendingRestart()
+    this.recycle.restart()
   }
 
-  /**
-   * Перезапуск, который ждал свободы. Зовут везде, где разговор освобождается, и перед
-   * новым ходом: иначе ход ушёл бы в старую сессию - на прежнем аккаунте.
-   */
+  /** Перезапуск, который ждал свободы: зовут везде, где разговор освобождается, и перед ходом. */
   applyPendingRestart(): void {
-    const isBusy = !this.isFree || this.rewinding || this.feed.builder.hasBackgroundWork
-
-    if (!this.restartPending || isBusy) return
-
-    const session = this.session
-
-    this.restartPending = false
-    this.session = null
-
-    // Выход заменённой сессии сюда уже не дойдёт (она больше не наша): фоновые команды
-    // отпускаются здесь, иначе их учёт держал бы следующую сессию без сна навсегда.
-    if (session) {
-      this.feed.builder.abortBackground('restarted')
-      this.feed.flush()
-    }
-
-    void session?.stop()
+    this.recycle.applyPending()
   }
 
-  /**
-   * Сон сессии после простоя. Фоновые агенты, флот workflow и фоновые команды - работа
-   * этой сессии: вкладка выглядит простаивающей, а сон убил бы их молча.
-   */
+  /** Погасить сессию сейчас, не дожидаясь фона (переезд на другой аккаунт). */
+  stopNow(reason: ClosedReason): Promise<void> {
+    return this.recycle.stopNow(reason)
+  }
+
+  /** Сон сессии после простоя - если ничего не идёт, в том числе в фоне. */
   scheduleSleep(): void {
-    this.clearIdleTimer()
-    this.idleTimer = setTimeout(() => {
-      // Очередь, которая ждёт человека, - не работа: сессия может уснуть.
-      const hasOutgoing = this.meta.queue.length > 0 && !this.outbox.isHeld
-      const isBusy = !this.isFree || hasOutgoing || this.feed.builder.hasBackgroundWork
-
-      if (isBusy || this.feed.builder.hasBackgroundCommands) return this.scheduleSleep()
-
-      const session = this.session
-
-      this.session = null
-      void session?.stop()
-    }, IDLE_SLEEP_MS)
-    this.idleTimer.unref()
-  }
-
-  private clearIdleTimer() {
-    if (this.idleTimer) clearTimeout(this.idleTimer)
-
-    this.idleTimer = null
+    this.recycle.scheduleSleep()
   }
 }

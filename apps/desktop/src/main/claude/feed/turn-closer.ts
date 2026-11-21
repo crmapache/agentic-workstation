@@ -22,6 +22,8 @@ export type TurnCloserHost = {
   now: () => number
   nextId: (prefix: string) => string
   addNotice: (code: NoticeCode, detail?: string, extra?: NoticeExtra) => void
+  /** Фон ушёл с процессом: агенты закрыты, оборванные команды - отметками в ленте. */
+  release: (reason: ClosedReason, at: number) => void
 }
 
 /**
@@ -111,7 +113,7 @@ export class TurnCloser {
     this.stop = null
     this.host.service.closeRetry('stopped', at)
     this.closeOpenWork(code === 'interrupted' ? 'stopped' : 'exited', true, at)
-    this.host.agents.release('exited', at)
+    this.host.release('exited', at)
     this.host.addNotice(code, forAccount ? ACCOUNT_STOP : detail)
   }
 

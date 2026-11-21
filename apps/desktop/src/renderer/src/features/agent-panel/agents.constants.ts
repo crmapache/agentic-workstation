@@ -27,7 +27,7 @@ export const CLOSED_KEYS: Record<ClosedReason, ParseKeys> = {
 }
 
 /** Чем кончилась фоновая команда - слово в строке «Background command … after 5m». */
-export const COMMAND_OUTCOME_KEYS: Record<Exclude<CliTaskOutcome, 'untracked'>, ParseKeys> = {
+export const COMMAND_OUTCOME_KEYS: Record<CliTaskOutcome, ParseKeys> = {
   completed: 'agentPanel.agents.commandOutcome.completed',
   failed: 'agentPanel.agents.commandOutcome.failed',
   stopped: 'agentPanel.agents.commandOutcome.stopped',

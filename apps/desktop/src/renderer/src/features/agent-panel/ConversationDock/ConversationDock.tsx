@@ -18,7 +18,12 @@ import type { ConversationDockProps } from './ConversationDock.types'
  * которой разговор стоит, - последней, у самого поля. На низкой панели док отдаёт
  * высоту и прокручивается сам, поле и его кнопки остаются видны.
  */
-export const ConversationDock = ({ project, conversation, tasks }: ConversationDockProps) => {
+export const ConversationDock = ({
+  project,
+  conversation,
+  tasks,
+  isWorking,
+}: ConversationDockProps) => {
   const { pending, error } = conversation
   const hasQuotes = useComposerStore(
     (store) => (store.drafts[conversation.id]?.quotes.length ?? 0) > 0,
@@ -50,7 +55,7 @@ export const ConversationDock = ({ project, conversation, tasks }: ConversationD
           request={pending}
         />
       )}
-      {showTasks && <TaskListPanel tasks={tasks} />}
+      {showTasks && <TaskListPanel tasks={tasks} isWorking={isWorking} />}
       <ModDock mods={conversation.mods} />
       {isAsideOpen && <SideQuestion conversation={conversation} />}
       {showQueue && <QueueList conversation={conversation} />}

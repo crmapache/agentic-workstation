@@ -126,20 +126,49 @@ describe('простой процесса посреди фоновой рабо
     expect(tool(builder, 'b2')?.task).toBeUndefined()
   })
 
-  it('смерть процесса закрывает фоновых агентов и отпускает команды', () => {
+  it('смерть процесса закрывает фоновых агентов и останавливает команды - с отметкой о каждой', () => {
     const builder = new FeedBuilder()
 
     launchWorkflow(builder)
-    builder.apply(call('b1', 'Bash', { command: 'pnpm dev', run_in_background: true }))
+    builder.apply(
+      call('b1', 'Bash', {
+        command: 'pnpm check',
+        description: 'Run final full project check',
+        run_in_background: true,
+      }),
+    )
     builder.apply(
       system('task_started', { task_id: 'sh-1', tool_use_id: 'b1', task_type: 'local_bash' }),
     )
     builder.abortBackground('restarted')
 
     expect(tool(builder, 'w1')).toMatchObject({ status: 'interrupted', closedReason: 'restarted' })
-    expect(tool(builder, 'b1')?.task?.outcome).toBe('untracked')
+    expect(tool(builder, 'b1')?.task?.outcome).toBe('stopped')
     expect(builder.hasBackgroundWork).toBe(false)
     expect(builder.hasBackgroundCommands).toBe(false)
+    expect(builder.items.filter((item) => item.kind === 'notice')).toMatchObject([
+      { code: 'command-lost', detail: 'Run final full project check', subject: 'restarted' },
+    ])
+
+    // Выход того же процесса следом ничего не повторяет: учёт уже снят.
+    builder.abortBackground()
+
+    expect(builder.items.filter((item) => item.kind === 'notice')).toHaveLength(1)
+  })
+
+  it('процесс умер посреди хода - оборванная команда тоже отмечена, без описания - самой командой', () => {
+    const builder = new FeedBuilder()
+
+    builder.apply(call('b1', 'Bash', { command: 'pnpm test --watch', run_in_background: true }))
+    builder.apply(
+      system('task_started', { task_id: 'sh-1', tool_use_id: 'b1', task_type: 'local_bash' }),
+    )
+    builder.abortTurn('process-exited', '1')
+
+    expect(builder.items.filter((item) => item.kind === 'notice')).toMatchObject([
+      { code: 'command-lost', detail: 'pnpm test --watch', subject: 'exited' },
+      { code: 'process-exited', detail: '1' },
+    ])
   })
 })
 

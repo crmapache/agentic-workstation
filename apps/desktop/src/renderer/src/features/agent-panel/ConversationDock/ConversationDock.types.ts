@@ -6,4 +6,6 @@ export type ConversationDockProps = {
   project: Project
   conversation: Conversation
   tasks: readonly TaskEntry[]
+  /** В разговоре что-то идёт: ход, фоновые агенты или команда (крутилка идущей задачи). */
+  isWorking: boolean
 }

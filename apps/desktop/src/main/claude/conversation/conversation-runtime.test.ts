@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { it, vi, expect, describe, afterEach, beforeEach } from 'vitest'
 
 import type { CliProcess } from '../cli/cli-process'
+import { AccountMoves } from '../panel/account-moves'
+import { CarryOnDesk } from '../panel/carry-on-desk'
 import { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { IDLE_SLEEP_MS } from '../../agents/conversation/conversation.constants'
 import { freshConversation } from '../../agents/panel/panel-state'
@@ -185,6 +187,36 @@ const lifecycle = (command: string, state: string) => ({
 
 /** Сообщение без картинок. */
 const msg = (text: string) => ({ text, images: [] })
+
+/** Агент поднял фоновую команду (как CLI 2.1.293): вызов, task_started, «running in background». */
+const startBackgroundCommand = (runtime: ConversationRuntime, fake: FakeProcess) => {
+  const input = {
+    command: 'pnpm check',
+    description: 'Run final full project check',
+    run_in_background: true,
+  }
+
+  receive(runtime, fake, {
+    type: 'assistant',
+    message: { id: 'm1', content: [{ type: 'tool_use', id: 'b1', name: 'Bash', input }] },
+  })
+  receive(runtime, fake, {
+    type: 'system',
+    subtype: 'task_started',
+    task_id: 'sh-1',
+    tool_use_id: 'b1',
+    task_type: 'local_bash',
+    is_backgrounded: true,
+  })
+  receive(runtime, fake, {
+    type: 'user',
+    message: {
+      content: [
+        { type: 'tool_result', tool_use_id: 'b1', content: 'Command running in background' },
+      ],
+    },
+  })
+}
 
 const queueTexts = (runtime: ConversationRuntime) => runtime.meta.queue.map((item) => item.text)
 
@@ -434,6 +466,75 @@ describe('отложенный перезапуск', () => {
 
     expect(first.stop).toHaveBeenCalled()
     expect(second.texts).toEqual(['next'])
+  })
+
+  it('фоновая команда держит перезапуск до конца хода, который CLI начал о её отчёте', async () => {
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+
+    nextProcess(fake)
+    await runtime.send(msg('check'))
+    startBackgroundCommand(runtime, fake)
+    finishTurn(runtime)
+    runtime.restartSession()
+
+    expect(fake.stop).not.toHaveBeenCalled()
+
+    receive(runtime, fake, {
+      type: 'system',
+      subtype: 'task_notification',
+      task_id: 'sh-1',
+      tool_use_id: 'b1',
+      status: 'completed',
+    })
+
+    // Отчёт пришёл, но CLI ещё разбудит агента о нём: перезапуск ждёт этого хода.
+    expect(fake.stop).not.toHaveBeenCalled()
+
+    finishTurn(runtime)
+
+    expect(fake.stop).toHaveBeenCalled()
+  })
+
+  it('переезд на аккаунт фоновую команду не ждёт: гасит, говорит о ней и велит продолжить', async () => {
+    const runtime = makeRuntime({ value: true })
+    const first = fakeProcess()
+    const second = fakeProcess()
+
+    nextProcess(first)
+    nextProcess(second)
+    await runtime.send(msg('check'))
+    startBackgroundCommand(runtime, first)
+    finishTurn(runtime)
+    first.stop.mockImplementationOnce(() => {
+      sessionOf(first).handleExit(null, '')
+
+      return Promise.resolve()
+    })
+
+    const carryOn = new CarryOnDesk({
+      runtimeOf: () => runtime,
+      refusedUntil: () => null,
+      noteRefusal: () => undefined,
+      noteAnswered: () => undefined,
+    })
+
+    new AccountMoves({
+      runtimes: () => [runtime],
+      currentAccount: () => 'acc-b',
+      carryOn,
+    }).followCurrent()
+    await vi.waitFor(() => expect(second.texts).toHaveLength(1))
+
+    expect(first.stop).toHaveBeenCalled()
+    expect(second.texts[0]).toContain('reason="restart"')
+    expect(runtime.feed.builder.items).toContainEqual(
+      expect.objectContaining({
+        code: 'command-lost',
+        detail: 'Run final full project check',
+        subject: 'restarted',
+      }),
+    )
   })
 
   it('процесс, который гасится, доживает до конца, прежде чем экран MCP поднимет новый', async () => {

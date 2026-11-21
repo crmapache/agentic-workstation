@@ -1,7 +1,8 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
 // Задачи - тихая плитка: у идущей задачи бежит знак работы (Spinner) и текст светлее,
-// сделанная - зелёная галочка и зачёркнутый текст, ждущая - пустой кружок.
+// сделанная - зелёная галочка и зачёркнутый текст, ждущая - пустой кружок. Идущая, когда в
+// разговоре ничего не идёт, - знак паузы, неподвижный и приглушённый.
 .taskListPanel {
   display: flex;
   flex-direction: column;
@@ -78,6 +79,10 @@
 
 .inProgress {
   color: var(--color-fg-strong);
+}
+
+.paused {
+  color: var(--color-fg-subtle);
 }
 
 .completed {

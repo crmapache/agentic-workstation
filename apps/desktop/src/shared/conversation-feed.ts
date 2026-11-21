@@ -210,8 +210,8 @@ export type WorkflowFleet = {
   total: number
 }
 
-/** Чем кончилась задача: сама, с ошибкой, остановлена; untracked - процесс ушёл, следить некому. */
-export type CliTaskOutcome = 'completed' | 'failed' | 'stopped' | 'untracked'
+/** Чем кончилась задача: сама, с ошибкой, остановлена (рукой или вместе с процессом CLI). */
+export type CliTaskOutcome = 'completed' | 'failed' | 'stopped'
 
 /**
  * Задача CLI за вызовом: субагент (Task, Agent или поднятый скиллом), флот workflow,
@@ -349,6 +349,11 @@ export type NoticeCode =
   | 'connectors-missing'
   /** CLI сам перешёл на другую модель (по подписи ответа): detail - откуда, subject - куда. */
   | 'model-swap'
+  /**
+   * Фоновая команда погибла с процессом CLI: detail - её имя, subject - почему ушёл процесс
+   * (ClosedReason: restarted - перезапуск или переезд на аккаунт, exited - процесс кончился).
+   */
+  | 'command-lost'
 
 export type NoticeFeedItem = FeedItemBase & {
   kind: 'notice'
