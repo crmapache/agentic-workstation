@@ -1,4 +1,4 @@
-import type { TabSlot } from './ProjectTabs.types'
+import type { TabSlot } from './tab-drag.types'
 
 /** Зазор между вкладками ряда - по снимку, а не из стилей: одна вкладка - зазора нет. */
 const gapOf = (slots: readonly TabSlot[]): number => {

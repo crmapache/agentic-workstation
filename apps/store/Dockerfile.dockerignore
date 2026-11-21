@@ -31,3 +31,5 @@ apps/relay/*
 !apps/relay/package.json
 apps/site/*
 !apps/site/package.json
+apps/cloud/*
+!apps/cloud/package.json

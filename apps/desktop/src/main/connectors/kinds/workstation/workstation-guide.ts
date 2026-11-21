@@ -8,4 +8,5 @@ export const WORKSTATION_GUIDE = [
   'Use them instead of clicking through the IDE window with Computer Use: whatever the window does with scenarios, queues, tasks and conversations, these tools do directly.',
   'Read first (list_*, get_*), then act. Ids come from the lists. Times are local time of this computer.',
   'A queue runs its scenarios one at a time; a queue that should wait gets working hours when it is made (start_scenario hours).',
+  'The task tracker (tracker_*) holds the cards of a project: put work agreed in the chat on its board (tracker_add_cards), and send cards with scenarios to a queue (tracker_send_to_queue).',
 ].join('\n')

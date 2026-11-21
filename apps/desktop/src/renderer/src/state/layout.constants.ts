@@ -7,6 +7,7 @@ import type { PanelSide, MainViewId, SideViewId, ProviderViewId } from './layout
 export const SIDE_VIEW_IDS: readonly SideViewId[] = ['files', 'changes']
 export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'file',
+  'tracker',
   'scenarios',
   'tasks',
   'statistics',

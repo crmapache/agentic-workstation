@@ -33,7 +33,7 @@
 
     <main class="legal">
       <h1 class="legalTitle">Privacy policy</h1>
-      <p class="legalDate">Effective November 19, 2026.</p>
+      <p class="legalDate">Effective November 20, 2026.</p>
 
       <p>
         Agentic Workstation is a desktop app for macOS and Windows. It runs on your computer and
@@ -54,6 +54,23 @@
       <p>
         The app does not send your code, files or conversations to the developer. Statistics, local
         file history and settings are stored only on your computer.
+      </p>
+
+      <h2>Task tracker and cloud sync</h2>
+      <p>
+        The task tracker keeps a board for each of your projects. The boards are stored on your
+        computer and synced to the developer's cloud at agentic-workstation-cloud.mzpizote.com, so
+        another computer with the same account key sees them too. Before anything leaves your
+        computer, the app encrypts it with your account key. The cloud stores only that ciphertext,
+        a random id and a version number for each record, and it has no key to read them.
+      </p>
+      <p>
+        The account key is made on your computer the first time you open the tracker and is kept
+        in your system keychain. The app signs every request with a key derived from it, and the
+        cloud knows your account only by the public part of that signing key. The cloud sees the
+        IP address of each request and does not keep it in its database. Without the account key
+        your boards cannot be read or restored, by you or by the developer. You can turn sync off
+        in the tracker; the boards then stay only on your computer.
       </p>
 
       <h2>Open models</h2>

@@ -745,6 +745,7 @@
   "mainViews": {
     "label": "Main area views",
     "file": "File",
+    "tracker": "Tracker",
     "scenarios": "Scenarios",
     "tasks": "Tasks",
     "statistics": "Statistics",
@@ -4307,6 +4308,249 @@
       "crash": "Memory Saver is off, but the TypeScript service crashed. Try code navigation again to restart it, or click to turn Memory Saver on.",
       "request": "Memory Saver is off, but TypeScript code navigation failed. Try again, or click to turn Memory Saver on.",
       "connection": "Memory Saver could not be changed. Click to retry."
+    }
+  },
+  "tracker": {
+    "title": "Tracker",
+    "help": {
+      "label": "About the tracker",
+      "title": "Tracker",
+      "text": "Your own task board for this project. Projects are tabs; inside a project, flows hold groups of tasks in the order you do them, and a task can have follow-ups to its right.\n\nDrag tabs, flows, groups and cards to reorder them, or use Alt and the arrow keys on a card. Done cards stay where they are.\n\nBind a scenario to a card, then send a whole group to a scenario queue: every open card with a scenario goes in, in board order. When its run is done, the card is marked done.\n\nAI in this IDE can read and edit the board through the Agentic Workstation connector. The board syncs to your cloud encrypted with your account key."
+    },
+    "empty": {
+      "noProject": "Open a project to see its board",
+      "title": "No projects yet",
+      "note": "Projects are tabs of this board: each holds its own flows, groups and tasks.",
+      "create": "New project"
+    },
+    "tabs": {
+      "label": "Tracker projects",
+      "new": "New project",
+      "menu": "Project actions",
+      "edit": "Rename and describe",
+      "archive": "Archive",
+      "moveLeft": "Move left",
+      "moveRight": "Move right",
+      "hint": "{{title}}"
+    },
+    "flow": {
+      "new": "New flow",
+      "expand": "Expand {{title}}",
+      "collapse": "Collapse {{title}}",
+      "menu": "Flow actions",
+      "edit": "Rename",
+      "addGroup": "New group",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete flow",
+      "groups_one": "{{count}} group",
+      "groups_other": "{{count}} groups",
+      "tasks_one": "{{count}} task",
+      "tasks_other": "{{count}} tasks",
+      "emptyFlow": "No groups yet",
+      "summary": "{{groups}} · {{tasks}}"
+    },
+    "group": {
+      "new": "New group",
+      "menu": "Group actions",
+      "edit": "Rename",
+      "send": "Send to queue",
+      "moveLeft": "Move left",
+      "moveRight": "Move right",
+      "delete": "Delete group",
+      "addTask": "Add task",
+      "titlePlaceholder": "Group name"
+    },
+    "card": {
+      "menu": "Actions for {{title}}",
+      "edit": "Open",
+      "addFollowUp": "Add follow-up",
+      "send": "Send to queue",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveLeft": "Move left",
+      "moveRight": "Move right",
+      "delete": "Delete",
+      "markDone": "Mark done",
+      "markUndone": "Mark not done",
+      "taskPlaceholder": "Task name, Enter to add",
+      "followUpPlaceholder": "Follow-up name, Enter to add",
+      "addFollowUpHere": "Add follow-up to {{title}}"
+    },
+    "quickAdd": {
+      "label": "New card name",
+      "cancel": "Cancel"
+    },
+    "priority": {
+      "short": "P{{level}}",
+      "label": "Priority",
+      "1": "Priority 1",
+      "2": "Priority 2",
+      "3": "Priority 3",
+      "4": "No priority"
+    },
+    "due": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday"
+    },
+    "run": {
+      "waiting": "{{name}} · queued",
+      "running": "{{name}} · running",
+      "done": "{{name}} · done",
+      "failed": "{{name}} · failed",
+      "stopped": "{{name}} · stopped",
+      "refused": "{{name}} · held"
+    },
+    "cardModal": {
+      "newTask": "New task",
+      "newFollowUp": "New follow-up",
+      "edit": "Task",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "description": "Description",
+      "date": "Due date",
+      "noDate": "No due date",
+      "addDate": "Add due date",
+      "clearDate": "Remove due date",
+      "time": "Time",
+      "addTime": "Add time",
+      "clearTime": "Remove time",
+      "hour": "Hour",
+      "minute": "Minute",
+      "done": "Done",
+      "scenario": "Scenario",
+      "noScenario": "No scenario",
+      "inProject": "In this project",
+      "inEvery": "In every project",
+      "provider": "Runs on",
+      "providerDefault": "Scenario's choice ({{name}})",
+      "inputsHelp": "A task card: title, subtitle, description, due date and priority. Done cards stay where they are on the board.\n\nBind a scenario to send the card to a scenario queue, alone or with its whole group. In the scenario's fields {{card}} is the whole card, {{title}}, {{subtitle}} and {{description}} its parts. They are filled in when the card is sent, so later edits reach the run. When the run is done, the card is marked done.",
+      "inputsHelpLabel": "About this window",
+      "save": "Save",
+      "create": "Add",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "send": "Send to queue",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "run": "Run"
+    },
+    "entity": {
+      "newProject": "New project",
+      "editProject": "Project",
+      "newFlow": "New flow",
+      "editFlow": "Flow",
+      "newGroup": "New group",
+      "editGroup": "Group",
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "description": "Description",
+      "save": "Save",
+      "create": "Create",
+      "cancel": "Cancel"
+    },
+    "send": {
+      "title": "Send to queue",
+      "group": "Cards of {{title}}",
+      "card": "Card",
+      "none": "No open cards with a scenario in this group.",
+      "skipped": "Done cards, cards without a scenario and cards already in a queue are skipped.",
+      "target": "Queue",
+      "newQueue": "New queue",
+      "existing": "{{name}}",
+      "worktree": "Run in its own worktree",
+      "worktreeHint": "A separate git checkout, so the queue does not touch your working copy.",
+      "send_one": "Send {{count}} card",
+      "send_other": "Send {{count}} cards",
+      "cancel": "Cancel"
+    },
+    "sent": {
+      "title_one": "{{count}} card sent to the queue",
+      "title_other": "{{count}} cards sent to the queue",
+      "open": "Open queues",
+      "close": "Close"
+    },
+    "archive": {
+      "button": "Archive",
+      "title": "Archived projects",
+      "empty": "Nothing in the archive.",
+      "restore": "Restore",
+      "deleteNow": "Delete now",
+      "purgeIn_one": "Deleted in {{count}} day",
+      "purgeIn_other": "Deleted in {{count}} days",
+      "confirmTitle": "Delete {{title}}?",
+      "confirmText": "The project, its flows, groups and cards are deleted on every computer.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "confirm": {
+      "flowTitle": "Delete {{title}}?",
+      "flowText": "Its groups and cards are deleted too. You can undo right after.",
+      "groupTitle": "Delete {{title}}?",
+      "groupText": "Its cards are deleted too. You can undo right after.",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    },
+    "undo": {
+      "card": "Card deleted",
+      "group": "Group deleted",
+      "flow": "Flow deleted",
+      "action": "Undo",
+      "close": "Close"
+    },
+    "cloud": {
+      "button": "Cloud sync: {{status}}",
+      "title": "Cloud sync",
+      "help": {
+        "label": "About cloud sync",
+        "title": "Cloud sync",
+        "text": "Your boards are saved on this computer and synced to the Agentic Workstation cloud. They are encrypted here with your account key, so the server only stores ciphertext and cannot read them.\n\nThe key is the only way to your data. Copy it and keep it in a password manager: without it, a lost computer means lost boards.\n\nOn another computer, paste the same key under Use another key, and both see the same boards."
+      },
+      "status": {
+        "off": "off",
+        "connecting": "connecting",
+        "synced": "synced",
+        "syncing": "syncing",
+        "offline": "offline",
+        "error": "not working"
+      },
+      "failure": {
+        "noKeychain": "The system keychain is not available, so the account key cannot be stored safely.",
+        "rejected": "The cloud refused the request. Check that this computer's clock is right.",
+        "accountFull": "This account has reached its storage limit.",
+        "server": "The cloud returned an error.",
+        "badReply": "The cloud sent a reply the IDE could not read."
+      },
+      "account": "Account",
+      "lastSync": "Last sync {{when}}",
+      "pending_one": "{{count}} change waiting",
+      "pending_other": "{{count}} changes waiting",
+      "copyKey": "Copy account key",
+      "copied": "Key copied",
+      "saveKey": "Save your account key: it is the only way to your boards.",
+      "useKey": "Use another key",
+      "keyField": "Account key",
+      "keyPlaceholder": "XXXXX-XXXXX-…",
+      "connect": "Connect",
+      "badKey": "This is not an account key. Check for typos.",
+      "enabled": "Sync to the cloud",
+      "enabledHint": "Off: boards stay only on this computer.",
+      "close": "Close"
+    },
+    "codes": {
+      "notFound": "It is no longer on the board.",
+      "wrongBoard": "It belongs to another project's board.",
+      "badTitle": "Give it a name.",
+      "badDue": "That due date is not a real date.",
+      "badFollowUp": "A task cannot follow itself.",
+      "badScenario": "The scenario binding is not valid.",
+      "tooLong": "That text is too long.",
+      "archived": "The project is archived. Restore it first.",
+      "notArchived": "The project is not in the archive.",
+      "nothingToSend": "No open cards with a scenario to send.",
+      "noScenario": "Bind a scenario to the card first.",
+      "unknown": "Something went wrong."
     }
   }
 }

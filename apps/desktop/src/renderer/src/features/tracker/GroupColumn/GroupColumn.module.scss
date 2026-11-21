@@ -1,0 +1,70 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Колонка группы: шапка шириной карточки, под ней ряды задач с продолжениями.
+.column {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dragging {
+  opacity: var(--opacity-muted);
+}
+
+// Шапка группы - плашка шириной карточки: за неё группу и тянут.
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: var(--size-tile-min);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+  cursor: grab;
+  user-select: none;
+}
+
+.heading {
+  @include button-reset;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.title {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.subtitle {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+}
+
+// Низ колонки: «Add task» шириной карточки - сюда же бросают задачу в конец группы.
+.end {
+  display: flex;
+  width: var(--size-tile-min);
+
+  > * {
+    flex: 1;
+  }
+}

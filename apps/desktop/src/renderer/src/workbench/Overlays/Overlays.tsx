@@ -10,6 +10,7 @@ import { RemoteModal } from '../../features/remote/RemoteModal/RemoteModal'
 import { ScenarioNotice } from '../../features/scenarios/ScenarioNotice/ScenarioNotice'
 import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsDialog'
 import { TasksNotice } from '../../features/tasks/TasksNotice/TasksNotice'
+import { TrackerNotice } from '../../features/tracker/TrackerNotice/TrackerNotice'
 import { UpdateNotice } from '../../features/updates/UpdateNotice/UpdateNotice'
 
 /**
@@ -34,6 +35,7 @@ export const Overlays = () => {
         <ActionNotice />
         <ScenarioNotice />
         <TasksNotice />
+        <TrackerNotice />
         <InboxToasts />
       </NotificationArea>
     </>

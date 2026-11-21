@@ -274,6 +274,7 @@ const bootstrap = async () => {
     definitions: features.definitions,
     memorySaver: features.memorySaver,
     extensions: features.extensions,
+    tracker: features.tracker,
     getWindow: () => mainWindow,
   }
 

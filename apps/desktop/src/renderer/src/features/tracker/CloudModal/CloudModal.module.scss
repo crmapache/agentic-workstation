@@ -1,0 +1,59 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.fact {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.account {
+  color: var(--color-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.failure {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.warning {
+  margin: 0;
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
+}
+
+// Поле чужого ключа и «Connect» - в ряд, кнопка по низу поля.
+.useKey {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+
+  > :first-child {
+    flex: 1;
+  }
+}

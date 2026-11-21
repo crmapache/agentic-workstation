@@ -1,0 +1,106 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dragging {
+  opacity: var(--opacity-muted);
+}
+
+// Шапка потока во всю ширину: сворачивает по нажатию, за неё поток тянут.
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-raised);
+  cursor: grab;
+  user-select: none;
+}
+
+.toggle {
+  @include button-reset;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chevron {
+  display: block;
+  flex: none;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-fg-muted);
+  transition: transform var(--duration-fast) var(--easing-standard);
+}
+
+.open {
+  transform: rotate(90deg);
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+}
+
+.title {
+  @include truncate;
+
+  color: var(--color-fg-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.subtitle {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Сколько групп и задач - справа от заголовков, счётчиком.
+.count {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+}
+
+// Ряд групп листается вбок, сколько бы их ни было; колонки встают по верху.
+.groups {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scrollbar-width: thin;
+}
+
+.rowEnd {
+  display: flex;
+  flex: none;
+  width: var(--size-tile-min);
+
+  > * {
+    flex: 1;
+  }
+}

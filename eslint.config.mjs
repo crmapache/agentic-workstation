@@ -63,6 +63,9 @@ const ELEMENTS = [
   // Магазин расширений (ADR 0091): протокол - общий пакет IDE и сервера, сервер - свой.
   { type: 'store-protocol', pattern: 'packages/store-protocol/src/**', partialMatch: false },
   { type: 'store', pattern: 'apps/store/src/**', partialMatch: false },
+  // Облако IDE (ADR 0102): протокол - общий пакет IDE и сервера, сервер - свой.
+  { type: 'cloud-protocol', pattern: 'packages/cloud-protocol/src/**', partialMatch: false },
+  { type: 'cloud', pattern: 'apps/cloud/src/**', partialMatch: false },
 ]
 
 /** Тесты: им можно больше, чем коду (сквозная проверка поднимает настоящий релей). */
@@ -189,6 +192,8 @@ export default defineConfig(
       'apps/site/src/**/*.ts',
       'packages/store-protocol/src/**/*.ts',
       'apps/store/src/**/*.ts',
+      'packages/cloud-protocol/src/**/*.ts',
+      'apps/cloud/src/**/*.ts',
     ],
     plugins: { boundaries },
     settings: {
@@ -206,6 +211,8 @@ export default defineConfig(
         'apps/site/src/**/*',
         'packages/store-protocol/src/**/*',
         'apps/store/src/**/*',
+        'packages/cloud-protocol/src/**/*',
+        'apps/cloud/src/**/*',
       ],
       'import/resolver': {
         typescript: {
@@ -223,6 +230,8 @@ export default defineConfig(
             'apps/site/tsconfig.json',
             'packages/store-protocol/tsconfig.json',
             'apps/store/tsconfig.json',
+            'packages/cloud-protocol/tsconfig.json',
+            'apps/cloud/tsconfig.json',
           ],
         },
       },
@@ -252,10 +261,13 @@ export default defineConfig(
                 'browser-protocol',
                 'remote-protocol',
                 'store-protocol',
+                'cloud-protocol',
               ),
             },
             { from: { element: { type: 'store-protocol' } }, allow: allowTo('store-protocol') },
             { from: { element: { type: 'store' } }, allow: allowTo('store', 'store-protocol') },
+            { from: { element: { type: 'cloud-protocol' } }, allow: allowTo('cloud-protocol') },
+            { from: { element: { type: 'cloud' } }, allow: allowTo('cloud', 'cloud-protocol') },
             { from: { element: { type: 'remote-protocol' } }, allow: allowTo('remote-protocol') },
             { from: { element: { type: 'relay' } }, allow: allowTo('relay') },
             // Релей своё содержимое не читает и протокола не знает; тесты сверяют его конверт с
@@ -266,7 +278,7 @@ export default defineConfig(
             },
             {
               from: { element: { type: 'main' }, file: { categories: 'test' } },
-              allow: allowTo('relay', 'store'),
+              allow: allowTo('relay', 'store', 'cloud'),
             },
             // Телефон не видит ни IDE, ни релея: только протокол и дизайн-систему.
             {
@@ -460,9 +472,14 @@ export default defineConfig(
     },
   },
 
-  // Магазин расширений и его протокол - Node (IDE и сервер), без Electron и интерфейса.
+  // Магазин расширений, облако и их протоколы - Node (IDE и сервер), без Electron и интерфейса.
   {
-    files: ['apps/store/src/**/*.ts', 'packages/store-protocol/src/**/*.ts'],
+    files: [
+      'apps/store/src/**/*.ts',
+      'packages/store-protocol/src/**/*.ts',
+      'apps/cloud/src/**/*.ts',
+      'packages/cloud-protocol/src/**/*.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -470,7 +487,7 @@ export default defineConfig(
           patterns: [
             {
               group: ['electron', 'electron/*', 'react', 'react/*', '@agentic-workstation/ui/*'],
-              message: 'Магазин и его протокол - Node: без Electron и интерфейса.',
+              message: 'Магазин, облако и их протоколы - Node: без Electron и интерфейса.',
             },
           ],
         },

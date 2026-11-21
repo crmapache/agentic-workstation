@@ -66,7 +66,7 @@ export const parseTarget = (value: unknown): QueueTarget => {
 }
 
 /** Рабочие часы очереди: минуты в пределах суток, хотя бы один день недели. */
-const parseHours = (value: unknown): QueueHours | null => {
+export const parseHours = (value: unknown): QueueHours | null => {
   if (value === null) return null
 
   const record = asRecord(value, 'hours')

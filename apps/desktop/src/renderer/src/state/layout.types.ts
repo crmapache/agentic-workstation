@@ -7,6 +7,7 @@ export type SideViewId = 'files' | 'changes' | ExtensionViewId
 /** Виды зоны 6 (середина окна), переключаются иконками полосы слева от неё. */
 export type MainViewId =
   | 'file'
+  | 'tracker'
   | 'scenarios'
   | 'tasks'
   | 'statistics'

@@ -1,6 +1,7 @@
+import type { TrackerPlace } from '../tracker/tracker-spaces'
 import { ArgumentError } from '../connectors/kinds/native-tools'
 import type { ScenariosPort, ConversationsPort } from '../remote/bridge/bridge-ports'
-import type { TasksPort, ProjectsPort, WorkstationPorts } from './workstation-link'
+import type { TasksPort, TrackerPort, ProjectsPort, WorkstationPorts } from './workstation-link'
 
 /** Проект, где человек сузил коннектор самой IDE: разговорам его там не видно. */
 const closed = (path: string) =>
@@ -144,6 +145,22 @@ const scopedTasks = (tasks: TasksPort, allowed: (path: string) => boolean): Task
   }
 }
 
+/**
+ * Трекер - только доски разрешённых проектов. id карточек, групп и потоков чужой доски сервис и
+ * так отклоняет (wrongBoard): доска - пространство проекта, а не общий список.
+ */
+const scopedTracker = (tracker: TrackerPort, allowed: (path: string) => boolean): TrackerPort => {
+  const check = (place: TrackerPlace) => {
+    if (!allowed(place.rootPath)) throw closed(place.rootPath)
+  }
+
+  return {
+    board: (place) => (check(place), tracker.board(place)),
+    apply: (place, op) => (check(place), tracker.apply(place, op)),
+    send: (place, request) => (check(place), tracker.send(place, request)),
+  }
+}
+
 /** Панель провайдера, где видны только разговоры разрешённых проектов. */
 const scopedPanel = (
   port: ConversationsPort,
@@ -163,7 +180,8 @@ const scopedPanel = (
 /**
  * Порты самой IDE в пределах проектов, где человек оставил коннектор (ADR 0090): сужение по
  * проектам - не только видимость сервера, но и граница того, чем разговор управляет. Разговор
- * проекта A не трогает очереди, задания и разговоры проекта B, где коннектор выключен.
+ * проекта A не трогает очереди, задания, доску трекера и разговоры проекта B, где коннектор
+ * выключен.
  */
 export const scopedPorts = (
   ports: WorkstationPorts,
@@ -172,6 +190,7 @@ export const scopedPorts = (
   projects: scopedProjects(ports.projects, allowed),
   scenarios: scopedScenarios(ports.scenarios, allowed),
   tasks: scopedTasks(ports.tasks, allowed),
+  tracker: scopedTracker(ports.tracker, allowed),
   panels: () => ports.panels().map((port) => scopedPanel(port, allowed)),
   // Расширения - на всю IDE, а не на проект: сужать нечего.
   extensions: ports.extensions,

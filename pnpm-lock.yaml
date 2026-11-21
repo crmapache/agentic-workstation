@@ -78,8 +78,30 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
 
+  apps/cloud:
+    dependencies:
+      '@agentic-workstation/cloud-protocol':
+        specifier: workspace:*
+        version: link:../../packages/cloud-protocol
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
+
   apps/desktop:
     dependencies:
+      '@agentic-workstation/cloud-protocol':
+        specifier: workspace:*
+        version: link:../../packages/cloud-protocol
       '@jitl/quickjs-wasmfile-release-sync':
         specifier: 0.32.0
         version: 0.32.0
@@ -102,6 +124,9 @@ importers:
       '@agentic-workstation/browser-protocol':
         specifier: workspace:*
         version: link:../../packages/browser-protocol
+      '@agentic-workstation/cloud':
+        specifier: workspace:*
+        version: link:../cloud
       '@agentic-workstation/relay':
         specifier: workspace:*
         version: link:../relay
@@ -362,6 +387,22 @@ importers:
         version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
 
   packages/browser-protocol:
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.13.3)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.13.3)(jiti@2.7.0)(sass@1.105.2))
+
+  packages/cloud-protocol:
+    dependencies:
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: 24.13.3

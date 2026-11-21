@@ -9,12 +9,13 @@ import { QUEUE_TOOLS } from './queue-tools'
 import { RUN_TOOLS } from './run-tools'
 import { SCENARIO_TOOLS } from './scenario-tools'
 import { TASK_TOOLS } from './task-tools'
+import { TRACKER_TOOLS } from './tracker-tools'
 import { isOutside } from './workstation-args'
 
 /**
  * Инструменты самой IDE (ADR 0090): то, что окно делает с проектами, сценариями, очередями,
- * заданиями и разговорами, - теми же сервисами, без мыши. Ступени: чтение и запись; людям
- * ничего не отправляется - outbound нет.
+ * заданиями, трекером задач и разговорами, - теми же сервисами, без мыши. Ступени: чтение и
+ * запись; людям ничего не отправляется - outbound нет.
  */
 export const WORKSTATION_TOOLS: NativeTool<WorkstationPorts>[] = [
   ...PROJECT_TOOLS,
@@ -22,6 +23,7 @@ export const WORKSTATION_TOOLS: NativeTool<WorkstationPorts>[] = [
   ...QUEUE_TOOLS,
   ...RUN_TOOLS,
   ...TASK_TOOLS,
+  ...TRACKER_TOOLS,
   ...CONVERSATION_TOOLS,
   ...EXTENSION_TOOLS,
 ]

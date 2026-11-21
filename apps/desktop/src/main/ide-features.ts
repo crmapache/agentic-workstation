@@ -32,6 +32,8 @@ import { startStatistics } from './statistics/statistics-wiring'
 import type { TaskAuthor } from './tasks/task-author'
 import type { TaskService } from './tasks/task-service'
 import { startTasks } from './tasks/tasks-setup'
+import type { TrackerRuntime } from './tracker/tracker-setup'
+import { startTracker } from './tracker/tracker-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
 import { workstationPorts } from './workstation/workstation-ports'
 import type { PanelRegistry } from './agents/panel/panel-registry'
@@ -80,6 +82,8 @@ export type IdeFeatures = {
   projectsChanged: () => void
   /** Расширения IDE (ADR 0091): песочницы, работа с ИИ над ними, магазин. */
   extensions: ExtensionsRuntime
+  /** Трекер задач (ADR 0101) с облаком (ADR 0102) и карточками в очередях сценариев. */
+  tracker: TrackerRuntime
   /** Выход из IDE: связь с телефонами гаснет, прогоны пишутся остановленными, база закрывается. */
   shutdown: () => Promise<void>
 }
@@ -138,6 +142,7 @@ export const startIdeFeatures = async (setup: {
       runners.get(provider)?.chatIdOf(sessionId) ?? Promise.resolve(sessionId),
   })
   const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns })
+  const tracker = await startTracker({ dataDir: setup.dataDir, scenarios })
   // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
   const automation = await startTasks({
     claude,
@@ -178,6 +183,7 @@ export const startIdeFeatures = async (setup: {
     workspace,
     scenarios,
     tasks: automation.tasks,
+    tracker,
     claude,
     panels: setup.panels,
     extensions: () => extensions?.service ?? null,
@@ -194,7 +200,10 @@ export const startIdeFeatures = async (setup: {
   // Прогоны, поднятые до этой строки (наверстывание при старте), телефон узнаёт сразу.
   taskRuns.runs = () => automation.tasks.view().runs
   remote.tasksChanged()
-  taps.onQueues = () => remote.queuesChanged()
+  taps.onQueues = () => {
+    remote.queuesChanged()
+    tracker.runs.queuesChanged()
+  }
   taps.onRun = (run) => remote.runChanged(run)
   statistics.observe('claude', claude.getState())
 
@@ -210,6 +219,7 @@ export const startIdeFeatures = async (setup: {
     extensions,
     idePrefs,
     commitPush,
+    tracker,
     observeState: (provider, state) => {
       providers.changed(provider, state)
       statistics.observe(provider, state)
@@ -244,6 +254,7 @@ export const startIdeFeatures = async (setup: {
         setup.connectors.workstation.ports = null
         await automation.shutdown().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)
+        await tracker.shutdown().catch(warnShutdown)
         await scenarios.shutdown().catch(warnShutdown)
         await statistics.stats.close().catch(warnShutdown)
         await editor

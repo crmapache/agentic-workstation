@@ -7,7 +7,11 @@ import type { WorkspaceState } from '@shared/workspace'
 
 import type { SourceLaunch } from '../../connector-source'
 import { WorkstationLink } from '../../../workstation/workstation-link'
-import type { TasksPort, WorkstationPorts } from '../../../workstation/workstation-link'
+import type {
+  TasksPort,
+  TrackerPort,
+  WorkstationPorts,
+} from '../../../workstation/workstation-link'
 import type { ScenariosPort, ConversationsPort } from '../../../remote/bridge/bridge-ports'
 import {
   WORKSTATION_TOOLS,
@@ -98,6 +102,8 @@ const ideOf = ({
     },
     scenarios: { queuesView: () => ({ queues: [], live: [] }), ...scenarios } as ScenariosPort,
     tasks: tasks as TasksPort,
+    // Трекер проверяет tracker-tools.test.ts на настоящем сервисе.
+    tracker: {} as TrackerPort,
     panels: () => [panel, codex] as unknown as ConversationsPort[],
     extensions: () => null,
   }
@@ -132,6 +138,8 @@ describe('инструменты самой IDE', () => {
     )
     expect(WORKSTATION_READ_TOOLS).toContain('list_queues')
     expect(WORKSTATION_READ_TOOLS).not.toContain('start_scenario')
+    expect(WORKSTATION_READ_TOOLS).toContain('tracker_board')
+    expect(WORKSTATION_READ_TOOLS).not.toContain('tracker_add_cards')
   })
 
   it('IDE ещё поднимается - просьба подождать, а не сбой', async () => {

@@ -60,6 +60,8 @@ import type { TasksEventContract, TasksInvokeContract } from './tasks.contract'
 import { TASKS_EVENTS, TASKS_CHANNELS } from './tasks.contract'
 import type { TerminalEventContract, TerminalInvokeContract } from './terminal.contract'
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
+import type { TrackerEventContract, TrackerInvokeContract } from './tracker.contract'
+import { TRACKER_EVENTS, TRACKER_CHANNELS } from './tracker.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
 import { WINDOW_EVENTS, WINDOW_CHANNELS } from './window.contract'
 
@@ -96,7 +98,8 @@ export type AreaInvokeContract = AgentInvokeContract &
   InboxInvokeContract &
   OpenModelsInvokeContract &
   ExtensionsInvokeContract &
-  ExtensionStoreInvokeContract
+  ExtensionStoreInvokeContract &
+  TrackerInvokeContract
 
 export type AreaEventContract = AgentEventContract &
   ClaudeTabsEventContract &
@@ -120,7 +123,8 @@ export type AreaEventContract = AgentEventContract &
   TasksEventContract &
   InboxEventContract &
   OpenModelsEventContract &
-  ExtensionsEventContract
+  ExtensionsEventContract &
+  TrackerEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -153,6 +157,7 @@ export const AREA_CHANNELS = {
   ...OPEN_MODELS_CHANNELS,
   ...EXTENSIONS_CHANNELS,
   ...EXTENSION_STORE_CHANNELS,
+  ...TRACKER_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -180,4 +185,5 @@ export const AREA_EVENTS = {
   ...INBOX_EVENTS,
   ...OPEN_MODELS_EVENTS,
   ...EXTENSIONS_EVENTS,
+  ...TRACKER_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

@@ -1,0 +1,29 @@
+{
+  "name": "@agentic-workstation/cloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Облако Agentic Workstation: хранит записи аккаунта шифром, раздаёт их IDE на всех компьютерах и ничего в них не читает.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./config": "./src/config.ts"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "PORT=4464 CLOUD_DATA_DIR=.data node --watch src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agentic-workstation/cloud-protocol": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -7,8 +7,8 @@ import {
   DRAG_THRESHOLD_PX,
   AUTO_SCROLL_EDGE_PX,
   AUTO_SCROLL_MAX_STEP_PX,
-} from './ProjectTabs.constants'
-import type { TabSlot, MoveProject, TabDragView } from './ProjectTabs.types'
+} from './tab-drag.constants'
+import type { MoveTab, TabSlot, TabDragView } from './tab-drag.types'
 import {
   beforeOf,
   nextPlace,
@@ -16,7 +16,7 @@ import {
   clampOffset,
   landingOffset,
   autoScrollStep,
-} from './ProjectTabs.utils'
+} from './tab-drag.utils'
 
 const IDLE: TabDragView = { signature: '', draggedId: null, offset: 0, shifts: {} }
 
@@ -78,14 +78,14 @@ const afterGlide = (node: HTMLElement | undefined, then: () => void) => {
 }
 
 /**
- * Перетаскивание вкладок проектов в одном ряду: порог 4 пикселя, вкладка едет за рукой в
+ * Перетаскивание вкладок в одном ряду (проекты IDE, проекты трекера): порог 4 пикселя, вкладка едет за рукой в
  * пределах ряда, соседи уступают ей место переходом, у края ряд, который листается, едет сам;
  * Esc - отмена. Отпустили - вкладка доезжает до нового места, и только тогда порядок уходит
  * главному процессу: пришедший порядок рисует вкладки ровно там, где они уже стоят, и кадр
  * его прихода идёт без переходов (data-landing) - ничто не прыгает. Активный проект жест не
  * меняет, и клик, которым кончается жест, вкладку не открывает.
  */
-export const useProjectTabDrag = (ids: readonly string[], move: MoveProject) => {
+export const useTabDrag = (ids: readonly string[], move: MoveTab) => {
   const nodes = useRef(new Map<string, HTMLDivElement>())
   const latest = useRef({ ids, move })
   const settling = useRef(false)

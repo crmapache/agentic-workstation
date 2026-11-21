@@ -19,6 +19,10 @@ export const QUERY_KEYS = {
   storeIdentity: ['extensions', 'store', 'identity'],
   resourceUsage: ['app', 'resource-usage'],
   workspace: ['workspace'],
+  /** Доска трекера проекта IDE (ADR 0101) - по пути: id проекта меняется с каждым открытием. */
+  trackerBoard: (projectPath: string) => ['tracker', 'board', projectPath],
+  /** Облако IDE (ADR 0102): синхронизация доски, аккаунт. */
+  cloudState: ['cloud', 'state'],
   /** Капсула Computer Use (ADR 0057): что делает ИИ на компьютере; свободен - null. */
   computerCapsule: ['computer', 'capsule'],
   updateStatus: ['updates', 'status'],

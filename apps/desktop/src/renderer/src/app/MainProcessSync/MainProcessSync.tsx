@@ -11,6 +11,7 @@ import { useServiceAiSync } from '../../state/service-ai.queries'
 import { useSoundsSync } from '../../state/sounds.queries'
 import { useStatisticsSync } from '../../state/statistics.queries'
 import { useTasksSync } from '../../state/tasks.queries'
+import { useTrackerSync } from '../../state/tracker.queries'
 import { useUpdateStatusSync } from '../../state/updates.queries'
 import { useWorkspaceSync } from '../../state/workspace.queries'
 import { useAsideSync } from '../../features/agent-panel/aside.queries'
@@ -54,6 +55,7 @@ export const MainProcessSync = () => {
   useProvidersSync()
   useTasksSync()
   useInboxSync()
+  useTrackerSync()
   useConnectionsSync()
   useExtensionsSync()
 

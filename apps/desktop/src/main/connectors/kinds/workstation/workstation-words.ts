@@ -1,5 +1,7 @@
 import type { ScenarioCode } from '@shared/scenarios'
 import type { TaskCode } from '@shared/tasks'
+import type { TrackerCode, TrackerSendCode } from '@shared/tracker'
+import { TRACKER_LIMITS } from '@shared/tracker'
 
 import { ArgumentError } from '../native-tools'
 
@@ -66,6 +68,31 @@ const TASK_WORDS: Record<TaskCode, string> = {
   gaveUp: 'The goal gave up.',
 }
 
+/** Отказы трекера (ADR 0101) словами для модели: что не так и как поправить вызов. */
+const TRACKER_WORDS: Record<TrackerCode, string> = {
+  notFound: 'There is no such item of that kind on this board: take the id from tracker_board.',
+  wrongBoard: 'That id is on the board of another project.',
+  badTitle: 'A title is required: one line, not empty.',
+  badDue:
+    'The due date is not a real date: YYYY-MM-DD, optionally with a time HH:MM (00:00-23:59).',
+  badFollowUp:
+    'A follow-up goes after a task that is not deleted, and a task cannot follow itself or one of its own follow-ups.',
+  badScenario:
+    'The scenario binding is wrong: scenario_id is required, scope is project or user, inputs are texts.',
+  tooLong: `Too long: a title or subtitle takes up to ${TRACKER_LIMITS.title} characters, a description up to ${TRACKER_LIMITS.description}.`,
+  archived: 'The tracker project is archived: restore it first with tracker_restore_project.',
+  notArchived: 'The tracker project is not archived.',
+}
+
+/** Отказы отправки в очередь: трекера, сценариев и два своих - пусто и нет сценария. */
+const SEND_WORDS: Record<TrackerSendCode, string> = {
+  ...SCENARIO_WORDS,
+  ...TRACKER_WORDS,
+  nothingToSend:
+    'Nothing to send: every card there is done, has no scenario or is already waiting or running in a queue.',
+  noScenario: 'The card has no scenario: bind one first (tracker_save_card scenario).',
+}
+
 /** Отказ сценариев - ошибкой, которую модель прочитает; null - всё прошло. */
 export const checkScenario = (code: ScenarioCode | null): void => {
   if (code) throw new ArgumentError(SCENARIO_WORDS[code])
@@ -75,3 +102,9 @@ export const scenarioError = (code: ScenarioCode, detail?: string): ArgumentErro
   new ArgumentError(detail ? `${SCENARIO_WORDS[code]} ${detail}` : SCENARIO_WORDS[code])
 
 export const taskError = (code: TaskCode): ArgumentError => new ArgumentError(TASK_WORDS[code])
+
+export const trackerError = (code: TrackerCode, where?: string): ArgumentError =>
+  new ArgumentError(where ? `${where}: ${TRACKER_WORDS[code]}` : TRACKER_WORDS[code])
+
+export const trackerSendError = (code: TrackerSendCode, where?: string): ArgumentError =>
+  new ArgumentError(where ? `${where}: ${SEND_WORDS[code]}` : SEND_WORDS[code])

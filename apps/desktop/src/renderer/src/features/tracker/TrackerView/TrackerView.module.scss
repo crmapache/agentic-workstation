@@ -1,0 +1,25 @@
+// Вид середины окна: шапка с вкладками прибита сверху, страница листается под ней.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--size-panel-gutter);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}

@@ -1,0 +1,22 @@
+// Ряд вкладок проектов трекера и «+» за ним. Ряд не ужимает вкладки - листается вбок.
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.list {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+// Пришёл новый порядок после перетаскивания: сдвиги снимаются без перехода (как у проектов IDE).
+.list[data-landing] > * {
+  transition: none;
+}

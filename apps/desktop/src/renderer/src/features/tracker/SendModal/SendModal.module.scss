@@ -1,0 +1,73 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Подпись над списком - тем же текстом, что подписи полей.
+.caption {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Строка карточки: номер в очереди, заголовок, сценарий справа.
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.index {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+}
+
+.cardTitle {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+}
+
+.scenarioName {
+  @include truncate;
+
+  max-width: var(--size-tile-min);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+}
+
+.note {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}

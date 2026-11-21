@@ -10,6 +10,7 @@ import type { GitStatusService } from '../git/git-status-service'
 import type { LocalHistory } from '../history/local-history'
 import type { IdePrefsService } from '../ide-prefs/ide-prefs-service'
 import type { InboxService } from '../inbox/inbox-service'
+import type { TrackerRuntime } from '../tracker/tracker-setup'
 import type { MemorySaverService } from '../memory-saver/memory-saver-service'
 import type { OpenModelsService } from '../opencode/opencode-service'
 import type { RemoteService } from '../remote/remote-service'
@@ -47,6 +48,7 @@ import { createGitHandlers } from './git-handlers'
 import type { InvokeHandlers } from './handle'
 import { createIdePrefsHandlers } from './ide-prefs-handlers'
 import { createInboxHandlers } from './inbox-handlers'
+import { createTrackerHandlers } from './tracker-handlers'
 import { createLocalHistoryHandlers } from './local-history-handlers'
 import { createMemorySaverHandlers } from './memory-saver-handlers'
 import { createOpenModelsHandlers } from './open-models-handlers'
@@ -108,6 +110,8 @@ type Services = HandlerContext & {
   openModels: OpenModelsService
   /** Расширения IDE (ADR 0091): песочницы, их вклад и работа с ИИ над ними. */
   extensions: ExtensionsRuntime
+  /** Трекер задач (ADR 0101) и облако IDE (ADR 0102). */
+  tracker: TrackerRuntime
 }
 
 /**
@@ -138,6 +142,12 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createCommitPushHandlers(workspace, services.commitPush),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),
     ...createInboxHandlers(services.inbox),
+    ...createTrackerHandlers(
+      workspace,
+      services.tracker.tracker,
+      services.tracker.runs,
+      services.tracker.cloud,
+    ),
     ...createOpenModelsHandlers(services.openModels),
     ...createEditorHandlers(workspace, history, services.definitions, (root, path) =>
       services.extensions.service.fileSaved(root, path),

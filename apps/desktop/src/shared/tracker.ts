@@ -1,0 +1,204 @@
+import type { QueueHours, QueueTarget, QueueItemState } from './scenario-queues'
+import type { ScenarioCode, ScenarioScope } from './scenarios'
+
+/**
+ * Трекер задач (ADR 0101): у каждого проекта IDE своя доска - проекты трекера вкладками, в них
+ * потоки, в потоке группы колонками по порядку работы, в группе задачи сверху вниз, у задачи -
+ * продолжения цепочкой вправо. Доска хранится у IDE и синхронизируется с облаком шифром
+ * (ADR 0102). Здесь - то, что видит окно и инструменты MCP.
+ */
+
+/** Приоритет как в Todoist: 1 - самый срочный, 4 - без приоритета. */
+export type TrackerPriority = 1 | 2 | 3 | 4
+
+export const TRACKER_PRIORITIES: readonly TrackerPriority[] = [1, 2, 3, 4]
+
+/** Срок без пояса: дата `YYYY-MM-DD` и, если есть, время `HH:MM` - местные там, где смотрят. */
+export type TrackerDue = { date: string; time: string | null }
+
+/** Сколько живёт проект трекера в архиве до удаления. */
+export const TRACKER_ARCHIVE_DAYS = 30
+
+/** Потолки длины полей: заголовок - строка, описание - заметка. */
+export const TRACKER_LIMITS = { title: 300, subtitle: 300, description: 20_000 } as const
+
+/**
+ * Сценарий карточки: какой сценарий и чем заполнить его поля. В значениях полей - подстановки
+ * `{{card}}` (заголовок, подзаголовок и описание вместе), `{{title}}`, `{{subtitle}}`,
+ * `{{description}}`: они раскрываются при отправке, так что правка карточки после привязки не
+ * теряется. provider null - исполнитель, которого выбрал сам сценарий.
+ */
+export type TrackerScenario = {
+  scenarioId: string
+  scope: ScenarioScope
+  provider: string | null
+  inputs: Record<string, string>
+}
+
+/** Подстановки полей карточки в значениях полей сценария. */
+export const TRACKER_PLACEHOLDERS = ['card', 'title', 'subtitle', 'description'] as const
+
+/**
+ * Карточка в очереди сценариев на этом компьютере: состояние элемента очереди; refused - очередь
+ * отказалась его запускать и ждёт человека (папке не доверились, нет CLI), gone - элемент убрали
+ * из очереди или очередь закрыли.
+ */
+export type TrackerRunState = QueueItemState | 'refused' | 'gone'
+
+export type TrackerCardRun = {
+  queueId: string
+  itemId: string
+  state: TrackerRunState
+  sentAt: number
+}
+
+/** Карточка стоит в очереди (ждёт, идёт или очередь ждёт человека): второй раз её не шлют. */
+export const isInQueue = (run: TrackerCardRun | null): boolean =>
+  run?.state === 'waiting' || run?.state === 'running' || run?.state === 'refused'
+
+/** Поля карточки, которые правит человек или ИИ. */
+export type TrackerCardFields = {
+  title: string
+  subtitle: string
+  description: string
+  due: TrackerDue | null
+  priority: TrackerPriority
+  done: boolean
+  scenario: TrackerScenario | null
+}
+
+export type TrackerCard = TrackerCardFields & {
+  id: string
+  doneAt: number | null
+  /** Прогон по карточке на этом компьютере; null - не отправлялась или давно. */
+  run: TrackerCardRun | null
+}
+
+/** Задача группы с продолжениями слева направо. */
+export type TrackerTask = TrackerCard & { followUps: TrackerCard[] }
+
+export type TrackerGroup = { id: string; title: string; subtitle: string; tasks: TrackerTask[] }
+
+export type TrackerFlow = { id: string; title: string; subtitle: string; groups: TrackerGroup[] }
+
+export type TrackerProject = {
+  id: string
+  title: string
+  description: string
+  flows: TrackerFlow[]
+}
+
+/** Проект в архиве: когда убран и когда удалится сам. */
+export type TrackerArchived = {
+  id: string
+  title: string
+  description: string
+  archivedAt: number
+  purgeAt: number
+}
+
+/** Доска проекта IDE. */
+export type TrackerBoard = {
+  projectPath: string
+  projects: TrackerProject[]
+  archived: TrackerArchived[]
+}
+
+/**
+ * Правка доски одним действием. beforeId - место «перед этим», null - в конец. Карточка с
+ * followUpOf - продолжение задачи (встаёт в её цепочку), без него - задача группы.
+ */
+export type TrackerOp =
+  | { kind: 'project.create'; title: string; description?: string }
+  | { kind: 'project.update'; id: string; title?: string; description?: string }
+  | { kind: 'project.move'; id: string; beforeId: string | null }
+  | { kind: 'project.archive'; id: string }
+  | { kind: 'project.restore'; id: string }
+  | { kind: 'project.purge'; id: string }
+  | { kind: 'flow.create'; projectId: string; title: string; subtitle?: string }
+  | { kind: 'flow.update'; id: string; title?: string; subtitle?: string }
+  | { kind: 'flow.move'; id: string; projectId: string; beforeId: string | null }
+  | { kind: 'flow.delete'; id: string }
+  | { kind: 'group.create'; flowId: string; title: string; subtitle?: string }
+  | { kind: 'group.update'; id: string; title?: string; subtitle?: string }
+  | { kind: 'group.move'; id: string; flowId: string; beforeId: string | null }
+  | { kind: 'group.delete'; id: string }
+  | {
+      kind: 'card.create'
+      groupId: string
+      followUpOf?: string | null
+      beforeId?: string | null
+      fields: Partial<TrackerCardFields> & { title: string }
+    }
+  | { kind: 'card.update'; id: string; fields: Partial<TrackerCardFields> }
+  | {
+      kind: 'card.move'
+      id: string
+      groupId: string
+      followUpOf: string | null
+      beforeId: string | null
+    }
+  | { kind: 'card.delete'; id: string }
+  | { kind: 'undelete'; ids: string[] }
+
+export type TrackerOpKind = TrackerOp['kind']
+
+/** Почему правка не прошла: код для окна и слов MCP. */
+export type TrackerCode =
+  | 'notFound'
+  | 'wrongBoard'
+  | 'badTitle'
+  | 'badDue'
+  | 'badFollowUp'
+  | 'badScenario'
+  | 'tooLong'
+  | 'archived'
+  | 'notArchived'
+
+/**
+ * Итог правки: новая доска, id созданного и id удалённого этой правкой (для «Undo» - они же
+ * уходят в undelete).
+ */
+export type TrackerOutcome =
+  | { ok: true; board: TrackerBoard; created: string | null; removed: string[] }
+  | { ok: false; code: TrackerCode }
+
+/**
+ * Что отправить в очередь сценариев: группу (задачи сверху вниз, у каждой - её продолжения
+ * слева направо; выполненные, без сценария и уже стоящие в очереди пропускаются) или одну
+ * карточку. hours - рабочие часы новой очереди (ADR 0074).
+ */
+export type TrackerSendRequest = {
+  source: { kind: 'group'; groupId: string } | { kind: 'card'; cardId: string }
+  target: QueueTarget
+  hours?: QueueHours | null
+}
+
+export type TrackerSendCode = TrackerCode | ScenarioCode | 'nothingToSend' | 'noScenario'
+
+/** Итог отправки; при отказе cardId - карточка, на которой встали (null - до карточек). */
+export type TrackerSendOutcome =
+  | { ok: true; board: TrackerBoard; queueId: string; sent: string[] }
+  | { ok: false; code: TrackerSendCode; cardId: string | null }
+
+/** Состояние облака: окно показывает его значком на шапке трекера. */
+export type CloudStatus = 'off' | 'connecting' | 'synced' | 'syncing' | 'offline' | 'error'
+
+/** Почему облако не работает: код для окна. */
+export type CloudFailure = 'noKeychain' | 'rejected' | 'accountFull' | 'server' | 'badReply'
+
+export type CloudState = {
+  status: CloudStatus
+  /** Начало отпечатка ключа аккаунта: видно, один ли аккаунт на двух компьютерах. */
+  accountId: string | null
+  /** Ключ уже копировали: до этого значок облака зовёт сохранить ключ. */
+  keySaved: boolean
+  lastSyncAt: number | null
+  /** Правки, которые ещё не ушли в облако. */
+  pending: number
+  failure: CloudFailure | null
+}
+
+export type CloudKeyCode = 'badKey' | 'noKeychain'
+
+export type CloudKeyOutcome = { ok: true; state: CloudState } | { ok: false; code: CloudKeyCode }

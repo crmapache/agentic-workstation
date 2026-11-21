@@ -1,0 +1,29 @@
+// Цепочка задачи - в ряд, карточки одной высоты не тянутся: каждая своего роста.
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+// Конец цепочки - узкая полоса во всю высоту ряда: в неё бросают продолжение.
+.chainEnd {
+  display: flex;
+  align-self: stretch;
+  align-items: flex-start;
+  min-width: var(--size-control-md);
+}
+
+// «+» продолжения не шумит: виден под рукой над рядом и при фокусе.
+.add {
+  opacity: 0;
+
+  &:focus-within {
+    opacity: 1;
+  }
+
+  @media (hover: hover) {
+    .row:hover & {
+      opacity: 1;
+    }
+  }
+}

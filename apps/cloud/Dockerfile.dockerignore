@@ -1,0 +1,35 @@
+# Контекст сборки образа облака - корень репозитория. Внутрь - только то, что нужно pnpm
+# (манифесты workspace и lock-файл), само облако и пакет протокола.
+
+**/node_modules
+**/out
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.data
+.git
+.idea
+.claude
+.screenshots
+bench
+docs
+
+# Ключи подписи и расширения: в образ не попадают никогда.
+**/*.p12
+**/*.pem
+**/.env
+**/.env.*
+
+# Остальные приложения образу не нужны, но их манифесты pnpm читает.
+apps/desktop/*
+!apps/desktop/package.json
+apps/browser-extension/*
+!apps/browser-extension/package.json
+apps/phone/*
+!apps/phone/package.json
+apps/relay/*
+!apps/relay/package.json
+apps/site/*
+!apps/site/package.json
+apps/store/*
+!apps/store/package.json

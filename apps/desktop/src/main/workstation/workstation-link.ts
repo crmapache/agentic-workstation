@@ -1,7 +1,15 @@
+import type {
+  TrackerOp,
+  TrackerBoard,
+  TrackerOutcome,
+  TrackerSendOutcome,
+  TrackerSendRequest,
+} from '@shared/tracker'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { ExtensionsService } from '../extensions/extensions-service'
 import type { TaskService } from '../tasks/task-service'
+import type { TrackerPlace } from '../tracker/tracker-spaces'
 import { ArgumentError } from '../connectors/kinds/native-tools'
 import type { ScenariosPort, ConversationsPort } from '../remote/bridge/bridge-ports'
 
@@ -28,6 +36,16 @@ export type TasksPort = Pick<
 >
 
 /**
+ * Трекер задач (ADR 0101): доска проекта IDE, правка одним действием и отправка карточек в
+ * очередь сценариев - те же методы, что у каналов tracker:*.
+ */
+export type TrackerPort = {
+  board: (place: TrackerPlace) => Promise<TrackerBoard>
+  apply: (place: TrackerPlace, op: TrackerOp) => Promise<TrackerOutcome>
+  send: (place: TrackerPlace, request: TrackerSendRequest) => Promise<TrackerSendOutcome>
+}
+
+/**
  * Что инструменты самой IDE (ADR 0090) берут у неё - публичные действия сервисов, которыми
  * пользуются окно и телефон Remote Control. Сценарии и разговоры - теми же портами, что у моста
  * телефона: оба - управление IDE извне окна, и правила у них одни.
@@ -36,6 +54,7 @@ export type WorkstationPorts = {
   projects: ProjectsPort
   scenarios: ScenariosPort
   tasks: TasksPort
+  tracker: TrackerPort
   /** Панели провайдеров по порядку: первой - Claude Code. */
   panels: () => readonly ConversationsPort[]
   /** Расширения IDE (ADR 0091): поднимаются после портов, до того - null. */

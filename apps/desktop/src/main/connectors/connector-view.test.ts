@@ -206,6 +206,21 @@ describe('instructionsFor', () => {
     expect(onWindows.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
   })
 
+  // Пояснение самой IDE растёт с каждой её областью (трекер - строкой): описание человека всё равно
+  // должно доходить целиком.
+  it('пояснение самой IDE с описанием предельной длины укладывается в 2048 знаков', () => {
+    const description = 'x'.repeat(CONNECTOR_DESCRIPTION_MAX)
+    const text = instructionsFor(
+      { ...connector, kind: 'workstation', label: '', account: null, tools: [], description },
+      live,
+      null,
+    )
+
+    expect(text.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
+    expect(text).toContain('tracker_add_cards')
+    expect(text).toContain(description)
+  })
+
   it('описание человека - отдельной строкой, пустое не добавляет ничего', () => {
     const described = { ...connector, description: '  Client mail: invoices only  ' }
 

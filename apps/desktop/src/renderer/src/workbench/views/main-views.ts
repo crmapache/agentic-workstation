@@ -1,12 +1,21 @@
 import { lazy } from 'react'
-import { Bell, Plug, Puzzle, FileCode, Workflow, ChartColumn, CalendarClock } from 'lucide-react'
+import {
+  Bell,
+  Plug,
+  Puzzle,
+  FileCode,
+  Workflow,
+  ChartColumn,
+  SquareKanban,
+  CalendarClock,
+} from 'lucide-react'
 
 import type { MainViewId } from '../../state/layout.types'
 import type { ViewDescriptor } from './views.types'
 
 /**
  * Виды середины окна (зона 6) в порядке иконок полосы слева от неё. Файл - то, что
- * открыли из левой панели; сценарии, задания по расписанию, статистика, коннекторы (ADR 0029) и
+ * открыли из левой панели; трекер задач (ADR 0101), сценарии, задания по расписанию, статистика, коннекторы (ADR 0029) и
  * уведомления (ADR 0069), расширения (ADR 0091) - возможности всей IDE, а не одного провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
  * фиче, запись здесь.
  */
@@ -18,6 +27,17 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     Component: lazy(() =>
       import('../../features/editor/EditorArea/EditorArea').then((module) => ({
         default: module.EditorArea,
+      })),
+    ),
+  },
+  {
+    id: 'tracker',
+    icon: SquareKanban,
+    labelKey: 'mainViews.tracker',
+    keywords: ['todo', 'task', 'tasks', 'board', 'kanban', 'cards', 'backlog'],
+    Component: lazy(() =>
+      import('../../features/tracker/TrackerView/TrackerView').then((module) => ({
+        default: module.TrackerView,
       })),
     ),
   },
