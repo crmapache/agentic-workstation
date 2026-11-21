@@ -2,14 +2,19 @@
 
 // Строка вкладок - лист во всю ширину, вкладки-плашки внутри, выбранная залита
 // графитом. Высота у полосы своя, а не от вкладок: пустая она занимает столько же. Сверху и
-// снизу от вкладок - отступ полос иконок по бокам: плашка не липнет к краю листа.
+// снизу от вкладок - отступ полос иконок по бокам: плашка не липнет к краю листа. Справа ряд
+// отступает от края столько же, сколько слева квадрат дома в своей колонке (--home-inset): иначе
+// последняя вкладка прижималась к краю листа заметно ближе первой.
 .projectTabs {
   @include window-sheet;
+
+  --home-slot: calc(var(--size-activity-bar) - 2 * (var(--border-width) + var(--space-0-5)));
+  --home-inset: calc(var(--space-0-5) + (var(--home-slot) - var(--size-control-md)) / 2);
 
   display: flex;
   flex-shrink: 0;
   height: var(--size-frame-bar);
-  padding: var(--space-1-5) var(--space-0-5);
+  padding: var(--space-1-5) var(--home-inset) var(--space-1-5) var(--space-0-5);
 }
 
 // tablist без вкладок - ошибка доступности, поэтому он отдельный и только с вкладками: дом
@@ -28,7 +33,7 @@
   display: flex;
   flex: none;
   justify-content: center;
-  width: calc(var(--size-activity-bar) - 2 * (var(--border-width) + var(--space-0-5)));
+  width: var(--home-slot);
 }
 
 // Вкладки проектов не ужимаются ниже своего минимума: не влезли - ряд листается вбок, без
