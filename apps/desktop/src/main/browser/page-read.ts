@@ -50,7 +50,13 @@ export const snapshot = async (page: Page): Promise<string> => {
 }
 
 type LayoutMetrics = {
-  cssVisualViewport?: { pageX: number; pageY: number; clientWidth: number; clientHeight: number }
+  cssVisualViewport?: {
+    pageX: number
+    pageY: number
+    clientWidth: number
+    clientHeight: number
+    zoom?: number
+  }
   cssContentSize?: { width: number; height: number }
 }
 
@@ -79,6 +85,7 @@ export const screenshot = async (page: Page, fullPage: boolean): Promise<Shot> =
       viewport,
       content: metrics.cssContentSize ?? viewport,
       devicePixelRatio: typeof ratio.result?.value === 'number' ? ratio.result.value : 1,
+      zoom: view?.zoom ?? 1,
     },
     fullPage,
   )

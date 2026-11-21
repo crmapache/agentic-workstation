@@ -8,9 +8,11 @@ const EMPTY: CardForm = {
   subtitle: '',
   description: '',
   due: null,
+  repeat: null,
   priority: 4,
   done: false,
   scenario: null,
+  autoRun: false,
 }
 
 /**
@@ -26,9 +28,11 @@ export const useCardForm = (props: CardModalProps): CardFormApi => {
           subtitle: props.card.subtitle,
           description: props.card.description,
           due: props.card.due,
+          repeat: props.card.repeat,
           priority: props.card.priority,
           done: props.card.done,
           scenario: props.card.scenario,
+          autoRun: props.card.autoRun,
         }
       : EMPTY,
   )

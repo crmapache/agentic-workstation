@@ -24,14 +24,29 @@ export const DueFields = ({ form, today }: DueFieldsProps) => {
   const { t } = useTranslation()
   const { due } = form
 
+  const handleAddDate = () => form.set('due', { date: isoDay(today), time: null })
+  const handleDate = (next: number) => {
+    if (due) form.set('due', { ...due, date: isoDay(next) })
+  }
+  // Без срока повторять нечего: снятый срок снимает и повтор, как у главного процесса.
+  const handleClearDate = () => {
+    form.set('due', null)
+    form.set('repeat', null)
+  }
+  const handleAddTime = () => {
+    if (due) form.set('due', { ...due, time: DEFAULT_TIME })
+  }
+  const handleTime = (minutes: number) => {
+    if (due) form.set('due', { ...due, time: clockOfMinutes(minutes) })
+  }
+  const handleClearTime = () => {
+    if (due) form.set('due', { ...due, time: null })
+  }
+
   if (!due)
     return (
       <div className={styles.row}>
-        <Button
-          variant="dashed"
-          size="sm"
-          icon={CalendarDays}
-          onClick={() => form.set('due', { date: isoDay(today), time: null })}>
+        <Button variant="dashed" size="sm" icon={CalendarDays} onClick={handleAddDate}>
           {t('tracker.cardModal.addDate')}
         </Button>
       </div>
@@ -53,19 +68,11 @@ export const DueFields = ({ form, today }: DueFieldsProps) => {
         weekdayLabels={weekdayNames()}
         previousMonthLabel={t('tracker.cardModal.previousMonth')}
         nextMonthLabel={t('tracker.cardModal.nextMonth')}
-        onChange={(next) => form.set('due', { ...due, date: isoDay(next) })}
+        onChange={handleDate}
       />
-      <IconButton
-        icon={X}
-        label={t('tracker.cardModal.clearDate')}
-        onClick={() => form.set('due', null)}
-      />
+      <IconButton icon={X} label={t('tracker.cardModal.clearDate')} onClick={handleClearDate} />
       {due.time === null ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={Clock}
-          onClick={() => form.set('due', { ...due, time: DEFAULT_TIME })}>
+        <Button variant="ghost" size="sm" icon={Clock} onClick={handleAddTime}>
           {t('tracker.cardModal.addTime')}
         </Button>
       ) : (
@@ -76,13 +83,9 @@ export const DueFields = ({ form, today }: DueFieldsProps) => {
             minuteLabel={t('tracker.cardModal.minute')}
             value={minutesOf(due.time)}
             minuteStep={MINUTE_STEP}
-            onChange={(minutes) => form.set('due', { ...due, time: clockOfMinutes(minutes) })}
+            onChange={handleTime}
           />
-          <IconButton
-            icon={X}
-            label={t('tracker.cardModal.clearTime')}
-            onClick={() => form.set('due', { ...due, time: null })}
-          />
+          <IconButton icon={X} label={t('tracker.cardModal.clearTime')} onClick={handleClearTime} />
         </>
       )}
     </div>

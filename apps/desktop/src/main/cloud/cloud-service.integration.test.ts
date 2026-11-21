@@ -66,6 +66,7 @@ const machine = async (url: string, answer = true, dir?: string) => {
   const home = dir ?? (await mkdtemp(join(tmpdir(), 'aw-machine-')))
   const kit = await trackerKit({ remote: 'github.com/me/app' })
   const states: CloudState[] = []
+  const signals: string[] = []
   let clipboard = ''
   const cloud = await CloudService.load({
     vault: await Vault.load(join(home, 'cloud.vault'), PLAIN),
@@ -80,12 +81,15 @@ const machine = async (url: string, answer = true, dir?: string) => {
     },
     confirmSwitch: () => Promise.resolve(answer),
     sync: { waitSeconds: 2, backoffMs: [50] },
+    onStale: () => signals.push(`stale ${Date.now()}`),
+    onLocal: () => signals.push('local'),
+    onSynced: (startedAt) => signals.push(`synced ${startedAt}`),
   })
 
   closers.push(() => kit.service.close())
   closers.push(() => cloud.close())
 
-  return { ...kit, home, cloud, states, clipboard: () => clipboard }
+  return { ...kit, home, cloud, states, signals, clipboard: () => clipboard }
 }
 
 /** Ждать, пока условие станет правдой: синхронизация идёт сама, своим циклом. */
@@ -102,7 +106,35 @@ const until = async (check: () => Promise<boolean> | boolean, ms = 8000) => {
 const titles = async (kit: Awaited<ReturnType<typeof machine>>) =>
   (await kit.service.board(PLACE)).projects.map((project) => project.title).sort()
 
+/** Последний сигнал свежести вида kind и его время. */
+const lastSignal = (signals: string[], kind: string) => {
+  const found = signals.filter((one) => one.startsWith(kind)).at(-1)
+
+  return found === undefined ? null : Number(found.split(' ')[1] ?? 0)
+}
+
 describe('облако на настоящем сервере', () => {
+  it('свежесть копии: устарела до первого захода, заход после неё открывает, выключенное - своё', async () => {
+    const url = await serverAt()
+    const mac = await machine(url)
+
+    await until(() => lastSignal(mac.signals, 'synced') !== null)
+    expect(mac.signals[0]?.startsWith('stale')).toBe(true)
+    expect(lastSignal(mac.signals, 'synced')).toBeGreaterThanOrEqual(
+      lastSignal(mac.signals, 'stale') ?? Infinity,
+    )
+
+    // Проснулся: снова устарела, и следующий заход начат уже после этого.
+    mac.cloud.wake()
+
+    const woke = lastSignal(mac.signals, 'stale') ?? Infinity
+
+    await until(() => (lastSignal(mac.signals, 'synced') ?? 0) >= woke)
+
+    await mac.cloud.setEnabled(false)
+    expect(mac.signals.at(-1)).toBe('local')
+  })
+
   it('второй компьютер с тем же ключом видит доску и правки обоих', async () => {
     const url = await serverAt()
     const mac = await machine(url)

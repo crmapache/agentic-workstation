@@ -1,7 +1,7 @@
 import type { ScenarioCode } from '@shared/scenarios'
 import type { TaskCode } from '@shared/tasks'
 import type { TrackerCode, TrackerSendCode } from '@shared/tracker'
-import { TRACKER_LIMITS } from '@shared/tracker'
+import { TRACKER_LIMITS, TRACKER_REPEAT_MAX } from '@shared/tracker'
 
 import { ArgumentError } from '../native-tools'
 
@@ -75,6 +75,7 @@ const TRACKER_WORDS: Record<TrackerCode, string> = {
   badTitle: 'A title is required: one line, not empty.',
   badDue:
     'The due date is not a real date: YYYY-MM-DD, optionally with a time HH:MM (00:00-23:59).',
+  badRepeat: `The repeat is wrong: unit is day, week, month or year, every is 1-${TRACKER_REPEAT_MAX}, weekdays are mon-sun, start is YYYY-MM-DD.`,
   badFollowUp:
     'A follow-up goes after a task that is not deleted, and a task cannot follow itself or one of its own follow-ups.',
   badScenario:

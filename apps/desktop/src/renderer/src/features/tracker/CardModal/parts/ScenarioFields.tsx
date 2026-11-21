@@ -40,6 +40,8 @@ export const ScenarioFields = ({ form, scenarios }: ScenarioFieldsProps) => {
   const handlePick = (scenario: (typeof scenarios)[number] | null) => {
     popover.close()
     form.set('scenario', scenario ? bindScenario(scenario, binding) : null)
+    // Без сценария запускать в срок нечего: отвязка выключает и запуск, как у главного процесса.
+    if (!scenario) form.set('autoRun', false)
   }
 
   return (

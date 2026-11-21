@@ -33,3 +33,32 @@
 .spacer {
   flex: 1;
 }
+
+// Повтор: поле выбора, под ним своё правило и куда «сделано» переносит срок.
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.caption {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

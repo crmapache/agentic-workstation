@@ -713,6 +713,87 @@ describe.skipIf(!ready)(
       json(await call('finish'))
     }, 90_000)
 
+    it('масштаб страницы 90%, как WhatsApp у человека: картинка поля - поле с текстом, скриншот - ровно окно', async () => {
+      const opened = json<{ tab: string }>(await call('open', { url: `${base}/chat` }))
+      const browserCdp = await cdpClient(await devToolsPort(dir))
+      const { targetId } = await browserCdp.send<{ targetId: string }>('Target.createTarget', {
+        url: `chrome-extension://${EXTENSION_ID}/popup/popup.html`,
+      })
+      const { sessionId } = await browserCdp.send<{ sessionId: string }>('Target.attachToTarget', {
+        targetId,
+        flatten: true,
+      })
+
+      const ratio = async () =>
+        JSON.parse(
+          text(await call('evaluate', { tab: opened.tab, expression: 'window.devicePixelRatio' })),
+        ) as number
+      const before = await ratio()
+
+      // Масштаб ставит сам Chrome, как ⌘- у человека: CSS-пиксели и DIP перестают совпадать.
+      // Только этой вкладке: обычный масштаб Chrome - на весь сайт, и он остался бы у следующих
+      // проверок с той же тестовой страницы.
+      const tabId = tabIdOf(opened.tab)
+
+      await browserCdp.send(
+        'Runtime.evaluate',
+        {
+          expression: `chrome.tabs.setZoomSettings(${tabId}, { scope: 'per-tab' }).then(() => chrome.tabs.setZoom(${tabId}, 0.9))`,
+          awaitPromise: true,
+        },
+        sessionId,
+      )
+      await browserCdp.send('Target.closeTarget', { targetId })
+      browserCdp.close()
+
+      expect((await ratio()) / before).toBeCloseTo(0.9)
+
+      // Поле внизу окна, как у WhatsApp: старая область в CSS-пикселях уходила за его нижний край.
+      json(
+        await call('evaluate', {
+          tab: opened.tab,
+          expression:
+            "(Object.assign(document.getElementById('plain').style, { position: 'fixed', left: '12px', bottom: '12px', margin: '0' }), true)",
+        }),
+      )
+
+      const chat = text(await call('snapshot', { tab: opened.tab }))
+      const typed = await call('type', {
+        tab: opened.tab,
+        ref: refOf(chat, '- textbox "Plain composer"'),
+        text: 'Zoomed text\nsecond line',
+      })
+      const field = pixelsOf(typed)
+      let dark = 0
+
+      for (let y = 0; y < field.height; y += 1) {
+        for (let x = 0; x < field.width; x += 1) {
+          const [r = 255, g = 255, b = 255] = field.at(x, y)
+
+          if (r < 90 && g < 90 && b < 90) dark += 1
+        }
+      }
+
+      // Пустая полоса из-за области в CSS-пикселях тёмных точек не имеет; текст поля - имеет.
+      expect(dark).toBeGreaterThan(200)
+
+      // Красный квадрат в правом нижнем углу окна - в правом нижнем углу картинки, без полос.
+      json(
+        await call('evaluate', {
+          tab: opened.tab,
+          expression:
+            "(document.body.insertAdjacentHTML('beforeend', '<div style=\"position:fixed;right:0;bottom:0;width:60px;height:60px;background:#f00\"></div>'), true)",
+        }),
+      )
+
+      const shot = pixelsOf(await call('screenshot', { tab: opened.tab }))
+      const [r = 0, g = 255, b = 255] = shot.at(shot.width - 3, shot.height - 3)
+
+      expect([r > 200, g < 60, b < 60]).toEqual([true, true, true])
+
+      json(await call('finish'))
+    }, 90_000)
+
     it('фреймы: снимок видит iframe своего и чужого процесса, клик, ввод и выбор по ссылкам внутри', async () => {
       const opened = json<{ tab: string }>(await call('open', { url: `${base}/frames` }))
       const tabId = tabIdOf(opened.tab)

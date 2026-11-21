@@ -8,7 +8,7 @@ import { useTrackerStore } from './tracker.store'
 import type { TrackerUndo, TrackerApplied } from './tracker.types'
 
 /** Чем было удалённое правкой: подпись карточки «Undo». */
-const undoKindOf = (op: TrackerOp): NonNullable<TrackerUndo>['kind'] | null =>
+const undoKindOf = (op: TrackerOp): Exclude<NonNullable<TrackerUndo>['kind'], 'repeat'> | null =>
   op.kind === 'card.delete'
     ? 'card'
     : op.kind === 'group.delete'
@@ -19,7 +19,8 @@ const undoKindOf = (op: TrackerOp): NonNullable<TrackerUndo>['kind'] | null =>
 
 /**
  * Правки доски открытого проекта. Ответ главного процесса - новая доска, она сразу в кэш; отказ
- * - уведомлением в углу. Удаление карточки, группы или потока предлагает «Undo».
+ * - уведомлением в углу. Удаление карточки, группы или потока и отметка «сделано» у
+ * повторяющейся карточки предлагают «Undo».
  */
 export const useTrackerActions = () => {
   const project = useActiveProject()
@@ -50,6 +51,13 @@ export const useTrackerActions = () => {
     const kind = undoKindOf(op)
 
     if (kind && outcome.removed.length > 0) offerUndo({ ids: outcome.removed, kind, projectId })
+    if (outcome.repeated)
+      offerUndo({
+        kind: 'repeat',
+        due: outcome.repeated.due,
+        ops: outcome.repeated.undo,
+        projectId,
+      })
 
     return { ok: true, created: outcome.created, board: outcome.board }
   }

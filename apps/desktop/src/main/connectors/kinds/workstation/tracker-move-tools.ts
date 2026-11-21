@@ -214,7 +214,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
     name: 'tracker_send_to_queue',
     description: [
       'Send cards to a scenario queue: a whole group (group_id: its tasks top-down, each followed by its follow-ups; cards done, without a scenario or already waiting or running in a queue are skipped) or one card (card_id).',
-      'Each card runs its scenario with the card text; a card whose queue item is done gets marked done.',
+      'Each card runs its scenario with the card text; a card whose queue item is done gets marked done (a repeating card moves to its next due instead).',
       'Into a new queue named after the group (worktree and working hours optional) or the end of an existing one (queue_id from list_queues). All cards are checked before the first one goes.',
     ].join(' '),
     access: 'write',

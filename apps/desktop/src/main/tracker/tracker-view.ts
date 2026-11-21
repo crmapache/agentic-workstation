@@ -3,20 +3,29 @@ import type {
   TrackerCard,
   TrackerTask,
   TrackerBoard,
+  TrackerRepeat,
   TrackerPriority,
   TrackerRunState,
   TrackerScenario,
 } from '@shared/tracker'
 import { TRACKER_PRIORITIES, TRACKER_ARCHIVE_DAYS } from '@shared/tracker'
+import { dueKey } from '@shared/tracker-repeat'
 
-import type { RunLink } from './tracker-book'
-import { dueOf, scenarioOf } from './tracker-fields'
+import type { RunLink, AutoRunLink } from './tracker-book'
+import { dueOf, repeatOf, scenarioOf } from './tracker-fields'
 import type { TrackerRecord } from './tracker-records'
 import { flagOf, textOf, valueOf, numberOf } from './tracker-records'
 import type { TrackerTree } from './tracker-tree'
 
 /** Состояние элемента очереди по связи карточки; gone - элемента больше нет. */
 export type RunStateOf = (link: RunLink) => TrackerRunState
+
+/** Что о карточках знает только этот компьютер: прогоны, их состояние и запуск в срок. */
+export type CardLocal = {
+  runs: Record<string, RunLink>
+  autoRuns: Record<string, AutoRunLink>
+  runState: RunStateOf
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -29,8 +38,12 @@ const safely = <T>(read: () => T, fallback: T): T => {
   }
 }
 
-const dueValue = (record: TrackerRecord): TrackerDue | null =>
+export const dueValue = (record: TrackerRecord): TrackerDue | null =>
   safely(() => dueOf(valueOf(record, 'due') ?? null), null)
+
+/** Повтор без срока не повторяет ничего - читается как пустой. */
+export const repeatValue = (record: TrackerRecord): TrackerRepeat | null =>
+  dueValue(record) ? safely(() => repeatOf(valueOf(record, 'repeat') ?? null), null) : null
 
 const scenarioValue = (record: TrackerRecord): TrackerScenario | null =>
   safely(() => scenarioOf(valueOf(record, 'scenario') ?? null), null)
@@ -42,25 +55,32 @@ const priorityValue = (record: TrackerRecord): TrackerPriority => {
 }
 
 /** Карточка для окна и модели из записи. */
-export const cardOf = (
-  record: TrackerRecord,
-  runs: Record<string, RunLink>,
-  runState: RunStateOf,
-): TrackerCard => {
-  const link = runs[record.id]
+export const cardOf = (record: TrackerRecord, local: CardLocal): TrackerCard => {
+  const link = local.runs[record.id]
+  const autoRun = local.autoRuns[record.id]
+  const due = dueValue(record)
 
   return {
     id: record.id,
     title: textOf(record, 'title'),
     subtitle: textOf(record, 'subtitle'),
     description: textOf(record, 'description'),
-    due: dueValue(record),
+    due,
+    repeat: repeatValue(record),
     priority: priorityValue(record),
     done: flagOf(record, 'done'),
     doneAt: numberOf(record, 'doneAt'),
     scenario: scenarioValue(record),
+    autoRun: autoRun !== undefined,
+    autoRunFailure: autoRun?.failure ?? null,
+    autoRunSent: autoRun !== undefined && due !== null && autoRun.firedFor === dueKey(due),
     run: link
-      ? { queueId: link.queueId, itemId: link.itemId, sentAt: link.sentAt, state: runState(link) }
+      ? {
+          queueId: link.queueId,
+          itemId: link.itemId,
+          sentAt: link.sentAt,
+          state: local.runState(link),
+        }
       : null,
   }
 }
@@ -70,10 +90,9 @@ export const boardOf = (
   tree: TrackerTree,
   spaceId: string,
   projectPath: string,
-  runs: Record<string, RunLink>,
-  runState: RunStateOf,
+  local: CardLocal,
 ): TrackerBoard => {
-  const card = (record: TrackerRecord) => cardOf(record, runs, runState)
+  const card = (record: TrackerRecord) => cardOf(record, local)
   const task = (record: TrackerRecord): TrackerTask => ({
     ...card(record),
     followUps: tree.followUps(record.id).map((one) => card(one.record)),

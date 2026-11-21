@@ -1,19 +1,22 @@
-import { Flag, Workflow, CalendarDays } from 'lucide-react'
+import { Flag, Repeat, Workflow, AlarmClock, CalendarDays, AlarmClockOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@agentic-workstation/ui/Badge'
 
-import { useDueLabel } from '../CardTile.hooks'
 import styles from '../CardTile.module.scss'
 import type { CardMetaProps } from '../CardTile.types'
-import { useScenarioName } from '../../tracker.hooks'
+import { useDueLabel, useRepeatLabel, useScenarioName } from '../../tracker.hooks'
 import { dueTone, runTone, priorityTone } from '../../tracker.utils'
 
-/** Нижняя строка карточки: срок, приоритет и сценарий с состоянием прогона. */
+/**
+ * Нижняя строка карточки: срок (со знаком повтора), приоритет и сценарий с состоянием прогона -
+ * будильник вместо значка сценария, если он запускается в срок, и метка, если запуск не ушёл.
+ */
 export const CardMeta = ({ card, today }: CardMetaProps) => {
   const { t } = useTranslation()
   const dueLabel = useDueLabel(card.due, today)
   const scenarioName = useScenarioName(card.scenario)
+  const repeatLabel = useRepeatLabel()
   const priority = priorityTone(card.priority)
   const run = card.run && runTone(card.run)
 
@@ -25,6 +28,13 @@ export const CardMeta = ({ card, today }: CardMetaProps) => {
         <Badge tone={dueTone(card.due, today, card.done)} variant="soft">
           <CalendarDays className={styles.metaIcon} aria-hidden />
           {dueLabel}
+          {card.repeat && (
+            <Repeat
+              className={styles.metaIcon}
+              role="img"
+              aria-label={t('tracker.repeat.badge', { rule: repeatLabel(card.repeat) })}
+            />
+          )}
         </Badge>
       )}
       {priority && (
@@ -35,12 +45,26 @@ export const CardMeta = ({ card, today }: CardMetaProps) => {
       )}
       {card.scenario && (
         <Badge tone={run ?? 'neutral'} variant={run ? 'soft' : 'marker'}>
-          <Workflow className={styles.metaIcon} aria-hidden />
+          {card.autoRun ? (
+            <AlarmClock
+              className={styles.metaIcon}
+              role="img"
+              aria-label={t('tracker.autoRun.badge')}
+            />
+          ) : (
+            <Workflow className={styles.metaIcon} aria-hidden />
+          )}
           {run && card.run
             ? t(`tracker.run.${card.run.state as Exclude<typeof card.run.state, 'gone'>}`, {
                 name: scenarioName,
               })
             : scenarioName}
+        </Badge>
+      )}
+      {card.scenario && card.autoRun && card.autoRunFailure && (
+        <Badge tone="danger" variant="soft">
+          <AlarmClockOff className={styles.metaIcon} aria-hidden />
+          {t('tracker.autoRun.didNotStart')}
         </Badge>
       )}
     </div>

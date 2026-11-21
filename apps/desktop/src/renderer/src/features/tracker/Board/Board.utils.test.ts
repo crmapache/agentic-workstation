@@ -12,10 +12,14 @@ const card = (id: string): TrackerCard => ({
   subtitle: '',
   description: '',
   due: null,
+  repeat: null,
   priority: 4,
   done: false,
   doneAt: null,
   scenario: null,
+  autoRun: false,
+  autoRunFailure: null,
+  autoRunSent: false,
   run: null,
 })
 

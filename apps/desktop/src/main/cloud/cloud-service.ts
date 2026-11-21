@@ -32,8 +32,15 @@ export type CloudServiceOptions = {
   confirmSwitch: (from: string | null, to: string) => Promise<boolean>
   /** Облако включено по умолчанию; копия IDE для проверок без своего адреса - выключено. */
   enabledByDefault?: boolean
-  /** Первый удачный заход синхронизации: книга сверена с облаком. */
-  onSynced?: () => void
+  /** Удачный заход синхронизации: книга сверена с облаком на момент его начала (startedAt). */
+  onSynced?: (startedAt: number) => void
+  /**
+   * Копия может устареть, пока заход не удастся: синхронизация поднимается (старт, включение,
+   * другой ключ), связь пропала или компьютер проснулся (wake). Зовётся до начала захода.
+   */
+  onStale?: () => void
+  /** Облако выключено или не может работать (нет ключа): сверяться не с чем, своя книга - правда. */
+  onLocal?: () => void
   /** Паузы и ожидание синхронизации - тестам покороче. */
   sync?: { waitSeconds?: number; backoffMs?: readonly number[] }
 }
@@ -53,7 +60,12 @@ const PREVIOUS_KEY = 'cloud:previous-secret'
 export class CloudService {
   private account: CloudAccount | null = null
   private sync: CloudSync | null = null
-  private report: SyncReport = { online: false, failure: null, lastSyncAt: null }
+  private report: SyncReport = {
+    online: false,
+    failure: null,
+    lastSyncAt: null,
+    startedAt: null,
+  }
   /** Синхронизация уже пробовала: без связи это «offline», а не «connecting». */
   private tried = false
   /** Последнее состояние, ушедшее в окно: одинаковое второй раз не шлётся. */
@@ -169,6 +181,14 @@ export class CloudService {
     return this.state()
   }
 
+  /** Компьютер проснулся: за сон копия могла устареть - новый заход сейчас, не дожидаясь забора. */
+  wake() {
+    if (!this.sync) return
+
+    this.options.onStale?.()
+    this.sync.kick()
+  }
+
   /** Погасить синхронизацию и дождаться конца её захода. */
   async close() {
     const sync = this.sync
@@ -182,7 +202,7 @@ export class CloudService {
     await this.close()
     this.account = null
     this.lost = false
-    this.report = { online: false, failure: null, lastSyncAt: null }
+    this.report = { online: false, failure: null, lastSyncAt: null, startedAt: null }
     this.tried = false
 
     if (this.prefs.enabled) {
@@ -202,7 +222,9 @@ export class CloudService {
             open: (id, blob) => openRecord(account.sealKey, id, blob),
           },
           onReport: (report) => {
-            if (report.online && !this.report.online) this.options.onSynced?.()
+            if (report.online && report.startedAt !== null)
+              this.options.onSynced?.(report.startedAt)
+            else if (!report.online && this.report.online) this.options.onStale?.()
 
             this.report = report
             this.tried = true
@@ -210,9 +232,13 @@ export class CloudService {
           },
           ...this.options.sync,
         })
+        // Устаревшей копия становится до начала первого захода: его удача её и откроет.
+        this.options.onStale?.()
         this.sync.start()
       }
     }
+
+    if (!this.sync) this.options.onLocal?.()
 
     this.emit()
   }

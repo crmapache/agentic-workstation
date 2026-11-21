@@ -1,4 +1,6 @@
 import type {
+  TrackerOp,
+  TrackerDue,
   TrackerCard,
   TrackerCode,
   TrackerFlow,
@@ -17,6 +19,9 @@ export type TrackerEditor =
   | { kind: 'flow'; id: string | null; projectId: string }
   | { kind: 'group'; id: string | null; flowId: string }
 
+/** Готовое правило повтора: от дня срока (неделя - его день недели, месяц - число, год - дата). */
+export type RepeatPreset = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly'
+
 /** Что отправляют в очередь сценариев: группу или одну карточку. */
 export type TrackerSending = { kind: 'group'; groupId: string } | { kind: 'card'; cardId: string }
 
@@ -27,14 +32,15 @@ export type TrackerNotice =
   { kind: 'failed'; code: TrackerCode | TrackerSendCode } | { kind: 'sent'; count: number } | null
 
 /**
- * Только что удалённое - карточка в углу с «Undo»; kind - чем было удалённое, projectId - проект
- * IDE, где удаляли: «Undo» после перехода в другой проект возвращает туда, а не в открытый.
+ * Только что сделанное, что можно вернуть, - карточка в углу с «Undo». Удалённое (kind - чем
+ * было) возвращает undelete; повторяющаяся карточка, отмеченная сделанной, - правки ops (прежний
+ * срок и сделанные продолжения), due - её новый срок для подписи. projectId - проект IDE, где
+ * правили: «Undo» после перехода в другой проект возвращает туда, а не в открытый.
  */
-export type TrackerUndo = {
-  ids: string[]
-  kind: 'card' | 'group' | 'flow'
-  projectId: string
-} | null
+export type TrackerUndo =
+  | { kind: 'card' | 'group' | 'flow'; ids: string[]; projectId: string }
+  | { kind: 'repeat'; due: TrackerDue; ops: TrackerOp[]; projectId: string }
+  | null
 
 /** Итог правки из окна: удалась ли, id созданного и доска после неё. */
 export type TrackerApplied = { ok: boolean; created: string | null; board: TrackerBoard | null }

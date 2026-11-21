@@ -53,6 +53,26 @@ describe('размер картинки вкладки', () => {
     expect(plan.clip).toMatchObject({ width: 1000, height: 1500, scale: 1 })
   })
 
+  it('масштаб страницы 90%: область в DIP, размер картинки тот же', () => {
+    // Как WhatsApp на Retina при масштабе 90%: devicePixelRatio 2 * 0.9, CSS-окно шире на 1/0.9.
+    const plan = planScreenshot(
+      {
+        viewport: { x: 0, y: 100, width: 2000, height: 900 },
+        content: { width: 2000, height: 900 },
+        devicePixelRatio: 1.8,
+        zoom: 0.9,
+      },
+      false,
+    )
+
+    expect(plan.clip.x).toBe(0)
+    expect(plan.clip.y).toBeCloseTo(90)
+    expect(plan.clip.width).toBeCloseTo(1800)
+    expect(plan.clip.height).toBeCloseTo(810)
+    expect(plan.clip.scale).toBeCloseTo(2000 / 3600)
+    expect(plan.output).toEqual({ width: 2000, height: 900 })
+  })
+
   it('пустая страница и странный devicePixelRatio не ломают план', () => {
     const plan = planScreenshot(
       { viewport, content: { width: 0, height: 0 }, devicePixelRatio: 0 },

@@ -1,13 +1,35 @@
 import { randomUUID } from 'node:crypto'
 
+import type { TrackerSendCode } from '@shared/tracker'
+
 import type { JsonFile } from '../storage/json-file'
-import { runsOf, isObject, entriesOf, stringsOf } from './tracker-book-parse'
+import { runsOf, isObject, entriesOf, stringsOf, autoRunsOf } from './tracker-book-parse'
 import { NODE_ID, newNodeId, TrackerClock } from './tracker-clock'
 import type { RecordKind, RecordField, TrackerRecord } from './tracker-records'
 import { stampsOf, sameFields, decodeRecord, encodeRecord, mergeRecords } from './tracker-records'
 
-/** Карточка, отправленная в очередь сценариев на этом компьютере. settled - итог уже учтён. */
-export type RunLink = { queueId: string; itemId: string; sentAt: number; settled: boolean }
+/**
+ * Карточка, отправленная в очередь сценариев на этом компьютере. settled - итог уже учтён; due -
+ * срок карточки при отправке (dueKey): повторяющуюся, которую за время прогона отметили руками,
+ * сделанный прогон второй раз не сдвигает.
+ */
+export type RunLink = {
+  queueId: string
+  itemId: string
+  sentAt: number
+  settled: boolean
+  due: string | null
+}
+
+/**
+ * Запуск карточки в срок на этом компьютере (ADR 0103): в какой папке проекта, на какой срок
+ * карточка уже ушла (firedFor - срок словами, «2026-11-21 09:30») и почему отказала отправка.
+ */
+export type AutoRunLink = {
+  projectPath: string
+  firedFor: string | null
+  failure: TrackerSendCode | null
+}
 
 export type StoredEntry = {
   k: RecordKind
@@ -18,8 +40,8 @@ export type StoredEntry = {
 
 /**
  * Файл трекера в userData: записи с версией облака и отметкой «не отправлено», курсор забора,
- * метка компьютера для часов. Привязки проектов IDE и прогоны карточек - только этого
- * компьютера: пути и очереди на другом свои.
+ * метка компьютера для часов. Привязки проектов IDE, прогоны карточек и запуск в срок - только
+ * этого компьютера: пути и очереди на другом свои.
  */
 export type StoredTracker = {
   version: 1
@@ -30,6 +52,7 @@ export type StoredTracker = {
   records: Record<string, StoredEntry>
   bindings: Record<string, string>
   runs: Record<string, RunLink>
+  autoRuns: Record<string, AutoRunLink>
 }
 
 type Entry = { record: TrackerRecord; rev: number; dirty: boolean }
@@ -81,6 +104,7 @@ export class TrackerBook {
         cursor: typeof stored.cursor === 'number' && stored.cursor >= 0 ? stored.cursor : 0,
         bindings: stringsOf(stored.bindings),
         runs: runsOf(stored.runs),
+        autoRuns: autoRunsOf(stored.autoRuns),
       },
       now,
     )
@@ -271,6 +295,21 @@ export class TrackerBook {
     else delete this.state.runs[cardId]
 
     this.changed('remote')
+  }
+
+  autoRuns(): Record<string, AutoRunLink> {
+    return { ...this.state.autoRuns }
+  }
+
+  /**
+   * Запуск в срок: включить, отметить срок и отказ или выключить (null). Только на диск -
+   * перерисовку зовёт тот, кто менял.
+   */
+  setAutoRun(cardId: string, link: AutoRunLink | null) {
+    if (link) this.state.autoRuns[cardId] = link
+    else delete this.state.autoRuns[cardId]
+
+    this.save()
   }
 
   /** Записать на диск сейчас (выход из IDE). */

@@ -1,6 +1,18 @@
 import { SCENARIO_SCOPES } from '@shared/scenarios'
-import type { TrackerDue, TrackerCode, TrackerScenario, TrackerCardFields } from '@shared/tracker'
-import { TRACKER_LIMITS, TRACKER_PRIORITIES } from '@shared/tracker'
+import type {
+  TrackerDue,
+  TrackerCode,
+  TrackerRepeat,
+  TrackerScenario,
+  TrackerCardFields,
+} from '@shared/tracker'
+import {
+  TRACKER_LIMITS,
+  TRACKER_PRIORITIES,
+  TRACKER_REPEAT_MAX,
+  TRACKER_REPEAT_UNITS,
+} from '@shared/tracker'
+import { dayNumber } from '@shared/tracker-repeat'
 
 /**
  * Проверка полей правки: то, что пришло из окна или от модели, приводится к виду записи или
@@ -59,6 +71,45 @@ export const dueOf = (value: unknown): TrackerDue | null => {
     throw new TrackerError('badDue')
 
   return { date: match[0], time: typeof time === 'string' ? time : null }
+}
+
+/**
+ * Повтор: правило без срока. Начало (start) можно не присылать - пустое начало правка возьмёт от
+ * срока карточки; дни недели - только у недельного повтора по расписанию.
+ */
+export const repeatOf = (value: unknown): TrackerRepeat | null => {
+  if (value === null) return null
+  if (typeof value !== 'object' || Array.isArray(value)) throw new TrackerError('badRepeat')
+
+  const raw = value as Record<string, unknown>
+  const every = raw.every ?? 1
+  const weekdays = raw.weekdays ?? []
+  const start = raw.start ?? ''
+  const fromDone = raw.fromDone ?? false
+  const unit = TRACKER_REPEAT_UNITS.find((one) => one === raw.unit)
+
+  if (
+    !unit ||
+    typeof every !== 'number' ||
+    !Number.isInteger(every) ||
+    every < 1 ||
+    every > TRACKER_REPEAT_MAX ||
+    !Array.isArray(weekdays) ||
+    weekdays.some((day) => !Number.isInteger(day) || Number(day) < 1 || Number(day) > 7) ||
+    typeof start !== 'string' ||
+    (start !== '' && dayNumber(start) === null) ||
+    typeof fromDone !== 'boolean'
+  )
+    throw new TrackerError('badRepeat')
+
+  return {
+    every,
+    unit,
+    weekdays:
+      unit === 'week' && !fromDone ? [...new Set(weekdays as number[])].sort((a, b) => a - b) : [],
+    start,
+    fromDone,
+  }
 }
 
 const shortText = (value: unknown, limit: number): string => {
@@ -124,6 +175,7 @@ export const cardFieldsOf = (
   if (fields.description !== undefined)
     out.description = textOf(fields.description, TRACKER_LIMITS.description)
   if (fields.due !== undefined) out.due = dueOf(fields.due)
+  if (fields.repeat !== undefined) out.repeat = repeatOf(fields.repeat)
   if (fields.priority !== undefined) {
     if (!(TRACKER_PRIORITIES as readonly unknown[]).includes(fields.priority))
       throw new TrackerError('badTitle')
@@ -132,6 +184,7 @@ export const cardFieldsOf = (
   }
   if (fields.done !== undefined) out.done = fields.done === true
   if (fields.scenario !== undefined) out.scenario = scenarioOf(fields.scenario)
+  if (fields.autoRun !== undefined) out.autoRun = fields.autoRun === true
 
   return out
 }

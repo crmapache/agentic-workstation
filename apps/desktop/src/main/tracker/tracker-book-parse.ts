@@ -1,4 +1,6 @@
-import type { RunLink } from './tracker-book'
+import type { TrackerSendCode } from '@shared/tracker'
+
+import type { RunLink, AutoRunLink } from './tracker-book'
 import type { RecordKind } from './tracker-records'
 import { fieldsOf, RECORD_KINDS } from './tracker-records'
 
@@ -58,8 +60,28 @@ export const runsOf = (value: unknown): Record<string, RunLink> => {
       itemId: raw.itemId,
       sentAt: typeof raw.sentAt === 'number' ? raw.sentAt : 0,
       settled: raw.settled === true,
+      due: typeof raw.due === 'string' ? raw.due : null,
     }
   }
 
   return runs
+}
+
+export const autoRunsOf = (value: unknown): Record<string, AutoRunLink> => {
+  const links: Record<string, AutoRunLink> = {}
+
+  if (!isObject(value)) return links
+
+  for (const [cardId, raw] of Object.entries(value)) {
+    if (!isObject(raw) || typeof raw.projectPath !== 'string') continue
+
+    links[cardId] = {
+      projectPath: raw.projectPath,
+      firedFor: typeof raw.firedFor === 'string' ? raw.firedFor : null,
+      // Код отказа пишет сама IDE; незнакомый (из более новой версии) окно покажет общим словом.
+      failure: typeof raw.failure === 'string' ? (raw.failure as TrackerSendCode) : null,
+    }
+  }
+
+  return links
 }

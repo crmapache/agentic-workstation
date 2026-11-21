@@ -1,94 +1,11 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
-import type {
-  QueueItem,
-  QueueAction,
-  ScenarioQueue,
-  ScenarioStartRequest,
-} from '@shared/scenario-queues'
 import type { Scenario } from '@shared/scenarios'
 import type { TrackerScenario } from '@shared/tracker'
 
 import { TrackerRuns } from './tracker-runs'
+import { scenario, scenariosFake } from './tracker-scenarios-fake'
 import { PLACE, trackerKit } from './tracker-test-kit'
-
-const scenario = (id: string, inputs: string[], required = true): Scenario =>
-  ({
-    version: 1,
-    id,
-    name: id,
-    createdAt: 0,
-    updatedAt: 0,
-    scope: 'project',
-    inputs: inputs.map((name, index) => ({
-      id: `i${index}`,
-      name,
-      label: name,
-      placeholder: '',
-      required,
-    })),
-    head: { provider: 'claude', briefing: '', model: '', effort: '' },
-    stages: [
-      {
-        id: 's1',
-        title: 'Stage',
-        repeat: 1,
-        untilDone: false,
-        cards: [
-          {
-            id: 'c1',
-            title: 'Card',
-            prompt: inputs.map((name) => `{{${name}}}`).join(' ') || 'go',
-            slots: [],
-            dod: '',
-            after: '',
-          },
-        ],
-      },
-    ],
-  }) as unknown as Scenario
-
-/** Сценарии в памяти: очереди растут от start, состояние элементов правит проверка. */
-const scenariosFake = (shelf: Scenario[]) => {
-  const queues: ScenarioQueue[] = []
-  const started: ScenarioStartRequest[] = []
-  const actions: QueueAction[] = []
-  let next = 0
-
-  return {
-    queues,
-    started,
-    actions,
-    port: {
-      fetch: (_path: string, id: string) =>
-        Promise.resolve(shelf.find((one) => one.id === id) ?? null),
-      start: (request: ScenarioStartRequest) => {
-        started.push(request)
-        next += 1
-
-        const item = { id: `item-${next}`, state: 'waiting' } as QueueItem
-
-        if (request.target.kind === 'queue') {
-          const { queueId } = request.target
-
-          queues.find((queue) => queue.id === queueId)?.items.push(item)
-
-          return Promise.resolve({ ok: true as const, queueId, itemId: item.id })
-        }
-
-        queues.push({ id: `queue-${next}`, items: [item], closedAt: 0 } as ScenarioQueue)
-
-        return Promise.resolve({ ok: true as const, queueId: `queue-${next}`, itemId: item.id })
-      },
-      act: (_queueId: string, action: QueueAction) => {
-        actions.push(action)
-
-        return Promise.resolve(null)
-      },
-      queues: () => queues,
-    },
-  }
-}
 
 const closers: (() => Promise<void>)[] = []
 
@@ -223,6 +140,42 @@ describe('статус карточки', () => {
     kit.runs.queuesChanged()
     task = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]
     expect(task?.done).toBe(false)
+  })
+
+  it('сделанный элемент повторяющейся карточки переносит её на следующий срок', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+    const a = await kit.card('A', {})
+
+    await kit.apply({
+      kind: 'card.update',
+      id: a,
+      fields: {
+        due: { date: '2026-11-16', time: '09:00' },
+        repeat: { every: 1, unit: 'week', weekdays: [1], start: '', fromDone: false },
+      },
+    })
+    await kit.runs.send(PLACE, {
+      source: { kind: 'card', cardId: a },
+      target: { kind: 'new', worktree: false },
+    })
+
+    const item = kit.queues[0]?.items[0]
+
+    if (item) item.state = 'done'
+    kit.runs.queuesChanged()
+
+    const task = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]
+
+    expect([task?.done, task?.due?.date, task?.run?.state]).toEqual([false, '2026-11-23', 'done'])
+    // Сделанный прогон не держит карточку: в следующий срок она уходит снова.
+    expect(
+      (
+        await kit.runs.send(PLACE, {
+          source: { kind: 'card', cardId: a },
+          target: { kind: 'new', worktree: false },
+        })
+      ).ok,
+    ).toBe(true)
   })
 
   it('упавший элемент карточку не отмечает', async () => {

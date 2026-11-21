@@ -10,8 +10,11 @@ import type { Ranked, TrackerTree } from './tracker-tree'
  * записи в книгу: отказ не оставляет полуправки.
  */
 
-/** Где идёт правка: книга, пространство доски (проект IDE) и время правки. */
-export type OpContext = { book: TrackerBook; spaceId: string; now: number }
+/**
+ * Где идёт правка: книга, пространство доски, папка проекта IDE, из которой правят (запуск в
+ * срок помнит её), и время правки.
+ */
+export type OpContext = { book: TrackerBook; spaceId: string; projectPath: string; now: number }
 
 /** Живая запись своей доски или отказ: чужая доска - wrongBoard, нет такой - notFound. */
 export const own = (

@@ -15,8 +15,9 @@ import { stringArg, ArgumentError } from '../native-tools'
 import type { NativeCall } from '../native-tools'
 import type { TrackerPlace } from '../../../tracker/tracker-spaces'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
+import { repeatArg, autoRunArg, REPEAT_FIELDS_SCHEMA } from './tracker-repeat-args'
 import type { Slot } from './tracker-views'
-import { locate, slotOrder } from './tracker-views'
+import { locate, dueText, slotOrder } from './tracker-views'
 import {
   oneOfArg,
   inputsArg,
@@ -73,8 +74,15 @@ export const savedView = async (
 ) => {
   const outcome = await applied(ports, trackerPlaceOf(args, call, ports), op)
   const id = outcome.created ?? ('id' in op ? op.id : '')
+  const view = locate(outcome.board, id)?.view ?? { id }
 
-  return locate(outcome.board, id)?.view ?? { id }
+  // Повторяющаяся карточка не стала сделанной - модель должна понять, что это и есть «сделано».
+  return outcome.repeated
+    ? {
+        ...view,
+        note: `A repeating card: done for this time, its due moved to ${dueText(outcome.repeated.due)}.`,
+      }
+    : view
 }
 
 /** Только присланное: правка без ключа поле не трогает, а undefined в правке не место. */
@@ -187,6 +195,8 @@ export const cardFieldsArg = (args: Record<string, unknown>): Partial<TrackerCar
     fields.done = args['done']
   }
   if (args['scenario'] !== undefined) fields.scenario = bindingArg(args)
+  if (args['repeat'] !== undefined) fields.repeat = repeatArg(args['repeat'])
+  if (args['auto_run'] !== undefined) fields.autoRun = autoRunArg(args['auto_run'])
 
   return fields
 }
@@ -226,7 +236,8 @@ export const CARD_FIELDS_SCHEMA = {
   description: { type: 'string', description: 'Notes, up to 20000 characters.' },
   due: {
     type: 'string',
-    description: 'YYYY-MM-DD or YYYY-MM-DD HH:MM, local time. Empty or null clears it.',
+    description:
+      'YYYY-MM-DD or YYYY-MM-DD HH:MM, local time. Empty or null clears it (and its repeat).',
   },
   // Без enum: Gemini (Antigravity) принимает перечисление только у строк.
   priority: { type: 'number', description: '1 (most urgent), 2, 3 or 4 (none, the default).' },
@@ -247,4 +258,5 @@ export const CARD_FIELDS_SCHEMA = {
     },
     required: ['scenario_id'],
   },
+  ...REPEAT_FIELDS_SCHEMA,
 }

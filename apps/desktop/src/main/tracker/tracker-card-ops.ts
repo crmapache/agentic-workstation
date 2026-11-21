@@ -1,20 +1,26 @@
-import type { TrackerOp, TrackerCardFields } from '@shared/tracker'
+import type { TrackerOp, TrackerRepeated, TrackerCardFields } from '@shared/tracker'
 
+import { timingOf, completeCard } from './tracker-complete'
 import { cardFieldsOf, TrackerError } from './tracker-fields'
 import type { OpContext } from './tracker-guards'
 import { own, openBranch, slotBefore } from './tracker-guards'
 import { rankBetween } from './tracker-rank'
 import type { TrackerRecord } from './tracker-records'
-import { refOf, flagOf } from './tracker-records'
+import { refOf, flagOf, valueOf } from './tracker-records'
 import type { Ranked, TrackerTree } from './tracker-tree'
+import { dueValue, repeatValue } from './tracker-view'
 
 type CardCreate = Extract<TrackerOp, { kind: 'card.create' }>
 type CardMove = Extract<TrackerOp, { kind: 'card.move' }>
 
-const EMPTY_CARD: Omit<TrackerCardFields, 'title'> = {
+/** Поля записи карточки: запуск в срок - не поле, он живёт только в книге этого компьютера. */
+type CardRecordFields = Omit<TrackerCardFields, 'autoRun'>
+
+const EMPTY_CARD: Omit<CardRecordFields, 'title'> = {
   subtitle: '',
   description: '',
   due: null,
+  repeat: null,
   priority: 4,
   done: false,
   scenario: null,
@@ -29,6 +35,20 @@ const MAX_CARD_BYTES = 60_000
 
 const checkSize = (fields: Record<string, unknown>) => {
   if (Buffer.byteLength(JSON.stringify(fields)) > MAX_CARD_BYTES) throw new TrackerError('tooLong')
+}
+
+/** Запуск в срок на этом компьютере: включённый помнит папку проекта, откуда его включили. */
+const setAutoRun = (ctx: OpContext, cardId: string, on: boolean | undefined) => {
+  if (on === undefined) return
+
+  const current = ctx.book.autoRuns()[cardId]
+
+  ctx.book.setAutoRun(
+    cardId,
+    on
+      ? { projectPath: ctx.projectPath, firedFor: current?.firedFor ?? null, failure: null }
+      : null,
+  )
 }
 
 /** Задача, в цепочку которой встаёт продолжение: живая задача своей доски не в архиве. */
@@ -47,7 +67,15 @@ const chainRoot = (ctx: OpContext, tree: TrackerTree, cardId: string): TrackerRe
  * продолжение; без beforeId встаёт в конец цепочки).
  */
 export const createCard = (ctx: OpContext, tree: TrackerTree, op: CardCreate): string => {
-  const fields = { ...EMPTY_CARD, ...cardFieldsOf(op.fields) }
+  const { autoRun, ...parsed } = cardFieldsOf(op.fields)
+  const fields: Omit<CardRecordFields, 'title'> & Partial<CardRecordFields> = {
+    ...EMPTY_CARD,
+    ...parsed,
+    ...timingOf({ due: null, repeat: null }, parsed, ctx.now),
+  }
+
+  // Повторяющаяся карточка сделанной не рождается: «сделано» у неё - сдвиг срока.
+  if (fields.repeat) fields.done = false
 
   checkSize(fields)
   const place = op.followUpOf
@@ -72,34 +100,56 @@ export const createCard = (ctx: OpContext, tree: TrackerTree, op: CardCreate): s
         }
       })()
 
-  return ctx.book.create('card', {
+  const id = ctx.book.create('card', {
     ...fields,
     ...place,
     doneAt: fields.done ? ctx.now : null,
   })
+
+  setAutoRun(ctx, id, autoRun)
+
+  return id
 }
 
-/** Правка полей карточки; отметка «сделано» ставит и снимает время выполнения. */
+/**
+ * Правка полей карточки. Отметка «сделано» ставит время выполнения, а у повторяющейся - сдвигает
+ * срок (completeCard); снятая отметка время снимает. Ответ - сдвиг повторяющейся для «Undo».
+ */
 export const updateCard = (
   ctx: OpContext,
+  tree: TrackerTree,
   card: TrackerRecord,
   raw: Partial<TrackerCardFields>,
-) => {
-  const fields = cardFieldsOf(raw)
+): TrackerRepeated | null => {
+  const { autoRun, ...parsed } = cardFieldsOf(raw)
+  const { done: sent, ...fields } = {
+    ...parsed,
+    ...timingOf({ due: dueValue(card), repeat: repeatValue(card) }, parsed, ctx.now),
+  }
+
+  // Правило, скрытое без срока (встречные правки: здесь сняли срок, там поправили правило), не
+  // оживает, когда карточке снова ставят срок: человек видел «Does not repeat».
+  if (fields.due && fields.repeat === undefined && !repeatValue(card) && valueOf(card, 'repeat'))
+    fields.repeat = null
+
+  // Сделанная карточка, получившая повтор, снова открыта: дальше её круг, а не погашенная навсегда.
+  const done = sent ?? (fields.repeat && flagOf(card, 'done') ? false : undefined)
 
   checkSize({
     ...Object.fromEntries(Object.entries(card.fields).map(([name, field]) => [name, field[0]])),
     ...fields,
   })
 
-  const doneAt =
-    fields.done === undefined || fields.done === flagOf(card, 'done')
-      ? undefined
-      : fields.done
-        ? ctx.now
-        : null
+  ctx.book.write(card.id, fields, true)
+  // Без сценария запускать в срок нечего: отвязка выключает и запуск, если его не прислали.
+  setAutoRun(ctx, card.id, autoRun ?? (fields.scenario === null ? false : undefined))
 
-  ctx.book.write(card.id, { ...fields, doneAt }, true)
+  if (done === undefined || done === flagOf(card, 'done')) return null
+  if (done) return completeCard(ctx.book, tree, card, ctx.now)
+
+  ctx.book.write(card.id, { done: false, doneAt: null }, true)
+
+  return null
 }
 
 /** Продолжения переносимой задачи встают за ней по порядку, перед следующей карточкой цепочки. */

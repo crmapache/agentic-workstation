@@ -18,14 +18,16 @@ import { PLACEHOLDER_WORDS } from './CardModal.constants'
 import { useCardForm } from './CardModal.hooks'
 import styles from './CardModal.module.scss'
 import type { CardModalProps } from './CardModal.types'
+import { AutoRunField } from './parts/AutoRunField'
 import { DueFields } from './parts/DueFields'
 import { PriorityField } from './parts/PriorityField'
+import { RepeatField } from './parts/RepeatField'
 import { ScenarioFields } from './parts/ScenarioFields'
 
 /**
- * Карточка целиком: заголовок, подзаголовок, описание, срок, приоритет, отметка «сделано» и
- * сценарий с его полями. Новая карточка создаётся этим же окном - задачей группы или
- * продолжением.
+ * Карточка целиком: заголовок, подзаголовок, описание, срок с повтором, приоритет, отметка
+ * «сделано», сценарий с его полями и запуск в срок. Новая карточка создаётся этим же окном -
+ * задачей группы или продолжением.
  */
 export const CardModal = (props: CardModalProps) => {
   const { t } = useTranslation()
@@ -139,15 +141,19 @@ export const CardModal = (props: CardModalProps) => {
           onChange={(value) => form.set('description', value)}
         />
         <DueFields form={form} today={today} />
+        <RepeatField form={form} today={today} now={now} />
         <div className={styles.row}>
           <PriorityField form={form} />
           <Switch
-            label={t('tracker.cardModal.done')}
+            label={form.repeat ? t('tracker.cardModal.doneRepeat') : t('tracker.cardModal.done')}
             checked={form.done}
             onChange={(done) => form.set('done', done)}
           />
         </div>
         <ScenarioFields form={form} scenarios={scenarios} />
+        {form.scenario && (
+          <AutoRunField form={form} card={props.mode === 'edit' ? props.card : null} now={now} />
+        )}
       </div>
     </Modal>
   )

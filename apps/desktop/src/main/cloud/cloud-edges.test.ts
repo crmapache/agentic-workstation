@@ -20,7 +20,7 @@ afterEach(async () => {
   await Promise.all(closers.splice(0).map((close) => close()))
 })
 
-const machine = async (cloud: FakeCloud, options: { now?: () => number; purge?: boolean } = {}) => {
+const machine = async (cloud: FakeCloud, options: { now?: () => number } = {}) => {
   const kit = await trackerKit({
     remote: 'github.com/me/app',
     ...(options.now ? { now: options.now } : {}),
@@ -119,6 +119,45 @@ describe('встречные правки двух машин', () => {
   })
 })
 
+describe('повторяющаяся карточка', () => {
+  it('две машины отметили один круг без сети - срок уходит на один шаг, а не на два', async () => {
+    // Вторник 17 ноября 2026, полдень по часам машины.
+    const now = () => new Date(2026, 10, 17, 12).getTime()
+    const cloud = new FakeCloud()
+    const mac = await machine(cloud, { now })
+    const projectId = await mac.make({ kind: 'project.create', title: 'P' })
+    const flowId = await mac.make({ kind: 'flow.create', projectId, title: 'F' })
+    const groupId = await mac.make({ kind: 'group.create', flowId, title: 'G' })
+    const card = await mac.make({
+      kind: 'card.create',
+      groupId,
+      fields: {
+        title: 'Отчёт',
+        due: { date: '2026-11-16', time: null },
+        repeat: { every: 1, unit: 'week', weekdays: [1], start: '', fromDone: false },
+      },
+    })
+
+    await mac.sync.syncOnce()
+
+    const windows = await machine(cloud, { now })
+
+    await windows.sync.syncOnce()
+    await windows.service.board(PLACE)
+    await mac.apply({ kind: 'card.update', id: card, fields: { done: true } })
+    await windows.apply({ kind: 'card.update', id: card, fields: { done: true } })
+    await mac.sync.syncOnce()
+    await windows.sync.syncOnce()
+    await mac.sync.syncOnce()
+
+    const dueOf = async (kit: typeof mac) =>
+      (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]?.due
+
+    expect(await dueOf(mac)).toEqual({ date: '2026-11-23', time: null })
+    expect(await dueOf(windows)).toEqual({ date: '2026-11-23', time: null })
+  })
+})
+
 describe('облако откатилось назад', () => {
   it('записи, которых там больше нет, уходят снова, правка проходит', async () => {
     const { cloud, mac, groupId } = await twoMachines()
@@ -149,7 +188,11 @@ describe('срок архива', () => {
     await mac.apply({ kind: 'project.archive', id: projectId })
     await mac.sync.syncOnce()
 
-    const stale = await trackerKit({ remote: 'github.com/me/app', now: () => now, purge: false })
+    const stale = await trackerKit({
+      remote: 'github.com/me/app',
+      now: () => now,
+      waitForSync: true,
+    })
 
     closers.push(() => stale.service.close())
     stale.book.absorb(
@@ -177,7 +220,7 @@ describe('срок архива', () => {
     })
 
     await sync.syncOnce()
-    stale.service.allowPurge()
+    stale.service.markSynced()
 
     expect((await stale.service.board(PLACE)).projects.map((one) => one.title)).toEqual(['Живой'])
   })

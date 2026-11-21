@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import { powerMonitor } from 'electron'
 import type { BrowserWindow } from 'electron'
 
 import { CLOUD_URL } from '@agentic-workstation/cloud-protocol/api'
@@ -13,6 +14,7 @@ import type { ScenarioService } from '../scenarios/scenario-service'
 import { ELECTRON_CIPHER } from '../storage/electron-cipher'
 import { JsonFile } from '../storage/json-file'
 import { Vault } from '../storage/vault'
+import { TrackerAutoRuns } from './tracker-auto-runs'
 import type { StoredTracker } from './tracker-book'
 import { TrackerBook } from './tracker-book'
 import { TrackerRuns } from './tracker-runs'
@@ -37,8 +39,8 @@ const cloudOnByDefault = () =>
   !process.env.AGENTIC_WORKSTATION_PROFILE_DIR || Boolean(process.env.AGENTIC_WORKSTATION_CLOUD_URL)
 
 /**
- * Трекер задач (ADR 0101) с облаком (ADR 0102) и связкой со сценариями. Поднимается после
- * сценариев: связи карточек читают их очереди.
+ * Трекер задач (ADR 0101) с облаком (ADR 0102), связкой со сценариями и запуском карточек в срок
+ * (ADR 0103). Поднимается после сценариев: связи карточек читают их очереди.
  */
 export const startTracker = async (setup: {
   dataDir: string
@@ -51,9 +53,9 @@ export const startTracker = async (setup: {
   const tracker = new TrackerService({
     book,
     events: { onBoard: (board) => broadcast('tracker:changed', board) },
-    // Срок архива считается после сверки с облаком: по устаревшей копии машина удалила бы
-    // проект, который на другой машине уже вернули.
-    purgeAfterSync: true,
+    // Срок архива и запуск в срок - после сверки с облаком: по устаревшей копии машина удалила бы
+    // проект, который на другой машине уже вернули, или запустила бы уже сделанное там.
+    waitForSync: true,
   })
   const runs = new TrackerRuns(tracker, {
     fetch: (projectPath, id, scope) => setup.scenarios.shelves.fetch(projectPath, id, scope),
@@ -61,6 +63,7 @@ export const startTracker = async (setup: {
     act: (queueId, action) => setup.scenarios.act(queueId, action),
     queues: () => setup.scenarios.queuesView().queues,
   })
+  const autoRuns = new TrackerAutoRuns(tracker, runs)
   const cloud = await CloudService.load({
     vault: await Vault.load(join(setup.dataDir, 'cloud.vault'), ELECTRON_CIPHER),
     file: new JsonFile<StoredCloud>(join(setup.dataDir, 'cloud.json')),
@@ -70,19 +73,28 @@ export const startTracker = async (setup: {
     revealKey: (key) => revealAccountKey(setup.getWindow, key),
     confirmSwitch: (from, to) => confirmAccountSwitch(setup.getWindow, from, to),
     enabledByDefault: cloudOnByDefault(),
-    onSynced: () => tracker.allowPurge(),
+    onSynced: (startedAt) => {
+      tracker.markSynced(startedAt)
+      void autoRuns.tick()
+    },
+    // Копия устарела (подъём синхронизации, обрыв связи, сон) - срок архива и запуск в срок ждут
+    // захода; облака нет или оно не может работать - сверяться не с чем, своя книга - правда.
+    onStale: () => tracker.markStale(),
+    onLocal: () => tracker.markSynced(),
   })
-  const cloudState = cloud.state()
+  // Проснулся компьютер: за сон другой мог отметить карточку - запуск в срок ждёт свежего захода.
+  const handleResume = () => cloud.wake()
 
-  // Облако выключено или не может работать (нет связки ключей, ключ потерян) - сверяться не с
-  // чем, срок архива считается по своей книге.
-  if (cloudState.status === 'off' || cloudState.status === 'error') tracker.allowPurge()
+  powerMonitor.on('resume', handleResume)
+  autoRuns.start()
 
   return {
     tracker,
     runs,
     cloud,
     shutdown: async () => {
+      powerMonitor.off('resume', handleResume)
+      await autoRuns.stop()
       await cloud.close()
       await tracker.close()
     },

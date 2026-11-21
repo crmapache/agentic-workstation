@@ -10,6 +10,7 @@ import type {
   TrackerScenario,
 } from '@shared/tracker'
 
+import { repeatView, autoRunView } from './tracker-repeat-args'
 import { timeOf } from './workstation-args'
 
 /**
@@ -34,9 +35,11 @@ export const cardView = (card: TrackerCard) => ({
   ...(card.subtitle && { subtitle: card.subtitle }),
   ...(card.description && { description: card.description }),
   ...(card.due && { due: dueText(card.due) }),
+  ...(card.repeat && { repeat: repeatView(card.repeat) }),
   priority: card.priority,
   ...(card.done && { done: true }),
   ...(card.scenario && { scenario: scenarioView(card.scenario) }),
+  ...autoRunView(card),
   ...(card.run && {
     run: { state: card.run.state, queue_id: card.run.queueId, item_id: card.run.itemId },
   }),

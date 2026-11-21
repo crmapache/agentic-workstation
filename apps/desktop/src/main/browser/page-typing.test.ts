@@ -204,6 +204,18 @@ describe('области и строки', () => {
     })
   })
 
+  it('масштаб страницы 90%: область поля пересчитана в DIP, иначе картинка уезжает с поля', () => {
+    const view = { pageX: 0, pageY: 0, clientWidth: 2133, clientHeight: 870, zoom: 0.9 }
+    const clip = fieldClip({ x: 856, y: 821, width: 1215, height: 22 }, view, 1.8)
+
+    expect(clip?.x).toBeCloseTo(844 * 0.9)
+    expect(clip?.y).toBeCloseTo(809 * 0.9)
+    expect(clip?.width).toBeCloseTo(1239 * 0.9)
+    expect(clip?.height).toBeCloseTo(46 * 0.9)
+    // Картинка: CSS-ширина на devicePixelRatio, сжатая до 1200 точек.
+    expect(clip?.scale).toBeCloseTo(1200 / (1239 * 1.8))
+  })
+
   it('переводы строк Windows и старого мака - один \\n', () => {
     expect(normalizeBreaks('a\r\nb\rc\n')).toBe('a\nb\nc\n')
     expect(isMultiline('one line')).toBe(false)

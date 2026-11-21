@@ -28,6 +28,11 @@ export type SyncReport = {
   online: boolean
   failure: CloudFailure | null
   lastSyncAt: number | null
+  /**
+   * Когда начался заход, после которого отчёт: книга сверена на этот момент. Заход, начатый до
+   * сна компьютера, свежим после пробуждения не считается. null - отчёт о сбое.
+   */
+  startedAt: number | null
 }
 
 export type CloudSyncOptions = {
@@ -244,8 +249,9 @@ export class CloudSync {
     }
   }
 
-  private report(failure: CloudFailure | null, online: boolean) {
-    if (!this.stopped) this.options.onReport({ online, failure, lastSyncAt: this.lastSyncAt })
+  private report(failure: CloudFailure | null, online: boolean, startedAt: number | null = null) {
+    if (!this.stopped)
+      this.options.onReport({ online, failure, lastSyncAt: this.lastSyncAt, startedAt })
   }
 
   private async loop() {
@@ -256,10 +262,11 @@ export class CloudSync {
       this.wake = new AbortController()
 
       try {
+        const startedAt = this.now()
         const settled = await this.syncOnce()
 
         this.failures = 0
-        this.report(null, true)
+        this.report(null, true, startedAt)
 
         if (!this.running) break
         if (!settled) {

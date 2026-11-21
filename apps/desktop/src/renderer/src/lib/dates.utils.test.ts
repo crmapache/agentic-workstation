@@ -1,6 +1,14 @@
 import { it, expect, describe } from 'vitest'
 
-import { isoDay, waitClock, momentLabel, nearDayLabel, clockOfMinutes } from './dates.utils'
+import {
+  isoDay,
+  waitClock,
+  momentLabel,
+  nearDayLabel,
+  ordinalLabel,
+  monthDayLabel,
+  clockOfMinutes,
+} from './dates.utils'
 
 const WORDS = { today: 'Today', tomorrow: 'Tomorrow', yesterday: 'Yesterday' }
 
@@ -52,5 +60,24 @@ describe('ближние дни словами', () => {
     expect(momentLabel(at(21, 18), NOW, WORDS)).toBe('Tomorrow 18:00')
     expect(momentLabel(at(24, 7, 30), NOW, WORDS)).toBe('Tue 07:30')
     expect(momentLabel(at(27, 9), NOW, WORDS)).toBe('Fri, Nov 27, 09:00')
+  })
+})
+
+describe('числа и дни повтора', () => {
+  it('число месяца словом и день года', () => {
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 31].map(ordinalLabel)).toEqual([
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '11th',
+      '12th',
+      '13th',
+      '21st',
+      '22nd',
+      '23rd',
+      '31st',
+    ])
+    expect(monthDayLabel(at(21))).toBe('Nov 21')
   })
 })

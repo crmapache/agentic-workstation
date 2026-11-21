@@ -141,9 +141,20 @@ const FIELD_SHOT_TIMEOUT_MS = 5000
 
 export type FieldPicture = { data: string; mimeType: 'image/png' }
 
-type Viewport = { pageX: number; pageY: number; clientWidth: number; clientHeight: number }
+type Viewport = {
+  pageX: number
+  pageY: number
+  clientWidth: number
+  clientHeight: number
+  /** Масштаб страницы в Chrome: CSS-пикселей в пикселе без масштаба (DIP). */
+  zoom?: number
+}
 
-/** Область картинки: поле с полями вокруг, внутри видимой части; не видно - null. */
+/**
+ * Область картинки: поле с полями вокруг, внутри видимой части; не видно - null. Коробка и окно -
+ * в CSS-пикселях, а Chrome режет снимок в DIP: при масштабе страницы не 100% (WhatsApp на 90%)
+ * область без пересчёта уезжала мимо поля, и картинка приходила пустой.
+ */
 export const fieldClip = (box: FieldBox, view: Viewport, dpr: number) => {
   const left = Math.max(0, box.x - FIELD_MARGIN)
   const top = Math.max(0, box.y - FIELD_MARGIN)
@@ -154,9 +165,17 @@ export const fieldClip = (box: FieldBox, view: Viewport, dpr: number) => {
 
   if (width < 4 || height < 4) return null
 
+  // dpr уже включает масштаб страницы, поэтому CSS-ширина на dpr - это настоящие пиксели картинки.
   const scale = Math.min(1, FIELD_SHOT_MAX_SIDE / (Math.max(width, height) * dpr))
+  const zoom = view.zoom && view.zoom > 0 ? view.zoom : 1
 
-  return { x: view.pageX + left, y: view.pageY + top, width, height, scale }
+  return {
+    x: (view.pageX + left) * zoom,
+    y: (view.pageY + top) * zoom,
+    width: width * zoom,
+    height: height * zoom,
+    scale,
+  }
 }
 
 /**

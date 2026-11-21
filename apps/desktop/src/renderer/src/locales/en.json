@@ -4394,6 +4394,58 @@
       "tomorrow": "Tomorrow",
       "yesterday": "Yesterday"
     },
+    "repeat": {
+      "label": "Repeat",
+      "none": "Does not repeat",
+      "custom": "Custom",
+      "daily_one": "Every day",
+      "daily_other": "Every {{count}} days",
+      "weekdays": "Every weekday",
+      "weekly_one": "Every week on {{days}}",
+      "weekly_other": "Every {{count}} weeks on {{days}}",
+      "monthly_one": "Every month on the {{day}}",
+      "monthly_other": "Every {{count}} months on the {{day}}",
+      "yearly_one": "Every year on {{date}}",
+      "yearly_other": "Every {{count}} years on {{date}}",
+      "after": {
+        "day_one": "A day after completion",
+        "day_other": "{{count}} days after completion",
+        "week_one": "A week after completion",
+        "week_other": "{{count}} weeks after completion",
+        "month_one": "A month after completion",
+        "month_other": "{{count}} months after completion",
+        "year_one": "A year after completion",
+        "year_other": "{{count}} years after completion"
+      },
+      "every": "Every",
+      "unit": "Unit",
+      "units": {
+        "day_one": "Day",
+        "day_other": "Days",
+        "week_one": "Week",
+        "week_other": "Weeks",
+        "month_one": "Month",
+        "month_other": "Months",
+        "year_one": "Year",
+        "year_other": "Years"
+      },
+      "days": "On days",
+      "fromDone": "Count from completion",
+      "fromDoneHint": "The next date counts from the day it is done, not from the schedule.",
+      "next": "Done moves it to {{when}}",
+      "badge": "Repeats {{rule}}"
+    },
+    "autoRun": {
+      "label": "Run at the due time on this computer",
+      "hint": "Goes to a new queue by itself at {{when}}.",
+      "needsDue": "Give the card a due date first.",
+      "passed": "The due time has passed: it starts right away.",
+      "failed": "Last time it did not start: {{reason}}",
+      "badge": "Runs at the due time",
+      "didNotStart": "Did not start",
+      "done": "The card is done: nothing to run.",
+      "sent": "Already sent for this due time: it runs again at the next one."
+    },
     "run": {
       "waiting": "{{name}} · queued",
       "running": "{{name}} · running",
@@ -4419,13 +4471,14 @@
       "hour": "Hour",
       "minute": "Minute",
       "done": "Done",
+      "doneRepeat": "Done for this time",
       "scenario": "Scenario",
       "noScenario": "No scenario",
       "inProject": "In this project",
       "inEvery": "In every project",
       "provider": "Runs on",
       "providerDefault": "Scenario's choice ({{name}})",
-      "inputsHelp": "A task card: title, subtitle, description, due date and priority. Done cards stay where they are on the board.\n\nBind a scenario to send the card to a scenario queue, alone or with its whole group. In the scenario's fields {{card}} is the whole card, {{title}}, {{subtitle}} and {{description}} its parts. They are filled in when the card is sent, so later edits reach the run. When the run is done, the card is marked done.",
+      "inputsHelp": "A task card: title, subtitle, description, due date and priority. Done cards stay where they are on the board.\n\nA repeating card works like in Todoist: marking it done moves its due date to the next time and reopens its done follow-ups. Repeat counts from the schedule, or from the day it is done.\n\nBind a scenario to send the card to a scenario queue, alone or with its whole group. In the scenario's fields {{card}} is the whole card, {{title}}, {{subtitle}} and {{description}} its parts. They are filled in when the card is sent, so later edits reach the run. When the run is done, the card is marked done.\n\nRun at the due time sends the card to a new queue by itself when its due time comes. It is kept on this computer only, so other computers do not run it too; a time missed while the IDE was closed runs when it opens.",
       "inputsHelpLabel": "About this window",
       "save": "Save",
       "create": "Add",
@@ -4497,7 +4550,8 @@
       "group": "Group deleted",
       "flow": "Flow deleted",
       "action": "Undo",
-      "close": "Close"
+      "close": "Close",
+      "repeat": "Done. Next time: {{when}}"
     },
     "cloud": {
       "button": "Cloud sync: {{status}}",
@@ -4552,7 +4606,8 @@
       "nothingToSend": "No open cards with a scenario to send.",
       "noScenario": "Bind a scenario to the card first.",
       "alreadyQueued": "This card is already in a queue.",
-      "unknown": "Something went wrong."
+      "unknown": "Something went wrong.",
+      "badRepeat": "The repeat is not valid."
     }
   }
 }

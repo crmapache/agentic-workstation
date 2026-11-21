@@ -3,17 +3,27 @@ import type {
   TrackerDue,
   TrackerCard,
   TrackerGroup,
+  TrackerRepeat,
   TrackerCardRun,
   TrackerProject,
   TrackerPriority,
+  TrackerRepeatUnit,
 } from '@shared/tracker'
 import { isInQueue } from '@shared/tracker'
+import { dayNumber, weekdayOf } from '@shared/tracker-repeat'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
 import type { NearDayWords } from '../../lib/dates.utils'
-import { daysBetween, nearDayLabel } from '../../lib/dates.utils'
-import type { TrackerNode } from './tracker.types'
+import {
+  daysBetween,
+  nearDayLabel,
+  ordinalLabel,
+  weekdayNames,
+  monthDayLabel,
+} from '../../lib/dates.utils'
+import { WORK_WEEK } from './tracker.constants'
+import type { TrackerNode, RepeatPreset } from './tracker.types'
 
 /** Местная полночь дня срока; null - не дата (главный процесс такой срок не пропускает). */
 export const dueDayOf = (due: TrackerDue): number | null => parseDay(due.date)?.getTime() ?? null
@@ -23,6 +33,17 @@ export const minutesOf = (time: string): number => {
   const [hours, minutes] = time.split(':').map(Number)
 
   return (hours ?? 0) * 60 + (minutes ?? 0)
+}
+
+/** Момент срока по часам машины: срок без времени - начало дня; null - не дата. */
+export const dueMomentOf = (due: TrackerDue): number | null => {
+  const day = dueDayOf(due)
+
+  if (day === null) return null
+
+  const minutes = minutesOf(due.time ?? '00:00')
+
+  return new Date(day).setHours(Math.floor(minutes / 60), minutes % 60, 0, 0)
 }
 
 /**
@@ -130,6 +151,58 @@ export const dueLabel = (due: TrackerDue, today: number, words: NearDayWords): s
   const date = day === null ? due.date : nearDayLabel(day, today, words)
 
   return due.time ? `${date} ${due.time}` : date
+}
+
+/** День недели начала правила (1 - понедельник … 7 - воскресенье); null - начало не дата. */
+export const startWeekday = (start: string): number | null => {
+  const day = dayNumber(start)
+
+  return day === null ? null : weekdayOf(day)
+}
+
+/**
+ * Повтор словами: ключ i18n под `tracker.repeat` и значения - всегда все (пустые, где подписи они
+ * не нужны): у разных подписей одни и те же подстановки.
+ */
+export type RepeatWords = {
+  key: RepeatPreset | `after.${TrackerRepeatUnit}`
+  values: { count: number; days: string; day: string; date: string }
+}
+
+/**
+ * Повтор словами для окна и плитки: «Every weekday», «Every 2 weeks on Mon, Thu», «Every month on
+ * the 31st», «3 days after completion». Число месяца и день года берутся от начала правила.
+ */
+export const repeatWords = (repeat: TrackerRepeat): RepeatWords => {
+  const start = parseDay(repeat.start)?.getTime() ?? null
+  const { unit, weekdays } = repeat
+  const names = weekdayNames()
+  const first = startWeekday(repeat.start)
+  const days = weekdays.length > 0 ? weekdays : first === null ? [] : [first]
+  const values = {
+    count: repeat.every,
+    days: days.map((day) => names[day - 1] ?? '').join(', '),
+    day: start === null ? '' : ordinalLabel(new Date(start).getDate()),
+    date: start === null ? '' : monthDayLabel(start),
+  }
+  const once = repeat.every === 1
+
+  if (repeat.fromDone) return { key: `after.${unit}`, values }
+  if (unit === 'week' && once && weekdays.length === 7) return { key: 'daily', values }
+  if (unit === 'week' && once && weekdays.join() === WORK_WEEK.join())
+    return { key: 'weekdays', values }
+
+  return {
+    key:
+      unit === 'day'
+        ? 'daily'
+        : unit === 'week'
+          ? 'weekly'
+          : unit === 'month'
+            ? 'monthly'
+            : 'yearly',
+    values,
+  }
 }
 
 /**

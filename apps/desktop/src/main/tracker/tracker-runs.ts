@@ -15,16 +15,19 @@ import type {
   TrackerSendRequest,
 } from '@shared/tracker'
 import { isInQueue } from '@shared/tracker'
+import { dueKey } from '@shared/tracker-repeat'
 import { expandCardText, defaultInputValue } from '@shared/tracker-text'
 
 import type { RunLink } from './tracker-book'
+import { completeCard } from './tracker-complete'
 import { TrackerError } from './tracker-fields'
 import { own, openBranch } from './tracker-guards'
-import { textOf } from './tracker-records'
+import type { TrackerRecord } from './tracker-records'
+import { flagOf, textOf } from './tracker-records'
 import type { TrackerService } from './tracker-service'
 import type { TrackerPlace } from './tracker-spaces'
 import { TrackerTree } from './tracker-tree'
-import { cardOf } from './tracker-view'
+import { cardOf, dueValue, repeatValue } from './tracker-view'
 
 /** Узкая ручка сценариев: прочитать сценарий, поставить в очередь, назвать очередь, увидеть её. */
 export type TrackerScenariosPort = {
@@ -36,6 +39,17 @@ export type TrackerScenariosPort = {
 
 /** Сколько живут связи карточек с прошедшими прогонами: дольше статус никому не нужен. */
 const KEEP_LINKS_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * Прогон закрывает тот круг, на который карточку отправили: повторяющуюся, которую за время
+ * прогона отметили руками (срок уже другой), второй раз не сдвигает. Связь без срока - из
+ * прежней версии или карточка без срока.
+ */
+const isSameRound = (card: TrackerRecord, link: RunLink): boolean => {
+  const due = dueValue(card)
+
+  return link.due === null || !repeatValue(card) || (due !== null && dueKey(due) === link.due)
+}
 
 type Prepared = { card: TrackerCard; request: Omit<ScenarioStartRequest, 'target'> }
 
@@ -57,8 +71,8 @@ export const inputsOf = (scenario: Scenario, card: TrackerCard): Record<string, 
  * Карточки трекера в очередях сценариев (ADR 0101). Отправка проверяет все карточки до первого
  * запуска и ставит их по одной в порядке доски: первая открывает очередь (или встаёт в
  * выбранную), остальные - за ней. Связь «карточка → элемент очереди» живёт только на этом
- * компьютере; когда элемент сделан, карточка отмечается выполненной - один раз: снятую потом
- * руками галочку очередь назад не ставит.
+ * компьютере; когда элемент сделан, карточка отмечается выполненной (повторяющаяся - переезжает на
+ * следующий срок) - один раз: снятую потом руками галочку очередь назад не ставит.
  */
 export class TrackerRuns {
   private states = ''
@@ -91,6 +105,7 @@ export class TrackerRuns {
     const runs = book.runs()
     const states: string[] = []
     let settled = false
+    let tree: TrackerTree | null = null
 
     for (const [cardId, link] of Object.entries(runs)) {
       const state = this.stateOf(link)
@@ -106,8 +121,12 @@ export class TrackerRuns {
       if (state === 'done') {
         const card = book.get(cardId)
 
-        if (card && card.fields.done?.[0] !== true)
-          book.write(cardId, { done: true, doneAt: this.now() }, true)
+        // Повторяющаяся карточка не гаснет, а переезжает на следующий срок - как от галочки.
+        // Удалённая тоже отмечается: «Undo» вернёт её сделанной.
+        if (card && !flagOf(card, 'done') && isSameRound(card, link)) {
+          tree ??= new TrackerTree(book.records())
+          completeCard(book, tree, card, this.now(), link.sentAt)
+        }
       }
 
       if (state === 'done' || state === 'gone') {
@@ -126,7 +145,7 @@ export class TrackerRuns {
 
   async send(place: TrackerPlace, request: TrackerSendRequest): Promise<TrackerSendOutcome> {
     const spaceId = await this.tracker.spaceOf(place)
-    const ctx = { book: this.tracker.book, spaceId, now: this.now() }
+    const ctx = { book: this.tracker.book, spaceId, projectPath: place.rootPath, now: this.now() }
     const tree = new TrackerTree(this.tracker.book.records())
     let cards: TrackerCard[]
     let groupTitle: string | null = null
@@ -139,11 +158,11 @@ export class TrackerRuns {
         cards = tree
           .tasks(group.id)
           .flatMap((task) => [task, ...tree.followUps(task.id)])
-          .map((one) => cardOf(one.record, this.tracker.book.runs(), (link) => this.stateOf(link)))
+          .map((one) => cardOf(one.record, this.tracker.local()))
           .filter((card) => card.scenario && !card.done && !isInQueue(card.run))
       } else {
         const record = own(ctx, tree, request.source.cardId, 'card')
-        const card = cardOf(record, this.tracker.book.runs(), (link) => this.stateOf(link))
+        const card = cardOf(record, this.tracker.local())
 
         if (!card.scenario) return { ok: false, code: 'noScenario', cardId: card.id }
         if (isInQueue(card.run)) return { ok: false, code: 'alreadyQueued', cardId: card.id }
@@ -233,8 +252,14 @@ export class TrackerRuns {
         itemId: outcome.itemId,
         sentAt: this.now(),
         settled: false,
+        due: item.card.due ? dueKey(item.card.due) : null,
       })
       sent.push(item.card.id)
+
+      // Карточка ушла - прежний отказ запуска в срок больше не про неё.
+      const auto = book.autoRuns()[item.card.id]
+
+      if (auto?.failure) book.setAutoRun(item.card.id, { ...auto, failure: null })
     }
 
     return {

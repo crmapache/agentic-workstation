@@ -4,12 +4,15 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
 import { useTrackerActions } from '../tracker.actions'
+import { DAY_TICK_MS } from '../tracker.constants'
+import { useDueLabel, useFailureText } from '../tracker.hooks'
 import { useTrackerStore } from '../tracker.store'
+import { useNow } from '../../../lib/now.hooks'
 import { useLayoutStore } from '../../../state/layout.store'
 
 /**
  * Карточки трекера в углу окна: отказ правки или отправки (по коду), итог отправки в очередь
- * с переходом к очередям и «Undo» только что удалённого.
+ * с переходом к очередям и «Undo» только что удалённого или сдвинутой повторяющейся карточки.
  */
 export const TrackerNotice = () => {
   const { t } = useTranslation()
@@ -19,11 +22,21 @@ export const TrackerNotice = () => {
   const offerUndo = useTrackerStore((state) => state.offerUndo)
   const showMainView = useLayoutStore((state) => state.showMainView)
   const { apply } = useTrackerActions()
+  const failureText = useFailureText()
+  // Часы идут, только пока видна подпись нового срока: окно живёт сутками, и «Tomorrow» без
+  // обновления на следующий день читалось бы неправдой.
+  const now = useNow(undo?.kind === 'repeat', DAY_TICK_MS)
+  const repeatDue = useDueLabel(
+    undo?.kind === 'repeat' ? undo.due : null,
+    new Date(now).setHours(0, 0, 0, 0),
+  )
 
-  const handleUndo = () => {
-    if (undo) void apply({ kind: 'undelete', ids: undo.ids }, undo.projectId)
-
+  const handleUndo = async () => {
     offerUndo(null)
+
+    if (undo?.kind === 'repeat') {
+      for (const op of undo.ops) await apply(op, undo.projectId)
+    } else if (undo) await apply({ kind: 'undelete', ids: undo.ids }, undo.projectId)
   }
   const handleOpenQueues = () => {
     dismiss()
@@ -34,10 +47,10 @@ export const TrackerNotice = () => {
     <>
       {undo && (
         <Toast
-          title={t(`tracker.undo.${undo.kind}`)}
+          title={t(`tracker.undo.${undo.kind}`, { when: repeatDue })}
           actions={
             <>
-              <Button variant="secondary" size="sm" onClick={handleUndo}>
+              <Button variant="secondary" size="sm" onClick={() => void handleUndo()}>
                 {t('tracker.undo.action')}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => offerUndo(null)}>
@@ -65,11 +78,7 @@ export const TrackerNotice = () => {
       {notice?.kind === 'failed' && (
         <Toast
           tone="danger"
-          title={t(`tracker.codes.${notice.code}`, {
-            defaultValue: t(`scenarios.codes.${notice.code}`, {
-              defaultValue: t('tracker.codes.unknown'),
-            }),
-          })}
+          title={failureText(notice.code)}
           actions={
             <Button variant="ghost" size="sm" onClick={dismiss}>
               {t('common.close')}

@@ -19,6 +19,16 @@ const WEEKDAY_DAY = new Intl.DateTimeFormat(LOCALE, {
   day: 'numeric',
 })
 const MONTH_YEAR = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' })
+const MONTH_DAY = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' })
+const ORDINAL = new Intl.PluralRules(LOCALE, { type: 'ordinal' })
+const ORDINAL_SUFFIX: Record<Intl.LDMLPluralRule, string> = {
+  zero: 'th',
+  one: 'st',
+  two: 'nd',
+  few: 'rd',
+  many: 'th',
+  other: 'th',
+}
 const WEEKDAY_DATE = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'short',
   month: 'short',
@@ -37,6 +47,13 @@ export const weekdayClockLabel = (ms: number): string => `${WEEKDAY.format(ms)} 
 
 /** «Tue, Nov 10». */
 export const weekdayDayLabel = (ms: number): string => WEEKDAY_DAY.format(ms)
+
+/** «Nov 21» - день года без дня недели: годовой повтор карточки. */
+export const monthDayLabel = (ms: number): string => MONTH_DAY.format(ms)
+
+/** «1st», «22nd», «31st» - число месяца словом: месячный повтор карточки. */
+export const ordinalLabel = (value: number): string =>
+  `${value}${ORDINAL_SUFFIX[ORDINAL.select(value)]}`
 
 /** «November 2026» - месяц над календарём выбора дня. */
 export const monthYearLabel = (ms: number): string => MONTH_YEAR.format(ms)

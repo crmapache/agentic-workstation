@@ -16,6 +16,30 @@ export const TRACKER_PRIORITIES: readonly TrackerPriority[] = [1, 2, 3, 4]
 /** Срок без пояса: дата `YYYY-MM-DD` и, если есть, время `HH:MM` - местные там, где смотрят. */
 export type TrackerDue = { date: string; time: string | null }
 
+/** Единица повтора: каждые N дней, недель, месяцев или лет. */
+export type TrackerRepeatUnit = 'day' | 'week' | 'month' | 'year'
+
+export const TRACKER_REPEAT_UNITS: readonly TrackerRepeatUnit[] = ['day', 'week', 'month', 'year']
+
+/** Больше этого повтор не растягивается: «раз в 999 дней» - уже не расписание. */
+export const TRACKER_REPEAT_MAX = 999
+
+/**
+ * Повтор карточки, как в Todoist (ADR 0103): сделанная повторяющаяся карточка не гаснет, а
+ * переезжает на следующий день правила. every - через сколько единиц; weekdays - дни недельного
+ * повтора (1 - понедельник … 7 - воскресенье), у других единиц пусто; start - день, от которого
+ * идёт расписание: число месяца, день года и чётность недель берутся от него, поэтому разовый
+ * перенос срока правило не сбивает. fromDone - следующий раз считается от дня выполнения, а не
+ * по расписанию («every!» в Todoist).
+ */
+export type TrackerRepeat = {
+  every: number
+  unit: TrackerRepeatUnit
+  weekdays: number[]
+  start: string
+  fromDone: boolean
+}
+
 /** Сколько живёт проект трекера в архиве до удаления. */
 export const TRACKER_ARCHIVE_DAYS = 30
 
@@ -56,15 +80,21 @@ export type TrackerCardRun = {
 export const isInQueue = (run: TrackerCardRun | null): boolean =>
   run?.state === 'waiting' || run?.state === 'running' || run?.state === 'refused'
 
-/** Поля карточки, которые правит человек или ИИ. */
+/**
+ * Поля карточки, которые правит человек или ИИ. autoRun - запускать сценарий карточки в срок на
+ * этом компьютере (ADR 0103): отметка живёт только здесь и в облако не уходит, иначе один срок
+ * запустил бы прогон на каждом компьютере.
+ */
 export type TrackerCardFields = {
   title: string
   subtitle: string
   description: string
   due: TrackerDue | null
+  repeat: TrackerRepeat | null
   priority: TrackerPriority
   done: boolean
   scenario: TrackerScenario | null
+  autoRun: boolean
 }
 
 export type TrackerCard = TrackerCardFields & {
@@ -72,6 +102,10 @@ export type TrackerCard = TrackerCardFields & {
   doneAt: number | null
   /** Прогон по карточке на этом компьютере; null - не отправлялась или давно. */
   run: TrackerCardRun | null
+  /** Почему запуск в срок не поставил карточку в очередь; null - не отказывал. */
+  autoRunFailure: TrackerSendCode | null
+  /** На нынешний срок карточка уже уходила сама: до следующего срока запуска не будет. */
+  autoRunSent: boolean
 }
 
 /** Задача группы с продолжениями слева направо. */
@@ -149,6 +183,7 @@ export type TrackerCode =
   | 'wrongBoard'
   | 'badTitle'
   | 'badDue'
+  | 'badRepeat'
   | 'badFollowUp'
   | 'badScenario'
   | 'tooLong'
@@ -156,11 +191,23 @@ export type TrackerCode =
   | 'notArchived'
 
 /**
+ * Повторяющаяся карточка отмечена сделанной: срок ушёл на следующий день правила (due), undo -
+ * правки, которые вернут как было (прежний срок и сделанные продолжения).
+ */
+export type TrackerRepeated = { cardId: string; due: TrackerDue; undo: TrackerOp[] }
+
+/**
  * Итог правки: новая доска, id созданного и id удалённого этой правкой (для «Undo» - они же
- * уходят в undelete).
+ * уходят в undelete), сдвиг повторяющейся карточки.
  */
 export type TrackerOutcome =
-  | { ok: true; board: TrackerBoard; created: string | null; removed: string[] }
+  | {
+      ok: true
+      board: TrackerBoard
+      created: string | null
+      removed: string[]
+      repeated: TrackerRepeated | null
+    }
   | { ok: false; code: TrackerCode }
 
 /**

@@ -1,4 +1,4 @@
-import type { TrackerOp } from '@shared/tracker'
+import type { TrackerOp, TrackerRepeated } from '@shared/tracker'
 import { TRACKER_LIMITS } from '@shared/tracker'
 
 import { moveCard, createCard, updateCard } from './tracker-card-ops'
@@ -9,13 +9,18 @@ import { rankBefore } from './tracker-rank'
 import { numberOf } from './tracker-records'
 import { TrackerTree } from './tracker-tree'
 
-/** Что сделала правка: id созданного и id удалённого (для «Undo»). */
-export type OpDone = { created: string | null; removed: string[] }
+/** Что сделала правка: id созданного, id удалённого и сдвиг повторяющейся (для «Undo»). */
+export type OpDone = {
+  created: string | null
+  removed: string[]
+  repeated: TrackerRepeated | null
+}
 
-const done = (created: string | null = null, removed: string[] = []): OpDone => ({
-  created,
-  removed,
-})
+const done = (
+  created: string | null = null,
+  removed: string[] = [],
+  repeated: TrackerRepeated | null = null,
+): OpDone => ({ created, removed, repeated })
 
 /** Удалить запись с потомками: отметки, а не стирание - для облака и «Undo». */
 const remove = (ctx: OpContext, tree: TrackerTree, id: string): string[] => {
@@ -164,9 +169,7 @@ const cardOps = (ctx: OpContext, tree: TrackerTree, op: TrackerOp): OpDone | nul
     case 'card.create':
       return done(createCard(ctx, tree, op))
     case 'card.update':
-      updateCard(ctx, own(ctx, tree, op.id, 'card'), op.fields)
-
-      return done()
+      return done(null, [], updateCard(ctx, tree, own(ctx, tree, op.id, 'card'), op.fields))
     case 'card.move':
       moveCard(ctx, tree, op)
 

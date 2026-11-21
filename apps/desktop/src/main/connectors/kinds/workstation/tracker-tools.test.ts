@@ -208,6 +208,44 @@ describe('трекер в инструментах самой IDE', () => {
     })
   })
 
+  it('повтор и запуск в срок словами модели: «сделано» сдвигает срок, а не гасит', async () => {
+    const { call, columns, card } = await ideOf()
+    const { groupId } = await columns()
+    const a = await card({
+      group_id: groupId,
+      title: 'Report',
+      due: '2099-01-05',
+      repeat: { unit: 'week', weekdays: ['mon', 'thu'] },
+      auto_run: true,
+      scenario: { scenario_id: 'plan' },
+    })
+    const done = await call('tracker_save_card', { id: a, done: true })
+
+    expect(done.json).toMatchObject({
+      id: a,
+      due: '2099-01-08',
+      repeat: { every: 1, unit: 'week', weekdays: ['mon', 'thu'], start: '2099-01-05' },
+      auto_run: true,
+      note: 'A repeating card: done for this time, its due moved to 2099-01-08.',
+    })
+    expect(done.json.done).toBeUndefined()
+    expect((await call('tracker_save_card', { id: a, repeat: { unit: 'hour' } })).text).toBe(
+      '"repeat.unit" is day, week, month, year',
+    )
+    expect(
+      (await call('tracker_save_card', { id: a, repeat: { unit: 'week', weekdays: ['monday'] } }))
+        .text,
+    ).toBe('"repeat.weekdays" is a list of mon, tue, wed, thu, fri, sat, sun')
+
+    const stopped = await call('tracker_save_card', { id: a, repeat: null, auto_run: false })
+
+    expect([stopped.json.repeat, stopped.json.auto_run, stopped.json.due]).toEqual([
+      undefined,
+      undefined,
+      '2099-01-08',
+    ])
+  })
+
   it('правка: только присланное, срок снимается пустым, место - только через tracker_move', async () => {
     const { call, columns, card } = await ideOf()
     const { groupId } = await columns()

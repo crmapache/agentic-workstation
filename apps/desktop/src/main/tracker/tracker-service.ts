@@ -7,7 +7,7 @@ import { applyOp } from './tracker-ops'
 import type { TrackerPlace } from './tracker-spaces'
 import { readRemote, resolveSpace, mergeTwinSpaces } from './tracker-spaces'
 import { TrackerTree } from './tracker-tree'
-import type { RunStateOf } from './tracker-view'
+import type { CardLocal, RunStateOf } from './tracker-view'
 import { boardOf, expiredArchives } from './tracker-view'
 
 export type TrackerEvents = {
@@ -21,8 +21,11 @@ export type TrackerOptions = {
   now?: () => number
   /** Адрес origin проекта: в тестах - подставной, без git. */
   remoteOf?: (rootPath: string) => Promise<string | null>
-  /** Срок архива - только после allowPurge (первой сверки с облаком), а не со старта. */
-  purgeAfterSync?: boolean
+  /**
+   * Срок архива и запуск карточек в срок - только после markSynced (первой сверки с облаком), а
+   * не со старта.
+   */
+  waitForSync?: boolean
 }
 
 /** Как часто трекер сам удаляет проекты, пролежавшие в архиве свой срок. */
@@ -42,8 +45,13 @@ export class TrackerService {
   private runStateOf: RunStateOf = () => 'gone'
   private redraw: ReturnType<typeof setTimeout> | null = null
   private readonly purging: ReturnType<typeof setInterval>
-  /** Книга сверена с облаком (или облака нет): можно удалять проекты с вышедшим сроком. */
-  private purgeReady: boolean
+  /**
+   * Книга сверена с облаком (или облака нет): можно удалять проекты с вышедшим сроком и запускать
+   * карточки в срок - по устаревшей копии машина сделала бы то, что другая уже отменила или
+   * сделала.
+   */
+  private synced: boolean
+  private staleSince = 0
 
   constructor(private readonly options: TrackerOptions) {
     this.now = options.now ?? Date.now
@@ -57,7 +65,7 @@ export class TrackerService {
 
       this.scheduleRedraw()
     })
-    this.purgeReady = options.purgeAfterSync !== true
+    this.synced = options.waitForSync !== true
     this.purgeExpired()
     this.purging = setInterval(() => this.purgeExpired(), PURGE_EVERY_MS)
     this.purging.unref()
@@ -71,6 +79,11 @@ export class TrackerService {
   setRunState(runStateOf: RunStateOf) {
     this.runStateOf = runStateOf
     this.scheduleRedraw()
+  }
+
+  /** Что о карточках знает только этот компьютер - для вида карточки. */
+  local(): CardLocal {
+    return { runs: this.book.runs(), autoRuns: this.book.autoRuns(), runState: this.runStateOf }
   }
 
   /** Пространство проекта IDE на этом компьютере (новое, если доски ещё не было). */
@@ -98,7 +111,10 @@ export class TrackerService {
     const spaceId = await this.spaceOf(place)
 
     try {
-      const done = applyOp({ book: this.book, spaceId, now: this.now() }, op)
+      const done = applyOp(
+        { book: this.book, spaceId, projectPath: place.rootPath, now: this.now() },
+        op,
+      )
 
       return { ok: true, board: this.boardIn(place.rootPath, spaceId), ...done }
     } catch (error) {
@@ -108,12 +124,29 @@ export class TrackerService {
     }
   }
 
-  /** Книга сверена с облаком: теперь срок архива считается по свежим записям. */
-  allowPurge() {
-    if (this.purgeReady) return
+  /**
+   * Книга сверена с облаком: теперь срок архива и запуск в срок считаются по свежим записям.
+   * roundStartedAt - начало захода сверки: заход, начатый раньше, чем копия устарела, не в счёт.
+   */
+  markSynced(roundStartedAt = Number.POSITIVE_INFINITY) {
+    if (this.synced || roundStartedAt < this.staleSince) return
 
-    this.purgeReady = true
+    this.synced = true
     this.purgeExpired()
+  }
+
+  /**
+   * Копия могла устареть: связь с облаком пропала или компьютер проснулся. Срок архива и запуск
+   * в срок ждут следующей сверки - за сон другой компьютер мог сделать карточку или вернуть
+   * проект.
+   */
+  markStale() {
+    this.synced = false
+    this.staleSince = this.now()
+  }
+
+  get isSynced(): boolean {
+    return this.synced
   }
 
   /** Перерисовать доски: поменялось то, что видно на карточках, но не в книге (очередь). */
@@ -129,13 +162,7 @@ export class TrackerService {
   }
 
   private boardIn(rootPath: string, spaceId: string): TrackerBoard {
-    return boardOf(
-      new TrackerTree(this.book.records()),
-      spaceId,
-      rootPath,
-      this.book.runs(),
-      this.runStateOf,
-    )
+    return boardOf(new TrackerTree(this.book.records()), spaceId, rootPath, this.local())
   }
 
   /** Перемены идут пачками (облако приносит десятки записей) - перерисовка одна. */
@@ -154,7 +181,7 @@ export class TrackerService {
   }
 
   private purgeExpired() {
-    if (!this.purgeReady) return
+    if (!this.synced) return
 
     const tree = new TrackerTree(this.book.records())
     const expired = expiredArchives(tree, this.now())

@@ -30,6 +30,12 @@ export type ShotMetrics = {
   /** Вся страница в CSS-пикселях (cssContentSize). */
   content: { width: number; height: number }
   devicePixelRatio: number
+  /**
+   * Масштаб страницы в Chrome (cssVisualViewport.zoom): CSS-пикселей в пикселе DIP. Область
+   * снимка Chrome ждёт в DIP, и при масштабе не 100% без пересчёта в картинку попадали серые
+   * полосы за краем страницы, а её правая и нижняя часть пропадали.
+   */
+  zoom?: number
 }
 
 export type ShotPlan = {
@@ -52,14 +58,16 @@ export const planScreenshot = (metrics: ShotMetrics, fullPage: boolean): ShotPla
   const width = atLeastOne(fullPage ? metrics.content.width : metrics.viewport.width)
   const total = atLeastOne(fullPage ? metrics.content.height : metrics.viewport.height)
   const height = fullPage ? Math.min(total, atLeastOne(width * FULL_PAGE_MAX_ASPECT)) : total
+  // dpr уже включает масштаб страницы: CSS-размер на dpr - настоящие пиксели картинки.
   const scale = Math.min(1, SHOT_MAX_SIDE / (Math.max(width, height) * dpr))
+  const zoom = metrics.zoom && metrics.zoom > 0 ? metrics.zoom : 1
 
   return {
     clip: {
-      x: fullPage ? 0 : metrics.viewport.x,
-      y: fullPage ? 0 : metrics.viewport.y,
-      width,
-      height,
+      x: (fullPage ? 0 : metrics.viewport.x) * zoom,
+      y: (fullPage ? 0 : metrics.viewport.y) * zoom,
+      width: width * zoom,
+      height: height * zoom,
       scale,
     },
     captureBeyondViewport: fullPage,
