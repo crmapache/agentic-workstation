@@ -81,6 +81,10 @@ export class CodexFeedBuilder implements AgentFeedBuilder {
     return false
   }
 
+  get hasWakeup(): boolean {
+    return false
+  }
+
   addUserMessage(
     id: string,
     text: string,

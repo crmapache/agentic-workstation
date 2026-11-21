@@ -32,6 +32,22 @@ export class TaskList {
     return this.entries
   }
 
+  /** Вызовы из содержимого ответа основного потока. true - список изменился. */
+  applyContent(content: unknown): boolean {
+    let changed = false
+
+    for (const block of Array.isArray(content) ? content.filter(isRecord) : []) {
+      if (block['type'] !== 'tool_use') continue
+
+      const input = recordField(block, 'input')
+      const applied = this.applyToolUse(stringField(block, 'id'), stringField(block, 'name'), input)
+
+      changed ||= applied
+    }
+
+    return changed
+  }
+
   /** Вызов инструмента. true - список изменился. */
   applyToolUse(toolUseId: string, name: string, input: Record<string, unknown>): boolean {
     if (name === 'TodoWrite') {

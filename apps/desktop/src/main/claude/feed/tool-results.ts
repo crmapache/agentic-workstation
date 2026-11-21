@@ -1,7 +1,9 @@
+import type { ToolFeedItem } from '@shared/conversation-feed'
+
 import type { CliMessage } from '../cli/cli-messages'
 import { stringField } from '../cli/cli-messages'
 import type { FeedStore } from '../../agents/feed/feed-store'
-import type { AgentTasks } from './agent-tasks'
+import type { ProcessBackground } from './process-background'
 import type { TaskList } from './task-list'
 import { wasRejected, buildToolResult } from './tool-result'
 
@@ -18,8 +20,9 @@ type Orphan = {
 
 /**
  * Результаты вызовов из строк `user`: статус, вывод, время конца. Субагент, ушедший в
- * фон, - не результат, а запуск: он отчитается уведомлением. Результат без своего вызова
- * в ленте (вызов выше прочитанного куска транскрипта) ждёт, пока подгрузят страницу.
+ * фон, - не результат, а запуск: он отчитается уведомлением; будильник агента - результат,
+ * после которого процесс ещё разбудит агента. Результат без своего вызова в ленте (вызов
+ * выше прочитанного куска транскрипта) ждёт, пока подгрузят страницу.
  */
 export class ToolResults {
   private readonly orphans = new Map<string, Orphan>()
@@ -27,7 +30,7 @@ export class ToolResults {
   constructor(
     private readonly store: FeedStore,
     private readonly taskList: TaskList,
-    private readonly agents: AgentTasks,
+    private readonly background: ProcessBackground,
   ) {}
 
   /** Результаты одной строки. true - поменялся список задач. */
@@ -95,18 +98,20 @@ export class ToolResults {
     const result = buildToolResult(block, structured)
 
     // Агент или флот ушёл в фон: работа идёт, отчёт придёт уведомлением (task_notification).
-    if (this.agents.onToolResult(item, result.text)) return false
+    if (this.background.agents.onToolResult(item, result.text)) return false
 
     const rejected =
       wasRejected(message, id) || (result.isError && REJECTION_TEXT.test(result.text))
-
-    this.store.put({
+    const done: ToolFeedItem = {
       ...item,
       status: rejected ? 'denied' : result.isError ? 'error' : 'done',
       result,
       endedAt: at,
       closedReason: null,
-    })
+    }
+
+    this.store.put(done)
+    this.background.wakeup.onToolResult(done, structured, at)
 
     return this.taskList.applyToolResult(id, structured, result.text)
   }

@@ -11,7 +11,13 @@ const NOW = 1_000_000_000
 
 /** Вкладка ровно с тем, что продолжению нужно: поля, лента, очередь, отправка. */
 const fakeRuntime = (
-  change: { isFree?: boolean; spoken?: boolean; commands?: boolean; agents?: boolean } = {},
+  change: {
+    isFree?: boolean
+    spoken?: boolean
+    commands?: boolean
+    agents?: boolean
+    wakeup?: boolean
+  } = {},
 ) => {
   const sent: Outgoing[] = []
   const released: number[] = []
@@ -24,6 +30,7 @@ const fakeRuntime = (
       builder: {
         hasBackgroundWork: change.agents ?? false,
         hasBackgroundCommands: change.commands ?? false,
+        hasWakeup: change.wakeup ?? false,
         items: change.spoken === false ? [] : [{ kind: 'user' }],
       },
     },
@@ -116,15 +123,19 @@ describe('продолжение после лимита: путь целико�
 })
 
 describe('продолжение после перезапуска', () => {
-  it('оборванная фоновая команда - продолжить словами о погибшем фоне', () => {
-    const { asRuntime, sent } = fakeRuntime({ commands: true })
-    const desk = deskFor(asRuntime)
+  it('оборванная фоновая команда или будильник - продолжить словами о погибшем фоне', () => {
+    for (const { asRuntime, sent } of [
+      fakeRuntime({ commands: true }),
+      fakeRuntime({ wakeup: true }),
+    ]) {
+      const desk = deskFor(asRuntime)
 
-    desk.oweRestart(asRuntime, NOW)
-    desk.sayNext(asRuntime, NOW)
+      desk.oweRestart(asRuntime, NOW)
+      desk.sayNext(asRuntime, NOW)
 
-    expect(sent[0]?.auto).toBe('restart')
-    expect(sent[0]?.text).toContain('agents and commands you had running in the background')
+      expect(sent[0]?.auto).toBe('restart')
+      expect(sent[0]?.text).toContain('(agents, commands, a scheduled wakeup) did not survive')
+    }
   })
 
   it('агент, которого давно не слышно, - не повод; без фона перезапуск ничего не должен', () => {

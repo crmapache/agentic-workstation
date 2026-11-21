@@ -120,6 +120,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Знак будильника - тише имени: он подсказывает вид чипа, а не спорит с ним.
+.wakeIcon {
+  flex-shrink: 0;
+  color: var(--color-fg-subtle);
+}
+
 // Чем занят агент - своей мерой с многоточием: полное - в подсказке.
 .meta {
   @include truncate;

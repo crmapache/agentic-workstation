@@ -88,6 +88,10 @@ export class AcpFeedBuilder implements AgentFeedBuilder {
     return false
   }
 
+  get hasWakeup(): boolean {
+    return false
+  }
+
   addUserMessage(
     id: string,
     text: string,

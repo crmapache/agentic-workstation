@@ -10,6 +10,22 @@ export const commandLabel = (command: string): string => {
   return second && !second.startsWith('-') ? `${name} ${second}` : name
 }
 
+/**
+ * Сколько осталось до будильника - грубо и вверх: «45s», «14m», «1h 05m». Секунды нужны
+ * только в последнюю минуту; прошедший срок - ноль (CLI вот-вот начнёт ход).
+ */
+export const formatCountdown = (ms: number): string => {
+  const seconds = Math.max(0, Math.ceil(ms / 1000))
+
+  if (seconds < 60) return `${seconds}s`
+
+  const minutes = Math.ceil(seconds / 60)
+
+  return minutes < 60
+    ? `${minutes}m`
+    : `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+}
+
 /** Шаг цепочки кончился: `&&` и `||` остаются в конце строки, `;` уходит в перевод строки. */
 const STEP_JOINERS = ['&&', '||'] as const
 

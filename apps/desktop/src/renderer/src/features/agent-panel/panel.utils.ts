@@ -36,6 +36,10 @@ export const formatDuration = (ms: number): string => {
   return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m ${pad(total % 60)}s`
 }
 
+/** Время по часам, как его называют люди: «1:18 PM». */
+export const formatClock = (at: number): string =>
+  new Date(at).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })
+
 /** Число токенов коротко: «950», «12.4k», «1.2M». */
 export const formatTokens = (tokens: number): string => {
   if (tokens < 1000) return String(tokens)

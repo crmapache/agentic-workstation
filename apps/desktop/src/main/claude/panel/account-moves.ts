@@ -16,8 +16,8 @@ export type MovesHost = {
  * вход один раз, при старте, поэтому переезд - новый процесс над тем же транскриптом.
  * Идущий ход прерывается (иначе минуты оплачивала бы покинутая подписка), переезд - по
  * его концу, а упрямый процесс через 8 секунд снимается; потом панель продолжает сама.
- * Простаивающая вкладка с фоновыми агентами или командами меняется сразу - и продолжает:
- * фон погиб с процессом, агент запустит заново то, что ему ещё нужно. Та же подписка под
+ * Простаивающая вкладка с фоновыми агентами, командами или будильником меняется сразу - и
+ * продолжает: фон погиб с процессом, агент запустит заново то, что ему ещё нужно. Та же подписка под
  * другой строкой (склейка дублей) ход не рвёт.
  */
 export class AccountMoves {
@@ -51,11 +51,11 @@ export class AccountMoves {
       if (this.gentle || this.forced.has(id)) continue
 
       const { builder } = claudeOf(runtime).feed
+      const holds = builder.hasBackgroundWork || builder.hasBackgroundCommands || builder.hasWakeup
 
       if (runtime.turnActive) this.interrupt(runtime)
-      else if (builder.hasBackgroundWork || builder.hasBackgroundCommands) {
-        this.swapQuietly(runtime, now)
-      } else this.host.carryOn.sayNext(runtime, now)
+      else if (holds) this.swapQuietly(runtime, now)
+      else this.host.carryOn.sayNext(runtime, now)
     }
   }
 
@@ -71,8 +71,8 @@ export class AccountMoves {
   }
 
   /**
-   * Ход кончился: вкладка, прерванная ради переезда, ещё на старом процессе (держали
-   * фоновые агенты или команды) - снять его. Слова продолжения скажут и про фон.
+   * Ход кончился: вкладка, прерванная ради переезда, ещё на старом процессе (держал фон:
+   * агенты, команды, будильник) - снять его. Слова продолжения скажут и про фон.
    */
   afterTurn(runtime: ConversationRuntime): Promise<void> {
     const timer = this.forced.get(runtime.meta.id)
@@ -110,8 +110,8 @@ export class AccountMoves {
   }
 
   /**
-   * Простаивающая вкладка с фоновыми агентами или командами: процесс меняется сейчас, фон
-   * гибнет с ним - лента называет причину, и если он ещё работал, панель говорит агенту
+   * Простаивающая вкладка с фоновыми агентами, командами или будильником: процесс меняется
+   * сейчас, фон гибнет с ним - лента называет причину, и если он ещё работал, панель говорит агенту
    * продолжить. Долг - до остановки: она снимает учёт фона.
    */
   private swapQuietly(runtime: ConversationRuntime, now: number) {

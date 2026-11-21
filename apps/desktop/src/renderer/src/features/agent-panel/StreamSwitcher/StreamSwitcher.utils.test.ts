@@ -1,11 +1,21 @@
 import { it, expect, describe } from 'vitest'
 
-import { commandLabel, commandSteps } from './StreamSwitcher.utils'
+import { commandLabel, commandSteps, formatCountdown } from './StreamSwitcher.utils'
 
 describe('команда на чипе', () => {
   it('двумя словами, без пути программы и флагов', () => {
     expect(commandLabel('pnpm dev --port 5315')).toBe('pnpm dev')
     expect(commandLabel('/usr/local/bin/sandbox.sh -v')).toBe('sandbox.sh')
+  })
+})
+
+describe('до будильника', () => {
+  it('вверх и грубо: секунды - только в последнюю минуту, прошедшее - ноль', () => {
+    expect(formatCountdown(44_200)).toBe('45s')
+    expect(formatCountdown(60_000)).toBe('1m')
+    expect(formatCountdown(13 * 60_000 + 1_000)).toBe('14m')
+    expect(formatCountdown(65 * 60_000)).toBe('1h 05m')
+    expect(formatCountdown(-3_000)).toBe('0s')
   })
 })
 

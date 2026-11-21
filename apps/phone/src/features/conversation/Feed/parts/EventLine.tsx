@@ -13,9 +13,12 @@ import { clockText } from '../../../../lib/time.utils'
 const eventText = (t: ReturnType<typeof useTranslation>['t'], item: FeedItemWire): string => {
   switch (item.kind) {
     case 'notice':
+      // У пропавшего будильника подробность - его срок (мс): человеку - время по часам.
       return [
         t(`feed.notice.${text(item, 'code')}`, { defaultValue: text(item, 'code') }),
-        text(item, 'detail'),
+        text(item, 'code') === 'wakeup-lost'
+          ? clockText(Number(text(item, 'detail')))
+          : text(item, 'detail'),
       ]
         .filter(Boolean)
         .join(': ')

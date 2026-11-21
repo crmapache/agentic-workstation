@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { FAST_REASON_KEYS } from '../NoticeRow.constants'
 import styles from '../NoticeRow.module.scss'
 import type { NoticeItemProps } from '../NoticeRow.types'
+import { formatClock } from '../../panel.utils'
 import { LabelRow } from './LabelRow'
 
 /**
  * Отметки с подписью, как в ACC: SESSION - процесс упал (с кодом выхода и причиной из
  * stderr), FAST - быстрый режим не включился и почему, SETTINGS - репозиторий перебивает
  * выбранный аккаунт: чьи имена, без значений. CONNECTORS - процесс поднялся без
- * коннекторов IDE. BACKGROUND - фоновая команда погибла с процессом: её чип пропал, а
- * агент, который ждал её отчёта, иначе ждал бы молча.
+ * коннекторов IDE. BACKGROUND - фоновая команда или будильник агента погибли с процессом:
+ * их чип пропал, а агент, который ждал отчёта или пробуждения, иначе ждал бы молча.
  */
 export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
   const { t } = useTranslation()
@@ -37,13 +38,19 @@ export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
     )
   }
 
-  if (item.code === 'command-lost') {
+  if (item.code === 'command-lost' || item.code === 'wakeup-lost') {
     const why = item.subject === 'restarted' ? 'restarted' : 'exited'
 
     return (
       <LabelRow label={t('agentPanel.notice.commandLost.label')} tone="warning">
-        {t(`agentPanel.notice.commandLost.${why}`)}{' '}
-        <span className={styles.modelTo}>{item.detail}</span>
+        {item.code === 'wakeup-lost' ? (
+          t(`agentPanel.notice.wakeupLost.${why}`, { clock: formatClock(Number(item.detail)) })
+        ) : (
+          <>
+            {t(`agentPanel.notice.commandLost.${why}`)}{' '}
+            <span className={styles.modelTo}>{item.detail}</span>
+          </>
+        )}
       </LabelRow>
     )
   }

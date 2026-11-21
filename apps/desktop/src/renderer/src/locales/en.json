@@ -2168,6 +2168,9 @@
         "stopAgentTitle": "Stop this agent?",
         "stopCommand": "Stop this command",
         "stopCommandTitle": "Stop this command?",
+        "wakeup": "wake",
+        "wakeIn": "in {{duration}}",
+        "wakeupTitle": "Wakes the agent at {{clock}}",
         "cancel": "Cancel",
         "stop": "Stop"
       },
@@ -2608,6 +2611,10 @@
         "label": "BACKGROUND",
         "restarted": "{{cli}} was restarted here, and this background command stopped with it:",
         "exited": "{{cli}} stopped, and this background command stopped with it:"
+      },
+      "wakeupLost": {
+        "restarted": "{{cli}} was restarted here, and the wakeup the agent set for {{clock}} was lost with it.",
+        "exited": "{{cli}} stopped, and the wakeup the agent set for {{clock}} was lost with it."
       }
     },
     "permission": {
@@ -3314,7 +3321,7 @@
       "why": {
         "accountSwitch": "Not written by you: switching the account cut the turn short, and the panel carried it on by itself",
         "limit": "Not written by you: the usage limit stopped the turn, and the panel carried it on once it could go on",
-        "restart": "Not written by you: Claude Code was restarted under the conversation and its background agents and commands were lost, so the panel told it to carry on"
+        "restart": "Not written by you: Claude Code was restarted under the conversation and its background work (agents, commands, a scheduled wakeup) was lost, so the panel told it to carry on"
       }
     },
     "loginGate": {

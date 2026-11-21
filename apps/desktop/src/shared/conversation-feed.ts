@@ -215,11 +215,12 @@ export type CliTaskOutcome = 'completed' | 'failed' | 'stopped'
 
 /**
  * Задача CLI за вызовом: субагент (Task, Agent или поднятый скиллом), флот workflow,
- * фоновая команда Bash. taskId - имя задачи у CLI, им её останавливают (stop_task).
+ * фоновая команда Bash, будильник, который агент поставил себе (wakeup). taskId - имя
+ * задачи у CLI, им её останавливают (stop_task); у будильника его нет.
  */
 export type CliTask = {
   taskId: string
-  kind: 'agent' | 'workflow' | 'command'
+  kind: 'agent' | 'workflow' | 'command' | 'wakeup'
   /** Ушла в фон: ход её не ждёт, конец придёт уведомлением. */
   background: boolean
   /** Когда CLI сообщил начало и конец (мс); 0 - ещё не было. */
@@ -239,6 +240,8 @@ export type CliTask = {
   outcome: CliTaskOutcome | null
   /** Итог словами CLI (summary уведомления). */
   summary: string
+  /** Будильник: когда CLI разбудит агента (мс); activity - с чем разбудит. */
+  dueAt?: number | undefined
 }
 
 /** Разговор агента флота с диска: задание, шаги, ответ. found false - файла нет. */
@@ -354,6 +357,8 @@ export type NoticeCode =
    * (ClosedReason: restarted - перезапуск или переезд на аккаунт, exited - процесс кончился).
    */
   | 'command-lost'
+  /** Будильник агента пропал с процессом CLI: detail - его срок (мс), subject - как у command-lost. */
+  | 'wakeup-lost'
 
 export type NoticeFeedItem = FeedItemBase & {
   kind: 'notice'

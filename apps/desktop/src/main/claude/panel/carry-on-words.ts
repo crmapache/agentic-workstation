@@ -7,8 +7,8 @@ import { CARRY_ON_TAG } from './panel.constants'
 /**
  * Что панель говорит в разговор сама, когда работа встала по ничьей причине (как в ACC,
  * CarryOnWords). Слова говорят агенту правду: прерывание - смена аккаунта, а не просьба
- * остановиться; лимит сбросился или разговор переехал; фоновые агенты и команды погибли.
- * Интерфейс IDE только английский - и слова тоже.
+ * остановиться; лимит сбросился или разговор переехал; фоновые агенты, команды и будильник
+ * погибли. Интерфейс IDE только английский - и слова тоже.
  */
 
 const AFTER_ACCOUNT_SWITCH =
@@ -23,9 +23,9 @@ const AFTER_LIMIT_MOVED =
   'Carry on from where you stopped.'
 
 const AFTER_RESTART =
-  'Claude Code was restarted under this conversation, and the agents and commands you had ' +
-  'running in the background did not survive it. Start again whatever you still need of ' +
-  'them, and carry on.'
+  'Claude Code was restarted under this conversation, and what you had in the background ' +
+  '(agents, commands, a scheduled wakeup) did not survive it. Start or schedule again ' +
+  'whatever you still need of it, and carry on.'
 
 const HELPERS_LOST =
   'Anything you had running in the background did not survive a restart of Claude Code: start ' +

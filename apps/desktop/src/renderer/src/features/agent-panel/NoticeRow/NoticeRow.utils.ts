@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 
 import type { LimitFeedItem, RetryFeedItem, CompactFeedItem } from '@shared/conversation-feed'
 
-import { formatTokens, formatDuration } from '../panel.utils'
+import { formatClock, formatTokens, formatDuration } from '../panel.utils'
 import {
   LIMIT_WINDOW_KEYS,
   RETRY_REASON_KEYS,
@@ -71,8 +71,7 @@ export const untilReset = (resetsAt: number, now: number): string | null => {
 }
 
 /** Время сброса по часам: с этим сравнивают свой день. */
-export const resetClock = (resetsAt: number): string =>
-  new Date(resetsAt).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })
+export const resetClock = (resetsAt: number): string => formatClock(resetsAt)
 
 /** Имя окна лимита: известное - словами, незнакомое - как назвал CLI, пустое - без имени. */
 export const limitWindow = (t: TFunction, item: LimitFeedItem): string => {

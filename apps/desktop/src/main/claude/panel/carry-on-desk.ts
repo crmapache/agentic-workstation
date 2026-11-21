@@ -80,15 +80,17 @@ export class CarryOnDesk {
 
   /**
    * Перезапуск убил фон, который ещё работал, - задолжать продолжение. Агентов - если их
-   * недавно слышали (молчаливый мог кончиться без отчёта); команду - всегда: её конец CLI
-   * сообщает всегда, и в учёте она только живая. Звать до остановки: она снимает учёт.
+   * недавно слышали (молчаливый мог кончиться без отчёта); команду и будильник - всегда: в
+   * учёте они только живые. Звать до остановки: она снимает учёт.
    */
   oweRestart(runtime: ConversationRuntime, now: number): void {
     const { id } = runtime.meta
     const { builder } = runtime.feed
     const agents = helpersAtWork(builder.hasBackgroundWork, this.helpersHeard.get(id) ?? 0, now)
 
-    if (agents || builder.hasBackgroundCommands) this.owe(id, owedFor('restart'))
+    if (agents || builder.hasBackgroundCommands || builder.hasWakeup) {
+      this.owe(id, owedFor('restart'))
+    }
   }
 
   /**

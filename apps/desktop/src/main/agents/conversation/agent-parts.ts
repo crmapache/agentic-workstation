@@ -44,6 +44,8 @@ export type AgentFeedBuilder = {
   readonly hasBackgroundWork: boolean
   /** Идут фоновые команды: процесс не засыпает, пока они живы. */
   readonly hasBackgroundCommands: boolean
+  /** Агент поставил себе будильник, и он ещё не сработал: его держит процесс. */
+  readonly hasWakeup: boolean
   noteStopped: (reason?: StopReason) => void
   abortTurn: (code: NoticeCode, detail: string) => void
   abortBackground: (reason?: ClosedReason) => void

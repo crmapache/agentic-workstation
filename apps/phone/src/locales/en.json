@@ -438,7 +438,8 @@
       "model-stuck": "The chosen model did not apply",
       "connectors-missing": "Connectors are not available",
       "model-swap": "Model changed",
-      "command-lost": "A background command stopped with the agent"
+      "command-lost": "A background command stopped with the agent",
+      "wakeup-lost": "The wakeup the agent set was lost with it"
     },
     "tooBig": "Too large to show on the phone. It is in full in the IDE.",
     "kinds": {

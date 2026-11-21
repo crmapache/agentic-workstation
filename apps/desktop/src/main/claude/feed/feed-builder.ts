@@ -18,9 +18,9 @@ import { isRecord, numberField, recordField, stringField } from '../cli/cli-mess
 import { FeedStore } from '../../agents/feed/feed-store'
 import { TurnTracker } from '../../agents/feed/turn-tracker'
 import { WorkClock } from '../../agents/feed/work-clock'
-import { AgentTasks } from './agent-tasks'
 import { AssistantBlocks } from './assistant-blocks'
 import { lineTime } from './line-time'
+import { ProcessBackground } from './process-background'
 import { leftQuestion, replayedUser, assistantText, replayedQueued } from './replayed-user'
 import { ServiceRows } from './service-rows'
 import { TaskList } from './task-list'
@@ -57,9 +57,14 @@ export class FeedBuilder {
   private readonly blocks = new AssistantBlocks(this.store)
   /** Ходы: начало текущего, последний итог с файлами хода. */
   private readonly turns = new TurnTracker(this.store, (items) => turnChanges(items))
-  /** Субагенты, флоты и фоновые команды (task_*): ждут уведомления, а не конца хода. */
-  private readonly agents = new AgentTasks(this.store)
-  private readonly results = new ToolResults(this.store, this.taskList, this.agents)
+  /** Фон процесса: субагенты, флоты, команды (task_*) и будильник агента - живут дольше хода. */
+  private readonly background = new ProcessBackground(
+    this.store,
+    (code, detail, extra) => this.addNotice(code, detail, extra),
+    () => !this.replaying,
+  )
+  private readonly agents = this.background.agents
+  private readonly results = new ToolResults(this.store, this.taskList, this.background)
   private readonly service = new ServiceRows({
     store: this.store,
     nextId: (prefix) => this.nextId(prefix),
@@ -78,7 +83,7 @@ export class FeedBuilder {
     now: () => this.now(),
     nextId: (prefix) => this.nextId(prefix),
     addNotice: (code, detail, extra) => this.addNotice(code, detail, extra),
-    release: (reason, at) => this.releaseBackground(reason, at),
+    release: (reason, at) => this.background.release(reason, at),
   })
   /** Список задач до каждого сообщения человека: откат к сообщению возвращает его. */
   private readonly tasksBefore = new Map<string, TaskEntry[]>()
@@ -192,13 +197,6 @@ export class FeedBuilder {
     this.store.put(item)
   }
 
-  /** Фон ушёл с процессом: агенты закрыты с причиной, каждая оборванная команда - отметкой. */
-  private releaseBackground(reason: ClosedReason, at: number) {
-    for (const name of this.agents.release(reason, at)) {
-      this.addNotice('command-lost', name, { subject: reason })
-    }
-  }
-
   addNotice(code: NoticeCode, detail = '', extra: NoticeExtra = {}): void {
     this.store.put({
       kind: 'notice',
@@ -214,6 +212,7 @@ export class FeedBuilder {
   /** Конец хода по `result` (turn-closer.ts). interrupted - ход останавливали. */
   finishTurn(result: CliMessage, interrupted: boolean): void {
     this.closer.finish(result, interrupted)
+    this.background.wakeup.noteTurn(this.now())
   }
 
   /** Ход кончился без `result` (turn-closer.ts): незаконченное закрыто, итога нет. */
@@ -239,12 +238,17 @@ export class FeedBuilder {
     return this.agents.hasCommands
   }
 
+  /** Агент поставил себе будильник: его держит процесс CLI, сон и перезапуск убили бы его. */
+  get hasWakeup(): boolean {
+    return this.background.wakeup.isSet
+  }
+
   /**
-   * Процесс ушёл между ходами: фоновые субагенты и команды умерли вместе с ним. reason -
-   * почему: умер сам или заменён нарочно (аккаунт, MCP).
+   * Процесс ушёл между ходами: фоновые субагенты, команды и будильник умерли вместе с ним.
+   * reason - почему: умер сам или заменён нарочно (аккаунт, MCP).
    */
   abortBackground(reason: ClosedReason = 'exited'): void {
-    this.releaseBackground(reason, this.now())
+    this.background.release(reason, this.now())
   }
 
   /** Ход оборвался без `result` (процесс умер): незаконченное помечается прерванным. */
@@ -279,7 +283,7 @@ export class FeedBuilder {
    * Вопрос, на котором разговор оборвался, запоминается: он оживает над полем.
    */
   finishReplay(): void {
-    this.agents.forget()
+    this.background.forget()
     this.abandoned = leftQuestion(this.store.items)
     this.closer.closeOpenWork('replay', true, this.now())
   }
@@ -302,7 +306,7 @@ export class FeedBuilder {
     }
 
     page.results.adopt(this.results)
-    page.agents.forget()
+    page.background.forget()
     page.closer.closeOpenWork('replay', true, this.now())
     page.results.handOver(this.results)
     this.store.prepend(page.items)
@@ -345,19 +349,11 @@ export class FeedBuilder {
 
     this.blocks.applyMessage(body, parent, at)
 
-    if (parent !== null || !Array.isArray(body['content'])) return
+    if (parent !== null) return
 
-    for (const block of body['content'].filter(isRecord)) {
-      if (block['type'] !== 'tool_use') continue
+    const changed = this.taskList.applyContent(body['content'])
 
-      const changed = this.taskList.applyToolUse(
-        stringField(block, 'id'),
-        stringField(block, 'name'),
-        recordField(block, 'input'),
-      )
-
-      this.tasksChanged ||= changed
-    }
+    this.tasksChanged ||= changed
   }
 
   private applyUser(message: CliMessage, replay: boolean, at: number) {
@@ -410,9 +406,11 @@ export class FeedBuilder {
     const isMainInit = message.subtype === 'init' && message['task_id'] === undefined
 
     if (isMainInit && !this.replaying) {
-      // Ход, поднятый без нашего сообщения (отчитался фоновый агент), - тоже работа.
+      // Ход, поднятый без нашего сообщения (отчитался фоновый агент, сработал будильник), -
+      // тоже работа.
       this.work.begin(at)
       this.service.noteFast(message)
+      this.background.wakeup.noteTurn(at)
     } else if (message.subtype === 'thinking_tokens') {
       this.blocks.noteThinkingTokens(numberField(message, 'estimated_tokens'))
     } else {

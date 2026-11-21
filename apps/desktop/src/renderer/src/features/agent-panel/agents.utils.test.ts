@@ -14,6 +14,7 @@ import {
   streamAgents,
   pendingAgents,
   commandEndText,
+  pendingWakeups,
   fleetAgentFacts,
   runningCommands,
   selectedStreamOf,
@@ -111,6 +112,25 @@ describe('чипы потоков', () => {
 
     expect(streamAgents(items, 'b').map((item) => item.id)).toEqual(['a', 'b'])
     expect(runningCommands(items).map((item) => item.id)).toEqual(['cmd'])
+  })
+
+  it('будильник - пока не сработал и не пропал', () => {
+    const wakeup = task({ kind: 'wakeup', dueAt: 5_000 })
+    const call = (id: string, over: Partial<ToolFeedItem> = {}) =>
+      tool(id, 'ScheduleWakeup', {
+        status: 'done',
+        action: { kind: 'other', target: '', path: '' },
+        ...over,
+      })
+    const items: FeedItem[] = [
+      call('w1', { task: { ...wakeup, outcome: 'completed' } }),
+      call('w2', { task: wakeup }),
+      call('w3'),
+    ]
+
+    expect(pendingWakeups(items).map((item) => item.id)).toEqual(['w2'])
+    expect(runningCommands(items)).toEqual([])
+    expect(streamAgents(items, null)).toEqual([])
   })
 
   it('выбор, чьего вызова больше нет в ленте, - это main', () => {

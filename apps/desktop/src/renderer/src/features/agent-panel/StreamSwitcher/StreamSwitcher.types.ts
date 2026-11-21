@@ -39,6 +39,15 @@ export type StopTaskDialogProps = {
   onClose: () => void
 }
 
+export type WakeupChipProps = {
+  tool: ToolFeedItem
+}
+
+export type WakeCountdownProps = {
+  /** Когда CLI разбудит агента (мс). */
+  dueAt: number
+}
+
 export type ChipClockProps = {
   /** С какого момента считать (мс); 0 - не известно, времени не будет. */
   startedAt: number

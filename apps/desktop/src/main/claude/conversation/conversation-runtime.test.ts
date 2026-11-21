@@ -496,6 +496,43 @@ describe('отложенный перезапуск', () => {
     expect(fake.stop).toHaveBeenCalled()
   })
 
+  it('будильник агента держит сон и перезапуск, пока CLI не начнёт ход по нему', async () => {
+    vi.useFakeTimers()
+
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const dueAt = Date.now() + IDLE_SLEEP_MS * 2
+
+    nextProcess(fake)
+    await runtime.send(msg('wait for the check'))
+    receive(runtime, fake, {
+      type: 'assistant',
+      message: {
+        id: 'm1',
+        content: [
+          { type: 'tool_use', id: 'wk', name: 'ScheduleWakeup', input: { prompt: 'go on' } },
+        ],
+      },
+    })
+    receive(runtime, fake, {
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'wk', content: 'Next wakeup' }] },
+      tool_use_result: { scheduledFor: dueAt },
+    })
+    receive(runtime, fake, { type: 'result', num_turns: 2, result: 'waiting', total_cost_usd: 0 })
+    runtime.restartSession()
+    await vi.advanceTimersByTimeAsync(IDLE_SLEEP_MS * 1.5)
+
+    expect(fake.stop).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(IDLE_SLEEP_MS)
+    // Будильник сработал: CLI сам начал ход и кончил его - отложенный перезапуск проходит.
+    receive(runtime, fake, { type: 'system', subtype: 'init', session_id: 's1' })
+    receive(runtime, fake, { type: 'result', num_turns: 1, result: 'awake', total_cost_usd: 0 })
+
+    expect(fake.stop).toHaveBeenCalled()
+  })
+
   it('переезд на аккаунт фоновую команду не ждёт: гасит, говорит о ней и велит продолжить', async () => {
     const runtime = makeRuntime({ value: true })
     const first = fakeProcess()
