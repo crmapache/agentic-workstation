@@ -1,14 +1,8 @@
 import { it, expect, describe } from 'vitest'
 
+import { autoScrollStep } from './drag-gesture.utils'
 import type { TabSlot } from './tab-drag.types'
-import {
-  beforeOf,
-  nextPlace,
-  shiftsFor,
-  clampOffset,
-  landingOffset,
-  autoScrollStep,
-} from './tab-drag.utils'
+import { beforeOf, nextPlace, shiftsFor, clampOffset, landingOffset } from './tab-drag.utils'
 
 /** Три вкладки по 100 пикселей с зазором 4: 0-100, 104-204, 208-308. */
 const SLOTS: TabSlot[] = [

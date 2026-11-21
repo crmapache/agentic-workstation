@@ -2,7 +2,7 @@ import type { ServerResponse, IncomingMessage } from 'node:http'
 import { createServer } from 'node:http'
 
 import { SignatureDesk } from './auth.ts'
-import { clientIp } from './callers.ts'
+import { clientIp, ANONYMOUS } from './callers.ts'
 import { Catalog } from './catalog.ts'
 import type { Config } from './config.ts'
 import { STORE_VERSION } from './config.ts'
@@ -87,10 +87,12 @@ export const createStore = (
     if (url.pathname === '/v1/info')
       return send(response, { status: 200, json: { version: STORE_VERSION, build: config.build } })
 
-    const ip = clientIp(request, config.trustProxy)
+    const ip = clientIp(request, request.socket.remoteAddress, config.trustProxy)
     const limit = method === 'GET' ? reads : writes
 
-    if (!limit.take(ip)) {
+    // Анонимного (прокси, не назвавший звонящего) предел «на адрес» не держит: одна корзина на
+    // всех отказывала бы всем разом (callers.ts).
+    if (ip !== ANONYMOUS && !limit.take(ip)) {
       return send(response, {
         status: 429,
         json: { error: 'rate-limited', message: 'Too many requests, try later.' },

@@ -30,6 +30,11 @@ const rankedOf = (record: TrackerRecord): Ranked => ({
 export class TrackerTree {
   private readonly byId = new Map<string, TrackerRecord>()
   private readonly kids = new Map<string, TrackerRecord[]>()
+  /** Задачи по группам и цепочки по задачам - один проход на дерево, а не на каждый вопрос. */
+  private cached: {
+    tasks: Map<string, TrackerRecord[]>
+    chains: Map<string, TrackerRecord[]>
+  } | null = null
 
   constructor(records: Iterable<TrackerRecord>) {
     for (const record of records) {
@@ -65,24 +70,64 @@ export class TrackerTree {
       .sort(byRank)
   }
 
-  /** Задачи группы - карточки без задачи-родителя. */
+  /**
+   * Задачи группы: карточки этой группы, которые сами себе задача (rootOf). Задача, ставшая
+   * корнем после разрыва цикла, - тоже здесь, хотя поле parent у неё не пустое.
+   */
   tasks(groupId: string): Ranked[] {
-    return this.children(groupId, 'card').filter((card) => !refOf(card.record, 'parent'))
-  }
-
-  /** Продолжения задачи слева направо. */
-  followUps(taskId: string): Ranked[] {
-    return this.children(taskId, 'card')
+    return (this.cards().tasks.get(groupId) ?? []).map(rankedOf).sort(byRank)
   }
 
   /**
-   * Задача, к цепочке которой относится карточка: сама карточка, если она задача. null - цепочка
-   * оборвана (задачу удалили на другом компьютере) или зациклена.
+   * Продолжения задачи слева направо: все живые карточки, чей корень - эта задача. Продолжение
+   * продолжения (встречные переносы двух машин) встаёт в ту же цепочку, а не пропадает.
+   */
+  followUps(taskId: string): Ranked[] {
+    return (this.cards().chains.get(taskId) ?? []).map(rankedOf).sort(byRank)
+  }
+
+  /** Живые карточки по корню: задачи - в свою группу, остальные - в цепочку своей задачи. */
+  private cards() {
+    if (this.cached) return this.cached
+
+    const tasks = new Map<string, TrackerRecord[]>()
+    const chains = new Map<string, TrackerRecord[]>()
+
+    for (const record of this.byId.values()) {
+      if (record.kind !== 'card' || !isAlive(record)) continue
+
+      const root = this.rootOf(record.id)
+
+      if (!root) continue
+
+      const [map, key] = root.id === record.id ? [tasks, refOf(record, 'group')] : [chains, root.id]
+
+      if (key) map.set(key, [...(map.get(key) ?? []), record])
+    }
+
+    this.cached = { tasks, chains }
+
+    return this.cached
+  }
+
+  /**
+   * Задача, к цепочке которой относится карточка: сама карточка, если она задача. Цикл (две
+   * машины перенесли задачи друг к другу) рвётся одинаково везде: корень - карточка цикла с
+   * меньшим id. null - цепочка оборвана (родителя нет) или слишком длинна.
    */
   rootOf(cardId: string): TrackerRecord | null {
+    const seen: TrackerRecord[] = []
     let current = this.byId.get(cardId)
 
     for (let depth = 0; current && depth < MAX_DEPTH; depth += 1) {
+      if (seen.includes(current)) {
+        const cycle = seen.slice(seen.indexOf(current))
+
+        return cycle.reduce((least, one) => (one.id < least.id ? one : least))
+      }
+
+      seen.push(current)
+
       const parent = refOf(current, 'parent')
 
       if (!parent) return current
@@ -123,6 +168,24 @@ export class TrackerTree {
     }
 
     return null
+  }
+
+  /** Предки записи снизу вверх до пространства (и удалённые тоже). */
+  ancestors(id: string): TrackerRecord[] {
+    const out: TrackerRecord[] = []
+    let current = this.byId.get(id)
+
+    for (let depth = 0; current && depth < MAX_DEPTH; depth += 1) {
+      const parent = this.parentOf(current)
+      const next = parent ? this.byId.get(parent) : undefined
+
+      if (!next || out.includes(next)) break
+
+      out.push(next)
+      current = next
+    }
+
+    return out
   }
 
   /** Все живые потомки записи (для удаления каскадом). */

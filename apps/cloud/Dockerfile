@@ -23,7 +23,7 @@ RUN set -eu; \
   cp -R packages/cloud-protocol/src packages/cloud-protocol/package.json /out/protocol/; \
   ln -s ../../protocol /out/node_modules/@agentic-workstation/cloud-protocol; \
   cp -R /deploy/src /deploy/package.json /out/; \
-  rm -f /out/src/*.test.ts /out/protocol/src/*.test.ts
+  rm -rf /out/src/*.test.ts /out/src/__fixtures__ /out/protocol/src/*.test.ts
 
 FROM node:24-alpine
 WORKDIR /app

@@ -1,14 +1,11 @@
 import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
 
+import { weekdayDayLabel } from '../../../lib/dates.utils'
+
 /** Недель в образце календаря - год, как у GitHub. */
 const SAMPLE_WEEKS = 53
 
 const MONTH = new Intl.DateTimeFormat('en-US', { month: 'short' })
-const WEEKDAY_DAY = new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-})
 
 /**
  * Год дней для образца календаря с понедельника 10 ноября 2025: число дня - минуты из
@@ -23,7 +20,7 @@ export const calendarSample = (activity: (index: number) => number): CalendarHea
     return {
       key: String(index),
       value,
-      label: WEEKDAY_DAY.format(date),
+      label: weekdayDayLabel(date.getTime()),
       valueLabel: `${value}m`,
       monthLabel: date.getDate() === 1 ? MONTH.format(date) : undefined,
     }

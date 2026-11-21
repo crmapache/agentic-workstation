@@ -12,7 +12,7 @@ import {
 } from './node-account.ts'
 import { openRecord, sealRecord } from './node-seal.ts'
 import { signedHeaders } from './node-signer.ts'
-import { signingText, CLOUD_HEADERS } from './signing.ts'
+import { TIME, NONCE, SIGNATURE, signingText, CLOUD_HEADERS } from './signing.ts'
 
 describe('ключ аккаунта', () => {
   it('строка читается обратно в тот же секрет', () => {
@@ -84,23 +84,43 @@ describe('шифр записи', () => {
 })
 
 describe('подпись запроса', () => {
-  it('сходится с открытым ключом аккаунта', () => {
-    const account = accountOf(Buffer.alloc(32, 5))
-    const headers = signedHeaders(account, { method: 'post', path: '/v1/push', body: '{}' }, 1000)
-    const text = signingText({
+  const account = accountOf(Buffer.alloc(32, 5))
+  const publicKey = createPublicKey({
+    key: { kty: 'OKP', crv: 'Ed25519', x: account.publicKey },
+    format: 'jwk',
+  })
+  const request = { method: 'post', host: 'Cloud.Example:4464', path: '/v1/push', body: '{}' }
+  const textFor = (headers: Record<string, string>, host: string) =>
+    signingText({
       method: 'POST',
+      host,
       path: '/v1/push',
       time: '1000',
       nonce: headers[CLOUD_HEADERS.nonce] ?? '',
       bodyHash: createHash('sha256').update('{}').digest('hex'),
     })
-    const publicKey = createPublicKey({
-      key: { kty: 'OKP', crv: 'Ed25519', x: account.publicKey },
-      format: 'jwk',
-    })
-    const signature = Buffer.from(headers[CLOUD_HEADERS.signature] ?? '', 'base64url')
+  const verifies = (headers: Record<string, string>, text: string) =>
+    verify(
+      null,
+      Buffer.from(text),
+      publicKey,
+      Buffer.from(headers[CLOUD_HEADERS.signature] ?? '', 'base64url'),
+    )
+
+  it('сходится с открытым ключом аккаунта; хост - без учёта регистра', () => {
+    const headers = signedHeaders(account, request, 1000)
 
     expect(headers[CLOUD_HEADERS.key]).toBe(account.publicKey)
-    expect(verify(null, Buffer.from(text), publicKey, signature)).toBe(true)
+    expect(headers[CLOUD_HEADERS.signature]).toMatch(SIGNATURE)
+    expect(headers[CLOUD_HEADERS.nonce]).toMatch(NONCE)
+    expect(headers[CLOUD_HEADERS.time]).toMatch(TIME)
+    expect(verifies(headers, textFor(headers, 'cloud.example:4464'))).toBe(true)
+  })
+
+  it('подпись для одного хоста не подходит другому', () => {
+    const headers = signedHeaders(account, request, 1000)
+
+    expect(verifies(headers, textFor(headers, 'cloud.example'))).toBe(false)
+    expect(verifies(headers, textFor(headers, 'mirror.example:4464'))).toBe(false)
   })
 })

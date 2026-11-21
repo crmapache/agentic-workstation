@@ -1,107 +1,26 @@
-import { rmSync, mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { it, expect, describe } from 'vitest'
 
-import { it, expect, describe, afterEach } from 'vitest'
-
-import type {
-  PushRecord,
-  PullResponse,
-  PushResponse,
-} from '@agentic-workstation/cloud-protocol/api'
 import {
   PULL_PAGE,
   MAX_PUSH_BYTES,
   MAX_PUSH_RECORDS,
-  MAX_ACCOUNT_RECORDS,
 } from '@agentic-workstation/cloud-protocol/api'
-import type { CloudAccount } from '@agentic-workstation/cloud-protocol/node-account'
-import { accountOf } from '@agentic-workstation/cloud-protocol/node-account'
-import { openRecord, sealRecord } from '@agentic-workstation/cloud-protocol/node-seal'
-import { signedHeaders } from '@agentic-workstation/cloud-protocol/node-signer'
+import { openRecord } from '@agentic-workstation/cloud-protocol/node-seal'
 import { CLOUD_HEADERS } from '@agentic-workstation/cloud-protocol/signing'
 
-import type { Config } from './config.ts'
-import type { Cloud } from './server.ts'
-import { createCloud } from './server.ts'
+import {
+  idOf,
+  fresh,
+  sleep,
+  laptop,
+  sealed,
+  desktop,
+  stranger,
+  useCloud,
+} from './__fixtures__/cloud-harness.ts'
 
-const BASE_CONFIG: Omit<Config, 'dataDir'> = {
-  port: 0,
-  build: 'test',
-  trustProxy: false,
-  readsPerMinute: 100_000,
-  writesPerMinute: 100_000,
-  accountRequestsPerMinute: 100_000,
-  maxBodyBytes: MAX_PUSH_BYTES,
-  maxAccountRecords: MAX_ACCOUNT_RECORDS,
-  maxWaitsPerAccount: 8,
-  maxWaits: 1000,
-}
-
-/** Два компьютера с одним ключом аккаунта и чужой аккаунт. */
-const laptop = accountOf(Buffer.alloc(32, 1))
-const desktop = accountOf(Buffer.alloc(32, 1))
-const stranger = accountOf(Buffer.alloc(32, 2))
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-const idOf = (n: number) => `record-${String(n).padStart(4, '0')}`
-
-const sealed = (account: CloudAccount, id: string, text: string): PushRecord['blob'] =>
-  sealRecord(account.sealKey, id, text)
-
-let cloud: Cloud | undefined
-let dataDir = ''
-let base = ''
-
-const start = async (patch: Partial<Config> = {}) => {
-  dataDir = mkdtempSync(join(tmpdir(), 'aw-cloud-'))
-  cloud = createCloud({ ...BASE_CONFIG, dataDir, ...patch }, () => undefined)
-  base = `http://127.0.0.1:${await cloud.listen(0)}`
-}
-
-afterEach(async () => {
-  await cloud?.close()
-  cloud = undefined
-  rmSync(dataDir, { recursive: true, force: true })
-})
-
-type Reply<T> = { status: number; json: T & { error?: string } }
-
-const call = async <T = Record<string, unknown>>(
-  account: CloudAccount | null,
-  method: string,
-  path: string,
-  body?: unknown,
-  signal?: AbortSignal,
-): Promise<Reply<T>> => {
-  const text = body === undefined ? '' : typeof body === 'string' ? body : JSON.stringify(body)
-  const response = await fetch(`${base}${path}`, {
-    method,
-    headers: {
-      'content-type': 'application/json',
-      ...(account ? signedHeaders(account, { method, path, body: text }) : {}),
-    },
-    ...(method === 'GET' ? {} : { body: text }),
-    ...(signal ? { signal } : {}),
-  })
-
-  return { status: response.status, json: (await response.json()) as T & { error?: string } }
-}
-
-const push = (account: CloudAccount, records: PushRecord[]) =>
-  call<PushResponse>(account, 'POST', '/v1/push', { records })
-
-const pull = (account: CloudAccount, query: string, signal?: AbortSignal) =>
-  call<PullResponse>(account, 'GET', `/v1/pull${query}`, undefined, signal)
-
-/** Новые записи с id от first: baseRev 0, текст - номер. */
-const fresh = (account: CloudAccount, first: number, count: number): PushRecord[] =>
-  Array.from({ length: count }, (_, index) => {
-    const id = idOf(first + index)
-
-    return { id, baseRev: 0, blob: sealed(account, id, `card ${first + index}`) }
-  })
+const cloud = useCloud()
+const { start, call, push, pull } = cloud
 
 describe('облако: служебные адреса и подпись', () => {
   it('отвечает на /healthz и /v1/info без подписи', async () => {
@@ -126,11 +45,11 @@ describe('облако: служебные адреса и подпись', () =
     const text = JSON.stringify({ records: fresh(laptop, 1, 1) })
     const headers = {
       'content-type': 'application/json',
-      ...signedHeaders(laptop, { method: 'POST', path: '/v1/push', body: text }),
+      ...cloud.sign(laptop, 'POST', '/v1/push', text),
     }
     const tampered = JSON.stringify({ records: fresh(laptop, 2, 1) })
     const send = (body: string) =>
-      fetch(`${base}/v1/push`, { method: 'POST', headers, body }).then(async (response) => ({
+      fetch(`${cloud.base}/v1/push`, { method: 'POST', headers, body }).then(async (response) => ({
         status: response.status,
         json: (await response.json()) as Record<string, unknown>,
       }))
@@ -140,17 +59,111 @@ describe('облако: служебные адреса и подпись', () =
     expect(await send(text)).toMatchObject({ status: 401, json: { error: 'bad-signature' } })
 
     // Подпись покрывает и запрос после «?»: since=0 подписан, since=5 отправлен.
-    const signedFor = signedHeaders(laptop, { method: 'GET', path: '/v1/pull?since=0', body: '' })
-    const swapped = await fetch(`${base}/v1/pull?since=5`, { headers: signedFor })
+    const signedFor = cloud.sign(laptop, 'GET', '/v1/pull?since=0', '')
+    const swapped = await fetch(`${cloud.base}/v1/pull?since=5`, { headers: signedFor })
 
     expect(swapped.status).toBe(401)
 
     const forged = { ...signedFor, [CLOUD_HEADERS.key]: stranger.publicKey }
 
-    expect((await fetch(`${base}/v1/pull?since=0`, { headers: forged })).status).toBe(401)
+    expect((await fetch(`${cloud.base}/v1/pull?since=0`, { headers: forged })).status).toBe(401)
     expect((await pull(laptop, '?since=0')).json.records.map((record) => record.id)).toEqual([
       idOf(1),
     ])
+  })
+
+  it('подпись привязана к хосту: подписанное для другого облака - 401', async () => {
+    await start()
+
+    for (const host of ['mirror.example', '127.0.0.1', `${cloud.host}0`]) {
+      expect(await push(laptop, fresh(laptop, 1, 1), { host }), host).toMatchObject({
+        status: 401,
+        json: { error: 'bad-signature' },
+      })
+    }
+
+    expect(cloud.accountCount()).toBe(0)
+
+    // Регистр хоста не важен: и IDE, и сервер подписывают его в нижнем регистре.
+    const text = JSON.stringify({ records: fresh(laptop, 1, 1) })
+    const { request, reply } = cloud.raw('POST', '/v1/push', {
+      host: 'Cloud.Example:4464',
+      'content-type': 'application/json',
+      'content-length': String(Buffer.byteLength(text)),
+      ...cloud.sign(laptop, 'POST', '/v1/push', text, 'cloud.example:4464'),
+    })
+
+    request.end(text)
+
+    expect((await reply).status).toBe(200)
+  })
+})
+
+describe('облако: аккаунт заводится только записью', () => {
+  it('забор и отклонённая запись не пишут в базу; первая принятая запись заводит аккаунт', async () => {
+    await start()
+
+    expect((await pull(stranger, '?since=0')).json).toEqual({ rev: 0, records: [], more: false })
+    expect((await pull(stranger, '?since=0&wait=1')).json.rev).toBe(0)
+    expect(cloud.accountCount()).toBe(0)
+
+    // Все записи пачки отклонены по версии - писать нечего, аккаунта нет.
+    const refused = await push(stranger, [
+      { id: idOf(1), baseRev: 3, blob: sealed(stranger, idOf(1), 'edit of nothing') },
+    ])
+
+    expect(refused).toMatchObject({
+      status: 200,
+      json: { rev: 0, results: [{ id: idOf(1), ok: false, current: 0 }] },
+    })
+    expect(cloud.accountCount()).toBe(0)
+
+    expect((await push(stranger, fresh(stranger, 1, 1))).json.rev).toBe(1)
+    expect(cloud.accountCount()).toBe(1)
+  })
+})
+
+describe('облако: страница забора по размеру', () => {
+  const card = (n: number) => ({
+    id: idOf(n),
+    baseRev: 0,
+    blob: sealed(laptop, idOf(n), 'x'.repeat(300)),
+  })
+
+  it('режется по знакам шифра с more; хотя бы одна запись, даже большая', async () => {
+    const size = card(1).blob.length
+
+    // Две записи влезают, третья - уже нет.
+    await start({ pullPageBytes: size * 2 + 1 })
+    await push(laptop, [1, 2, 3, 4, 5].map(card))
+
+    const pages: number[][] = []
+    let since = 0
+    let more = true
+
+    while (more) {
+      const page = (await pull(laptop, `?since=${since}`)).json
+
+      pages.push(page.records.map((record) => record.rev))
+      since = page.records.at(-1)?.rev ?? since
+      more = page.more
+    }
+
+    expect(pages).toEqual([[1, 2], [3, 4], [5]])
+  })
+
+  it('запись больше страницы отдаётся одна', async () => {
+    await start({ pullPageBytes: 10 })
+    await push(laptop, [1, 2].map(card))
+
+    expect((await pull(laptop, '?since=0')).json).toMatchObject({
+      more: true,
+      records: [{ rev: 1 }],
+    })
+    expect((await pull(laptop, '?since=1')).json).toMatchObject({
+      more: false,
+      records: [{ rev: 2 }],
+    })
   })
 })
 
@@ -344,7 +357,7 @@ describe('облако: ожидание забора', () => {
     await start({ maxWaitsPerAccount: 1 })
 
     const leaving = new AbortController()
-    const first = pull(laptop, '?since=0&wait=10', leaving.signal).catch(() => null)
+    const first = pull(laptop, '?since=0&wait=10', { signal: leaving.signal }).catch(() => null)
 
     await sleep(150)
 

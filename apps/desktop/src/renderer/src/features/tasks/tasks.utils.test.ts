@@ -2,7 +2,8 @@ import { it, expect, describe } from 'vitest'
 
 import type { TaskSchedule } from '@shared/tasks'
 
-import { dayKey, formOf, clockOf, scheduleOf, scheduleWords } from './tasks.utils'
+import { isoDay } from '../../lib/dates.utils'
+import { formOf, scheduleOf, scheduleWords } from './tasks.utils'
 
 const schedule = (patch: Partial<TaskSchedule>): TaskSchedule => ({
   repeat: 'daily',
@@ -54,9 +55,8 @@ describe('form day', () => {
     const now = new Date(2026, 10, 16, 12).getTime()
     const form = formOf(schedule({ repeat: 'once', date: '2026-12-01' }), now)
 
-    expect(dayKey(form.day)).toBe('2026-12-01')
+    expect(isoDay(form.day)).toBe('2026-12-01')
     expect(scheduleOf(form).date).toBe('2026-12-01')
-    expect(dayKey(formOf(schedule({}), now).day)).toBe('2026-11-17')
-    expect(clockOf(9 * 60 + 5)).toBe('09:05')
+    expect(isoDay(formOf(schedule({}), now).day)).toBe('2026-11-17')
   })
 })

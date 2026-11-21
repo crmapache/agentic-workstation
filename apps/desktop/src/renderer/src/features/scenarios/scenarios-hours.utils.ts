@@ -1,7 +1,7 @@
 import type { Scenario, ScenarioRepeat, ScenarioSchedule } from '@shared/scenarios'
 import { DAY_MS } from '@shared/time-units'
 
-import { daysBetween } from '../../lib/dates.utils'
+import { isoDay, daysBetween } from '../../lib/dates.utils'
 
 /**
  * Часы на экране (schedule.ts, timetable.ts, due.ts в ACC): ближайший срок формы, расписание
@@ -22,15 +22,6 @@ export const MINUTES: readonly number[] = Array.from(
 )
 
 export const WEEKDAYS: readonly number[] = [1, 2, 3, 4, 5, 6, 7]
-
-export const pad2 = (value: number): string => String(value).padStart(2, '0')
-
-/** «08:30» из минут от полуночи. */
-export const clockLabel = (minutes: number): string => {
-  const safe = Math.min(Math.max(Math.round(minutes), 0), 24 * 60 - 1)
-
-  return `${pad2(Math.floor(safe / 60))}:${pad2(safe % 60)}`
-}
 
 /** Форма открывается на «примерно через час», вверх до пяти минут: не сию секунду, а как доделаю. */
 export const defaultHour = (now: number): number => {
@@ -122,12 +113,6 @@ export const schedulesOf = (
     schedules.filter((one) => one.scenarioId === scenario.id && one.scope === scenario.scope),
   )
 
-export const dayKey = (at: number): string => {
-  const date = new Date(at)
-
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
-}
-
 export type TimetableRow = {
   schedule: ScenarioSchedule
   scenario: Scenario | null
@@ -163,7 +148,7 @@ export const timetableOf = (
     }
 
     const row = { schedule, scenario, at: schedule.nextAt, missed: false }
-    const key = dayKey(schedule.nextAt)
+    const key = isoDay(schedule.nextAt)
     const day = days.find((one) => one.key === key)
 
     if (day) day.rows.push(row)

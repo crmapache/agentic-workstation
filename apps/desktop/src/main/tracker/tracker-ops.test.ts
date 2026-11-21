@@ -217,4 +217,46 @@ describe('проекты трекера', () => {
 
     expect(elsewhere).toEqual({ ok: false, code: 'wrongBoard' })
   })
+
+  it('вставка между двумя задачами с одним местом встаёт между ними', async () => {
+    const kit = await boardKit()
+    const a = await kit.card('A')
+    const b = await kit.card('B')
+
+    // Две машины поставили задачи в одну мс: места совпали, порядок решает id.
+    kit.book.write(b, { rank: kit.book.get(a)?.fields.rank?.[0] })
+
+    const [first, second] = [a, b].sort()
+    const added = await kit.make({
+      kind: 'card.create',
+      groupId: kit.groupId,
+      beforeId: second ?? null,
+      fields: { title: 'Между' },
+    })
+    const ids = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks.map(
+      (task) => task.id,
+    )
+
+    expect(ids).toEqual([first, added, second])
+  })
+
+  it('карточка больше потолка облака в байтах - отказ, а не вечное «syncing»', async () => {
+    const kit = await boardKit()
+    const a = await kit.card('A')
+    const outcome = await kit.service.apply(PLACE, {
+      kind: 'card.update',
+      id: a,
+      fields: {
+        description: 'ж'.repeat(20_000),
+        scenario: {
+          scenarioId: 'x',
+          scope: 'project',
+          provider: null,
+          inputs: { task: 'щ'.repeat(19_000) },
+        },
+      },
+    })
+
+    expect(outcome).toEqual({ ok: false, code: 'tooLong' })
+  })
 })

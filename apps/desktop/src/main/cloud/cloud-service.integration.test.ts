@@ -6,6 +6,7 @@ import { it, expect, describe, afterEach } from 'vitest'
 
 import type { CloudState } from '@shared/tracker'
 
+import { configFromEnv } from '@agentic-workstation/cloud/config'
 import type { Cloud } from '@agentic-workstation/cloud/server'
 import { createCloud } from '@agentic-workstation/cloud/server'
 
@@ -42,6 +43,7 @@ const serverAt = async (): Promise<string> => {
   const dataDir = await mkdtemp(join(tmpdir(), 'aw-cloud-'))
   const cloud: Cloud = createCloud(
     {
+      ...configFromEnv({}),
       port: 0,
       build: 'test',
       dataDir,
@@ -49,10 +51,6 @@ const serverAt = async (): Promise<string> => {
       readsPerMinute: 10_000,
       writesPerMinute: 10_000,
       accountRequestsPerMinute: 10_000,
-      maxBodyBytes: 4 * 1024 * 1024,
-      maxAccountRecords: 10_000,
-      maxWaitsPerAccount: 8,
-      maxWaits: 100,
     },
     () => undefined,
   )
@@ -64,29 +62,30 @@ const serverAt = async (): Promise<string> => {
 }
 
 /** Компьютер: трекер и облако на своих папках, общий сервер. */
-const machine = async (url: string) => {
-  const dir = await mkdtemp(join(tmpdir(), 'aw-machine-'))
+const machine = async (url: string, answer = true, dir?: string) => {
+  const home = dir ?? (await mkdtemp(join(tmpdir(), 'aw-machine-')))
   const kit = await trackerKit({ remote: 'github.com/me/app' })
   const states: CloudState[] = []
   let clipboard = ''
   const cloud = await CloudService.load({
-    vault: await Vault.load(join(dir, 'cloud.vault'), PLAIN),
-    file: new JsonFile<StoredCloud>(join(dir, 'cloud.json')),
+    vault: await Vault.load(join(home, 'cloud.vault'), PLAIN),
+    file: new JsonFile<StoredCloud>(join(home, 'cloud.json')),
     book: kit.book,
     transportFor: (account) => httpTransport(url, account),
     onState: (state) => states.push(state),
-    writeClipboard: (text) => {
-      clipboard = text
+    revealKey: (key) => {
+      clipboard = key
 
-      return Promise.resolve()
+      return Promise.resolve(true)
     },
+    confirmSwitch: () => Promise.resolve(answer),
     sync: { waitSeconds: 2, backoffMs: [50] },
   })
 
   closers.push(() => kit.service.close())
   closers.push(() => cloud.close())
 
-  return { ...kit, cloud, states, clipboard: () => clipboard }
+  return { ...kit, home, cloud, states, clipboard: () => clipboard }
 }
 
 /** Ждать, пока условие станет правдой: синхронизация идёт сама, своим циклом. */
@@ -139,13 +138,47 @@ describe('облако на настоящем сервере', () => {
     await until(() => mac.cloud.state().pending === 0 && windows.cloud.state().pending === 0)
   })
 
-  it('чужой текст вместо ключа - отказ, ключ не меняется', async () => {
+  it('чужой текст вместо ключа и «нет» в окне подтверждения - ключ не меняется', async () => {
     const url = await serverAt()
     const mac = await machine(url)
-    const before = mac.cloud.state().accountId
+    const stubborn = await machine(url, false)
+    const before = stubborn.cloud.state().accountId
 
-    expect(await mac.cloud.useKey('hello')).toEqual({ ok: false, code: 'badKey' })
-    expect(mac.cloud.state().accountId).toBe(before)
+    await mac.cloud.copyKey()
+    expect(await stubborn.cloud.useKey('hello')).toEqual({ ok: false, code: 'badKey' })
+    expect(await stubborn.cloud.useKey(mac.clipboard())).toEqual({ ok: false, code: 'cancelled' })
+    expect(stubborn.cloud.state().accountId).toBe(before)
+  })
+
+  it('пропавший ключ - не новый аккаунт молча, а просьба; «начать заново» - новый', async () => {
+    const url = await serverAt()
+    const mac = await machine(url)
+
+    await mac.make({ kind: 'project.create', title: 'Доска' })
+    await until(() => mac.cloud.state().status === 'synced')
+    await mac.cloud.close()
+
+    // Та же книга, хранилище ключей пустое (связку ключей сменили).
+    const fresh = await mkdtemp(join(tmpdir(), 'aw-machine-'))
+    const lost = await CloudService.load({
+      vault: await Vault.load(join(fresh, 'cloud.vault'), PLAIN),
+      file: new JsonFile<StoredCloud>(join(fresh, 'cloud.json')),
+      book: mac.book,
+      transportFor: (account) => httpTransport(url, account),
+      onState: () => undefined,
+      revealKey: () => Promise.resolve(true),
+      confirmSwitch: () => Promise.resolve(true),
+      sync: { waitSeconds: 2, backoffMs: [50] },
+    })
+
+    closers.push(() => lost.close())
+    expect([lost.state().status, lost.state().failure]).toEqual(['error', 'keyLost'])
+
+    const outcome = await lost.startOver()
+
+    expect(outcome.ok).toBe(true)
+    await until(() => lost.state().status === 'synced')
+    expect(lost.state().accountId).not.toBe(mac.cloud.state().accountId)
   })
 
   it('без сервера - offline, правки ждут и уходят, когда сервер есть', async () => {

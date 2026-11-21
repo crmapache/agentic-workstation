@@ -25,7 +25,13 @@ export const bookIn = async (now: () => number = Date.now) => {
  * доски, ушедшие в окно.
  */
 export const trackerKit = async (
-  options: { now?: () => number; remote?: string | null; book?: TrackerBook } = {},
+  options: {
+    now?: () => number
+    remote?: string | null
+    book?: TrackerBook
+    /** false - срок архива ждёт allowPurge, как у машины с облаком. */
+    purge?: boolean
+  } = {},
 ) => {
   const book = options.book ?? (await bookIn(options.now))
   const boards: TrackerBoard[] = []
@@ -34,6 +40,7 @@ export const trackerKit = async (
     events: { onBoard: (board) => boards.push(board) },
     ...(options.now ? { now: options.now } : {}),
     remoteOf: () => Promise.resolve(options.remote ?? null),
+    purgeAfterSync: options.purge === false,
   })
   const apply = async (op: TrackerOp, place: TrackerPlace = PLACE) => {
     const outcome: TrackerOutcome = await service.apply(place, op)

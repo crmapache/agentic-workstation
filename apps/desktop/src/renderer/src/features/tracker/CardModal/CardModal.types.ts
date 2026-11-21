@@ -18,6 +18,10 @@ export type CardForm = {
 
 export type CardFormApi = CardForm & {
   set: <K extends keyof CardForm>(key: K, value: CardForm[K]) => void
+  /** Поля, которые человек поменял с открытия окна. */
+  changed: () => Partial<CardForm>
+  /** Все поля - для новой карточки. */
+  all: () => CardForm
 }
 
 export type DueFieldsProps = { form: CardFormApi; today: number }

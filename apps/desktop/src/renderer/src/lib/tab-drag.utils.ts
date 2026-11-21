@@ -95,28 +95,3 @@ export const landingOffset = (slots: readonly TabSlot[], from: number, place: nu
 /** Перед какой вкладкой встать, чтобы оказаться на месте place; null - в конец ряда. */
 export const beforeOf = (ids: readonly string[], from: number, place: number): string | null =>
   ids.filter((_, index) => index !== from)[place] ?? null
-
-/**
- * Шаг прокрутки ряда за кадр, пока рука у его края: чем ближе к краю, тем быстрее, минус -
- * влево. Ряд, которому листать некуда, не едет.
- */
-export const autoScrollStep = (
-  pointerX: number,
-  box: { left: number; right: number },
-  room: { before: number; after: number },
-  edge: number,
-  maxStep: number,
-): number => {
-  const toLeft = pointerX - box.left
-  const toRight = box.right - pointerX
-
-  if (toLeft < edge && room.before > 0) {
-    return -Math.min(room.before, Math.ceil(((edge - Math.max(toLeft, 0)) / edge) * maxStep))
-  }
-
-  if (toRight < edge && room.after > 0) {
-    return Math.min(room.after, Math.ceil(((edge - Math.max(toRight, 0)) / edge) * maxStep))
-  }
-
-  return 0
-}

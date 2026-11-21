@@ -4505,7 +4505,7 @@
       "help": {
         "label": "About cloud sync",
         "title": "Cloud sync",
-        "text": "Your boards are saved on this computer and synced to the Agentic Workstation cloud. They are encrypted here with your account key, so the server only stores ciphertext and cannot read them.\n\nThe key is the only way to your data. Copy it and keep it in a password manager: without it, a lost computer means lost boards.\n\nOn another computer, paste the same key under Use another key, and both see the same boards."
+        "text": "Your boards are saved on this computer and synced to the Agentic Workstation cloud. They are encrypted here with your account key, so the server only stores ciphertext and cannot read them.\n\nThe key is the only way to your data. Press Show account key, copy it and keep it in a password manager: without it, a lost computer means lost boards.\n\nOn another computer, paste the same key under Use another key, and both see the same boards."
       },
       "status": {
         "off": "off",
@@ -4517,6 +4517,7 @@
       },
       "failure": {
         "noKeychain": "The system keychain is not available, so the account key cannot be stored safely.",
+        "keyLost": "The account key is missing on this computer. Enter it under Use another key, or start a new account.",
         "rejected": "The cloud refused the request. Check that this computer's clock is right.",
         "accountFull": "This account has reached its storage limit.",
         "server": "The cloud returned an error.",
@@ -4526,8 +4527,8 @@
       "lastSync": "Last sync {{when}}",
       "pending_one": "{{count}} change waiting",
       "pending_other": "{{count}} changes waiting",
-      "copyKey": "Copy account key",
-      "copied": "Key copied",
+      "copyKey": "Show account key",
+      "startOver": "Start a new account",
       "saveKey": "Save your account key: it is the only way to your boards.",
       "useKey": "Use another key",
       "keyField": "Account key",
@@ -4550,6 +4551,7 @@
       "notArchived": "The project is not in the archive.",
       "nothingToSend": "No open cards with a scenario to send.",
       "noScenario": "Bind a scenario to the card first.",
+      "alreadyQueued": "This card is already in a queue.",
       "unknown": "Something went wrong."
     }
   }

@@ -174,7 +174,8 @@ export type TrackerSendRequest = {
   hours?: QueueHours | null
 }
 
-export type TrackerSendCode = TrackerCode | ScenarioCode | 'nothingToSend' | 'noScenario'
+export type TrackerSendCode =
+  TrackerCode | ScenarioCode | 'nothingToSend' | 'noScenario' | 'alreadyQueued'
 
 /** Итог отправки; при отказе cardId - карточка, на которой встали (null - до карточек). */
 export type TrackerSendOutcome =
@@ -185,7 +186,8 @@ export type TrackerSendOutcome =
 export type CloudStatus = 'off' | 'connecting' | 'synced' | 'syncing' | 'offline' | 'error'
 
 /** Почему облако не работает: код для окна. */
-export type CloudFailure = 'noKeychain' | 'rejected' | 'accountFull' | 'server' | 'badReply'
+export type CloudFailure =
+  'noKeychain' | 'keyLost' | 'rejected' | 'accountFull' | 'server' | 'badReply'
 
 export type CloudState = {
   status: CloudStatus
@@ -199,6 +201,7 @@ export type CloudState = {
   failure: CloudFailure | null
 }
 
-export type CloudKeyCode = 'badKey' | 'noKeychain'
+/** Почему ключ не принят: не ключ, нет связки ключей, человек отказался в окне подтверждения. */
+export type CloudKeyCode = 'badKey' | 'noKeychain' | 'cancelled'
 
 export type CloudKeyOutcome = { ok: true; state: CloudState } | { ok: false; code: CloudKeyCode }

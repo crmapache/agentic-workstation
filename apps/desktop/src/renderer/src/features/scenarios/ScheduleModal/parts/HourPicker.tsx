@@ -10,7 +10,8 @@ import { DUE_TICK_MS, TIME_SEPARATOR } from '../ScheduleModal.constants'
 import styles from '../ScheduleModal.module.scss'
 import type { HourPickerProps } from '../ScheduleModal.types'
 import { hourOf, minuteOf, withHour, withMinute } from '../../scenarios-forms.utils'
-import { pad2, HOURS, MINUTES, nextDue, countdown, whenLabel } from '../../scenarios-hours.utils'
+import { HOURS, MINUTES, nextDue, countdown, whenLabel } from '../../scenarios-hours.utils'
+import { pad2 } from '../../../../lib/dates.utils'
 import { useNow } from '../../../../lib/now.hooks'
 
 /**

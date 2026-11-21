@@ -28,7 +28,7 @@ export const SendModal = ({ sending, cards, title }: SendModalProps) => {
   const project = useActiveProject()
   const { data } = useScenarioQueues()
   const { send } = useTrackerActions()
-  const close = useTrackerStore((state) => state.send)
+  const openSend = useTrackerStore((state) => state.openSend)
   const popover = usePopover()
   const [queueId, setQueueId] = useState<string | null>(null)
   const [worktree, setWorktree] = useState(false)
@@ -38,7 +38,7 @@ export const SendModal = ({ sending, cards, title }: SendModalProps) => {
   )
   const chosen = queues.find((queue) => queue.id === queueId) ?? null
 
-  const handleClose = () => close(null)
+  const handleClose = () => openSend(null)
   const handleSend = async () => {
     setBusy(true)
 

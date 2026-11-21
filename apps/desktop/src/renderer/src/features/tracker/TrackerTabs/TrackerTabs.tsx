@@ -6,7 +6,7 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
-import { useTabDrag } from '../../../lib/tab-drag.hooks'
+import { useTabRowDrag } from '../../../lib/tab-drag.hooks'
 import { useWheelToSide } from '../../../lib/wheel-to-side.hooks'
 import styles from './TrackerTabs.module.scss'
 import type { TrackerTabsProps } from './TrackerTabs.types'
@@ -24,7 +24,7 @@ export const TrackerTabs = ({ projects, activeId, onActivate }: TrackerTabsProps
   const attachWheel = useWheelToSide()
   const [menu, setMenu] = useState<{ anchor: HTMLElement; id: string } | null>(null)
   const ids = projects.map((project) => project.id)
-  const drag = useTabDrag(ids, async (id, beforeId) => {
+  const drag = useTabRowDrag(ids, async (id, beforeId) => {
     const { board } = await apply({ kind: 'project.move', id, beforeId })
 
     return board ? board.projects.map((project) => project.id) : null

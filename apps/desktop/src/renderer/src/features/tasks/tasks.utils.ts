@@ -3,13 +3,9 @@ import { parseDay } from '@shared/task-clock'
 import type { Task, TaskDraft, TaskSchedule } from '@shared/tasks'
 import { LAST_MONTH_DAY } from '@shared/tasks'
 
+import { pad2, isoDay, clockOfMinutes } from '../../lib/dates.utils'
 import { WORK_DAYS } from './tasks.constants'
 import type { ScheduleForm, ScheduleWords, ScheduleValues } from './tasks.types'
-
-const pad2 = (value: number) => String(value).padStart(2, '0')
-
-/** «09:00» из минут от полуночи. */
-export const clockOf = (at: number): string => `${pad2(Math.floor(at / 60))}:${pad2(at % 60)}`
 
 const sameDays = (left: readonly number[], right: readonly number[]) =>
   left.length === right.length && left.every((day) => right.includes(day))
@@ -23,7 +19,7 @@ export const scheduleWords = (
   weekdayName: (day: number) => string,
   dayLabel: (day: number) => string,
 ): ScheduleWords => {
-  const time = clockOf(schedule.at)
+  const time = clockOfMinutes(schedule.at)
   const values = (patch: Partial<ScheduleValues>): ScheduleValues => ({
     time,
     date: '',
@@ -63,13 +59,6 @@ export const scheduleWords = (
   }
 }
 
-/** YYYY-MM-DD местного дня. */
-export const dayKey = (day: number): string => {
-  const date = new Date(day)
-
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
-}
-
 /** Ритм формы: день разового запуска - местной полночью (завтра, если дня нет). */
 export const formOf = (schedule: TaskSchedule, now: number): ScheduleForm => {
   const tomorrow = new Date(now)
@@ -83,7 +72,7 @@ export const formOf = (schedule: TaskSchedule, now: number): ScheduleForm => {
 /** Ритм на сохранение: день формы - строкой. */
 export const scheduleOf = ({ day, ...schedule }: ScheduleForm): TaskSchedule => ({
   ...schedule,
-  date: schedule.repeat === 'once' ? dayKey(day) : schedule.date,
+  date: schedule.repeat === 'once' ? isoDay(day) : schedule.date,
 })
 
 /**

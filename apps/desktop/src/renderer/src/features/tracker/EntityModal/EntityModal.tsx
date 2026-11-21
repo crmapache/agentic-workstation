@@ -38,7 +38,15 @@ export const EntityModal = ({ editor, title, subtitle, onCreated }: EntityModalP
 
   const handleClose = () => edit(null)
   const handleSave = async () => {
-    const { ok, created } = await apply(entityOp(editor, name, note))
+    const op = entityOp(editor, { opened: { title, subtitle }, title: name, subtitle: note })
+
+    if (!op) {
+      handleClose()
+
+      return
+    }
+
+    const { ok, created } = await apply(op)
 
     if (!ok) return
     if (created && editor.kind === 'project') onCreated(created)

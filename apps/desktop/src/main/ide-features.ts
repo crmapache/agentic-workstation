@@ -142,7 +142,11 @@ export const startIdeFeatures = async (setup: {
       runners.get(provider)?.chatIdOf(sessionId) ?? Promise.resolve(sessionId),
   })
   const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns })
-  const tracker = await startTracker({ dataDir: setup.dataDir, scenarios })
+  const tracker = await startTracker({
+    dataDir: setup.dataDir,
+    scenarios,
+    getWindow: setup.getWindow,
+  })
   // Задания и уведомления - после статистики: прогон заданий в ней - сессия IDE, а не человек.
   const automation = await startTasks({
     claude,

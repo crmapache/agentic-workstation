@@ -2,14 +2,8 @@ import { it, expect, describe } from 'vitest'
 
 import type { ScenarioSchedule } from '@shared/scenarios'
 
-import {
-  nextDue,
-  countdown,
-  clockLabel,
-  isoWeekday,
-  defaultHour,
-  timetableOf,
-} from './scenarios-hours.utils'
+import { clockOfMinutes } from '../../lib/dates.utils'
+import { nextDue, countdown, isoWeekday, defaultHour, timetableOf } from './scenarios-hours.utils'
 
 const hour = (id: string, nextAt: number, missedAt = 0): ScenarioSchedule => ({
   id,
@@ -29,7 +23,7 @@ const hour = (id: string, nextAt: number, missedAt = 0): ScenarioSchedule => ({
 describe('hours', () => {
   it('offers an hour from now, rounded up to five minutes', () => {
     expect(defaultHour(new Date(2026, 0, 1, 10, 2).getTime())).toBe(11 * 60 + 5)
-    expect(clockLabel(9 * 60 + 5)).toBe('09:05')
+    expect(clockOfMinutes(9 * 60 + 5)).toBe('09:05')
   })
 
   it('finds the next weekly day', () => {

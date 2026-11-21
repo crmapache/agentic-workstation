@@ -9,10 +9,12 @@ import { TimeField } from '@agentic-workstation/ui/TimeField'
 import { MINUTE_STEP, DEFAULT_TIME } from '../CardModal.constants'
 import styles from '../CardModal.module.scss'
 import type { DueFieldsProps } from '../CardModal.types'
-import { timeOf, dueDayOf, dateOfDay, minutesOf } from '../../tracker.utils'
+import { dueDayOf, minutesOf } from '../../tracker.utils'
 import {
+  isoDay,
   fullDayLabel,
   weekdayNames,
+  clockOfMinutes,
   monthYearLabel,
   weekdayDayLabel,
 } from '../../../../lib/dates.utils'
@@ -29,27 +31,29 @@ export const DueFields = ({ form, today }: DueFieldsProps) => {
           variant="dashed"
           size="sm"
           icon={CalendarDays}
-          onClick={() => form.set('due', { date: dateOfDay(today), time: null })}>
+          onClick={() => form.set('due', { date: isoDay(today), time: null })}>
           {t('tracker.cardModal.addDate')}
         </Button>
       </div>
     )
 
+  // Срок не датой главный процесс не пропускает; пришёл всё же - подпись как записана, а
+  // календарь открывается на сегодня, а не на 1970-м.
   const day = dueDayOf(due)
 
   return (
     <div className={styles.row}>
       <DateField
         label={t('tracker.cardModal.date')}
-        valueLabel={weekdayDayLabel(day)}
-        value={day}
+        valueLabel={day === null ? due.date : weekdayDayLabel(day)}
+        value={day ?? today}
         today={today}
         monthLabel={monthYearLabel}
         dayLabel={fullDayLabel}
         weekdayLabels={weekdayNames()}
         previousMonthLabel={t('tracker.cardModal.previousMonth')}
         nextMonthLabel={t('tracker.cardModal.nextMonth')}
-        onChange={(next) => form.set('due', { ...due, date: dateOfDay(next) })}
+        onChange={(next) => form.set('due', { ...due, date: isoDay(next) })}
       />
       <IconButton
         icon={X}
@@ -72,7 +76,7 @@ export const DueFields = ({ form, today }: DueFieldsProps) => {
             minuteLabel={t('tracker.cardModal.minute')}
             value={minutesOf(due.time)}
             minuteStep={MINUTE_STEP}
-            onChange={(minutes) => form.set('due', { ...due, time: timeOf(minutes) })}
+            onChange={(minutes) => form.set('due', { ...due, time: clockOfMinutes(minutes) })}
           />
           <IconButton
             icon={X}

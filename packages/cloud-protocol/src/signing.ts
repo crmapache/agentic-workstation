@@ -15,9 +15,15 @@ export const CLOUD_HEADERS = {
 /** Насколько часы IDE и сервера могут расходиться. */
 export const SIGNATURE_WINDOW_MS = 5 * 60 * 1000
 
-/** Что подписывается: метод, путь с запросом, время, разовое число и отпечаток тела (hex sha256). */
+/**
+ * Что подписывается: метод, хост, путь с запросом, время, разовое число и отпечаток тела (hex
+ * sha256). Хост - ровно `host` адреса, куда IDE шлёт запрос (с портом, если он не стандартный),
+ * в нижнем регистре: запрос, перехваченный по дороге к одному облаку (своему серверу проверки,
+ * зеркалу), не подойдёт другому с тем же аккаунтом.
+ */
 export const signingText = (parts: {
   method: string
+  host: string
   path: string
   time: string
   nonce: string
@@ -26,6 +32,7 @@ export const signingText = (parts: {
   [
     'aw-cloud/v1',
     parts.method.toUpperCase(),
+    parts.host.toLowerCase(),
     parts.path,
     parts.time,
     parts.nonce,
@@ -37,3 +44,9 @@ export const PUBLIC_KEY = /^[A-Za-z0-9_-]{43}$/
 
 /** Разовое число запроса. */
 export const NONCE = /^[A-Za-z0-9_-]{16,64}$/
+
+/** Время подписи - миллисекунды Unix десятичными цифрами. */
+export const TIME = /^\d{1,16}$/
+
+/** Подпись Ed25519 - 64 байта в base64url: 86 знаков. */
+export const SIGNATURE = /^[A-Za-z0-9_-]{86}$/

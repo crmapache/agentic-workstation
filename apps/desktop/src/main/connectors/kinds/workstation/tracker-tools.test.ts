@@ -88,7 +88,7 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
         : undefined
 
     if (queue) queue.items.push(item)
-    else queues.push({ id: `queue-${started.length}`, items: [item] } as ScenarioQueue)
+    else queues.push({ id: `queue-${started.length}`, items: [item], closedAt: 0 } as ScenarioQueue)
 
     return Promise.resolve({
       ok: true,

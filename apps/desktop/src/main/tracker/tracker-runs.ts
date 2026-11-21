@@ -77,7 +77,10 @@ export class TrackerRuns {
     const queue = this.scenarios.queues().find((one) => one.id === link.queueId)
     const item = queue?.items.find((one) => one.id === link.itemId)
 
-    if (!item) return 'gone'
+    if (!queue || !item) return 'gone'
+    // Закрытая очередь (видна, пока жив её worktree) ничего больше не запустит: несделанное в ней
+    // не «ждёт», иначе карточка навсегда осталась бы «queued» и не уходила бы снова.
+    if (queue.closedAt !== 0 && item.state !== 'done') return 'gone'
 
     return item.state === 'waiting' && item.refusal ? 'refused' : item.state
   }
@@ -143,6 +146,7 @@ export class TrackerRuns {
         const card = cardOf(record, this.tracker.book.runs(), (link) => this.stateOf(link))
 
         if (!card.scenario) return { ok: false, code: 'noScenario', cardId: card.id }
+        if (isInQueue(card.run)) return { ok: false, code: 'alreadyQueued', cardId: card.id }
 
         cards = [card]
       }

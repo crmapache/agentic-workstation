@@ -1,4 +1,4 @@
-import { DAY_MS } from '@shared/time-units'
+import { parseDay } from '@shared/task-clock'
 import type {
   TrackerDue,
   TrackerCard,
@@ -11,42 +11,30 @@ import { isInQueue } from '@shared/tracker'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
-import { WEEKDAY, WEEKDAY_DAY } from './tracker.constants'
+import type { NearDayWords } from '../../lib/dates.utils'
+import { daysBetween, nearDayLabel } from '../../lib/dates.utils'
+import type { TrackerNode } from './tracker.types'
 
-/** Местная полночь дня срока. */
-export const dueDayOf = (due: TrackerDue): number => {
-  const [year, month, day] = due.date.split('-').map(Number)
+/** Местная полночь дня срока; null - не дата (главный процесс такой срок не пропускает). */
+export const dueDayOf = (due: TrackerDue): number | null => parseDay(due.date)?.getTime() ?? null
 
-  return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1).getTime()
-}
-
-/** Строка срока из местной полуночи: `YYYY-MM-DD`. */
-export const dateOfDay = (day: number): string => {
-  const date = new Date(day)
-  const pad = (value: number) => String(value).padStart(2, '0')
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
-
-/** Время срока в минутах от полуночи и обратно. */
+/** Минуты от полуночи времени срока `HH:MM`. */
 export const minutesOf = (time: string): number => {
   const [hours, minutes] = time.split(':').map(Number)
 
   return (hours ?? 0) * 60 + (minutes ?? 0)
 }
 
-export const timeOf = (minutes: number): string =>
-  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
-
-/** Сколько дней до срока от сегодняшней полуночи: 0 - сегодня, -1 - вчера. */
-export const daysUntil = (due: TrackerDue, today: number): number =>
-  Math.round((dueDayOf(due) - today) / DAY_MS)
-
-/** Тон срока: прошёл - красный, сегодня - оранжевый, дальше - спокойный. Сделанное - спокойно. */
+/**
+ * Тон срока: прошёл - красный, сегодня - оранжевый, дальше - спокойный. Сделанное и срок, который
+ * не читается датой, - спокойно: торопить нечем.
+ */
 export const dueTone = (due: TrackerDue, today: number, done: boolean): BadgeTone => {
-  if (done) return 'neutral'
+  const day = dueDayOf(due)
 
-  const days = daysUntil(due, today)
+  if (done || day === null) return 'neutral'
+
+  const days = daysBetween(today, day)
 
   return days < 0 ? 'danger' : days === 0 ? 'accent' : 'neutral'
 }
@@ -133,23 +121,41 @@ export const neighboursOf = (project: TrackerProject): BoardNeighbours => {
   return neighbours
 }
 
-/** Слова ближних дней из i18n. */
-export type DueWords = { today: string; tomorrow: string; yesterday: string }
-
-/** Срок словами: «Today 09:30», «Tomorrow», «Fri», дальше - «Tue, Dec 1». */
-export const dueLabel = (due: TrackerDue, today: number, words: DueWords): string => {
-  const days = daysUntil(due, today)
+/**
+ * Срок словами: «Today 09:30», «Tomorrow», «Fri», дальше - «Tue, Dec 1». Срок, который не
+ * читается датой, - как записан.
+ */
+export const dueLabel = (due: TrackerDue, today: number, words: NearDayWords): string => {
   const day = dueDayOf(due)
-  const date =
-    days === 0
-      ? words.today
-      : days === 1
-        ? words.tomorrow
-        : days === -1
-          ? words.yesterday
-          : Math.abs(days) < 7
-            ? WEEKDAY.format(day)
-            : WEEKDAY_DAY.format(day)
+  const date = day === null ? due.date : nearDayLabel(day, today, words)
 
   return due.time ? `${date} ${due.time}` : date
+}
+
+/**
+ * Один обход доски проект → поток → группа → задача → продолжение для поиска по id: окна,
+ * отправка и призрак перетаскивания берут узел отсюда, а не обходят доску каждый по-своему.
+ */
+export const findNode = (projects: readonly TrackerProject[], id: string): TrackerNode | null => {
+  for (const project of projects) {
+    if (project.id === id) return { kind: 'project', project }
+
+    for (const flow of project.flows) {
+      if (flow.id === id) return { kind: 'flow', flow, project }
+
+      for (const group of flow.groups) {
+        if (group.id === id) return { kind: 'group', group, flow, project }
+
+        for (const task of group.tasks) {
+          if (task.id === id) return { kind: 'task', card: task, group, flow, project }
+
+          const card = task.followUps.find((one) => one.id === id)
+
+          if (card) return { kind: 'followUp', card, task, group, flow, project }
+        }
+      }
+    }
+  }
+
+  return null
 }

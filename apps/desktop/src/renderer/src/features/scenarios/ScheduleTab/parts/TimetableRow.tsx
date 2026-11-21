@@ -10,9 +10,10 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import styles from '../ScheduleTab.module.scss'
 import type { TimetableRowProps } from '../ScheduleTab.types'
 import { answerChips, minutesOfDay } from '../../scenarios-forms.utils'
-import { countdown, clockLabel, weekdayName } from '../../scenarios-hours.utils'
+import { countdown, weekdayName } from '../../scenarios-hours.utils'
 import { momentLabel } from '../../scenarios-moments.utils'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
+import { clockOfMinutes } from '../../../../lib/dates.utils'
 
 /**
  * Строка расписания: час в жёлобе (консольным шрифтом - показание часов) и под ним одно слово о
@@ -36,7 +37,7 @@ export const TimetableRow = ({ row, now, onEdit, onRemove, onRunNow }: Timetable
       {/* Пропущенный час стоит по моменту пропуска, а не по нынешнему часу записи. */}
       <span className={styles.gutter}>
         <span className={styles.clock}>
-          {clockLabel(missed ? minutesOfDay(row.at) : schedule.at)}
+          {clockOfMinutes(missed ? minutesOfDay(row.at) : schedule.at)}
         </span>
         <span className={clsx(styles.away, missed && styles.awayMissed)}>
           {missed

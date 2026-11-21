@@ -4,7 +4,7 @@ import { TRACKER_LIMITS } from '@shared/tracker'
 import { moveCard, createCard, updateCard } from './tracker-card-ops'
 import { textOf, titleOf, TrackerError } from './tracker-fields'
 import type { OpContext } from './tracker-guards'
-import { own, openBranch, openProject, openProjects } from './tracker-guards'
+import { own, openBranch, slotBefore, openProject, openProjects } from './tracker-guards'
 import { rankBefore } from './tracker-rank'
 import { numberOf } from './tracker-records'
 import { TrackerTree } from './tracker-tree'
@@ -59,7 +59,8 @@ const projectOps = (ctx: OpContext, tree: TrackerTree, op: TrackerOp): OpDone | 
     case 'project.move':
       openProject(ctx, tree, op.id)
       book.write(op.id, {
-        rank: rankBefore(
+        rank: slotBefore(
+          ctx,
           openProjects(tree, spaceId).filter((one) => one.id !== op.id),
           op.beforeId,
         ),
@@ -117,7 +118,8 @@ const branchOps = (ctx: OpContext, tree: TrackerTree, op: TrackerOp): OpDone | n
       openProject(ctx, tree, op.projectId)
       book.write(op.id, {
         project: op.projectId,
-        rank: rankBefore(
+        rank: slotBefore(
+          ctx,
           tree.children(op.projectId, 'flow').filter((one) => one.id !== op.id),
           op.beforeId,
         ),
@@ -139,7 +141,8 @@ const branchOps = (ctx: OpContext, tree: TrackerTree, op: TrackerOp): OpDone | n
       openBranch(ctx, tree, op.flowId, 'flow')
       book.write(op.id, {
         flow: op.flowId,
-        rank: rankBefore(
+        rank: slotBefore(
+          ctx,
           tree.children(op.flowId, 'group').filter((one) => one.id !== op.id),
           op.beforeId,
         ),

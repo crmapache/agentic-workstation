@@ -1,24 +1,13 @@
 import type { TrackerCard, TrackerBoard } from '@shared/tracker'
 
 import type { TrackerEditor, TrackerSending } from '../tracker.types'
-import { sendableCards } from '../tracker.utils'
-
-const allGroups = (board: TrackerBoard) =>
-  board.projects.flatMap((project) => project.flows.flatMap((flow) => flow.groups))
+import { findNode, sendableCards } from '../tracker.utils'
 
 /** Карточка доски по id - задача или продолжение. */
 export const findCard = (board: TrackerBoard, cardId: string): TrackerCard | null => {
-  for (const group of allGroups(board)) {
-    for (const task of group.tasks) {
-      if (task.id === cardId) return task
+  const node = findNode(board.projects, cardId)
 
-      const card = task.followUps.find((one) => one.id === cardId)
-
-      if (card) return card
-    }
-  }
-
-  return null
+  return node?.kind === 'task' || node?.kind === 'followUp' ? node.card : null
 }
 
 /** Заголовок и подзаголовок того, что правит окно проекта, потока или группы. */
@@ -26,21 +15,18 @@ export const entityTexts = (
   board: TrackerBoard,
   editor: Extract<TrackerEditor, { kind: 'project' | 'flow' | 'group' }>,
 ): { title: string; subtitle: string } => {
-  if (editor.id === null) return { title: '', subtitle: '' }
+  const node = editor.id === null ? null : findNode(board.projects, editor.id)
 
-  for (const project of board.projects) {
-    if (project.id === editor.id) return { title: project.title, subtitle: project.description }
-
-    for (const flow of project.flows) {
-      if (flow.id === editor.id) return { title: flow.title, subtitle: flow.subtitle }
-
-      const group = flow.groups.find((one) => one.id === editor.id)
-
-      if (group) return { title: group.title, subtitle: group.subtitle }
-    }
+  switch (node?.kind) {
+    case 'project':
+      return { title: node.project.title, subtitle: node.project.description }
+    case 'flow':
+      return { title: node.flow.title, subtitle: node.flow.subtitle }
+    case 'group':
+      return { title: node.group.title, subtitle: node.group.subtitle }
+    default:
+      return { title: '', subtitle: '' }
   }
-
-  return { title: '', subtitle: '' }
 }
 
 /** Что уйдёт в очередь и подпись над списком: карточки группы по порядку или одна карточка. */
@@ -54,7 +40,8 @@ export const sendingOf = (
     return { cards: card ? [card] : [], title: card?.title ?? '' }
   }
 
-  const group = allGroups(board).find((one) => one.id === sending.groupId)
+  const node = findNode(board.projects, sending.groupId)
+  const group = node?.kind === 'group' ? node.group : null
 
   return { cards: group ? sendableCards(group) : [], title: group?.title ?? '' }
 }

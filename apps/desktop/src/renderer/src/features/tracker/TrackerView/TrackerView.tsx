@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { Plus, Archive, SquareKanban } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -10,7 +10,7 @@ import { PageHeader } from '@agentic-workstation/ui/PageHeader'
 
 import { useTrackerStore } from '../tracker.store'
 import { Board } from '../Board/Board'
-import { CloudButton } from '../CloudModal/CloudButton'
+import { CloudButton } from '../CloudButton/CloudButton'
 import { TrackerTabs } from '../TrackerTabs/TrackerTabs'
 import { useTrackerBoard } from '../../../state/tracker.queries'
 import { useActiveProject } from '../../../state/workspace.queries'
@@ -36,6 +36,14 @@ export const TrackerView = () => {
   const projects = board?.projects ?? []
   const active = projects.find((one) => one.id === stored) ?? projects[0] ?? null
   const archived = board?.archived.length ?? 0
+  const shownId = active?.id ?? null
+  const rootPath = project?.rootPath ?? null
+
+  // Показанная вкладка запоминается сразу, а не с первого клика: иначе перенос вкладки в начало
+  // ряда (или новый проект трекера первым) молча сменил бы открытую доску.
+  useEffect(() => {
+    if (rootPath && shownId && stored !== shownId) setActive(rootPath, shownId)
+  }, [rootPath, shownId, stored, setActive])
 
   const handleActivate = (id: string) => {
     if (project) setActive(project.rootPath, id)

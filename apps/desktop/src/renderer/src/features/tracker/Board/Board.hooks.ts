@@ -2,7 +2,13 @@ import type { RefObject, MouseEvent as ReactMouseEvent } from 'react'
 import { useRef, useState, useEffect, useCallback } from 'react'
 
 import type { BoardNeighbours } from '../tracker.utils'
-import { DRAG_THRESHOLD_PX, AUTO_SCROLL_EDGE_PX, AUTO_SCROLL_STEP_PX } from './Board.constants'
+import { swallowEndingClick } from '../../../lib/drag-gesture'
+import {
+  DRAG_THRESHOLD_PX,
+  AUTO_SCROLL_EDGE_PX,
+  AUTO_SCROLL_MAX_STEP_PX,
+} from '../../../lib/drag-gesture.constants'
+import { autoScrollStep } from '../../../lib/drag-gesture.utils'
 import type { Rect, DropHit, BoardDrag, DropPlace, DragSource, BoardDragApi } from './Board.types'
 import { placeOf, isSamePlace } from './Board.utils'
 
@@ -72,37 +78,35 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
   return null
 }
 
-/** Клик, которым браузер закончит жест, - не открытие карточки: он перехватывается. */
-const swallowEndingClick = () => {
-  const swallow = (click: MouseEvent) => {
-    click.stopPropagation()
-    click.preventDefault()
-  }
-
-  window.addEventListener('click', swallow, { capture: true, once: true })
-  window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }))
-}
-
-/** Ряд, который листается вбок под рукой, или вся страница сверху вниз - шаг у края. */
+/** Ряд групп под рукой листается вбок, страница - сверху вниз: шаг у края, если есть куда. */
 const autoScroll = (scroller: HTMLElement | null, x: number, y: number) => {
   const row = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-flow-row]')
-  const step = (from: number, to: number, at: number) =>
-    at < from + AUTO_SCROLL_EDGE_PX
-      ? -AUTO_SCROLL_STEP_PX
-      : at > to - AUTO_SCROLL_EDGE_PX
-        ? AUTO_SCROLL_STEP_PX
-        : 0
 
   if (row) {
     const box = row.getBoundingClientRect()
 
-    row.scrollLeft += step(box.left, box.right, x)
+    row.scrollLeft += autoScrollStep(
+      x,
+      box,
+      { before: row.scrollLeft, after: row.scrollWidth - row.clientWidth - row.scrollLeft },
+      AUTO_SCROLL_EDGE_PX,
+      AUTO_SCROLL_MAX_STEP_PX,
+    )
   }
 
   if (scroller) {
     const box = scroller.getBoundingClientRect()
 
-    scroller.scrollTop += step(box.top, box.bottom, y)
+    scroller.scrollTop += autoScrollStep(
+      y,
+      { left: box.top, right: box.bottom },
+      {
+        before: scroller.scrollTop,
+        after: scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop,
+      },
+      AUTO_SCROLL_EDGE_PX,
+      AUTO_SCROLL_MAX_STEP_PX,
+    )
   }
 }
 

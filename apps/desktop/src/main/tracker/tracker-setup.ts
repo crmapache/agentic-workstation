@@ -1,10 +1,11 @@
 import { join } from 'node:path'
 
-import { clipboard } from 'electron'
+import type { BrowserWindow } from 'electron'
 
 import { CLOUD_URL } from '@agentic-workstation/cloud-protocol/api'
 
 import { httpTransport } from '../cloud/cloud-client'
+import { revealAccountKey, confirmAccountSwitch } from '../cloud/cloud-dialogs'
 import type { StoredCloud } from '../cloud/cloud-service'
 import { CloudService } from '../cloud/cloud-service'
 import { broadcast } from '../ipc/broadcast'
@@ -29,12 +30,20 @@ export type TrackerRuntime = {
 const cloudUrl = () => process.env.AGENTIC_WORKSTATION_CLOUD_URL || CLOUD_URL
 
 /**
+ * Копия IDE со своим профилем (окно агента, проверки) без своего адреса облака не включает
+ * облако сама: иначе каждый её запуск заводил бы пустой аккаунт в боевом облаке.
+ */
+const cloudOnByDefault = () =>
+  !process.env.AGENTIC_WORKSTATION_PROFILE_DIR || Boolean(process.env.AGENTIC_WORKSTATION_CLOUD_URL)
+
+/**
  * Трекер задач (ADR 0101) с облаком (ADR 0102) и связкой со сценариями. Поднимается после
  * сценариев: связи карточек читают их очереди.
  */
 export const startTracker = async (setup: {
   dataDir: string
   scenarios: ScenarioService
+  getWindow: () => BrowserWindow | null
 }): Promise<TrackerRuntime> => {
   const book = await TrackerBook.load(
     new JsonFile<StoredTracker>(join(setup.dataDir, 'tracker.json'), { mode: 0o600 }),
@@ -42,6 +51,9 @@ export const startTracker = async (setup: {
   const tracker = new TrackerService({
     book,
     events: { onBoard: (board) => broadcast('tracker:changed', board) },
+    // Срок архива считается после сверки с облаком: по устаревшей копии машина удалила бы
+    // проект, который на другой машине уже вернули.
+    purgeAfterSync: true,
   })
   const runs = new TrackerRuns(tracker, {
     fetch: (projectPath, id, scope) => setup.scenarios.shelves.fetch(projectPath, id, scope),
@@ -55,17 +67,23 @@ export const startTracker = async (setup: {
     book,
     transportFor: (account) => httpTransport(cloudUrl(), account),
     onState: (state) => broadcast('cloud:changed', state),
-    writeClipboard: async (text) => {
-      await clipboard.writeText(text)
-    },
+    revealKey: (key) => revealAccountKey(setup.getWindow, key),
+    confirmSwitch: (from, to) => confirmAccountSwitch(setup.getWindow, from, to),
+    enabledByDefault: cloudOnByDefault(),
+    onSynced: () => tracker.allowPurge(),
   })
+  const cloudState = cloud.state()
+
+  // Облако выключено или не может работать (нет связки ключей, ключ потерян) - сверяться не с
+  // чем, срок архива считается по своей книге.
+  if (cloudState.status === 'off' || cloudState.status === 'error') tracker.allowPurge()
 
   return {
     tracker,
     runs,
     cloud,
     shutdown: async () => {
-      cloud.close()
+      await cloud.close()
       await tracker.close()
     },
   }

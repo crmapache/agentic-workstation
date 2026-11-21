@@ -1,16 +1,20 @@
+import { statfsSync } from 'node:fs'
 import type { ServerResponse, IncomingMessage } from 'node:http'
 import { createServer } from 'node:http'
 
 import type { CloudInfo } from '@agentic-workstation/cloud-protocol/api'
 
 import { SignatureDesk } from './auth.ts'
-import { clientIp } from './callers.ts'
+import { readBody, TooLarge, BodyBudget, declaredBody } from './body.ts'
+import { clientIp, ANONYMOUS } from './callers.ts'
 import type { Config } from './config.ts'
 import { openDatabase } from './db.ts'
+import type { Take } from './rate-limit.ts'
 import { RateLimit } from './rate-limit.ts'
 import { Records } from './records.ts'
-import type { CloudResponse } from './routes.ts'
-import { failure, createRoutes } from './routes.ts'
+import type { CloudResponse } from './replies.ts'
+import { busy, failure } from './replies.ts'
+import { createRoutes } from './routes.ts'
 import { Waiters } from './waiters.ts'
 
 /**
@@ -29,48 +33,35 @@ const BASE_HEADERS = {
   'cache-control': 'no-store',
 }
 
+const MINUTE = 60_000
+const DAY = 24 * 60 * MINUTE
+
 /**
- * Сверх предела тело дочитывается вхолостую ещё на столько: клиент, чуть перебравший, получает
- * внятный отказ 413, а не обрыв посреди отправки. Совсем большое тело - обрыв сразу.
+ * Отказ до чтения тела оставляет тело в соединении, и Node выбрасывает его сам после ответа.
+ * Тело чуть сверх предела так и выбрасывается: клиент дочитывает внятный ответ, а не обрыв
+ * посреди отправки. Тело без длины или больше предела ещё на столько - соединение закрывается
+ * сразу после ответа, гонять мегабайты вхолостую незачем.
  */
 const DRAIN_BYTES = 1024 * 1024
 
-class TooLarge extends Error {}
-
-const readBody = (request: IncomingMessage, limit: number): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    let chunks: Buffer[] = []
-    let size = 0
-
-    request.on('data', (chunk: Buffer) => {
-      size += chunk.length
-
-      if (size > limit + DRAIN_BYTES) {
-        request.destroy()
-        reject(new TooLarge())
-
-        return
-      }
-
-      if (size > limit) chunks = []
-      else chunks.push(chunk)
-    })
-    request.on('end', () => {
-      if (size > limit) reject(new TooLarge())
-      else resolve(Buffer.concat(chunks))
-    })
-    request.on('error', reject)
-  })
-
-const send = (response: ServerResponse, reply: CloudResponse) => {
+const send = (response: ServerResponse, reply: CloudResponse, close = false) => {
   // Соединения уже нет (клиент ушёл, тело оборвано) - писать некуда.
   if (response.writableEnded || !response.socket || response.socket.destroyed) return
 
   response.writeHead(reply.status, {
     ...BASE_HEADERS,
+    ...reply.headers,
     'content-type': 'application/json; charset=utf-8',
+    ...(close ? { connection: 'close' } : {}),
   })
   response.end(JSON.stringify(reply.json))
+}
+
+/** Свободное место на диске папки данных - то, что доступно процессу без root. */
+const freeDiskBytes = (dir: string): number => {
+  const stats = statfsSync(dir)
+
+  return stats.bavail * stats.bsize
 }
 
 export const createCloud = (
@@ -79,14 +70,30 @@ export const createCloud = (
   now: () => number = Date.now,
 ): Cloud => {
   const db = openDatabase(config.dataDir)
-  const reads = new RateLimit(config.readsPerMinute, 60_000, now)
-  const writes = new RateLimit(config.writesPerMinute, 60_000, now)
-  const accounts = new RateLimit(config.accountRequestsPerMinute, 60_000, now)
-  const route = createRoutes({
-    records: new Records(db, { maxAccountRecords: config.maxAccountRecords }, now),
-    signatures: new SignatureDesk(now),
-    waiters: new Waiters({ perAccount: config.maxWaitsPerAccount, total: config.maxWaits }),
-    mayCall: (key) => accounts.take(key),
+  const limiter = (limit: number, windowMs: number) =>
+    new RateLimit({ limit, windowMs, maxKeys: config.maxTrackedKeys, now })
+  const reads = limiter(config.readsPerMinute, MINUTE)
+  const writes = limiter(config.writesPerMinute, MINUTE)
+  const accounts = limiter(config.accountRequestsPerMinute, MINUTE)
+  const newAccounts = limiter(config.newAccountsPerDay, DAY)
+  // Пределы «на адрес» к анонимному не применяются (callers.ts): его держат пределы на аккаунт
+  // и общие потолки.
+  const perCaller = (limit: RateLimit, caller: string): Take =>
+    caller === ANONYMOUS ? 'ok' : limit.take(caller)
+  const budget = new BodyBudget(config.maxBodyMemoryBytes)
+  const admit = createRoutes({
+    records: new Records(db, config, now),
+    signatures: new SignatureDesk({ maxNonces: config.maxNonces }, now),
+    waiters: new Waiters({
+      perAccount: config.maxWaitsPerAccount,
+      perCaller: config.maxWaitsPerCaller,
+      total: config.maxWaits,
+    }),
+    maxBodyBytes: config.maxBodyBytes,
+    fromCaller: (caller, method) => perCaller(method === 'GET' ? reads : writes, caller),
+    forAccount: (key) => accounts.take(key),
+    newAccount: (caller) => perCaller(newAccounts, caller),
+    hasRoom: () => freeDiskBytes(config.dataDir) >= config.minFreeDiskBytes,
     log,
   })
   const info: CloudInfo & { build: string } = {
@@ -105,11 +112,6 @@ export const createCloud = (
     if (url.pathname === '/healthz') return send(response, { status: 200, json: { ok: true } })
     if (url.pathname === '/v1/info') return send(response, { status: 200, json: info })
 
-    const limit = method === 'GET' ? reads : writes
-
-    if (!limit.take(clientIp(request, config.trustProxy)))
-      return send(response, failure('rate-limited', 'Too many requests, try later.'))
-
     // 'close' у ответа - и конец ответа, и уход клиента; у запроса он приходит уже после
     // чтения тела, поэтому уход клиента посреди ожидания видит только ответ.
     const gone = new AbortController()
@@ -120,43 +122,67 @@ export const createCloud = (
       open.delete(gone)
     })
 
-    let body: Buffer
-
-    try {
-      body = await readBody(request, config.maxBodyBytes)
-    } catch (error) {
-      if (error instanceof TooLarge)
-        return send(
-          response,
-          failure('too-large', `The body is over ${config.maxBodyBytes} bytes.`),
-        )
-      // Клиент оборвал отправку тела - это не ошибка сервера.
-      if (gone.signal.aborted || request.destroyed) return
-
-      throw error
-    }
-
-    const reply = await route({
+    const declared = declaredBody(request.headers)
+    const unread = declared === 'unknown' || declared > config.maxBodyBytes + DRAIN_BYTES
+    const admission = admit({
       method,
       url: request.url ?? '/',
       path: url.pathname,
       query: url.searchParams,
+      host: request.headers.host ?? '',
       headers: request.headers,
-      body,
+      caller: clientIp(request, request.socket.remoteAddress, config.trustProxy),
+      body: declared,
       signal: gone.signal,
     })
 
-    if (reply) send(response, reply)
+    if (admission.kind === 'refuse') return send(response, admission.reply, unread)
+    if (!budget.reserve(admission.reserve)) return send(response, busy(), unread)
+
+    // Место под тело занято до конца обработки: тело в памяти, пока запись не легла в базу.
+    try {
+      let body: Buffer
+
+      try {
+        body = await readBody(request, config.maxBodyBytes)
+      } catch (error) {
+        if (error instanceof TooLarge)
+          return send(
+            response,
+            failure('too-large', `The body is over ${config.maxBodyBytes} bytes.`),
+            true,
+          )
+        // Клиент оборвал отправку тела или не успел за requestTimeout - не ошибка сервера.
+        if (gone.signal.aborted || request.destroyed) return
+
+        throw error
+      }
+
+      const reply = await admission.run(body)
+
+      if (reply) send(response, reply)
+    } finally {
+      budget.release(admission.reserve)
+    }
   }
 
-  const server = createServer((request, response) => {
-    handle(request, response).catch((error: unknown) => {
-      log(`ошибка запроса: ${error instanceof Error ? error.stack : String(error)}`)
+  const server = createServer(
+    {
+      headersTimeout: config.headersTimeoutMs,
+      requestTimeout: config.requestTimeoutMs,
+      // Сроки Node сверяет обходом соединений раз в этот промежуток. По умолчанию - 30 секунд,
+      // и срок заголовков в 10 секунд на деле растягивался бы до 40.
+      connectionsCheckingInterval: Math.min(1000, config.headersTimeoutMs / 5),
+    },
+    (request, response) => {
+      handle(request, response).catch((error: unknown) => {
+        log(`ошибка запроса: ${error instanceof Error ? error.stack : String(error)}`)
 
-      if (!response.headersSent) send(response, failure('server', 'Server error.'))
-      else response.end()
-    })
-  })
+        if (!response.headersSent) send(response, failure('server', 'Server error.'))
+        else response.end()
+      })
+    },
+  )
 
   return {
     listen: (port) =>
@@ -170,6 +196,8 @@ export const createCloud = (
     close: () =>
       new Promise((resolve) => {
         for (const request of open) request.abort()
+
+        for (const limit of [reads, writes, accounts, newAccounts]) limit.dispose()
 
         open.clear()
         server.closeAllConnections()

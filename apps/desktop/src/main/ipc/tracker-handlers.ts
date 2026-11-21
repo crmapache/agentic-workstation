@@ -43,5 +43,6 @@ export const createTrackerHandlers = (
       return cloud.useKey(key)
     },
     'cloud:setEnabled': ({ enabled }) => cloud.setEnabled(enabled === true),
+    'cloud:startOver': () => cloud.startOver(),
   }
 }

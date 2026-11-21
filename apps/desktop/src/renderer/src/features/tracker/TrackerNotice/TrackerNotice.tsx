@@ -21,7 +21,7 @@ export const TrackerNotice = () => {
   const { apply } = useTrackerActions()
 
   const handleUndo = () => {
-    if (undo) void apply({ kind: 'undelete', ids: undo.ids })
+    if (undo) void apply({ kind: 'undelete', ids: undo.ids }, undo.projectId)
 
     offerUndo(null)
   }

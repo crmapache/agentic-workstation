@@ -1,7 +1,7 @@
 import { isAlwaysOn, nextClosing, nextOpening, isWorkingTime } from '@shared/queue-hours'
 import type { QueueHours, ScenarioQueue } from '@shared/scenario-queues'
 
-import { clockLabel } from './scenarios-hours.utils'
+import { clockOfMinutes } from '../../lib/dates.utils'
 import { waitingItems, runningItemOf } from './scenarios-queues.utils'
 
 /**
@@ -51,7 +51,7 @@ export const daysWords = (days: readonly number[], name: (day: number) => string
 
 /** Окно словами: «10:00-19:00»; null - сутки целиком (начало и конец совпали). */
 export const spanLabel = (hours: QueueHours): string | null =>
-  hours.from === hours.to ? null : `${clockLabel(hours.from)}-${clockLabel(hours.to)}`
+  hours.from === hours.to ? null : `${clockOfMinutes(hours.from)}-${clockOfMinutes(hours.to)}`
 
 /** Что часы сделают, если сохранить их сейчас. */
 export type HoursNow =

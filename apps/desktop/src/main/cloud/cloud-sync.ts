@@ -14,7 +14,7 @@ import { CloudFault } from './cloud-client'
 /** Что синхронизируется: книга записей (сейчас - трекер). */
 export type SyncCollection = Pick<
   TrackerBook,
-  'outgoing' | 'acknowledge' | 'absorb' | 'cursor' | 'pending'
+  'outgoing' | 'acknowledge' | 'absorb' | 'cursor' | 'pending' | 'rebase' | 'restart'
 >
 
 /** Шифр записей ключом аккаунта: сервер видит только blob. */
@@ -45,6 +45,8 @@ export type CloudSyncOptions = {
 const BACKOFF_MS = [2_000, 5_000, 15_000, 30_000, 60_000] as const
 /** Сколько кругов «записать - забрать спорное - записать» за один заход. */
 const MAX_ROUNDS = 5
+/** Долгий забор, вернувшийся быстрее этого пустым, - сервер не дал подождать. */
+const QUICK_POLL_MS = 1_000
 /** Потолок тела одной пачки с запасом под JSON-обёртку. */
 const MAX_BATCH_CHARS = 3 * 1024 * 1024
 
@@ -88,7 +90,12 @@ const batchesOf = (records: PushRecord[]): PushRecord[][] => {
  */
 export class CloudSync {
   private running = false
+  /** Остановлена навсегда: ни одна запись в книгу после этого не делается. */
+  private stopped = false
+  /** Жизнь синхронизации: остановка обрывает и идущие запросы, а не только ожидание. */
+  private readonly life = new AbortController()
   private wake = new AbortController()
+  private finished: Promise<void> = Promise.resolve()
   private failures = 0
   private lastSyncAt: number | null = null
   private readonly now: () => number
@@ -98,15 +105,23 @@ export class CloudSync {
   }
 
   start() {
-    if (this.running) return
+    if (this.running || this.stopped) return
 
     this.running = true
-    void this.loop()
+    this.finished = this.loop()
   }
 
-  stop() {
+  /**
+   * Остановить и дождаться конца цикла: смена ключа аккаунта переписывает версии в книге, и
+   * ответ старого аккаунта, пришедший после, не должен их затереть.
+   */
+  stop(): Promise<void> {
+    this.stopped = true
     this.running = false
+    this.life.abort()
     this.wake.abort()
+
+    return this.finished
   }
 
   /** Своя правка: прервать ожидание и отправить. */
@@ -119,49 +134,48 @@ export class CloudSync {
    * false - сервер спорил все круги подряд: следующий заход - после паузы, а не сразу.
    */
   async syncOnce(): Promise<boolean> {
+    const { collection } = this.options
     let settled = true
 
     await this.pullAll(0)
 
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
-      const outgoing = this.options.collection.outgoing().flatMap((record) => {
-        const blob = this.options.seal.seal(record.id, record.text)
-
-        if (blob.length > MAX_BLOB_LENGTH) {
-          console.warn('[cloud] запись больше потолка, не отправлена', record.id)
-
-          return []
-        }
-
-        return [{ id: record.id, baseRev: record.baseRev, blob, text: record.text }]
-      })
+      const outgoing = this.sealed()
 
       if (outgoing.length === 0) break
 
-      let disputed = false
+      const disputes = new Map<string, number>()
 
       settled = false
 
       for (const batch of batchesOf(outgoing)) {
         const reply = await this.options.transport.push(
           batch.map(({ id, baseRev, blob }) => ({ id, baseRev, blob })),
+          this.life.signal,
         )
+
+        this.alive()
 
         for (const result of reply.results) {
           const sent = outgoing.find((record) => record.id === result.id)
 
-          if (result.ok && sent)
-            this.options.collection.acknowledge(result.id, result.rev, sent.text)
-          else disputed = true
+          if (result.ok && sent) collection.acknowledge(result.id, result.rev, sent.text)
+          else if (!result.ok) disputes.set(result.id, result.current)
         }
       }
 
-      if (!disputed) {
+      if (disputes.size === 0) {
         settled = true
         break
       }
 
       await this.pullAll(0)
+
+      // Версию, которую сервер называет своей и которую забор уже прошёл, эта машина видела и
+      // слила - писать поверх неё. Иначе запись, которой на сервере нет, спорила бы вечно.
+      for (const [id, current] of disputes) {
+        if (current <= collection.cursor) collection.rebase(id, current)
+      }
     }
 
     this.lastSyncAt = this.now()
@@ -169,9 +183,51 @@ export class CloudSync {
     return settled
   }
 
-  private async pullAll(wait: number, signal?: AbortSignal) {
+  /** Свои записи шифром; запись больше потолка остаётся дома с предупреждением в журнал. */
+  private sealed() {
+    return this.options.collection.outgoing().flatMap((record) => {
+      const blob = this.options.seal.seal(record.id, record.text)
+
+      if (blob.length > MAX_BLOB_LENGTH) {
+        console.warn('[cloud] запись больше потолка, не отправлена', record.id)
+
+        return []
+      }
+
+      return [{ id: record.id, baseRev: record.baseRev, blob, text: record.text }]
+    })
+  }
+
+  /** Остановленная синхронизация в книгу не пишет: ответ пришёл, а аккаунт уже другой. */
+  private alive() {
+    if (this.stopped) throw new CloudFault('offline')
+  }
+
+  /** Забрать всё новое; true - что-то пришло. */
+  private async pullAll(wait: number, signal?: AbortSignal): Promise<boolean> {
+    const { collection } = this.options
+    let restarted = false
+    let got = false
+
     for (;;) {
-      const page = await this.options.transport.pull(this.options.collection.cursor, wait, signal)
+      const since = collection.cursor
+      const page = await this.options.transport.pull(
+        since,
+        wait,
+        signal ? AbortSignal.any([this.life.signal, signal]) : this.life.signal,
+      )
+
+      this.alive()
+
+      // Облако позади своего курсора - его подняли из бэкапа: всё своё туда заново, забор с нуля.
+      if (page.rev < since && !restarted) {
+        console.warn('[cloud] облако позади курсора, синхронизация заново', page.rev, since)
+        restarted = true
+        collection.restart()
+
+        continue
+      }
+
       const pulled = page.records.flatMap((record) => {
         const text = this.options.seal.open(record.id, record.blob)
 
@@ -180,15 +236,16 @@ export class CloudSync {
         return text === null ? [] : [{ id: record.id, rev: record.rev, text }]
       })
 
-      this.options.collection.absorb(pulled)
-      this.options.collection.cursor = page.more ? (page.records.at(-1)?.rev ?? page.rev) : page.rev
+      collection.absorb(pulled)
+      collection.cursor = page.more ? (page.records.at(-1)?.rev ?? page.rev) : page.rev
+      got ||= page.records.length > 0
 
-      if (!page.more) return page.records.length > 0
+      if (!page.more) return got
     }
   }
 
   private report(failure: CloudFailure | null, online: boolean) {
-    this.options.onReport({ online, failure, lastSyncAt: this.lastSyncAt })
+    if (!this.stopped) this.options.onReport({ online, failure, lastSyncAt: this.lastSyncAt })
   }
 
   private async loop() {
@@ -205,9 +262,19 @@ export class CloudSync {
         this.report(null, true)
 
         if (!this.running) break
-        if (settled) await this.pullAll(wait, this.wake.signal)
-        else await sleep(backoff[0] ?? 0, this.wake.signal)
+        if (!settled) {
+          await sleep(backoff[0] ?? 0, this.wake.signal)
+          continue
+        }
+
+        const started = this.now()
+        const got = await this.pullAll(wait, this.wake.signal)
+
+        // Сервер не дал подождать (места ожидания заняты): пауза, а не два запроса на круг.
+        if (!got && wait > 0 && this.now() - started < QUICK_POLL_MS)
+          await sleep(backoff[0] ?? 0, this.wake.signal)
       } catch (error) {
+        if (!this.running) break
         if (this.wake.signal.aborted) continue
 
         const failure = error instanceof CloudFault ? error.failure : 'badReply'

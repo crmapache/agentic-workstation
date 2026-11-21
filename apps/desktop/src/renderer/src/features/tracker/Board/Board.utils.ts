@@ -1,6 +1,7 @@
 import type { TrackerOp, TrackerProject } from '@shared/tracker'
 
 import type { BoardNeighbours } from '../tracker.utils'
+import { findNode } from '../tracker.utils'
 import type { Rect, DropHit, DropMark, DropPlace, DragSource } from './Board.types'
 
 type Placed = { place: DropPlace; mark: DropMark }
@@ -255,21 +256,17 @@ export const opOf = (projectId: string, source: DragSource, place: DropPlace): T
 
 /** Подпись призрака: заголовок того, что несут. */
 export const titleOf = (project: TrackerProject, source: DragSource): string => {
-  for (const flow of project.flows) {
-    if (flow.id === source.id) return flow.title
+  const node = findNode([project], source.id)
 
-    for (const group of flow.groups) {
-      if (group.id === source.id) return group.title
-
-      for (const task of group.tasks) {
-        if (task.id === source.id) return task.title
-
-        const card = task.followUps.find((one) => one.id === source.id)
-
-        if (card) return card.title
-      }
-    }
+  switch (node?.kind) {
+    case 'flow':
+      return node.flow.title
+    case 'group':
+      return node.group.title
+    case 'task':
+    case 'followUp':
+      return node.card.title
+    default:
+      return ''
   }
-
-  return ''
 }

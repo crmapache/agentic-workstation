@@ -26,7 +26,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
   const { press, draggingId, moveBy } = useBoard()
   const { apply } = useTrackerActions()
   const edit = useTrackerStore((state) => state.edit)
-  const send = useTrackerStore((state) => state.send)
+  const openSend = useTrackerStore((state) => state.openSend)
   const [adding, setAdding] = useState(false)
   const source = { kind: 'group' as const, id: group.id }
   const sendable = sendableCards(group).length
@@ -81,7 +81,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
             size="xs"
             label={t('tracker.group.send')}
             disabled={sendable === 0}
-            onClick={() => send({ kind: 'group', groupId: group.id })}
+            onClick={() => openSend({ kind: 'group', groupId: group.id })}
           />
           <ActionsMenu label={t('tracker.group.menu')} items={items} />
         </span>

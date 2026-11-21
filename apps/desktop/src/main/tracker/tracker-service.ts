@@ -2,6 +2,7 @@ import type { TrackerOp, TrackerBoard, TrackerOutcome } from '@shared/tracker'
 
 import type { TrackerBook } from './tracker-book'
 import { TrackerError } from './tracker-fields'
+import { healOrphans } from './tracker-heal'
 import { applyOp } from './tracker-ops'
 import type { TrackerPlace } from './tracker-spaces'
 import { readRemote, resolveSpace, mergeTwinSpaces } from './tracker-spaces'
@@ -20,6 +21,8 @@ export type TrackerOptions = {
   now?: () => number
   /** Адрес origin проекта: в тестах - подставной, без git. */
   remoteOf?: (rootPath: string) => Promise<string | null>
+  /** Срок архива - только после allowPurge (первой сверки с облаком), а не со старта. */
+  purgeAfterSync?: boolean
 }
 
 /** Как часто трекер сам удаляет проекты, пролежавшие в архиве свой срок. */
@@ -39,15 +42,22 @@ export class TrackerService {
   private runStateOf: RunStateOf = () => 'gone'
   private redraw: ReturnType<typeof setTimeout> | null = null
   private readonly purging: ReturnType<typeof setInterval>
+  /** Книга сверена с облаком (или облака нет): можно удалять проекты с вышедшим сроком. */
+  private purgeReady: boolean
 
   constructor(private readonly options: TrackerOptions) {
     this.now = options.now ?? Date.now
     this.remoteOf = options.remoteOf ?? readRemote
     options.book.onChange((change) => {
-      if (change === 'remote') mergeTwinSpaces(options.book)
+      // Пришло из облака: двойники пространств и сироты встречных удалений сводятся здесь.
+      if (change === 'remote') {
+        mergeTwinSpaces(options.book)
+        healOrphans(options.book)
+      }
 
       this.scheduleRedraw()
     })
+    this.purgeReady = options.purgeAfterSync !== true
     this.purgeExpired()
     this.purging = setInterval(() => this.purgeExpired(), PURGE_EVERY_MS)
     this.purging.unref()
@@ -98,6 +108,14 @@ export class TrackerService {
     }
   }
 
+  /** Книга сверена с облаком: теперь срок архива считается по свежим записям. */
+  allowPurge() {
+    if (this.purgeReady) return
+
+    this.purgeReady = true
+    this.purgeExpired()
+  }
+
   /** Перерисовать доски: поменялось то, что видно на карточках, но не в книге (очередь). */
   refresh() {
     this.scheduleRedraw()
@@ -136,6 +154,8 @@ export class TrackerService {
   }
 
   private purgeExpired() {
+    if (!this.purgeReady) return
+
     const tree = new TrackerTree(this.book.records())
     const expired = expiredArchives(tree, this.now())
 

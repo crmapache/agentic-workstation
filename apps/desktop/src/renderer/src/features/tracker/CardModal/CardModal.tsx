@@ -1,6 +1,8 @@
 import { Send, Trash2, SquareKanban } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { isInQueue } from '@shared/tracker'
+
 import { Button } from '@agentic-workstation/ui/Button'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
@@ -31,23 +33,19 @@ export const CardModal = (props: CardModalProps) => {
   const scenarios = useShelfScenarios()
   const { apply } = useTrackerActions()
   const edit = useTrackerStore((state) => state.edit)
-  const send = useTrackerStore((state) => state.send)
+  const openSend = useTrackerStore((state) => state.openSend)
   const now = useNow(false, 0)
   const today = new Date(now).setHours(0, 0, 0, 0)
   const isNew = props.mode === 'new'
-  const fields = {
-    title: form.title,
-    subtitle: form.subtitle,
-    description: form.description,
-    due: form.due,
-    priority: form.priority,
-    done: form.done,
-    scenario: form.scenario,
-  }
-
+  // Карточка уже в очереди: второй раз её не шлют, главный процесс отказал бы.
+  const isQueued = props.mode === 'edit' && isInQueue(props.card.run)
   const handleClose = () => edit(null)
   const save = async (): Promise<string | null> => {
     if (props.mode === 'edit') {
+      const fields = form.changed()
+
+      if (Object.keys(fields).length === 0) return props.card.id
+
       const { ok } = await apply({ kind: 'card.update', id: props.card.id, fields })
 
       return ok ? props.card.id : null
@@ -57,7 +55,7 @@ export const CardModal = (props: CardModalProps) => {
       kind: 'card.create',
       groupId: props.groupId,
       followUpOf: props.followUpOf,
-      fields,
+      fields: form.all(),
     })
 
     return created
@@ -68,7 +66,7 @@ export const CardModal = (props: CardModalProps) => {
   const handleSend = async () => {
     const cardId = await save()
 
-    if (cardId) send({ kind: 'card', cardId })
+    if (cardId) openSend({ kind: 'card', cardId })
   }
   const handleDelete = async () => {
     if (props.mode === 'edit' && (await apply({ kind: 'card.delete', id: props.card.id })).ok)
@@ -109,7 +107,7 @@ export const CardModal = (props: CardModalProps) => {
             <Button
               variant="secondary"
               icon={Send}
-              disabled={!form.title.trim()}
+              disabled={!form.title.trim() || isQueued}
               onClick={() => void handleSend()}>
               {t('tracker.cardModal.send')}
             </Button>

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ProjectTab } from '../ProjectTab/ProjectTab'
 import { NO_WORK, NO_CALLS } from '../ProjectTab/ProjectTab.constants'
-import { useTabDrag } from '../../../lib/tab-drag.hooks'
+import { useTabRowDrag } from '../../../lib/tab-drag.hooks'
 import { useWheelToSide } from '../../../lib/wheel-to-side.hooks'
 import { useWorkspace, useWorkspaceActions } from '../../../state/workspace.queries'
 import styles from './ProjectTabs.module.scss'
@@ -16,7 +16,7 @@ import { HomeTab } from './parts/HomeTab'
  * стоит всегда, даже до загрузки списка, - иначе первый ответ сдвигал бы всё окно вниз. Открыть
  * проект - переключатель в шапке. У каждой вкладки - точки разговоров проекта, которые позвали
  * человека (callsOf), и знак работы, которая в нём идёт сама (workOf). Порядок проектов меняют
- * перетаскиванием (useTabDrag), дом не двигается.
+ * перетаскиванием (useTabRowDrag), дом не двигается.
  */
 export const ProjectTabs = ({ callsOf, workOf }: ProjectTabsProps) => {
   const { t } = useTranslation()
@@ -26,7 +26,7 @@ export const ProjectTabs = ({ callsOf, workOf }: ProjectTabsProps) => {
   const all = data?.projects ?? []
   const home = all.find((project) => project.home)
   const projects = all.filter((project) => !project.home)
-  const drag = useTabDrag(
+  const drag = useTabRowDrag(
     projects.map((project) => project.id),
     moveProject,
   )

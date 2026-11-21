@@ -52,19 +52,27 @@ export const weekdayNames = (): string[] =>
 export type NearDayWords = { today: string; tomorrow: string; yesterday: string }
 
 /**
+ * День словами: «Today», «Tomorrow», «Yesterday», в пределах недели - «Mon», дальше -
+ * «Tue, Dec 1». Основа и момента в строке списка, и срока карточки трекера.
+ */
+export const nearDayLabel = (ms: number, now: number, words: NearDayWords): string => {
+  const days = daysBetween(now, ms)
+
+  if (days === 0) return words.today
+  if (days === 1) return words.tomorrow
+  if (days === -1) return words.yesterday
+
+  return Math.abs(days) < 7 ? WEEKDAY.format(ms) : weekdayDayLabel(ms)
+}
+
+/**
  * Момент словами для строки списка: «Today 09:00», «Tomorrow 09:00», в пределах недели -
- * «Mon 18:12», дальше - «Tue, Dec 1, 09:00».
+ * «Mon 18:12», дальше - «Tue, Dec 1, 09:00» (дата с запятой внутри - и час через запятую).
  */
 export const momentLabel = (ms: number, now: number, words: NearDayWords): string => {
-  const days = daysBetween(now, ms)
-  const clock = clockLabel(ms)
+  const separator = Math.abs(daysBetween(now, ms)) < 7 ? ' ' : ', '
 
-  if (days === 0) return `${words.today} ${clock}`
-  if (days === 1) return `${words.tomorrow} ${clock}`
-  if (days === -1) return `${words.yesterday} ${clock}`
-  if (Math.abs(days) < 7) return weekdayClockLabel(ms)
-
-  return `${weekdayDayLabel(ms)}, ${clock}`
+  return `${nearDayLabel(ms, now, words)}${separator}${clockLabel(ms)}`
 }
 
 /** Сколько календарных дней от from до to по местным полуночам (сегодня - 0, завтра - 1). */
@@ -78,7 +86,22 @@ export const daysBetween = (from: number, to: number): number => {
   return Math.round((end.getTime() - start.getTime()) / DAY_MS)
 }
 
-const pad = (value: number): string => String(value).padStart(2, '0')
+/** Число в две цифры: «09». */
+export const pad2 = (value: number): string => String(value).padStart(2, '0')
+
+/** `YYYY-MM-DD` местного дня момента: так день хранят срок, разовый запуск и ключ дня. */
+export const isoDay = (ms: number): string => {
+  const date = new Date(ms)
+
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+}
+
+/** «08:30» из минут от полуночи; вне суток - к ближнему краю, а не «24:00». */
+export const clockOfMinutes = (minutes: number): string => {
+  const safe = Math.min(Math.max(Math.round(minutes), 0), 24 * 60 - 1)
+
+  return `${pad2(Math.floor(safe / 60))}:${pad2(safe % 60)}`
+}
 
 /**
  * Сколько уже ждём - «0:42», «12:05», «1:02:03». Показание прибора, а не слова: строка, которая
@@ -90,5 +113,5 @@ export const waitClock = (ms: number): string => {
   const minutes = Math.floor((total % 3600) / 60)
   const seconds = total % 60
 
-  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`
+  return hours > 0 ? `${hours}:${pad2(minutes)}:${pad2(seconds)}` : `${minutes}:${pad2(seconds)}`
 }

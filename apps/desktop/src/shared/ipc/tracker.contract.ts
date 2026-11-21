@@ -25,11 +25,13 @@ export type TrackerInvokeContract = {
     response: TrackerSendOutcome
   }
   'cloud:state': { request: void; response: CloudState }
-  /** Ключ аккаунта - в буфер обмена главным процессом: окно его не видит. */
+  /** Ключ аккаунта показывает системное окно главного процесса: окно IDE его не видит. */
   'cloud:copyKey': { request: void; response: CloudState }
   /** Ключ с другого компьютера: доска сольётся с его облаком. */
   'cloud:useKey': { request: { key: string }; response: CloudKeyOutcome }
   'cloud:setEnabled': { request: { enabled: boolean }; response: CloudState }
+  /** Ключ потерян и вернуть его нечем: новый аккаунт (после «да» в системном окне). */
+  'cloud:startOver': { request: void; response: CloudKeyOutcome }
 }
 
 export type TrackerEventContract = {
@@ -47,6 +49,7 @@ export const TRACKER_CHANNELS = {
   'cloud:copyKey': true,
   'cloud:useKey': true,
   'cloud:setEnabled': true,
+  'cloud:startOver': true,
 } satisfies Record<keyof TrackerInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

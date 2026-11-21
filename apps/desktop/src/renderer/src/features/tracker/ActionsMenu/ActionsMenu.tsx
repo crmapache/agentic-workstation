@@ -10,16 +10,17 @@ import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import type { ActionsMenuProps } from './ActionsMenu.types'
 
 /**
- * Кнопка «⋯» с меню действий карточки, группы или потока. Нажатие на неё не начинает
- * перетаскивание того, на чём она стоит.
+ * Кнопка «⋯» с меню действий карточки, группы или потока. Ни нажатие, ни клик по ней и по её
+ * пунктам не доходят до того, на чём она стоит: карточка не начинает перетаскивание и не
+ * открывает своё окно поверх выбранного действия.
  */
 export const ActionsMenu = ({ label, items }: ActionsMenuProps) => {
   const popover = usePopover()
 
-  const handleMouseDown = (event: MouseEvent) => event.stopPropagation()
+  const handleStop = (event: MouseEvent) => event.stopPropagation()
 
   return (
-    <span onMouseDown={handleMouseDown}>
+    <span onMouseDown={handleStop} onClick={handleStop}>
       <IconButton {...popover.triggerProps} icon={Ellipsis} label={label} size="xs" />
       <Popover {...popover.popoverProps}>
         {popover.isOpen && (

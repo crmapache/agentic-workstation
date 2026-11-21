@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { isInQueue } from '@shared/tracker'
+
 import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 
 import { useTrackerActions } from '../tracker.actions'
@@ -33,7 +35,7 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
   const { press, draggingId, today, moveBy } = useBoard()
   const { apply } = useTrackerActions()
   const edit = useTrackerStore((state) => state.edit)
-  const send = useTrackerStore((state) => state.send)
+  const openSend = useTrackerStore((state) => state.openSend)
   const source = { kind: 'card' as const, id: card.id }
   const items: ActionItem[] = [
     { key: 'edit', icon: Pencil, label: t('tracker.card.edit'), onSelect: () => handleOpen() },
@@ -47,8 +49,9 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
       key: 'send',
       icon: Send,
       label: t('tracker.card.send'),
-      disabled: !card.scenario,
-      onSelect: () => send({ kind: 'card', cardId: card.id }),
+      // Карточка, которая уже стоит в очереди, второй раз не уходит - главный процесс откажет.
+      disabled: !card.scenario || isInQueue(card.run),
+      onSelect: () => openSend({ kind: 'card', cardId: card.id }),
     },
     {
       key: 'back',
@@ -72,6 +75,12 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
   ]
 
   const handleOpen = () => edit({ kind: 'card', cardId: card.id })
+  // Заголовок - кнопка для клавиатуры: открывает сам и не даёт нажатию дойти до плитки,
+  // иначе окно открывалось бы дважды.
+  const handleTitleClick = (event: MouseEvent) => {
+    event.stopPropagation()
+    handleOpen()
+  }
   const handleToggle = (event: MouseEvent) => {
     event.stopPropagation()
     void apply({ kind: 'card.update', id: card.id, fields: { done: !card.done } })
@@ -112,7 +121,11 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
           <ChoiceMark shape="square" checked={card.done} tone="success" />
         </button>
         <div className={styles.text}>
-          <button type="button" className={styles.title} onKeyDown={handleKey}>
+          <button
+            type="button"
+            className={styles.title}
+            onClick={handleTitleClick}
+            onKeyDown={handleKey}>
             {card.title}
           </button>
           {card.subtitle && <span className={styles.subtitle}>{card.subtitle}</span>}

@@ -1,22 +1,20 @@
 import { randomUUID } from 'node:crypto'
 
 import type { JsonFile } from '../storage/json-file'
+import { runsOf, isObject, entriesOf, stringsOf } from './tracker-book-parse'
 import { NODE_ID, newNodeId, TrackerClock } from './tracker-clock'
 import type { RecordKind, RecordField, TrackerRecord } from './tracker-records'
-import {
-  fieldsOf,
-  stampsOf,
-  sameFields,
-  decodeRecord,
-  encodeRecord,
-  mergeRecords,
-  RECORD_KINDS,
-} from './tracker-records'
+import { stampsOf, sameFields, decodeRecord, encodeRecord, mergeRecords } from './tracker-records'
 
 /** Карточка, отправленная в очередь сценариев на этом компьютере. settled - итог уже учтён. */
 export type RunLink = { queueId: string; itemId: string; sentAt: number; settled: boolean }
 
-type StoredEntry = { k: RecordKind; f: Record<string, RecordField>; rev: number; dirty: boolean }
+export type StoredEntry = {
+  k: RecordKind
+  f: Record<string, RecordField>
+  rev: number
+  dirty: boolean
+}
 
 /**
  * Файл трекера в userData: записи с версией облака и отметкой «не отправлено», курсор забора,
@@ -43,56 +41,6 @@ export type OutgoingRecord = { id: string; baseRev: number; text: string }
 export type BookChange = 'local' | 'remote'
 
 const SAVE_DELAY_MS = 300
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const entriesOf = (value: unknown): Map<string, Entry> => {
-  const entries = new Map<string, Entry>()
-
-  if (!isObject(value)) return entries
-
-  for (const [id, raw] of Object.entries(value)) {
-    if (!isObject(raw) || !(RECORD_KINDS as readonly unknown[]).includes(raw.k)) continue
-
-    entries.set(id, {
-      record: { id, kind: raw.k as RecordKind, fields: fieldsOf(raw.f) },
-      rev: typeof raw.rev === 'number' && raw.rev >= 0 ? raw.rev : 0,
-      dirty: raw.dirty !== false,
-    })
-  }
-
-  return entries
-}
-
-const stringsOf = (value: unknown): Record<string, string> =>
-  isObject(value)
-    ? Object.fromEntries(
-        Object.entries(value).filter(
-          (pair): pair is [string, string] => typeof pair[1] === 'string',
-        ),
-      )
-    : {}
-
-const runsOf = (value: unknown): Record<string, RunLink> => {
-  const runs: Record<string, RunLink> = {}
-
-  if (!isObject(value)) return runs
-
-  for (const [cardId, raw] of Object.entries(value)) {
-    if (!isObject(raw) || typeof raw.queueId !== 'string' || typeof raw.itemId !== 'string')
-      continue
-
-    runs[cardId] = {
-      queueId: raw.queueId,
-      itemId: raw.itemId,
-      sentAt: typeof raw.sentAt === 'number' ? raw.sentAt : 0,
-      settled: raw.settled === true,
-    }
-  }
-
-  return runs
-}
 
 /**
  * Записи трекера в памяти и на диске. Своя правка ставит полю отметку часов и метку «не
@@ -269,16 +217,34 @@ export class TrackerBook {
     else this.save()
   }
 
-  /** Другой аккаунт: всё своё уйдёт в него заново, забор - с начала. */
-  switchAccount(account: string) {
+  /** Облако спорит о версии, которую эта машина уже видела: записать поверх неё. */
+  rebase(id: string, rev: number) {
+    const entry = this.entries.get(id)
+
+    if (!entry) return
+
+    entry.rev = rev
+    this.save()
+  }
+
+  /**
+   * Всё своё - к отправке заново, забор - с начала: другой аккаунт или облако, откатившееся
+   * назад (поднятое из бэкапа), - иначе записи, которых там больше нет, туда не вернутся.
+   */
+  restart() {
     for (const entry of this.entries.values()) {
       entry.rev = 0
       entry.dirty = true
     }
 
-    this.state.account = account
     this.state.cursor = 0
     this.changed('local')
+  }
+
+  /** Другой аккаунт: всё своё уйдёт в него заново, забор - с начала. */
+  switchAccount(account: string) {
+    this.state.account = account
+    this.restart()
   }
 
   // --- только этот компьютер ----------------------------------------------------------------

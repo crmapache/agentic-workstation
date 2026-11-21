@@ -76,7 +76,7 @@ const scenariosFake = (shelf: Scenario[]) => {
           return Promise.resolve({ ok: true as const, queueId, itemId: item.id })
         }
 
-        queues.push({ id: `queue-${next}`, items: [item] } as ScenarioQueue)
+        queues.push({ id: `queue-${next}`, items: [item], closedAt: 0 } as ScenarioQueue)
 
         return Promise.resolve({ ok: true as const, queueId: `queue-${next}`, itemId: item.id })
       },
@@ -242,5 +242,31 @@ describe('статус карточки', () => {
     const task = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]
 
     expect([task?.done, task?.run?.state]).toEqual([false, 'failed'])
+  })
+
+  it('карточку в очереди второй раз не отправить; закрытая очередь её отпускает', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+    const a = await kit.card('A', {})
+    const send = () =>
+      kit.runs.send(PLACE, {
+        source: { kind: 'card', cardId: a },
+        target: { kind: 'new', worktree: false },
+      })
+
+    await send()
+    expect(await send()).toEqual({ ok: false, code: 'alreadyQueued', cardId: a })
+
+    const queue = kit.queues[0]
+
+    if (!queue) throw new Error('нет очереди')
+
+    // Очередь закрыли с живым worktree: элемент так и «ждёт», но запускать его уже некому.
+    queue.closedAt = 1
+    kit.runs.queuesChanged()
+
+    const task = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]
+
+    expect(task?.run?.state).toBe('gone')
+    expect((await send()).ok).toBe(true)
   })
 })

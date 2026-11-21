@@ -25,11 +25,24 @@ export const MAX_PUSH_BYTES = 4 * 1024 * 1024
 /** Сколько записей отдаёт одна страница забора. */
 export const PULL_PAGE = 500
 
+/**
+ * Сколько знаков шифра отдаёт одна страница забора: 500 записей по 96 КиБ - это 48 МиБ в
+ * памяти сервера и в одном ответе. Страница режется по этому числу (но хотя бы одна запись),
+ * остальное - следующей страницей с more.
+ */
+export const PULL_PAGE_BYTES = 4 * 1024 * 1024
+
 /** Дольше этого сервер не держит забор без перемен (секунды). */
 export const MAX_WAIT_SECONDS = 25
 
 /** Потолок записей одного аккаунта: защищает сервер от бесконечного роста. */
-export const MAX_ACCOUNT_RECORDS = 200_000
+export const MAX_ACCOUNT_RECORDS = 50_000
+
+/**
+ * Потолок шифра одного аккаунта (сумма длин blob): без него 50 000 записей по 96 КиБ - почти
+ * 5 ГиБ на один бесплатный ключ. Доске с тысячами карточек хватает с большим запасом.
+ */
+export const MAX_ACCOUNT_BYTES = 64 * 1024 * 1024
 
 const BLOB = /^[A-Za-z0-9_-]+$/
 
@@ -63,13 +76,20 @@ export type PullResponse = { rev: number; records: PulledRecord[]; more: boolean
 /** Сведения сервера: проверка, что адрес - наше облако, и версия протокола. */
 export type CloudInfo = { service: 'agentic-workstation-cloud'; protocol: 1 }
 
+/**
+ * Коды отказа. account-full (507) - место аккаунта кончилось, повтор той же пачки не поможет;
+ * server-full (507) - кончился диск сервера, это не вина аккаунта, повторить позже; server -
+ * 500 при сбое и 503, когда сервер перегружен (повторить позже).
+ */
 export type CloudErrorCode =
   | 'bad-request'
   | 'unsigned'
   | 'bad-signature'
   | 'not-found'
+  | 'method-not-allowed'
   | 'too-large'
   | 'account-full'
+  | 'server-full'
   | 'rate-limited'
   | 'server'
 

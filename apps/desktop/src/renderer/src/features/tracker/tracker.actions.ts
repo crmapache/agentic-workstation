@@ -30,11 +30,14 @@ export const useTrackerActions = () => {
   const put = (board: TrackerBoard) =>
     queryClient.setQueryData(QUERY_KEYS.trackerBoard(board.projectPath), board)
 
-  /** Правка; ответ - удалась ли, id созданного и новая доска. */
-  const apply = async (op: TrackerOp): Promise<TrackerApplied> => {
-    if (!project) return { ok: false, created: null, board: null }
+  /**
+   * Правка доски открытого проекта или названного (projectId - «Undo» в проекте, где удаляли);
+   * ответ - удалась ли, id созданного и новая доска.
+   */
+  const apply = async (op: TrackerOp, projectId = project?.id): Promise<TrackerApplied> => {
+    if (!projectId) return { ok: false, created: null, board: null }
 
-    const outcome = await invoke('tracker:apply', { projectId: project.id, op })
+    const outcome = await invoke('tracker:apply', { projectId, op })
 
     if (!outcome.ok) {
       fail(outcome.code)
@@ -46,7 +49,7 @@ export const useTrackerActions = () => {
 
     const kind = undoKindOf(op)
 
-    if (kind && outcome.removed.length > 0) offerUndo({ ids: outcome.removed, kind })
+    if (kind && outcome.removed.length > 0) offerUndo({ ids: outcome.removed, kind, projectId })
 
     return { ok: true, created: outcome.created, board: outcome.board }
   }

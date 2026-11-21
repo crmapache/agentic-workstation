@@ -93,7 +93,11 @@ export const createRoutes = (deps: RouteDeps): ((request: StoreRequest) => Store
         body: request.body,
       })
 
-      if (!check.ok) return fail(401, check.error, 'Sign the request with the IDE key.')
+      if (!check.ok) {
+        return check.error === 'overloaded'
+          ? fail(503, 'server', 'The store is busy, try later.')
+          : fail(401, check.error, 'Sign the request with the IDE key.')
+      }
 
       return run(request, params, check.signer)
     }

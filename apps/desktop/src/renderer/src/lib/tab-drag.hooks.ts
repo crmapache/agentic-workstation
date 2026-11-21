@@ -1,38 +1,18 @@
 import type { MouseEvent as ReactMouseEvent } from 'react'
 import { useRef, useState, useCallback, useLayoutEffect } from 'react'
 
+import { swallowEndingClick } from './drag-gesture'
 import {
-  SWAP_GAP_PX,
-  GLIDE_WAIT_MS,
   DRAG_THRESHOLD_PX,
   AUTO_SCROLL_EDGE_PX,
   AUTO_SCROLL_MAX_STEP_PX,
-} from './tab-drag.constants'
+} from './drag-gesture.constants'
+import { autoScrollStep } from './drag-gesture.utils'
+import { SWAP_GAP_PX, GLIDE_WAIT_MS } from './tab-drag.constants'
 import type { MoveTab, TabSlot, TabDragView } from './tab-drag.types'
-import {
-  beforeOf,
-  nextPlace,
-  shiftsFor,
-  clampOffset,
-  landingOffset,
-  autoScrollStep,
-} from './tab-drag.utils'
+import { beforeOf, nextPlace, shiftsFor, clampOffset, landingOffset } from './tab-drag.utils'
 
 const IDLE: TabDragView = { signature: '', draggedId: null, offset: 0, shifts: {} }
-
-/**
- * Клик, которым браузер закончит жест, - не выбор вкладки: он перехватывается до React. Только
- * он: отпустили не над вкладкой - клика не будет, и перехват не должен съесть следующий.
- */
-const swallowEndingClick = () => {
-  const swallow = (click: MouseEvent) => {
-    click.stopPropagation()
-    click.preventDefault()
-  }
-
-  window.addEventListener('click', swallow, { capture: true, once: true })
-  window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }))
-}
 
 /** Сколько вкладка сейчас сдвинута от своего места - у браузера, с учётом идущего перехода. */
 const liveShift = (node: HTMLElement): number => {
@@ -85,7 +65,7 @@ const afterGlide = (node: HTMLElement | undefined, then: () => void) => {
  * его прихода идёт без переходов (data-landing) - ничто не прыгает. Активный проект жест не
  * меняет, и клик, которым кончается жест, вкладку не открывает.
  */
-export const useTabDrag = (ids: readonly string[], move: MoveTab) => {
+export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
   const nodes = useRef(new Map<string, HTMLDivElement>())
   const latest = useRef({ ids, move })
   const settling = useRef(false)

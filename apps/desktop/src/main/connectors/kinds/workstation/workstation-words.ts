@@ -91,6 +91,7 @@ const SEND_WORDS: Record<TrackerSendCode, string> = {
   nothingToSend:
     'Nothing to send: every card there is done, has no scenario or is already waiting or running in a queue.',
   noScenario: 'The card has no scenario: bind one first (tracker_save_card scenario).',
+  alreadyQueued: 'The card is already in a queue: wait for it or remove it from the queue first.',
 }
 
 /** Отказ сценариев - ошибкой, которую модель прочитает; null - всё прошло. */

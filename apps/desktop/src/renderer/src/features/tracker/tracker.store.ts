@@ -24,7 +24,8 @@ type TrackerStore = {
   setActive: (projectPath: string, trackerProjectId: string) => void
   toggleFlow: (flowId: string) => void
   edit: (editor: TrackerEditor | null) => void
-  send: (sending: TrackerSending | null) => void
+  /** Открыть окно отправки в очередь (null - закрыть); саму отправку делает useTrackerActions. */
+  openSend: (sending: TrackerSending | null) => void
   open: (dialog: TrackerDialog | null) => void
   fail: (code: TrackerCode | TrackerSendCode) => void
   sent: (count: number) => void
@@ -63,7 +64,7 @@ export const useTrackerStore = create<TrackerStore>()(
           return { collapsed }
         }),
       edit: (editor) => set({ editor }),
-      send: (sending) => set({ sending }),
+      openSend: (sending) => set({ sending }),
       open: (dialog) => set({ dialog }),
       fail: (code) => set({ notice: { kind: 'failed', code } }),
       sent: (count) => set({ notice: { kind: 'sent', count } }),

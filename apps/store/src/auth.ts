@@ -8,11 +8,17 @@ import {
   SIGNATURE_WINDOW_MS,
 } from '@agentic-workstation/store-protocol/signing'
 
+import { NonceBook } from './nonces.ts'
+
 /** Кто подписал запрос: ключ (base64url) и короткий id издателя для людей. */
 export type Signer = { key: string; id: string }
 
+/** overloaded - книга разовых чисел полна: магазин перегружен, отвечает 503. */
 export type SignatureCheck =
-  { ok: true; signer: Signer } | { ok: false; error: 'unsigned' | 'bad-signature' }
+  { ok: true; signer: Signer } | { ok: false; error: 'unsigned' | 'bad-signature' | 'overloaded' }
+
+/** Сколько разовых чисел помнить разом: запись в магазин редка, потолок - с большим запасом. */
+const MAX_NONCES = 100_000
 
 /** id издателя - начало отпечатка ключа (общий с IDE расчёт). */
 export const publisherId = publisherIdOf
@@ -20,14 +26,15 @@ export const publisherId = publisherIdOf
 /**
  * Проверка подписи запроса (store-protocol/signing): ключ Ed25519, время в окне, разовое число
  * не повторялось, подпись сходится с методом, путём и отпечатком тела. Повтор перехваченного
- * запроса не пройдёт: число запомнено на всё окно времени.
+ * запроса не пройдёт: число запомнено, пока подпись годна (книга в два поколения, nonces.ts).
  */
 export class SignatureDesk {
-  private readonly seen = new Map<string, number>()
+  private readonly nonces: NonceBook
   private readonly now: () => number
 
-  constructor(now: () => number = Date.now) {
+  constructor(now: () => number = Date.now, maxNonces = MAX_NONCES) {
     this.now = now
+    this.nonces = new NonceBook({ keepMs: SIGNATURE_WINDOW_MS * 2, cap: maxNonces }, now())
   }
 
   check(request: {
@@ -56,9 +63,8 @@ export class SignatureDesk {
     if (!Number.isFinite(at) || Math.abs(now - at) > SIGNATURE_WINDOW_MS)
       return { ok: false, error: 'bad-signature' }
 
-    this.forgetOld(now)
-
-    if (this.seen.has(`${key}:${nonce}`)) return { ok: false, error: 'bad-signature' }
+    if (this.nonces.has(`${key}:${nonce}`, now)) return { ok: false, error: 'bad-signature' }
+    if (this.nonces.isFull(now)) return { ok: false, error: 'overloaded' }
 
     const text = signingText({
       method: request.method,
@@ -81,16 +87,8 @@ export class SignatureDesk {
       return { ok: false, error: 'bad-signature' }
     }
 
-    this.seen.set(`${key}:${nonce}`, at)
+    this.nonces.add(`${key}:${nonce}`, now)
 
     return { ok: true, signer: { key, id: publisherId(key) } }
-  }
-
-  private forgetOld(now: number) {
-    if (this.seen.size < 10_000) return
-
-    for (const [entry, at] of this.seen) {
-      if (now - at > SIGNATURE_WINDOW_MS * 2) this.seen.delete(entry)
-    }
   }
 }

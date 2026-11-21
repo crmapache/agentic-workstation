@@ -1,8 +1,9 @@
 import type { TrackerBook } from './tracker-book'
 import { TrackerError } from './tracker-fields'
+import { rankBefore, rankBetween } from './tracker-rank'
 import type { RecordKind, TrackerRecord } from './tracker-records'
 import { numberOf } from './tracker-records'
-import type { TrackerTree } from './tracker-tree'
+import type { Ranked, TrackerTree } from './tracker-tree'
 
 /**
  * Проверки правки доски: запись живая, своя (того же пространства) и не в архиве. Идут до первой
@@ -49,3 +50,29 @@ export const openBranch = (ctx: OpContext, tree: TrackerTree, id: string, kind: 
 /** Живые проекты доски не из архива, по месту. */
 export const openProjects = (tree: TrackerTree, spaceId: string) =>
   tree.children(spaceId, 'project').filter((one) => numberOf(one.record, 'archivedAt') === null)
+
+/**
+ * Место перед beforeId в списке (null - в конец). Два соседа с одним местом (вставки с двух
+ * машин в одну мс) между собой места не оставляют: сначала второй из них сдвигается чуть дальше,
+ * и новое встаёт ровно туда, где была линия броска.
+ */
+export const slotBefore = (
+  ctx: OpContext,
+  list: readonly Ranked[],
+  beforeId: string | null,
+): string => {
+  const index = beforeId === null ? -1 : list.findIndex((item) => item.id === beforeId)
+  const previous = index > 0 ? list[index - 1] : undefined
+  const next = index > 0 ? list[index] : undefined
+
+  if (previous && next && previous.rank === next.rank) {
+    const after = list.slice(index + 1).find((item) => item.rank > next.rank)?.rank ?? null
+    const moved = rankBetween(next.rank, after)
+
+    ctx.book.write(next.id, { rank: moved }, true)
+
+    return rankBetween(previous.rank, moved)
+  }
+
+  return rankBefore(list, beforeId)
+}

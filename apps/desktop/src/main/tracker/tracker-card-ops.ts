@@ -2,10 +2,10 @@ import type { TrackerOp, TrackerCardFields } from '@shared/tracker'
 
 import { cardFieldsOf, TrackerError } from './tracker-fields'
 import type { OpContext } from './tracker-guards'
-import { own, openBranch } from './tracker-guards'
-import { rankBefore, rankBetween } from './tracker-rank'
+import { own, openBranch, slotBefore } from './tracker-guards'
+import { rankBetween } from './tracker-rank'
 import type { TrackerRecord } from './tracker-records'
-import { flagOf } from './tracker-records'
+import { refOf, flagOf } from './tracker-records'
 import type { Ranked, TrackerTree } from './tracker-tree'
 
 type CardCreate = Extract<TrackerOp, { kind: 'card.create' }>
@@ -18,6 +18,17 @@ const EMPTY_CARD: Omit<TrackerCardFields, 'title'> = {
   priority: 4,
   done: false,
   scenario: null,
+}
+
+/**
+ * Потолок карточки в байтах: запись уходит в облако одним шифром (потолок шифра - 96 КиБ base64,
+ * около 72 КиБ текста). Лимиты полей считаются в знаках, а кириллица - два байта на знак: без этой
+ * проверки карточка у предела полей молча осталась бы неотправленной.
+ */
+const MAX_CARD_BYTES = 60_000
+
+const checkSize = (fields: Record<string, unknown>) => {
+  if (Buffer.byteLength(JSON.stringify(fields)) > MAX_CARD_BYTES) throw new TrackerError('tooLong')
 }
 
 /** Задача, в цепочку которой встаёт продолжение: живая задача своей доски не в архиве. */
@@ -37,14 +48,18 @@ const chainRoot = (ctx: OpContext, tree: TrackerTree, cardId: string): TrackerRe
  */
 export const createCard = (ctx: OpContext, tree: TrackerTree, op: CardCreate): string => {
   const fields = { ...EMPTY_CARD, ...cardFieldsOf(op.fields) }
+
+  checkSize(fields)
   const place = op.followUpOf
     ? (() => {
         const root = chainRoot(ctx, tree, op.followUpOf)
 
+        // Продолжение помнит группу своей задачи: если цикл встречных переносов сделает его
+        // корнем, ему есть где встать.
         return {
           parent: root.id,
-          group: '',
-          rank: rankBefore(tree.followUps(root.id), op.beforeId ?? null),
+          group: refOf(root, 'group') ?? '',
+          rank: slotBefore(ctx, tree.followUps(root.id), op.beforeId ?? null),
         }
       })()
     : (() => {
@@ -53,7 +68,7 @@ export const createCard = (ctx: OpContext, tree: TrackerTree, op: CardCreate): s
         return {
           parent: '',
           group: op.groupId,
-          rank: rankBefore(tree.tasks(op.groupId), op.beforeId ?? null),
+          rank: slotBefore(ctx, tree.tasks(op.groupId), op.beforeId ?? null),
         }
       })()
 
@@ -71,6 +86,12 @@ export const updateCard = (
   raw: Partial<TrackerCardFields>,
 ) => {
   const fields = cardFieldsOf(raw)
+
+  checkSize({
+    ...Object.fromEntries(Object.entries(card.fields).map(([name, field]) => [name, field[0]])),
+    ...fields,
+  })
+
   const doneAt =
     fields.done === undefined || fields.done === flagOf(card, 'done')
       ? undefined
@@ -84,7 +105,7 @@ export const updateCard = (
 /** Продолжения переносимой задачи встают за ней по порядку, перед следующей карточкой цепочки. */
 const carryFollowUps = (
   ctx: OpContext,
-  rootId: string,
+  root: { id: string; group: string },
   movedRank: string,
   next: Ranked | undefined,
   followUps: Ranked[],
@@ -94,7 +115,7 @@ const carryFollowUps = (
   for (const followUp of followUps) {
     const rank = rankBetween(after, next?.rank ?? null)
 
-    ctx.book.write(followUp.id, { parent: rootId, group: '', rank }, true)
+    ctx.book.write(followUp.id, { parent: root.id, group: root.group, rank }, true)
     after = rank
   }
 }
@@ -114,7 +135,7 @@ export const moveCard = (ctx: OpContext, tree: TrackerTree, op: CardMove) => {
 
     ctx.book.write(
       card.id,
-      { group: op.groupId, parent: '', rank: rankBefore(list, op.beforeId) },
+      { group: op.groupId, parent: '', rank: slotBefore(ctx, list, op.beforeId) },
       true,
     )
 
@@ -129,9 +150,11 @@ export const moveCard = (ctx: OpContext, tree: TrackerTree, op: CardMove) => {
   const chain = tree
     .followUps(root.id)
     .filter((one) => one.id !== card.id && !carried.some((followUp) => followUp.id === one.id))
-  const rank = rankBefore(chain, op.beforeId)
+  const rank = slotBefore(ctx, chain, op.beforeId)
   const next = chain.find((one) => one.rank > rank)
 
-  ctx.book.write(card.id, { parent: root.id, group: '', rank }, true)
-  carryFollowUps(ctx, root.id, rank, next, carried)
+  const group = refOf(root, 'group') ?? ''
+
+  ctx.book.write(card.id, { parent: root.id, group, rank }, true)
+  carryFollowUps(ctx, { id: root.id, group }, rank, next, carried)
 }
