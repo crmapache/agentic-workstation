@@ -20,6 +20,9 @@ export const startMicCapture = async (onFrame: (pcm: Uint8Array) => void): Promi
   })
   const context = new AudioContext()
 
+  // Safari заводит контекст спящим, если его создали не прямо в нажатии: пока идёт захват
+  // микрофона, разбудить его можно.
+  void context.resume()
   await context.audioWorklet.addModule(workletUrl)
 
   const source = context.createMediaStreamSource(stream)

@@ -7,8 +7,10 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Feed } from '../Feed/Feed'
 import { QuoteButton } from '../QuoteButton/QuoteButton'
 import { useQuotableSelection } from '../QuoteButton/QuoteButton.hooks'
+import { useCallOfConversation } from '../../voice-call/voice-call.hooks'
 import type { RouteOf } from '../../../lib/route.types'
 import { useDraftsStore } from '../../../state/drafts.store'
+import { VoiceCallBar } from '../../voice-call/VoiceCallBar/VoiceCallBar'
 import { Banner } from '../../../shell/Banner/Banner'
 import { Screen } from '../../../shell/Screen/Screen'
 import {
@@ -41,6 +43,7 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
   const draftKey = `${route.agentId}|${route.conversationId}`
   const quotable = useQuotableSelection(screen.bodyRef)
   const addQuote = useDraftsStore((state) => state.addQuote)
+  const voiceCall = useCallOfConversation(route.agentId, route.conversationId)
 
   const handleQuote = () => {
     const quote = quotable.take()
@@ -95,14 +98,17 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
       }
 
       banner={
-        conversation?.error && (
-          <Banner
-            tone="danger"
-            text={t(`conversation.errors.${conversation.error}`, {
-              defaultValue: t('conversation.errors.other', { code: conversation.error }),
-            })}
-          />
-        )
+        <>
+          {voiceCall && <VoiceCallBar agentId={route.agentId} call={voiceCall} />}
+          {conversation?.error && (
+            <Banner
+              tone="danger"
+              text={t(`conversation.errors.${conversation.error}`, {
+                defaultValue: t('conversation.errors.other', { code: conversation.error }),
+              })}
+            />
+          )}
+        </>
       }
       bodyRef={screen.bodyRef}
       overlay={

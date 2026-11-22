@@ -36,11 +36,14 @@ export const contentSecurityPolicy = (host: string | undefined): string =>
     "frame-ancestors 'none'",
   ].join('; ')
 
-/** Всё, что отдаётся страницей или её файлом: политика, без реферера, только HTTPS, камера своя. */
+/**
+ * Всё, что отдаётся страницей или её файлом: политика, без реферера, только HTTPS, камера и
+ * микрофон - только своей странице (камера - QR пары, микрофон - голосовой звонок, ADR 0104).
+ */
 export const pageHeaders = (host: string | undefined): Record<string, string> => ({
   'content-security-policy': contentSecurityPolicy(host),
   'referrer-policy': 'no-referrer',
   'strict-transport-security': 'max-age=31536000',
-  'permissions-policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()',
+  'permissions-policy': 'camera=(self), microphone=(self), geolocation=(), payment=(), usb=()',
   'x-content-type-options': 'nosniff',
 })

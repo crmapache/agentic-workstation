@@ -127,8 +127,11 @@ export class MachineSession {
     this.handshake = null
   }
 
-  /** Запечатанное слово IDE; ключей нет - null. Номер берётся до печати: порядок кадров держит цепочка. */
-  sealed(message: object): Promise<Uint8Array | null> {
+  /**
+   * Запечатанное тело IDE - слово (encodeBody) или кадр звука звонка (audio-frame.ts); ключей нет -
+   * null. Номер берётся до печати: порядок кадров держит цепочка.
+   */
+  sealedBody(plain: Uint8Array): Promise<Uint8Array | null> {
     const keys = this.keys
 
     if (!keys) return Promise.resolve(null)
@@ -138,13 +141,7 @@ export class MachineSession {
     const counter = this.outgoing
     const header = encodeHeader(FRAME_SEALED, this.agentAddress, this.deviceAddress, counter)
     const work = this.sealing.then(async () => {
-      const body = await seal(
-        keys.toAgent,
-        keys.prefixToAgent,
-        counter,
-        header,
-        encodeBody(message),
-      )
+      const body = await seal(keys.toAgent, keys.prefixToAgent, counter, header, plain)
 
       return encodeFrame(FRAME_SEALED, this.agentAddress, this.deviceAddress, counter, body)
     })

@@ -951,5 +951,49 @@
       "failed": "Not responding",
       "disabled": "Off"
     }
+  },
+  "voice": {
+    "call": "Voice call",
+    "callHint": "Talk to an agent in Home",
+    "inCall": "In a call - back to it",
+    "starting": "Calling",
+    "unavailable": {
+      "off": "Turn on voice mode in the IDE settings",
+      "noKey": "Add a Deepgram key in the IDE settings"
+    },
+    "micDenied": "No microphone",
+    "micDeniedHint": "Allow the microphone for this site in your browser settings, then try again.",
+    "offline": "The IDE is not reachable right now",
+    "refused": "The call did not start: {{reason}}",
+    "reasons": {
+      "off": "voice mode is off",
+      "noKey": "no Deepgram key",
+      "busy": "another voice call is going",
+      "noProvider": "the provider is not available",
+      "microphone": "no microphone",
+      "failed": "the chat did not open"
+    },
+    "state": {
+      "connecting": "Connecting",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "working": "Working",
+      "workingTool": "Working: {{tool}}",
+      "speaking": "Speaking",
+      "reconnecting": "Reconnecting",
+      "paused": "Paused"
+    },
+    "mute": "Mute microphone",
+    "unmute": "Unmute microphone",
+    "stop": "Stop",
+    "end": "End call",
+    "ended": {
+      "lostLine": "The call ended: the line was lost",
+      "silence": "The call ended after a long silence",
+      "keyRejected": "The call ended: Deepgram rejected the key",
+      "deepgram": "The call ended: Deepgram is not answering",
+      "conversationGone": "The call ended: its chat was closed",
+      "other": "The call ended"
+    }
   }
 }

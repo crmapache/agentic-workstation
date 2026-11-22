@@ -7,6 +7,7 @@ import { ClientContext } from '../../lib/client'
 import { PushContext } from '../../lib/push'
 import type { PushSetup } from '../../push/push-setup'
 import type { RemoteClient } from '../../remote/remote-client'
+import { VoiceCallHost } from '../../features/voice-call/VoiceCallHost/VoiceCallHost'
 import { QUERY_DEFAULTS } from './App.constants'
 import { useNotifications, useClientLifecycle } from './App.hooks'
 
@@ -26,6 +27,7 @@ export const App = ({ client, push }: { client: RemoteClient; push: PushSetup })
       <ClientContext value={client}>
         <PushContext value={push}>
           <AppRoutes />
+          <VoiceCallHost />
         </PushContext>
       </ClientContext>
     </QueryClientProvider>

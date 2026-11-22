@@ -31,6 +31,8 @@ export class AnswerPlayer {
   constructor(onPlayed: (epoch: number, ms: number) => void) {
     this.onPlayed = onPlayed
     this.gain.connect(this.context.destination)
+    // Создан в нажатии кнопки - Safari даст ему звучать; спящий будится здесь же.
+    void this.context.resume()
     this.timer = setInterval(() => this.report(), REPORT_MS)
   }
 

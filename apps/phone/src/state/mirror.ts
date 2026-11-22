@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import type { RemoteClient } from '../remote/remote-client'
 import { useLinkStore } from './link.store'
 import { queryKeys } from './query-keys'
+import { useVoiceCallStore } from './voice-call.store'
 
 /**
  * Зеркало IDE в кэше React Query: каждое слово IDE ложится под свой ключ, экраны только
@@ -33,6 +34,8 @@ export const mirrorClient = (client: RemoteClient, queryClient: QueryClient): ((
           return queryClient.setQueryData(queryKeys.queues(agentId, message.scope), message)
         case 'run':
           return queryClient.setQueryData(queryKeys.run(agentId, message.run.id), message.run)
+        case 'voice':
+          return useVoiceCallStore.getState().event(agentId, message.event)
         case 'notice':
           if (message.code === 'notFound' && message.about) {
             queryClient.setQueryData(queryKeys.run(agentId, message.about), null)

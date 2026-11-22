@@ -1,7 +1,7 @@
 import type { AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
-import { parseAgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
+import type { AudioFrame } from '@agentic-workstation/remote-protocol/audio-frame'
 import { fromBase64Url } from '@agentic-workstation/remote-protocol/base64'
-import { decodeBody } from '@agentic-workstation/remote-protocol/body'
+import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import type { CommandArgs, CommandName } from '@agentic-workstation/remote-protocol/commands'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import type { Frame } from '@agentic-workstation/remote-protocol/frame'
@@ -24,12 +24,14 @@ import type { KeyStore, MachineRecord, DeviceIdentity } from './keystore'
 import { Liveness } from './liveness'
 import type { LinkStatus } from './machine-session'
 import { MachineSession } from './machine-session'
+import { readOpened } from './opened-body'
 import type { PairOutcome, PairingOffer } from './pairing'
 import { prepareOffer } from './pairing'
 import { claimFrame, newSigningIdentity } from './proofs'
 import { PushSync } from './push-sync'
 import type { SocketLike, SocketState } from './relay-socket'
 import { RelaySocket } from './relay-socket'
+import { waitOpen } from './wait-open'
 import type { WatchTarget } from './watch-desk'
 import { WatchDesk } from './watch-desk'
 
@@ -43,6 +45,8 @@ export type ClientEvents = {
   machines: () => void
   /** Линия до релея этой страницы. */
   relay: (state: SocketState) => void
+  /** Кадр звука ответа голосового звонка (ADR 0104). */
+  audio: (agentId: string, frame: AudioFrame) => void
 }
 
 /** Сколько «забыть IDE» ждёт линию, чтобы сказать IDE «забудь меня». */
@@ -88,7 +92,7 @@ export class RemoteClient {
     })
     this.commands = new CommandDesk({
       send: (agentId, message) => this.send(agentId, message),
-      whenOpen: (agentId, timeoutMs) => this.whenOpen(agentId, timeoutMs),
+      whenOpen: (agentId, timeoutMs) => waitOpen(this.sessions, agentId, timeoutMs),
       caps: (agentId) => this.sessions.get(agentId)?.caps ?? [],
     })
     this.handshakes = new Handshakes({
@@ -239,7 +243,11 @@ export class RemoteClient {
   async forget(agentId: string): Promise<void> {
     const session = this.sessions.get(agentId)
 
-    if (session && !session.record.revoked && (await this.whenOpen(agentId, UNPAIR_PATIENCE_MS))) {
+    if (
+      session &&
+      !session.record.revoked &&
+      (await waitOpen(this.sessions, agentId, UNPAIR_PATIENCE_MS))
+    ) {
       await this.send(agentId, { p: PROTOCOL_VERSION, k: 'unpair' })
     }
 
@@ -257,9 +265,17 @@ export class RemoteClient {
   }
 
   /** Запечатанное слово IDE; ключей или линии нет - false. */
-  async send(agentId: string, message: object): Promise<boolean> {
+  send(agentId: string, message: object): Promise<boolean> {
+    return this.sendBody(agentId, encodeBody(message))
+  }
+
+  /**
+   * Запечатанное тело IDE как есть - кадр звука звонка (ADR 0104) или слово: сразу, без повторов,
+   * опоздавший звук не нужен. Ключей или линии нет - false.
+   */
+  async sendBody(agentId: string, body: Uint8Array): Promise<boolean> {
     const session = this.sessions.get(agentId)
-    const frame = session ? await session.sealed(message) : null
+    const frame = session ? await session.sealedBody(body) : null
 
     return frame !== null && !!session && this.socketFor(session.record.relayUrl).send(frame)
   }
@@ -281,11 +297,12 @@ export class RemoteClient {
 
     const opened = await session.openFrame(frame)
 
-    if (opened === null || opened === 'replayed') return
+    const body = opened === null || opened === 'replayed' ? null : readOpened(opened)
 
-    const message = parseAgentMessage(decodeBody(opened))
+    if (!body) return
+    if ('audio' in body) return this.events.emit('audio', session.agentId, body.audio)
 
-    if (!message) return
+    const { message } = body
 
     // Любое открывшееся слово - ответ на стук: IDE жива (liveness.ts).
     session.lastHeard = this.now()
@@ -391,18 +408,6 @@ export class RemoteClient {
     await this.options.store.saveDevice(this.device)
 
     return this.device
-  }
-
-  private async whenOpen(agentId: string, timeoutMs: number): Promise<boolean> {
-    for (let waited = 0; ; waited += 100) {
-      const session = this.sessions.get(agentId)
-
-      if (!session || session.record.revoked) return false
-      if (session.isOpen) return true
-      if (waited >= timeoutMs) return false
-
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
   }
 
   private now(): number {
