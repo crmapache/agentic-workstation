@@ -21,6 +21,7 @@ import type { MemorySaverService } from './memory-saver/memory-saver-service'
 import { askProviderOf } from './providers/ask-provider'
 import { ProviderWatch } from './providers/provider-registry'
 import type { ScenarioProvider } from './providers/scenario-provider'
+import { panelsPort } from './remote/panel-ports'
 import type { RemoteService } from './remote/remote-service'
 import { startRemote } from './remote/remote-setup'
 import type { ScenarioService } from './scenarios/scenario-service'
@@ -34,6 +35,8 @@ import type { TaskService } from './tasks/task-service'
 import { startTasks } from './tasks/tasks-setup'
 import type { TrackerRuntime } from './tracker/tracker-setup'
 import { startTracker } from './tracker/tracker-setup'
+import type { VoiceRuntime } from './voice/voice-setup'
+import { startVoice } from './voice/voice-setup'
 import type { WorkspaceService } from './workspace/workspace-service'
 import { workstationPorts } from './workstation/workstation-ports'
 import type { PanelRegistry } from './agents/panel/panel-registry'
@@ -84,6 +87,8 @@ export type IdeFeatures = {
   extensions: ExtensionsRuntime
   /** Трекер задач (ADR 0101) с облаком (ADR 0102) и карточками в очередях сценариев. */
   tracker: TrackerRuntime
+  /** Голосовой режим (ADR 0104): звонок из панели и с телефона. */
+  voice: VoiceRuntime
   /** Выход из IDE: связь с телефонами гаснет, прогоны пишутся остановленными, база закрывается. */
   shutdown: () => Promise<void>
 }
@@ -123,6 +128,11 @@ export const startIdeFeatures = async (setup: {
   const { runners } = setup
   // Общие настройки IDE и Commit and push: сообщение коммита пишет цепочка из Settings → Git.
   const idePrefs = await IdePrefsService.open(setup.dataDir)
+  const voice = await startVoice({
+    dataDir: setup.dataDir,
+    workspace,
+    panels: () => panelsPort(claude, setup.panels).list(),
+  })
   const commitPush = new CommitPushDesk({
     ask: askProviderOf(claude, runners),
     chain: () => idePrefs.value.commitAi,
@@ -224,13 +234,16 @@ export const startIdeFeatures = async (setup: {
     idePrefs,
     commitPush,
     tracker,
+    voice,
     observeState: (provider, state) => {
+      voice.service.state(provider, state)
       providers.changed(provider, state)
       statistics.observe(provider, state)
       remote.panelChanged()
     },
     observeFeed: (patch) => {
       remote.feedPatched(patch)
+      voice.service.feed(patch)
 
       // Последняя фраза разговора - капсуле Computer: пока модель думает между шагами, человек
       // видит, о чём (ADR 0057).
@@ -253,6 +266,8 @@ export const startIdeFeatures = async (setup: {
         // процесс не должен отнимать потолок у заданий, сценариев и базы статистики.
         const editor = memorySaver.close().catch(warnShutdown)
 
+        // Звонок кладётся первым: его реплики уходят в разговоры, которые гаснут ниже.
+        voice.service.shutdown()
         // Расширения - первыми: их хуки и вызовы ходят в то, что гаснет ниже.
         await extensions?.shutdown().catch(warnShutdown)
         setup.connectors.workstation.ports = null

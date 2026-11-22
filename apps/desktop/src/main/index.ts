@@ -11,6 +11,7 @@ import type { SoundPrefs } from '@shared/sounds'
 import type { WorkspaceState } from '@shared/workspace'
 
 import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
+import { featureServices } from './feature-services'
 import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
@@ -249,9 +250,8 @@ const bootstrap = async () => {
   }
 
   const services = {
+    ...featureServices(features),
     serviceAi,
-    idePrefs: features.idePrefs,
-    commitPush: features.commitPush,
     workspace,
     updates,
     search,
@@ -262,19 +262,9 @@ const bootstrap = async () => {
     conversationSearch,
     connectors,
     terminals,
-    scenarios: features.scenarios,
-    stats: features.statistics.stats,
-    remote: features.remote,
-    tasks: features.tasks,
-    taskAuthor: features.taskAuthor,
-    inbox: features.inbox,
     openModels,
     history,
     sounds,
-    definitions: features.definitions,
-    memorySaver: features.memorySaver,
-    extensions: features.extensions,
-    tracker: features.tracker,
     getWindow: () => mainWindow,
   }
 

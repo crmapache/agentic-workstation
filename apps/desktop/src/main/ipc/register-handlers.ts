@@ -24,6 +24,7 @@ import type { TerminalService } from '../terminal/terminal-service'
 import type { TrackerRuntime } from '../tracker/tracker-setup'
 import type { UpdateService } from '../updates/update-service'
 import { RELEASE_PAGE_URL } from '../updates/update.constants'
+import type { VoiceRuntime } from '../voice/voice-setup'
 import type { PanelRegistry } from '../agents/panel/panel-registry'
 import type { SearchDesk } from '../claude/search/search-desk'
 import type { CommitPushDesk } from '../git/commit-push/commit-push'
@@ -61,6 +62,7 @@ import { createStatisticsHandlers } from './statistics-handlers'
 import { createTasksHandlers } from './tasks-handlers'
 import { createTerminalHandlers } from './terminal-handlers'
 import { createTrackerHandlers } from './tracker-handlers'
+import { createVoiceHandlers } from './voice-handlers'
 import { createWindowHandlers } from './window-handlers'
 import { createWorkspaceHandlers } from './workspace-handlers'
 import type { HandlerContext } from './workspace-handlers'
@@ -93,6 +95,8 @@ type Services = HandlerContext & {
   sounds: SoundsService
   /** Провайдер служебной работы IDE (Settings → AI). */
   serviceAi: ServiceAiService
+  /** Голосовой режим (ADR 0104): настройки, ключ, звонок из панели. */
+  voice: VoiceRuntime
   /** Общие настройки IDE (Settings): сворачивание вставки, кто пишет сообщение коммита. */
   idePrefs: IdePrefsService
   /** Кнопка Commit and push в шапке: сообщение от ИИ, коммит и push. */
@@ -138,6 +142,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createSoundsHandlers(services.sounds),
     ...createMemorySaverHandlers(services.memorySaver),
     ...createServiceAiHandlers(services.serviceAi),
+    ...createVoiceHandlers(services.voice.service, services.voice.store),
     ...createIdePrefsHandlers(services.idePrefs),
     ...createCommitPushHandlers(workspace, services.commitPush),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),

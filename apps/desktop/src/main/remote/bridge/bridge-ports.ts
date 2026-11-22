@@ -30,6 +30,7 @@ import type {
 } from '@shared/scenario-view'
 import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
 import type { TaskRunSummary } from '@shared/tasks'
+import type { VoiceOutgoing } from '@shared/voice'
 import type { WorkspaceState } from '@shared/workspace'
 
 /**
@@ -58,9 +59,10 @@ export type ConversationsPort = {
    */
   refreshUsage: () => Promise<unknown>
   getFeed: (conversationId: string) => Promise<ConversationFeed>
+  /** voice - реплика голосового звонка (ADR 0104): скрытая пометка модели и микрофон в ленте. */
   send: (
     conversationId: string,
-    message: { text: string; images: ImageAttachment[] },
+    message: { text: string; images: ImageAttachment[]; voice?: VoiceOutgoing | undefined },
   ) => Promise<unknown>
   respond: (conversationId: string, requestId: string, response: RequestResponse) => unknown
   interrupt: (conversationId: string) => unknown

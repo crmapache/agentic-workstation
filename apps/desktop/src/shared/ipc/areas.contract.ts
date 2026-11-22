@@ -62,6 +62,8 @@ import type { TerminalEventContract, TerminalInvokeContract } from './terminal.c
 import { TERMINAL_EVENTS, TERMINAL_CHANNELS } from './terminal.contract'
 import type { TrackerEventContract, TrackerInvokeContract } from './tracker.contract'
 import { TRACKER_EVENTS, TRACKER_CHANNELS } from './tracker.contract'
+import type { VoiceEventContract, VoiceInvokeContract } from './voice.contract'
+import { VOICE_EVENTS, VOICE_CHANNELS } from './voice.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
 import { WINDOW_EVENTS, WINDOW_CHANNELS } from './window.contract'
 
@@ -90,6 +92,7 @@ export type AreaInvokeContract = AgentInvokeContract &
   StatisticsInvokeContract &
   RemoteInvokeContract &
   SoundsInvokeContract &
+  VoiceInvokeContract &
   MemorySaverInvokeContract &
   ServiceAiInvokeContract &
   IdePrefsInvokeContract &
@@ -117,6 +120,7 @@ export type AreaEventContract = AgentEventContract &
   StatisticsEventContract &
   RemoteEventContract &
   SoundsEventContract &
+  VoiceEventContract &
   MemorySaverEventContract &
   ServiceAiEventContract &
   IdePrefsEventContract &
@@ -148,6 +152,7 @@ export const AREA_CHANNELS = {
   ...STATISTICS_CHANNELS,
   ...REMOTE_CHANNELS,
   ...SOUNDS_CHANNELS,
+  ...VOICE_CHANNELS,
   ...MEMORY_SAVER_CHANNELS,
   ...SERVICE_AI_CHANNELS,
   ...IDE_PREFS_CHANNELS,
@@ -178,6 +183,7 @@ export const AREA_EVENTS = {
   ...STATISTICS_EVENTS,
   ...REMOTE_EVENTS,
   ...SOUNDS_EVENTS,
+  ...VOICE_EVENTS,
   ...MEMORY_SAVER_EVENTS,
   ...SERVICE_AI_EVENTS,
   ...IDE_PREFS_EVENTS,

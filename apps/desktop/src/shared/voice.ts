@@ -160,6 +160,15 @@ export type VoiceView = {
   call: VoiceCallView | null
 }
 
+/**
+ * Почему звонок не начался: голос недоступен, уже идёт другой звонок, нет провайдера из
+ * настроек, macOS не дала микрофон, разговор не открылся.
+ */
+export type VoiceStartRefusal = VoiceUnavailable | 'busy' | 'noProvider' | 'microphone' | 'failed'
+
+export type VoiceStartOutcome =
+  { ok: true; call: VoiceCallView } | { ok: false; reason: VoiceStartRefusal }
+
 /** Ответ проверки ключа: годен, отвергнут Deepgram, Deepgram не ответил. */
 export type VoiceKeyCheck = 'ok' | 'invalid' | 'unreachable'
 
@@ -168,13 +177,7 @@ export type VoiceKeyCheck = 'ok' | 'invalid' | 'unreachable'
  * переподключаюсь, пауза (телефон заблокирован или ушёл в другое приложение).
  */
 export type VoiceCallState =
-  | 'connecting'
-  | 'listening'
-  | 'thinking'
-  | 'working'
-  | 'speaking'
-  | 'reconnecting'
-  | 'paused'
+  'connecting' | 'listening' | 'thinking' | 'working' | 'speaking' | 'reconnecting' | 'paused'
 
 /** Откуда звонок: из панели IDE или с телефона. */
 export type VoiceOrigin = 'desktop' | 'phone'
@@ -184,13 +187,7 @@ export type VoiceOrigin = 'desktop' | 'phone'
  * отвергнут, Deepgram не отвечает, разговор закрыли, IDE закрывается.
  */
 export type VoiceCallEnd =
-  | 'hangup'
-  | 'lostLine'
-  | 'silence'
-  | 'keyRejected'
-  | 'deepgram'
-  | 'conversationGone'
-  | 'shutdown'
+  'hangup' | 'lostLine' | 'silence' | 'keyRejected' | 'deepgram' | 'conversationGone' | 'shutdown'
 
 export type VoiceCallView = {
   id: string

@@ -86,3 +86,19 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
 }
 
 export const phrasesOf = (language: VoiceLanguage): Phrases => PHRASES[language]
+
+/** Образец голоса для «Прослушать» в настройках. */
+const SAMPLES: Record<VoiceLanguage, string> = {
+  en: "Hi! This is how I'll sound when we talk.",
+  ru: 'Привет! Так я буду звучать, когда мы разговариваем.',
+  es: 'Hola. Así sonaré cuando hablemos.',
+  pt: 'Oi! É assim que eu vou soar quando a gente conversar.',
+  fr: 'Salut ! Voilà comment je sonnerai quand on parlera.',
+  de: 'Hallo! So klinge ich, wenn wir miteinander sprechen.',
+  it: 'Ciao! Ecco come suonerò quando parliamo.',
+  nl: 'Hoi! Zo klink ik als we met elkaar praten.',
+  hi: 'नमस्ते! जब हम बात करेंगे, मैं ऐसी सुनाई दूँगी।',
+  ja: 'こんにちは。話すときは、こんな声になります。',
+}
+
+export const sampleOf = (language: VoiceLanguage): string => SAMPLES[language]
