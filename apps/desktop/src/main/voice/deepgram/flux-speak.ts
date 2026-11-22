@@ -73,8 +73,11 @@ export class FluxSpeak {
   /** Ходы, отправленные и ещё не дозвучавшие (SpeechMetadata не пришёл). */
   private pendingTurns = 0
   private cancelKeepalive: (() => void) | null = null
+  private speed: number
 
-  constructor(private readonly options: FluxSpeakOptions) {}
+  constructor(private readonly options: FluxSpeakOptions) {
+    this.speed = options.speed
+  }
 
   /**
    * Место в сессии, с которого пойдёт следующий звук. Звонок запоминает его у начала ответа:
@@ -130,7 +133,9 @@ export class FluxSpeak {
     })
   }
 
+  /** Скорость на лету: со следующего куска речи (Configure), и напоминание держит её же. */
   setSpeed(speed: number): void {
+    this.speed = speed
     this.push({ type: 'Configure', speed })
   }
 
@@ -155,9 +160,9 @@ export class FluxSpeak {
   }
 
   private connect(): void {
-    const { key, region, voice, speed, dial } = this.options
+    const { key, region, voice, dial } = this.options
 
-    this.link = dial(speakUrl(region, voice, speed), key, {
+    this.link = dial(speakUrl(region, voice, this.speed), key, {
       open: () => {
         this.isOpen = true
         for (const data of this.outbox) this.link?.send(data)
@@ -174,7 +179,7 @@ export class FluxSpeak {
     this.cancelKeepalive?.()
     this.cancelKeepalive = this.options.timer(() => {
       if (!this.isOpen) return
-      this.link?.send(JSON.stringify({ type: 'Configure', speed: this.options.speed }))
+      this.link?.send(JSON.stringify({ type: 'Configure', speed: this.speed }))
       this.keepalive()
     }, KEEPALIVE_MS)
   }

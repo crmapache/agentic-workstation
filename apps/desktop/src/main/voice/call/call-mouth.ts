@@ -60,8 +60,18 @@ export class CallMouth {
   /** Оборванные ответы: агент может дописывать их ещё секунду, озвучивать нельзя. */
   private readonly silenced = new Set<string>()
   private cancelDrain: (() => void) | null = null
+  private speed: number
 
-  constructor(private readonly options: CallMouthOptions) {}
+  constructor(private readonly options: CallMouthOptions) {
+    this.speed = options.speed
+  }
+
+  /** Скорость речи на лету (spec: «скорость и перебивание можно менять на лету»). */
+  setSpeed(speed: number): void {
+    this.speed = speed
+
+    for (const speaker of this.speakers.values()) speaker.setSpeed(speed)
+  }
 
   get isSpeaking(): boolean {
     return this.speaking
@@ -183,12 +193,12 @@ export class CallMouth {
 
     if (known) return known
 
-    const { key, region, speed, dial, timer } = this.options
+    const { key, region, dial, timer } = this.options
     const speaker: FluxSpeak = new FluxSpeak({
       key,
       region,
       voice,
-      speed,
+      speed: this.speed,
       dial,
       timer,
       onEvent: (event) => this.event(voice, speaker, event),

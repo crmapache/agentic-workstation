@@ -41,8 +41,10 @@ export class CallEars {
   private readonly desk: UtteranceDesk
   private closeWindow: (() => void) | null = null
   private ducked = false
+  private bargeIn: VoiceBargeIn
 
   constructor(private readonly options: CallEarsOptions) {
+    this.bargeIn = options.bargeIn
     const { key, region, mode, hints, dial, timer } = options
 
     this.desk = new UtteranceDesk({
@@ -72,6 +74,11 @@ export class CallEars {
     this.listen.start()
   }
 
+  /** Насколько легко перебить - на лету, со следующей реплики. */
+  setBargeIn(level: VoiceBargeIn): void {
+    this.bargeIn = level
+  }
+
   mic(pcm: Uint8Array): void {
     this.listen.send(pcm)
   }
@@ -94,7 +101,7 @@ export class CallEars {
       return
     }
 
-    const verdict = judgeBargeIn(this.options.bargeIn, turn, this.options.recentlySaid())
+    const verdict = judgeBargeIn(this.bargeIn, turn, this.options.recentlySaid())
 
     if (verdict === 'stop') {
       this.endWindow()

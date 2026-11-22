@@ -62,11 +62,14 @@ export class VoiceCall {
   private troubled = false
   private ended = false
   private language: VoiceLanguage | null
+  /** Настройки звонка: скорость и перебивание меняются на лету, остальное - с ним же до конца. */
+  private settings: VoiceSettings
   private readonly cancels = new Map<'silence' | 'goodbye' | 'tone' | 'line', () => void>()
 
   constructor(private readonly options: VoiceCallOptions) {
     const { languageMode } = options.settings
 
+    this.settings = options.settings
     this.language = languageMode === 'multi' ? null : languageMode
     this.mouth = this.newMouth()
     this.ears = this.newEars()
@@ -124,6 +127,18 @@ export class VoiceCall {
   conversation(conversation: Conversation | null): void {
     if (!conversation) this.end('conversationGone')
     else this.brain.state(conversation)
+  }
+
+  /** Настройки поменяли посреди звонка: скорость речи и перебивание - сразу. */
+  applySettings(settings: VoiceSettings): void {
+    this.settings = {
+      ...this.settings,
+      speed: settings.speed,
+      bargeIn: settings.bargeIn,
+      stillHere: settings.stillHere,
+    }
+    this.mouth.setSpeed(settings.speed)
+    this.ears.setBargeIn(settings.bargeIn)
   }
 
   /** Кнопка «Стоп»: замолчать и остановить работу агента. */
@@ -184,7 +199,7 @@ export class VoiceCall {
   }
 
   private get replyLanguage(): VoiceLanguage {
-    return this.ears.lastLanguage ?? this.language ?? this.options.settings.expected[0] ?? 'en'
+    return this.ears.lastLanguage ?? this.language ?? this.settings.expected[0] ?? 'en'
   }
 
   private get state(): VoiceCallState {
@@ -197,7 +212,8 @@ export class VoiceCall {
   }
 
   private newMouth(): CallMouth {
-    const { key, settings, dial, timer, endpoint } = this.options
+    const { key, dial, timer, endpoint } = this.options
+    const { settings } = this
 
     return new CallMouth({
       key,
@@ -213,7 +229,8 @@ export class VoiceCall {
   }
 
   private newEars(): CallEars {
-    const { key, settings, dial, timer } = this.options
+    const { key, dial, timer } = this.options
+    const { settings } = this
 
     return new CallEars({
       key,
@@ -279,7 +296,7 @@ export class VoiceCall {
   private watchWork(): void {
     const silentWork = this.state === 'working' || this.state === 'thinking'
 
-    if (!silentWork || !this.options.settings.stillHere) {
+    if (!silentWork || !this.settings.stillHere) {
       this.disarm('tone')
 
       return

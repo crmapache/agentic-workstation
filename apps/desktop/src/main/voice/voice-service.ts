@@ -63,6 +63,7 @@ export class VoiceService {
 
   async setSettings(value: unknown): Promise<VoiceView> {
     await this.deps.store.set(value)
+    this.active?.call.applySettings(this.deps.store.settings)
 
     return this.changed()
   }
