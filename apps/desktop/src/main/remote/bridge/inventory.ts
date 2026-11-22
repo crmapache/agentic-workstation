@@ -3,6 +3,7 @@ import type { ProviderId, ProviderInfo } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { TaskRunSummary } from '@shared/tasks'
 import { isTaskRunWorking } from '@shared/tasks'
+import type { VoiceCapability } from '@shared/voice'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { InventoryMessage } from '@agentic-workstation/remote-protocol/agent-messages'
@@ -38,6 +39,8 @@ export type InventoryInput = {
   machine: { label: string; ideVersion: string }
   epoch: string
   now: number
+  /** Голосовой звонок (ADR 0104); нет - IDE без голоса, поля в списке нет. */
+  voice?: VoiceCapability | undefined
 }
 
 /**
@@ -127,6 +130,11 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
     epoch: input.epoch,
     machine: input.machine,
     caps: [CAP_PARTS, CAP_PUSH],
+    ...(input.voice && {
+      voice: input.voice.available
+        ? { available: true }
+        : { available: false, reason: input.voice.reason },
+    }),
     providers: panels.flatMap(({ info, state }) => (info ? [capsOf(info, state)] : [])),
     projects: [...open, ...recent],
   }

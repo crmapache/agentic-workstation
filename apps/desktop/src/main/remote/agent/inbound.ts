@@ -1,4 +1,5 @@
 import type { NoticeCode, AgentMessage } from '@agentic-workstation/remote-protocol/agent-messages'
+import { decodeAudio, isAudioBody } from '@agentic-workstation/remote-protocol/audio-frame'
 import { decodeBody } from '@agentic-workstation/remote-protocol/body'
 import type {
   CmdMessage,
@@ -13,7 +14,7 @@ import type { PushSubscriptionWire } from '@agentic-workstation/remote-protocol/
 
 import type { Lane } from '../link/outbox'
 import type { RemoteLimits } from './limits'
-import { limitKindOf } from './limits'
+import { AUDIO_KIND, limitKindOf } from './limits'
 import { RemoteParts, mayArriveInParts } from './parts'
 import type { AgentHandlers } from './remote-agent'
 
@@ -50,6 +51,16 @@ export class Inbound {
       console.warn('[remote] телефон шлёт больше своей доли - кадр отброшен')
 
       return this.overweight(deviceId, parsePhoneMessage(decodeBody(bytes)))
+    }
+
+    // Звук звонка (ADR 0104): двоичное тело, не JSON; лишний кадр звука просто пропадает.
+    if (isAudioBody(bytes)) {
+      const frame = decodeAudio(bytes)
+
+      if (frame && this.host.limits.allow(deviceId, AUDIO_KIND))
+        this.host.handlers.audio(deviceId, frame)
+
+      return
     }
 
     const message = parsePhoneMessage(decodeBody(bytes))

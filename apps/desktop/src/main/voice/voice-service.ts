@@ -9,6 +9,7 @@ import type {
   VoiceCallEnd,
   VoiceCallView,
   VoiceKeyCheck,
+  VoiceCapability,
   VoiceStartOutcome,
 } from '@shared/voice'
 
@@ -50,6 +51,11 @@ export class VoiceService {
   private active: { call: VoiceCall; provider: ProviderId } | null = null
 
   constructor(private readonly deps: VoiceServiceDeps) {}
+
+  /** Можно ли звонить сейчас: телефону - в список машины. */
+  get capability(): VoiceCapability {
+    return this.deps.store.capability
+  }
 
   view(): VoiceView {
     return this.deps.store.view(this.active?.call.view ?? null)

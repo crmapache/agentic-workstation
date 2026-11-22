@@ -1,3 +1,4 @@
+import { AUDIO_FRAMES_PER_MINUTE } from '@agentic-workstation/remote-protocol/audio-frame'
 import { parseCommand, COMMAND_LIMITS } from '@agentic-workstation/remote-protocol/commands'
 import { MAX_BODY_BYTES } from '@agentic-workstation/remote-protocol/frame'
 import {
@@ -33,10 +34,15 @@ export const MAX_BYTES_PER_MINUTE = 3 * MAX_PHOTO_MESSAGE_BYTES + 1024 * 1024
 /** Чему нет своего числа - строже всего: незнакомое не должно быть дешёвым. */
 const FALLBACK_PER_MINUTE = 10
 
+/** Вид для предела частоты у кадров звука звонка. */
+export const AUDIO_KIND = 'audio'
+
 const PER_MINUTE: Readonly<Record<string, number>> = {
   ...COMMAND_LIMITS,
   ...MESSAGE_LIMITS,
   ...HANDSHAKE_LIMITS,
+  // Кадры микрофона голосового звонка (ADR 0104): телом кадра, а не словом.
+  [AUDIO_KIND]: AUDIO_FRAMES_PER_MINUTE,
 }
 
 /** Вид для предела частоты у команд не из белого списка или с кривыми аргументами. */

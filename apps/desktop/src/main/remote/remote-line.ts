@@ -7,6 +7,7 @@ import type { ScenarioRun } from '@shared/scenario-runs'
 
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 
+import { realTimer } from '../voice/voice-service'
 import { RemoteAgent } from './agent/remote-agent'
 import { Bridge } from './bridge/bridge'
 import type { BridgePorts } from './bridge/bridge-ports'
@@ -15,6 +16,7 @@ import type { SocketLike } from './link/relay-link'
 import type { ConversationEvent } from './push/attention'
 import { PushDesk } from './push/push-desk'
 import type { RemoteStore } from './store/remote-store'
+import { PhoneVoiceDesk } from './voice/phone-voice'
 
 /** Сердцебиение линии и слив очереди. */
 export const BEAT_MS = 20_000
@@ -46,6 +48,8 @@ export class RemoteLine {
   readonly agent: RemoteAgent
   readonly bridge: Bridge
   readonly pushes: PushDesk
+  /** Звонки с телефонов (ADR 0104); нет - IDE без голоса. */
+  readonly voice: PhoneVoiceDesk | null
   private readonly beat: NodeJS.Timeout
   private flushTimer: NodeJS.Immediate | null = null
 
@@ -59,7 +63,11 @@ export class RemoteLine {
         onView: deps.onView,
       },
       {
-        handle: (deviceId, message) => this.bridge.handle(deviceId, message),
+        handle: (deviceId, message) =>
+          message.k === 'voice'
+            ? this.voice?.message(deviceId, message)
+            : this.bridge.handle(deviceId, message),
+        audio: (deviceId, frame) => this.voice?.audio(deviceId, frame),
         newKeys: (deviceId) => this.bridge.newKeys(deviceId),
         resend: (deviceId) => this.bridge.resend(deviceId),
         woke: (deviceId) => this.bridge.woke(deviceId),
@@ -68,6 +76,7 @@ export class RemoteLine {
         forgotten: (deviceId) => {
           this.bridge.forget(deviceId)
           this.pushes.forget(deviceId)
+          this.voice?.forget(deviceId)
         },
         pushChanged: (deviceId) => this.pushes.subscribed(deviceId, deps.store.hasPush(deviceId)),
       },
@@ -97,6 +106,23 @@ export class RemoteLine {
       heardAt: (deviceId) => this.agent.heardAt(deviceId),
       send: (deviceId, notice) => this.agent.pushes.send(deviceId, notice),
     })
+    const { voice } = deps.ports
+
+    this.voice = voice
+      ? new PhoneVoiceDesk({
+          voice,
+          send: (deviceId, message) => {
+            if (this.agent.queue(deviceId, encodeBody(message), 'urgent')) this.flushSoon()
+          },
+          stream: (deviceId, body) => void this.agent.stream(deviceId, body),
+          projectKey: () => {
+            const home = deps.ports.workspace.getState().projects.find((project) => project.home)
+
+            return home ? this.bridge.lens().keys.keyOf(home.rootPath) : ''
+          },
+          timer: realTimer,
+        })
+      : null
     this.beat = setInterval(() => {
       this.agent.beat()
       this.bridge.sweep()
@@ -118,6 +144,7 @@ export class RemoteLine {
     if (this.flushTimer) clearImmediate(this.flushTimer)
 
     this.flushTimer = null
+    this.voice?.stop()
     this.pushes.stop()
     this.bridge.stop()
     this.agent.stop()
@@ -134,7 +161,9 @@ export class RemoteLine {
    * связи. Чей разговор, пуш узнаёт по его id у панелей.
    */
   called(call: ConversationCall): void {
-    const reason = PUSHED_CALLS[call.reason]
+    // Голосовой разговор доделал работу после звонка с телефона - это повод разбудить (ADR 0104).
+    const followUp = call.reason === 'turnDone' && this.voice?.takeFollowUp(call.conversationId)
+    const reason = followUp ? 'done' : PUSHED_CALLS[call.reason]
 
     if (reason) this.pushes.called({ conversationId: call.conversationId, reason, at: Date.now() })
   }

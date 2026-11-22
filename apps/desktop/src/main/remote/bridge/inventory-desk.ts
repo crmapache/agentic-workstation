@@ -115,6 +115,7 @@ export class InventoryDesk {
       machine: this.host.machine(),
       epoch: this.host.epoch,
       now: Date.now(),
+      voice: ports.voice?.capability,
     })
     const fitted = fitValue(inventory, undefined, this.host.redact())
 

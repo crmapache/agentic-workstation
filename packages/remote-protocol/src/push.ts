@@ -171,13 +171,15 @@ export const isPushSubscription = (value: PushSubscriptionWire): boolean =>
  * - extraUsage - аккаунт начал платить за работу сверх лимита;
  * - permission, question, plan - разговор ждёт ответа; question с экраном прогона - вопрос
  *   головы сценария;
- * - held - очередь встала (detail: stopAfter, failed, refused).
+ * - held - очередь встала (detail: stopAfter, failed, refused);
+ * - done - голосовой разговор доделал работу уже после звонка (ADR 0104).
  *
  * Конец хода не будит: человек вернётся к телефону сам, а будильник на каждый ответ модели
- * отучил бы смотреть на уведомления.
+ * отучил бы смотреть на уведомления. Исключение - done: звонок положен, а работа, которую
+ * человек поручил голосом, кончилась без него.
  */
 export type PushReason =
-  'trouble' | 'limit' | 'extraUsage' | 'permission' | 'question' | 'plan' | 'held'
+  'trouble' | 'limit' | 'extraUsage' | 'permission' | 'question' | 'plan' | 'held' | 'done'
 
 export const PUSH_REASONS: readonly PushReason[] = [
   'trouble',
@@ -187,6 +189,7 @@ export const PUSH_REASONS: readonly PushReason[] = [
   'question',
   'plan',
   'held',
+  'done',
 ]
 
 /** Куда ведёт нажатие: экран телефона по ключу проекта и id - путей здесь нет. */

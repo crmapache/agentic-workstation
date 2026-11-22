@@ -151,7 +151,9 @@ export const startIdeFeatures = async (setup: {
     chatIdOf: (provider, sessionId) =>
       runners.get(provider)?.chatIdOf(sessionId) ?? Promise.resolve(sessionId),
   })
-  const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns })
+  const remote = await startRemote({ ...setup, scenarios, tasks: taskRuns, voice: voice.service })
+
+  voice.changed = () => remote.voiceChanged()
   const tracker = await startTracker({
     dataDir: setup.dataDir,
     scenarios,

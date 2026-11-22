@@ -147,6 +147,28 @@ const partSchema = z.object({
   d: z.string(),
 })
 
+/**
+ * Голосовой звонок (ADR 0104): начать (ref - чтобы ответ нашёл свою кнопку и повтор не начал
+ * второй звонок), положить трубку, «Стоп», микрофон, пауза и возврат (страница скрыта или снова
+ * видна), сколько ответа проиграно. Звук микрофона идёт не словом, а телом кадра (audio-frame.ts).
+ */
+const CALL = { p: P, k: z.literal('voice'), callId: ID }
+
+const voiceSchema = z.discriminatedUnion('act', [
+  z.object({ p: P, k: z.literal('voice'), act: z.literal('start'), ref: ID }),
+  z.object({ ...CALL, act: z.literal('end') }),
+  z.object({ ...CALL, act: z.literal('stop') }),
+  z.object({ ...CALL, act: z.literal('mute'), on: z.boolean() }),
+  z.object({ ...CALL, act: z.literal('pause') }),
+  z.object({ ...CALL, act: z.literal('resume') }),
+  z.object({
+    ...CALL,
+    act: z.literal('played'),
+    epoch: z.int().min(0).max(0xffff),
+    ms: z.number().min(0).max(3_600_000),
+  }),
+])
+
 export const phoneMessageSchema = z.union([
   helloSchema,
   inventorySchema,
@@ -158,6 +180,7 @@ export const phoneMessageSchema = z.union([
   unsubscribeSchema,
   cmdSchema,
   partSchema,
+  voiceSchema,
 ])
 
 export type PhoneMessage = z.output<typeof phoneMessageSchema>
@@ -173,6 +196,8 @@ export type CmdMessage = z.output<typeof cmdSchema>
 export type PartMessage = z.output<typeof partSchema>
 
 export type PushSetMessage = z.output<typeof pushSetSchema>
+
+export type VoicePhoneMessage = z.output<typeof voiceSchema>
 
 /** Запечатанное слово телефона после открытия; null - не сообщение протокола. */
 export const parsePhoneMessage = (value: unknown): PhoneMessage | null => {
@@ -192,6 +217,8 @@ export const MESSAGE_LIMITS: Readonly<Record<Exclude<PhoneMessageKind, 'cmd'>, n
   subscribe: 120,
   unsubscribe: 120,
   part: 400,
+  // Отчёт о проигранном - пять раз в секунду, пока звучит ответ; остальное - кнопки звонка.
+  voice: 600,
 }
 
 /** И рукопожатия - открытые слова, на которые IDE отвечает дорогой работой (ECDH). */

@@ -18,6 +18,7 @@ import { RemoteService } from './remote-service'
 import { REMOTE_FILE } from './remote.constants'
 import type {
   TasksPort,
+  VoicePort,
   SearchPort,
   AccountsPort,
   ScenariosPort,
@@ -108,6 +109,8 @@ export type RemoteSetup = {
   connectors: ConnectorsService
   dataDir: string
   version: string
+  /** Голосовой режим (ADR 0104): звонок с телефона. */
+  voice?: VoicePort | undefined
 }
 
 /**
@@ -132,6 +135,7 @@ export const startRemote = (setup: RemoteSetup): Promise<RemoteService> => {
       search: searchPort(setup.search),
       accounts: accountsPort(setup.claude),
       connectors: connectorsPort(setup.connectors),
+      voice: setup.voice,
     },
     relayUrl: relayUrlFor(process.env, app.isPackaged),
     machine: () => machine,

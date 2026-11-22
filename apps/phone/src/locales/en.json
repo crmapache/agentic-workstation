@@ -21,7 +21,8 @@
       "permission": "{{who}} in {{project}} needs you",
       "question": "{{who}} in {{project}} needs you",
       "plan": "{{who}} in {{project}} needs you",
-      "held": "Queue stopped in {{project}}"
+      "held": "Queue stopped in {{project}}",
+      "done": "{{who}} in {{project}} finished"
     },
     "bodies": {
       "trouble": "{{title}}: the turn ended with an error",
@@ -35,7 +36,8 @@
         "stopAfter": "{{title}}: stopped where you asked",
         "failed": "{{title}}: a scenario failed",
         "refused": "{{title}}: a scenario could not start"
-      }
+      },
+      "done": "{{title}}: done after your voice call"
     }
   },
   "common": {

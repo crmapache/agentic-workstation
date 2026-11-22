@@ -104,6 +104,7 @@ const setup = async () => {
       knownCommand: (_deviceId, commandId) => known.has(commandId),
       forgotten: () => events.push('forgotten'),
       pushChanged: () => events.push('pushChanged'),
+      audio: () => events.push('audio'),
     },
   )
   const current = () => sockets.at(-1) as FakeSocket

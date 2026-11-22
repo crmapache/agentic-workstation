@@ -22,7 +22,7 @@ import type { ProjectKeys } from '../bridge/project-keys'
  */
 export type ConversationEvent = {
   conversationId: string
-  reason: Extract<PushReason, 'trouble' | 'limit' | 'extraUsage'>
+  reason: Extract<PushReason, 'trouble' | 'limit' | 'extraUsage' | 'done'>
   at: number
 }
 

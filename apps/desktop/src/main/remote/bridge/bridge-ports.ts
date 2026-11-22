@@ -33,6 +33,8 @@ import type { TaskRunSummary } from '@shared/tasks'
 import type { VoiceOutgoing } from '@shared/voice'
 import type { WorkspaceState } from '@shared/workspace'
 
+import type { VoiceService } from '../../voice/voice-service'
+
 /**
  * Что мост Remote Control берёт у IDE - узко, только публичные действия сервисов, которыми
  * пользуется и окно. Мост не знает ни процессов CLI, ни движка сценариев; тест подставляет
@@ -232,6 +234,12 @@ export type WorkspacePort = {
   openRecent: (rootPath: string) => Promise<unknown>
 }
 
+/**
+ * Голосовой звонок с телефона (ADR 0104): можно ли звонить и сам звонок - тем же сервисом, что
+ * у кнопки в панели. Нет порта - IDE без голоса (тест моста).
+ */
+export type VoicePort = Pick<VoiceService, 'capability' | 'start' | 'call' | 'end'>
+
 export type BridgePorts = {
   panels: PanelsPort
   scenarios: ScenariosPort
@@ -241,4 +249,5 @@ export type BridgePorts = {
   search: SearchPort
   accounts: AccountsPort
   connectors: ConnectorsPort
+  voice?: VoicePort | undefined
 }

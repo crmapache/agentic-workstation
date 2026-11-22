@@ -4,6 +4,7 @@ import type {
   AgentMessage,
   HandshakeReply,
 } from '@agentic-workstation/remote-protocol/agent-messages'
+import type { AudioFrame } from '@agentic-workstation/remote-protocol/audio-frame'
 import { encodeBody } from '@agentic-workstation/remote-protocol/body'
 import {
   FRAME_SEALED,
@@ -62,6 +63,8 @@ export type AgentHandlers = {
   forgotten: (deviceId: string) => void
   /** Подписка телефона на пуши появилась, сменилась или ушла (его слово или слово релея). */
   pushChanged: (deviceId: string) => void
+  /** Кадр звука голосового звонка (ADR 0104). */
+  audio: (deviceId: string, frame: AudioFrame) => void
 }
 
 /**
@@ -195,6 +198,18 @@ export class RemoteAgent {
 
     if (lane === 'urgent') this.outbox.offerUrgent(deviceId, outgoing)
     else this.outbox.offer(deviceId, outgoing)
+
+    return true
+  }
+
+  /**
+   * Звук телефону (ADR 0104) - только пока линия есть: запоздавший звук не нужен, копить его в
+   * очереди незачем. Ушёл - true.
+   */
+  stream(deviceId: string, body: Uint8Array): boolean {
+    if (this.linkState !== 'connected' || !this.queue(deviceId, body)) return false
+
+    this.flush()
 
     return true
   }

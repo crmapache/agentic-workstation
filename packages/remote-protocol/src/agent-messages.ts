@@ -67,6 +67,11 @@ export type InventoryMessage = Versioned & {
   machine: Machine
   /** Что умеет эта IDE: parts - сообщение частями, push - будить телефон пушем. */
   caps: string[]
+  /**
+   * Голосовой звонок (ADR 0104): можно ли звонить и почему нет (off - выключен в настройках,
+   * noKey - нет ключа Deepgram). Нет поля - IDE без голоса.
+   */
+  voice?: { available: boolean; reason?: 'off' | 'noKey' | undefined } | undefined
   providers: ProviderCaps[]
   projects: InventoryProject[]
 }
@@ -181,6 +186,37 @@ export type ResyncMessage = Versioned & { k: 'resync' }
 /** Ответ на ping телефона - тем же n: IDE на связи и слышит его. */
 export type PongMessage = Versioned & { k: 'pong'; n: number }
 
+/** Звонок для телефона: что он делает, живой текст реплики, где его разговор. */
+export type VoiceCallWire = {
+  callId: string
+  conversationId: string
+  /** Проект разговора (Home) ключом телефона - экран разговора после звонка. */
+  projectKey: string
+  provider: string
+  state:
+    'connecting' | 'listening' | 'thinking' | 'working' | 'speaking' | 'reconnecting' | 'paused'
+  tool: string | null
+  heard: string
+  muted: boolean
+  language: string | null
+}
+
+/**
+ * Слово звонка телефону (ADR 0104): начался (ref - из просьбы) или отказан, состояние, приглушить
+ * ответ, сбросить непроигранное с новой эпохой, тон «я ещё тут», кончился. Звук ответа - телом
+ * кадра (audio-frame.ts).
+ */
+export type VoiceEvent =
+  | { kind: 'started'; ref: string; call: VoiceCallWire }
+  | { kind: 'refused'; ref: string; reason: string }
+  | { kind: 'state'; call: VoiceCallWire }
+  | { kind: 'duck'; callId: string; level: number }
+  | { kind: 'stopPlayback'; callId: string; epoch: number }
+  | { kind: 'tone'; callId: string }
+  | { kind: 'ended'; callId: string; reason: string; conversationId: string; projectKey: string }
+
+export type VoiceMessage = Versioned & { k: 'voice'; event: VoiceEvent }
+
 export type AgentMessage =
   | InventoryMessage
   | FeedSnapshotMessage
@@ -194,6 +230,7 @@ export type AgentMessage =
   | ResyncMessage
   | PongMessage
   | Revoked
+  | VoiceMessage
 
 export type AgentMessageKind = AgentMessage['k']
 
@@ -210,6 +247,7 @@ const AGENT_KINDS: ReadonlySet<string> = new Set<AgentMessageKind>([
   'resync',
   'pong',
   'revoked',
+  'voice',
 ])
 
 const HANDSHAKE_KINDS: ReadonlySet<string> = new Set<HandshakeReply['k']>([

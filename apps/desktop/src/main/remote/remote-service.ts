@@ -133,6 +133,11 @@ export class RemoteService {
   }
 
   /** Состояние панели любого провайдера поменялось: список, разговор, вопросы, пуши. */
+  /** Голосовой режим включили, выключили, сменили ключ: телефону - новая кнопка звонка. */
+  voiceChanged(): void {
+    this.line?.panelChanged()
+  }
+
   panelChanged(): void {
     this.line?.panelChanged()
   }

@@ -12,7 +12,12 @@ import { realTimer, VoiceService } from './voice-service'
 import { VoiceStore } from './voice-store'
 import { dialDeepgram, checkDeepgramKey } from './deepgram/deepgram-link'
 
-export type VoiceRuntime = { service: VoiceService; store: VoiceStore }
+export type VoiceRuntime = {
+  service: VoiceService
+  store: VoiceStore
+  /** Голос поменялся (настройки, ключ, звонок): Remote Control заполняет позже - телефону кнопка. */
+  changed: () => void
+}
 
 /**
  * Голосовой режим IDE (ADR 0104): настройки в `voice.json`, ключ Deepgram в `voice.vault`,
@@ -36,8 +41,12 @@ export const startVoice = async (setup: {
     timer: realTimer,
     now: () => Date.now(),
     checkKey: (key, region) => checkDeepgramKey(key, region),
-    onView: (view) => broadcast('voice:changed', view),
+    onView: (view) => {
+      broadcast('voice:changed', view)
+      runtime.changed()
+    },
   })
+  const runtime: VoiceRuntime = { service, store, changed: () => undefined }
 
-  return { service, store }
+  return runtime
 }
