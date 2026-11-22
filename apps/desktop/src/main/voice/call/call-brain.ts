@@ -5,7 +5,7 @@ import type { VoiceLanguage, VoiceOutgoing } from '@shared/voice'
 import type { CallMouth } from './call-mouth'
 import type { Utterance } from './utterances'
 import { phrasesOf } from './voice-phrases'
-import { wordsOf, hasStopWord } from './voice-words'
+import { isStopOnly, hasStopWord } from './voice-words'
 
 /** Чем занят агент: свободен, думает (или пишет ответ), выполняет инструмент. */
 export type AgentWork = { state: 'idle' | 'thinking' | 'working'; tool: string | null }
@@ -40,9 +40,6 @@ const announce = (pending: PendingRequest, language: VoiceLanguage): string => {
       return phrases.plan
   }
 }
-
-/** Реплика - одни слова остановки («стоп», «подожди»): её дело - остановить, а не уйти в чат. */
-const onlyStops = (text: string): boolean => hasStopWord(text) && wordsOf(text).length <= 2
 
 /**
  * Мозг звонка: реплики - в разговор, ответ разговора - во рту. Реплика, пока агент пишет ответ
@@ -136,14 +133,23 @@ export class CallBrain {
 
     if (running && (stops || this.writing || this.options.mouth().isSpeaking)) {
       this.interrupt()
-      if (!onlyStops(utterance.text)) this.waiting.push(utterance)
+      if (!isStopOnly(utterance.text)) this.waiting.push(utterance)
 
       return
     }
 
-    if (onlyStops(utterance.text) && this.status === 'idle') return
+    if (isStopOnly(utterance.text) && this.status === 'idle') return
 
     void this.send([utterance])
+  }
+
+  /**
+   * Человек сказал «стоп» посреди реплики: замолчать и остановить работу сразу. Сама реплика
+   * придёт после паузы (UtteranceDesk) и уйдёт в чат обычным путём.
+   */
+  halt(): void {
+    this.options.mouth().cut()
+    if (this.status === 'running') this.interrupt()
   }
 
   /** Ответ оборван: что человек успел услышать - модели со следующей репликой. */

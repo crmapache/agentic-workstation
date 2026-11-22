@@ -122,6 +122,9 @@ export const hasStopWord = (text: string): boolean =>
     .slice(0, 3)
     .some((word) => STOP_WORDS.has(word))
 
+/** Реплика - одни слова остановки («стоп», «подожди»): её дело - остановить, а не уйти в чат. */
+export const isStopOnly = (text: string): boolean => hasStopWord(text) && wordsOf(text).length <= 2
+
 /**
  * Эхо собственного ответа: распознанные слова подряд стоят в том, что агент только что сказал.
  * Системное эхоподавление телефона убирает почти всё, это - вторая линия.

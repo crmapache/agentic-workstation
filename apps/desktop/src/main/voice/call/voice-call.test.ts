@@ -8,6 +8,7 @@ import { DEFAULT_VOICE_SETTINGS } from '@shared/voice'
 import type { DeepgramDial, DeepgramHandlers } from '../deepgram/deepgram-link'
 import { PLAY_BYTES_PER_MS } from '../deepgram/flux-speak'
 import type { SpokenAnswer } from './call-mouth'
+import { PAUSE_MS } from './utterances'
 import { VoiceCall } from './voice-call'
 
 type Socket = { url: string; handlers: DeepgramHandlers; sent: Array<string | Uint8Array> }
@@ -45,6 +46,7 @@ const harness = () => {
 
       return () => timers.splice(timers.indexOf(entry), 1)
     },
+    now: () => 0,
     endpoint: {
       origin: 'desktop',
       play: (_pcm, epoch, frame) => played.push({ epoch, frame }),
@@ -90,6 +92,8 @@ const harness = () => {
     upserts: [{ kind: 'assistant', id, parentToolUseId: null, text, streaming }],
   })
   const lastState = () => cues.filter((cue) => cue.kind === 'state').at(-1)
+  /** Человек замолчал дольше паузы: реплика, что её ждала, уходит в чат. */
+  const pause = () => timers.find((timer) => timer.ms === PAUSE_MS)?.run()
 
   return {
     call,
@@ -111,6 +115,7 @@ const harness = () => {
     state,
     answer,
     lastState,
+    pause,
   }
 }
 
@@ -123,6 +128,8 @@ describe('VoiceCall', () => {
     h.call.start([])
     await settle()
     h.turn('EndOfTurn', 'Посмотри встречи на завтра')
+    expect(h.sent).toEqual([])
+    h.pause()
     expect(h.sent).toEqual([
       { text: 'Посмотри встречи на завтра', voice: { lang: 'ru', heard: null } },
     ])
@@ -161,6 +168,8 @@ describe('VoiceCall', () => {
     expect(h.says(h.speak()).some((message) => message.type === 'Interrupt')).toBe(false)
     h.turn('Update', 'угу нет подожди')
 
+    // «Подожди» останавливает работу сразу, не дожидаясь конца реплики и паузы после неё.
+    expect(h.interrupt).toHaveBeenCalled()
     expect(h.says(h.speak()).at(-1)).toEqual({
       type: 'Interrupt',
       playback_offset: { type: 'time_ms', value: 800 },
@@ -175,7 +184,7 @@ describe('VoiceCall', () => {
       }),
     )
     h.turn('EndOfTurn', 'угу нет подожди покажи только первую')
-    expect(h.interrupt).toHaveBeenCalled()
+    h.pause()
     expect(h.sent).toEqual([])
 
     h.state('idle')
@@ -210,6 +219,7 @@ describe('VoiceCall', () => {
     h.call.start([])
     await settle()
     h.turn('EndOfTurn', 'Удали старые логи пожалуйста')
+    h.pause()
     h.state('waiting', {
       kind: 'permission',
       requestId: 'r1',
@@ -365,6 +375,7 @@ describe('VoiceCall: the voice of an answer', () => {
     h.call.start([])
     await settle()
     h.turn('EndOfTurn', RUSSIAN_LINE, ['pt'])
+    h.pause()
     expect(h.sent.at(-1)?.voice.lang).toBe('ru')
 
     h.state('running')
@@ -383,6 +394,7 @@ describe('VoiceCall: the voice of an answer', () => {
     h.call.start([])
     await settle()
     h.turn('EndOfTurn', 'What came in on WhatsApp in the last ten minutes?', ['en'])
+    h.pause()
     h.state('running')
     h.call.feed(h.answer('Только переписка с Бьянкой, больше ничего.', false))
 

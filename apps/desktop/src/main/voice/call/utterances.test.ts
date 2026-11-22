@@ -3,8 +3,8 @@ import { it, expect, describe } from 'vitest'
 import type { FluxTurn } from '../deepgram/flux-turn'
 import { judgeBargeIn } from './barge-in'
 import type { Utterance } from './utterances'
-import { pickLanguage, UtteranceDesk } from './utterances'
-import { isEcho, hasStopWord, isBackchannel } from './voice-words'
+import { PAUSE_MS, pickLanguage, UtteranceDesk } from './utterances'
+import { isEcho, isStopOnly, hasStopWord, isBackchannel } from './voice-words'
 
 const turn = (
   event: FluxTurn['event'],
@@ -25,25 +25,31 @@ const turn = (
 const desk = (busy = false) => {
   const heard: string[] = []
   const said: Utterance[] = []
-  const timers: Array<() => void> = []
+  const timers: Array<{ run: () => void; ms: number }> = []
+  const clock = { now: 0 }
   const subject = new UtteranceDesk({
     mode: 'multi',
-    timer: (run) => {
-      timers.push(run)
+    timer: (run, ms) => {
+      const entry = { run, ms }
 
-      return () => timers.splice(timers.indexOf(run), 1)
+      timers.push(entry)
+
+      return () => timers.splice(timers.indexOf(entry), 1)
     },
+    now: () => clock.now,
     onHeard: (text) => heard.push(text),
     onUtterance: (utterance) => said.push(utterance),
     isAgentBusy: () => busy,
   })
+  /** Человек молчит, пока не кончится пауза: то, что ждало, уходит. */
+  const pause = () => timers.shift()?.run()
 
-  return { subject, heard, said, timers }
+  return { subject, heard, said, timers, clock, pause }
 }
 
 describe('UtteranceDesk', () => {
   it('sends a Russian line as Russian even when Flux labels it Portuguese', () => {
-    const { subject, said } = desk()
+    const { subject, said, pause } = desk()
 
     subject.turn(
       turn(
@@ -53,77 +59,134 @@ describe('UtteranceDesk', () => {
         ['pt'],
       ),
     )
+    pause()
 
     expect(said[0]?.language).toBe('ru')
   })
 
-  it('sends a finished line with its language and shows the live text before it', () => {
-    const { subject, heard, said } = desk()
+  it('shows the live text and sends the line with its language after the pause', () => {
+    const { subject, heard, said, timers, pause } = desk()
 
     subject.turn(turn('StartOfTurn', 'Посмотри'))
     subject.turn(turn('EndOfTurn', 'Посмотри встречи на завтра'))
 
-    expect(heard).toEqual(['Посмотри', ''])
+    expect(said).toEqual([])
+    expect(timers.map((timer) => timer.ms)).toEqual([PAUSE_MS])
+    expect(heard).toEqual(['Посмотри', 'Посмотри встречи на завтра'])
+
+    pause()
     expect(said).toEqual([{ text: 'Посмотри встречи на завтра', language: 'ru' }])
+    expect(heard.at(-1)).toBe('')
   })
 
-  it('glues a short line to the next one when the person goes on', () => {
-    const { subject, said, timers } = desk()
+  it('glues a phrase Flux cut on a short pause into one line', () => {
+    const { subject, said, timers, clock, pause } = desk()
 
-    subject.turn(turn('EndOfTurn', 'Привет.'))
-    expect(said).toEqual([])
-    expect(timers).toHaveLength(1)
+    subject.turn(turn('EndOfTurn', 'Найди эту точку на карте'))
+    clock.now = 1200
+    subject.turn(turn('StartOfTurn', 'и построить'))
+    expect(timers).toHaveLength(0)
+    subject.turn(turn('EndOfTurn', 'и построить до неё маршрут.'))
+    pause()
+
+    expect(said).toEqual([
+      { text: 'Найди эту точку на карте и построить до неё маршрут.', language: 'ru' },
+    ])
+  })
+
+  it('counts the pause from the last word, not from Flux closing the turn', () => {
+    const { subject, said, timers, clock } = desk()
 
     subject.turn(turn('StartOfTurn', 'Посмотри'))
-    expect(timers).toHaveLength(0)
-    subject.turn(turn('EndOfTurn', 'Посмотри встречи на завтра.'))
-
-    expect(said).toEqual([{ text: 'Привет. Посмотри встречи на завтра.', language: 'ru' }])
+    clock.now = 900
+    subject.turn(turn('Update', 'Посмотри почту'))
+    clock.now = 1500
+    subject.turn(turn('Update', 'Посмотри почту'))
+    clock.now = 1700
+    subject.turn(turn('EndOfTurn', 'Посмотри почту.'))
+    expect(timers.map((timer) => timer.ms)).toEqual([PAUSE_MS - 800])
+    expect(said).toEqual([])
   })
 
-  it('sends a short line alone when nothing follows', () => {
+  it('sends at once when Flux closed the turn after the pause had passed', () => {
+    const { subject, said, timers, clock } = desk()
+
+    subject.turn(turn('StartOfTurn', 'Посмотри почту за сегодня'))
+    clock.now = PAUSE_MS
+    subject.turn(turn('EndOfTurn', 'Посмотри почту за сегодня'))
+
+    expect(timers).toHaveLength(0)
+    expect(said).toEqual([{ text: 'Посмотри почту за сегодня', language: 'ru' }])
+  })
+
+  it('does not hold back a stop word', () => {
     const { subject, said, timers } = desk()
 
-    subject.turn(turn('EndOfTurn', 'Да.'))
-    timers[0]?.()
+    subject.turn(turn('EndOfTurn', 'Стоп'))
 
-    expect(said).toEqual([{ text: 'Да.', language: 'ru' }])
+    expect(timers).toHaveLength(0)
+    expect(said).toEqual([{ text: 'Стоп', language: 'ru' }])
+  })
+
+  it('keeps waiting through updates without words', () => {
+    const { subject, timers } = desk()
+
+    subject.turn(turn('EndOfTurn', 'Посмотри почту за сегодня'))
+    subject.turn(turn('Update', ''))
+
+    expect(timers).toHaveLength(1)
+  })
+
+  it('still sends the line said before a turn over the answer that was skipped', () => {
+    const { subject, said, heard, timers, pause } = desk()
+
+    subject.turn(turn('EndOfTurn', 'Посмотри почту за сегодня'))
+    subject.turn(turn('StartOfTurn', 'угу'))
+    expect(timers).toHaveLength(0)
+
+    subject.skip()
+    expect(heard.at(-1)).toBe('Посмотри почту за сегодня')
+    pause()
+
+    expect(said).toEqual([{ text: 'Посмотри почту за сегодня', language: 'ru' }])
   })
 
   it('drops backchannel only while the agent is busy', () => {
     const busy = desk(true)
 
     busy.subject.turn(turn('EndOfTurn', 'угу'))
-    busy.timers[0]?.()
+    busy.pause()
     expect(busy.said).toEqual([])
   })
 
   it('drops one or two unsure words as noise', () => {
-    const { subject, said, timers } = desk()
+    const { subject, said, pause } = desk()
 
     subject.turn(turn('EndOfTurn', 'эм', 0.3))
-    timers[0]?.()
+    pause()
 
     expect(said).toEqual([])
   })
 
   it('keeps the language of the last line for a short one', () => {
-    const { subject, said, timers } = desk()
+    const { subject, said, pause } = desk()
 
     subject.turn(turn('EndOfTurn', 'Show my meetings for tomorrow', 0.95, ['en']))
+    pause()
     subject.turn(turn('EndOfTurn', 'да', 0.95, ['ru']))
-    timers[0]?.()
+    pause()
 
     expect(said.map((utterance) => utterance.language)).toEqual(['en', 'en'])
   })
 
   it('flushes what waits when the call ends', () => {
-    const { subject, said } = desk()
+    const { subject, said, timers } = desk()
 
     subject.turn(turn('EndOfTurn', 'Спасибо'))
     subject.flush()
 
     expect(said).toEqual([{ text: 'Спасибо', language: 'ru' }])
+    expect(timers).toHaveLength(0)
   })
 })
 
@@ -185,6 +248,8 @@ describe('voice words', () => {
     expect(isBackchannel('да покажи')).toBe(false)
     expect(hasStopWord('Подожди, не то')).toBe(true)
     expect(hasStopWord('я не говорил стоп вообще')).toBe(false)
+    expect(isStopOnly('Стоп, подожди')).toBe(true)
+    expect(isStopOnly('Стоп, покажи только первую')).toBe(false)
     expect(isEcho('КАЛЕНДАРЬ на', 'твой календарь на завтра')).toBe(true)
     expect(isEcho('', 'что угодно')).toBe(false)
   })

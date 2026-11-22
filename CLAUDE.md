@@ -60,7 +60,7 @@ ADR 0040); весь компьютер (мак и Windows) - коннектор 
 | `pnpm dist:local`                                       | собранное приложение без сертификата (подпись ad-hoc)           |
 | `pnpm dist:win`                                         | установщик Windows x64, собирается прямо на Mac (ADR 0048)      |
 | `pnpm --filter @agentic-workstation/desktop update:e2e` | сквозная проверка самообновления, ~2 минуты                     |
-| `/build`                                                | выпуск версии для мака и Windows, только по прямой команде      |
+| `/build`                                                | выпуск мака, Windows и релея с телефоном, по прямой команде     |
 | `/reinstall [clean]`                                    | переустановить релиз на этом Mac, только по прямой команде      |
 | `apps/relay/scripts/relay-deploy.sh`                    | выкладка релея и клиента телефона (с проверкой, что это наш)    |
 | `apps/site/scripts/site-deploy.sh`                      | выкладка сайта продукта (команды сайта - `apps/site/README.md`) |

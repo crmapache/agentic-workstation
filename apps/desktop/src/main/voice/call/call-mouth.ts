@@ -104,11 +104,6 @@ export class CallMouth {
     return this.epoch
   }
 
-  /** Есть ли ответы - звучащие или ещё без звука: «Стоп» и «стоп» обрывают и их. */
-  get hasAnswers(): boolean {
-    return this.answers.length > 0
-  }
-
   /** Скорость речи на лету (spec: «скорость и перебивание можно менять на лету»). */
   setSpeed(speed: number): void {
     this.speed = speed

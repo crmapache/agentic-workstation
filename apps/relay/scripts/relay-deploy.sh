@@ -5,6 +5,7 @@
 #   apps/relay/scripts/relay-deploy.sh               # спросит перед выкладкой
 #   apps/relay/scripts/relay-deploy.sh --yes         # без вопроса, когда никто не смотрит
 #   apps/relay/scripts/relay-deploy.sh --relay-only  # без клиента телефона (раздаётся заглушка)
+#   apps/relay/scripts/relay-deploy.sh --yes --if-changed  # только если код поменялся (так зовёт /build)
 #
 # Выкладка на секунду рвёт все сокеты (IDE и телефоны переподключаются сами и догоняют
 # своё по журналу), а новый клиент доходит до телефона при следующей загрузке - поэтому
@@ -32,16 +33,26 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 ASK=1
 PHONE=1
+IF_CHANGED=0
 for arg in "$@"; do
   case "$arg" in
     --yes) ASK=0 ;;
     --relay-only) PHONE=0 ;;
+    --if-changed) IF_CHANGED=1 ;;
     *)
       echo "незнакомый аргумент: $arg" >&2
       exit 2
       ;;
   esac
 done
+
+# Код, из которого собирается образ: релей, общие пакеты, lock-файл и корневые манифесты, с
+# клиентом - и телефон. Манифестов других приложений здесь нет: их версия меняется каждым
+# выпуском IDE, а образу важны только зависимости, и они - в lock-файле. Скрипты выкладки в
+# работе релея не участвуют: их правка выкладки не требует.
+WATCH=(package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json apps/relay packages
+  ':(exclude)apps/relay/scripts')
+[ "$PHONE" = 1 ] && WATCH+=(apps/phone)
 
 echo "==> проверяю, что $APP_UUID - наш релей"
 python3 - "$COOL_DIR" "$APP_UUID" "https://$DOMAIN" "$IMAGE_NAME" <<'PY'
@@ -60,6 +71,23 @@ if url not in domains or pulls != image:
     sys.exit(1)
 PY
 
+# --if-changed: на сервере уже этот код - не трогать его (выкладка рвёт сокеты). Метка сборки
+# начинается с коммита; выложенное из незакоммиченного или без клиента помечено «+» - тогда
+# сверять не с чем, и выкладка идёт. Сервер не ответил или коммита здесь нет - тоже идёт.
+if [ "$IF_CHANGED" = 1 ]; then
+  DEPLOYED="$(curl -sS -m 10 "https://$DOMAIN/v1/info" 2>/dev/null |
+    python3 -c 'import json, sys; print(json.load(sys.stdin).get("build", ""))' 2>/dev/null || true)"
+  DEPLOYED_SHA="${DEPLOYED%%[-+]*}"
+
+  if [ -n "$DEPLOYED_SHA" ] && [[ "$DEPLOYED" != *+* ]] &&
+    git -C "$ROOT" cat-file -e "$DEPLOYED_SHA^{commit}" 2>/dev/null &&
+    [ -z "$(git -C "$ROOT" status --porcelain -- "${WATCH[@]}")" ] &&
+    git -C "$ROOT" diff --quiet "$DEPLOYED_SHA" HEAD -- "${WATCH[@]}"; then
+    echo "==> $DOMAIN уже на этом коде ($DEPLOYED) - выкладка не нужна"
+    exit 0
+  fi
+fi
+
 if [ "$ASK" = 1 ]; then
   if [ ! -t 0 ]; then
     echo "Спросить некого - запустите с --yes, чтобы выложить без вопроса." >&2
@@ -70,8 +98,13 @@ if [ "$ASK" = 1 ]; then
 fi
 
 # Метка сборки: по ней проверка в конце узнаёт новый контейнер, а не старый, который ещё
-# отвечает. Коммит и время - чтобы в /v1/info было видно, что именно выложено.
-BUILD_ID="$(git -C "$ROOT" rev-parse --short HEAD)-$(date -u +%Y%m%d%H%M%S)"
+# отвечает. Коммит и время - чтобы в /v1/info было видно, что именно выложено; «+dirty» -
+# выложено с незакоммиченными правками, «+nophone» - без клиента: по такой метке --if-changed
+# не может сказать, что на сервере тот же код.
+MARKS=""
+[ -n "$(git -C "$ROOT" status --porcelain -- "${WATCH[@]}")" ] && MARKS+="+dirty"
+[ "$PHONE" = 0 ] && MARKS+="+nophone"
+BUILD_ID="$(git -C "$ROOT" rev-parse --short HEAD)$MARKS-$(date -u +%Y%m%d%H%M%S)"
 
 echo "==> упаковываю исходники ($BUILD_ID)"
 # Только то, что нужно образу: манифесты workspace (их читает lock-файл), релей, клиент

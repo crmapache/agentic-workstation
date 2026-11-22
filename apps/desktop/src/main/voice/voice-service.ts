@@ -202,6 +202,7 @@ export class VoiceService {
       key,
       dial: this.deps.dial,
       timer: this.deps.timer,
+      now: this.deps.now,
       endpoint,
       agent: {
         send: (text, voice) => port.send(conversationId, { text, images: [], voice }),

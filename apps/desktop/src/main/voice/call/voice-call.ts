@@ -39,6 +39,7 @@ export type VoiceCallOptions = {
   key: string
   dial: DeepgramDial
   timer: Timer
+  now: () => number
   endpoint: VoiceEndpoint
   agent: CallAgent
   checkKey: () => Promise<VoiceKeyCheck>
@@ -256,7 +257,7 @@ export class VoiceCall {
   }
 
   private newEars(): CallEars {
-    const { key, dial, timer } = this.options
+    const { key, dial, timer, now } = this.options
     const { settings } = this
 
     return new CallEars({
@@ -267,8 +268,8 @@ export class VoiceCall {
       bargeIn: settings.bargeIn,
       dial,
       timer,
+      now,
       isSpeaking: () => this.mouth.isSpeaking,
-      isAnswering: () => this.mouth.hasAnswers,
       recentlySaid: () => this.mouth.recentlySaid,
       isAgentBusy: () => this.brain.isBusy,
       onHeard: (text) => {
@@ -281,6 +282,7 @@ export class VoiceCall {
         this.brain.utterance(utterance)
       },
       onBargeIn: (action) => this.bargeIn(action),
+      onStopWord: () => this.brain.halt(),
       onTrouble: (trouble) => void this.trouble(trouble),
     })
   }

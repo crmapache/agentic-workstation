@@ -1,9 +1,9 @@
 ---
 name: build
-description: Быстро выпустить новую версию Agentic Workstation для macOS и Windows - поднять версию, собрать обе сборки одним скриптом (мак подписан сертификатом проекта, Windows - установщик NSIS прямо на этом Mac), подписать установщик Windows ключом выпуска, написать манифест обновлений и опубликовать в публичный репозиторий релизов. Установленные копии увидят уведомление об обновлении. Использовать ТОЛЬКО по явной команде /build - это сборка и публичная заливка.
+description: Быстро выпустить новую версию Agentic Workstation для macOS и Windows - поднять версию, собрать обе сборки одним скриптом (мак подписан сертификатом проекта, Windows - установщик NSIS прямо на этом Mac), подписать установщик Windows ключом выпуска, написать манифест обновлений и опубликовать в публичный репозиторий релизов, а релей Remote Control с телефонным клиентом выложить, если их код поменялся. Установленные копии увидят уведомление об обновлении. Использовать ТОЛЬКО по явной команде /build - это сборка и публичная заливка.
 disable-model-invocation: true
 argument-hint: '[patch|minor|major] [что нового - текст для уведомления]'
-allowed-tools: Bash(bash apps/desktop/scripts/build-release.sh) Bash(npm --prefix *) Bash(node *) Bash(gh *) Bash(git status *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git log *) Bash(security find-identity *) Bash(curl *) Bash(jq *) Bash(test *)
+allowed-tools: Bash(bash apps/desktop/scripts/build-release.sh) Bash(bash apps/relay/scripts/relay-deploy.sh --yes --if-changed) Bash(npm --prefix *) Bash(node *) Bash(gh *) Bash(git status *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git log *) Bash(security find-identity *) Bash(curl *) Bash(jq *) Bash(test *)
 ---
 
 # Build
@@ -12,6 +12,10 @@ allowed-tools: Bash(bash apps/desktop/scripts/build-release.sh) Bash(npm --prefi
 ни `pnpm check`, ни `update:e2e` - они при разработке. Не добавляй их и не запускай «на всякий
 случай». Остаются только мгновенные проверки, без которых сломаются обновления: подпись мака
 сертификатом проекта и подпись установщика Windows ключом выпуска.
+
+Выпуск - это и телефон: его клиент раздаёт релей, и без выкладки релея правки телефона и
+протокола до него не доходят. Поэтому в конце релей выкладывается сам, если его код или код
+телефона поменялся (шаг 5).
 
 Устройство выпуска - `docs/releasing.md`, подписи - `docs/code-signing.md`. Все команды - из корня
 репозитория, без `cd`. Репозиторий релизов - `crmapache/agentic-workstation-releases`
@@ -76,9 +80,23 @@ git status --porcelain --untracked-files=all
 git add -A && git commit -m "feat: <что нового>, release <версия>" && git push
 ```
 
-## 5. Отчёт
+## 5. Релей и телефон - после пуша
 
-Коротко: версия, ссылка на релиз, коммит и пуш. Ссылки на установщики постоянные:
+```
+bash apps/relay/scripts/relay-deploy.sh --yes --if-changed
+```
+
+Запускать в фоне (`run_in_background`): образ собирается на сервере несколько минут, а выпуск
+IDE к этому моменту уже готов. После коммита, а не раньше: метка выкладки - коммит, и только
+так следующий выпуск узнает, что на сервере тот же код. Скрипт сам сверяет релей, телефон, общие
+пакеты и lock-файл с выложенной сборкой: ничего не поменялось - сервер не трогает и говорит
+«уже на этом коде». Выкладка на секунду рвёт сокеты, IDE и телефоны переподключаются сами.
+Упала - хвост журнала в отчёт; выпуск IDE это не отменяет.
+
+## 6. Отчёт
+
+Коротко: версия, ссылка на релиз, коммит и пуш, релей - выложен, не нужен или упал (итог - когда
+фоновая выкладка кончится). Ссылки на установщики постоянные:
 
 ```
 https://github.com/crmapache/agentic-workstation-releases/releases/latest/download/agentic-workstation-mac-arm64.dmg

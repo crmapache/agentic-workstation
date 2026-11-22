@@ -71,6 +71,7 @@ const voice = {
       key: 'k',
       dial: deepgram.dial,
       timer: realTimer,
+      now: Date.now,
       endpoint,
       agent: { send: () => Promise.resolve(), interrupt: () => undefined, notice: () => undefined },
       checkKey: () => Promise.resolve('ok'),

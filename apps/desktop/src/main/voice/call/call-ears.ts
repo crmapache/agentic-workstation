@@ -20,16 +20,17 @@ export type CallEarsOptions = {
   bargeIn: VoiceBargeIn
   dial: DeepgramDial
   timer: Timer
+  now: () => number
   /** Говорит ли сейчас агент (рот звонка) и что он сказал только что. */
   isSpeaking: () => boolean
-  /** Есть ли у рта ответы, звучащие или ещё без звука: «стоп» обрывает и их. */
-  isAnswering: () => boolean
   recentlySaid: () => string
   /** Говорит или работает ли агент: поддакивание тогда не реплика. */
   isAgentBusy: () => boolean
   onHeard: (text: string) => void
   onUtterance: (utterance: Utterance) => void
   onBargeIn: (action: BargeIn) => void
+  /** В ходе прозвучало слово остановки: агент замолкает и останавливается, не дожидаясь паузы. */
+  onStopWord: () => void
   onTrouble: (trouble: ListenTrouble) => void
 }
 
@@ -37,13 +38,16 @@ export type CallEarsOptions = {
  * Уши звонка: микрофон - в Flux STT, ходы - в реплики чата. Пока агент говорит, ход сначала
  * проверяется на перебивание (spec, «Перебивание», два шага): начало реплики приглушает ответ,
  * подтверждённые слова обрывают его, окно без слов возвращает громкость. Реплика поверх ответа,
- * которая его не оборвала (эхо, «угу»), в чат не идёт.
+ * которая его не оборвала (эхо, «угу»), в чат не идёт. Слово остановки действует сразу, а реплика
+ * с ним, как любая, уходит после паузы.
  */
 export class CallEars {
   private readonly listen: FluxListen
   private readonly desk: UtteranceDesk
   private closeWindow: (() => void) | null = null
   private ducked = false
+  /** В этом ходе «стоп» уже сработал: дальше ход только дописывает слова. */
+  private stopHeard = false
   private bargeIn: VoiceBargeIn
 
   constructor(private readonly options: CallEarsOptions) {
@@ -53,6 +57,7 @@ export class CallEars {
     this.desk = new UtteranceDesk({
       mode,
       timer,
+      now: options.now,
       onHeard: options.onHeard,
       onUtterance: options.onUtterance,
       isAgentBusy: options.isAgentBusy,
@@ -97,10 +102,10 @@ export class CallEars {
   }
 
   private turn(turn: FluxTurn): void {
+    this.noteStop(turn)
+
     if (!this.options.isSpeaking()) {
       this.endWindow()
-      // Ответ ещё без звука, а человек уже сказал «стоп» - не ждать конца реплики.
-      if (this.options.isAnswering() && hasStopWord(turn.transcript)) this.options.onBargeIn('stop')
       this.desk.turn(turn)
 
       return
@@ -120,8 +125,7 @@ export class CallEars {
     if (turn.event === 'EndOfTurn') {
       // Эхо или поддакивание поверх ответа - не реплика.
       this.endWindow()
-      this.desk.reset()
-      this.options.onHeard('')
+      this.desk.skip()
 
       return
     }
@@ -134,6 +138,16 @@ export class CallEars {
         this.unduck()
       }, BARGE_IN_WINDOW_MS)
     }
+  }
+
+  /** Слово остановки - раз за ход, на первом же его появлении, хоть ход ещё идёт. */
+  private noteStop(turn: FluxTurn): void {
+    if (!this.stopHeard && hasStopWord(turn.transcript)) {
+      this.stopHeard = true
+      this.options.onStopWord()
+    }
+
+    if (turn.event === 'EndOfTurn') this.stopHeard = false
   }
 
   private endWindow(): void {

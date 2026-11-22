@@ -37,6 +37,16 @@ describe('цвета темы', () => {
     ).toEqual([])
     expect(theme['editorWidget.background']).toMatch(/^#[0-9a-f]{6}$/)
   })
+
+  it('миникарта закрывает строки под собой непрозрачным листом', () => {
+    const theme = editorColors({
+      ...colors,
+      app: { r: 10, g: 10, b: 12, a: 1 },
+      editor: { r: 255, g: 255, b: 255, a: 0.1 },
+    })
+
+    expect(theme['minimap.background']).toBe('#232324')
+  })
 })
 
 describe('цвета разницы', () => {

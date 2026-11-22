@@ -4,7 +4,7 @@ import { isVoiceLanguage } from '@shared/voice'
 import type { FluxTurn, FluxWord } from '../deepgram/flux-turn'
 import { confidenceOf } from '../deepgram/flux-turn'
 import { readLanguage } from '../speech/text-language'
-import { wordsOf, hasStopWord, isBackchannel } from './voice-words'
+import { wordsOf, isStopOnly, isBackchannel } from './voice-words'
 
 /** Реплика человека, готовая уйти в чат. */
 export type Utterance = { text: string; language: VoiceLanguage }
@@ -12,10 +12,11 @@ export type Utterance = { text: string; language: VoiceLanguage }
 /** Меньше стольких слов язык берётся из прошлой реплики: «ок» не переключает разговор. */
 const LANGUAGE_MIN_WORDS = 3
 /**
- * Короткая реплика (меньше трёх слов) ждёт столько продолжения: Flux режет «Привет.» с паузой
- * после него в отдельный ход, а в чат это одно сообщение.
+ * Столько тишины после последнего слова реплика ждёт продолжения, прежде чем уйти в чат
+ * (владелец, 2026-11-22). Flux закрывает ход и на короткой паузе посреди фразы, и фраза уходила
+ * в чат двумя сообщениями. Заговорил раньше - следующий ход приклеивается к этому.
  */
-export const MERGE_MS = 1000
+export const PAUSE_MS = 3000
 /** Одно-два слова с уверенностью ниже этой - скорее шум, в чат не идут (spec). */
 const NOISE_CONFIDENCE = 0.5
 
@@ -48,6 +49,7 @@ type Held = { text: string; words: FluxWord[]; languages: string[] }
 export type UtteranceDeskOptions = {
   mode: VoiceLanguageMode
   timer: Timer
+  now: () => number
   /** Живой текст реплики, пока человек говорит; пусто - замолчал. */
   onHeard: (text: string) => void
   onUtterance: (utterance: Utterance) => void
@@ -58,13 +60,16 @@ export type UtteranceDeskOptions = {
 const join = (...parts: string[]) => parts.filter(Boolean).join(' ')
 
 /**
- * Ходы Flux в реплики чата: живой текст, пока человек говорит, склейка короткого хода со
- * следующим, отсев шума и поддакивания, язык реплики.
+ * Ходы Flux в реплики чата: живой текст, пока человек говорит, склейка ходов до паузы после
+ * последнего слова, отсев шума и поддакивания, язык реплики.
  */
 export class UtteranceDesk {
   private held: Held | null = null
   private dropHold: (() => void) | null = null
   private language: VoiceLanguage | null = null
+  /** Слова текущего хода Flux и когда среди них появилось последнее новое. */
+  private turnWords = ''
+  private heardAt = 0
 
   constructor(private readonly options: UtteranceDeskOptions) {}
 
@@ -74,14 +79,17 @@ export class UtteranceDesk {
   }
 
   turn(turn: FluxTurn): void {
+    this.noteWords(turn.transcript)
+
     if (turn.event !== 'EndOfTurn') {
-      // Человек продолжил - короткий ход ждёт склейки, а не таймера.
-      this.dropHold?.()
-      this.dropHold = null
+      // Человек продолжил - то, что ждёт, приклеится к этому ходу, а не уйдёт по таймеру.
+      if (this.turnWords) this.cancelRelease()
       this.options.onHeard(join(this.held?.text ?? '', turn.transcript))
 
       return
     }
+
+    this.turnWords = ''
 
     const held: Held = {
       text: join(this.held?.text ?? '', turn.transcript.trim()),
@@ -89,37 +97,71 @@ export class UtteranceDesk {
       languages: turn.languages.length > 0 ? turn.languages : (this.held?.languages ?? []),
     }
 
-    this.held = null
+    this.held = held
 
     if (wordsOf(held.text).length === 0) {
+      this.held = null
       this.options.onHeard('')
 
       return
     }
 
-    // Короткое ждёт продолжения, но не «стоп»: остановка не должна ждать секунду.
-    if (wordsOf(held.text).length < LANGUAGE_MIN_WORDS && !hasStopWord(held.text)) {
-      this.held = held
-      this.options.onHeard(held.text)
-      this.dropHold?.()
-      this.dropHold = this.options.timer(() => this.release(), MERGE_MS)
+    // «Стоп» и «подожди» сами по себе паузы не ждут: остановка не должна ждать три секунды.
+    if (isStopOnly(held.text)) {
+      this.cancelRelease()
+      this.release()
 
       return
     }
 
-    this.emit(held)
+    this.options.onHeard(held.text)
+    this.waitForPause()
   }
 
-  /** Отдать то, что ждёт склейки, сразу: звонок кончается. */
+  /**
+   * Ход поверх ответа агента отброшен (эхо, поддакивание) - его слова не реплика. То, что
+   * человек сказал до него, по-прежнему уходит после паузы.
+   */
+  skip(): void {
+    this.turnWords = ''
+    this.options.onHeard(this.held?.text ?? '')
+    if (this.held) this.waitForPause()
+  }
+
+  /** Отдать то, что ждёт паузы, сразу: звонок кончается. */
   flush(): void {
+    this.cancelRelease()
     this.release()
   }
 
-  /** Забыть то, что ждёт склейки: человека перебили на полуслове или реплика ушла иначе. */
-  reset(): void {
+  /** Новое слово хода - отметка времени: пауза считается от последнего сказанного слова. */
+  private noteWords(transcript: string): void {
+    const words = wordsOf(transcript).join(' ')
+
+    if (words === this.turnWords) return
+
+    this.turnWords = words
+    if (words) this.heardAt = this.options.now()
+  }
+
+  private waitForPause(): void {
+    this.cancelRelease()
+
+    const left = PAUSE_MS - (this.options.now() - this.heardAt)
+
+    // Flux закрыл ход позже паузы - ждать больше нечего.
+    if (left <= 0) {
+      this.release()
+
+      return
+    }
+
+    this.dropHold = this.options.timer(() => this.release(), left)
+  }
+
+  private cancelRelease(): void {
     this.dropHold?.()
     this.dropHold = null
-    this.held = null
   }
 
   private release(): void {

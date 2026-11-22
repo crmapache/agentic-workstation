@@ -2,6 +2,7 @@ import type { VoiceRegion, VoiceLanguage, VoiceLanguageMode } from '@shared/voic
 import { VOICE_MIC_RATE } from '@shared/voice'
 
 import type { Timer } from '../call/utterances'
+import { PAUSE_MS } from '../call/utterances'
 import type { DeepgramDial, DeepgramLink } from './deepgram-link'
 import { deepgramHost } from './deepgram-link'
 import type { FluxTurn } from './flux-turn'
@@ -29,7 +30,9 @@ export type FluxListenOptions = {
 
 /**
  * Адрес Flux STT: всегда `flux-general-multi` - у выбранного языка одна подсказка, у мультирежима
- * - ожидаемые языки (spec, таблица «Режим»). Звук - linear16 16 кГц без перекодирования.
+ * - ожидаемые языки (spec, таблица «Режим»). Звук - linear16 16 кГц без перекодирования. Ход Flux
+ * закрывает не позже паузы, после которой реплика уходит в чат (PAUSE_MS): иначе на неуверенном
+ * конце фразы он ждал бы свои 5 с по умолчанию, и человек ждал бы ответа дольше паузы.
  */
 export const listenUrl = (
   region: VoiceRegion,
@@ -40,6 +43,7 @@ export const listenUrl = (
     model: 'flux-general-multi',
     encoding: 'linear16',
     sample_rate: String(VOICE_MIC_RATE),
+    eot_timeout_ms: String(PAUSE_MS),
   })
 
   for (const hint of mode === 'multi' ? hints : [mode]) params.append('language_hint', hint)

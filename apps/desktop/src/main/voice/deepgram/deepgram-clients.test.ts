@@ -65,7 +65,7 @@ describe('FluxListen', () => {
 
   it('asks for flux multi with the expected languages as hints', () => {
     expect(listenUrl('eu', 'multi', ['ru', 'es'])).toBe(
-      'wss://api.eu.deepgram.com/v2/listen?model=flux-general-multi&encoding=linear16&sample_rate=16000&language_hint=ru&language_hint=es',
+      'wss://api.eu.deepgram.com/v2/listen?model=flux-general-multi&encoding=linear16&sample_rate=16000&eot_timeout_ms=3000&language_hint=ru&language_hint=es',
     )
     expect(listenUrl('global', 'pt', ['ru'])).toContain('language_hint=pt')
     expect(listenUrl('global', 'pt', ['ru'])).not.toContain('language_hint=ru')

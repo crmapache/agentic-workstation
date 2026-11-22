@@ -132,11 +132,13 @@ export const editorColors = (colors: ThemeColors): editor.IColors => {
     'editorOverviewRuler.selectionHighlightForeground': TRANSPARENT,
     'editorOverviewRuler.bracketMatchForeground': TRANSPARENT,
     'editorOverviewRuler.rangeHighlightForeground': TRANSPARENT,
-    // Миникарта - полоса прокрутки файла. Фон прозрачный, как у кода, но цвет листа Monaco
-    // нужен для смешения: блоки кода он красит наполовину к фону. Рамка видимой части - тихой
-    // плашкой, под курсором и в жесте - тоном бегунка полосы прокрутки. Метки - по тому же
+    // Миникарта - полоса прокрутки файла. Фон - лист, непрозрачный: строки Monaco тянет до
+    // правого края редактора, под миникарту, и закрывает их её фоном. С прозрачным фоном
+    // длинная строка просвечивала сквозь блоки миникарты. Глазу лист и прозрачный фон кода
+    // одинаковы, а блоки кода Monaco смешивает с этим цветом наполовину. Рамка видимой части -
+    // тихой плашкой, под курсором и в жесте - тоном бегунка полосы прокрутки. Метки - по тому же
     // правилу, что у полосы: найденное поиском и ошибки; выделение и его повторы - нет.
-    'minimap.background': toHex({ ...sheet, a: 0 }),
+    'minimap.background': toHex(sheet),
     'minimapSlider.background': hex('active'),
     'minimapSlider.hoverBackground': hex('scrollbar'),
     'minimapSlider.activeBackground': hex('scrollbar'),
