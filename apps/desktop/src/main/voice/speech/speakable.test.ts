@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { it, expect, describe } from 'vitest'
 
 import { SentenceFeed } from './sentence-feed'
 import { settledEnd, speakableSentences } from './speakable'
@@ -69,9 +69,7 @@ describe('SentenceFeed', () => {
     const feed = new SentenceFeed()
 
     expect(feed.take('Run this:\n```\nls -la. x\n', true)).toEqual(['Run this:'])
-    expect(feed.take('Run this:\n```\nls -la. x\n```\nThen check. ', true)).toEqual([
-      'Then check.',
-    ])
+    expect(feed.take('Run this:\n```\nls -la. x\n```\nThen check. ', true)).toEqual(['Then check.'])
   })
 
   it('starts over when the text is rewritten', () => {

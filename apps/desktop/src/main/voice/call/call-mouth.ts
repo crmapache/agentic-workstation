@@ -1,4 +1,4 @@
-import type { VoiceLanguage, VoiceRegion } from '@shared/voice'
+import type { VoiceRegion, VoiceLanguage } from '@shared/voice'
 
 import type { DeepgramDial } from '../deepgram/deepgram-link'
 import type { SpeakEvent } from '../deepgram/flux-speak'

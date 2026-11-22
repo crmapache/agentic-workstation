@@ -2,7 +2,7 @@ import type { VoiceBargeIn } from '@shared/voice'
 
 import type { FluxTurn } from '../deepgram/flux-turn'
 import { confidenceOf } from '../deepgram/flux-turn'
-import { hasStopWord, isBackchannel, isEcho, wordsOf } from './voice-words'
+import { isEcho, wordsOf, hasStopWord, isBackchannel } from './voice-words'
 
 /**
  * Окно проверки после StartOfTurn (spec, «Перебивание», шаг 2): за это время слова должны

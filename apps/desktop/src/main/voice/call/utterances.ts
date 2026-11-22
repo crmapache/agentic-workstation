@@ -3,7 +3,7 @@ import { isVoiceLanguage } from '@shared/voice'
 
 import type { FluxTurn, FluxWord } from '../deepgram/flux-turn'
 import { confidenceOf } from '../deepgram/flux-turn'
-import { isBackchannel, wordsOf } from './voice-words'
+import { wordsOf, isBackchannel } from './voice-words'
 
 /** Реплика человека, готовая уйти в чат. */
 export type Utterance = { text: string; language: VoiceLanguage }

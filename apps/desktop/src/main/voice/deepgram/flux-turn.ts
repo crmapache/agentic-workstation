@@ -2,7 +2,8 @@
  * Ход Flux STT (`TurnInfo` на `/v2/listen`): начало реплики, обновление текста, конец. Поля -
  * как их отдаёт Deepgram (справочник listen-flux, ноябрь 2026), в именах IDE.
  */
-export type FluxTurnEvent = 'StartOfTurn' | 'Update' | 'EagerEndOfTurn' | 'TurnResumed' | 'EndOfTurn'
+export type FluxTurnEvent =
+  'StartOfTurn' | 'Update' | 'EagerEndOfTurn' | 'TurnResumed' | 'EndOfTurn'
 
 export type FluxWord = { word: string; confidence: number }
 

@@ -1,4 +1,4 @@
-import type { VoiceKeyCheck, VoiceRegion } from '@shared/voice'
+import type { VoiceRegion, VoiceKeyCheck } from '@shared/voice'
 
 /**
  * Соединение с Deepgram (ADR 0104): WebSocket главного процесса, ключ - подпротоколом

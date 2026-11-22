@@ -1,10 +1,10 @@
-import type { VoiceBargeIn, VoiceLanguage, VoiceLanguageMode, VoiceRegion } from '@shared/voice'
+import type { VoiceRegion, VoiceBargeIn, VoiceLanguage, VoiceLanguageMode } from '@shared/voice'
 
 import type { DeepgramDial } from '../deepgram/deepgram-link'
 import type { ListenTrouble } from '../deepgram/flux-listen'
 import { FluxListen } from '../deepgram/flux-listen'
 import type { FluxTurn } from '../deepgram/flux-turn'
-import { BARGE_IN_WINDOW_MS, judgeBargeIn } from './barge-in'
+import { judgeBargeIn, BARGE_IN_WINDOW_MS } from './barge-in'
 import type { Timer, Utterance } from './utterances'
 import { UtteranceDesk } from './utterances'
 

@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { it, expect, describe } from 'vitest'
 
 import type { FluxTurn } from '../deepgram/flux-turn'
 import { judgeBargeIn } from './barge-in'
 import type { Utterance } from './utterances'
-import { UtteranceDesk, pickLanguage } from './utterances'
-import { hasStopWord, isBackchannel, isEcho } from './voice-words'
+import { pickLanguage, UtteranceDesk } from './utterances'
+import { isEcho, hasStopWord, isBackchannel } from './voice-words'
 
 const turn = (
   event: FluxTurn['event'],

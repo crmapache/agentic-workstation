@@ -2,11 +2,11 @@ import type { Conversation } from '@shared/conversation'
 import type { FeedItem, FeedPatch } from '@shared/conversation-feed'
 import type {
   VoiceCallEnd,
-  VoiceCallState,
   VoiceCallView,
   VoiceKeyCheck,
   VoiceLanguage,
   VoiceSettings,
+  VoiceCallState,
 } from '@shared/voice'
 
 import type { DeepgramDial } from '../deepgram/deepgram-link'

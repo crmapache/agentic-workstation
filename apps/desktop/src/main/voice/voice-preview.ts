@@ -20,6 +20,8 @@ export const previewVoice = (options: {
   speed: number
   dial: DeepgramDial
   timer: Timer
+  /** Свой текст вместо образца языка - для живой проверки звонка. */
+  text?: string
 }): Promise<Uint8Array | null> =>
   new Promise((resolve) => {
     const chunks: Buffer[] = []
@@ -46,6 +48,6 @@ export const previewVoice = (options: {
       resolve(pcm ? new Uint8Array(pcm) : null)
     }
 
-    speaker.say(sampleOf(options.language))
+    speaker.say(options.text ?? sampleOf(options.language))
     speaker.finish()
   })

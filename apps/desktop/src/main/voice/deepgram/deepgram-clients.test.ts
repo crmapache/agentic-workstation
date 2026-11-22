@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { it, vi, expect, describe } from 'vitest'
 
 import type { DeepgramDial, DeepgramHandlers } from './deepgram-link'
 import { checkDeepgramKey } from './deepgram-link'
 import type { ListenTrouble } from './flux-listen'
-import { FluxListen, listenUrl } from './flux-listen'
+import { listenUrl, FluxListen } from './flux-listen'
 import type { SpeakEvent } from './flux-speak'
-import { FluxSpeak, PLAY_BYTES_PER_MS, speakUrl } from './flux-speak'
+import { speakUrl, FluxSpeak, PLAY_BYTES_PER_MS } from './flux-speak'
 import type { FluxTurn } from './flux-turn'
 
 type Socket = { url: string; handlers: DeepgramHandlers; sent: Array<string | Uint8Array> }

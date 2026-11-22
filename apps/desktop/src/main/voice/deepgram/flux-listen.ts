@@ -1,4 +1,4 @@
-import type { VoiceLanguage, VoiceLanguageMode, VoiceRegion } from '@shared/voice'
+import type { VoiceRegion, VoiceLanguage, VoiceLanguageMode } from '@shared/voice'
 import { VOICE_MIC_RATE } from '@shared/voice'
 
 import type { Timer } from '../call/utterances'

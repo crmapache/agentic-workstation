@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { it, vi, expect, describe } from 'vitest'
 
 import type { Conversation } from '@shared/conversation'
 import type { FeedPatch } from '@shared/conversation-feed'
-import type { VoiceCallEnd, VoiceCue, VoiceOutgoing } from '@shared/voice'
+import type { VoiceCue, VoiceCallEnd, VoiceOutgoing } from '@shared/voice'
 import { DEFAULT_VOICE_SETTINGS } from '@shared/voice'
 
 import type { DeepgramDial, DeepgramHandlers } from '../deepgram/deepgram-link'
@@ -85,7 +85,24 @@ const harness = () => {
   })
   const lastState = () => cues.filter((cue) => cue.kind === 'state').at(-1)
 
-  return { call, sockets, timers, cues, played, sent, ended, interrupt, checkKey, listen, speak, says, turn, state, answer, lastState }
+  return {
+    call,
+    sockets,
+    timers,
+    cues,
+    played,
+    sent,
+    ended,
+    interrupt,
+    checkKey,
+    listen,
+    speak,
+    says,
+    turn,
+    state,
+    answer,
+    lastState,
+  }
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -142,7 +159,11 @@ describe('VoiceCall', () => {
     expect(h.cues).toContainEqual({ kind: 'stopPlayback', epoch: 1 })
 
     h.speak()?.handlers.text(
-      JSON.stringify({ type: 'SpeechInterrupted', audio_played_ms: 800, text_spoken: 'У тебя три' }),
+      JSON.stringify({
+        type: 'SpeechInterrupted',
+        audio_played_ms: 800,
+        text_spoken: 'У тебя три',
+      }),
     )
     h.turn('EndOfTurn', 'угу нет подожди покажи только первую')
     expect(h.interrupt).toHaveBeenCalled()

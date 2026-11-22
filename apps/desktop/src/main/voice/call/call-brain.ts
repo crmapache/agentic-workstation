@@ -5,7 +5,7 @@ import type { VoiceLanguage, VoiceOutgoing } from '@shared/voice'
 import type { CallMouth } from './call-mouth'
 import type { Utterance } from './utterances'
 import { phrasesOf } from './voice-phrases'
-import { hasStopWord, wordsOf } from './voice-words'
+import { wordsOf, hasStopWord } from './voice-words'
 
 /** Чем занят агент: свободен, думает (или пишет ответ), выполняет инструмент. */
 export type AgentWork = { state: 'idle' | 'thinking' | 'working'; tool: string | null }
@@ -40,8 +40,7 @@ const announce = (pending: PendingRequest, language: VoiceLanguage): string => {
 }
 
 /** Реплика - одни слова остановки («стоп», «подожди»): её дело - остановить, а не уйти в чат. */
-const onlyStops = (text: string): boolean =>
-  hasStopWord(text) && wordsOf(text).length <= 2
+const onlyStops = (text: string): boolean => hasStopWord(text) && wordsOf(text).length <= 2
 
 /**
  * Мозг звонка: реплики - в разговор, ответ разговора - во рту. Реплика, пока агент пишет ответ
@@ -93,7 +92,9 @@ export class CallBrain {
     if (pending && pending.requestId !== this.pendingId) {
       const language = this.options.language()
 
-      this.options.mouth().say(`pending:${pending.requestId}`, announce(pending, language), language)
+      this.options
+        .mouth()
+        .say(`pending:${pending.requestId}`, announce(pending, language), language)
     }
 
     this.pendingId = pending?.requestId ?? null
@@ -110,7 +111,10 @@ export class CallBrain {
   utterance(utterance: Utterance): void {
     const running = this.status === 'running'
 
-    if (running && (hasStopWord(utterance.text) || this.writing || this.options.mouth().isSpeaking)) {
+    if (
+      running &&
+      (hasStopWord(utterance.text) || this.writing || this.options.mouth().isSpeaking)
+    ) {
       this.options.agent.interrupt()
       if (!onlyStops(utterance.text)) this.waiting.push(utterance)
 
