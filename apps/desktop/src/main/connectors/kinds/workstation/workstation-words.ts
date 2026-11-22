@@ -83,6 +83,8 @@ const TRACKER_WORDS: Record<TrackerCode, string> = {
   tooLong: `Too long: a title or subtitle takes up to ${TRACKER_LIMITS.title} characters, a description up to ${TRACKER_LIMITS.description}.`,
   archived: 'The tracker project is archived: restore it first with tracker_restore_project.',
   notArchived: 'The tracker project is not archived.',
+  locked:
+    'The card is locked: its scenario is queued or running for it (locked: run), or has done it (locked: done). Only description and done can change. A card done by its scenario opens again with done false (in the same call is fine); a queued one has to leave its queue first.',
 }
 
 /** Отказы отправки в очередь: трекера, сценариев и два своих - пусто и нет сценария. */

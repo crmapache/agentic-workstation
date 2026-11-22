@@ -112,7 +112,13 @@ export class TrackerService {
 
     try {
       const done = applyOp(
-        { book: this.book, spaceId, projectPath: place.rootPath, now: this.now() },
+        {
+          book: this.book,
+          spaceId,
+          projectPath: place.rootPath,
+          now: this.now(),
+          local: this.local(),
+        },
         op,
       )
 

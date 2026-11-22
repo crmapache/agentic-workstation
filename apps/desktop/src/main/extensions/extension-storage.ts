@@ -42,6 +42,11 @@ export class ExtensionStorage {
     this.persist(id, rest)
   }
 
+  /** Записи всех расширений дописаны: выход из IDE не обрывает последнюю. */
+  async settled(): Promise<void> {
+    await Promise.all(this.writing.values())
+  }
+
   /** Расширение удалено: его данные - тоже. */
   async forget(id: string): Promise<void> {
     await this.writing.get(id)

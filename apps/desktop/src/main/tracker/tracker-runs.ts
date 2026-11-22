@@ -25,12 +25,11 @@ import type { RunLink } from './tracker-book'
 import { completeCard } from './tracker-complete'
 import { TrackerError } from './tracker-fields'
 import { own, openBranch } from './tracker-guards'
-import type { TrackerRecord } from './tracker-records'
 import { flagOf, textOf } from './tracker-records'
 import type { TrackerService } from './tracker-service'
 import type { TrackerPlace } from './tracker-spaces'
 import { TrackerTree } from './tracker-tree'
-import { cardOf, dueValue, repeatValue } from './tracker-view'
+import { cardOf, isSameRound } from './tracker-view'
 
 /**
  * Узкая ручка сценариев: прочитать сценарий, поставить в очередь сценарий или пометку (карточку
@@ -46,17 +45,6 @@ export type TrackerScenariosPort = {
 
 /** Сколько живут связи карточек с прошедшими прогонами: дольше статус никому не нужен. */
 const KEEP_LINKS_MS = 30 * 24 * 60 * 60 * 1000
-
-/**
- * Прогон закрывает тот круг, на который карточку отправили: повторяющуюся, которую за время
- * прогона отметили руками (срок уже другой), второй раз не сдвигает. Связь без срока - из
- * прежней версии или карточка без срока.
- */
-const isSameRound = (card: TrackerRecord, link: RunLink): boolean => {
-  const due = dueValue(card)
-
-  return link.due === null || !repeatValue(card) || (due !== null && dueKey(due) === link.due)
-}
 
 /** Карточка к постановке: со сценарием - запрос запуска, без сценария - пометка (request null). */
 type Prepared = { card: TrackerCard; request: Omit<ScenarioStartRequest, 'target'> | null }
@@ -173,7 +161,13 @@ export class TrackerRuns {
 
   async send(place: TrackerPlace, request: TrackerSendRequest): Promise<TrackerSendOutcome> {
     const spaceId = await this.tracker.spaceOf(place)
-    const ctx = { book: this.tracker.book, spaceId, projectPath: place.rootPath, now: this.now() }
+    const ctx = {
+      book: this.tracker.book,
+      spaceId,
+      projectPath: place.rootPath,
+      now: this.now(),
+      local: this.tracker.local(),
+    }
     const tree = new TrackerTree(this.tracker.book.records())
     let cards: TrackerCard[]
     let groupTitle: string | null = null
@@ -186,11 +180,11 @@ export class TrackerRuns {
         cards = tree
           .tasks(group.id)
           .flatMap((task) => [task, ...tree.followUps(task.id)])
-          .map((one) => cardOf(one.record, this.tracker.local()))
+          .map((one) => cardOf(one.record, ctx.local))
           .filter((card) => isQueueable(card, request.target))
       } else {
         const record = own(ctx, tree, request.source.cardId, 'card')
-        const card = cardOf(record, this.tracker.local())
+        const card = cardOf(record, ctx.local)
 
         if (!card.scenario) return { ok: false, code: 'noScenario', cardId: card.id }
         if (isInQueue(card.run)) return { ok: false, code: 'alreadyQueued', cardId: card.id }

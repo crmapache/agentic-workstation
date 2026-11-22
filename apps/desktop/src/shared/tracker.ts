@@ -81,6 +81,24 @@ export const isInQueue = (run: TrackerCardRun | null): boolean =>
   run?.state === 'waiting' || run?.state === 'running' || run?.state === 'refused'
 
 /**
+ * Почему карточка закрыта на правку (ADR 0110): run - её сценарий на нынешний срок стоит в
+ * очереди, идёт или на паузе; done - сценарий её выполнил. Поля сценария раскрываются при
+ * отправке, так что правка такой карточки до прогона уже не дойдёт, а у выполненной разошлась бы
+ * с тем, что сделано.
+ */
+export type TrackerLock = 'run' | 'done'
+
+/** Что закрытая карточка ещё принимает: заметки в описании и отметку «сделано». */
+export const TRACKER_LOCK_OPEN: readonly (keyof TrackerCardFields)[] = ['description', 'done']
+
+/**
+ * Закрыта ли карточка в форме: выполненную сценарием открывает снятая отметка «сделано» той же
+ * правкой - так же решает главный процесс.
+ */
+export const isLockedWith = (lock: TrackerLock | null, done: boolean): boolean =>
+  lock === 'run' || (lock === 'done' && done)
+
+/**
  * Поля карточки, которые правит человек или ИИ. autoRun - запускать сценарий карточки в срок на
  * этом компьютере (ADR 0103): отметка живёт только здесь и в облако не уходит, иначе один срок
  * запустил бы прогон на каждом компьютере.
@@ -106,6 +124,8 @@ export type TrackerCard = TrackerCardFields & {
   autoRunFailure: TrackerSendCode | null
   /** На нынешний срок карточка уже уходила сама: до следующего срока запуска не будет. */
   autoRunSent: boolean
+  /** Закрыта на правку, кроме описания и «сделано»: почему; null - открыта. */
+  lock: TrackerLock | null
 }
 
 /** Задача группы с продолжениями слева направо. */
@@ -189,6 +209,7 @@ export type TrackerCode =
   | 'tooLong'
   | 'archived'
   | 'notArchived'
+  | 'locked'
 
 /**
  * Повторяющаяся карточка отмечена сделанной: срок ушёл на следующий день правила (due), undo -

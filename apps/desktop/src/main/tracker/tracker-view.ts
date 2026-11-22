@@ -1,14 +1,16 @@
 import type {
   TrackerDue,
   TrackerCard,
+  TrackerLock,
   TrackerTask,
   TrackerBoard,
   TrackerRepeat,
+  TrackerCardRun,
   TrackerPriority,
   TrackerRunState,
   TrackerScenario,
 } from '@shared/tracker'
-import { TRACKER_PRIORITIES, TRACKER_ARCHIVE_DAYS } from '@shared/tracker'
+import { isInQueue, TRACKER_PRIORITIES, TRACKER_ARCHIVE_DAYS } from '@shared/tracker'
 import { dueKey } from '@shared/tracker-repeat'
 
 import type { RunLink, AutoRunLink } from './tracker-book'
@@ -54,11 +56,47 @@ const priorityValue = (record: TrackerRecord): TrackerPriority => {
   return TRACKER_PRIORITIES.find((priority) => priority === value) ?? 4
 }
 
+/**
+ * Прогон закрывает тот круг, на который карточку отправили: повторяющуюся, которую за время
+ * прогона отметили руками (срок уже другой), второй раз не сдвигает. Связь без срока - из
+ * прежней версии или карточка без срока.
+ */
+export const isSameRound = (card: TrackerRecord, link: RunLink): boolean => {
+  const due = dueValue(card)
+
+  return link.due === null || !repeatValue(card) || (due !== null && dueKey(due) === link.due)
+}
+
+/**
+ * Почему карточка закрыта на правку (ADR 0110). Сценарий в очереди держит только свой круг:
+ * повторяющаяся, отмеченная руками, уже в следующем, и «Undo» вернёт ей срок. Выполненная
+ * сценарием - отметка записи, а не связь с очередью: связь живёт на одном компьютере и
+ * пропадает с закрытой очередью.
+ */
+const lockOf = (
+  record: TrackerRecord,
+  link: RunLink | undefined,
+  run: TrackerCardRun | null,
+): TrackerLock | null => {
+  if (link && !link.placeholder && isInQueue(run) && isSameRound(record, link)) return 'run'
+  if (flagOf(record, 'done') && flagOf(record, 'doneByRun')) return 'done'
+
+  return null
+}
+
 /** Карточка для окна и модели из записи. */
 export const cardOf = (record: TrackerRecord, local: CardLocal): TrackerCard => {
   const link = local.runs[record.id]
   const autoRun = local.autoRuns[record.id]
   const due = dueValue(record)
+  const run: TrackerCardRun | null = link
+    ? {
+        queueId: link.queueId,
+        itemId: link.itemId,
+        sentAt: link.sentAt,
+        state: local.runState(link),
+      }
+    : null
 
   return {
     id: record.id,
@@ -74,14 +112,8 @@ export const cardOf = (record: TrackerRecord, local: CardLocal): TrackerCard => 
     autoRun: autoRun !== undefined,
     autoRunFailure: autoRun?.failure ?? null,
     autoRunSent: autoRun !== undefined && due !== null && autoRun.firedFor === dueKey(due),
-    run: link
-      ? {
-          queueId: link.queueId,
-          itemId: link.itemId,
-          sentAt: link.sentAt,
-          state: local.runState(link),
-        }
-      : null,
+    run,
+    lock: lockOf(record, link, run),
   }
 }
 

@@ -75,8 +75,8 @@ export const timingOf = (
 /**
  * Отметить карточку сделанной. Повторяющаяся не гаснет: срок уходит на следующий день правила,
  * а сделанные продолжения задачи снова открыты - их черёд в новом круге. sentAt - когда её
- * отправили прогоном, если отмечает очередь (nextRepeat). Ответ - что вернёт «Undo»; null -
- * обычная карточка, она просто сделана.
+ * отправили прогоном, если отмечает очередь (nextRepeat); сделанная очередью закрыта на правку
+ * (doneByRun, ADR 0110). Ответ - что вернёт «Undo»; null - обычная карточка, она просто сделана.
  */
 export const completeCard = (
   book: TrackerBook,
@@ -89,7 +89,7 @@ export const completeCard = (
   const due = dueValue(card)
 
   if (!repeat || !due) {
-    book.write(card.id, { done: true, doneAt: now }, true)
+    book.write(card.id, { done: true, doneAt: now, doneByRun: sentAt !== null }, true)
 
     return null
   }
@@ -101,9 +101,9 @@ export const completeCard = (
     .map((one) => one.id)
 
   // Карточка, сделанная до того, как у неё появился повтор, снова открыта: дальше её круг.
-  book.write(card.id, { due: next, done: false, doneAt: null }, true)
+  book.write(card.id, { due: next, done: false, doneAt: null, doneByRun: false }, true)
 
-  for (const id of reopened) book.write(id, { done: false, doneAt: null }, true)
+  for (const id of reopened) book.write(id, { done: false, doneAt: null, doneByRun: false }, true)
 
   const undo: TrackerOp[] = [
     { kind: 'card.update', id: card.id, fields: { due } },

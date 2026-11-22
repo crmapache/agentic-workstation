@@ -3,7 +3,7 @@ import type { TrackerOp, TrackerRepeated, TrackerCardFields } from '@shared/trac
 import { timingOf, completeCard } from './tracker-complete'
 import { cardFieldsOf, TrackerError } from './tracker-fields'
 import type { OpContext } from './tracker-guards'
-import { own, openBranch, slotBefore } from './tracker-guards'
+import { own, openBranch, slotBefore, assertOpenFields } from './tracker-guards'
 import { rankBetween } from './tracker-rank'
 import type { TrackerRecord } from './tracker-records'
 import { refOf, flagOf, valueOf } from './tracker-records'
@@ -113,7 +113,8 @@ export const createCard = (ctx: OpContext, tree: TrackerTree, op: CardCreate): s
 
 /**
  * Правка полей карточки. Отметка «сделано» ставит время выполнения, а у повторяющейся - сдвигает
- * срок (completeCard); снятая отметка время снимает. Ответ - сдвиг повторяющейся для «Undo».
+ * срок (completeCard); снятая отметка время и отметку прогона снимает. Карточка со сценарием в
+ * работе принимает только описание и «сделано» (ADR 0110). Ответ - сдвиг повторяющейся для «Undo».
  */
 export const updateCard = (
   ctx: OpContext,
@@ -121,7 +122,11 @@ export const updateCard = (
   card: TrackerRecord,
   raw: Partial<TrackerCardFields>,
 ): TrackerRepeated | null => {
-  const { autoRun, ...parsed } = cardFieldsOf(raw)
+  const incoming = cardFieldsOf(raw)
+
+  assertOpenFields(ctx, card, incoming)
+
+  const { autoRun, ...parsed } = incoming
   const { done: sent, ...fields } = {
     ...parsed,
     ...timingOf({ due: dueValue(card), repeat: repeatValue(card) }, parsed, ctx.now),
@@ -147,7 +152,7 @@ export const updateCard = (
   if (done === undefined || done === flagOf(card, 'done')) return null
   if (done) return completeCard(ctx.book, tree, card, ctx.now)
 
-  ctx.book.write(card.id, { done: false, doneAt: null }, true)
+  ctx.book.write(card.id, { done: false, doneAt: null, doneByRun: false }, true)
 
   return null
 }

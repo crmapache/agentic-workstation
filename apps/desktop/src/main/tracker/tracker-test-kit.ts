@@ -2,11 +2,14 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { TrackerOp, TrackerBoard, TrackerOutcome } from '@shared/tracker'
+import type { Scenario } from '@shared/scenarios'
+import type { TrackerOp, TrackerBoard, TrackerOutcome, TrackerScenario } from '@shared/tracker'
 
 import { JsonFile } from '../storage/json-file'
 import type { StoredTracker } from './tracker-book'
 import { TrackerBook } from './tracker-book'
+import { TrackerRuns } from './tracker-runs'
+import { scenariosFake } from './tracker-scenarios-fake'
 import { TrackerService } from './tracker-service'
 import type { TrackerPlace } from './tracker-spaces'
 
@@ -59,4 +62,37 @@ export const trackerKit = async (
   }
 
   return { book, service, boards, apply, make }
+}
+
+/**
+ * Трекер со связкой очередей на подставных сценариях (время - 7000) и группой «Неделя 1»: card -
+ * карточка в ней, со сценарием fix (bound) или без. Закрыть - service.close().
+ */
+export const runsKit = async (shelf: Scenario[]) => {
+  const kit = await trackerKit()
+  const fake = scenariosFake(shelf)
+  const runs = new TrackerRuns(kit.service, fake.port, () => 7000)
+  const projectId = await kit.make({ kind: 'project.create', title: 'P' })
+  const flowId = await kit.make({ kind: 'flow.create', projectId, title: 'F' })
+  const groupId = await kit.make({ kind: 'group.create', flowId, title: 'Неделя 1' })
+  const card = (
+    title: string,
+    bound: Partial<TrackerScenario> | null,
+    extra: { followUpOf?: string; done?: boolean } = {},
+  ) =>
+    kit.make({
+      kind: 'card.create',
+      groupId,
+      ...(extra.followUpOf ? { followUpOf: extra.followUpOf } : {}),
+      fields: {
+        title,
+        description: `about ${title}`,
+        done: extra.done === true,
+        scenario: bound
+          ? { scenarioId: 'fix', scope: 'project', provider: null, inputs: {}, ...bound }
+          : null,
+      },
+    })
+
+  return { ...kit, ...fake, runs, groupId, card }
 }

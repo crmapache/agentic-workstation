@@ -1,7 +1,7 @@
-import { Send, Trash2, SquareKanban } from 'lucide-react'
+import { Lock, Send, Trash2, SquareKanban } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { isInQueue } from '@shared/tracker'
+import { isInQueue, isLockedWith } from '@shared/tracker'
 
 import { Button } from '@agentic-workstation/ui/Button'
 import { HelpButton } from '@agentic-workstation/ui/HelpButton'
@@ -27,7 +27,8 @@ import { ScenarioFields } from './parts/ScenarioFields'
 /**
  * Карточка целиком: заголовок, подзаголовок, описание, срок с повтором, приоритет, отметка
  * «сделано», сценарий с его полями и запуск в срок. Новая карточка создаётся этим же окном -
- * задачей группы или продолжением.
+ * задачей группы или продолжением. Карточка со сценарием в работе правит только описание и
+ * «сделано» (ADR 0110): остальные поля выключены группами.
  */
 export const CardModal = (props: CardModalProps) => {
   const { t } = useTranslation()
@@ -41,6 +42,9 @@ export const CardModal = (props: CardModalProps) => {
   const isNew = props.mode === 'new'
   // Карточка уже в очереди: второй раз её не шлют, главный процесс отказал бы.
   const isQueued = props.mode === 'edit' && isInQueue(props.card.run)
+  const lock = props.mode === 'edit' ? props.card.lock : null
+  // Выполненную сценарием открывает снятая «сделано» - сразу, тем же Save, как у главного процесса.
+  const isLocked = isLockedWith(lock, form.done)
   const handleClose = () => edit(null)
   const save = async (): Promise<string | null> => {
     if (props.mode === 'edit') {
@@ -109,7 +113,7 @@ export const CardModal = (props: CardModalProps) => {
             <Button
               variant="secondary"
               icon={Send}
-              disabled={!form.title.trim() || isQueued}
+              disabled={!form.title.trim() || isQueued || isLocked}
               onClick={() => void handleSend()}>
               {t('tracker.cardModal.send')}
             </Button>
@@ -123,37 +127,51 @@ export const CardModal = (props: CardModalProps) => {
         </div>
       }>
       <div className={styles.body}>
-        <TextField
-          data-autofocus
-          label={t('tracker.cardModal.title')}
-          value={form.title}
-          onChange={(value) => form.set('title', value)}
-        />
-        <TextField
-          label={t('tracker.cardModal.subtitle')}
-          value={form.subtitle}
-          onChange={(value) => form.set('subtitle', value)}
-        />
+        {isLocked && lock && (
+          <p className={styles.lock}>
+            <Lock className={styles.lockIcon} aria-hidden />
+            {t(`tracker.cardModal.locked.${lock}`)}
+          </p>
+        )}
+        <fieldset disabled={isLocked} className={styles.group}>
+          <TextField
+            data-autofocus={!isLocked || undefined}
+            label={t('tracker.cardModal.title')}
+            value={form.title}
+            onChange={(value) => form.set('title', value)}
+          />
+          <TextField
+            label={t('tracker.cardModal.subtitle')}
+            value={form.subtitle}
+            onChange={(value) => form.set('subtitle', value)}
+          />
+        </fieldset>
         <TextArea
           resizable
           label={t('tracker.cardModal.description')}
           value={form.description}
           onChange={(value) => form.set('description', value)}
         />
-        <DueFields form={form} today={today} />
-        <RepeatField form={form} today={today} now={now} />
+        <fieldset disabled={isLocked} className={styles.group}>
+          <DueFields form={form} today={today} />
+          <RepeatField form={form} today={today} now={now} />
+        </fieldset>
         <div className={styles.row}>
-          <PriorityField form={form} />
+          <fieldset disabled={isLocked} className={styles.group}>
+            <PriorityField form={form} />
+          </fieldset>
           <Switch
             label={form.repeat ? t('tracker.cardModal.doneRepeat') : t('tracker.cardModal.done')}
             checked={form.done}
             onChange={(done) => form.set('done', done)}
           />
         </div>
-        <ScenarioFields form={form} scenarios={scenarios} />
-        {form.scenario && (
-          <AutoRunField form={form} card={props.mode === 'edit' ? props.card : null} now={now} />
-        )}
+        <fieldset disabled={isLocked} className={styles.group}>
+          <ScenarioFields form={form} scenarios={scenarios} />
+          {form.scenario && (
+            <AutoRunField form={form} card={props.mode === 'edit' ? props.card : null} now={now} />
+          )}
+        </fieldset>
       </div>
     </Modal>
   )

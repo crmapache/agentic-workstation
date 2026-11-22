@@ -43,6 +43,7 @@ export const cardView = (card: TrackerCard) => ({
   ...(card.run && {
     run: { state: card.run.state, queue_id: card.run.queueId, item_id: card.run.itemId },
   }),
+  ...(card.lock && { locked: card.lock }),
 })
 
 const taskView = (task: TrackerTask) => ({

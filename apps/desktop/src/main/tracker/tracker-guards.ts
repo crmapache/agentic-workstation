@@ -1,9 +1,14 @@
+import type { TrackerCardFields } from '@shared/tracker'
+import { isLockedWith, TRACKER_LOCK_OPEN } from '@shared/tracker'
+
 import type { TrackerBook } from './tracker-book'
 import { TrackerError } from './tracker-fields'
 import { rankBefore, rankBetween } from './tracker-rank'
 import type { RecordKind, TrackerRecord } from './tracker-records'
 import { numberOf } from './tracker-records'
 import type { Ranked, TrackerTree } from './tracker-tree'
+import type { CardLocal } from './tracker-view'
+import { cardOf } from './tracker-view'
 
 /**
  * Проверки правки доски: запись живая, своя (того же пространства) и не в архиве. Идут до первой
@@ -12,9 +17,15 @@ import type { Ranked, TrackerTree } from './tracker-tree'
 
 /**
  * Где идёт правка: книга, пространство доски, папка проекта IDE, из которой правят (запуск в
- * срок помнит её), и время правки.
+ * срок помнит её), время правки и то, что о карточках знает только этот компьютер (очереди).
  */
-export type OpContext = { book: TrackerBook; spaceId: string; projectPath: string; now: number }
+export type OpContext = {
+  book: TrackerBook
+  spaceId: string
+  projectPath: string
+  now: number
+  local: CardLocal
+}
 
 /** Живая запись своей доски или отказ: чужая доска - wrongBoard, нет такой - notFound. */
 export const own = (
@@ -48,6 +59,28 @@ export const openBranch = (ctx: OpContext, tree: TrackerTree, id: string, kind: 
   if (project && numberOf(project, 'archivedAt') !== null) throw new TrackerError('archived')
 
   return record
+}
+
+/**
+ * Карточка со сценарием в работе (ADR 0110) принимает только описание и «сделано»; выполненную
+ * сценарием открывает снятая отметка той же правкой. Поле с прежним значением - не правка: модель
+ * могла прислать его заново вместе с описанием.
+ */
+export const assertOpenFields = (
+  ctx: OpContext,
+  record: TrackerRecord,
+  fields: Partial<TrackerCardFields>,
+) => {
+  const card = cardOf(record, ctx.local)
+
+  if (!isLockedWith(card.lock, fields.done ?? card.done)) return
+
+  const closed = (Object.keys(fields) as (keyof TrackerCardFields)[]).some(
+    (key) =>
+      !TRACKER_LOCK_OPEN.includes(key) && JSON.stringify(fields[key]) !== JSON.stringify(card[key]),
+  )
+
+  if (closed) throw new TrackerError('locked')
 }
 
 /** Живые проекты доски не из архива, по месту. */

@@ -455,11 +455,15 @@ describe('трекер в инструментах самой IDE', () => {
       [{ kind: 'queue', queueId: 'queue-1' }, undefined],
     ])
     expect(started[0]?.inputs).toEqual({ card: 'A' })
-    expect((await call('tracker_save_card', { id: a })).json['run']).toEqual({
-      state: 'waiting',
-      queue_id: 'queue-1',
-      item_id: 'item-1',
+    expect((await call('tracker_save_card', { id: a })).json).toMatchObject({
+      run: { state: 'waiting', queue_id: 'queue-1', item_id: 'item-1' },
+      locked: 'run',
     })
+    // Карточка в очереди закрыта: заголовок - отказ словами, описание правится.
+    expect((await call('tracker_save_card', { id: a, title: 'A!' })).text).toContain(
+      'The card is locked',
+    )
+    expect((await call('tracker_save_card', { id: a, description: 'note' })).error).toBe(false)
     expect((await call('tracker_send_to_queue', { group_id: groupId })).text).toContain(
       'Nothing to send',
     )

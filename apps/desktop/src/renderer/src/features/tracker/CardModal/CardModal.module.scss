@@ -5,6 +5,37 @@
   gap: var(--space-4);
 }
 
+// Поля, которые закрываются вместе (ADR 0110): выключенная группа формы выключает всё внутри, а
+// раскладка - та же, что без неё.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+// Почему карточка закрыта - состояние над полями, а не справка.
+.lock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+// Глаз центрирует по строчным: ровно по середине строки замок смотрелся бы задранным.
+.lockIcon {
+  display: block;
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  translate: 0 var(--offset-lowercase);
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;
@@ -21,6 +52,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+// Вопросы сценария - своей группой под его выбором: линия слева держит их вместе с подписью.
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-left: var(--space-3);
+  border-left: var(--border-width) solid var(--color-border);
 }
 
 .footer {

@@ -197,6 +197,13 @@ describe('запуск в срок', () => {
     await kit.autoRuns.tick()
     expect(kit.started).toHaveLength(1)
 
+    // Прогон остановили: карточка больше не в очереди и снова правится (ADR 0110), так что
+    // дальше её держат только выключенный запуск и архив.
+    const item = kit.queues[0]?.items[0]
+
+    if (item) item.state = 'stopped'
+    kit.runs.queuesChanged()
+
     await kit.apply({
       kind: 'card.update',
       id,

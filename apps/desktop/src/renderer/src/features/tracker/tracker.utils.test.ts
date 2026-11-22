@@ -20,6 +20,7 @@ const card = (id: string): TrackerCard => ({
   autoRunFailure: null,
   autoRunSent: false,
   run: null,
+  lock: null,
 })
 
 const PROJECT: TrackerProject = {

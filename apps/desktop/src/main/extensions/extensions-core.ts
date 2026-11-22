@@ -130,6 +130,10 @@ export class ExtensionsCore {
     return this.logs.list(id)
   }
 
+  /**
+   * Выход из IDE: расширения гаснут, а записи на диск дописываются до конца - выключение или
+   * удаление за миг до выхода иначе потерялось бы вместе с оборванной записью.
+   */
   async stop(): Promise<void> {
     if (this.toolsTimer) clearTimeout(this.toolsTimer)
 
@@ -138,6 +142,7 @@ export class ExtensionsCore {
     this.logs.dispose()
     this.deps.asks.dispose()
     await this.engine.close()
+    await Promise.all([this.deps.store.settled(), this.deps.storage.settled()])
   }
 
   /** Команда любого запущенного расширения: из поиска действий, клавиш, строки состояния. */

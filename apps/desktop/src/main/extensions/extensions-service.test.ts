@@ -1,4 +1,4 @@
-import { rm, mkdir, mkdtemp, writeFile } from 'node:fs/promises'
+import { rm, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -278,5 +278,18 @@ describe('ExtensionsService', () => {
     await service.remove('gone')
 
     expect(info('gone')).toBeUndefined()
+  })
+
+  it('остановка дописывает записи: выключение за миг до выхода уже на диске', async () => {
+    await extension('late', {}, `export function activate() {}`)
+    await service.start()
+    await service.setEnabled('late', false)
+    await service.stop()
+
+    const stored = JSON.parse(await readFile(join(dir, 'extensions.json'), 'utf8')) as {
+      extensions: Record<string, { enabled: boolean }>
+    }
+
+    expect(stored.extensions['late']?.enabled).toBe(false)
   })
 })

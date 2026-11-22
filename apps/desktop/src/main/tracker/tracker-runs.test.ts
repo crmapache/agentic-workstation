@@ -1,11 +1,9 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
 import type { Scenario } from '@shared/scenarios'
-import type { TrackerScenario } from '@shared/tracker'
 
-import { TrackerRuns } from './tracker-runs'
-import { scenario, scenariosFake } from './tracker-scenarios-fake'
-import { PLACE, trackerKit } from './tracker-test-kit'
+import { scenario } from './tracker-scenarios-fake'
+import { PLACE, runsKit } from './tracker-test-kit'
 
 const closers: (() => Promise<void>)[] = []
 
@@ -14,34 +12,11 @@ afterEach(async () => {
 })
 
 const setup = async (shelf: Scenario[]) => {
-  const kit = await trackerKit()
-  const fake = scenariosFake(shelf)
-  const runs = new TrackerRuns(kit.service, fake.port, () => 7000)
-  const projectId = await kit.make({ kind: 'project.create', title: 'P' })
-  const flowId = await kit.make({ kind: 'flow.create', projectId, title: 'F' })
-  const groupId = await kit.make({ kind: 'group.create', flowId, title: 'Неделя 1' })
-  const card = (
-    title: string,
-    bound: Partial<TrackerScenario> | null,
-    extra: { followUpOf?: string; done?: boolean } = {},
-  ) =>
-    kit.make({
-      kind: 'card.create',
-      groupId,
-      ...(extra.followUpOf ? { followUpOf: extra.followUpOf } : {}),
-      fields: {
-        title,
-        description: `about ${title}`,
-        done: extra.done === true,
-        scenario: bound
-          ? { scenarioId: 'fix', scope: 'project', provider: null, inputs: {}, ...bound }
-          : null,
-      },
-    })
+  const kit = await runsKit(shelf)
 
   closers.push(() => kit.service.close())
 
-  return { ...kit, ...fake, runs, groupId, card }
+  return kit
 }
 
 describe('отправка в очередь', () => {

@@ -20,6 +20,7 @@ const card = (id: string): TrackerCard => ({
   autoRunFailure: null,
   autoRunSent: false,
   run: null,
+  lock: null,
 })
 
 /** Доска: два потока, в первом две группы; в группе g1 задачи a (с продолжениями a1, a2) и b. */

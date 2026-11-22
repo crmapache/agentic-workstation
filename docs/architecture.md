@@ -528,7 +528,10 @@ xterm.js (`features/terminal`), место в колонке - `workbench/Termin
 всё проверяется до первого запуска, ставится по порядку доски, новая очередь - с именем группы;
 карточка без сценария встаёт пометкой (`placeholder`), мимо которой очередь проходит
 ([ADR 0105](adr/0105-queue-placeholders-for-plain-cards.md)); элемент сделан - карточка
-отмечается выполненной один раз. Повтор, как в Todoist
+отмечается выполненной один раз (полем `doneByRun`). Карточка, чей сценарий стоит в очереди, идёт
+или её выполнил, закрыта на правку, кроме описания и «сделано» (`TrackerCard.lock`, отказ
+`locked` в `tracker-guards.ts`, [ADR 0110](adr/0110-tracker-card-locked-while-scenario-works.md)).
+Повтор, как в Todoist
 ([ADR 0103](adr/0103-tracker-repeat-and-auto-run.md)): поле `repeat`, счёт -
 `shared/tracker-repeat.ts`, «сделано» у повторяющейся сдвигает срок и открывает продолжения
 (`tracker-complete.ts`). Запуск сценария карточки в срок - отметка этого компьютера в книге,

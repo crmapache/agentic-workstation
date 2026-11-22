@@ -19,6 +19,7 @@ const card = (id: string, done: boolean): TrackerCard => ({
   autoRunFailure: null,
   autoRunSent: false,
   run: null,
+  lock: null,
 })
 
 const group = (id: string, tasks: TrackerGroup['tasks']): TrackerGroup => ({

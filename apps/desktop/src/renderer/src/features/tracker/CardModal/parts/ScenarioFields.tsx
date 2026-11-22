@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { isRunnable } from '@shared/scenario-rules'
@@ -17,15 +18,18 @@ import { inputsOf, bindScenario } from '../CardModal.utils'
 import { ProviderField } from './ProviderField'
 
 /**
- * Сценарий карточки: какой и чем заполнить его поля. Подстановки `{{card}}` и другие
- * раскрываются при отправке - справка за «?».
+ * Сценарий карточки: какой и чем заполнить его поля. Поля - вопросы самого сценария, а не
+ * карточки: они стоят своей группой с его именем, иначе читаются как поля, которые есть у любой
+ * карточки. Подстановки `{{card}}` и другие раскрываются при отправке - справка за «?».
  */
 export const ScenarioFields = ({ form, scenarios }: ScenarioFieldsProps) => {
   const { t } = useTranslation()
   const popover = usePopover()
+  const questionsId = useId()
   const binding = form.scenario
   const chosen =
     scenarios.find((one) => one.id === binding?.scenarioId && one.scope === binding.scope) ?? null
+  const inputs = inputsOf(chosen)
   const shelves = [
     {
       title: t('tracker.cardModal.inProject'),
@@ -85,21 +89,27 @@ export const ScenarioFields = ({ form, scenarios }: ScenarioFieldsProps) => {
         </div>
         {binding && <ProviderField form={form} scenario={chosen} />}
       </div>
-      {binding &&
-        inputsOf(chosen).map((input, index) => (
-          <TextArea
-            key={input.id}
-            label={input.label || input.name}
-            placeholder={input.placeholder}
-            value={binding.inputs[input.name] ?? defaultInputValue(index)}
-            onChange={(value) =>
-              form.set('scenario', {
-                ...binding,
-                inputs: { ...binding.inputs, [input.name]: value },
-              })
-            }
-          />
-        ))}
+      {binding && chosen && inputs.length > 0 && (
+        <div role="group" aria-labelledby={questionsId} className={styles.questions}>
+          <span id={questionsId} className={styles.caption}>
+            {t('tracker.cardModal.questions', { name: chosen.name })}
+          </span>
+          {inputs.map((input, index) => (
+            <TextArea
+              key={input.id}
+              label={input.label || input.name}
+              placeholder={input.placeholder}
+              value={binding.inputs[input.name] ?? defaultInputValue(index)}
+              onChange={(value) =>
+                form.set('scenario', {
+                  ...binding,
+                  inputs: { ...binding.inputs, [input.name]: value },
+                })
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

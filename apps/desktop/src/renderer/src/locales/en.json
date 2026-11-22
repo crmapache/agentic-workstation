@@ -4548,7 +4548,8 @@
       "inEvery": "In every project",
       "provider": "Runs on",
       "providerDefault": "Scenario's choice ({{name}})",
-      "inputsHelp": "A task card: title, subtitle, description, due date and priority. Done cards stay where they are on the board.\n\nA repeating card works like in Todoist: marking it done moves its due date to the next time and reopens its done follow-ups. Repeat counts from the schedule, or from the day it is done.\n\nBind a scenario to send the card to a scenario queue, alone or with its whole group. In the scenario's fields {{card}} is the whole card, {{title}}, {{subtitle}} and {{description}} its parts. They are filled in when the card is sent, so later edits reach the run. When the run is done, the card is marked done.\n\nRun at the due time sends the card to a new queue by itself when its due time comes. It is kept on this computer only, so other computers do not run it too; a time missed while the IDE was closed runs when it opens.",
+      "questions": "Questions of {{name}}",
+      "inputsHelp": "A task card: title, subtitle, description, due date and priority. Done cards stay where they are on the board.\n\nA repeating card works like in Todoist: marking it done moves its due date to the next time and reopens its done follow-ups. Repeat counts from the schedule, or from the day it is done.\n\nBind a scenario to send the card to a scenario queue, alone or with its whole group. In the scenario's fields {{card}} is the whole card, {{title}}, {{subtitle}} and {{description}} its parts. They are filled in when the card is sent, so later edits reach the run. When the run is done, the card is marked done.\n\nWhile the card waits in its queue or its scenario runs (paused too), and after the scenario has done it, only the description and Done can change: the run took the card as it was when sent. A failed or stopped run opens the card again, and so does clearing Done on a card its scenario has done.\n\nRun at the due time sends the card to a new queue by itself when its due time comes. It is kept on this computer only, so other computers do not run it too; a time missed while the IDE was closed runs when it opens.",
       "inputsHelpLabel": "About this window",
       "save": "Save",
       "create": "Add",
@@ -4557,7 +4558,11 @@
       "send": "Send to queue",
       "previousMonth": "Previous month",
       "nextMonth": "Next month",
-      "run": "Run"
+      "run": "Run",
+      "locked": {
+        "run": "The scenario of this card is queued or running: only the description and Done can change.",
+        "done": "The scenario has done this card: only the description and Done can change. Clear Done to edit the rest."
+      }
     },
     "entity": {
       "newProject": "New project",
@@ -4676,7 +4681,8 @@
       "noScenario": "Bind a scenario to the card first.",
       "alreadyQueued": "This card is already in a queue.",
       "unknown": "Something went wrong.",
-      "badRepeat": "The repeat is not valid."
+      "badRepeat": "The repeat is not valid.",
+      "locked": "Only the description and Done can change while its scenario is queued or running, or after it has done the card."
     }
   },
   "voice": {

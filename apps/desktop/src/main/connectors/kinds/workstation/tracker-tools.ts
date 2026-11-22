@@ -67,6 +67,7 @@ export const TRACKER_TOOLS: NativeTool<WorkstationPorts>[] = [
       'The task tracker of a project: tracker projects (tabs) hold flows; a flow holds groups (columns left to right in work order: the leftmost is done first, a new group goes last, on the right); a group holds tasks (cards, top-down); a task may have follow-ups (cards that come after it, in a chain).',
       'A card may be bound to a scenario: sent to a queue (tracker_send_to_queue) it runs that scenario with the card text and is marked done when its queue item is done (a repeating card moves to its next due instead - do not mark it done again).',
       'Ids here are what the other tracker_* tools take. Empty fields are left out; priority 1 is most urgent, 4 none; done shows only when true; due is local time; run is the queue item of the card on this computer.',
+      'locked: run - the scenario of the card is queued or running, locked: done - it has done the card; a locked card takes only description and done.',
     ].join(' '),
     access: 'read',
     inputSchema: {
