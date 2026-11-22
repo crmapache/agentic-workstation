@@ -3,6 +3,7 @@ import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
 import type { FeedItem } from '@shared/conversation-feed'
 
 import { splitEditorNote } from '../../agents/conversation/editor-note'
+import { splitVoiceNote } from '../../agents/conversation/voice-note'
 import { splitShellText } from '../../agents/shell/shell-text'
 import { OpenCodeFeedBuilder } from './opencode-feed-builder'
 import type { ToolContext } from './opencode-tools'
@@ -59,7 +60,8 @@ const replayUser = (
   steering: boolean,
 ) => {
   const id = text(message, 'id')
-  const { text: words, editor } = splitEditorNote(text(message, 'text'))
+  const { text: said, editor } = splitEditorNote(text(message, 'text'))
+  const { text: words, voice } = splitVoiceNote(said)
   const { runs, text: own } = splitShellText(words)
   const attached = records(message['files'])
     .map(imageOf)
@@ -80,7 +82,10 @@ const replayUser = (
     images.push([id, attached.map((image) => `data:${image.mediaType};base64,${image.data}`)])
   }
 
-  builder.addUserMessage(id, own, attached, steering, { editor: editor ?? undefined })
+  builder.addUserMessage(id, own, attached, steering, {
+    editor: editor ?? undefined,
+    voice: voice ?? undefined,
+  })
 }
 
 /** Сжатие из журнала: прошедшее - карточкой, не вышедшее - строкой ошибки. */

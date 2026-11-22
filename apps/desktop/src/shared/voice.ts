@@ -21,6 +21,15 @@ export type VoiceLanguage = (typeof VOICE_LANGUAGES)[number]
 export const isVoiceLanguage = (value: unknown): value is VoiceLanguage =>
   typeof value === 'string' && (VOICE_LANGUAGES as readonly string[]).includes(value)
 
+/** Реплика, сказанная голосом: на каком языке. Лента ставит у неё значок микрофона. */
+export type VoiceMark = { lang: VoiceLanguage }
+
+/**
+ * Голосовая реплика в отправку: язык и что человек успел услышать из ответа, который перебил, -
+ * модели в скрытую пометку (agents/conversation/voice-note.ts).
+ */
+export type VoiceOutgoing = VoiceMark & { heard?: string | null | undefined }
+
 /** Мультиязык - язык ответа по последней реплике; язык - всегда он, что бы ни сказал человек. */
 export type VoiceLanguageMode = 'multi' | VoiceLanguage
 
@@ -214,6 +223,11 @@ export type VoiceCue =
   | { kind: 'transcript'; role: 'me' | 'agent'; text: string; final: boolean }
   /** Приглушить ответ (level 0.2) или вернуть (1): человек, кажется, заговорил. */
   | { kind: 'duck'; level: number }
-  /** Выкинуть всё непроигранное после кадра afterFrame: человек перебил. */
-  | { kind: 'stopPlayback'; afterFrame: number }
+  /**
+   * Человек перебил: выкинуть всё непроигранное и кадры прежних эпох, которые ещё летят;
+   * проигранное считать заново с эпохи epoch.
+   */
+  | { kind: 'stopPlayback'; epoch: number }
+  /** Тихий сигнал «я ещё тут»: агент долго работает молча. */
+  | { kind: 'tone' }
   | { kind: 'ended'; reason: VoiceCallEnd; conversationId: string }

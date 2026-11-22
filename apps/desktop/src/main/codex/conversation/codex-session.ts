@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { RequestResponse } from '@shared/conversation'
 import type { EditorRef } from '@shared/message-draft'
+import type { VoiceOutgoing } from '@shared/voice'
 
 import type { AppServerProcess } from '../app-server/app-server-process'
 import { defaultsFromConfig } from '../catalog/catalog-shapes'
@@ -10,6 +11,7 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import type { Outgoing } from '../../agents/conversation/outbox'
 import { releasedBriefing, takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
@@ -57,12 +59,18 @@ const threadCommand = (
  * Ввод хода, как его берёт `turn/start`: текст, картинки data URL и заметка о редакторе
  * последним элементом - отдельно от слов человека.
  */
-const inputOf = (text: string, message: Outgoing, editor: EditorRef | null) => [
+const inputOf = (
+  text: string,
+  message: Outgoing,
+  editor: EditorRef | null,
+  voice: VoiceOutgoing | null,
+) => [
   ...(text ? [textItem(text)] : []),
   ...message.images.map((image) => ({
     type: 'image',
     url: `data:${image.mediaType};base64,${image.data}`,
   })),
+  ...(voice ? [textItem(voiceNote(voice.lang, voice.heard))] : []),
   ...(editor ? [textItem(editorNote(editor))] : []),
 ]
 
@@ -192,6 +200,7 @@ export class CodexSession implements AgentSession {
 
     // Команда - приказ разговору, а не вопрос про код: заметку о редакторе она не несёт.
     const editor = isSlashCommand(text) ? null : (message.editor ?? null)
+    const voice = isSlashCommand(text) ? null : (message.voice ?? null)
 
     if (message.images.length > 0) {
       feed.images.set(
@@ -204,6 +213,7 @@ export class CodexSession implements AgentSession {
       draft: message.draft ?? undefined,
       editor: editor ?? undefined,
       auto: message.auto,
+      voice: voice ? { lang: voice.lang } : undefined,
     })
     feed.schedule()
 
@@ -226,9 +236,14 @@ export class CodexSession implements AgentSession {
       command?.kind === 'skill'
         ? [
             { type: 'skill', name: command.skill.name, path: command.skill.path },
-            ...inputOf([shell, command.rest].filter(Boolean).join('\n\n'), message, editor),
+            ...inputOf(
+              [shell, command.rest].filter(Boolean).join('\n\n'),
+              message,
+              editor,
+              voice,
+            ),
           ]
-        : inputOf([shell, text].filter(Boolean).join('\n\n'), message, editor)
+        : inputOf([shell, text].filter(Boolean).join('\n\n'), message, editor, voice)
 
     if (steering && this.turnId) {
       this.call('turn/steer', {

@@ -6,6 +6,7 @@
 
 import type { EditorRef, MessageDraft } from './message-draft'
 import type { CarryOnReason } from './panel-extras'
+import type { VoiceMark } from './voice'
 
 /** Кусок диффа правки, как его отдаёт CLI (`structuredPatch`). */
 export type PatchHunk = {
@@ -120,6 +121,8 @@ export type UserFeedItem = FeedItemBase & {
    * причиной; unknown - причина из более новой версии, за неё не ручаемся.
    */
   auto?: CarryOnReason | 'unknown' | undefined
+  /** Сказано голосом в звонке (ADR 0104): значок микрофона у сообщения. */
+  voice?: VoiceMark | undefined
 }
 
 /** Текст ответа модели. Пока идёт поток, текст растёт, streaming - true. */

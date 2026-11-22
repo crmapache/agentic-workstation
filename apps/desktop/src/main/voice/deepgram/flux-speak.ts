@@ -67,8 +67,6 @@ export class FluxSpeak {
   private outbox: string[] = []
   /** Где сессия Deepgram сейчас: сумма звука, как его считает сервер. */
   private sessionMs = 0
-  /** Где начался ход, который сейчас звучит: Interrupt считает от начала сессии. */
-  private turnStartMs = 0
   private discarding = false
   /** Ход принимает фразы: Speak ушёл, Flush ещё нет. */
   private composing = false
@@ -77,6 +75,19 @@ export class FluxSpeak {
   private cancelKeepalive: (() => void) | null = null
 
   constructor(private readonly options: FluxSpeakOptions) {}
+
+  /**
+   * Место в сессии, с которого пойдёт следующий звук. Звонок запоминает его у начала ответа:
+   * следующий ответ может уже синтезироваться, пока человек слушает этот.
+   */
+  get position(): number {
+    return this.sessionMs
+  }
+
+  /** Есть ли ходы, которые ещё звучат или ждут очереди. */
+  get busy(): boolean {
+    return this.pendingTurns > 0
+  }
 
   /** Открыть заранее: первая фраза ответа не ждёт рукопожатия. */
   warm(): void {
@@ -104,18 +115,18 @@ export class FluxSpeak {
   }
 
   /**
-   * Оборвать то, что звучит, на месте playedMs от начала нынешнего хода. Ответ ещё не начал
-   * звучать - соединение сбрасывается целиком: Deepgram такой Interrupt молча пропускает, а
-   * текст продолжил бы звучать.
+   * Оборвать то, что звучит, на месте sessionMs от начала сессии. Deepgram не принял (звука
+   * ещё не было, прошлый Interrupt в пути) - соединение сбрасывается целиком, иначе текст
+   * продолжил бы звучать.
    */
-  interrupt(playedMs: number): void {
+  interrupt(sessionMs: number): void {
     if (this.pendingTurns === 0) return
 
     this.discarding = true
     this.composing = false
     this.push({
       type: 'Interrupt',
-      playback_offset: { type: 'time_ms', value: Math.round(this.turnStartMs + playedMs) },
+      playback_offset: { type: 'time_ms', value: Math.round(sessionMs) },
     })
   }
 
@@ -178,7 +189,6 @@ export class FluxSpeak {
   private message(message: Message | null): void {
     switch (message?.['type']) {
       case 'SpeechStarted':
-        this.turnStartMs = this.sessionMs
         this.options.onEvent({ kind: 'started' })
         break
       case 'SpeechMetadata':
@@ -215,7 +225,6 @@ export class FluxSpeak {
     this.composing = false
     this.pendingTurns = 0
     this.sessionMs = 0
-    this.turnStartMs = 0
     this.options.onEvent({ kind: 'interrupted', spoken: '', remaining: '' })
   }
 
@@ -225,7 +234,6 @@ export class FluxSpeak {
     this.isOpen = false
     this.link = null
     this.sessionMs = 0
-    this.turnStartMs = 0
     this.composing = false
     this.pendingTurns = 0
     this.discarding = false

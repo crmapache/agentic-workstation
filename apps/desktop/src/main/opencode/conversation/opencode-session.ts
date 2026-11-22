@@ -9,6 +9,7 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import type { Outgoing } from '../../agents/conversation/outbox'
 import { takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
@@ -115,6 +116,7 @@ export class OpenCodeSession implements AgentSession {
 
     // Команда - приказ разговору, а не вопрос про код: заметку о редакторе она не несёт.
     const editor = isSlashCommand(text) ? null : (message.editor ?? null)
+    const voice = isSlashCommand(text) ? null : (message.voice ?? null)
 
     if (message.images.length > 0) {
       feed.images.set(
@@ -127,6 +129,7 @@ export class OpenCodeSession implements AgentSession {
       draft: message.draft ?? undefined,
       editor: editor ?? undefined,
       auto: message.auto,
+      voice: voice ? { lang: voice.lang } : undefined,
     })
     feed.schedule()
 
@@ -145,7 +148,9 @@ export class OpenCodeSession implements AgentSession {
     // Прогон IDE, открытый чатом: рамка о снятой роли - перед первым словом человека.
     const frame = isSlashCommand(text) ? '' : takeReleasedFrame(this.sessionId)
     const body = {
-      text: [frame, shell, text, editor ? editorNote(editor) : ''].filter(Boolean).join('\n\n'),
+      text: [frame, shell, text, voice ? voiceNote(voice.lang, voice.heard) : '', editor ? editorNote(editor) : '']
+        .filter(Boolean)
+        .join('\n\n'),
       files: message.images.map((image, index) => ({
         uri: `data:${image.mediaType};base64,${image.data}`,
         name: `image-${index + 1}.${image.mediaType.split('/')[1] ?? 'png'}`,

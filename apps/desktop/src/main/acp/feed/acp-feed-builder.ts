@@ -97,7 +97,7 @@ export class AcpFeedBuilder implements AgentFeedBuilder {
     text: string,
     images: ImageAttachment[],
     steering: boolean,
-    extra: Pick<UserFeedItem, 'draft' | 'editor' | 'auto'> = {},
+    extra: Pick<UserFeedItem, 'draft' | 'editor' | 'auto' | 'voice'> = {},
   ): void {
     const time = this.now()
 

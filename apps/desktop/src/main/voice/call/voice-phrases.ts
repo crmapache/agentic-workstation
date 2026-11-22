@@ -1,0 +1,88 @@
+import type { VoiceLanguage } from '@shared/voice'
+
+/**
+ * Что звонок говорит сам, без модели: агенту нужно разрешение, ответ на вопрос или одобрение
+ * плана; «ты ещё тут?» после долгой тишины; сбой. Коротко, на языке разговора.
+ */
+type Phrases = {
+  permission: (what: string) => string
+  question: (question: string) => string
+  plan: string
+  stillThere: string
+  trouble: string
+}
+
+const PHRASES: Record<VoiceLanguage, Phrases> = {
+  en: {
+    permission: (what) => `I need your permission: ${what}. Confirm it on the screen.`,
+    question: (question) => `${question} Answer on the screen or tell me.`,
+    plan: 'The plan is ready. Approve it on the screen.',
+    stillThere: 'Are you still there?',
+    trouble: 'Something went wrong, the details are in the chat.',
+  },
+  ru: {
+    permission: (what) => `Нужно разрешение: ${what}. Подтверди на экране.`,
+    question: (question) => `${question} Ответь на экране или голосом.`,
+    plan: 'План готов. Одобри его на экране.',
+    stillThere: 'Ты ещё тут?',
+    trouble: 'Что-то пошло не так, подробности в чате.',
+  },
+  es: {
+    permission: (what) => `Necesito tu permiso: ${what}. Confírmalo en la pantalla.`,
+    question: (question) => `${question} Responde en la pantalla o dímelo.`,
+    plan: 'El plan está listo. Apruébalo en la pantalla.',
+    stillThere: '¿Sigues ahí?',
+    trouble: 'Algo salió mal, los detalles están en el chat.',
+  },
+  pt: {
+    permission: (what) => `Preciso da sua permissão: ${what}. Confirme na tela.`,
+    question: (question) => `${question} Responda na tela ou me diga.`,
+    plan: 'O plano está pronto. Aprove na tela.',
+    stillThere: 'Você ainda está aí?',
+    trouble: 'Algo deu errado, os detalhes estão no chat.',
+  },
+  fr: {
+    permission: (what) => `J'ai besoin de ton autorisation : ${what}. Confirme à l'écran.`,
+    question: (question) => `${question} Réponds à l'écran ou dis-le-moi.`,
+    plan: "Le plan est prêt. Approuve-le à l'écran.",
+    stillThere: 'Tu es toujours là ?',
+    trouble: 'Quelque chose a mal tourné, les détails sont dans le chat.',
+  },
+  de: {
+    permission: (what) => `Ich brauche deine Erlaubnis: ${what}. Bestätige es auf dem Bildschirm.`,
+    question: (question) => `${question} Antworte auf dem Bildschirm oder sag es mir.`,
+    plan: 'Der Plan ist fertig. Bestätige ihn auf dem Bildschirm.',
+    stillThere: 'Bist du noch da?',
+    trouble: 'Etwas ist schiefgelaufen, die Details stehen im Chat.',
+  },
+  it: {
+    permission: (what) => `Mi serve il tuo permesso: ${what}. Confermalo sullo schermo.`,
+    question: (question) => `${question} Rispondi sullo schermo o dimmelo.`,
+    plan: 'Il piano è pronto. Approvalo sullo schermo.',
+    stillThere: 'Ci sei ancora?',
+    trouble: 'Qualcosa è andato storto, i dettagli sono nella chat.',
+  },
+  nl: {
+    permission: (what) => `Ik heb je toestemming nodig: ${what}. Bevestig het op het scherm.`,
+    question: (question) => `${question} Antwoord op het scherm of zeg het me.`,
+    plan: 'Het plan is klaar. Keur het goed op het scherm.',
+    stillThere: 'Ben je er nog?',
+    trouble: 'Er ging iets mis, de details staan in de chat.',
+  },
+  hi: {
+    permission: (what) => `मुझे आपकी अनुमति चाहिए: ${what}. स्क्रीन पर पुष्टि करें।`,
+    question: (question) => `${question} स्क्रीन पर या बोलकर जवाब दें।`,
+    plan: 'योजना तैयार है। स्क्रीन पर उसे मंज़ूर करें।',
+    stillThere: 'क्या आप अभी भी हैं?',
+    trouble: 'कुछ गड़बड़ हो गई, विवरण चैट में है।',
+  },
+  ja: {
+    permission: (what) => `許可が必要です: ${what}。画面で確認してください。`,
+    question: (question) => `${question} 画面か声で答えてください。`,
+    plan: '計画ができました。画面で承認してください。',
+    stillThere: 'まだいますか？',
+    trouble: '問題が起きました。詳しくはチャットを見てください。',
+  },
+}
+
+export const phrasesOf = (language: VoiceLanguage): Phrases => PHRASES[language]

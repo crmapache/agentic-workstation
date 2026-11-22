@@ -1,12 +1,20 @@
 import type { ImageAttachment } from '@shared/conversation'
 import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
+import type { VoiceMark } from '@shared/voice'
 
 import { isRecord, recordField, stringField } from '../cli/cli-messages'
 import type { ShellRun } from '../../agents/shell/shell-text'
+import { isVoiceNote, voiceFromNote } from '../../agents/conversation/voice-note'
 import { splitShellText } from '../../agents/shell/shell-text'
 
 /** Сообщение человека из транскрипта: текст, картинки и команды «!», ехавшие перед ним. */
-export type UserText = { text: string; images: ImageAttachment[]; shellRuns: ShellRun[] }
+export type UserText = {
+  text: string
+  images: ImageAttachment[]
+  shellRuns: ShellRun[]
+  /** Сказано голосом в звонке: блок голосовой пометки рядом со словами. */
+  voice?: VoiceMark | undefined
+}
 
 /** Картинка из блока `image` с base64 внутри; ссылки и прочее - не картинка для ленты. */
 const imageOf = (block: Record<string, unknown>): ImageAttachment | null => {
@@ -41,10 +49,12 @@ export const userTextOf = (content: unknown): UserText | null => {
 
   if (records.some((block) => block['type'] === 'tool_result')) return null
 
-  const joined = records
+  const texts = records
     .filter((block) => block['type'] === 'text')
     .map((block) => stringField(block, 'text'))
-    .join('\n')
+  const note = texts.find(isVoiceNote)
+  const voice = note ? (voiceFromNote(note) ?? undefined) : undefined
+  const joined = texts.join('\n')
   const { runs: shellRuns, text: raw } = splitShellText(joined)
   const images = records
     .filter((block) => block['type'] === 'image')
@@ -62,5 +72,5 @@ export const userTextOf = (content: unknown): UserText | null => {
 
   if (!text && images.length === 0 && shellRuns.length === 0) return null
 
-  return { text, images, shellRuns }
+  return { text, images, shellRuns, ...(voice && { voice }) }
 }

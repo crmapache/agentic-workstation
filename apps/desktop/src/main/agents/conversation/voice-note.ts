@@ -1,4 +1,4 @@
-import type { VoiceLanguage } from '@shared/voice'
+import type { VoiceLanguage, VoiceMark } from '@shared/voice'
 import { isVoiceLanguage } from '@shared/voice'
 
 /**
@@ -27,9 +27,6 @@ const CLOSING = '</system-reminder>'
 
 /** Сколько прозвучавшего ответа пересказать модели: хвост длиннее - лишние токены. */
 const HEARD_MAX = 400
-
-/** Голосовая реплика в ленте и журнале: на каком языке сказана. */
-export type VoiceMark = { lang: VoiceLanguage }
 
 /**
  * Текст пометки. heard - что человек успел услышать из прошлого ответа, когда перебил его:

@@ -201,8 +201,9 @@ describe('FluxSpeak', () => {
     sockets[0]?.handlers.text(JSON.stringify({ type: 'SpeechMetadata', speech_id: 'a' }))
     speak.say('Второй ответ.')
     sockets[0]?.handlers.text(JSON.stringify({ type: 'SpeechStarted', speech_id: 'b' }))
+    expect(speak.position).toBe(1000)
     sockets[0]?.handlers.audio(second)
-    speak.interrupt(400)
+    speak.interrupt(1400)
     sockets[0]?.handlers.audio(second)
     sockets[0]?.handlers.text(
       JSON.stringify({

@@ -16,6 +16,7 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import type { Outgoing } from '../../agents/conversation/outbox'
 import { takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
@@ -154,6 +155,7 @@ export class AcpSession implements AgentSession {
       draft: message.draft ?? undefined,
       editor: (isSlashCommand(text) ? null : message.editor) ?? undefined,
       auto: message.auto,
+      voice: !isSlashCommand(text) && message.voice ? { lang: message.voice.lang } : undefined,
     })
     feed.schedule()
 
@@ -289,7 +291,14 @@ export class AcpSession implements AgentSession {
     const shell = command ? '' : shells.takeContext()
     const frame = command ? '' : takeReleasedFrame(this.sessionId)
     const editor = command ? null : (message.editor ?? null)
-    const text = [frame, shell, message.text, editor ? editorNote(editor) : '']
+    const voice = command ? null : (message.voice ?? null)
+    const text = [
+      frame,
+      shell,
+      message.text,
+      voice ? voiceNote(voice.lang, voice.heard) : '',
+      editor ? editorNote(editor) : '',
+    ]
       .filter(Boolean)
       .join('\n\n')
 

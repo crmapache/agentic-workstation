@@ -1,8 +1,10 @@
 import type { ImageAttachment } from '@shared/conversation'
 import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
 import type { EditorRef } from '@shared/message-draft'
+import type { VoiceMark } from '@shared/voice'
 
 import { isEditorNote, editorFromNote } from '../../agents/conversation/editor-note'
+import { isVoiceNote, voiceFromNote } from '../../agents/conversation/voice-note'
 import type { ShellRun } from '../../agents/shell/shell-text'
 import { splitShellText } from '../../agents/shell/shell-text'
 
@@ -12,6 +14,7 @@ export type CodexUserText = {
   images: ImageAttachment[]
   shellRuns: ShellRun[]
   editor: EditorRef | null
+  voice: VoiceMark | null
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -43,9 +46,10 @@ export const codexUserText = (content: unknown): CodexUserText => {
   const items = Array.isArray(content) ? content.filter(isRecord) : []
   const texts = items.filter((item) => item['type'] === 'text').map((item) => text(item, 'text'))
   const note = texts.find(isEditorNote)
+  const voice = texts.find(isVoiceNote)
   const skill = items.find((item) => item['type'] === 'skill' && text(item, 'name'))
   const { runs, text: own } = splitShellText(
-    texts.filter((value) => !isEditorNote(value)).join('\n\n'),
+    texts.filter((value) => !isEditorNote(value) && !isVoiceNote(value)).join('\n\n'),
   )
 
   return {
@@ -56,5 +60,6 @@ export const codexUserText = (content: unknown): CodexUserText => {
       .filter((image) => image !== null),
     shellRuns: runs,
     editor: note ? editorFromNote(note) : null,
+    voice: voice ? voiceFromNote(voice) : null,
   }
 }

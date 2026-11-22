@@ -37,6 +37,7 @@ const replayUser = (
   if (user.text || user.images.length > 0) {
     builder.addUserMessage(id, user.text, user.images, steering, {
       editor: user.editor ?? undefined,
+      voice: user.voice ?? undefined,
     })
   }
 

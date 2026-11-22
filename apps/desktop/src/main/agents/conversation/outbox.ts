@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import type { QueueHold, QueuedMessage, ImageAttachment } from '@shared/conversation'
 import type { EditorRef, TakenQueued, MessageDraft } from '@shared/message-draft'
 import type { CarryOnReason } from '@shared/panel-extras'
+import type { VoiceOutgoing } from '@shared/voice'
 
 import type { ConversationRuntime } from './conversation-runtime'
 import { isSlashCommand } from './conversation.utils'
@@ -19,6 +20,8 @@ export type Outgoing = {
   editor?: EditorRef | null | undefined
   /** Написала панель сама (продолжение оборванной работы): в ленте - PANEL, текст в теге. */
   auto?: CarryOnReason | undefined
+  /** Сказано голосом в звонке (ADR 0104): модели - скрытая пометка, в ленте - микрофон. */
+  voice?: VoiceOutgoing | undefined
 }
 
 /**
@@ -37,6 +40,7 @@ type QueuePlace = 'head' | 'tail' | { before: string | null }
 export class ConversationOutbox {
   private readonly images = new Map<string, ImageAttachment[]>()
   private readonly editors = new Map<string, EditorRef>()
+  private readonly voices = new Map<string, VoiceOutgoing>()
   private chain: Promise<void> = Promise.resolve()
   /**
    * Что держит очередь (QueueHold): после остановки или ошибки слать дальше в ошибку
@@ -196,12 +200,14 @@ export class ConversationOutbox {
       images: this.images.get(item.id) ?? [],
       draft: item.draft,
       editor: this.editors.get(item.id) ?? null,
+      voice: this.voices.get(item.id),
     }
   }
 
   private forget(queuedId: string) {
     this.images.delete(queuedId)
     this.editors.delete(queuedId)
+    this.voices.delete(queuedId)
   }
 
   private push(message: Outgoing, place: QueuePlace) {
@@ -215,6 +221,7 @@ export class ConversationOutbox {
 
     if (message.images.length > 0) this.images.set(item.id, message.images)
     if (message.editor) this.editors.set(item.id, message.editor)
+    if (message.voice) this.voices.set(item.id, message.voice)
 
     this.runtime.update({ queue: placed(queue, item, place) })
   }

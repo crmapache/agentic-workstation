@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import type { EditorRef } from '@shared/message-draft'
+import type { VoiceOutgoing } from '@shared/voice'
 
 import type { CliProcess } from '../cli/cli-process'
 import { parseCarryOn } from '../panel/carry-on-words'
@@ -9,6 +10,7 @@ import type { ConversationRuntime } from '../../agents/conversation/conversation
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import type { Outgoing } from '../../agents/conversation/outbox'
 import { takeReleasedFrame } from '../../agents/history/released-runs'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import { sealOwnText } from '../../agents/shell/shell-text'
 import { rankOf } from '../../agents/tabs/tab-names'
 import { claudeOf } from './claude-conversation'
@@ -21,12 +23,17 @@ import { askTitle } from './session-title'
  * Содержимое сообщения для CLI: картинки блоками перед текстом, как их кладёт терминал,
  * и заметка о редакторе последним блоком - отдельно от слов человека.
  */
-const userContent = ({ text, images }: Outgoing, editor: EditorRef | null) => [
+const userContent = (
+  { text, images }: Outgoing,
+  editor: EditorRef | null,
+  voice: VoiceOutgoing | null,
+) => [
   ...images.map((image) => ({
     type: 'image',
     source: { type: 'base64', media_type: image.mediaType, data: image.data },
   })),
   ...(text ? [{ type: 'text', text }] : []),
+  ...(voice ? [{ type: 'text', text: voiceNote(voice.lang, voice.heard) }] : []),
   ...(editor ? [{ type: 'text', text: editorReminder(editor) }] : []),
 ]
 
@@ -61,6 +68,7 @@ export const writeUserMessage = (
 
   // Команда - приказ разговору, а не вопрос про код: заметку о редакторе она не несёт.
   const editor = isSlashCommand(text) ? null : (message.editor ?? null)
+  const voice = isSlashCommand(text) ? null : (message.voice ?? null)
 
   claudeOf(runtime).lastSentUuid = uuid
   claudeOf(runtime).discardStray = false
@@ -70,6 +78,7 @@ export const writeUserMessage = (
     draft: message.draft ?? undefined,
     editor: editor ?? undefined,
     auto,
+    voice: voice ? { lang: voice.lang } : undefined,
   })
   claudeOf(runtime).feed.schedule()
 
@@ -78,7 +87,7 @@ export const writeUserMessage = (
   // Голова прогона, открытая чатом: рамка о снятой роли - перед первым словом человека.
   const frame = isSlashCommand(text) ? '' : takeReleasedFrame(runtime.meta.sessionId)
   const said = [frame, shell, own].filter(Boolean).join('\n\n')
-  const content = userContent({ text: said, images }, editor)
+  const content = userContent({ text: said, images }, editor, voice)
 
   process.write({ type: 'user', uuid, message: { role: 'user', content } })
   claudeOf(runtime).host.panel?.said(runtime, auto ?? null)

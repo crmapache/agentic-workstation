@@ -51,6 +51,7 @@ const userItems = (
     images: thumbnails(user.images),
     steering,
     ...(carried && { auto: carried.reason }),
+    ...(user.voice && { voice: user.voice }),
   })
 
   return { kind: 'items', items, messageId: id }
