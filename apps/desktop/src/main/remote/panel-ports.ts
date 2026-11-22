@@ -21,6 +21,12 @@ export const panelPort = (provider: ProviderId, panel: AgentPanel): Conversation
   refreshUsage: () => panel.refreshUsage([panel.getState().accounts.current]),
   getFeed: (id) => panel.getFeed(id),
   send: (id, message) => panel.actions.send(id, message),
+  voiceNotice: (id, code, detail) => {
+    const { feed } = panel.runtime(id)
+
+    feed.builder.addNotice(code, detail)
+    feed.schedule()
+  },
   respond: (id, requestId, response) => panel.actions.respond(id, requestId, response),
   interrupt: (id) => panel.actions.interrupt(id),
   newConversation: (projectPath, options) => panel.openConversation(projectPath, options),

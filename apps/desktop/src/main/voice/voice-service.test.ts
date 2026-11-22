@@ -41,6 +41,7 @@ const port = (conversations: Conversation[] = []) => {
     }),
     send: vi.fn(() => Promise.resolve()),
     interrupt: vi.fn(),
+    voiceNotice: vi.fn(),
   } as unknown as ConversationsPort & { newConversation: ReturnType<typeof vi.fn> }
 }
 

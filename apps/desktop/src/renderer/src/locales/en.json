@@ -2652,6 +2652,22 @@
       "wakeupLost": {
         "restarted": "{{cli}} was restarted here, and the wakeup the agent set for {{clock}} was lost with it.",
         "exited": "{{cli}} stopped, and the wakeup the agent set for {{clock}} was lost with it."
+      },
+      "voice": {
+        "label": "VOICE",
+        "started": {
+          "desktop": "Voice call started from the panel",
+          "phone": "Voice call started from the phone"
+        },
+        "ended": "Voice call ended",
+        "endedWhy": {
+          "lostLine": "the phone lost the line",
+          "silence": "after a long silence",
+          "keyRejected": "Deepgram rejected the key",
+          "deepgram": "Deepgram was not answering",
+          "shutdown": "the IDE closed"
+        },
+        "heard": "Cut off here. You heard up to: “{{heard}}”"
       }
     },
     "permission": {

@@ -107,6 +107,7 @@ export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider
   ]
   const port: ConversationsPort = {
     provider,
+    voiceNotice: (id, code, detail) => record('voiceNotice', id, code, detail),
     info: () => ({
       id: provider,
       label: LABELS[provider],

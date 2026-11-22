@@ -27,6 +27,7 @@ const harness = () => {
   const sent: Array<{ text: string; voice: VoiceOutgoing }> = []
   const ended: VoiceCallEnd[] = []
   const interrupt = vi.fn()
+  const notices: Array<{ code: string; detail: string }> = []
   const checkKey = vi.fn(() => Promise.resolve('ok' as const))
   const call = new VoiceCall({
     id: 'call',
@@ -54,6 +55,7 @@ const harness = () => {
         return Promise.resolve()
       },
       interrupt,
+      notice: (code, detail) => notices.push({ code, detail }),
     },
     checkKey,
     onView: () => undefined,
@@ -94,6 +96,7 @@ const harness = () => {
     sent,
     ended,
     interrupt,
+    notices,
     checkKey,
     listen,
     speak,
@@ -176,6 +179,7 @@ describe('VoiceCall', () => {
         voice: { lang: 'ru', heard: 'У тебя три' },
       },
     ])
+    expect(h.notices).toContainEqual({ code: 'voice-heard', detail: 'У тебя три' })
   })
 
   it('does not take its own echo for the person cutting in', async () => {
@@ -252,5 +256,9 @@ describe('VoiceCall', () => {
     h.timers.find((timer) => timer.ms === 60_000)?.run()
 
     expect(h.ended).toEqual(['lostLine'])
+    expect(h.notices).toEqual([
+      { code: 'voice-started', detail: 'desktop' },
+      { code: 'voice-ended', detail: 'lostLine' },
+    ])
   })
 })

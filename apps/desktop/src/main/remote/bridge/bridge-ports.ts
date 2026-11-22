@@ -62,6 +62,15 @@ export type ConversationsPort = {
   refreshUsage: () => Promise<unknown>
   getFeed: (conversationId: string) => Promise<ConversationFeed>
   /** voice - реплика голосового звонка (ADR 0104): скрытая пометка модели и микрофон в ленте. */
+  /**
+   * Отметка голосового звонка в ленте разговора (ADR 0104): начался, кончился, что человек
+   * услышал из перебитого ответа.
+   */
+  voiceNotice: (
+    conversationId: string,
+    code: 'voice-started' | 'voice-ended' | 'voice-heard',
+    detail: string,
+  ) => void
   send: (
     conversationId: string,
     message: { text: string; images: ImageAttachment[]; voice?: VoiceOutgoing | undefined },

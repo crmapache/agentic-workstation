@@ -15,6 +15,7 @@ import { LimitRow } from './parts/LimitRow'
 import { NoticeLabelRow } from './parts/NoticeLabelRow'
 import { RetryRow } from './parts/RetryRow'
 import { SessionRow } from './parts/SessionRow'
+import { VoiceNoticeRow } from './parts/VoiceNoticeRow'
 
 /**
  * Служебные строки ленты, как в ACC: отметки (cleared, rewound, шов форка), CONTEXT,
@@ -78,6 +79,10 @@ export const NoticeRow = memo(({ item }: NoticeRowProps) => {
     case 'command-lost':
     case 'wakeup-lost':
       return <NoticeLabelRow item={item} />
+    case 'voice-started':
+    case 'voice-ended':
+    case 'voice-heard':
+      return <VoiceNoticeRow item={item} />
     // Лог мода CLI и судьба выбора модели (panel/): свои строки рядом.
     case 'mod':
       return <ModLogRow item={item} />

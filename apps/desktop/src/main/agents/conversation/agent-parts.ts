@@ -46,6 +46,8 @@ export type AgentFeedBuilder = {
   readonly hasBackgroundCommands: boolean
   /** Агент поставил себе будильник, и он ещё не сработал: его держит процесс. */
   readonly hasWakeup: boolean
+  /** Отметка в ленте снаружи хода: голосовой звонок (ADR 0104). */
+  addNotice: (code: NoticeCode, detail?: string) => void
   noteStopped: (reason?: StopReason) => void
   abortTurn: (code: NoticeCode, detail: string) => void
   abortBackground: (reason?: ClosedReason) => void

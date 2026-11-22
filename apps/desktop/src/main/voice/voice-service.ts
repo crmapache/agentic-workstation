@@ -121,6 +121,7 @@ export class VoiceService {
       agent: {
         send: (text, voice) => port.send(conversationId, { text, images: [], voice }),
         interrupt: () => port.interrupt(conversationId),
+        notice: (code, detail) => port.voiceNotice(conversationId, code, detail),
       },
       checkKey: () => this.checkKey(),
       onView: () => this.changed(),

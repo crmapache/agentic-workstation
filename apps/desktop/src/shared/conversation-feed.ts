@@ -362,6 +362,12 @@ export type NoticeCode =
   | 'command-lost'
   /** Будильник агента пропал с процессом CLI: detail - его срок (мс), subject - как у command-lost. */
   | 'wakeup-lost'
+  /** Голосовой звонок начался (ADR 0104): detail - откуда (desktop, phone). */
+  | 'voice-started'
+  /** Голосовой звонок кончился: detail - чем (VoiceCallEnd). */
+  | 'voice-ended'
+  /** Человек перебил ответ голосом: detail - что он успел услышать. */
+  | 'voice-heard'
 
 export type NoticeFeedItem = FeedItemBase & {
   kind: 'notice'

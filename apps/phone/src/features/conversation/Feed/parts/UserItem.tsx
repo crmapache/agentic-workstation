@@ -6,11 +6,11 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import styles from '../Feed.module.scss'
 import type { OpenPhoto } from '../Feed.types'
-import { flag, list, text, canRewind } from '../Feed.utils'
+import { flag, list, text, fields, canRewind } from '../Feed.utils'
 import { splitQuotes } from '../../../../lib/quotes.utils'
 
 /**
- * Сообщение человека справа; фото - миниатюрами, что пришли из IDE. Миниатюра нажимается: фото
+ * Сообщение человека справа (сказанное голосом - с пометкой); фото - миниатюрами, что пришли из IDE. Миниатюра нажимается: фото
  * открывается крупно, а целиком (или уменьшенным под экран) его приносит IDE. Цитаты сверху
  * («> ») - строками с чертой, как над полем. Сообщение, с которого начинался ход, можно откатить
  * - кнопка слева от него, у нижнего края.
@@ -29,6 +29,8 @@ export const UserItem = ({
     typeof image === 'object' && image && 'thumbnail' in image ? String(image.thumbnail) : '',
   )
   const auto = text(item, 'auto')
+  // Сказано голосом в звонке (ADR 0104) - пометка, как у слов панели и подсказки посреди хода.
+  const said = fields(item, 'voice') !== null
   const { quotes, body } = splitQuotes(text(item, 'text'))
 
   return (
@@ -42,8 +44,10 @@ export const UserItem = ({
         />
       )}
       <div className={styles.userBubble}>
-        {(auto || flag(item, 'steering')) && (
-          <span className={styles.userMark}>{auto ? t('feed.auto') : t('feed.steering')}</span>
+        {(auto || flag(item, 'steering') || said) && (
+          <span className={styles.userMark}>
+            {auto ? t('feed.auto') : said ? t('feed.voice') : t('feed.steering')}
+          </span>
         )}
         {thumbnails.length > 0 && (
           <div className={styles.thumbnails}>

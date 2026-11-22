@@ -101,6 +101,7 @@ export class VoiceCall {
   }
 
   start(items: readonly FeedItem[]): void {
+    this.options.agent.notice('voice-started', this.options.view.origin)
     this.brain.seed(items)
     this.ears.start()
     this.mouth.warm(this.replyLanguage)
@@ -173,6 +174,7 @@ export class VoiceCall {
     this.brain.flush()
     this.ears.stop()
     this.mouth.stop()
+    if (reason !== 'conversationGone') this.options.agent.notice('voice-ended', reason)
 
     for (const cancel of this.cancels.values()) cancel()
 

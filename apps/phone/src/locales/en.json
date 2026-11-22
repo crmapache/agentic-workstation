@@ -441,7 +441,10 @@
       "connectors-missing": "Connectors are not available",
       "model-swap": "Model changed",
       "command-lost": "A background command stopped with the agent",
-      "wakeup-lost": "The wakeup the agent set was lost with it"
+      "wakeup-lost": "The wakeup the agent set was lost with it",
+      "voice-started": "Voice call started",
+      "voice-ended": "Voice call ended",
+      "voice-heard": "Cut off here, you heard up to"
     },
     "tooBig": "Too large to show on the phone. It is in full in the IDE.",
     "kinds": {
@@ -460,7 +463,19 @@
       "agent": "Stop this agent?",
       "workflow": "Stop this workflow?",
       "command": "Stop this command?"
-    }
+    },
+    "voiceFrom": {
+      "desktop": "from the panel",
+      "phone": "from the phone"
+    },
+    "voiceEnd": {
+      "lostLine": "the line was lost",
+      "silence": "after a long silence",
+      "keyRejected": "Deepgram rejected the key",
+      "deepgram": "Deepgram was not answering",
+      "shutdown": "the IDE closed"
+    },
+    "voice": "By voice"
   },
   "pending": {
     "more_one": "{{count}} more after this",

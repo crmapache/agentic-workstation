@@ -14,6 +14,8 @@ export type AgentWork = { state: 'idle' | 'thinking' | 'working'; tool: string |
 export type CallAgent = {
   send: (text: string, voice: VoiceOutgoing) => Promise<unknown>
   interrupt: () => unknown
+  /** Отметка звонка в ленте: начался, кончился, что человек услышал из перебитого ответа. */
+  notice: (code: 'voice-started' | 'voice-ended' | 'voice-heard', detail: string) => void
 }
 
 export type CallBrainOptions = {
@@ -129,6 +131,7 @@ export class CallBrain {
   /** Ответ оборван: что человек успел услышать - модели со следующей репликой. */
   cut(spoken: string): void {
     this.heard = spoken
+    if (spoken.trim()) this.options.agent.notice('voice-heard', spoken.trim())
   }
 
   /** Звонок кончается: реплики, ждавшие конца хода, уходят в очередь разговора. */

@@ -74,6 +74,7 @@ export const controlsOf = (ide: ExtrasIde): Controls => {
   const asides = new Map<string, (answer: AsideExchange) => void>()
 
   return {
+    voiceNotice: (id, code, detail) => ide.record('voiceNotice', id, code, detail),
     enqueue: (id, message) => {
       ide.record('enqueue', id, message)
       setQueue(id, [

@@ -58,3 +58,17 @@ export const ERROR_TITLE_KEYS: Partial<Record<NoticeCode, ParseKeys>> = {
   'quota-exhausted': 'agentPanel.notice.quotaExhausted',
   'terms-blocked': 'agentPanel.notice.termsBlocked',
 }
+
+/** Почему кончился звонок - словами отметки; положили сами или разговор закрыт - без слов. */
+export const VOICE_END_KEYS: Readonly<
+  Record<
+    string,
+    `agentPanel.notice.voice.endedWhy.${'lostLine' | 'silence' | 'keyRejected' | 'deepgram' | 'shutdown'}`
+  >
+> = {
+  lostLine: 'agentPanel.notice.voice.endedWhy.lostLine',
+  silence: 'agentPanel.notice.voice.endedWhy.silence',
+  keyRejected: 'agentPanel.notice.voice.endedWhy.keyRejected',
+  deepgram: 'agentPanel.notice.voice.endedWhy.deepgram',
+  shutdown: 'agentPanel.notice.voice.endedWhy.shutdown',
+}

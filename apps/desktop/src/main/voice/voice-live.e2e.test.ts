@@ -99,6 +99,7 @@ describe.runIf(LIVE)('voice call on live Deepgram', () => {
             return Promise.resolve()
           },
           interrupt: () => undefined,
+          notice: () => undefined,
         },
         checkKey: () => Promise.resolve('ok'),
         onView: () => undefined,

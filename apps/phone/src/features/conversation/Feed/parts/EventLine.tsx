@@ -7,18 +7,31 @@ import { flag, text, count } from '../Feed.utils'
 import { clockText } from '../../../../lib/time.utils'
 
 /**
+ * Подробность отметки словами: у пропавшего будильника - его срок (мс) временем по часам, у
+ * голосового звонка - откуда он и почему кончился (ADR 0104), а не слово кода.
+ */
+const noticeDetail = (
+  t: ReturnType<typeof useTranslation>['t'],
+  code: string,
+  detail: string,
+): string => {
+  if (code === 'wakeup-lost') return clockText(Number(detail))
+  if (code === 'voice-started') return t(`feed.voiceFrom.${detail}`, { defaultValue: '' })
+  if (code === 'voice-ended') return t(`feed.voiceEnd.${detail}`, { defaultValue: '' })
+
+  return detail
+}
+
+/**
  * Строка одного события ленты словами: отметка IDE, сжатие, повтор, лимит, модель. Конец хода -
  * своя строка (TurnLine): у неё цветные итоги правок.
  */
 const eventText = (t: ReturnType<typeof useTranslation>['t'], item: FeedItemWire): string => {
   switch (item.kind) {
     case 'notice':
-      // У пропавшего будильника подробность - его срок (мс): человеку - время по часам.
       return [
         t(`feed.notice.${text(item, 'code')}`, { defaultValue: text(item, 'code') }),
-        text(item, 'code') === 'wakeup-lost'
-          ? clockText(Number(text(item, 'detail')))
-          : text(item, 'detail'),
+        noticeDetail(t, text(item, 'code'), text(item, 'detail')),
       ]
         .filter(Boolean)
         .join(': ')
