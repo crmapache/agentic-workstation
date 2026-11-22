@@ -55,6 +55,7 @@ const setup = (outcome: VoiceStartOutcome = { ok: true, call: VIEW }) => {
     send: (_deviceId, message) => sent.push(message),
     stream: (_deviceId, body) => streamed.push(body),
     projectKey: () => 'p-home',
+    answerText: () => Promise.resolve(null),
     timer: (run, ms) => {
       const entry = { run, ms }
 

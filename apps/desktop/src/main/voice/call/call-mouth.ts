@@ -1,9 +1,12 @@
 import type { VoiceRegion, VoiceLanguage } from '@shared/voice'
 
+import type { SampleRequest } from '../voice-samples'
 import type { DeepgramDial } from '../deepgram/deepgram-link'
 import type { SpeakEvent } from '../deepgram/flux-speak'
 import { FluxSpeak, PLAY_BYTES_PER_MS } from '../deepgram/flux-speak'
 import { SentenceFeed } from '../speech/sentence-feed'
+import { speakableLines } from '../speech/speakable'
+import { readLanguage, textLanguage } from '../speech/text-language'
 import type { Timer } from './utterances'
 import type { VoiceEndpoint } from './voice-endpoint'
 
@@ -15,8 +18,12 @@ const DRAIN_GRACE_MS = 400
 /** Ответ агента в озвучке: один элемент ленты - один ход синтеза. */
 type Answer = {
   itemId: string
-  voice: string
+  /** Голос ответа; null - язык текста ещё не ясен, законченные фразы ждут в waiting. */
+  voice: string | null
+  language: VoiceLanguage | null
   feed: SentenceFeed
+  /** Законченные фразы, которые ждут голоса. */
+  waiting: string[]
   said: string
   closed: boolean
   started: boolean
@@ -26,7 +33,16 @@ type Answer = {
   /** Где в потоке эпохи начался звук ответа и сколько его. */
   streamStart: number
   audioMs: number
+  /**
+   * Звук ответа целиком - в запас «Прочитать вслух» (ADR 0106); null - не копить: фраза звонка
+   * или скорость сменили посреди ответа.
+   */
+  pcm: Buffer[] | null
+  speed: number
 }
+
+/** Ответ, который прозвучал целиком: его звук годится кнопке «Прочитать вслух». */
+export type SpokenAnswer = SampleRequest & { pcm: Uint8Array }
 
 export type CallMouthOptions = {
   key: string
@@ -40,6 +56,8 @@ export type CallMouthOptions = {
   onSpeaking: (speaking: boolean) => void
   /** Ответ оборван: что из него успело прозвучать. */
   onCut: (itemId: string, spoken: string) => void
+  /** Ответ ленты синтезирован целиком, без обрыва: его звук - в запас чтения вслух. */
+  onSpoken?: ((spoken: SpokenAnswer) => void) | undefined
   /** С какой эпохи начать: рот после паузы продолжает счёт прежнего, а не с нуля. */
   epoch?: number | undefined
 }
@@ -96,6 +114,9 @@ export class CallMouth {
     this.speed = speed
 
     for (const speaker of this.speakers.values()) speaker.setSpeed(speed)
+
+    // Ответ, который звучал на двух скоростях, ни одной из них не соответствует.
+    for (const answer of this.answers) answer.pcm = null
   }
 
   get isSpeaking(): boolean {
@@ -114,38 +135,47 @@ export class CallMouth {
     this.speakerOf(this.options.voices[language]).warm()
   }
 
-  /** Текст ответа подрос (или закончился): законченные фразы - в синтез. */
-  answer(itemId: string, text: string, streaming: boolean, language: VoiceLanguage): void {
+  /**
+   * Текст ответа подрос (или закончился): законченные фразы - в синтез. Голос - по языку текста
+   * ответа (ADR 0106), а не реплики человека: распознавание ошибается в языке, и русский ответ
+   * звучал португальским голосом. Пока ответ пишется и улик языка мало («Ok.»), фразы ждут
+   * продолжения; ничья и пустой текст - язык реплики (hint).
+   */
+  answer(itemId: string, text: string, streaming: boolean, hint: VoiceLanguage): void {
     if (this.stopped || this.silenced.has(itemId)) return
 
     let answer = this.answers.find((known) => known.itemId === itemId)
 
     if (!answer) {
       if (!text.trim()) return
-      answer = this.open(itemId, this.options.voices[language])
+      answer = this.open(itemId, null)
     }
 
     if (answer.closed) return
 
-    const speaker = this.speakerOf(answer.voice)
+    answer.waiting.push(...answer.feed.take(text, streaming))
 
-    for (const sentence of answer.feed.take(text, streaming)) {
-      speaker.say(sentence)
-      answer.said = `${answer.said} ${sentence}`.trim()
-      this.remember(sentence)
+    if (!answer.voice) {
+      const speakable = speakableLines(text).join(' ')
+
+      if (streaming && !readLanguage(speakable).sure) return
+
+      this.choose(answer, textLanguage(speakable, hint))
+      answer.pcm = []
     }
 
-    if (!streaming) {
-      answer.closed = true
-      speaker.finish()
-      // Ни одной фразы (только код или таблица) - и звучать нечему.
-      if (!answer.said) this.drop(answer)
-    }
+    this.speak(answer, streaming)
   }
 
-  /** Сказать фразу от звонка (разрешение, «ты ещё тут?») - отдельным ответом. */
+  /** Сказать фразу от звонка (разрешение, «ты ещё тут?») - отдельным ответом, на её языке. */
   say(id: string, text: string, language: VoiceLanguage): void {
-    this.answer(id, text, false, language)
+    if (this.stopped || this.silenced.has(id)) return
+    if (this.answers.some((known) => known.itemId === id)) return
+
+    const answer = this.open(id, language)
+
+    answer.waiting.push(...answer.feed.take(text, false))
+    this.speak(answer, false)
   }
 
   /** Конечная точка сообщила, сколько эпохи проиграно. */
@@ -160,10 +190,12 @@ export class CallMouth {
    * Человек перебил: оборвать то, что звучит, на месте, которое он слышит; всё, что ждало (и
    * ответы, у которых звука ещё нет), - выкинуть. Новая эпоха - конечная точка сбрасывает
    * непроигранное. Что услышано, говорит Deepgram, пока ход ещё синтезируется; ход уже весь у нас -
-   * считаем сами по доле проигранного.
+   * считаем сами по доле проигранного. always - кнопка «Стоп»: новая эпоха и сигнал конечной
+   * точке, даже если рот считает, что всё уже прозвучало, - конечная точка могла ещё играть
+   * хвост, а телефон, замолчавший у себя по нажатию, ждёт новой эпохи.
    */
-  cut(): void {
-    if (this.answers.length === 0 && !this.speaking) return
+  cut(always = false): void {
+    if (!always && this.answers.length === 0 && !this.speaking) return
 
     const heard =
       this.answers.find(
@@ -172,10 +204,12 @@ export class CallMouth {
       this.answers.find((answer) => answer.started) ??
       null
     const offset = heard ? Math.max(0, this.playedMs - heard.streamStart) : 0
-    const askDeepgram = heard !== null && !heard.done && !!this.speakers.get(heard.voice)?.busy
+    const heardVoice = heard?.voice ?? null
+    const askDeepgram =
+      heard !== null && !heard.done && !!heardVoice && !!this.speakers.get(heardVoice)?.busy
 
     for (const [voice, speaker] of this.speakers) {
-      if (askDeepgram && voice === heard.voice) speaker.interrupt(heard.sessionStart + offset)
+      if (askDeepgram && voice === heardVoice) speaker.interrupt(heard.sessionStart + offset)
       else if (speaker.busy) {
         speaker.stop()
         this.speakers.delete(voice)
@@ -207,11 +241,14 @@ export class CallMouth {
     this.answers = []
   }
 
-  private open(itemId: string, voice: string): Answer {
+  /** Новый ответ; language - язык известен заранее (фраза звонка), иначе его решит текст. */
+  private open(itemId: string, language: VoiceLanguage | null): Answer {
     const answer: Answer = {
       itemId,
-      voice,
+      voice: null,
+      language: null,
       feed: new SentenceFeed(),
+      waiting: [],
       said: '',
       closed: false,
       started: false,
@@ -219,11 +256,49 @@ export class CallMouth {
       sessionStart: 0,
       streamStart: 0,
       audioMs: 0,
+      pcm: null,
+      speed: this.speed,
     }
+
+    if (language) this.choose(answer, language)
 
     this.answers.push(answer)
 
     return answer
+  }
+
+  private choose(answer: Answer, language: VoiceLanguage): void {
+    answer.language = language
+    answer.voice = this.options.voices[language]
+  }
+
+  /** Ждавшие фразы - в синтез голоса ответа; текст кончился - конец хода. Нечего сказать - мимо. */
+  private speak(answer: Answer, streaming: boolean): void {
+    const { voice } = answer
+
+    if (!voice) return
+
+    if (!streaming && !answer.said && answer.waiting.length === 0) {
+      // Ни одной фразы (только код или таблица) - и звучать нечему.
+      this.drop(answer)
+
+      return
+    }
+
+    const speaker = this.speakerOf(voice)
+
+    for (const sentence of answer.waiting) {
+      speaker.say(sentence)
+      answer.said = `${answer.said} ${sentence}`.trim()
+      this.remember(sentence)
+    }
+
+    answer.waiting = []
+
+    if (!streaming) {
+      answer.closed = true
+      speaker.finish()
+    }
   }
 
   private speakerOf(voice: string): FluxSpeak {
@@ -278,10 +353,23 @@ export class CallMouth {
       this.frame += 1
       this.sentMs += ms
       answer.audioMs += ms
+      answer.pcm?.push(event.pcm)
     } else {
       answer.done = true
+      this.keep(answer)
       this.settle()
     }
+  }
+
+  /** Ответ синтезирован целиком: звук - в запас чтения вслух, если он годится. */
+  private keep(answer: Answer): void {
+    const { pcm, language, voice, said, speed } = answer
+
+    answer.pcm = null
+
+    if (!pcm || pcm.length === 0 || !language || !voice || !said) return
+
+    this.options.onSpoken?.({ language, voice, speed, text: said, pcm: Buffer.concat(pcm) })
   }
 
   /** Всё прозвучавшее и дослушанное - убрать; ничего не осталось - звонок замолчал. */

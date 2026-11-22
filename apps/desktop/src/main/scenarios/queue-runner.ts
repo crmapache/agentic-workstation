@@ -6,6 +6,7 @@ import type {
   ScenarioQueue,
   ScenarioStartOutcome,
   ScenarioStartRequest,
+  QueuePlaceholderRequest,
 } from '@shared/scenario-queues'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
@@ -14,7 +15,7 @@ import type { ScenarioProvider } from '../providers/scenario-provider'
 import { launchRun, carryOnRun } from './launch-run'
 import { QueueHoursKeeper } from './queue-hours-keeper'
 import { QueueNaming } from './queue-naming'
-import { shortId, placeItem } from './queue-placing'
+import { shortId, placeItem, placePlaceholder } from './queue-placing'
 import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
 import type { QueueBook } from './queues/queue-book'
@@ -79,8 +80,18 @@ export class QueueRunner {
 
   /** Поставить сценарий: в новую очередь (с worktree или без) или в существующую. */
   start(request: ScenarioStartRequest, from = ''): Promise<ScenarioStartOutcome> {
-    const work = this.startNow(request, from)
+    return this.track(this.startNow(() => placeItem(this.host, request), from))
+  }
 
+  /**
+   * Поставить пометку - карточку без сценария на её месте в отправке колонки (ADR 0101).
+   * Очередь пройдёт мимо неё, когда дойдёт.
+   */
+  startPlaceholder(request: QueuePlaceholderRequest): Promise<ScenarioStartOutcome> {
+    return this.track(this.startNow(() => placePlaceholder(this.host, request), ''))
+  }
+
+  private track(work: Promise<ScenarioStartOutcome>): Promise<ScenarioStartOutcome> {
     this.starting.add(work)
     void work.finally(() => this.starting.delete(work))
 
@@ -88,12 +99,12 @@ export class QueueRunner {
   }
 
   private async startNow(
-    request: ScenarioStartRequest,
+    place: () => ReturnType<typeof placeItem>,
     from: string,
   ): Promise<ScenarioStartOutcome> {
     if (this.host.isClosing()) return { ok: false, code: 'runBusy' }
 
-    const placed = await placeItem(this.host, request)
+    const placed = await place()
     if ('code' in placed) return { ok: false, ...placed }
 
     this.host.onQueues()
@@ -289,18 +300,26 @@ export class QueueRunner {
       return
     }
 
-    const item = rules.nextToStart(queue, Date.now())
+    // Дошла до пометок (карточек без сценария) - проходит мимо них к сценарию за ними.
+    const passed = rules.passPlaceholders(queue, Date.now())
+
+    if (passed !== queue) {
+      this.host.book.put(passed)
+      this.host.onQueues()
+    }
+
+    const item = rules.nextToStart(passed, Date.now())
 
     // Worktree удаляется прямо сейчас - в его папке ничего не начинать.
     if (!item || this.host.removing.has(queueId)) return
 
     const provider = this.host.provider(item.provider)
     const runId = shortId()
-    const cwd = workdirOf(queue)
+    const cwd = workdirOf(passed)
     const refusal: ScenarioCode | null = !cwd
       ? 'worktreeFailed'
       : provider
-        ? await launchRun(this.host.desk(queue.projectPath), provider, {
+        ? await launchRun(this.host.desk(passed.projectPath), provider, {
             id: item.scenarioId,
             scope: item.scope,
             inputs: item.inputs,
@@ -311,7 +330,7 @@ export class QueueRunner {
             itemId: item.id,
           })
         : 'providerMissing'
-    const latest = this.host.book.get(queueId) ?? queue
+    const latest = this.host.book.get(queueId) ?? passed
     const next = refusal
       ? rules.markRefused(latest, item.id, refusal, Date.now())
       : rules.markStarted(latest, item.id, runId)

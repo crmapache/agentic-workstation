@@ -60,6 +60,7 @@ export const startTracker = async (setup: {
   const runs = new TrackerRuns(tracker, {
     fetch: (projectPath, id, scope) => setup.scenarios.shelves.fetch(projectPath, id, scope),
     start: (request) => setup.scenarios.start(request),
+    placeholder: (request) => setup.scenarios.startPlaceholder(request),
     act: (queueId, action) => setup.scenarios.act(queueId, action),
     queues: () => setup.scenarios.queuesView().queues,
   })

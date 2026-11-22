@@ -48,33 +48,36 @@ export const VoiceKeyRow = () => {
   }
 
   return (
-    <SettingRow label={t('settings.voice.key')} description={description}>
-      <div className={styles.keyControl}>
-        <TextField
-          label={t('settings.voice.key')}
-          hideLabel
-          type="password"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={t('settings.voice.keyPlaceholder')}
-          value={draft}
-          onChange={setDraft}
-        />
-        <Button size="sm" disabled={!draft.trim()} onClick={() => void handleSave()}>
-          {t('settings.voice.keySave')}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={isChecking || (!draft.trim() && !key?.saved)}
-          onClick={() => void handleCheck()}>
-          {t('settings.voice.keyCheck')}
-        </Button>
-        {key?.saved && (
-          <Button size="sm" variant="ghost" onClick={() => void handleForget()}>
-            {t('settings.voice.keyForget')}
+    <SettingRow label={t('settings.voice.key')} description={description} wide>
+      <div className={styles.keyRow}>
+        <div className={styles.keyField}>
+          <TextField
+            label={t('settings.voice.key')}
+            hideLabel
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t('settings.voice.keyPlaceholder')}
+            value={draft}
+            onChange={setDraft}
+          />
+        </div>
+        <div className={styles.keyButtons}>
+          <Button disabled={!draft.trim()} onClick={() => void handleSave()}>
+            {t('settings.voice.keySave')}
           </Button>
-        )}
+          <Button
+            variant="secondary"
+            disabled={isChecking || (!draft.trim() && !key?.saved)}
+            onClick={() => void handleCheck()}>
+            {t('settings.voice.keyCheck')}
+          </Button>
+          {key?.saved && (
+            <Button variant="ghost" onClick={() => void handleForget()}>
+              {t('settings.voice.keyForget')}
+            </Button>
+          )}
+        </div>
         {refusal && (
           <span className={styles.keyBad}>{t(`settings.voice.keyRefused_${refusal}`)}</span>
         )}

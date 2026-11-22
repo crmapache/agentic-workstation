@@ -85,14 +85,26 @@
   align-items: center;
 }
 
-// Ряд групп листается вбок, сколько бы их ни было; колонки встают по верху.
+// Ряд групп и полоса его прокрутки: полоса прибита к низу экрана, но из потока не выходит.
+.rowArea {
+  display: flex;
+  flex-direction: column;
+}
+
+// Ряд групп листается вбок, сколько бы их ни было. Своя полоса спрятана: листают полосой
+// у низа экрана (.bar), колесом и жестом трекпада.
 .groups {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+// Колонки плотно, по верху; зазор шире зазора между карточками цепочки - колонка не сливается
+// с продолжениями соседней.
+.track {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-6);
-  overflow-x: auto;
-  padding-bottom: var(--space-2);
-  scrollbar-width: thin;
+  gap: var(--space-5);
+  width: max-content;
 }
 
 .rowEnd {
@@ -103,4 +115,16 @@
   > * {
     flex: 1;
   }
+}
+
+// Двойник полосы ряда: пока низ потока ниже края страницы - у края, потом - под рядом.
+.bar {
+  position: sticky;
+  bottom: 0;
+  height: var(--space-3);
+  overflow: auto hidden;
+}
+
+.barLength {
+  height: var(--border-width);
 }

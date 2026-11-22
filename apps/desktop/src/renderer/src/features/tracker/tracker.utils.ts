@@ -78,11 +78,20 @@ export const runTone = (run: TrackerCardRun): BadgeTone | null =>
             ? 'neutral'
             : null
 
-/** Что уйдёт в очередь из группы - тем же правилом, что у главного процесса. */
-export const sendableCards = (group: TrackerGroup): TrackerCard[] =>
+/**
+ * Что уйдёт в очередь из группы - тем же правилом, что у главного процесса: открытые карточки не
+ * из очереди, по порядку доски. Карточка без сценария идёт пометкой - очередь пройдёт мимо; в
+ * очередь queueId, где она уже стояла пометкой, второй раз не идёт.
+ */
+export const queueCardsOf = (group: TrackerGroup, queueId: string | null = null): TrackerCard[] =>
   group.tasks
     .flatMap((task) => [task, ...task.followUps])
-    .filter((card) => card.scenario !== null && !card.done && !isInQueue(card.run))
+    .filter(
+      (card) =>
+        !card.done &&
+        !isInQueue(card.run) &&
+        !(!card.scenario && queueId !== null && card.run?.queueId === queueId),
+    )
 
 /** Соседи для перетаскивания: кто следующий в группе, в цепочке, в потоке, на доске. */
 export type BoardNeighbours = {

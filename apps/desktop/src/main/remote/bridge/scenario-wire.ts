@@ -41,6 +41,7 @@ export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): Qu
     runId: item.runId,
     state: item.state,
     refusal: item.refusal,
+    ...(item.placeholder && { placeholder: true }),
   })),
   stopAfterItemId: queue.stopAfterItemId,
   hold: queue.hold,

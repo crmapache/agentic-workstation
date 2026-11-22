@@ -15,6 +15,8 @@ import { Markdown } from '../Markdown/Markdown'
 import { MessageMenu } from '../MessageMenu/MessageMenu'
 import { PinButton } from '../PinButton/PinButton'
 import { PinItem } from '../PinItem/PinItem'
+import { ReadAloudButton } from '../ReadAloudButton/ReadAloudButton'
+import { useReadAloudAvailable } from '../ReadAloudButton/ReadAloudButton.hooks'
 import { useCopy } from '../../../lib/clipboard.hooks'
 import { REVEAL_LIMIT } from './AssistantMessage.constants'
 import { useRevealOptions } from './AssistantMessage.hooks'
@@ -24,8 +26,8 @@ import { replyClipboard } from './AssistantMessage.utils'
 
 /**
  * Ответ модели - карточка с рамкой (как в ACC): видно, где кончились шаги и начался
- * ответ. В углу, как у своего сообщения, - копия всего ответа и три точки с булавкой, у
- * закреплённого булавка горит и снаружи. CLI шлёт текст рывками -
+ * ответ. В углу, как у своего сообщения, - копия всего ответа, «прочитать вслух» (ADR 0106) и
+ * три точки с булавкой, у закреплённого булавка горит и снаружи. CLI шлёт текст рывками -
  * smooth-stream-text выравнивает темп, а символы проступают волной; готовый ответ
  * (история, транскрипт) и очень длинный встают сразу.
  */
@@ -34,6 +36,8 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
   const { conversationId, readOnly } = useFeedScope()
   const { isCopied, copy } = useCopy()
   const { isPinned } = usePin(conversationId, item.id)
+  // Пока ответ пишется, читать нечего: текст ещё не тот, что останется.
+  const canRead = useReadAloudAvailable() && !item.streaming
   // Волна - только у ответа, который печатается на глазах: готовому из истории нечего проявлять.
   const [isLive] = useState(item.streaming)
   const { text } = useSmoothText(item.text, { done: !item.streaming })
@@ -48,7 +52,8 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
   const handleCopy = () => copy(replyClipboard(item.text))
 
   return (
-    <div className={clsx(styles.assistantMessage, isPinned && styles.pinned)}>
+    <div
+      className={clsx(styles.assistantMessage, isPinned && styles.pinned, canRead && styles.reads)}>
       <div className={styles.actions}>
         {/* В журнале чужого разговора закреплять некуда: полки закреплённых там нет. */}
         {!readOnly && <PinButton conversationId={conversationId} itemId={item.id} />}
@@ -58,6 +63,7 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
           label={isCopied ? t('agentPanel.message.copied') : t('agentPanel.message.copyReply')}
           onClick={handleCopy}
         />
+        {canRead && <ReadAloudButton itemId={item.id} text={item.text} />}
         {!readOnly && (
           <MessageMenu>
             <PinItem conversationId={conversationId} itemId={item.id} />

@@ -78,7 +78,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'list_queues',
     description:
-      'Scenario queues: their items in order (waiting, running, done, failed, stopped), where they stop, their working hours and the run going now. Open queues of a project, or of every project.',
+      'Scenario queues: their items in order (waiting, running, done, failed, stopped, skipped), where they stop, their working hours and the run going now. Open queues of a project, or of every project. A placeholder item is a tracker card without a scenario sent with its group: it runs nothing, the queue passes it (skipped) when it gets there.',
     access: 'read',
     inputSchema: {
       type: 'object',
@@ -169,7 +169,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'update_queue',
     description: [
-      'Change a queue like its card does: stop_after (item_id; the queue stops after that item), clear_stop_after, resume (lift a stop; an unfinished item continues its run), remove_item, move_item (by: -1 up, 1 down), mark_done (a failed or stopped item the person finished by hand),',
+      'Change a queue like its card does: stop_after (item_id; the queue stops after that item; not a placeholder - the queue passes those), clear_stop_after, resume (lift a stop; an unfinished item continues its run), remove_item, move_item (by: -1 up, 1 down), mark_done (a failed or stopped item the person finished by hand),',
       'rename (name), clear_waiting (drop every waiting item), set_hours (hours), clear_hours (work any time), close (the queue goes to history).',
     ].join(' '),
     access: 'write',
@@ -187,8 +187,23 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
     },
     run: async (args, ports) => {
       const queueId = stringArg(args, 'queue_id', true)
+      const action = queueActionOf(args)
+      const target =
+        action.kind === 'stopAfter' && action.itemId
+          ? ports.scenarios
+              .queuesView()
+              .queues.find((one) => one.id === queueId)
+              ?.items.find((item) => item.id === action.itemId)
+          : null
 
-      checkScenario(await ports.scenarios.act(queueId, queueActionOf(args)))
+      // Очередь проходит мимо пометки, не останавливаясь: без отказа агент решил бы, что встанет.
+      if (target?.placeholder) {
+        throw new ArgumentError(
+          'This item is a placeholder (a tracker card without a scenario): the queue passes it and cannot stop after it. Stop after a scenario item.',
+        )
+      }
+
+      checkScenario(await ports.scenarios.act(queueId, action))
 
       const view = ports.scenarios.queuesView()
       const queue = view.queues.find((one) => one.id === queueId)

@@ -8,7 +8,7 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
-import { sendableCards } from '../tracker.utils'
+import { queueCardsOf } from '../tracker.utils'
 import { ActionsMenu } from '../ActionsMenu/ActionsMenu'
 import type { ActionItem } from '../ActionsMenu/ActionsMenu.types'
 import { useBoard } from '../Board/Board.context'
@@ -29,7 +29,8 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
   const openSend = useTrackerStore((state) => state.openSend)
   const [adding, setAdding] = useState(false)
   const source = { kind: 'group' as const, id: group.id }
-  const sendable = sendableCards(group).length
+  // Одни пометки - не очередь: запускать в ней нечего.
+  const canSend = queueCardsOf(group).some((card) => card.scenario)
   const items: ActionItem[] = [
     {
       key: 'edit',
@@ -80,7 +81,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
             icon={Send}
             size="xs"
             label={t('tracker.group.send')}
-            disabled={sendable === 0}
+            disabled={!canSend}
             onClick={() => openSend({ kind: 'group', groupId: group.id })}
           />
           <ActionsMenu label={t('tracker.group.menu')} items={items} />

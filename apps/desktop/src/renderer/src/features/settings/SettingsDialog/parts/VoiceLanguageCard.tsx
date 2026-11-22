@@ -1,16 +1,14 @@
-import { Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { VoiceLanguage, VoiceSettings } from '@shared/voice'
-import { VOICE_LANGUAGES, VOICE_PLAY_RATE } from '@shared/voice'
+import type { VoiceSettings } from '@shared/voice'
+import { VOICE_LANGUAGES } from '@shared/voice'
 
 import { Card } from '@agentic-workstation/ui/Card'
-import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
-import { playPcmSample } from '@agentic-workstation/voice-audio/pcm'
 
 import styles from '../SettingsDialog.module.scss'
 import type { VoiceCardProps } from '../SettingsDialog.types'
+import { useVoicePreview } from '../../voice-preview.hooks'
 import {
   languageName,
   voiceChoices,
@@ -18,11 +16,10 @@ import {
   voicedLanguages,
   languageModeChoices,
 } from '../../voice-settings.utils'
-import { invoke } from '../../../../lib/ipc'
-import { useActionNoticeStore } from '../../../../state/action-notice.store'
 import { PickButton } from './PickButton'
 import { PickRow } from './PickRow'
 import { SettingRow } from './SettingRow'
+import { VoicePreviewButton } from './VoicePreviewButton'
 
 /**
  * Язык и голоса звонка (Settings → Voice): мультиязык или один язык, ожидаемые языки - подсказка
@@ -30,14 +27,7 @@ import { SettingRow } from './SettingRow'
  */
 export const VoiceLanguageCard = ({ settings, onChange }: VoiceCardProps) => {
   const { t } = useTranslation()
-  const showNotice = useActionNoticeStore((state) => state.show)
-
-  const handlePreview = async (language: VoiceLanguage) => {
-    const sample = await invoke('voice:preview', { language, voice: settings.voices[language] })
-
-    if (sample) playPcmSample(sample.pcm, VOICE_PLAY_RATE)
-    else showNotice({ tone: 'danger', title: t('settings.voice.previewFailed') })
-  }
+  const { preview, toggle } = useVoicePreview(settings.voices)
 
   return (
     <Card>
@@ -86,11 +76,9 @@ export const VoiceLanguageCard = ({ settings, onChange }: VoiceCardProps) => {
                   onChange({ ...settings, voices: { ...settings.voices, [language]: voice } })
                 }
               />
-              <IconButton
-                icon={Play}
-                label={t('settings.voice.preview')}
-                size="sm"
-                onClick={() => void handlePreview(language)}
+              <VoicePreviewButton
+                phase={preview?.language === language ? preview.phase : null}
+                onToggle={() => void toggle(language)}
               />
             </div>
           </SettingRow>

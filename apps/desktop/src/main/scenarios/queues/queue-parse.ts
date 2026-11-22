@@ -17,7 +17,14 @@ import { scopeOf } from '../store/scenario-parse'
  * мог оборваться. Непонятная очередь пропускается целиком, а не роняет остальные.
  */
 
-const STATES: readonly QueueItemState[] = ['waiting', 'running', 'done', 'failed', 'stopped']
+const STATES: readonly QueueItemState[] = [
+  'waiting',
+  'running',
+  'done',
+  'failed',
+  'stopped',
+  'skipped',
+]
 const HOLDS = ['stopAfter', 'failed', 'refused', 'interrupted'] as const
 const NAME_SOURCES = ['fallback', 'ai', 'user'] as const
 
@@ -44,7 +51,10 @@ const answers = (value: unknown): Record<string, string> =>
     : {}
 
 const parseItem = (value: unknown): QueueItem | null => {
-  if (!isRaw(value) || !text(value.id) || !text(value.scenarioId)) return null
+  const placeholder = isRaw(value) && value.placeholder === true
+
+  // У пометки сценария нет - она держится заголовком карточки.
+  if (!isRaw(value) || !text(value.id) || (!placeholder && !text(value.scenarioId))) return null
 
   return {
     id: text(value.id),
@@ -59,6 +69,7 @@ const parseItem = (value: unknown): QueueItem | null => {
     // Причина отказа - код окна; старый код, которого окно не знает, покажется общим текстом.
     refusal: (text(value.refusal) || null) as QueueItem['refusal'],
     ...(value.doneByHand === true && { doneByHand: true }),
+    ...(placeholder && { placeholder: true }),
   }
 }
 

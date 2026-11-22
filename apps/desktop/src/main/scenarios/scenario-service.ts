@@ -10,6 +10,7 @@ import type {
   ScenarioQueuesView,
   ScenarioStartOutcome,
   ScenarioStartRequest,
+  QueuePlaceholderRequest,
 } from '@shared/scenario-queues'
 import type { RunState, ScenarioRun, RunQuestionRef } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
@@ -176,21 +177,14 @@ export class ScenarioService {
     }
   }
 
-  /**
-   * Запуск сценария. Провайдера, которого в IDE нет (ADR 0083: в перечне есть и ещё не
-   * подключённые), - отказ сразу, а не очередь, которая тут же встанет на отказе.
-   */
+  /** Запуск сценария: в новую очередь или в конец существующей; проверки - в постановке. */
   start(request: ScenarioStartRequest): Promise<ScenarioStartOutcome> {
-    // Провайдер только для чата (Antigravity, ADR 0094) - отказ здесь, в точке запуска: сценарий
-    // мог прийти из чужого репозитория, а не из выбора в окне.
-    if (!worksUnattended(request.provider)) {
-      return Promise.resolve({ ok: false, code: 'chatOnly' })
-    }
-    if (!this.providers.has(request.provider)) {
-      return Promise.resolve({ ok: false, code: 'providerMissing' })
-    }
-
     return this.runner.start(request)
+  }
+
+  /** Пометка в очередь - карточка трекера без сценария на своём месте (ADR 0105). */
+  startPlaceholder(request: QueuePlaceholderRequest): Promise<ScenarioStartOutcome> {
+    return this.runner.startPlaceholder(request)
   }
 
   act(queueId: string, action: QueueAction): Promise<ScenarioCode | null> {

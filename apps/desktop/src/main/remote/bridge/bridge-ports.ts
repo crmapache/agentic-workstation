@@ -245,9 +245,12 @@ export type WorkspacePort = {
 
 /**
  * Голосовой звонок с телефона (ADR 0104): можно ли звонить и сам звонок - тем же сервисом, что
- * у кнопки в панели. Нет порта - IDE без голоса (тест моста).
+ * у кнопки в панели; чтение ответа вслух (ADR 0106) - тоже. Нет порта - IDE без голоса (тест моста).
  */
-export type VoicePort = Pick<VoiceService, 'capability' | 'start' | 'call' | 'end'>
+export type VoicePort = Pick<
+  VoiceService,
+  'capability' | 'start' | 'call' | 'end' | 'read' | 'stopReading'
+>
 
 export type BridgePorts = {
   panels: PanelsPort

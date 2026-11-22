@@ -9,8 +9,11 @@ import type { ScenarioCode, ScenarioScope } from './scenarios'
  * сценарию за раз, следующий видит результат предыдущего и стартует, только когда тот сделан.
  */
 
-/** Ждёт, идёт, прошёл (как кончился его прогон). */
-export type QueueItemState = 'waiting' | 'running' | 'done' | 'failed' | 'stopped'
+/**
+ * Ждёт, идёт, прошёл (как кончился его прогон). skipped - пометка (placeholder), мимо которой
+ * очередь прошла: прогона у неё не было и не будет.
+ */
+export type QueueItemState = 'waiting' | 'running' | 'done' | 'failed' | 'stopped' | 'skipped'
 
 /** Один сценарий в очереди - с ответами на вводы и провайдером, выбранными при запуске. */
 export type QueueItem = {
@@ -31,6 +34,13 @@ export type QueueItem = {
    * Сам прогон в истории остаётся каким был.
    */
   doneByHand?: boolean
+  /**
+   * Пометка, а не сценарий: карточка трекера без сценария, ушедшая в очередь вместе со своей
+   * колонкой (ADR 0101). Стоит на своём месте, чтобы очередь читалась как колонка, ничего не
+   * запускает; дойдя до неё, очередь проходит мимо - элемент становится skipped. scenarioName -
+   * заголовок карточки, сценария и ответов нет.
+   */
+  placeholder?: boolean
 }
 
 /**
@@ -138,6 +148,19 @@ export type ScenarioStartRequest = {
   hours?: QueueHours | null | undefined
 }
 
+/**
+ * Пометка в очередь (QueueItem.placeholder): заголовок карточки на её месте. Новую очередь
+ * пометка открывает, только если в той же отправке за ней идут сценарии; provider - их
+ * исполнитель: им готовится worktree новой очереди.
+ */
+export type QueuePlaceholderRequest = {
+  projectPath: string
+  title: string
+  provider: ProviderId
+  target: QueueTarget
+  hours?: QueueHours | null | undefined
+}
+
 export type ScenarioStartOutcome =
   { ok: true; queueId: string; itemId: string } | { ok: false; code: ScenarioCode; detail?: string }
 
@@ -164,4 +187,4 @@ export type WorktreeFacts = { exists: boolean; dirty: boolean; commitsAhead: num
 export type WorktreeAction = { kind: 'open' } | { kind: 'remove'; force: boolean }
 
 export const isItemOver = (state: QueueItemState): boolean =>
-  state === 'done' || state === 'failed' || state === 'stopped'
+  state === 'done' || state === 'failed' || state === 'stopped' || state === 'skipped'

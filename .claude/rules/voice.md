@@ -5,6 +5,9 @@ paths:
   - 'apps/desktop/src/main/agents/conversation/voice-note.ts'
   - 'apps/desktop/src/renderer/src/features/voice/**'
   - 'apps/phone/src/features/voice-call/**'
+  - 'apps/phone/src/features/read-aloud/**'
+  - 'apps/desktop/src/renderer/src/features/agent-panel/ReadAloudButton/**'
+  - 'apps/desktop/src/renderer/src/state/read-aloud.store.ts'
   - 'packages/voice-audio/**'
   - 'packages/remote-protocol/src/audio-frame.ts'
 ---
@@ -27,6 +30,13 @@ paths:
   непроигранное и кадры прежних эпох и считает проигранное заново. Без этого место обрыва врёт.
 - **Звук телефона - телом внутри SEALED** (`audio-frame.ts`), никогда в очереди: линии нет -
   кадр пропадает (`RemoteAgent.stream`). Кнопки и отчёт о проигранном - словом `voice`.
+- **Голос - по языку текста, который он читает** (ADR 0106, `speech/text-language.ts`), не по
+  ярлыку Flux: на смешанной речи Flux назвал русскую реплику `pt`. Цитата в кавычках язык не
+  меняет; пока ответ пишется и улик мало, фразы ждут.
+- **«Стоп» замолкает у конечной точки сразу** (`AnswerPlayer.hush`), IDE на «Стоп» всегда
+  начинает новую эпоху: путь до IDE и обратно - не повод звучать дальше.
+- **«Прочитать вслух»** - тот же фильтр фраз и тот же ключ кэша (`voice-samples`), что у ответа
+  звонка: тогда сказанное звонком целиком кнопка играет с диска. Оборванное на диск не идёт.
 - **Safari:** динамик и микрофон телефона готовятся прямо в нажатии кнопки
   (`PhoneCallEngine.prepare`), иначе звук не заведётся. Страница скрыта - звонок на паузе,
   Deepgram закрыт, минуты не идут.
@@ -38,4 +48,5 @@ paths:
 --use-fake-ui-for-media-stream --use-fake-device-for-media-stream
 --use-file-for-fake-audio-capture=<файл.wav>%noloop"` (без снятия песочницы звука Chromium
   файл не прочтёт). Телефон - `pnpm --filter @agentic-workstation/phone e2e`
-  (`e2e/voice.browser.test.ts`) и `e2e/voice-interop.test.ts` через настоящий релей.
+  (`e2e/voice.browser.test.ts`, `e2e/voice-buttons.browser.test.ts` - «Стоп» и «Read aloud»)
+  и `e2e/voice-interop.test.ts` через настоящий релей.

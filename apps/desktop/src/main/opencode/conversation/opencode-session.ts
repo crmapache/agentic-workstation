@@ -9,8 +9,8 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
-import { voiceNote } from '../../agents/conversation/voice-note'
 import type { Outgoing } from '../../agents/conversation/outbox'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import { takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
 import { openCodeOf } from './opencode-conversation'
@@ -148,7 +148,13 @@ export class OpenCodeSession implements AgentSession {
     // Прогон IDE, открытый чатом: рамка о снятой роли - перед первым словом человека.
     const frame = isSlashCommand(text) ? '' : takeReleasedFrame(this.sessionId)
     const body = {
-      text: [frame, shell, text, voice ? voiceNote(voice.lang, voice.heard) : '', editor ? editorNote(editor) : '']
+      text: [
+        frame,
+        shell,
+        text,
+        voice ? voiceNote(voice.lang, voice.heard) : '',
+        editor ? editorNote(editor) : '',
+      ]
         .filter(Boolean)
         .join('\n\n'),
       files: message.images.map((image, index) => ({

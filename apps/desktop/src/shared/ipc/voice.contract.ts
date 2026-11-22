@@ -7,6 +7,7 @@ import type {
   VoiceStartOutcome,
   VoiceSetKeyOutcome,
 } from '../voice'
+import type { VoiceReadRefusal, VoiceReadingEvent } from '../voice-reading'
 
 type CallRequest = { callId: string }
 
@@ -41,12 +42,24 @@ export type VoiceInvokeContract = {
   'voice:mic': { request: CallRequest & { pcm: Uint8Array }; response: void }
   /** Сколько ответа эпохи проиграно (мс) - раз в 200 мс, пока звучит. */
   'voice:played': { request: CallRequest & { epoch: number; ms: number }; response: void }
+  /**
+   * «Прочитать вслух» ответ модели (ADR 0106): id чтения даёт окно - звук и конец приходят
+   * событием `voice:reading` под ним. Ответ - null (началось) или причина отказа.
+   */
+  'voice:read': {
+    request: { readingId: string; text: string }
+    response: VoiceReadRefusal | null
+  }
+  /** Остановить своё чтение: звук больше не идёт, синтез закрыт. */
+  'voice:stopReading': { request: { readingId: string }; response: void }
 }
 
 export type VoiceEventContract = {
   'voice:changed': VoiceView
   'voice:cue': VoiceCue
   'voice:audio': VoiceAudio
+  /** Звук чтения вслух кусками и его конец. */
+  'voice:reading': VoiceReadingEvent
 }
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
@@ -62,6 +75,8 @@ export const VOICE_CHANNELS = {
   'voice:mute': true,
   'voice:mic': true,
   'voice:played': true,
+  'voice:read': true,
+  'voice:stopReading': true,
 } satisfies Record<keyof VoiceInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */
@@ -69,4 +84,5 @@ export const VOICE_EVENTS = {
   'voice:changed': true,
   'voice:cue': true,
   'voice:audio': true,
+  'voice:reading': true,
 } satisfies Record<keyof VoiceEventContract, true>

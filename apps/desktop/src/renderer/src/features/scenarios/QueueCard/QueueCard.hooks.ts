@@ -32,10 +32,15 @@ export const useClock = (isTicking: boolean, interval: number): number => {
   return now
 }
 
-/** Провайдеры элементов очереди словами: «Claude Code». Имя - от главного процесса, как в окне запуска. */
+/**
+ * Провайдеры сценариев очереди словами: «Claude Code». Имя - от главного процесса, как в окне
+ * запуска. Пометки (карточки без сценария) ничего не исполняют и в счёт не идут.
+ */
 export const useProviderLabel = (queue: ScenarioQueue): string => {
   const { data } = useProviders()
-  const ids = [...new Set(queue.items.map((item) => item.provider))]
+  const ids = [
+    ...new Set(queue.items.filter((item) => !item.placeholder).map((item) => item.provider)),
+  ]
 
   return PROVIDER_LIST.format(ids.map((id) => data?.find((one) => one.id === id)?.label ?? id))
 }

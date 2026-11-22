@@ -1,10 +1,13 @@
 import type { ProviderId } from '@shared/providers'
 import { PROVIDER_IDS } from '@shared/providers'
 import type {
+  QueueHours,
   QueueAction,
+  QueueTarget,
   ScenarioQueue,
   ScenarioStartOutcome,
   ScenarioStartRequest,
+  QueuePlaceholderRequest,
 } from '@shared/scenario-queues'
 import { isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
@@ -29,10 +32,14 @@ import type { TrackerPlace } from './tracker-spaces'
 import { TrackerTree } from './tracker-tree'
 import { cardOf, dueValue, repeatValue } from './tracker-view'
 
-/** Узкая ручка сценариев: прочитать сценарий, поставить в очередь, назвать очередь, увидеть её. */
+/**
+ * Узкая ручка сценариев: прочитать сценарий, поставить в очередь сценарий или пометку (карточку
+ * без сценария), назвать очередь, увидеть её.
+ */
 export type TrackerScenariosPort = {
   fetch: (projectPath: string, id: string, scope: ScenarioScope) => Promise<Scenario | null>
   start: (request: ScenarioStartRequest) => Promise<ScenarioStartOutcome>
+  placeholder: (request: QueuePlaceholderRequest) => Promise<ScenarioStartOutcome>
   act: (queueId: string, action: QueueAction) => Promise<ScenarioCode | null>
   queues: () => ScenarioQueue[]
 }
@@ -51,10 +58,31 @@ const isSameRound = (card: TrackerRecord, link: RunLink): boolean => {
   return link.due === null || !repeatValue(card) || (due !== null && dueKey(due) === link.due)
 }
 
-type Prepared = { card: TrackerCard; request: Omit<ScenarioStartRequest, 'target'> }
+/** Карточка к постановке: со сценарием - запрос запуска, без сценария - пометка (request null). */
+type Prepared = { card: TrackerCard; request: Omit<ScenarioStartRequest, 'target'> | null }
 
 const isProvider = (value: string): value is ProviderId =>
   (PROVIDER_IDS as readonly string[]).includes(value)
+
+/**
+ * Идёт ли карточка колонки в очередь: открытая и не стоящая в очереди. Карточка без сценария,
+ * уже стоявшая пометкой в той очереди, куда шлют, туда второй раз не встаёт: повторная отправка
+ * колонки (добавили карточку, переслали упавшую) не задваивает пометки.
+ */
+const isQueueable = (card: TrackerCard, target: QueueTarget): boolean =>
+  !card.done &&
+  !isInQueue(card.run) &&
+  !(!card.scenario && target.kind === 'queue' && card.run?.queueId === target.queueId)
+
+/** Отказы самой очереди, а не исполнителя или папки. */
+const QUEUE_CODES: ReadonlySet<ScenarioCode> = new Set(['queueGone', 'queueClosed', 'queueBusy'])
+
+/**
+ * Чья карточка отказала. Пометка, открывающая очередь, отказывает за исполнителя и папку первой
+ * карточки со сценарием - отказ называет ту; отказ самой очереди (нет, закрыта, занята) - свой.
+ */
+const refusedCard = (item: Prepared, lead: Prepared | null, code: ScenarioCode): string =>
+  item.request || !lead || QUEUE_CODES.has(code) ? item.card.id : lead.card.id
 
 /** Значения полей сценария из карточки: каждое объявленное поле, подстановки раскрыты. */
 export const inputsOf = (scenario: Scenario, card: TrackerCard): Record<string, string> =>
@@ -118,7 +146,7 @@ export class TrackerRuns {
         continue
       }
 
-      if (state === 'done') {
+      if (state === 'done' && !link.placeholder) {
         const card = book.get(cardId)
 
         // Повторяющаяся карточка не гаснет, а переезжает на следующий срок - как от галочки.
@@ -129,7 +157,7 @@ export class TrackerRuns {
         }
       }
 
-      if (state === 'done' || state === 'gone') {
+      if (state === 'done' || state === 'gone' || state === 'skipped') {
         book.setRun(cardId, { ...link, settled: true })
         settled = true
       }
@@ -159,7 +187,7 @@ export class TrackerRuns {
           .tasks(group.id)
           .flatMap((task) => [task, ...tree.followUps(task.id)])
           .map((one) => cardOf(one.record, this.tracker.local()))
-          .filter((card) => card.scenario && !card.done && !isInQueue(card.run))
+          .filter((card) => isQueueable(card, request.target))
       } else {
         const record = own(ctx, tree, request.source.cardId, 'card')
         const card = cardOf(record, this.tracker.local())
@@ -175,7 +203,10 @@ export class TrackerRuns {
       throw error
     }
 
-    if (cards.length === 0) return { ok: false, code: 'nothingToSend', cardId: null }
+    // Одни пометки - не очередь: запускать в ней нечего.
+    if (!cards.some((card) => card.scenario)) {
+      return { ok: false, code: 'nothingToSend', cardId: null }
+    }
 
     const prepared = await this.prepare(place.rootPath, cards)
 
@@ -184,7 +215,10 @@ export class TrackerRuns {
     return this.place(place, request, prepared, groupTitle)
   }
 
-  /** Все карточки проверяются до первого запуска: отказ не оставит полуочереди. */
+  /**
+   * Все карточки проверяются до первого запуска: отказ не оставит полуочереди. Карточка без
+   * сценария идёт пометкой на своём месте.
+   */
   private async prepare(
     projectPath: string,
     cards: TrackerCard[],
@@ -194,7 +228,11 @@ export class TrackerRuns {
     for (const card of cards) {
       const binding = card.scenario
 
-      if (!binding) continue
+      if (!binding) {
+        prepared.push({ card, request: null })
+
+        continue
+      }
 
       const scenario = await this.scenarios.fetch(projectPath, binding.scenarioId, binding.scope)
       const fail = (code: ScenarioCode) => ({ ok: false as const, code, cardId: card.id })
@@ -225,21 +263,30 @@ export class TrackerRuns {
   ): Promise<TrackerSendOutcome> {
     const { book } = this.tracker
     const sent: string[] = []
+    const placeholders: string[] = []
+    // Первая карточка со сценарием: её исполнитель готовит worktree очереди, если открывает её
+    // пометка, - и её же называет отказ исполнителя или папки.
+    const lead = prepared.find((item) => item.request) ?? null
     let queueId: string | null = null
 
     for (const item of prepared) {
-      const outcome = await this.scenarios.start({
-        ...item.request,
-        target: queueId ? { kind: 'queue', queueId } : request.target,
-        ...(queueId === null && request.target.kind === 'new'
-          ? { hours: request.hours ?? null }
-          : {}),
-      })
+      const target: QueueTarget = queueId ? { kind: 'queue', queueId } : request.target
+      const hours: { hours?: QueueHours | null } =
+        queueId === null && request.target.kind === 'new' ? { hours: request.hours ?? null } : {}
+      const outcome: ScenarioStartOutcome = item.request
+        ? await this.scenarios.start({ ...item.request, target, ...hours })
+        : await this.scenarios.placeholder({
+            projectPath: place.rootPath,
+            title: item.card.title,
+            provider: lead?.request?.provider ?? 'claude',
+            target,
+            ...hours,
+          })
 
       if (!outcome.ok) {
         if (sent.length > 0) book.commit()
 
-        return { ok: false, code: outcome.code, cardId: item.card.id }
+        return { ok: false, code: outcome.code, cardId: refusedCard(item, lead, outcome.code) }
       }
 
       if (queueId === null && request.target.kind === 'new' && groupTitle) {
@@ -253,7 +300,15 @@ export class TrackerRuns {
         sentAt: this.now(),
         settled: false,
         due: item.card.due ? dueKey(item.card.due) : null,
+        ...(!item.request && { placeholder: true }),
       })
+
+      if (!item.request) {
+        placeholders.push(item.card.id)
+
+        continue
+      }
+
       sent.push(item.card.id)
 
       // Карточка ушла - прежний отказ запуска в срок больше не про неё.
@@ -267,6 +322,7 @@ export class TrackerRuns {
       board: await this.tracker.board(place),
       queueId: queueId ?? '',
       sent,
+      placeholders,
     }
   }
 }

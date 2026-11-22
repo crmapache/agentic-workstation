@@ -12,20 +12,38 @@ export const pcmToFloat = (pcm: Uint8Array): Float32Array<ArrayBuffer> => {
 
 /**
  * Сыграть кусок PCM16 целиком - образец голоса в настройках. Отдельный AudioContext на образец:
- * закрывается, когда дозвучал, и не держит звуковое устройство.
+ * закрывается, когда дозвучал, и не держит звуковое устройство. Возвращает «остановить»;
+ * onEnded - один раз, когда звук кончился сам или его остановили.
  */
-export const playPcmSample = (pcm: Uint8Array, rate: number): void => {
+export const playPcmSample = (
+  pcm: Uint8Array,
+  rate: number,
+  onEnded?: () => void,
+): (() => void) => {
   const samples = pcmToFloat(pcm)
 
-  if (samples.length === 0) return
+  if (samples.length === 0) {
+    onEnded?.()
+
+    return () => undefined
+  }
 
   const context = new AudioContext()
   const buffer = context.createBuffer(1, samples.length, rate)
   const source = context.createBufferSource()
+  let isOver = false
 
   buffer.copyToChannel(samples, 0)
   source.buffer = buffer
   source.connect(context.destination)
-  source.onended = () => void context.close()
+  source.onended = () => {
+    isOver = true
+    void context.close()
+    onEnded?.()
+  }
   source.start()
+
+  return () => {
+    if (!isOver) source.stop()
+  }
 }

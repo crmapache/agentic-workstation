@@ -209,6 +209,23 @@ describe('слова телефона', () => {
     expect(parsePhoneMessage({ p: 1, k: 'unpair' })).toEqual({ p: 1, k: 'unpair' })
   })
 
+  it('чтение вслух - ответ ленты по id с номером чтения, стоп - по ref', () => {
+    const read = {
+      p: 1,
+      k: 'voice',
+      act: 'read',
+      ref: 'r1',
+      n: 3,
+      conversationId: CONVERSATION,
+      itemId: 'msg_01:1',
+    }
+
+    expect(parsePhoneMessage(read)).toEqual(read)
+    expect(parsePhoneMessage({ ...read, n: 70000 })).toBeNull()
+    expect(parsePhoneMessage({ ...read, itemId: '' })).toBeNull()
+    expect(parsePhoneMessage({ p: 1, k: 'voice', act: 'stopReading', ref: 'r1' })).not.toBeNull()
+  })
+
   it('чужая версия и незнакомый вид - не сообщение', () => {
     expect(parsePhoneMessage({ p: 2, k: 'hello' })).toBeNull()
     expect(parsePhoneMessage({ p: 1, k: 'bash' })).toBeNull()

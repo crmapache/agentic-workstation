@@ -7,6 +7,7 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Feed } from '../Feed/Feed'
 import { QuoteButton } from '../QuoteButton/QuoteButton'
 import { useQuotableSelection } from '../QuoteButton/QuoteButton.hooks'
+import { canReadAloud } from '../../read-aloud/read-aloud.utils'
 import { useCallOfConversation } from '../../voice-call/voice-call.hooks'
 import type { RouteOf } from '../../../lib/route.types'
 import { useDraftsStore } from '../../../state/drafts.store'
@@ -38,7 +39,7 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
   const commands = useConversationCommands(route.agentId, route.conversationId)
   const { conversation, feed, inventory } = screen
   const provider = inventory?.providers.find((one) => one.id === conversation?.provider)
-  const sheets = useConversationSheets(provider)
+  const sheets = useConversationSheets(provider, canReadAloud(inventory) ? route : null)
   const working = useWorkingText(conversation, inventory)
   const draftKey = `${route.agentId}|${route.conversationId}`
   const quotable = useQuotableSelection(screen.bodyRef)

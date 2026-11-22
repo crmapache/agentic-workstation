@@ -3,8 +3,8 @@ import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
 import type { VoiceMark } from '@shared/voice'
 
 import { isRecord, recordField, stringField } from '../cli/cli-messages'
-import type { ShellRun } from '../../agents/shell/shell-text'
 import { isVoiceNote, voiceFromNote } from '../../agents/conversation/voice-note'
+import type { ShellRun } from '../../agents/shell/shell-text'
 import { splitShellText } from '../../agents/shell/shell-text'
 
 /** Сообщение человека из транскрипта: текст, картинки и команды «!», ехавшие перед ним. */

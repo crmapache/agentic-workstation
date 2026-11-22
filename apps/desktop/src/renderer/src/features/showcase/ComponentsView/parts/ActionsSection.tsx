@@ -102,6 +102,7 @@ export const ActionsSection = () => {
         <IconButton icon={ArrowUp} variant="primary" label={t('samples.send')} />
         <IconButton icon={ArrowUp} variant="primary" label={t('samples.send')} disabled />
         <IconButton icon={Square} variant="danger" label={t('samples.stop')} />
+        <IconButton icon={Play} size="sm" label={t('samples.preparing')} busy />
       </Specimen>
 
       <CallLightSpecimen />

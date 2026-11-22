@@ -15,14 +15,19 @@ import type {
   VoiceStartOutcome,
   VoiceSetKeyOutcome,
 } from '@shared/voice'
+import type { VoiceReadRefusal } from '@shared/voice-reading'
 
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
 import { previewVoice } from './voice-preview'
+import type { VoiceSamples } from './voice-samples'
 import type { VoiceStore } from './voice-store'
 import type { Timer } from './call/utterances'
 import { VoiceCall } from './call/voice-call'
 import type { VoiceEndpoint } from './call/voice-endpoint'
+import { sampleOf } from './call/voice-phrases'
 import type { DeepgramDial } from './deepgram/deepgram-link'
+import type { ReadRequest } from './reading/voice-reader'
+import { VoiceReader } from './reading/voice-reader'
 
 export type VoiceServiceDeps = {
   store: VoiceStore
@@ -33,6 +38,8 @@ export type VoiceServiceDeps = {
   dial: DeepgramDial
   timer: Timer
   now: () => number
+  /** Образцы голосов для «Прослушать» и звук «Прочитать вслух», сохранённые на месяц. */
+  samples: VoiceSamples
   checkKey: (key: string, region: VoiceRegion) => Promise<VoiceKeyCheck>
   onView: (view: VoiceView) => void
   /** Звонок кончился: телефону - пуш, когда агент доделает (ADR 0104). */
@@ -58,10 +65,14 @@ export class VoiceService {
    * старта в одну секунду (двойное нажатие, панель и телефон) открыли бы два звонка.
    */
   private starting = false
-  /** Образец голоса, который сейчас синтезируется: второй ждёт первого, а не открывает сокет. */
-  private previewing: Promise<Uint8Array | null> | null = null
+  /** «Прочитать вслух» у ответов (ADR 0106): тот же ключ, голоса и диск, что у звонка. */
+  private readonly reader: VoiceReader
 
-  constructor(private readonly deps: VoiceServiceDeps) {}
+  constructor(private readonly deps: VoiceServiceDeps) {
+    const { store, samples, dial, timer } = deps
+
+    this.reader = new VoiceReader({ store, cache: samples, dial, timer })
+  }
 
   /** Можно ли звонить сейчас: телефону - в список машины. */
   get capability(): VoiceCapability {
@@ -93,25 +104,39 @@ export class VoiceService {
     return { ok: true, view: this.changed() }
   }
 
-  /** Образец голоса для «Прослушать»; ключа нет или Deepgram не ответил - null. */
+  /**
+   * Образец голоса для «Прослушать»: с диска, если его уже слушали за месяц, иначе - от Deepgram.
+   * Ключа нет или Deepgram не ответил - null.
+   */
   preview(language: VoiceLanguage, voice: string): Promise<Uint8Array | null> {
-    const { key, settings } = this.deps.store
+    const { store, samples, dial, timer } = this.deps
+    const { key, settings } = store
+    const { speed, region } = settings
+    const text = sampleOf(language)
 
-    if (!key) return Promise.resolve(null)
+    return samples.get({ language, voice, speed, text }, () =>
+      key
+        ? previewVoice({ key, region, language, voice, speed, text, dial, timer })
+        : Promise.resolve(null),
+    )
+  }
 
-    this.previewing ??= previewVoice({
-      key,
-      region: settings.region,
-      language,
-      voice,
-      speed: settings.speed,
-      dial: this.deps.dial,
-      timer: this.deps.timer,
-    }).finally(() => {
-      this.previewing = null
-    })
+  /**
+   * Прочитать ответ вслух (ADR 0106); нельзя - причина. Пока идёт звонок - нельзя: его голос и
+   * микрофон заняты, а чтение в динамик звонок принял бы за человека.
+   */
+  read(request: ReadRequest): VoiceReadRefusal | null {
+    const { capability } = this.deps.store
 
-    return this.previewing
+    if (!capability.available) return capability.reason
+    if (this.active || this.starting) return 'call'
+
+    return this.reader.read(request)
+  }
+
+  /** Остановить чтение конечной точки (окно или телефон) - только то, что она начала под этим id. */
+  stopReading(owner: string, id: string): void {
+    this.reader.stop(owner, id)
   }
 
   /** Проверить ключ: присланный (ещё не сохранённый) или сохранённый. */
@@ -132,6 +157,9 @@ export class VoiceService {
     if (!capability.available) return { ok: false, reason: capability.reason }
     if (!key) return { ok: false, reason: 'noKey' }
     if (this.active || this.starting) return { ok: false, reason: 'busy' }
+
+    // Звонок заговорит сам: чтение вслух в тот же динамик его уши приняли бы за человека.
+    this.reader.stopAll()
 
     const { settings } = store
     const port = panels().find((candidate) => candidate.provider === settings.provider)
@@ -183,6 +211,7 @@ export class VoiceService {
       checkKey: () => this.checkKey(),
       onView: () => this.changed(),
       onEnded: (reason) => this.ended(call, reason),
+      onSpoken: (spoken) => this.reader.keep(spoken),
     })
 
     const feed = await port.getFeed(conversationId).catch(() => null)
@@ -232,6 +261,7 @@ export class VoiceService {
   }
 
   shutdown(): void {
+    this.reader.stopAll()
     this.active?.call.end('shutdown')
   }
 

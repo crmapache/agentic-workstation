@@ -59,16 +59,21 @@ export const QueueItemMenu = ({ queue, item, isFirst, isLast }: QueueItemMenuPro
               onSelect={handleDown}
             />
             <MenuSeparator />
-            <MenuItem
-              icon={OctagonPause}
-              label={
-                isMarked
-                  ? t('scenarios.queues.itemMenu.keepGoing')
-                  : t('scenarios.queues.itemMenu.stopAfter')
-              }
-              onSelect={handleStopAfter}
-            />
-            <MenuSeparator />
+            {/* Мимо пометки очередь проходит, не останавливаясь: остановку ставят на сценарий. */}
+            {!item.placeholder && (
+              <>
+                <MenuItem
+                  icon={OctagonPause}
+                  label={
+                    isMarked
+                      ? t('scenarios.queues.itemMenu.keepGoing')
+                      : t('scenarios.queues.itemMenu.stopAfter')
+                  }
+                  onSelect={handleStopAfter}
+                />
+                <MenuSeparator />
+              </>
+            )}
             <MenuItem
               icon={Trash2}
               label={t('scenarios.queues.itemMenu.remove')}

@@ -7,6 +7,7 @@ import { DEFAULT_VOICE_SETTINGS } from '@shared/voice'
 
 import type { DeepgramDial, DeepgramHandlers } from '../deepgram/deepgram-link'
 import { PLAY_BYTES_PER_MS } from '../deepgram/flux-speak'
+import type { SpokenAnswer } from './call-mouth'
 import { VoiceCall } from './voice-call'
 
 type Socket = { url: string; handlers: DeepgramHandlers; sent: Array<string | Uint8Array> }
@@ -29,6 +30,7 @@ const harness = () => {
   const interrupt = vi.fn()
   const notices: Array<{ code: string; detail: string }> = []
   const checkKey = vi.fn(() => Promise.resolve('ok' as const))
+  const spoken: SpokenAnswer[] = []
   const call = new VoiceCall({
     id: 'call',
     conversationId: 'c1',
@@ -60,10 +62,12 @@ const harness = () => {
     checkKey,
     onView: () => undefined,
     onEnded: (reason) => ended.push(reason),
+    onSpoken: (answer) => spoken.push(answer),
   })
 
   const listen = () => sockets.filter((socket) => socket.url.includes('/v2/listen')).at(-1)
   const speak = () => sockets.filter((socket) => socket.url.includes('/v2/speak')).at(-1)
+  const speakers = () => sockets.filter((socket) => socket.url.includes('/v2/speak'))
   const says = (socket: Socket | undefined) =>
     (socket?.sent ?? [])
       .filter((data) => typeof data === 'string')
@@ -81,9 +85,9 @@ const harness = () => {
     )
   const state = (status: Conversation['status'], pending: Conversation['pending'] = null) =>
     call.conversation({ id: 'c1', status, pending } as Conversation)
-  const answer = (text: string, streaming: boolean): FeedPatch => ({
+  const answer = (text: string, streaming: boolean, id = 'a1'): FeedPatch => ({
     conversationId: 'c1',
-    upserts: [{ kind: 'assistant', id: 'a1', parentToolUseId: null, text, streaming }],
+    upserts: [{ kind: 'assistant', id, parentToolUseId: null, text, streaming }],
   })
   const lastState = () => cues.filter((cue) => cue.kind === 'state').at(-1)
 
@@ -94,6 +98,8 @@ const harness = () => {
     cues,
     played,
     sent,
+    spoken,
+    speakers,
     ended,
     interrupt,
     notices,
@@ -343,5 +349,105 @@ describe('VoiceCall', () => {
       { code: 'voice-started', detail: 'desktop' },
       { code: 'voice-ended', detail: 'lostLine' },
     ])
+  })
+})
+
+/** Звонок владельца 2026-11-21: русская реплика с ярлыком pt и русский ответ с цитатой. */
+const RUSSIAN_LINE =
+  'Ok, a теперь посмотри за последние десять минут в WhatsApp были какие-нибудь сообщения?'
+const RUSSIAN_ANSWER =
+  'За последние десять минут в WhatsApp была только переписка с Бьянкой. В 22:39 ты написал ей «hmm poquito», а в 22:40 она ответила с улыбкой, что ты заработаешь больше нежности поцелуями, и прислала эмодзи с поцелуем. Больше сообщений не было.'
+
+describe('VoiceCall: the voice of an answer', () => {
+  it('speaks a Russian answer with a Spanish quote in the Russian voice after a line Flux called pt', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.turn('EndOfTurn', RUSSIAN_LINE, ['pt'])
+    expect(h.sent.at(-1)?.voice.lang).toBe('ru')
+
+    h.state('running')
+    h.call.feed(h.answer(RUSSIAN_ANSWER.slice(0, 120), true))
+    h.call.feed(h.answer(RUSSIAN_ANSWER, false))
+
+    const used = h.speakers().filter((socket) => h.says(socket).some((m) => m.type === 'Speak'))
+
+    expect(used.map((socket) => socket.url)).toEqual([expect.stringContaining('flux-olga-ru')])
+    expect(h.speakers().some((socket) => socket.url.includes('mariana'))).toBe(false)
+  })
+
+  it('follows the language of the answer, not of the line it answers', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.turn('EndOfTurn', 'What came in on WhatsApp in the last ten minutes?', ['en'])
+    h.state('running')
+    h.call.feed(h.answer('Только переписка с Бьянкой, больше ничего.', false))
+
+    expect(h.speak()?.url).toContain('flux-olga-ru')
+  })
+
+  it('waits for enough words before it picks a voice for a streaming answer', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Ok. ', true))
+    expect(h.speakers().some((socket) => h.says(socket).some((m) => m.type === 'Speak'))).toBe(
+      false,
+    )
+
+    h.call.feed(h.answer('Ok. The build is green and all the tests pass. ', true))
+    await settle()
+    expect(h.speak()?.url).toContain('flux-paige-en')
+    expect(h.says(h.speak()).filter((m) => m.type === 'Speak')).toEqual([
+      { type: 'Speak', text: 'Ok. ' },
+      { type: 'Speak', text: 'The build is green and all the tests pass. ' },
+    ])
+  })
+})
+
+describe('VoiceCall: Stop and the kept answer', () => {
+  it('starts a new epoch on Stop even when nothing is left to say', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.call.stop()
+
+    expect(h.cues).toContainEqual({ kind: 'stopPlayback', epoch: 1 })
+    expect(h.interrupt).not.toHaveBeenCalled()
+  })
+
+  it('keeps the sound of an answer said in full, and not of a cut one', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Почта пуста. Новых писем нет.', false))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    h.speak()?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 300))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+
+    expect(h.spoken).toHaveLength(1)
+    expect(h.spoken[0]).toMatchObject({
+      language: 'ru',
+      voice: 'flux-olga-ru',
+      speed: 1,
+      text: 'Почта пуста. Новых писем нет.',
+    })
+    expect(h.spoken[0]?.pcm.byteLength).toBe(PLAY_BYTES_PER_MS * 300)
+
+    h.call.feed(h.answer('Первая фраза. Вторая фраза.', false, 'a2'))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    h.speak()?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 300))
+    h.call.stop()
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+
+    expect(h.spoken).toHaveLength(1)
   })
 })

@@ -42,6 +42,21 @@ const desk = (busy = false) => {
 }
 
 describe('UtteranceDesk', () => {
+  it('sends a Russian line as Russian even when Flux labels it Portuguese', () => {
+    const { subject, said } = desk()
+
+    subject.turn(
+      turn(
+        'EndOfTurn',
+        'Ok, a теперь посмотри за последние десять минут в WhatsApp были какие-нибудь сообщения?',
+        0.9,
+        ['pt'],
+      ),
+    )
+
+    expect(said[0]?.language).toBe('ru')
+  })
+
   it('sends a finished line with its language and shows the live text before it', () => {
     const { subject, heard, said } = desk()
 
@@ -113,12 +128,30 @@ describe('UtteranceDesk', () => {
 })
 
 describe('pickLanguage', () => {
+  /** Реплика владельца из звонка 2026-11-21: Flux дал ей язык pt. */
+  const RUSSIAN_LINE =
+    'Ok, a теперь посмотри за последние десять минут в WhatsApp были какие-нибудь сообщения?'
+
   it('always gives the chosen language outside multi mode', () => {
-    expect(pickLanguage('ru', ['en'], 10, null)).toBe('ru')
+    expect(pickLanguage('ru', ['en'], 'Show me the meetings for tomorrow', null)).toBe('ru')
   })
 
-  it('takes the first known language of a long line', () => {
-    expect(pickLanguage('multi', ['xx', 'es', 'en'], 5, 'ru')).toBe('es')
+  it('takes the words of a Russian line over the Portuguese label Flux gave it', () => {
+    expect(pickLanguage('multi', ['pt'], RUSSIAN_LINE, 'ru')).toBe('ru')
+    expect(pickLanguage('multi', ['pt', 'ru'], RUSSIAN_LINE, null)).toBe('ru')
+  })
+
+  it('leaves Latin lines the words do not settle to the Flux label', () => {
+    expect(pickLanguage('multi', ['xx', 'es', 'en'], 'Busca los correos', 'ru')).toBe('es')
+    expect(pickLanguage('multi', ['pt'], 'Procura emails novos hoje', 'ru')).toBe('pt')
+  })
+
+  it('takes clear Latin words over a wrong label', () => {
+    expect(pickLanguage('multi', ['pt'], 'What is on my calendar for tomorrow?', 'ru')).toBe('en')
+  })
+
+  it('keeps the language of the last line for a short one', () => {
+    expect(pickLanguage('multi', ['en'], "I'm asking.", 'ru')).toBe('ru')
   })
 })
 

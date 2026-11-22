@@ -16,13 +16,35 @@ export type DropMark = { axis: 'h' | 'v'; x: number; y: number; length: number }
 
 export type Rect = { left: number; top: number; width: number; height: number }
 
-/** То, над чем рука: карточка, конец цепочки, колонка группы, ряд групп, поток. */
+/** Колонка ряда для места группы: вся колонка и её шапка. */
+export type RowColumn = { id: string; rect: Rect; head: Rect }
+
+/**
+ * То, над чем рука: карточка, колонка группы (для карточки), ряд групп (для группы), поток.
+ * gap - зазор до соседа в пикселях: линия места встаёт посреди него, а не на краю одного из
+ * соседей, - «после A» и «перед B» тогда одна и та же линия. У карточки два зазора: между
+ * задачами колонки (gap) и между карточками цепочки (chainGap).
+ */
 export type DropHit =
-  | { kind: 'card'; id: string; groupId: string; followUp: boolean; rect: Rect }
-  | { kind: 'chain'; rootId: string; groupId: string; rect: Rect }
-  | { kind: 'group'; id: string; flowId: string; rect: Rect; head: Rect; end: Rect | null }
-  | { kind: 'row'; flowId: string; end: Rect | null }
-  | { kind: 'flow'; id: string; rect: Rect }
+  | {
+      kind: 'card'
+      id: string
+      groupId: string
+      followUp: boolean
+      rect: Rect
+      gap: number
+      chainGap: number
+    }
+  | { kind: 'group'; id: string; end: Rect | null; gap: number }
+  | {
+      kind: 'row'
+      flowId: string
+      columns: RowColumn[]
+      box: Rect
+      end: Rect | null
+      gap: number
+    }
+  | { kind: 'flow'; id: string; rect: Rect; gap: number }
 
 /** Картина жеста: что несут, где рука, размер и захват призрака, место. */
 export type BoardDrag = {

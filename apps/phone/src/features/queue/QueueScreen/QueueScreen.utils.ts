@@ -12,9 +12,16 @@ export const inputsText = (inputs: Record<string, string>, limit = 160): string 
   return line.length > limit ? `${line.slice(0, limit)}…` : line
 }
 
-/** Строка элемента под именем сценария: ответы на вопросы и почему не начался, если не начался. */
+/**
+ * Строка элемента под именем сценария: ответы на вопросы и почему не начался, если не начался. У
+ * пометки - что это карточка без сценария: очередь пройдёт мимо.
+ */
 export const itemFacts = (t: TFunction, item: QueueItemWire): string =>
-  [inputsText(item.inputs), item.refusal && t('queue.refused', { code: item.refusal })]
+  [
+    item.placeholder && t('queue.placeholder'),
+    inputsText(item.inputs),
+    item.refusal && t('queue.refused', { code: item.refusal }),
+  ]
     .filter(Boolean)
     .join(' · ')
 

@@ -45,7 +45,7 @@ const setup = async (shelf: Scenario[]) => {
 }
 
 describe('отправка в очередь', () => {
-  it('группа уходит одной очередью по порядку доски, лишние пропущены', async () => {
+  it('группа уходит одной очередью по порядку доски; без сценария - пометкой, сделанные - нет', async () => {
     const kit = await setup([scenario('fix', ['task'])])
     const a = await kit.card('A', {})
 
@@ -67,6 +67,16 @@ describe('отправка в очередь', () => {
     ])
     expect(kit.started.map((request) => request.target.kind)).toEqual(['new', 'queue', 'queue'])
     expect(kit.started[0]?.provider).toBe('claude')
+    expect(kit.placeholders.map(({ title, target }) => [title, target.kind])).toEqual([
+      ['Без сценария', 'queue'],
+    ])
+    // Пометка стоит на месте карточки: между A2 и B, как на доске.
+    expect(kit.queues[0]?.items.map((item) => item.placeholder === true)).toEqual([
+      false,
+      false,
+      true,
+      false,
+    ])
     expect(kit.actions).toEqual([{ kind: 'rename', name: 'Неделя 1' }])
 
     const again = await kit.runs.send(PLACE, {
@@ -75,6 +85,99 @@ describe('отправка в очередь', () => {
     })
 
     expect(again).toEqual({ ok: false, code: 'nothingToSend', cardId: null })
+  })
+
+  it('пометка первой открывает очередь; одни пометки - отправлять нечего', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+
+    await kit.card('О колонке', null)
+    await kit.card('A', {})
+
+    const outcome = await kit.runs.send(PLACE, {
+      source: { kind: 'group', groupId: kit.groupId },
+      target: { kind: 'new', worktree: true },
+    })
+
+    expect(outcome).toMatchObject({ ok: true, sent: [expect.any(String)] })
+    expect(kit.placeholders[0]).toMatchObject({
+      title: 'О колонке',
+      provider: 'claude',
+      target: { kind: 'new', worktree: true },
+    })
+    expect(kit.started.map((request) => request.target.kind)).toEqual(['queue'])
+
+    const plain = await setup([scenario('fix', ['task'])])
+
+    await plain.card('О колонке', null)
+
+    expect(
+      await plain.runs.send(PLACE, {
+        source: { kind: 'group', groupId: plain.groupId },
+        target: { kind: 'new', worktree: false },
+      }),
+    ).toEqual({ ok: false, code: 'nothingToSend', cardId: null })
+    expect(plain.placeholders).toEqual([])
+  })
+
+  it('пометка в ту же очередь второй раз не встаёт, в новую - встаёт; сделанной её не отметить', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+
+    await kit.card('О колонке', null)
+    await kit.card('A', {})
+
+    const first = await kit.runs.send(PLACE, {
+      source: { kind: 'group', groupId: kit.groupId },
+      target: { kind: 'new', worktree: false },
+    })
+
+    if (!first.ok) throw new Error('не ушла')
+
+    const queue = kit.queues[0]
+
+    if (!queue) throw new Error('нет очереди')
+
+    // Очередь прошла пометку и сделала A; в колонку добавили B и переслали в ту же очередь.
+    for (const item of queue.items) item.state = item.placeholder ? 'skipped' : 'done'
+    kit.runs.queuesChanged()
+    await kit.card('B', {})
+
+    const again = await kit.runs.send(PLACE, {
+      source: { kind: 'group', groupId: kit.groupId },
+      target: { kind: 'queue', queueId: first.queueId },
+    })
+
+    expect(again).toMatchObject({ ok: true, placeholders: [] })
+    expect(queue.items.map((item) => item.placeholder === true)).toEqual([true, false, false])
+
+    const note = (await kit.service.board(PLACE)).projects[0]?.flows[0]?.groups[0]?.tasks[0]
+
+    expect([note?.title, note?.done]).toEqual(['О колонке', false])
+
+    await kit.card('C', {})
+
+    const fresh = await kit.runs.send(PLACE, {
+      source: { kind: 'group', groupId: kit.groupId },
+      target: { kind: 'new', worktree: false },
+    })
+
+    expect(fresh).toMatchObject({ ok: true, placeholders: [note?.id] })
+    expect(kit.placeholders.map((request) => request.target.kind)).toEqual(['new', 'new'])
+  })
+
+  it('отказ исполнителя у пометки, открывающей очередь, называет карточку со сценарием', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+
+    await kit.card('О колонке', null)
+    const a = await kit.card('A', {})
+
+    kit.port.placeholder = () => Promise.resolve({ ok: false, code: 'chatOnly' })
+
+    expect(
+      await kit.runs.send(PLACE, {
+        source: { kind: 'group', groupId: kit.groupId },
+        target: { kind: 'new', worktree: false },
+      }),
+    ).toEqual({ ok: false, code: 'chatOnly', cardId: a })
   })
 
   it('сломанная привязка останавливает всё до первого запуска', async () => {

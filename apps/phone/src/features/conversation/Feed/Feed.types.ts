@@ -22,6 +22,11 @@ export type FeedActions = {
   onStopTask?: ((task: RunningTask) => void) | undefined
   /** Откатить разговор к сообщению человека (экран покажет, что вернётся). */
   onRewind?: ((messageId: string) => void) | undefined
+  /**
+   * Читать ответы вслух голосом IDE (ADR 0106): чья IDE и какой разговор. Нет - IDE не умеет или
+   * голос у неё выключен, кнопки у ответов нет.
+   */
+  readAloud?: { agentId: string; conversationId: string } | undefined
 }
 
 export type FeedProps = {

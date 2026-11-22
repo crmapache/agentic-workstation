@@ -44,6 +44,7 @@ export const QUEUE_ITEM_TONES: Record<string, BadgeTone> = {
   done: 'success',
   failed: 'danger',
   stopped: 'neutral',
+  skipped: 'neutral',
 }
 
 export const RUN_TONES: Record<string, BadgeTone> = {

@@ -555,14 +555,16 @@
     "clear": "Clear waiting",
     "clearConfirm_one": "Remove {{count}} waiting scenario?",
     "clearConfirm_other": "Remove {{count}} waiting scenarios?",
-    "clearText": "The running scenario and the finished ones stay. The queue stays open."
+    "clearText": "The running scenario and the finished ones stay. The queue stays open.",
+    "placeholder": "Tracker card without a scenario"
   },
   "itemState": {
     "waiting": "Waiting",
     "running": "Running",
     "done": "Done",
     "failed": "Failed",
-    "stopped": "Stopped"
+    "stopped": "Stopped",
+    "skipped": "Skipped"
   },
   "runState": {
     "starting": "Starting",
@@ -1000,7 +1002,7 @@
     },
     "mute": "Mute microphone",
     "unmute": "Unmute microphone",
-    "stop": "Stop",
+    "stop": "Stop the agent",
     "end": "End call",
     "ended": {
       "lostLine": "The call ended: the line was lost",
@@ -1009,6 +1011,19 @@
       "deepgram": "The call ended: Deepgram is not answering",
       "conversationGone": "The call ended: its chat was closed",
       "other": "The call ended"
+    }
+  },
+  "read": {
+    "start": "Read aloud",
+    "stop": "Stop reading",
+    "failed": "Reading aloud stopped: Deepgram did not answer",
+    "refused": {
+      "off": "Voice mode is off in the IDE settings",
+      "noKey": "No Deepgram key in the IDE settings",
+      "call": "Not during a voice call",
+      "empty": "Nothing to read aloud: this reply is only code, tables or links",
+      "missing": "This reply is no longer in the chat",
+      "other": "The reply was not read aloud"
     }
   }
 }

@@ -131,6 +131,13 @@
   background-color: var(--color-bg-hover);
 }
 
+// Пометка - карточка трекера без сценария: стоит для обзора, очередь проходит мимо. Бледная и
+// с пунктирной рамкой - не работа очереди.
+.itemPlaceholder {
+  border-style: dashed;
+  opacity: var(--opacity-muted);
+}
+
 // Строка с прогоном нажимается вся: подложка под курсором, как у пункта списка.
 .itemPressable {
   @include interactive-surface;

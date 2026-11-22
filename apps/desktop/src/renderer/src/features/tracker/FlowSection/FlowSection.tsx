@@ -1,23 +1,20 @@
-import { useState } from 'react'
 import { clsx } from 'clsx'
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, ArrowUp, ArrowDown, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-
-import { Button } from '@agentic-workstation/ui/Button'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
 import { ActionsMenu } from '../ActionsMenu/ActionsMenu'
 import type { ActionItem } from '../ActionsMenu/ActionsMenu.types'
 import { useBoard } from '../Board/Board.context'
-import { GroupColumn } from '../GroupColumn/GroupColumn'
-import { QuickAdd } from '../QuickAdd/QuickAdd'
 import styles from './FlowSection.module.scss'
 import type { FlowSectionProps } from './FlowSection.types'
+import { GroupsRow } from './parts/GroupsRow'
 
 /**
- * Поток - шапка во всю ширину и ряд групп под ней, который листается вбок. Нажатие на шапку
- * сворачивает и разворачивает поток (это помнится между запусками), за неё же поток тянут.
+ * Поток - шапка во всю ширину и ряд групп под ней, который листается вбок своей полосой у низа
+ * экрана. Нажатие на шапку сворачивает и разворачивает поток (это помнится между запусками), за
+ * неё же поток тянут.
  */
 export const FlowSection = ({ flow, projectId }: FlowSectionProps) => {
   const { t } = useTranslation()
@@ -26,7 +23,6 @@ export const FlowSection = ({ flow, projectId }: FlowSectionProps) => {
   const collapsed = useTrackerStore((state) => state.collapsed[flow.id] === true)
   const toggleFlow = useTrackerStore((state) => state.toggleFlow)
   const edit = useTrackerStore((state) => state.edit)
-  const [adding, setAdding] = useState(false)
   const source = { kind: 'flow' as const, id: flow.id }
   const tasks = flow.groups.reduce(
     (sum, group) => sum + group.tasks.reduce((cards, task) => cards + 1 + task.followUps.length, 0),
@@ -60,14 +56,6 @@ export const FlowSection = ({ flow, projectId }: FlowSectionProps) => {
     },
   ]
 
-  const handleAddGroup = async (title: string) => {
-    const { ok } = await apply({ kind: 'group.create', flowId: flow.id, title })
-
-    if (ok) setAdding(false)
-
-    return ok
-  }
-
   return (
     <section
       className={clsx(styles.flow, draggingId === flow.id && styles.dragging)}
@@ -100,26 +88,7 @@ export const FlowSection = ({ flow, projectId }: FlowSectionProps) => {
           <ActionsMenu label={t('tracker.flow.menu')} items={items} />
         </span>
       </header>
-      {!collapsed && (
-        <div className={styles.groups} data-flow-row={flow.id}>
-          {flow.groups.map((group) => (
-            <GroupColumn key={group.id} group={group} flowId={flow.id} />
-          ))}
-          <div className={styles.rowEnd} data-row-end="">
-            {adding ? (
-              <QuickAdd
-                placeholder={t('tracker.group.titlePlaceholder')}
-                onAdd={handleAddGroup}
-                onClose={() => setAdding(false)}
-              />
-            ) : (
-              <Button variant="dashed" size="sm" icon={Plus} onClick={() => setAdding(true)}>
-                {t('tracker.group.new')}
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      {!collapsed && <GroupsRow flow={flow} />}
     </section>
   )
 }

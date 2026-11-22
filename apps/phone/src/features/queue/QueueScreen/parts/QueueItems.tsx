@@ -71,6 +71,7 @@ export const QueueItems = ({
                 key={item.id}
                 title={item.scenarioName}
                 description={itemFacts(t, item) || undefined}
+                muted={item.placeholder}
                 trailing={
                   <>
                     {queue.stopAfterItemId === item.id && (

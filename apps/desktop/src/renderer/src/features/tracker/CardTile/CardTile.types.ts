@@ -7,6 +7,8 @@ export type CardTileProps = {
   followUp: boolean
   /** Задача цепочки: к ней добавляются продолжения. */
   rootId: string
+  /** Последняя карточка цепочки: «+» под рукой открывает поле следующего продолжения. */
+  onAddFollowUp?: (() => void) | undefined
 }
 
 export type CardMetaProps = { card: TrackerCard; today: number }

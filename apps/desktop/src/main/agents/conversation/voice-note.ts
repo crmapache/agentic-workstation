@@ -1,4 +1,4 @@
-import type { VoiceLanguage, VoiceMark } from '@shared/voice'
+import type { VoiceMark, VoiceLanguage } from '@shared/voice'
 import { isVoiceLanguage } from '@shared/voice'
 
 /**
@@ -38,7 +38,7 @@ export const voiceNote = (lang: VoiceLanguage, heard?: string | null): string =>
     `${OPENING} the user said this out loud (language: ${lang}) and hears your reply read aloud.`,
     `- Reply in ${name}, whatever language the rest of this chat is in.`,
     '- Keep it short: 1-3 sentences of plain spoken language, no Markdown.',
-    "- Do not read out code, file paths, tables or links: put them in the chat and say that the details are in the chat.",
+    '- Do not read out code, file paths, tables or links: put them in the chat and say that the details are in the chat.',
     '- Before long work, say in one short sentence what you are about to do.',
     '- If the words look like a speech recognition mistake, ask again instead of guessing.',
   ]
@@ -52,7 +52,8 @@ export const voiceNote = (lang: VoiceLanguage, heard?: string | null): string =>
   return [...lines, CLOSING].join('\n')
 }
 
-const LANGUAGE = /^<system-reminder>\nVoice call: the user said this out loud \(language: ([a-z]{2})\)/
+const LANGUAGE =
+  /^<system-reminder>\nVoice call: the user said this out loud \(language: ([a-z]{2})\)/
 
 /** Пометка ли это - блок целиком, а не слова человека о ней. */
 export const isVoiceNote = (text: string): boolean => text.startsWith(OPENING)

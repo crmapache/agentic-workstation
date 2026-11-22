@@ -7,7 +7,7 @@ import type { VoiceCapability } from '@shared/voice'
 import type { WorkspaceState } from '@shared/workspace'
 
 import type { InventoryMessage } from '@agentic-workstation/remote-protocol/agent-messages'
-import { CAP_PUSH, CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
+import { CAP_PUSH, CAP_READ, CAP_PARTS } from '@agentic-workstation/remote-protocol/agent-messages'
 import { PROTOCOL_VERSION } from '@agentic-workstation/remote-protocol/phone-messages'
 import type {
   ProviderCaps,
@@ -129,7 +129,8 @@ export const inventoryOf = (input: InventoryInput): InventoryMessage => {
     at: now,
     epoch: input.epoch,
     machine: input.machine,
-    caps: [CAP_PARTS, CAP_PUSH],
+    // Чтение вслух (ADR 0106) - у IDE с голосом; можно ли сейчас, говорит поле voice.
+    caps: input.voice ? [CAP_PARTS, CAP_PUSH, CAP_READ] : [CAP_PARTS, CAP_PUSH],
     ...(input.voice && {
       voice: input.voice.available
         ? { available: true }

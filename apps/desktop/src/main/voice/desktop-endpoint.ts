@@ -2,6 +2,7 @@ import { app, systemPreferences } from 'electron'
 
 import { broadcast } from '../ipc/broadcast'
 import type { VoiceEndpoint } from './call/voice-endpoint'
+import type { ReadingSink } from './reading/reading'
 
 /**
  * Окно IDE - конечная точка звонка из панели: ответ - событием `voice:audio`, сигналы -
@@ -14,6 +15,12 @@ export const desktopEndpoint: VoiceEndpoint = {
     if (cue.kind !== 'state') broadcast('voice:cue', cue)
   },
 }
+
+/** Окно IDE - слушатель чтения вслух: звук и конец - событием `voice:reading` под id окна. */
+export const desktopReading = (readingId: string): ReadingSink => ({
+  audio: (pcm) => broadcast('voice:reading', { readingId, kind: 'audio', pcm }),
+  end: (outcome) => broadcast('voice:reading', { readingId, kind: 'end', outcome }),
+})
 
 /**
  * Дала ли macOS микрофон: первый раз она спрашивает человека своим окном. На Windows спрашивать

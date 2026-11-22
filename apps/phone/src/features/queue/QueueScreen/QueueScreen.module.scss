@@ -11,6 +11,11 @@
   gap: var(--space-2);
 }
 
+// Пометка - карточка трекера без сценария: не работа очереди, кнопки тише.
+.placeholder {
+  opacity: var(--opacity-muted);
+}
+
 .itemActions {
   display: flex;
   flex-wrap: wrap;

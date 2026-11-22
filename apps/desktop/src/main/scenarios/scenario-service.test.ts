@@ -204,6 +204,39 @@ describe('scenario service', () => {
     expect(run).toMatchObject({ state: 'done', queueId: started.queueId, cwd: project })
   })
 
+  it('passes placeholders where the queue reaches them and runs the scenarios between', async () => {
+    const scenarios = service as ScenarioService
+    const opened = await scenarios.startPlaceholder({
+      projectPath: project,
+      title: 'About the column',
+      provider: 'claude',
+      target: { kind: 'new', worktree: false },
+    })
+
+    if (!opened.ok) throw new Error('did not open')
+
+    const { queueId } = opened
+
+    await start('a', { kind: 'queue', queueId })
+    await scenarios.startPlaceholder({
+      projectPath: project,
+      title: 'Check by hand',
+      provider: 'claude',
+      target: { kind: 'queue', queueId },
+    })
+    await start('b', { kind: 'queue', queueId })
+    await until(() => queue(queueId).items.every((item) => item.state !== 'waiting'))
+    await until(() => queue(queueId).items.at(-1)?.state === 'done')
+
+    expect(queue(queueId).items.map((item) => [item.scenarioName, item.state])).toEqual([
+      ['About the column', 'skipped'],
+      ['Scenario a', 'done'],
+      ['Check by hand', 'skipped'],
+      ['Scenario b', 'done'],
+    ])
+    expect(queue(queueId).items.filter((item) => item.runId)).toHaveLength(2)
+  })
+
   it('runs a queue in order and stops after a chosen scenario until Resume', async () => {
     const started = await start('a', { kind: 'new', worktree: false })
 

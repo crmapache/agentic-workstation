@@ -7,12 +7,16 @@ import type { VoiceSettings } from '@shared/voice'
 
 import type { ChoiceOption } from '@agentic-workstation/ui/ChoiceField.types'
 
+import type { VoicePreview } from '../settings.types'
+
 export type SettingRowProps = {
   label: string
   /** Строка под подписью: что настройка делает, коротко. */
   description?: string | undefined
   /** Настройка выключена: подпись приглушена, управление остаётся живым (оно и включает). */
   dimmed?: boolean | undefined
+  /** Управление занимает всю ширину строки после подписи: длинное поле ввода, а не ползунок. */
+  wide?: boolean | undefined
   /** Управление справа: ползунок, проба, переключатель. */
   children: ReactNode
 }
@@ -58,4 +62,10 @@ export type AiChoiceRowProps = {
 export type VoiceCardProps = {
   settings: VoiceSettings
   onChange: (next: VoiceSettings) => void
+}
+
+export type VoicePreviewButtonProps = {
+  /** Проба этого языка: готовится, звучит или её нет. */
+  phase: VoicePreview['phase'] | null
+  onToggle: () => void
 }

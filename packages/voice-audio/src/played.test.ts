@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { it, expect, describe } from 'vitest'
 
-import { EpochClock, playedMs } from './played'
+import { playedMs, EpochClock } from './played'
 
 describe('playedMs', () => {
   it('counts only what sounded, not the gap while a chunk was late', () => {

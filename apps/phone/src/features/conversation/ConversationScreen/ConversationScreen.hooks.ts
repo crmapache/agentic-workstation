@@ -181,20 +181,30 @@ export const useConversationCommands = (agentId: string, conversationId: string)
  * Что открыто поверх разговора: настройки, вопросы сбоку, откат к сообщению, «остановить
  * задачу?». Действия ленты - стабильной ссылкой: строки ленты - memo. Чего провайдер разговора
  * не умеет (stopTask, rewind false), в ленте нет; IDE постарше флагов не шлёт - есть всё.
+ * reading - разговор, ответы которого IDE может прочитать вслух (ADR 0106); null - не может.
  */
-export const useConversationSheets = (provider: ProviderCaps | undefined) => {
+export const useConversationSheets = (
+  provider: ProviderCaps | undefined,
+  reading: { agentId: string; conversationId: string } | null = null,
+) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isAsideOpen, setIsAsideOpen] = useState(false)
   const [rewindTo, setRewindTo] = useState<string | null>(null)
   const [stoppingTask, setStoppingTask] = useState<RunningTask | null>(null)
   const canStopTask = provider?.stopTask !== false
   const canRewind = provider?.rewind !== false
+  const readAgent = reading?.agentId ?? null
+  const readConversation = reading?.conversationId ?? null
   const feedActions = useMemo<FeedActions>(
     () => ({
       onStopTask: canStopTask ? setStoppingTask : undefined,
       onRewind: canRewind ? setRewindTo : undefined,
+      readAloud:
+        readAgent && readConversation
+          ? { agentId: readAgent, conversationId: readConversation }
+          : undefined,
     }),
-    [canStopTask, canRewind],
+    [canStopTask, canRewind, readAgent, readConversation],
   )
 
   return {

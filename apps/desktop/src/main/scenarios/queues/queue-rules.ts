@@ -26,9 +26,15 @@ export type ItemOutcome = 'done' | 'failed' | 'stopped'
 export const runningItem = (queue: ScenarioQueue): QueueItem | null =>
   queue.items.find((item) => item.state === 'running') ?? null
 
-/** Последний прошедший элемент - тот, чей исход решает, можно ли начинать следующий. */
-const lastOver = (queue: ScenarioQueue): QueueItem | null =>
-  queue.items.filter((item) => isItemOver(item.state)).at(-1) ?? null
+/**
+ * Прошедшие сценарии по порядку. Пропущенная пометка - не сценарий: её исход ничего не решает,
+ * и после неё «последним» остаётся сценарий перед ней.
+ */
+const passedRuns = (queue: ScenarioQueue): QueueItem[] =>
+  queue.items.filter((item) => isItemOver(item.state) && !item.placeholder)
+
+/** Последний прошедший сценарий - тот, чей исход решает, можно ли начинать следующий. */
+const lastOver = (queue: ScenarioQueue): QueueItem | null => passedRuns(queue).at(-1) ?? null
 
 const hasWaiting = (queue: ScenarioQueue): boolean =>
   queue.items.some((item) => item.state === 'waiting')
@@ -53,6 +59,23 @@ export const nextToStart = (queue: ScenarioQueue, now: number): QueueItem | null
   if (stuckItem(queue)) return null
 
   return queue.items.find((item) => item.state === 'waiting') ?? null
+}
+
+/**
+ * Очередь дошла до пометок (карточек без сценария): пройти мимо всех, что стоят первыми, - они
+ * становятся skipped, и следующим стартует сценарий за ними. Не дошла (стоит, занята, отдыхает) -
+ * та же очередь: пометка ждёт своей очереди, как сценарий.
+ */
+export const passPlaceholders = (queue: ScenarioQueue, now: number): ScenarioQueue => {
+  let passed = queue
+  let next = nextToStart(passed, now)
+
+  while (next?.placeholder) {
+    passed = patchItem(passed, next.id, { state: 'skipped' })
+    next = nextToStart(passed, now)
+  }
+
+  return passed
 }
 
 /**
@@ -179,7 +202,8 @@ export const setStopAfter = (queue: ScenarioQueue, itemId: string | null): Scena
 
   const item = queue.items.find((one) => one.id === itemId)
 
-  if (!item || isItemOver(item.state)) return queue
+  // Мимо пометки очередь проходит, не останавливаясь: остановку ставят на сценарий.
+  if (!item || isItemOver(item.state) || item.placeholder) return queue
 
   return { ...queue, stopAfterItemId: itemId }
 }
@@ -254,7 +278,7 @@ export const renameQueue = (
 
   // Пустое имя от человека отдаёт имя обратно: запасное сразу, ИИ - следом (QueueRunner).
   if (!clean) {
-    const first = queue.items[0]
+    const first = queue.items.find((item) => !item.placeholder) ?? queue.items[0]
 
     return {
       ...queue,
@@ -272,13 +296,12 @@ export const closeQueue = (queue: ScenarioQueue, now: number): ScenarioQueue | n
 
 /**
  * Продолжить прогон элемента, который кончился (остановлен, упал): только последнего
- * прошедшего, пока за ним ничего не стартовало, - иначе папка уже ушла вперёд.
+ * прошедшего сценария, пока за ним ничего не стартовало, - иначе папка уже ушла вперёд.
  */
 export const reopenItem = (queue: ScenarioQueue, itemId: string): ScenarioQueue | null => {
   if (queue.closedAt > 0 || runningItem(queue)) return null
 
-  const over = queue.items.filter((item) => isItemOver(item.state))
-  const last = over.at(-1)
+  const last = lastOver(queue)
 
   if (!last || last.id !== itemId || last.state === 'done') return null
 

@@ -1,14 +1,17 @@
 import type {
   QueueItem,
   QueueAction,
+  QueueTarget,
   ScenarioQueue,
+  ScenarioStartOutcome,
   ScenarioStartRequest,
+  QueuePlaceholderRequest,
 } from '@shared/scenario-queues'
 import type { Scenario } from '@shared/scenarios'
 
 /**
- * Подставные сценарии для проверок трекера: полка в памяти, очереди растут от start, состояние
- * элементов правит сама проверка.
+ * Подставные сценарии для проверок трекера: полка в памяти, очереди растут от start и пометок,
+ * состояние элементов правит сама проверка.
  */
 
 export const scenario = (id: string, inputs: string[], required = true): Scenario =>
@@ -53,11 +56,33 @@ export const scenariosFake = (shelf: Scenario[]) => {
   const started: ScenarioStartRequest[] = []
   const actions: QueueAction[] = []
   const fetched: string[] = []
+  const placeholders: QueuePlaceholderRequest[] = []
   let next = 0
+  const place = (
+    target: QueueTarget,
+    fields: Partial<QueueItem>,
+  ): Promise<ScenarioStartOutcome> => {
+    next += 1
+
+    const item = { id: `item-${next}`, state: 'waiting', ...fields } as QueueItem
+
+    if (target.kind === 'queue') {
+      const { queueId } = target
+
+      queues.find((queue) => queue.id === queueId)?.items.push(item)
+
+      return Promise.resolve({ ok: true, queueId, itemId: item.id })
+    }
+
+    queues.push({ id: `queue-${next}`, items: [item], closedAt: 0 } as ScenarioQueue)
+
+    return Promise.resolve({ ok: true, queueId: `queue-${next}`, itemId: item.id })
+  }
 
   return {
     queues,
     started,
+    placeholders,
     actions,
     fetched,
     port: {
@@ -68,21 +93,13 @@ export const scenariosFake = (shelf: Scenario[]) => {
       },
       start: (request: ScenarioStartRequest) => {
         started.push(request)
-        next += 1
 
-        const item = { id: `item-${next}`, state: 'waiting' } as QueueItem
+        return place(request.target, {})
+      },
+      placeholder: (request: QueuePlaceholderRequest) => {
+        placeholders.push(request)
 
-        if (request.target.kind === 'queue') {
-          const { queueId } = request.target
-
-          queues.find((queue) => queue.id === queueId)?.items.push(item)
-
-          return Promise.resolve({ ok: true as const, queueId, itemId: item.id })
-        }
-
-        queues.push({ id: `queue-${next}`, items: [item], closedAt: 0 } as ScenarioQueue)
-
-        return Promise.resolve({ ok: true as const, queueId: `queue-${next}`, itemId: item.id })
+        return place(request.target, { placeholder: true, scenarioName: request.title })
       },
       act: (_queueId: string, action: QueueAction) => {
         actions.push(action)

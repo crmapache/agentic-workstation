@@ -56,6 +56,17 @@
 // Ответ модели - капсула с рамкой, без заливки, как карточка ответа в панели IDE: видно, где
 // кончились шаги хода и начался ответ, и ответ стоит особняком. Зазор до соседей - обычный
 // зазор ленты, строки журнала между ответами стоят теснее.
+// Ответ с кнопкой «прочитать вслух» справа у нижнего края - как откат у сообщения человека.
+.assistantRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+
+  > .assistant {
+    flex: 1;
+  }
+}
+
 .assistant {
   min-width: 0;
   padding: var(--space-2) var(--space-3);
@@ -271,7 +282,8 @@
   font-size: var(--font-size-xs);
 }
 
-.assistant + .turn {
+.assistant + .turn,
+.assistantRow + .turn {
   margin-top: calc(var(--space-1) - var(--size-feed-gap));
 }
 

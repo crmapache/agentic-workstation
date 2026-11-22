@@ -2,7 +2,7 @@ import { it, expect, describe } from 'vitest'
 
 import type { VoiceCallWire } from '@agentic-workstation/remote-protocol/agent-messages'
 
-import { isCallActive, startingCall, applyVoiceEvent } from './voice-call.utils'
+import { canStopCall, isCallActive, startingCall, applyVoiceEvent } from './voice-call.utils'
 
 const CALL: VoiceCallWire = {
   callId: 'call1',
@@ -58,5 +58,15 @@ describe('applyVoiceEvent', () => {
         projectKey: 'p-home',
       }),
     ).toBe(live)
+  })
+})
+
+describe('canStopCall', () => {
+  it('lets Stop work while the call speaks or the agent works, not while it only listens', () => {
+    expect(canStopCall('speaking')).toBe(true)
+    expect(canStopCall('working')).toBe(true)
+    expect(canStopCall('thinking')).toBe(true)
+    expect(canStopCall('listening')).toBe(false)
+    expect(canStopCall('paused')).toBe(false)
   })
 })

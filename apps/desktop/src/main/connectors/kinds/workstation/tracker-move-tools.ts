@@ -79,19 +79,31 @@ const moveOf = (
   }
 }
 
-/** Карточки группы по порядку отправки и почему какие-то в очередь не пошли. */
-const skippedOf = (board: TrackerBoard, groupId: string, sent: readonly string[]) =>
+/**
+ * Карточки группы, которые не пошли запуском, и почему: без сценария - пометкой, мимо которой
+ * очередь пройдёт (или уже стояла пометкой в этой очереди); сделанные и уже стоящие в очереди не
+ * пошли вовсе.
+ */
+const skippedOf = (
+  board: TrackerBoard,
+  groupId: string,
+  outcome: { sent: readonly string[]; placeholders: readonly string[] },
+) =>
   cardsOf(board)
-    .filter((card) => locate(board, card.id)?.parentId === groupId && !sent.includes(card.id))
+    .filter(
+      (card) => locate(board, card.id)?.parentId === groupId && !outcome.sent.includes(card.id),
+    )
     .map((card) => ({
       id: card.id,
-      why: card.done
-        ? 'done'
-        : !card.scenario
-          ? 'no scenario'
+      why: outcome.placeholders.includes(card.id)
+        ? 'no scenario: in the queue as a placeholder the queue passes'
+        : card.done
+          ? 'done'
           : card.run?.state === 'waiting' || card.run?.state === 'running'
             ? 'already in a queue'
-            : 'not sent',
+            : !card.scenario
+              ? 'no scenario: already a placeholder in this queue'
+              : 'not sent',
     }))
 
 /**
@@ -213,7 +225,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'tracker_send_to_queue',
     description: [
-      'Send cards to a scenario queue: a whole group (group_id: its tasks top-down, each followed by its follow-ups; cards done, without a scenario or already waiting or running in a queue are skipped) or one card (card_id).',
+      'Send cards to a scenario queue: a whole group (group_id: its tasks top-down, each followed by its follow-ups; a card without a scenario goes in as a placeholder at its place, which the queue passes without running; cards done or already waiting or running in a queue stay out; a group with no card to run is refused) or one card (card_id, it needs a scenario).',
       'Each card runs its scenario with the card text; a card whose queue item is done gets marked done (a repeating card moves to its next due instead).',
       'Into a new queue named after the group (worktree and working hours optional) or the end of an existing one (queue_id from list_queues). All cards are checked before the first one goes.',
     ].join(' '),
@@ -254,7 +266,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
 
       if (!outcome.ok) throw await sendRefusal(ports, place, before, outcome)
 
-      const skipped = groupId ? skippedOf(before, groupId, outcome.sent) : []
+      const skipped = groupId ? skippedOf(before, groupId, outcome) : []
 
       return {
         queue_id: outcome.queueId,

@@ -43,12 +43,13 @@
   pointer-events: none;
 }
 
+// Координаты линии - уже середина зазора: сдвиг только центрирует её толщину.
 .horizontal {
   height: var(--space-0-5);
-  transform: translateY(calc(-1 * var(--space-1)));
+  transform: translateY(-50%);
 }
 
 .vertical {
   width: var(--space-0-5);
-  transform: translateX(calc(-1 * var(--space-1-5)));
+  transform: translateX(-50%);
 }

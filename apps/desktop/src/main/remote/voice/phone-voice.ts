@@ -13,6 +13,7 @@ import type { VoicePort } from '../bridge/bridge-ports'
 import type { Timer } from '../../voice/call/utterances'
 import type { VoiceEndpoint } from '../../voice/call/voice-endpoint'
 import { AnswerChunks } from './answer-chunks'
+import { PhoneReadings } from './phone-reading'
 
 /**
  * Микрофон телефона молчит дольше этого, а паузы он не объявлял, - связь потеряна: звонок ждёт
@@ -28,6 +29,8 @@ export type PhoneVoiceDeps = {
   stream: (deviceId: string, body: Uint8Array) => void
   /** Ключ проекта разговора звонка (Home) на линии телефона. */
   projectKey: () => string
+  /** Текст ответа модели из ленты - для чтения вслух (ADR 0106); нет такого ответа - null. */
+  answerText: (conversationId: string, itemId: string) => Promise<string | null>
   timer: Timer
 }
 
@@ -49,11 +52,19 @@ type PhoneCall = {
 export class PhoneVoiceDesk {
   private readonly calls = new Map<string, PhoneCall>()
   private readonly followUps = new Map<string, string>()
+  /** Чтение ответов вслух с телефонов - без звонка, тем же сервисом голоса. */
+  private readonly readings: PhoneReadings
 
-  constructor(private readonly deps: PhoneVoiceDeps) {}
+  constructor(private readonly deps: PhoneVoiceDeps) {
+    const { voice, answerText, send, stream, timer } = deps
+
+    this.readings = new PhoneReadings({ voice, answerText, send, stream, timer })
+  }
 
   message(deviceId: string, message: VoicePhoneMessage): void {
     if (message.act === 'start') return void this.start(deviceId, message.ref)
+    if (message.act === 'read') return void this.readings.read(deviceId, message)
+    if (message.act === 'stopReading') return this.readings.stop(deviceId, message.ref)
 
     const known = this.calls.get(deviceId)
     const call = known?.callId === message.callId ? this.deps.voice.call(message.callId) : null
@@ -113,14 +124,16 @@ export class PhoneVoiceDesk {
     return deviceId
   }
 
-  /** Телефон отпустили: его звонок кончается. */
+  /** Телефон отпустили: его звонок кончается, чтение молкнет. */
   forget(deviceId: string): void {
     const known = this.calls.get(deviceId)
 
+    this.readings.forget(deviceId)
     if (known) this.deps.voice.end(known.callId, 'lostLine')
   }
 
   stop(): void {
+    this.readings.stopAll()
     for (const deviceId of [...this.calls.keys()]) this.forget(deviceId)
   }
 

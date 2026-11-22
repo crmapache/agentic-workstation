@@ -132,6 +132,7 @@
       "expected": "Expected languages",
       "expectedHint": "Hints for the multilingual mode. None ticked - all ten.",
       "preview": "Listen",
+      "previewStop": "Stop",
       "previewFailed": "Could not play a sample - check the key",
       "speed": "Speech speed",
       "bargeIn": "Interrupting the agent",
@@ -1217,7 +1218,8 @@
         "refused": "Would not start: {{why}}",
         "markDone": "Mark done",
         "markDoneHint": "You finished this work yourself. The queue counts it as done and does not start the next one on its own.",
-        "doneByHand": "marked done by hand"
+        "doneByHand": "marked done by hand",
+        "placeholder": "tracker card without a scenario"
       },
       "itemMenu": {
         "label": "Actions for {{name}}",
@@ -4383,7 +4385,7 @@
     "help": {
       "label": "About the tracker",
       "title": "Tracker",
-      "text": "Your own task board for this project. Projects are tabs; inside a project, flows hold groups of tasks in the order you do them, and a task can have follow-ups to its right.\n\nDrag tabs, flows, groups and cards to reorder them, or use Alt and the arrow keys on a card. Done cards stay where they are.\n\nBind a scenario to a card, then send a whole group to a scenario queue: every open card with a scenario goes in, in board order. When its run is done, the card is marked done.\n\nAI in this IDE can read and edit the board through the Agentic Workstation connector. The board syncs to your cloud encrypted with your account key."
+      "text": "Your own task board for this project. Projects are tabs; inside a project, flows hold groups of tasks in the order you do them, and a task can have follow-ups to its right.\n\nDrag tabs, flows, groups and cards to reorder them, or use Alt and the arrow keys on a card. Done cards stay where they are.\n\nBind a scenario to a card, then send a whole group to a scenario queue: its open cards go in, in board order. A card without a scenario stands in the queue greyed out, and the queue passes it. When a card's run is done, the card is marked done.\n\nThe board scrolls sideways with the bar at the bottom of the window, and opens at the first column with something left to do.\n\nAI in this IDE can read and edit the board through the Agentic Workstation connector. The board syncs to your cloud encrypted with your account key."
     },
     "empty": {
       "noProject": "Open a project to see its board",
@@ -4442,8 +4444,7 @@
       "markDone": "Mark done",
       "markUndone": "Mark not done",
       "taskPlaceholder": "Task name, Enter to add",
-      "followUpPlaceholder": "Follow-up name, Enter to add",
-      "addFollowUpHere": "Add follow-up to {{title}}"
+      "followUpPlaceholder": "Follow-up name, Enter to add"
     },
     "quickAdd": {
       "label": "New card name",
@@ -4520,7 +4521,8 @@
       "done": "{{name}} · done",
       "failed": "{{name}} · failed",
       "stopped": "{{name}} · stopped",
-      "refused": "{{name}} · held"
+      "refused": "{{name}} · held",
+      "skipped": "{{name}} · skipped"
     },
     "cardModal": {
       "newTask": "New task",
@@ -4576,7 +4578,8 @@
       "group": "Cards of {{title}}",
       "card": "Card",
       "none": "No open cards with a scenario in this group.",
-      "skipped": "Done cards, cards without a scenario and cards already in a queue are skipped.",
+      "skipped": "Cards without a scenario go in greyed out, and the queue passes them. Done cards and cards already in a queue stay out.",
+      "passed": "Skipped",
       "target": "Queue",
       "newQueue": "New queue",
       "existing": "{{name}}",
@@ -4709,7 +4712,7 @@
     },
     "statusLine": "{{origin}} · {{state}}",
     "end": "End call",
-    "stop": "Stop",
+    "stop": "Stop the agent: it goes quiet and stops working",
     "mute": "Mute microphone",
     "unmute": "Unmute microphone",
     "ended": {
@@ -4718,6 +4721,18 @@
       "keyRejected": "The voice call ended: Deepgram rejected the key",
       "deepgram": "The voice call ended: Deepgram is not answering",
       "conversationGone": "The voice call ended: its chat was closed"
+    },
+    "read": {
+      "start": "Read aloud",
+      "stop": "Stop reading",
+      "failed": "Reading aloud stopped: Deepgram did not answer",
+      "refused": {
+        "off": "Turn on voice mode in Settings → Voice to read replies aloud",
+        "noKey": "Add a Deepgram key in Settings → Voice to read replies aloud",
+        "call": "Not during a voice call",
+        "empty": "Nothing to read aloud: this reply is only code, tables or links",
+        "failed": "Reading aloud did not start"
+      }
     }
   }
 }

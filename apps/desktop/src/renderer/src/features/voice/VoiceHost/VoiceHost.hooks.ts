@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { AnswerPlayer } from '@agentic-workstation/voice-audio/answer-player'
 import type { MicCapture } from '@agentic-workstation/voice-audio/mic-capture'
 import { startMicCapture } from '@agentic-workstation/voice-audio/mic-capture'
+import { ReadingPlayer } from '@agentic-workstation/voice-audio/reading-player'
 
 import { invoke } from '../../../lib/ipc'
 import { useIpcEvent } from '../../../lib/ipc.hooks'
 import { useActionNoticeStore } from '../../../state/action-notice.store'
+import { useReadAloudStore } from '../../../state/read-aloud.store'
 import { useVoice } from '../../../state/voice.queries'
 import { ENDED_NOTICES } from './VoiceHost.constants'
 
@@ -75,5 +77,46 @@ export const useDesktopCallAudio = () => {
 
       if (notice) showNotice({ tone: 'danger', title: t(notice) })
     }
+  })
+}
+
+/**
+ * Звук «Прочитать вслух» (ADR 0106): куски чтения окна - в динамик, пока это чтение то, что идёт
+ * в сторе. Стоп или новое чтение - прежний звук молкнет; сорвался синтез - строка в углу окна,
+ * а то, что успело прийти, дозвучит.
+ */
+export const useReadAloudAudio = () => {
+  const { t } = useTranslation()
+  const showNotice = useActionNoticeStore((state) => state.show)
+  const readingId = useReadAloudStore((state) => state.current?.readingId ?? null)
+  const player = useRef<{ readingId: string; player: ReadingPlayer } | null>(null)
+
+  useEffect(() => {
+    if (player.current?.readingId === readingId) return
+
+    player.current?.player.stop()
+    player.current = null
+  }, [readingId])
+
+  useEffect(() => () => player.current?.player.stop(), [])
+
+  useIpcEvent('voice:reading', (event) => {
+    const { current, playing, finish } = useReadAloudStore.getState()
+    const id = event.readingId
+
+    if (current?.readingId !== id) return
+
+    if (event.kind === 'audio') {
+      player.current ??= { readingId: id, player: new ReadingPlayer(() => finish(id)) }
+      player.current.player.push(event.pcm)
+      playing(id)
+
+      return
+    }
+
+    if (event.outcome === 'failed') showNotice({ tone: 'danger', title: t('voice.read.failed') })
+
+    if (event.outcome !== 'stopped' && player.current) player.current.player.finish()
+    else finish(id)
   })
 }

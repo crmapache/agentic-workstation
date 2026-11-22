@@ -11,8 +11,8 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
-import { voiceNote } from '../../agents/conversation/voice-note'
 import type { Outgoing } from '../../agents/conversation/outbox'
+import { voiceNote } from '../../agents/conversation/voice-note'
 import { releasedBriefing, takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
 import type { CodexSkill, CodexCommand } from './codex-commands'
@@ -236,12 +236,7 @@ export class CodexSession implements AgentSession {
       command?.kind === 'skill'
         ? [
             { type: 'skill', name: command.skill.name, path: command.skill.path },
-            ...inputOf(
-              [shell, command.rest].filter(Boolean).join('\n\n'),
-              message,
-              editor,
-              voice,
-            ),
+            ...inputOf([shell, command.rest].filter(Boolean).join('\n\n'), message, editor, voice),
           ]
         : inputOf([shell, text].filter(Boolean).join('\n\n'), message, editor, voice)
 

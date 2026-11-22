@@ -39,4 +39,9 @@ export type IconButtonProps = Omit<
   call?: CallLightTone | null | undefined
   /** Момент зова: от него фаза света. */
   callSince?: number | undefined
+  /**
+   * Идёт работа по нажатию (готовится звук, ждём ответа): вместо иконки - Spinner того же
+   * размера. Кнопка остаётся нажимаемой - решает хозяин, отменять ли ожидание.
+   */
+  busy?: boolean | undefined
 }

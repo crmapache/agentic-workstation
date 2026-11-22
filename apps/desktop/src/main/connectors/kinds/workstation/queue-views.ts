@@ -59,6 +59,7 @@ export const queueView = (queue: ScenarioQueue, live: readonly RunSummary[]) => 
       runId: item.runId || null,
       ...(item.refusal && { refusal: item.refusal }),
       ...(item.doneByHand && { doneByHand: true }),
+      ...(item.placeholder && { placeholder: true }),
     })),
     running: running ? liveView(running) : null,
   }

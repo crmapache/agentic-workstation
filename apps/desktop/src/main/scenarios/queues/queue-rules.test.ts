@@ -20,6 +20,7 @@ import {
   resumeTarget,
   setStopAfter,
   markDoneByHand,
+  passPlaceholders,
   holdBeforeFailure,
 } from './queue-rules'
 
@@ -340,5 +341,49 @@ describe('marking a failed item done by hand', () => {
     expect(markDoneByHand(queue, 'b', 7)).toBe(queue)
     expect(markDoneByHand(queue, 'c', 7)).toBe(queue)
     expect(markDoneByHand(queue, 'missing', 7)).toBe(queue)
+  })
+})
+
+describe('placeholders - tracker cards without a scenario', () => {
+  const note = (id: string, patch: Partial<QueueItem> = {}) =>
+    item(id, { scenarioId: '', placeholder: true, ...patch })
+  const states = (queue: ScenarioQueue) => queue.items.map((one) => one.state)
+
+  it('passes the placeholders the queue has reached and starts the scenario behind them', () => {
+    const passed = passPlaceholders(queueOf(note('p1'), note('p2'), item('a'), note('p3')), NOW)
+
+    expect(states(passed)).toEqual(['skipped', 'skipped', 'waiting', 'waiting'])
+    expect(nextToStart(passed, NOW)?.id).toBe('a')
+  })
+
+  it('does not pass a placeholder while a run goes, the queue holds or a run failed', () => {
+    const running = queueOf(item('a', { state: 'running', runId: 'r' }), note('p'))
+    const held = { ...queueOf(item('a', { state: 'done' }), note('p')), hold: null }
+    const stopped = {
+      ...held,
+      hold: { reason: 'stopAfter' as const, itemId: 'a', at: NOW },
+    }
+    const failed = queueOf(item('a', { state: 'failed' }), note('p'))
+
+    expect(passPlaceholders(running, NOW)).toBe(running)
+    expect(passPlaceholders(stopped, NOW)).toBe(stopped)
+    expect(passPlaceholders(failed, NOW)).toBe(failed)
+    expect(states(passPlaceholders(held, NOW))).toEqual(['done', 'skipped'])
+  })
+
+  it('a skipped placeholder decides nothing: the scenario before it does', () => {
+    const afterSuccess = queueOf(item('a', { state: 'done' }), note('p', { state: 'skipped' }))
+    const afterStop = queueOf(item('a', { state: 'stopped' }), note('p', { state: 'skipped' }))
+
+    expect(nextToStart(addItem(afterSuccess, item('b')), NOW)?.id).toBe('b')
+    expect(holdBeforeFailure(addItem(afterSuccess, item('b')), NOW).hold).toBeNull()
+    expect(reopenItem(afterStop, 'a')?.items[0]?.state).toBe('running')
+  })
+
+  it('takes no stop mark and names the queue by a scenario, not by a placeholder', () => {
+    const queue = queueOf(note('p'), item('a'))
+
+    expect(setStopAfter(queue, 'p').stopAfterItemId).toBe('')
+    expect(renameQueue(queue, '', 'user').name).toBe('Scenario a')
   })
 })

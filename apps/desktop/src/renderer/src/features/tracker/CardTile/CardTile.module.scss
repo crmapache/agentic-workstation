@@ -85,6 +85,9 @@
 
 // «⋯» видна под рукой и при фокусе внутри карточки, иначе не шумит.
 .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
   opacity: 0;
 }
 

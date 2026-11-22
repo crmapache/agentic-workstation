@@ -11,9 +11,9 @@ export const openQueues = (queues: QueueWire[], live: RunSummaryWire[]): QueueWi
     .sort((first, second) => Number(busy.has(second.id)) - Number(busy.has(first.id)))
 }
 
-/** Сколько ждущих в очереди. */
+/** Сколько сценариев ждёт в очереди; пометки (карточки без сценария) - не работа, не в счёт. */
 export const waitingCount = (queue: QueueWire): number =>
-  queue.items.filter((item) => item.state === 'waiting').length
+  queue.items.filter((item) => item.state === 'waiting' && !item.placeholder).length
 
 /**
  * Строка очереди под её именем: папка, идущий прогон с долей шагов, сколько ждёт и спит ли она

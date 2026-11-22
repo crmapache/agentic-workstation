@@ -76,6 +76,17 @@ export class PhoneCallEngine {
     if (event.kind === 'duck') this.player.duck(event.level)
     else if (event.kind === 'stopPlayback') this.player.stop(event.epoch)
     else if (event.kind === 'tone') this.player.tone()
+    // Звонок больше не говорит: «Стоп» отсюда не держит следующий ответ, даже если слово IDE о
+    // новой эпохе не дошло.
+    else if (event.kind === 'state' && event.call.state !== 'speaking') this.player.unhush()
+  }
+
+  /**
+   * Нажали «Стоп»: тишина сразу, а не через путь до IDE и обратно. Новую эпоху IDE пришлёт
+   * сама (stopPlayback), до неё хвост прежнего ответа, что ещё летит, не играет.
+   */
+  hush(): void {
+    this.player.hush()
   }
 
   setMuted(muted: boolean): void {

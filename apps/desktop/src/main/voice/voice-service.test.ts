@@ -7,6 +7,7 @@ import { DEFAULT_VOICE_SETTINGS } from '@shared/voice'
 import { JsonFile } from '../storage/json-file'
 import { Vault } from '../storage/vault'
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
+import { VoiceSamples } from './voice-samples'
 import { VoiceService } from './voice-service'
 import { VoiceStore } from './voice-store'
 
@@ -59,6 +60,7 @@ const setup = async (settings: Partial<VoiceSettings>, key: string | null) => {
     dial: () => ({ send: () => undefined, close: () => undefined }),
     timer: () => () => undefined,
     now: () => 1000,
+    samples: new VoiceSamples('/nowhere/voice-samples'),
     checkKey: () => Promise.resolve('ok'),
     onView: () => undefined,
   })
@@ -149,5 +151,27 @@ describe('VoiceService', () => {
 
     expect(service.view().key).toEqual({ saved: true, hint: '1234' })
     expect(JSON.stringify(service.view())).not.toContain('abcdefgh')
+  })
+})
+
+describe('VoiceService: reading aloud', () => {
+  const sink = { audio: () => undefined, end: () => undefined }
+  const request = { id: 'r1', owner: 'desktop', text: 'Почта пуста.', sink }
+
+  it('refuses to read while voice mode is off, without a key or during a call', async () => {
+    expect((await setup({ enabled: false }, 'k')).service.read(request)).toBe('off')
+    expect((await setup({ enabled: true }, null)).service.read(request)).toBe('noKey')
+
+    const { service } = await setup({ enabled: true }, 'k')
+
+    await service.start(endpoint)
+    expect(service.read(request)).toBe('call')
+  })
+
+  it('reads when voice mode is on and no call is going', async () => {
+    const { service } = await setup({ enabled: true }, 'k')
+
+    expect(service.read(request)).toBeNull()
+    service.stopReading('desktop', 'r1')
   })
 })

@@ -1,5 +1,5 @@
 import type { TrackerModalsProps } from '../TrackerView.types'
-import { findCard, sendingOf, entityTexts } from '../TrackerView.utils'
+import { findCard, entityTexts } from '../TrackerView.utils'
 import { useTrackerStore } from '../../tracker.store'
 import { ArchiveModal } from '../../ArchiveModal/ArchiveModal'
 import { CardModal } from '../../CardModal/CardModal'
@@ -13,7 +13,6 @@ export const TrackerModals = ({ board, onCreatedProject }: TrackerModalsProps) =
   const sending = useTrackerStore((state) => state.sending)
   const dialog = useTrackerStore((state) => state.dialog)
   const card = editor?.kind === 'card' ? findCard(board, editor.cardId) : null
-  const send = sending && sendingOf(board, sending)
 
   return (
     <>
@@ -29,7 +28,7 @@ export const TrackerModals = ({ board, onCreatedProject }: TrackerModalsProps) =
           onCreated={onCreatedProject}
         />
       )}
-      {sending && send && <SendModal sending={sending} cards={send.cards} title={send.title} />}
+      {sending && <SendModal sending={sending} board={board} />}
       {dialog === 'archive' && <ArchiveModal archived={board.archived} />}
       {dialog === 'cloud' && <CloudModal />}
     </>

@@ -12,7 +12,8 @@ import { PhoneCallEngine } from './phone-call-engine'
 
 /**
  * Голосовой звонок с этой IDE (ADR 0104): начать - в нажатии кнопки (динамик и микрофон, потом
- * просьба IDE), положить трубку, «Стоп», микрофон. Ответ IDE на просьбу ловит хост звонков.
+ * просьба IDE), положить трубку, «Стоп» (тишина у себя сразу, потом слово IDE), микрофон. Ответ
+ * IDE на просьбу ловит хост звонков.
  */
 export const useVoiceCall = (agentId: string) => {
   const { t } = useTranslation()
@@ -61,7 +62,10 @@ export const useVoiceCall = (agentId: string) => {
     call,
     start: () => void start(),
     end: () => say({ act: 'end' }),
-    stop: () => say({ act: 'stop' }),
+    stop: () => {
+      callEngines.get(agentId)?.hush()
+      say({ act: 'stop' })
+    },
     mute,
   }
 }

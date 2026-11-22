@@ -226,7 +226,8 @@ export type TrackerSendCode =
 
 /** Итог отправки; при отказе cardId - карточка, на которой встали (null - до карточек). */
 export type TrackerSendOutcome =
-  | { ok: true; board: TrackerBoard; queueId: string; sent: string[] }
+  /** sent - карточки, ушедшие запуском; placeholders - ушедшие пометками (без сценария). */
+  | { ok: true; board: TrackerBoard; queueId: string; sent: string[]; placeholders: string[] }
   | { ok: false; code: TrackerSendCode; cardId: string | null }
 
 /** Состояние облака: окно показывает его значком на шапке трекера. */

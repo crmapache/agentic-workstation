@@ -214,6 +214,18 @@ export type VoiceEvent =
   | { kind: 'stopPlayback'; callId: string; epoch: number }
   | { kind: 'tone'; callId: string }
   | { kind: 'ended'; callId: string; reason: string; conversationId: string; projectKey: string }
+  /**
+   * Чтение вслух кончилось (ADR 0106): весь звук ушёл (done), синтез сорвался (failed), IDE
+   * остановила его сама (stopped: начался звонок) или отказала (refused: off, noKey, call - идёт
+   * звонок, empty - читать нечего, missing - ответа нет в ленте). Звук - кадрами вида reading
+   * до этого слова.
+   */
+  | {
+      kind: 'reading'
+      ref: string
+      outcome: 'done' | 'failed' | 'stopped' | 'refused'
+      reason?: string | undefined
+    }
 
 export type VoiceMessage = Versioned & { k: 'voice'; event: VoiceEvent }
 
@@ -281,6 +293,9 @@ export const CAP_PARTS = 'parts'
 
 /** IDE принимает подписку на пуши (pushSet) и будит телефон, когда его нет на линии (push.ts). */
 export const CAP_PUSH = 'push'
+
+/** IDE читает ответ ленты вслух по слову voice read (ADR 0106); без голоса - не читает. */
+export const CAP_READ = 'read'
 
 /**
  * Сколько IDE помнит итог команды по id после того, как он готов (пока команда выполняется, она

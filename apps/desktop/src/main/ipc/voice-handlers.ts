@@ -1,8 +1,9 @@
 import { isVoiceLanguage } from '@shared/voice'
 import { VOICE_CATALOG } from '@shared/voice-catalog'
+import { isReadingId } from '@shared/voice-reading'
 import type { VoiceInvokeContract } from '@shared/ipc/voice.contract'
 
-import { desktopEndpoint, microphoneAllowed } from '../voice/desktop-endpoint'
+import { desktopReading, desktopEndpoint, microphoneAllowed } from '../voice/desktop-endpoint'
 import type { VoiceService } from '../voice/voice-service'
 import type { InvokeHandlers } from './handle'
 import { assertString } from './validate'
@@ -13,6 +14,10 @@ type VoiceChannels = keyof VoiceInvokeContract
 const MIC_FRAME_MAX = 64 * 1024
 /** Ключ Deepgram - 40 знаков; длиннее этого - не ключ, а вставленный мусор. */
 const KEY_MAX = 512
+/** Чьё чтение вслух в главном процессе: у окна оно одно. */
+const DESKTOP_READER = 'desktop'
+/** Ответ длиннее этого окно не шлёт: читается всё равно только начало (READ_MAX_CHARS). */
+const READ_TEXT_MAX = 200_000
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
@@ -89,5 +94,20 @@ export const createVoiceHandlers = (
     if (!isFiniteNumber(epoch) || !isFiniteNumber(ms)) return
 
     voice.call(callId)?.played(epoch, ms)
+  },
+  'voice:read': ({ readingId, text }) => {
+    if (!isReadingId(readingId)) throw new Error('Недопустимый id чтения')
+    assertString(text, 'text')
+
+    return voice.read({
+      id: readingId,
+      owner: DESKTOP_READER,
+      text: text.slice(0, READ_TEXT_MAX),
+      sink: desktopReading(readingId),
+    })
+  },
+  'voice:stopReading': ({ readingId }) => {
+    assertString(readingId, 'readingId')
+    voice.stopReading(DESKTOP_READER, readingId)
   },
 })

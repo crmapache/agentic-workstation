@@ -70,6 +70,15 @@ export const applyVoiceEvent = (
   }
 }
 
+/** Звонок в этих состояниях молчит сам и агент не работает: «Стоп» останавливать нечего. */
+const QUIET: ReadonlySet<VoiceCallWire['state']> = new Set(['listening', 'connecting', 'paused'])
+
+/**
+ * Есть ли что останавливать кнопкой «Стоп»: звонок говорит, агент думает или работает. Иначе
+ * кнопка гаснет - нажатие без следствия выглядело бы сломанным.
+ */
+export const canStopCall = (state: VoiceCallWire['state']): boolean => !QUIET.has(state)
+
 /** Звонок идёт или поднимается: второй не начать, звук нужен. */
 export const isCallActive = (call: PhoneCall | undefined): boolean =>
   call?.phase === 'starting' || call?.phase === 'live'

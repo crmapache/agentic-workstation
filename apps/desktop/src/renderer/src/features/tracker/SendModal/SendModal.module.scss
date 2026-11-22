@@ -38,6 +38,11 @@
   background: var(--color-surface-sunken);
 }
 
+// Карточка без сценария: в очереди - пометка, мимо которой очередь пройдёт.
+.placeholder {
+  opacity: var(--opacity-muted);
+}
+
 .index {
   color: var(--color-fg-subtle);
   font-family: var(--font-code);

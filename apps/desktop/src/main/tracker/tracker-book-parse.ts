@@ -61,6 +61,7 @@ export const runsOf = (value: unknown): Record<string, RunLink> => {
       sentAt: typeof raw.sentAt === 'number' ? raw.sentAt : 0,
       settled: raw.settled === true,
       due: typeof raw.due === 'string' ? raw.due : null,
+      ...(raw.placeholder === true && { placeholder: true }),
     }
   }
 

@@ -69,6 +69,16 @@
   max-width: 100%;
 }
 
+// Широкая строка: подпись своей ширины, управление - всё остальное место; уже колонки
+// управления - переносится под подпись во всю ширину.
+.wide .rowText {
+  flex: none;
+}
+
+.wide .rowControl {
+  flex: 1 1 var(--size-setting-control);
+}
+
 // Ползунок строки - одной ширины во всех строках раздела: столбцом, а не лесенкой.
 .control {
   width: var(--size-setting-control);
@@ -92,7 +102,7 @@
   border-top: var(--border-width) solid var(--color-border);
 }
 
-// Ключ Deepgram и голос языка: поле или выбор и кнопки в ряд; в узком окне ряд переносится.
+// Голос языка: выбор и проба в ряд; в узком окне ряд переносится.
 .keyControl {
   display: flex;
   flex-wrap: wrap;
@@ -100,14 +110,40 @@
   gap: var(--space-1);
 }
 
+// Ключ Deepgram: поле на всю ширину строки, кнопки - своей группой поодаль от поля; ответ
+// проверки - строкой под ними.
+.keyRow {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+}
+
+.keyField {
+  flex: 1 1 var(--size-tile-min);
+  min-width: 0;
+}
+
+.keyButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.keyOk,
+.keyBad {
+  flex-basis: 100%;
+  font-size: var(--font-size-xs);
+}
+
 .keyOk {
   color: var(--color-success);
-  font-size: var(--font-size-xs);
 }
 
 .keyBad {
   color: var(--color-danger);
-  font-size: var(--font-size-xs);
 }
 
 // Ожидаемые языки - чипами в несколько рядов, а не длинным списком.

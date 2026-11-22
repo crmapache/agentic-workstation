@@ -23,6 +23,8 @@ export class AnswerPlayer {
   private readonly clock = new EpochClock()
   private epoch = 0
   private end = 0
+  /** Человек нажал «Стоп» у себя: кадры этой эпохи - мимо, пока звонок не начнёт новую. */
+  private hushed = false
   private readonly timer: ReturnType<typeof setInterval>
 
   private readonly onPlayed: (epoch: number, ms: number) => void
@@ -38,6 +40,7 @@ export class AnswerPlayer {
   play(epoch: number, pcm: Uint8Array): void {
     if (epoch < this.epoch) return
     if (epoch > this.epoch) this.stop(epoch)
+    if (this.hushed) return
 
     const samples = pcmToFloat(pcm)
 
@@ -67,14 +70,23 @@ export class AnswerPlayer {
 
   /** Перебили: тишина сразу, счёт эпохи epoch - с нуля. */
   stop(epoch: number): void {
-    for (const source of this.sources) source.stop()
-
-    this.sources = []
-    this.clock.reset()
-    this.end = 0
+    this.silence()
+    this.hushed = false
     this.epoch = epoch
-    this.gain.gain.cancelScheduledValues(this.context.currentTime)
-    this.gain.gain.setValueAtTime(1, this.context.currentTime)
+  }
+
+  /**
+   * Кнопка «Стоп» на этой стороне: тишина сразу, не дожидаясь ответа IDE через сеть. Кадры той же
+   * эпохи, что ещё летят, больше не играют; новую эпоху (stopPlayback от IDE) - играть.
+   */
+  hush(): void {
+    this.silence()
+    this.hushed = true
+  }
+
+  /** Звонок замолчал сам (слушает, думает): «Стоп» больше не держит кадры этой эпохи. */
+  unhush(): void {
+    this.hushed = false
   }
 
   /** Тихий сигнал «я ещё тут» или «соединено»: короткий тон, не мешающий говорить. */
@@ -97,6 +109,16 @@ export class AnswerPlayer {
     clearInterval(this.timer)
     this.stop(this.epoch)
     void this.context.close()
+  }
+
+  private silence(): void {
+    for (const source of this.sources) source.stop()
+
+    this.sources = []
+    this.clock.reset()
+    this.end = 0
+    this.gain.gain.cancelScheduledValues(this.context.currentTime)
+    this.gain.gain.setValueAtTime(1, this.context.currentTime)
   }
 
   /** Отчёт, пока есть что играть; дозвучало всё - последний отчёт, и молчать до новых кадров. */

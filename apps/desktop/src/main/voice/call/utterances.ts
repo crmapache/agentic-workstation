@@ -3,6 +3,7 @@ import { isVoiceLanguage } from '@shared/voice'
 
 import type { FluxTurn, FluxWord } from '../deepgram/flux-turn'
 import { confidenceOf } from '../deepgram/flux-turn'
+import { readLanguage } from '../speech/text-language'
 import { wordsOf, hasStopWord, isBackchannel } from './voice-words'
 
 /** Реплика человека, готовая уйти в чат. */
@@ -19,22 +20,25 @@ export const MERGE_MS = 1000
 const NOISE_CONFIDENCE = 0.5
 
 /**
- * Язык реплики (spec, «Как выбирается язык»): выбранный - всегда он; в мультирежиме - первый
- * из языков Flux, а у короткой реплики - язык прошлой.
+ * Язык реплики (spec, «Как выбирается язык»): выбранный - всегда он; в мультирежиме - по словам
+ * реплики, а ярлык Flux решает, только когда слова не решают сами (латиница, похожие языки). У
+ * короткой реплики - язык прошлой. Ярлыку Flux одному не верим: русскую реплику «Ok, a теперь
+ * посмотри…» он назвал pt (звонок 2026-11-21), и пометка велела агенту ответить по-португальски.
  */
 export const pickLanguage = (
   mode: VoiceLanguageMode,
   languages: readonly string[],
-  words: number,
+  text: string,
   previous: VoiceLanguage | null,
 ): VoiceLanguage => {
   if (mode !== 'multi') return mode
+  if (wordsOf(text).length < LANGUAGE_MIN_WORDS && previous) return previous
 
-  const detected = languages.find(isVoiceLanguage)
+  const read = readLanguage(text)
 
-  if (words < LANGUAGE_MIN_WORDS && previous) return previous
+  if (read.sure && read.language) return read.language
 
-  return detected ?? previous ?? 'en'
+  return languages.find(isVoiceLanguage) ?? read.language ?? previous ?? 'en'
 }
 
 export type Timer = (run: () => void, ms: number) => () => void
@@ -135,7 +139,7 @@ export class UtteranceDesk {
     if (this.options.isAgentBusy() && isBackchannel(held.text)) return
     if (words <= 2 && confidenceOf(held.words) < NOISE_CONFIDENCE) return
 
-    const language = pickLanguage(this.options.mode, held.languages, words, this.language)
+    const language = pickLanguage(this.options.mode, held.languages, held.text, this.language)
 
     this.language = language
     this.options.onUtterance({ text: held.text, language })

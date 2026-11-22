@@ -1,7 +1,7 @@
 import type { TrackerCard, TrackerBoard } from '@shared/tracker'
 
-import type { TrackerEditor, TrackerSending } from '../tracker.types'
-import { findNode, sendableCards } from '../tracker.utils'
+import type { TrackerEditor } from '../tracker.types'
+import { findNode } from '../tracker.utils'
 
 /** Карточка доски по id - задача или продолжение. */
 export const findCard = (board: TrackerBoard, cardId: string): TrackerCard | null => {
@@ -27,21 +27,4 @@ export const entityTexts = (
     default:
       return { title: '', subtitle: '' }
   }
-}
-
-/** Что уйдёт в очередь и подпись над списком: карточки группы по порядку или одна карточка. */
-export const sendingOf = (
-  board: TrackerBoard,
-  sending: TrackerSending,
-): { cards: TrackerCard[]; title: string } => {
-  if (sending.kind === 'card') {
-    const card = findCard(board, sending.cardId)
-
-    return { cards: card ? [card] : [], title: card?.title ?? '' }
-  }
-
-  const node = findNode(board.projects, sending.groupId)
-  const group = node?.kind === 'group' ? node.group : null
-
-  return { cards: group ? sendableCards(group) : [], title: group?.title ?? '' }
 }

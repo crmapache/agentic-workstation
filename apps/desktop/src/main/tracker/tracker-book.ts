@@ -11,7 +11,8 @@ import { stampsOf, sameFields, decodeRecord, encodeRecord, mergeRecords } from '
 /**
  * Карточка, отправленная в очередь сценариев на этом компьютере. settled - итог уже учтён; due -
  * срок карточки при отправке (dueKey): повторяющуюся, которую за время прогона отметили руками,
- * сделанный прогон второй раз не сдвигает.
+ * сделанный прогон второй раз не сдвигает. placeholder - карточка ушла пометкой (без сценария,
+ * ADR 0105): сделанной её очередь не отмечает, а в ту же очередь второй раз она не встаёт.
  */
 export type RunLink = {
   queueId: string
@@ -19,6 +20,7 @@ export type RunLink = {
   sentAt: number
   settled: boolean
   due: string | null
+  placeholder?: boolean
 }
 
 /**

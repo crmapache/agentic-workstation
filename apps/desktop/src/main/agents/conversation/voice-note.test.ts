@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { it, expect, describe } from 'vitest'
 
-import { isVoiceNote, splitVoiceNote, voiceFromNote, voiceNote } from './voice-note'
+import { voiceNote, isVoiceNote, voiceFromNote, splitVoiceNote } from './voice-note'
 
 describe('voiceNote', () => {
   it('asks for a short spoken reply in the language of the line', () => {

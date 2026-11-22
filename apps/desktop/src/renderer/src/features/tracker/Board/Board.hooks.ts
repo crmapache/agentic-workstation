@@ -1,6 +1,7 @@
 import type { RefObject, MouseEvent as ReactMouseEvent } from 'react'
 import { useRef, useState, useEffect, useCallback } from 'react'
 
+import { placeOf, clipMark } from '../board-drop.utils'
 import type { BoardNeighbours } from '../tracker.utils'
 import { swallowEndingClick } from '../../../lib/drag-gesture'
 import {
@@ -10,12 +11,48 @@ import {
 } from '../../../lib/drag-gesture.constants'
 import { autoScrollStep } from '../../../lib/drag-gesture.utils'
 import type { Rect, DropHit, BoardDrag, DropPlace, DragSource, BoardDragApi } from './Board.types'
-import { placeOf, isSamePlace } from './Board.utils'
+import { isSamePlace } from './Board.utils'
 
 const rectOf = (node: Element): Rect => {
   const { left, top, width, height } = node.getBoundingClientRect()
 
   return { left, top, width, height }
+}
+
+/** Зазор флекс-раскладки узла в пикселях: между колонками (column) или рядами (row). */
+const gapOf = (node: Element | null, axis: 'column' | 'row'): number => {
+  if (!node) return 0
+
+  const style = getComputedStyle(node)
+
+  return Number.parseFloat(axis === 'column' ? style.columnGap : style.rowGap) || 0
+}
+
+/**
+ * Ряд групп под рукой целиком: колонки по порядку с шапками - место группы считается по всему
+ * ряду, а не только по колонке, над которой рука (в зазоре между колонками она ни над одной).
+ */
+const rowAt = (under: Element): DropHit | null => {
+  const row = under.closest<HTMLElement>('[data-flow-row]')
+
+  if (!row?.dataset.flowRow) return null
+
+  const track = row.querySelector('[data-flow-track]')
+  const end = row.querySelector('[data-row-end]')
+  const columns = [...row.querySelectorAll<HTMLElement>('[data-group-column]')].map((column) => ({
+    id: column.dataset.groupColumn ?? '',
+    rect: rectOf(column),
+    head: rectOf(column.querySelector('header') ?? column),
+  }))
+
+  return {
+    kind: 'row',
+    flowId: row.dataset.flowRow,
+    columns,
+    box: rectOf(row),
+    end: end ? rectOf(end) : null,
+    gap: gapOf(track, 'column'),
+  }
 }
 
 /** Что под рукой: ближайший размеченный узел доски (data-атрибуты карточек, колонок, потоков). */
@@ -27,10 +64,20 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
   if (kind === 'flow') {
     const flow = under.closest<HTMLElement>('[data-flow]')
 
-    return flow?.dataset.flow ? { kind: 'flow', id: flow.dataset.flow, rect: rectOf(flow) } : null
+    return flow?.dataset.flow
+      ? {
+          kind: 'flow',
+          id: flow.dataset.flow,
+          rect: rectOf(flow),
+          gap: gapOf(flow.parentElement, 'row'),
+        }
+      : null
   }
 
-  const card = kind === 'card' ? under.closest<HTMLElement>('[data-card]') : null
+  if (kind === 'group') return rowAt(under)
+
+  const card = under.closest<HTMLElement>('[data-card]')
+  const column = under.closest<HTMLElement>('[data-group-column]')
 
   if (card?.dataset.card && card.dataset.group !== undefined)
     return {
@@ -39,40 +86,19 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       groupId: card.dataset.group,
       followUp: card.dataset.followUp === 'true',
       rect: rectOf(card),
+      gap: gapOf(column, 'row'),
+      chainGap: gapOf(card.parentElement, 'column'),
     }
 
-  const chain = kind === 'card' ? under.closest<HTMLElement>('[data-chain]') : null
-
-  if (chain?.dataset.chain && chain.dataset.group)
-    return {
-      kind: 'chain',
-      rootId: chain.dataset.chain,
-      groupId: chain.dataset.group,
-      rect: rectOf(chain),
-    }
-
-  const group = under.closest<HTMLElement>('[data-group-column]')
-
-  if (group?.dataset.groupColumn && group.dataset.flowId) {
-    const end = group.querySelector('[data-group-end]')
-    const head = group.querySelector('header')
+  if (column?.dataset.groupColumn) {
+    const end = column.querySelector('[data-group-end]')
 
     return {
       kind: 'group',
-      id: group.dataset.groupColumn,
-      flowId: group.dataset.flowId,
-      rect: rectOf(group),
-      head: rectOf(head ?? group),
+      id: column.dataset.groupColumn,
       end: end ? rectOf(end) : null,
+      gap: gapOf(column, 'row'),
     }
-  }
-
-  const row = under.closest<HTMLElement>('[data-flow-row]')
-
-  if (row?.dataset.flowRow) {
-    const end = row.querySelector('[data-row-end]')
-
-    return { kind: 'row', flowId: row.dataset.flowRow, end: end ? rectOf(end) : null }
   }
 
   return null
@@ -113,7 +139,7 @@ const autoScroll = (scroller: HTMLElement | null, x: number, y: number) => {
 /**
  * Перетаскивание по доске: карточки (в группах и цепочках), группы (между потоками), потоки.
  * Порог 4 пикселя, под рукой - призрак того, что несут, место показывает линия. У края ряда и
- * страницы - прокрутка сама. Esc - отмена; бросок на то же место ничего не шлёт.
+ * страницы - прокрутка сама. Esc - отмена; своё же место не предлагается вовсе.
  */
 export const useBoardDrag = (
   neighbours: BoardNeighbours,
@@ -154,17 +180,19 @@ export const useBoardDrag = (
       const update = () => {
         if (!current) return
 
+        const { neighbours } = latest.current
         const hit = hitAt(pointer.x, pointer.y, source.kind)
-        const placed = hit
-          ? placeOf(hit, pointer.x, pointer.y, source, latest.current.neighbours)
-          : null
+        const found = hit ? placeOf(hit, pointer.x, pointer.y, source, neighbours) : null
+        // Место, где несомое и так стоит, не показывается: бросок туда ничего не меняет.
+        const placed = found && !isSamePlace(source, found.place, neighbours) ? found : null
+        const view = scroller.current ? rectOf(scroller.current) : null
 
         current = {
           ...current,
           x: pointer.x,
           y: pointer.y,
           place: placed?.place ?? null,
-          mark: placed?.mark ?? null,
+          mark: placed && view ? clipMark(placed.mark, view) : (placed?.mark ?? null),
         }
         setDrag(current)
       }
@@ -187,8 +215,7 @@ export const useBoardDrag = (
 
         const { place } = current
 
-        if (drop && place && !isSamePlace(source, place, latest.current.neighbours))
-          latest.current.onDrop(source, place)
+        if (drop && place) latest.current.onDrop(source, place)
 
         current = null
         setDrag(null)

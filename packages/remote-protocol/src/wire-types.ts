@@ -276,8 +276,10 @@ export type QueueItemWire = {
   provider: string
   addedAt: number
   runId: string
-  state: 'waiting' | 'running' | 'done' | 'failed' | 'stopped'
+  state: 'waiting' | 'running' | 'done' | 'failed' | 'stopped' | 'skipped'
   refusal: string | null
+  /** Пометка - карточка трекера без сценария: очередь проходит мимо, телефон показывает её бледной. */
+  placeholder?: boolean
 }
 
 export type QueueWire = {

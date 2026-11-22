@@ -24,7 +24,9 @@ export class QueueNaming {
 
   async name(queueId: string): Promise<void> {
     const queue = this.host.book.get(queueId)
-    const first = queue?.items[0]
+    // Пометки (карточки без сценария) ИИ не описывают и исполнителя не дают.
+    const runs = queue?.items.filter((item) => !item.placeholder) ?? []
+    const first = runs[0]
 
     if (!queue || !first || queue.nameSource === 'user') return
 
@@ -32,7 +34,7 @@ export class QueueNaming {
 
     this.asked.set(queueId, ticket)
 
-    const described = queue.items
+    const described = runs
       .map((item) => {
         const answers = Object.values(item.inputs).filter((value) => value.trim())
 

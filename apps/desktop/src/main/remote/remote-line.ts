@@ -11,7 +11,7 @@ import { realTimer } from '../voice/voice-service'
 import { RemoteAgent } from './agent/remote-agent'
 import { Bridge } from './bridge/bridge'
 import type { BridgePorts } from './bridge/bridge-ports'
-import { ownedConversations } from './bridge/panels'
+import { ownerOf, ownedConversations } from './bridge/panels'
 import type { SocketLike } from './link/relay-link'
 import type { ConversationEvent } from './push/attention'
 import { PushDesk } from './push/push-desk'
@@ -119,6 +119,14 @@ export class RemoteLine {
             const home = deps.ports.workspace.getState().projects.find((project) => project.home)
 
             return home ? this.bridge.lens().keys.keyOf(home.rootPath) : ''
+          },
+          // Ответ, который телефон видит, уже в ленте IDE: телефон получает ленту отсюда же.
+          answerText: async (conversationId, itemId) => {
+            const owner = ownerOf(deps.ports.panels, conversationId)
+            const feed = owner ? await owner.panel.getFeed(conversationId) : null
+            const item = feed?.items.find((one) => one.id === itemId)
+
+            return item?.kind === 'assistant' ? item.text : null
           },
           timer: realTimer,
         })

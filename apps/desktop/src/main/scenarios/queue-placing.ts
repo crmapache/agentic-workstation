@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto'
 
+import type { ProviderId } from '@shared/providers'
+import { worksUnattended } from '@shared/providers'
 import { cleanHours } from '@shared/queue-hours'
-import type { QueueItem, ScenarioQueue, ScenarioStartRequest } from '@shared/scenario-queues'
+import type {
+  QueueItem,
+  ScenarioQueue,
+  ScenarioStartRequest,
+  QueuePlaceholderRequest,
+} from '@shared/scenario-queues'
 import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { ScenarioCode } from '@shared/scenarios'
 
@@ -16,6 +23,20 @@ export const shortId = (): string => randomUUID().replaceAll('-', '').slice(0, 1
 type Placed = { queueId: string; itemId: string } | { code: ScenarioCode; detail?: string }
 
 /**
+ * Исполнитель очереди или отказ: которому очередь не по силам, - отказ до очереди, а не очередь, которая тут же
+ * встанет на отказе. Только для чата (Antigravity, ADR 0094): сценарий мог прийти из чужого
+ * репозитория, а не из выбора в окне. Нет в IDE (ADR 0083: в перечне есть и ещё не подключённые).
+ */
+const unattendedProvider = (
+  host: RunnerHost,
+  provider: ProviderId,
+): { code: ScenarioCode } | ScenarioProvider => {
+  if (!worksUnattended(provider)) return { code: 'chatOnly' }
+
+  return host.provider(provider) ?? { code: 'providerMissing' }
+}
+
+/**
  * Поставить сценарий: проверить его на полке, собрать элемент и положить в новую очередь (с
  * worktree или без) или в конец существующей. Запуск - не здесь: им занимается шаг очереди.
  */
@@ -23,15 +44,17 @@ export const placeItem = async (
   host: RunnerHost,
   request: ScenarioStartRequest,
 ): Promise<Placed> => {
+  const provider = unattendedProvider(host, request.provider)
+
+  if ('code' in provider) return provider
+
   const scenario = await host
     .desk(request.projectPath)
     .store.find(request.scenarioId, scopeOf(request.scope))
-  const provider = host.provider(request.provider)
 
   if (!scenario) return { code: 'scenarioGone' }
   if (!isRunnable(scenario)) return { code: 'scenarioBroken' }
   if (missingInputs(scenario, request.inputs).length > 0) return { code: 'scenarioMissingInput' }
-  if (!provider) return { code: 'providerMissing' }
 
   const item: QueueItem = {
     id: shortId(),
@@ -53,9 +76,43 @@ export const placeItem = async (
   return 'code' in placed ? placed : { queueId: placed.queueId, itemId: item.id }
 }
 
+/**
+ * Поставить пометку - карточку без сценария (QueueItem.placeholder): на полке её не ищут, ответов
+ * у неё нет. Новую очередь она открывает так же, как сценарий: worktree готовит исполнитель
+ * сценариев, что пойдут за ней.
+ */
+export const placePlaceholder = async (
+  host: RunnerHost,
+  request: QueuePlaceholderRequest,
+): Promise<Placed> => {
+  const provider = unattendedProvider(host, request.provider)
+
+  if ('code' in provider) return provider
+
+  const item: QueueItem = {
+    id: shortId(),
+    scenarioId: '',
+    scope: 'project',
+    scenarioName: request.title.trim() || '-',
+    inputs: {},
+    provider: request.provider,
+    addedAt: Date.now(),
+    runId: '',
+    state: 'waiting',
+    refusal: null,
+    placeholder: true,
+  }
+  const placed =
+    request.target.kind === 'new'
+      ? await openQueue(host, request, item, request.target.worktree, provider)
+      : joinQueue(host, request.target.queueId, request.projectPath, item)
+
+  return 'code' in placed ? placed : { queueId: placed.queueId, itemId: item.id }
+}
+
 const openQueue = async (
   host: RunnerHost,
-  { projectPath, hours }: ScenarioStartRequest,
+  { projectPath, hours }: { projectPath: string; hours?: ScenarioStartRequest['hours'] },
   item: QueueItem,
   worktree: boolean,
   provider: ScenarioProvider,

@@ -24,7 +24,8 @@ import { QueueItemMenu } from './QueueItemMenu'
  * ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
  * носит меню у правого края: сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
  * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Отказ старта - под
- * именем, если его не сказала полоса остановки.
+ * именем, если его не сказала полоса остановки. Пометка - карточка трекера без сценария - бледная,
+ * с «Skipped» сразу: очередь пройдёт мимо неё.
  */
 export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps) => {
   const { t } = useTranslation()
@@ -42,7 +43,11 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         })
       : ''
   const canMarkDone = item.state === 'failed' || item.state === 'stopped'
-  const condition = item.doneByHand ? t('scenarios.queues.items.doneByHand') : ''
+  const condition = item.placeholder
+    ? t('scenarios.queues.items.placeholder')
+    : item.doneByHand
+      ? t('scenarios.queues.items.doneByHand')
+      : ''
   const hasAnswers = answerChips(item.inputs).length > 0
 
   const handleOpen = () => openRun(item.runId)
@@ -59,6 +64,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         styles.item,
         item.state === 'running' && styles.itemRunning,
         item.runId && styles.itemPressable,
+        item.placeholder && styles.itemPlaceholder,
       )}
       onClick={item.runId ? handleAreaClick : undefined}>
       <div className={styles.itemHead}>
@@ -75,7 +81,9 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         ) : (
           <span className={styles.itemName}>{item.scenarioName}</span>
         )}
-        {item.state === 'running' ? (
+        {item.placeholder || item.state === 'skipped' ? (
+          <ScenarioStatePill of="step" state="skipped" />
+        ) : item.state === 'running' ? (
           <ScenarioStatePill
             of="run"
             state={live?.state ?? 'starting'}

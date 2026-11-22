@@ -17,13 +17,14 @@ import { useScenarioQueues } from '../../../state/scenarios.queries'
 import { useActiveProject } from '../../../state/workspace.queries'
 import styles from './SendModal.module.scss'
 import type { SendModalProps } from './SendModal.types'
+import { sendingOf } from './SendModal.utils'
 import { CardList } from './parts/CardList'
 
 /**
- * Отправка в очередь сценариев: какие карточки уйдут (по порядку доски) и куда - новая очередь
- * (по желанию в своём worktree) или открытая очередь этого проекта.
+ * Отправка в очередь сценариев: какие карточки уйдут (по порядку доски, без сценария - бледными
+ * пометками) и куда - новая очередь (по желанию в своём worktree) или открытая очередь проекта.
  */
-export const SendModal = ({ sending, cards, title }: SendModalProps) => {
+export const SendModal = ({ sending, board }: SendModalProps) => {
   const { t } = useTranslation()
   const project = useActiveProject()
   const { data } = useScenarioQueues()
@@ -37,6 +38,9 @@ export const SendModal = ({ sending, cards, title }: SendModalProps) => {
     (queue) => queue.projectPath === project?.rootPath && queue.closedAt === 0,
   )
   const chosen = queues.find((queue) => queue.id === queueId) ?? null
+  const { cards, title } = sendingOf(board, sending, chosen?.id ?? null)
+  // Пометки (карточки без сценария) встают в очередь, но запускать в них нечего - в счёт не идут.
+  const runs = cards.filter((card) => card.scenario).length
 
   const handleClose = () => openSend(null)
   const handleSend = async () => {
@@ -73,9 +77,9 @@ export const SendModal = ({ sending, cards, title }: SendModalProps) => {
           <Button
             variant="primary"
             icon={Send}
-            disabled={cards.length === 0 || busy}
+            disabled={runs === 0 || busy}
             onClick={() => void handleSend()}>
-            {t('tracker.send.send', { count: cards.length })}
+            {t('tracker.send.send', { count: runs })}
           </Button>
         </div>
       }>

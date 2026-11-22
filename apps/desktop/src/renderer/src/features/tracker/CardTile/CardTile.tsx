@@ -1,6 +1,7 @@
 import type { MouseEvent, KeyboardEvent } from 'react'
 import { clsx } from 'clsx'
 import {
+  Plus,
   Send,
   Pencil,
   Trash2,
@@ -15,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { isInQueue } from '@shared/tracker'
 
 import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
+import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
@@ -28,9 +30,10 @@ import { CardMeta } from './parts/CardMeta'
 /**
  * Карточка задачи или продолжения: галочка, заголовок, подзаголовок, начало описания и строка
  * срока, приоритета и сценария. Выполненная остаётся на своём месте, только гаснет. Нажатие
- * открывает её окно, перетаскивание - переносит; Alt+стрелки сдвигают на шаг.
+ * открывает её окно, перетаскивание - переносит; Alt+стрелки сдвигают на шаг. У последней в
+ * цепочке под рукой - «+» следующего продолжения.
  */
-export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => {
+export const CardTile = ({ card, groupId, followUp, rootId, onAddFollowUp }: CardTileProps) => {
   const { t } = useTranslation()
   const { press, draggingId, today, moveBy } = useBoard()
   const { apply } = useTrackerActions()
@@ -86,6 +89,10 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
     void apply({ kind: 'card.update', id: card.id, fields: { done: !card.done } })
   }
   const handleStop = (event: MouseEvent) => event.stopPropagation()
+  const handleAddFollowUp = (event: MouseEvent) => {
+    event.stopPropagation()
+    onAddFollowUp?.()
+  }
   const handleKey = (event: KeyboardEvent) => {
     if (!event.altKey) return
 
@@ -131,6 +138,11 @@ export const CardTile = ({ card, groupId, followUp, rootId }: CardTileProps) => 
           {card.subtitle && <span className={styles.subtitle}>{card.subtitle}</span>}
         </div>
         <div className={styles.actions}>
+          {onAddFollowUp && (
+            <span onMouseDown={handleStop} onClick={handleAddFollowUp}>
+              <IconButton icon={Plus} size="xs" label={t('tracker.card.addFollowUp')} />
+            </span>
+          )}
           <ActionsMenu label={t('tracker.card.menu', { title: card.title })} items={items} />
         </div>
       </div>

@@ -1,3 +1,4 @@
+import type { SpinnerSize } from '../Spinner/Spinner.types'
 import type { IconButtonSize } from './IconButton.types'
 
 // Размер глифа в пикселях: lucide принимает число, а не CSS-переменную.
@@ -10,3 +11,11 @@ export const ICON_SIZE: Record<IconButtonSize, number> = {
 }
 
 export const ICON_STROKE_WIDTH = 1.75
+
+// Крутилка занятой кнопки - на месте глифа и не больше него.
+export const BUSY_SPINNER_SIZE: Record<IconButtonSize, SpinnerSize> = {
+  xs: 'sm',
+  sm: 'sm',
+  md: 'md',
+  touch: 'md',
+}

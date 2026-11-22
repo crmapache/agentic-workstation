@@ -16,6 +16,7 @@ import type { AgentWork, CallAgent } from './call-brain'
 import { CallBrain } from './call-brain'
 import type { BargeIn } from './call-ears'
 import { CallEars } from './call-ears'
+import type { SpokenAnswer } from './call-mouth'
 import { CallMouth } from './call-mouth'
 import type { Timer } from './utterances'
 import type { VoiceEndpoint } from './voice-endpoint'
@@ -43,6 +44,8 @@ export type VoiceCallOptions = {
   checkKey: () => Promise<VoiceKeyCheck>
   onView: (view: VoiceCallView) => void
   onEnded: (reason: VoiceCallEnd) => void
+  /** Ответ прозвучал целиком: его звук - в запас «Прочитать вслух» (ADR 0106). */
+  onSpoken?: ((spoken: SpokenAnswer) => void) | undefined
 }
 
 /**
@@ -142,9 +145,12 @@ export class VoiceCall {
     this.ears.setBargeIn(settings.bargeIn)
   }
 
-  /** Кнопка «Стоп»: замолчать (и ответ, у которого звука ещё нет) и остановить работу агента. */
+  /**
+   * Кнопка «Стоп»: замолчать (и ответ, у которого звука ещё нет) и остановить работу агента.
+   * Новая эпоха - всегда: конечная точка могла ещё играть то, что рот уже считает прозвучавшим.
+   */
   stop(): void {
-    this.mouth.cut()
+    this.mouth.cut(true)
     if (this.work.state !== 'idle') this.brain.interrupt()
   }
 
@@ -245,6 +251,7 @@ export class VoiceCall {
       endpoint,
       onSpeaking: () => this.changed(),
       onCut: (_, spoken) => this.brain.cut(spoken),
+      onSpoken: this.options.onSpoken,
     })
   }
 

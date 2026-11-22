@@ -151,6 +151,8 @@ const partSchema = z.object({
  * Голосовой звонок (ADR 0104): начать (ref - чтобы ответ нашёл свою кнопку и повтор не начал
  * второй звонок), положить трубку, «Стоп», микрофон, пауза и возврат (страница скрыта или снова
  * видна), сколько ответа проиграно. Звук микрофона идёт не словом, а телом кадра (audio-frame.ts).
+ * Чтение вслух ответа из ленты (ADR 0106) - без звонка: ref - чтобы конец нашёл своё нажатие, n -
+ * номер чтения в кадрах звука, разговор и элемент ленты - что читать.
  */
 const CALL = { p: P, k: z.literal('voice'), callId: ID }
 
@@ -167,6 +169,16 @@ const voiceSchema = z.discriminatedUnion('act', [
     epoch: z.int().min(0).max(0xffff),
     ms: z.number().min(0).max(3_600_000),
   }),
+  z.object({
+    p: P,
+    k: z.literal('voice'),
+    act: z.literal('read'),
+    ref: ID,
+    n: z.int().min(0).max(0xffff),
+    conversationId: ID,
+    itemId: z.string().min(1).max(200),
+  }),
+  z.object({ p: P, k: z.literal('voice'), act: z.literal('stopReading'), ref: ID }),
 ])
 
 export const phoneMessageSchema = z.union([

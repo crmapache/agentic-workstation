@@ -5,6 +5,7 @@ import type {
   ScenarioQueue,
   ScenarioStartOutcome,
   ScenarioStartRequest,
+  QueuePlaceholderRequest,
 } from '@shared/scenario-queues'
 import type { Scenario } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
@@ -96,9 +97,29 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
       itemId: item.id,
     })
   }
+  const placed: QueuePlaceholderRequest[] = []
+  const placeholder = (request: QueuePlaceholderRequest): Promise<ScenarioStartOutcome> => {
+    placed.push(request)
+
+    const item = {
+      id: `placeholder-${placed.length}`,
+      state: 'waiting',
+      placeholder: true,
+    } as QueueItem
+    const { target } = request
+    const queue =
+      target.kind === 'queue' ? queues.find((one) => one.id === target.queueId) : undefined
+    const queueId = queue?.id ?? `queue-placeholder-${placed.length}`
+
+    if (queue) queue.items.push(item)
+    else queues.push({ id: queueId, items: [item], closedAt: 0 } as ScenarioQueue)
+
+    return Promise.resolve({ ok: true, queueId, itemId: item.id })
+  }
   const runs = new TrackerRuns(kit.service, {
     fetch,
     start,
+    placeholder,
     act: () => Promise.resolve(null),
     queues: () => queues,
   })
@@ -422,7 +443,7 @@ describe('трекер в инструментах самой IDE', () => {
       queue_id: 'queue-1',
       sent: [a, a2],
       skipped: [
-        { id: b, why: 'no scenario' },
+        { id: b, why: 'no scenario: in the queue as a placeholder the queue passes' },
         { id: c, why: 'done' },
       ],
     })

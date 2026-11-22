@@ -8,6 +8,7 @@ import { JsonFile } from '../storage/json-file'
 import { Vault } from '../storage/vault'
 import type { WorkspaceService } from '../workspace/workspace-service'
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
+import { VoiceSamples } from './voice-samples'
 import { realTimer, VoiceService } from './voice-service'
 import { VoiceStore } from './voice-store'
 import { dialDeepgram, checkDeepgramKey } from './deepgram/deepgram-link'
@@ -21,7 +22,8 @@ export type VoiceRuntime = {
 
 /**
  * Голосовой режим IDE (ADR 0104): настройки в `voice.json`, ключ Deepgram в `voice.vault`,
- * звонок - через порты панелей, в проекте Home. Окну - событием после каждой перемены.
+ * образцы голосов на месяц - в `voice-samples`, звонок - через порты панелей, в проекте Home.
+ * Окну - событием после каждой перемены.
  */
 export const startVoice = async (setup: {
   dataDir: string
@@ -32,6 +34,7 @@ export const startVoice = async (setup: {
     new JsonFile<VoiceSettings>(join(setup.dataDir, 'voice.json')),
     await Vault.load(join(setup.dataDir, 'voice.vault'), ELECTRON_CIPHER),
   )
+  const samples = new VoiceSamples(join(setup.dataDir, 'voice-samples'))
   const service = new VoiceService({
     store,
     panels: setup.panels,
@@ -40,6 +43,7 @@ export const startVoice = async (setup: {
     dial: dialDeepgram,
     timer: realTimer,
     now: () => Date.now(),
+    samples,
     checkKey: (key, region) => checkDeepgramKey(key, region),
     onView: (view) => {
       broadcast('voice:changed', view)
@@ -47,6 +51,8 @@ export const startVoice = async (setup: {
     },
   })
   const runtime: VoiceRuntime = { service, store, changed: () => undefined }
+
+  void samples.prune()
 
   return runtime
 }
