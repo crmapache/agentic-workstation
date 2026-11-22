@@ -41,7 +41,10 @@ export const dialDeepgram: DeepgramDial = (url, key, handlers) => {
 
   return {
     send: (data) => {
-      if (socket.readyState === WebSocket.OPEN) socket.send(data)
+      // Своя копия кадра: байты окна или телефона могут лежать в общем буфере, а сокет берёт свой.
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(typeof data === 'string' ? data : new Uint8Array(data))
+      }
     },
     close: () => {
       if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {

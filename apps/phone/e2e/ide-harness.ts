@@ -17,7 +17,10 @@ import {
   PERMISSION,
   CONVERSATION_ID,
 } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
-import type { ConversationsPort } from '../../desktop/src/main/remote/bridge/bridge-ports'
+import type {
+  VoicePort,
+  ConversationsPort,
+} from '../../desktop/src/main/remote/bridge/bridge-ports'
 import type { StoredRemote } from '../../desktop/src/main/remote/store/remote-state'
 import type { Latency } from './latency-proxy'
 import { NO_LATENCY, startLatencyProxy } from './latency-proxy'
@@ -159,7 +162,7 @@ type RelayPush = {
  * телефона, IDE); по умолчанию её нет. С боевым релеем не действует.
  */
 export const startHarness = async (
-  options: { staticDir?: string; push?: RelayPush; latency?: Latency } = {},
+  options: { staticDir?: string; push?: RelayPush; latency?: Latency; voice?: VoicePort } = {},
 ) => {
   const relay = await relayFor(
     options.staticDir ?? '',
@@ -196,6 +199,8 @@ export const startHarness = async (
   }
 
   state.models = MODELS
+  // Голосовой звонок (ADR 0104): порт подставляет тест звонка, остальным IDE без голоса.
+  ide.ports.voice = options.voice
 
   // Разговоры панели Claude Code - тот же объект, что в списке панелей моста: правка на месте.
   const base = { ...ide.claude }

@@ -21,8 +21,10 @@ export const runCleanups = async (): Promise<void> => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 }
 
-export const harness = async (): Promise<Harness> => {
-  const started = await startHarness()
+export const harness = async (
+  options: Parameters<typeof startHarness>[0] = {},
+): Promise<Harness> => {
+  const started = await startHarness(options)
 
   cleanups.push(() => started.close())
 
