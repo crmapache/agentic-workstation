@@ -2821,7 +2821,8 @@
       "editorSelected_other": "{{count}} lines from {{name}}",
       "editorOpened": "In {{name}}",
       "imageLoading": "Loading image…",
-      "closeImage": "Close"
+      "closeImage": "Close",
+      "voice": "Said by voice ({{lang}})"
     },
     "pins": {
       "add": "Pin it to the top of the chat",

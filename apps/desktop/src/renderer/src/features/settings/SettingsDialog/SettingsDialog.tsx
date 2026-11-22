@@ -11,6 +11,7 @@ import { ChatPane } from './parts/ChatPane'
 import { GitPane } from './parts/GitPane'
 import { ServiceAiPane } from './parts/ServiceAiPane'
 import { SoundsPane } from './parts/SoundsPane'
+import { VoicePane } from './parts/VoicePane'
 
 /**
  * Настройки IDE (⌘,, Settings… в меню программы, шестерёнка внизу левой полосы, действие
@@ -54,6 +55,7 @@ export const SettingsDialog = () => {
       {section === 'chat' && <ChatPane />}
       {section === 'sounds' && <SoundsPane />}
       {section === 'ai' && <ServiceAiPane />}
+      {section === 'voice' && <VoicePane />}
       {section === 'git' && <GitPane />}
     </Modal>
   )

@@ -91,3 +91,36 @@
   padding-top: var(--space-3);
   border-top: var(--border-width) solid var(--color-border);
 }
+
+// Ключ Deepgram и голос языка: поле или выбор и кнопки в ряд; в узком окне ряд переносится.
+.keyControl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.keyOk {
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+}
+
+.keyBad {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+// Ожидаемые языки - чипами в несколько рядов, а не длинным списком.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  max-width: var(--size-setting-control);
+}
+
+// Пояснение под карточкой: где лежит ключ и кто его видит.
+.footnote {
+  margin: var(--space-2) 0 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}

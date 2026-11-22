@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { AiChoice } from '@shared/ide-prefs'
 import type { ProviderInfo } from '@shared/providers'
 import type { SoundEvent } from '@shared/sounds'
+import type { VoiceSettings } from '@shared/voice'
 
 import type { ChoiceOption } from '@agentic-workstation/ui/ChoiceField.types'
 
@@ -51,4 +52,10 @@ export type AiChoiceRowProps = {
   onChange: (choice: AiChoice) => void
   /** Убрать из цепочки; у основного нет - кому-то писать сообщение надо. */
   onRemove?: (() => void) | undefined
+}
+
+/** Карточка раздела Voice: настройки целиком и запись новых (окно отдаёт их главному процессу). */
+export type VoiceCardProps = {
+  settings: VoiceSettings
+  onChange: (next: VoiceSettings) => void
 }

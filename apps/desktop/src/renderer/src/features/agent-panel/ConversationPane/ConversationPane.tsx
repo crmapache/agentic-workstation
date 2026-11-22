@@ -12,8 +12,10 @@ import { ConversationDock } from '../ConversationDock/ConversationDock'
 import { Feed } from '../Feed/Feed'
 import { RewindDialog } from '../RewindDialog/RewindDialog'
 import { SelectionMenu } from '../SelectionMenu/SelectionMenu'
+import { VoiceCallBar } from '../VoiceCallBar/VoiceCallBar'
 import { Welcome } from '../Welcome/Welcome'
 import { usePanelProvider } from '../../../state/panel-provider.context'
+import { useVoice } from '../../../state/voice.queries'
 import styles from './ConversationPane.module.scss'
 import type { ConversationPaneProps } from './ConversationPane.types'
 
@@ -34,6 +36,7 @@ export const ConversationPane = ({ project, conversation }: ConversationPaneProp
   // Ничего не идёт - идущая задача стоит, и крутилка у неё врала бы.
   const isWorking = conversation !== null && isAnythingRunning(conversation, items)
   const feedRef = useRef<HTMLDivElement>(null)
+  const voiceCall = useVoice()?.call ?? null
   const { keys, handleKeyDown } = usePaneKeys(project, conversation, draftKey)
 
   return (
@@ -55,6 +58,9 @@ export const ConversationPane = ({ project, conversation }: ConversationPaneProp
             tasks={feed?.tasks ?? []}
             isWorking={isWorking}
           />
+        )}
+        {voiceCall && voiceCall.conversationId === conversation?.id && (
+          <VoiceCallBar call={voiceCall} />
         )}
         <Composer project={project} conversation={conversation} draftKey={draftKey} />
         {conversation && <ComposerStatus conversation={conversation} />}

@@ -1,7 +1,8 @@
 import { VOICE_PLAY_RATE } from '@shared/voice'
 
+import { pcmToFloat } from '../../lib/pcm'
 import type { PlayedSegment } from './voice-audio.utils'
-import { playedMs, pcmToFloat } from './voice-audio.utils'
+import { playedMs } from './voice-audio.utils'
 
 /** Запас перед первым куском: сетевой рывок не обрывает речь на полуслове (spec: 100-200 мс). */
 const LEAD_S = 0.15

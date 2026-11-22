@@ -12,6 +12,7 @@ import { usePanelCapabilities } from '../panel.queries'
 import { usePanelStore } from '../panel.store'
 import { useResting, useAnswerOnOpen } from '../tab-calls.hooks'
 import { useTabCallsStore } from '../tab-calls.store'
+import { VoiceCallAction } from '../VoiceCallAction/VoiceCallAction'
 import { ADD_KEY, CALLS_REST_AFTER_MS } from './ConversationTabs.constants'
 import { useTabDrag } from './ConversationTabs.hooks'
 import styles from './ConversationTabs.module.scss'
@@ -120,6 +121,7 @@ export const ConversationTabs = ({ project, conversations, activeId }: Conversat
         </span>
       </div>
       <div className={styles.actions}>
+        <VoiceCallAction />
         {offersFork && (
           <IconButton
             icon={GitFork}

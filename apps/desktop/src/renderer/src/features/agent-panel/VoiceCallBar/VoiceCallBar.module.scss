@@ -1,0 +1,19 @@
+.callBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+// Живой текст реплики - одной строкой: длинная реплика уходит многоточием, целиком она будет
+// в ленте, когда уйдёт в чат.
+.heard {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

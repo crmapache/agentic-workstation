@@ -1,4 +1,4 @@
-import { Bot, Palette, Volume2, MessageSquare, GitCommitHorizontal } from 'lucide-react'
+import { Bot, Mic, Palette, Volume2, MessageSquare, GitCommitHorizontal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import type { SettingsSection } from '../settings.types'
@@ -9,5 +9,6 @@ export const SETTINGS_SECTIONS: readonly { id: SettingsSection; icon: LucideIcon
   { id: 'chat', icon: MessageSquare },
   { id: 'sounds', icon: Volume2 },
   { id: 'ai', icon: Bot },
+  { id: 'voice', icon: Mic },
   { id: 'git', icon: GitCommitHorizontal },
 ]

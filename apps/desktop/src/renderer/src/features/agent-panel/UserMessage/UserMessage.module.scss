@@ -33,6 +33,12 @@
   color: var(--color-fg-subtle);
 }
 
+.voice {
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--color-fg-subtle);
+}
+
 .time {
   color: var(--color-fg-subtle);
   font-family: var(--font-code);

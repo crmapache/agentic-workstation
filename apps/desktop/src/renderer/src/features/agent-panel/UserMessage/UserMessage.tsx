@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import { Mic } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { DraftChip } from '@shared/message-draft'
@@ -8,6 +9,7 @@ import { Tooltip } from '@agentic-workstation/ui/Tooltip'
 import { chipLabel } from '../chips.utils'
 import { useFeedScope } from '../feed-scope.context'
 import { useMessageDraft } from '../message.hooks'
+import { ROW_ICON_SIZE } from '../panel.constants'
 import type { PictureSource } from '../picture.types'
 import { autoWhy } from '../CarryOnRow/CarryOnRow.utils'
 import { PictureLightbox } from '../PictureLightbox/PictureLightbox'
@@ -45,6 +47,16 @@ export const UserMessage = memo(({ item }: UserMessageProps) => {
             {item.auto ? t('agentPanel.carryOn.label') : author || t('agentPanel.message.you')}
           </span>
         </Tooltip>
+        {/* Сказано голосом в звонке (ADR 0104): микрофон, язык - в подсказке. */}
+        {item.voice && (
+          <Tooltip label={t('agentPanel.message.voice', { lang: item.voice.lang })} placement="top">
+            <Mic
+              className={styles.voice}
+              size={ROW_ICON_SIZE}
+              aria-label={t('agentPanel.message.voice', { lang: item.voice.lang })}
+            />
+          </Tooltip>
+        )}
         <span className={styles.time}>{formatClock(item.time)}</span>
       </div>
       <MessageActions item={item} draft={draft} />

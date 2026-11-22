@@ -1,14 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { playedMs, pcmToFloat } from './voice-audio.utils'
-
-describe('pcmToFloat', () => {
-  it('turns PCM16 bytes into samples from -1 to 1', () => {
-    const pcm = new Uint8Array(new Int16Array([0, 0x4000, -0x8000]).buffer)
-
-    expect([...pcmToFloat(pcm)]).toEqual([0, 0.5, -1])
-  })
-})
+import { playedMs } from './voice-audio.utils'
 
 describe('playedMs', () => {
   it('counts only what sounded, not the gap while a chunk was late', () => {
