@@ -3,6 +3,9 @@ import type { RepeatPreset } from './tracker.types'
 /** Как часто доска сверяет «сегодня»: «Today» на карточках сменится на «Yesterday» в полночь. */
 export const DAY_TICK_MS = 60_000
 
+/** Итог отправки в очередь и «Undo» уходят из угла сами через это время; отказ висит, пока не закроют. */
+export const NOTICE_CLOSE_MS = 8_000
+
 /** Дни недели повтора: 1 - понедельник … 7 - воскресенье. */
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const
 

@@ -8,6 +8,8 @@ beforeEach(() =>
     main: { activeViewId: 'file', isOpen: true },
     provider: { activeViewId: 'claude-code', isOpen: true, width: 520 },
     terminal: { isOpen: false, share: 0.5 },
+    projectId: 'a',
+    viewsByProject: {},
     room: 1252,
   }),
 )
@@ -98,5 +100,50 @@ describe('показать вид левой панели откуда угод�
 
     expect(useLayoutStore.getState().provider.isOpen).toBe(false)
     expect(isSidePanelShown(useLayoutStore.getState())).toBe(true)
+  })
+})
+
+describe('раскладка своя у каждого проекта', () => {
+  it('переход в проект меняет виды, возврат - возвращает прежние', () => {
+    const layout = useLayoutStore.getState()
+
+    layout.selectMainView('scenarios')
+    layout.toggleTerminal()
+    layout.showProject('b')
+    // Проект, где человек ещё не был: дерево, файл и Claude Code, терминал спрятан.
+    expect(useLayoutStore.getState().main.activeViewId).toBe('file')
+    expect(useLayoutStore.getState().terminal.isOpen).toBe(false)
+
+    layout.selectProviderView('claude-code')
+    layout.selectSideView('changes')
+    layout.showProject('a')
+    expect(useLayoutStore.getState()).toMatchObject({
+      main: { activeViewId: 'scenarios', isOpen: true },
+      provider: { activeViewId: 'claude-code', isOpen: true },
+      side: { activeViewId: 'files', isOpen: true },
+      terminal: { isOpen: true },
+    })
+
+    layout.showProject('b')
+    expect(useLayoutStore.getState()).toMatchObject({
+      main: { activeViewId: 'file', isOpen: true },
+      provider: { isOpen: false },
+      side: { activeViewId: 'changes', isOpen: true },
+      terminal: { isOpen: false },
+    })
+  })
+
+  it('ширина панели, сдвинутая в одном проекте, - та же и в другом', () => {
+    useLayoutStore.getState().resizePanel('provider', 40)
+    useLayoutStore.getState().showProject('b')
+
+    expect(useLayoutStore.getState().provider.width).toBe(560)
+  })
+
+  it('закрытый проект уносит свои виды', () => {
+    useLayoutStore.getState().showProject('b')
+    useLayoutStore.getState().keepProjects(['b'])
+
+    expect(useLayoutStore.getState().viewsByProject).toEqual({})
   })
 })

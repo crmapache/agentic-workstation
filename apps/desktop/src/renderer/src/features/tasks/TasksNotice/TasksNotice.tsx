@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
 import { useTasksStore } from '../tasks.store'
@@ -20,11 +19,7 @@ export const TasksNotice = () => {
     <Toast
       tone="danger"
       title={t(`tasks.codes.${notice.code}`, { defaultValue: t('tasks.codes.unknown') })}
-      actions={
-        <Button variant="ghost" size="sm" onClick={dismiss}>
-          {t('common.close')}
-        </Button>
-      }
+      close={{ label: t('common.close'), onClose: dismiss }}
     />
   )
 }

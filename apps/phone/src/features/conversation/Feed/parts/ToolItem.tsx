@@ -1,15 +1,13 @@
 import { useState } from 'react'
-import { X, Check, Square, Wrench } from 'lucide-react'
+import { X, Check, Wrench } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { FeedItemWire } from '@agentic-workstation/remote-protocol/wire-types'
 import { Disclosure } from '@agentic-workstation/ui/Disclosure'
-import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { ROW_ICON_SIZE, ROW_ICON_STROKE } from '../Feed.constants'
 import styles from '../Feed.module.scss'
-import type { RunningTask } from '../Feed.types'
 import {
   text,
   fields,
@@ -17,7 +15,6 @@ import {
   inputText,
   toolLabel,
   editCounts,
-  runningTask,
   toolSummary,
 } from '../Feed.utils'
 import { PathText } from '../../../../shell/PathText/PathText'
@@ -44,21 +41,12 @@ const StatusIcon = ({ status }: { status: string }) => {
  * Вызов инструмента одной строкой: что и о чём, правка - итогом +N -M (большая правка без
  * диффа CLI - «±», как в IDE), у субагента - сколько шагов внутри. Строка - по виду действия
  * (у любого провайдера), у IDE постарше - по имени инструмента Claude Code. Нажатие раскрывает
- * вход и вывод. За вызовом идёт задача (субагент, фоновая команда) - рядом «остановить» её одну,
- * не трогая ход: как у карточки задачи в панели IDE.
+ * вход и вывод. Идущую задачу за вызовом (субагент, фоновая команда) ведёт капсула над лентой,
+ * как чип потока в панели IDE: здесь только запись о вызове.
  */
-export const ToolItem = ({
-  item,
-  steps,
-  onStopTask,
-}: {
-  item: FeedItemWire
-  steps: number
-  onStopTask?: ((task: RunningTask) => void) | undefined
-}) => {
+export const ToolItem = ({ item, steps }: { item: FeedItemWire; steps: number }) => {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
-  const task = onStopTask ? runningTask(item) : null
   const name = text(item, 'name')
   const input = fields(item, 'input') ?? {}
   const action = actionOf(item)
@@ -95,14 +83,6 @@ export const ToolItem = ({
             {steps > 0 && <span className={styles.steps}>{t('feed.steps', { count: steps })}</span>}
           </Disclosure>
         </div>
-        {task && onStopTask && (
-          <IconButton
-            icon={Square}
-            size="touch"
-            label={t('feed.stopTask')}
-            onClick={() => onStopTask(task)}
-          />
-        )}
       </div>
       {isOpen && (
         <div className={styles.toolBody}>

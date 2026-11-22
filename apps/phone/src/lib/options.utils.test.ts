@@ -8,6 +8,7 @@ import {
   modeOptions,
   effortOptions,
   modeShortLabel,
+  newModeOptions,
   defaultUnattendedProvider,
   unattendedProviderOptions,
 } from './options.utils'
@@ -75,6 +76,16 @@ describe('режимы разрешений на телефоне (ADR 0076)', (
       'modes.bypassPermissions.label',
     ])
     expect(offOf(['auto', 'bypassPermissions'])).toEqual(['auto', 'bypassPermissions'])
+  })
+
+  it('у нового разговора первым - «как в IDE», и оно не гасится', () => {
+    const options = newModeOptions(t, provider, ['bypassPermissions'])
+
+    expect(options[0]).toEqual({ value: '', label: 'options.defaultMode' })
+    expect(options.slice(1).map((option) => option.value)).toEqual(provider.permissionModes)
+    expect(options.filter((option) => option.disabled).map((option) => option.value)).toEqual([
+      'bypassPermissions',
+    ])
   })
 
   it('старая IDE погашенного не шлёт - доступно всё', () => {

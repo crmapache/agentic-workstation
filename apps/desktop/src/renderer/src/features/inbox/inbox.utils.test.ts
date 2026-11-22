@@ -3,7 +3,15 @@ import { it, expect, describe } from 'vitest'
 import type { Question } from '@shared/conversation'
 import type { InboxItem } from '@shared/inbox'
 
-import { itemsOf, answersOf, previewOf, togglePick, answersAtOnce } from './inbox.utils'
+import { TOAST_HIDE_MS } from './inbox.constants'
+import {
+  itemsOf,
+  answersOf,
+  previewOf,
+  togglePick,
+  toastCloseMs,
+  answersAtOnce,
+} from './inbox.utils'
 
 const item = (patch: Partial<InboxItem>): InboxItem => ({
   id: 'i',
@@ -83,5 +91,17 @@ describe('previewOf', () => {
       'Bash: ls -la',
     )
     expect(previewOf(item({ body: '**Invoice** #12\nready' }))).toBe('Invoice #12 ready')
+  })
+})
+
+describe('уходит ли карточка из угла сама', () => {
+  it('отчёт и сообщение уходят: всё есть на виде уведомлений', () => {
+    expect(toastCloseMs(item({ kind: 'message' }))).toBe(TOAST_HIDE_MS)
+    expect(toastCloseMs(item({ kind: 'report' }))).toBe(TOAST_HIDE_MS)
+  })
+
+  it('вопрос без ответа и «нужно внимание» стоят, пока их не закроют', () => {
+    expect(toastCloseMs(item({ kind: 'question' }))).toBeUndefined()
+    expect(toastCloseMs(item({ kind: 'message', tone: 'attention' }))).toBeUndefined()
   })
 })

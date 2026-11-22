@@ -389,16 +389,16 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
     await page.getByText(/Bypass · /).waitFor()
 
-    // Новый разговор: все режимы окна IDE теми же словами.
+    // Новый разговор: сначала «как в IDE», за ним все режимы окна IDE теми же словами.
     await back()
     await page.getByRole('button', { name: 'New conversation' }).click()
     await page.getByRole('radio', { name: /Plan mode/ }).waitFor()
-    expect(
-      await page
-        .getByRole('radiogroup', { name: 'Mode', exact: true })
-        .getByRole('radio')
-        .allTextContents(),
-    ).toEqual([
+
+    const modes = page.getByRole('radiogroup', { name: 'Mode', exact: true }).getByRole('radio')
+
+    expect(await modes.first().getAttribute('aria-checked')).toBe('true')
+    expect(await modes.allTextContents()).toEqual([
+      expect.stringContaining('as in the IDE settings'),
       expect.stringContaining('Ask before edits'),
       expect.stringContaining('Accept edits'),
       expect.stringContaining('Plan mode'),
@@ -887,7 +887,8 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('dialog').getByRole('button', { name: 'Force stop' }).click()
     await called('forceStop')
 
-    // Фоновый агент - остановить его одного, ход не трогая.
+    // Фоновый агент - капсулой под шапкой, как в панели IDE: лист задачи и остановить его
+    // одного, ход не трогая.
     ide.push({
       id: 'tool-agent',
       kind: 'tool',
@@ -920,8 +921,18 @@ describe('телефон в мобильном Chromium против насто�
         summary: '',
       },
     })
-    await page.getByRole('button', { name: 'Stop task' }).click()
-    await page.getByRole('dialog').getByRole('button', { name: 'Stop', exact: true }).click()
+    const capsule = page
+      .getByRole('group', { name: 'Running tasks' })
+      .getByRole('button', { name: /reviewer/ })
+
+    await capsule.waitFor()
+    // В ленте остаётся строка вызова, а «остановить» - только у капсулы.
+    expect(await page.getByRole('button', { name: 'Stop task' }).count()).toBe(0)
+    await shot('34a-task-capsules')
+    await capsule.click()
+    await page.getByRole('dialog').getByText('Reading login.ts').waitFor()
+    await shot('34b-task-capsule')
+    await page.getByRole('dialog').getByRole('button', { name: 'Stop this agent' }).click()
     expect((await called('stopTask')).args).toEqual([CONVERSATION_ID, 'task_review'])
     ide.update({ status: 'idle', stopRequestedAt: null, turnStartedAt: null, workStartedAt: null })
 

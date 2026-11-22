@@ -2,13 +2,19 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 
-import { LAYOUT_STORAGE_KEY, DEFAULT_PANEL_WIDTH, DEFAULT_TERMINAL_SHARE } from './layout.constants'
+import { keptProjects, restoreProjects, switchedProject } from './layout-projects.utils'
+import {
+  LAYOUT_STORAGE_KEY,
+  DEFAULT_PANEL_WIDTH,
+  DEFAULT_PROJECT_VIEWS,
+  DEFAULT_TERMINAL_SHARE,
+} from './layout.constants'
 import type {
-  Layout,
   PanelSide,
   MainViewId,
   SideViewId,
   ViewAreaState,
+  ProjectLayouts,
   ProviderViewId,
 } from './layout.types'
 import {
@@ -21,7 +27,7 @@ import {
   resizedTerminalShare,
 } from './layout.utils'
 
-type LayoutStore = Layout & {
+type LayoutStore = ProjectLayouts & {
   /**
    * Ширина, которую делят середина и правая колонка, и левая панель вместе с зазором за
    * ней, - её мерит Workbench. Не сохраняется: это окно, а не выбор человека. До первого
@@ -63,6 +69,14 @@ type LayoutStore = Layout & {
    */
   resizeTerminal: (delta: number, room: number) => void
   setRoom: (room: number) => void
+  /**
+   * Встать на раскладку проекта: прежняя откладывается под свой проект, у нового - его виды
+   * (switchedProject). Зовёт смена активного проекта в кэше (followActiveProject) и переход в
+   * проект из окна, не дожидаясь главного процесса. Тот же проект - ничего.
+   */
+  showProject: (projectId: string) => void
+  /** Забыть виды закрытых проектов (keptProjects). */
+  keepProjects: (projectIds: readonly string[]) => void
 }
 
 /** Левая панель с видом viewId - развёрнутая, с местом рядом с правой колонкой. */
@@ -85,16 +99,19 @@ const select = <Area extends ViewAreaState<string>>(
 
 /**
  * Раскладка окна: какой вид в каждой боковой панели и в середине, развёрнута ли
- * область, какой ширины панели и открыт ли терминал под правой панелью. Чисто интерфейсное состояние - живёт в окне и
+ * область, какой ширины панели и открыт ли терминал под правой панелью. Виды и что развёрнуто -
+ * свои у каждого проекта, ширины - одни на окно. Чисто интерфейсное состояние - живёт в окне и
  * переживает перезапуск.
  */
 export const useLayoutStore = create<LayoutStore>()(
   persist(
     (set) => ({
-      side: { activeViewId: 'files', isOpen: true, width: DEFAULT_PANEL_WIDTH.side },
-      main: { activeViewId: 'file', isOpen: true },
-      provider: { activeViewId: 'claude-code', isOpen: true, width: DEFAULT_PANEL_WIDTH.provider },
-      terminal: { isOpen: false, share: DEFAULT_TERMINAL_SHARE },
+      side: { ...DEFAULT_PROJECT_VIEWS.side, width: DEFAULT_PANEL_WIDTH.side },
+      main: DEFAULT_PROJECT_VIEWS.main,
+      provider: { ...DEFAULT_PROJECT_VIEWS.provider, width: DEFAULT_PANEL_WIDTH.provider },
+      terminal: { ...DEFAULT_PROJECT_VIEWS.terminal, share: DEFAULT_TERMINAL_SHARE },
+      projectId: null,
+      viewsByProject: {},
       room: Number.POSITIVE_INFINITY,
 
       selectSideView: (viewId) =>
@@ -150,11 +167,29 @@ export const useLayoutStore = create<LayoutStore>()(
           },
         })),
       setRoom: (room) => set((state) => (state.room === room ? state : { room })),
+      showProject: (projectId) => set((state) => switchedProject(state, projectId)),
+      keepProjects: (projectIds) =>
+        set((state) => {
+          const viewsByProject = keptProjects(state.viewsByProject, projectIds)
+
+          return viewsByProject === state.viewsByProject ? state : { viewsByProject }
+        }),
     }),
     {
       name: LAYOUT_STORAGE_KEY,
-      partialize: ({ side, main, provider, terminal }) => ({ side, main, provider, terminal }),
-      merge: (persisted, current) => ({ ...current, ...restoreLayout(persisted, current) }),
+      partialize: ({ side, main, provider, terminal, projectId, viewsByProject }) => ({
+        side,
+        main,
+        provider,
+        terminal,
+        projectId,
+        viewsByProject,
+      }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...restoreLayout(persisted, current),
+        ...restoreProjects(persisted),
+      }),
     },
   ),
 )

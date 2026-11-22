@@ -6,6 +6,7 @@ import { Section } from '@agentic-workstation/ui/Section'
 
 import styles from '../ProjectScreen.module.scss'
 import { groupByProvider } from '../ProjectScreen.utils'
+import { startedConversations } from '../../../../lib/projects.utils'
 import { useRouter } from '../../../../lib/router.store'
 import { conversationBadge } from '../../../../lib/status.constants'
 import type { MirroredInventory } from '../../../../state/remote.types'
@@ -16,7 +17,8 @@ import { PathText } from '../../../../shell/PathText/PathText'
 /**
  * Разговоры проекта по провайдерам: у каждого - состояние и, если ждёт человека, чего ждёт.
  * Времени нет: «с какого момента в этом состоянии» читалось как длительность работы и только
- * путало (просьба владельца).
+ * путало (просьба владельца). Пустых вкладок «New chat» нет, а с ними и провайдера, у которого
+ * начатых разговоров нет: новый разговор - кнопкой в низу экрана.
  */
 export const ConversationGroups = ({
   agentId,
@@ -29,7 +31,7 @@ export const ConversationGroups = ({
 }) => {
   const { t } = useTranslation()
   const navigate = useRouter((state) => state.navigate)
-  const groups = groupByProvider(project.conversations, inventory.providers)
+  const groups = groupByProvider(startedConversations(project), inventory.providers)
 
   // Новый разговор - кнопкой в низу экрана; здесь только честное «пока нет».
   if (groups.length === 0) {

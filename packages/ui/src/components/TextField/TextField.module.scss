@@ -21,8 +21,7 @@
   white-space: nowrap;
 }
 
-// Поле - тёмная плоская подложка с тонкой рамкой. В фокусе - оранжевая рамка и
-// мягкое кольцо вокруг.
+// Поле - тёмная плоская подложка с тонкой рамкой. В фокусе - оранжевая рамка.
 .box {
   @include field-frame;
 
@@ -48,7 +47,6 @@
 .invalid,
 .invalid:focus-within {
   border-color: var(--color-danger);
-  box-shadow: var(--shadow-danger);
 }
 
 .icon {

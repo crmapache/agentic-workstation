@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
-import { useToastTimer } from '../InboxToasts.hooks'
 import type { InboxToastProps } from '../InboxToasts.types'
-import { previewOf, toastTitleOf, answersAtOnce } from '../../inbox.utils'
+import { previewOf, toastCloseMs, toastTitleOf, answersAtOnce } from '../../inbox.utils'
 import { buttonsOf } from '../../InboxCard/InboxCard.utils'
 import { ItemButtons } from '../../InboxCard/parts/ItemButtons'
 import { useInboxUiStore } from '../../../../state/inbox-ui.store'
@@ -21,8 +20,6 @@ export const InboxToast = ({ item }: InboxToastProps) => {
   const { t } = useTranslation()
   const dropToast = useInboxUiStore((state) => state.dropToast)
   const reveal = useInboxUiStore((state) => state.reveal)
-
-  useToastTimer(item)
 
   const quick = item.kind === 'question' && answersAtOnce(item.questions)
   // Вопрос отвечают вариантами выше; «доработать план» просит замечания - это на виде.
@@ -43,15 +40,17 @@ export const InboxToast = ({ item }: InboxToastProps) => {
       tone={item.kind === 'failure' ? 'danger' : 'neutral'}
       title={toastTitleOf(item)}
       description={previewOf(item) || undefined}
+      close={{
+        label: t('common.close'),
+        onClose: () => dropToast(item.id),
+        autoCloseMs: toastCloseMs(item),
+      }}
       actions={
         <>
           {quick && <QuickOptions item={item} />}
           <ItemButtons item={item} text="" actions={buttons} />
           <Button size="sm" variant="ghost" onClick={handleOpen}>
             {t('inbox.toast.more')}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => dropToast(item.id)}>
-            {t('common.close')}
           </Button>
         </>
       }

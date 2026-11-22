@@ -77,7 +77,7 @@ export default {
       'transition-property': ['all'],
     },
     // Объёма нет (ADR 0006): тени у текста запрещены вовсе, а box-shadow - только у
-    // всплывающего слоя и как кольцо фокуса. Градиент как фон - подложка окна и цвет букв
+    // всплывающего слоя; поле в фокусе - одной рамкой, без кольца (ADR 0109). Градиент как фон - подложка окна и цвет букв
     // перелива «думает» (ADR 0025): это не объём, а цвет.
     'property-disallowed-list': [
       ['text-shadow', '/^(-webkit-)?app-region$/'],
@@ -88,12 +88,12 @@ export default {
     ],
     'declaration-property-value-allowed-list': [
       {
-        'box-shadow': ['none', '/^var\\(--shadow-(overlay|focus|danger)\\)$/'],
+        'box-shadow': ['none', '/^var\\(--shadow-overlay\\)$/'],
         'background-image': ['none', '/^var\\(--gradient-(backdrop|shimmer)\\)$/'],
       },
       {
         message:
-          'Объёма нет (ADR 0006): тень - только у всплывающего слоя и кольцо фокуса, градиент - подложка окна и перелив подписи «думает» (ADR 0025)',
+          'Объёма нет (ADR 0006): тень - только у всплывающего слоя, поле в фокусе - одной рамкой (ADR 0109), градиент - подложка окна и перелив подписи «думает» (ADR 0025)',
       },
     ],
     'scale-unlimited/declaration-strict-value': [

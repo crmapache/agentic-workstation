@@ -7,7 +7,7 @@ import type {
 } from '@agentic-workstation/remote-protocol/wire-types'
 
 import { STICK_THRESHOLD_PX } from '../Feed/Feed.constants'
-import type { FeedActions, RunningTask } from '../Feed/Feed.types'
+import type { FeedActions } from '../Feed/Feed.types'
 import type { Decision } from '../PendingCard/PendingCard.types'
 import type { OutgoingMessage } from '../../../lib/attachments'
 import { attachmentArgs } from '../../../lib/attachments'
@@ -178,10 +178,11 @@ export const useConversationCommands = (agentId: string, conversationId: string)
 }
 
 /**
- * Что открыто поверх разговора: настройки, вопросы сбоку, откат к сообщению, «остановить
- * задачу?». Действия ленты - стабильной ссылкой: строки ленты - memo. Чего провайдер разговора
- * не умеет (stopTask, rewind false), в ленте нет; IDE постарше флагов не шлёт - есть всё.
- * reading - разговор, ответы которого IDE может прочитать вслух (ADR 0106); null - не может.
+ * Что открыто поверх разговора: настройки, вопросы сбоку, откат к сообщению, лист задачи из
+ * капсулы над лентой (id её строки вызова). Действия ленты - стабильной ссылкой: строки ленты -
+ * memo. Чего провайдер разговора не умеет (stopTask, rewind false), того нет ни в ленте, ни в
+ * листе задачи; IDE постарше флагов не шлёт - есть всё. reading - разговор, ответы которого IDE
+ * может прочитать вслух (ADR 0106); null - не может.
  */
 export const useConversationSheets = (
   provider: ProviderCaps | undefined,
@@ -190,21 +191,20 @@ export const useConversationSheets = (
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isAsideOpen, setIsAsideOpen] = useState(false)
   const [rewindTo, setRewindTo] = useState<string | null>(null)
-  const [stoppingTask, setStoppingTask] = useState<RunningTask | null>(null)
+  const [openCapsule, setOpenCapsule] = useState<string | null>(null)
   const canStopTask = provider?.stopTask !== false
   const canRewind = provider?.rewind !== false
   const readAgent = reading?.agentId ?? null
   const readConversation = reading?.conversationId ?? null
   const feedActions = useMemo<FeedActions>(
     () => ({
-      onStopTask: canStopTask ? setStoppingTask : undefined,
       onRewind: canRewind ? setRewindTo : undefined,
       readAloud:
         readAgent && readConversation
           ? { agentId: readAgent, conversationId: readConversation }
           : undefined,
     }),
-    [canStopTask, canRewind, readAgent, readConversation],
+    [canRewind, readAgent, readConversation],
   )
 
   return {
@@ -214,8 +214,9 @@ export const useConversationSheets = (
     setIsAsideOpen,
     rewindTo,
     setRewindTo,
-    stoppingTask,
-    setStoppingTask,
+    openCapsule,
+    setOpenCapsule,
+    canStopTask,
     feedActions,
   }
 }

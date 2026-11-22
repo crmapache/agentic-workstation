@@ -4,7 +4,6 @@ import { Plus, Send, Pencil, Trash2, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
-import { IconButton } from '@agentic-workstation/ui/IconButton'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
@@ -19,7 +18,8 @@ import type { GroupColumnProps } from './GroupColumn.types'
 
 /**
  * Группа задач - колонка в порядке работы: шапка (тянется за неё же), задачи сверху вниз с
- * продолжениями справа и быстрое добавление внизу. Кнопка в шапке шлёт всю группу в очередь.
+ * продолжениями справа и быстрое добавление внизу. Всю группу в очередь шлёт пункт её меню, как и
+ * карточку.
  */
 export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
   const { t } = useTranslation()
@@ -37,6 +37,13 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
       icon: Pencil,
       label: t('tracker.group.edit'),
       onSelect: () => edit({ kind: 'group', id: group.id, flowId }),
+    },
+    {
+      key: 'send',
+      icon: Send,
+      label: t('tracker.group.send'),
+      disabled: !canSend,
+      onSelect: () => openSend({ kind: 'group', groupId: group.id }),
     },
     {
       key: 'left',
@@ -76,16 +83,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
           <span className={styles.title}>{group.title}</span>
           {group.subtitle && <span className={styles.subtitle}>{group.subtitle}</span>}
         </button>
-        <span className={styles.tools} onMouseDown={(event) => event.stopPropagation()}>
-          <IconButton
-            icon={Send}
-            size="xs"
-            label={t('tracker.group.send')}
-            disabled={!canSend}
-            onClick={() => openSend({ kind: 'group', groupId: group.id })}
-          />
-          <ActionsMenu label={t('tracker.group.menu')} items={items} />
-        </span>
+        <ActionsMenu label={t('tracker.group.menu')} items={items} />
       </header>
       {group.tasks.map((task) => (
         <TaskRow key={task.id} task={task} groupId={group.id} />

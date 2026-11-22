@@ -4,15 +4,17 @@ import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
 import { useTrackerActions } from '../tracker.actions'
-import { DAY_TICK_MS } from '../tracker.constants'
+import { DAY_TICK_MS, NOTICE_CLOSE_MS } from '../tracker.constants'
 import { useDueLabel, useFailureText } from '../tracker.hooks'
 import { useTrackerStore } from '../tracker.store'
 import { useNow } from '../../../lib/now.hooks'
+import { objectKey } from '../../../lib/object-key'
 import { useLayoutStore } from '../../../state/layout.store'
 
 /**
  * Карточки трекера в углу окна: отказ правки или отправки (по коду), итог отправки в очередь
  * с переходом к очередям и «Undo» только что удалённого или сдвинутой повторяющейся карточки.
+ * Итог и «Undo» уходят сами, отказ висит, пока его не закроют.
  */
 export const TrackerNotice = () => {
   const { t } = useTranslation()
@@ -47,31 +49,29 @@ export const TrackerNotice = () => {
     <>
       {undo && (
         <Toast
+          key={objectKey(undo)}
           title={t(`tracker.undo.${undo.kind}`, { when: repeatDue })}
+          close={{
+            label: t('common.close'),
+            onClose: () => offerUndo(null),
+            autoCloseMs: NOTICE_CLOSE_MS,
+          }}
           actions={
-            <>
-              <Button variant="secondary" size="sm" onClick={() => void handleUndo()}>
-                {t('tracker.undo.action')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => offerUndo(null)}>
-                {t('tracker.undo.close')}
-              </Button>
-            </>
+            <Button variant="secondary" size="sm" onClick={() => void handleUndo()}>
+              {t('tracker.undo.action')}
+            </Button>
           }
         />
       )}
       {notice?.kind === 'sent' && (
         <Toast
+          key={objectKey(notice)}
           title={t('tracker.sent.title', { count: notice.count })}
+          close={{ label: t('common.close'), onClose: dismiss, autoCloseMs: NOTICE_CLOSE_MS }}
           actions={
-            <>
-              <Button variant="secondary" size="sm" onClick={handleOpenQueues}>
-                {t('tracker.sent.open')}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={dismiss}>
-                {t('tracker.sent.close')}
-              </Button>
-            </>
+            <Button variant="secondary" size="sm" onClick={handleOpenQueues}>
+              {t('tracker.sent.open')}
+            </Button>
           }
         />
       )}
@@ -79,11 +79,7 @@ export const TrackerNotice = () => {
         <Toast
           tone="danger"
           title={failureText(notice.code)}
-          actions={
-            <Button variant="ghost" size="sm" onClick={dismiss}>
-              {t('common.close')}
-            </Button>
-          }
+          close={{ label: t('common.close'), onClose: dismiss }}
         />
       )}
     </>

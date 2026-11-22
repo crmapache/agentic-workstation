@@ -84,6 +84,7 @@
   "options": {
     "defaultModel": "Default (as in the IDE settings)",
     "defaultEffort": "Default (as in the IDE settings)",
+    "defaultMode": "Default (as in the IDE settings)",
     "chatOnly": "Only in its own chat"
   },
   "modes": {
@@ -458,12 +459,6 @@
     },
     "loadingEarlier": "Loading earlier messages",
     "rewind": "Rewind",
-    "stopTask": "Stop task",
-    "stopTaskConfirm": {
-      "agent": "Stop this agent?",
-      "workflow": "Stop this workflow?",
-      "command": "Stop this command?"
-    },
     "voiceFrom": {
       "desktop": "from the panel",
       "phone": "from the phone"
@@ -728,6 +723,39 @@
       "noProcess": "The agent could not be started for this conversation.",
       "ended": "The agent stopped during the rewind, so it is not known whether the cut was made.",
       "other": "The provider refused: {{detail}}"
+    }
+  },
+  "capsules": {
+    "label": "Running tasks",
+    "agent": "agent",
+    "workflow": "workflow",
+    "workflowCount": "workflow:{{count}}",
+    "background": "bg",
+    "wakeup": "wake",
+    "wakeIn": "in {{time}}",
+    "running": "Running · {{time}}",
+    "titles": {
+      "agent": "Agent",
+      "agentNamed": "Agent · {{name}}",
+      "workflow": "Workflow",
+      "workflowFleet": "Workflow · {{done}} of {{total}} done",
+      "command": "Background command",
+      "wakeup": "Wake-up",
+      "wakeupAt": "Wakes the agent at {{clock}}"
+    },
+    "lines": {
+      "activity": "Doing now",
+      "description": "Task",
+      "prompt": "What it was asked",
+      "steps": "Steps",
+      "purpose": "What it does",
+      "command": "Command",
+      "wakeWith": "Wakes with"
+    },
+    "stop": {
+      "agent": "Stop this agent",
+      "workflow": "Stop this workflow",
+      "command": "Stop this command"
     }
   },
   "aside": {

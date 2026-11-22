@@ -1,5 +1,3 @@
-import { useTranslation } from 'react-i18next'
-
 import type {
   ProviderCaps,
   ConversationWire,
@@ -9,14 +7,16 @@ import type { useConversationSheets, useConversationCommands } from '../Conversa
 import { AsideSheet } from '../../AsideSheet/AsideSheet'
 import { ConversationSettings } from '../../ConversationSettings/ConversationSettings'
 import { RewindSheet } from '../../RewindSheet/RewindSheet'
+import type { Capsule } from '../../TaskCapsules/TaskCapsules.types'
+import { CapsuleSheet } from '../../TaskCapsules/parts/CapsuleSheet'
 import type { RouteOf } from '../../../../lib/route.types'
-import { ConfirmDialog } from '../../../../shell/ConfirmDialog/ConfirmDialog'
 
 /**
- * Всё, что открывается поверх разговора: настройки, вопросы сбоку, откат к сообщению и
- * «остановить задачу?». Откат собирается заново для каждого сообщения: его выбор и
- * предпросмотр - про одно сообщение. Вопросы сбоку - только открытыми: их вопросы и ответы
- * живут в сторе, а закрытое окно с полем держало бы в странице лишний textarea.
+ * Всё, что открывается поверх разговора: настройки, вопросы сбоку, откат к сообщению и лист
+ * задачи из капсулы. Откат собирается заново для каждого сообщения: его выбор и предпросмотр -
+ * про одно сообщение. Вопросы сбоку - только открытыми: их вопросы и ответы живут в сторе, а
+ * закрытое окно с полем держало бы в странице лишний textarea. Лист задачи - по живой капсуле:
+ * задача кончилась, капсулы нет - и листа нет.
  */
 export const ConversationSheets = ({
   route,
@@ -24,16 +24,24 @@ export const ConversationSheets = ({
   provider,
   sheets,
   commands,
+  capsules,
+  offset,
 }: {
   route: RouteOf<'conversation'>
   conversation: ConversationWire
   provider: ProviderCaps | undefined
   sheets: ReturnType<typeof useConversationSheets>
   commands: ReturnType<typeof useConversationCommands>
+  capsules: Capsule[]
+  /** Насколько часы IDE впереди часов телефона. */
+  offset: number
 }) => {
-  const { t } = useTranslation()
   const { agentId, conversationId } = route
-  const task = sheets.stoppingTask
+  const capsule = capsules.find((one) => one.id === sheets.openCapsule) ?? null
+
+  const handleStopTask = (stopped: Capsule) => {
+    if (stopped.stop) commands.handleStopTask(stopped.stop.taskId)
+  }
 
   return (
     <>
@@ -67,15 +75,15 @@ export const ConversationSheets = ({
           onClose={() => sheets.setRewindTo(null)}
         />
       )}
-      <ConfirmDialog
-        open={task !== null}
-        title={t(`feed.stopTaskConfirm.${task?.kind ?? 'agent'}`, {
-          defaultValue: t('feed.stopTaskConfirm.agent'),
-        })}
-        confirmLabel={t('conversation.stop')}
-        onConfirm={() => task && commands.handleStopTask(task.taskId)}
-        onClose={() => sheets.setStoppingTask(null)}
-      />
+      {capsule && (
+        <CapsuleSheet
+          key={capsule.id}
+          capsule={capsule}
+          offset={offset}
+          onStop={sheets.canStopTask ? handleStopTask : null}
+          onClose={() => sheets.setOpenCapsule(null)}
+        />
+      )}
     </>
   )
 }

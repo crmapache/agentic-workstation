@@ -55,6 +55,19 @@ export const modeOptions = (
   }))
 
 /**
+ * Режимы нового разговора: первым - «как в IDE» (пустое значение - режим не выбран, IDE даёт
+ * его, как новой вкладке окна этого провайдера), за ним режимы провайдера, как modeOptions.
+ */
+export const newModeOptions = (
+  t: TFunction,
+  provider: ProviderCaps,
+  unavailable?: readonly string[],
+): OptionItem<string>[] => [
+  { value: '', label: t('options.defaultMode') },
+  ...modeOptions(t, provider, unavailable),
+]
+
+/**
  * Режим разговора коротко, как на индикаторе под полем окна (Ask, Plan, Auto, Bypass…), - для
  * строки под заголовком. Обычный «спрашивать» не называется: виден только режим, в котором
  * разговор оставили работать сам.

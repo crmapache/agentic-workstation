@@ -15,11 +15,10 @@ export type EditCounts = { added: number; removed: number } | 'uncounted'
 /**
  * Что можно сделать из ленты живого разговора. Журнал шага прогона рисуется той же лентой, но
  * только для чтения - там действий нет. Действия, которых провайдер разговора не умеет
- * (ProviderCaps.stopTask, rewind), не передаются - их кнопок в ленте нет.
+ * (ProviderCaps.rewind), не передаются - их кнопок в ленте нет. Остановить задачу - не из
+ * ленты, а капсулой над ней (TaskCapsules).
  */
 export type FeedActions = {
-  /** Остановить задачу (экран спросит «точно?»). */
-  onStopTask?: ((task: RunningTask) => void) | undefined
   /** Откатить разговор к сообщению человека (экран покажет, что вернётся). */
   onRewind?: ((messageId: string) => void) | undefined
   /**

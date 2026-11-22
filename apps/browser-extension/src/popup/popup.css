@@ -64,7 +64,7 @@ body {
 
 /*
  * Поле - рамка и переходы как у миксина field-frame: рамка светлеет под курсором, в фокусе -
- * акцентная с кольцом. Подложка светлее, чем у поля в IDE: окно значка само - самая тёмная
+ * акцентная, без кольца. Подложка светлее, чем у поля в IDE: окно значка само - самая тёмная
  * поверхность, и поле на нём иначе не отличалось бы от фона.
  */
 .field {
@@ -78,9 +78,7 @@ body {
   background: var(--color-surface-chrome);
   color: var(--color-fg);
   font: inherit;
-  transition:
-    border-color var(--duration-normal) var(--easing-standard),
-    box-shadow var(--duration-normal) var(--easing-standard);
+  transition: border-color var(--duration-normal) var(--easing-standard);
 }
 
 @media (hover: hover) {
@@ -91,7 +89,6 @@ body {
 
 .field:focus {
   border-color: var(--color-accent-border);
-  box-shadow: var(--shadow-focus);
 }
 
 .row {

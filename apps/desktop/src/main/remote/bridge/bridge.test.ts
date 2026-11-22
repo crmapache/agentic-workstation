@@ -58,6 +58,37 @@ describe('инвентарь', () => {
     expect(inventory.machine).toEqual({ label: 'Agentic Workstation on test', ideVersion: '0.1.0' })
   })
 
+  it('пустая вкладка «New chat» - с пометкой blank, начатый разговор и форк - без неё', async () => {
+    const { ide, say, next } = bridgeSetup()
+    const blank = {
+      title: '',
+      outcome: 'none' as const,
+      usage: { contextTokens: 0, contextWindow: 0 },
+    }
+
+    ide.state.conversations = [
+      conversationOf({ id: 'empty', ...blank }),
+      // Первое сообщение из одной картинки имени не даёт - начат по итогу хода.
+      conversationOf({ id: 'picture', ...blank, outcome: 'done' }),
+      conversationOf({ id: 'asking', ...blank, status: 'running' }),
+      conversationOf({
+        id: 'fork',
+        ...blank,
+        fork: { sourceSessionId: 's', sourceTitle: 'Login bug', at: 'u1' },
+      }),
+    ]
+    say({ k: 'hello' })
+
+    const conversations = (await next('inventory')).projects[0]?.conversations ?? []
+
+    expect(conversations.map((one) => [one.id, one.title, one.blank])).toEqual([
+      ['empty', 'New chat', true],
+      ['picture', 'New chat', undefined],
+      ['asking', 'New chat', undefined],
+      ['fork', 'Login bug', undefined],
+    ])
+  })
+
   it('перемена состояния разговора - новый список каждому на связи, без перемен - тишина', async () => {
     const { ide, sentTo, bridge, say, next } = bridgeSetup()
 
@@ -266,16 +297,37 @@ describe('команды телефона', () => {
     ).toMatchObject({ ok: false, code: 'notFound' })
   })
 
-  it('новый разговор без режима - default, а не режим из настроек или соседней вкладки', async () => {
+  /** IDE, у которой новая вкладка берёт bypass сама (закреплён в Settings → New chats). */
+  const inheritingBypass = (ide: ReturnType<typeof bridgeSetup>['ide']) => {
+    ide.claude.newConversation = (projectPath, options: ConversationOptions) => {
+      ide.calls.push({ name: 'newConversation', args: [projectPath, options] })
+      ide.state.conversations = [
+        ...ide.state.conversations,
+        conversationOf({ id: 'new-1', permissionMode: 'bypassPermissions', ...options }),
+      ]
+
+      return Promise.resolve('new-1')
+    }
+  }
+
+  it('новый разговор без режима - режим новой вкладки окна этого провайдера', async () => {
     const { ide, command } = bridgeSetup()
+    const asInIde = { projectKey: projectKey(PROJECT_PATH), provider: 'claude' }
 
-    await command('conversation.new', {
-      projectKey: projectKey(PROJECT_PATH),
-      provider: 'claude',
+    inheritingBypass(ide)
+
+    expect(await command('conversation.new', asInIde)).toMatchObject({ ok: true })
+    expect(ide.calls[0]?.args[1]).toEqual({})
+    expect(ide.state.conversations.at(-1)?.permissionMode).toBe('bypassPermissions')
+
+    // Режим окна, который настройки сейчас запрещают, - отказ, и вкладка закрыта.
+    ide.settings.bypassDisabled = true
+    expect(await command('conversation.new', asInIde)).toMatchObject({
+      ok: false,
+      code: 'refused',
+      detail: 'modeUnavailable',
     })
-
-    expect(ide.calls[0]?.args[1]).toEqual({ permissionMode: 'default' })
-    expect(ide.state.conversations.at(-1)?.permissionMode).toBe('default')
+    expect(ide.calls.at(-1)).toEqual({ name: 'close', args: ['new-1'] })
   })
 
   it('разговор вышел не в выбранном режиме - отказ permissionMode, и он закрыт', async () => {
@@ -296,6 +348,7 @@ describe('команды телефона', () => {
       await command('conversation.new', {
         projectKey: projectKey(PROJECT_PATH),
         provider: 'claude',
+        permissionMode: 'default',
       }),
     ).toMatchObject({ ok: false, code: 'refused', detail: 'permissionMode' })
     expect(ide.calls.at(-1)).toEqual({ name: 'close', args: ['new-1'] })

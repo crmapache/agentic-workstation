@@ -44,7 +44,7 @@ export const list = (item: Fields, key: string): unknown[] => {
 }
 
 /** Вызов субагента, внутри которого случился элемент; null - верхний уровень разговора. */
-const parentOf = (item: FeedItemWire): string | null => {
+export const parentOf = (item: FeedItemWire): string | null => {
   const parent = item['parentToolUseId']
 
   return typeof parent === 'string' && parent !== '' ? parent : null

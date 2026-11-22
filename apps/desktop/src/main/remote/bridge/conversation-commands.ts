@@ -159,12 +159,13 @@ export class ConversationCommands {
   }
 
   /**
-   * Новый разговор с телефона - вкладкой панели выбранного провайдера. Режим задаётся всегда
-   * (default, если телефон не выбрал): иначе вкладка взяла бы закреплённый в настройках или режим
-   * выбранной вкладки, а не выбранный на телефоне. Режим, которого окно не дало бы (ADR 0076: не
-   * этого провайдера, bypass под запретом настроек, auto, от которого CLI отказался), - отказ
-   * modeUnavailable: всё, кроме auto, - ещё до вкладки; auto - по модели, которую вкладка взяла.
-   * Вышел не тот режим или недоступный - разговор закрывается, а телефону отказ.
+   * Новый разговор с телефона - вкладкой панели выбранного провайдера. Чего телефон не выбрал
+   * (модель, усилие, режим), то - как у новой вкладки окна этого провайдера: закреплённое в
+   * Settings → New chats, иначе как у выбранной вкладки проекта. Режим, которого окно не дало бы
+   * (ADR 0076: не этого провайдера, bypass под запретом настроек, auto, от которого CLI
+   * отказался), - отказ modeUnavailable: выбранный, кроме auto, - ещё до вкладки; auto и режим
+   * «как в окне» - по вкладке, которая вышла. Вышел не тот режим или недоступный - разговор
+   * закрывается, а телефону отказ.
    */
   private async newConversation(args: CommandArgs<'conversation.new'>): Promise<Outcome> {
     const path = this.keys().openPathOf(args.projectKey)
@@ -176,26 +177,27 @@ export class ConversationCommands {
     if (!panel) return fail('refused', 'providerMissing')
     if (!knowsEffort(panel, args.effort)) return fail('refused', 'effortUnavailable')
 
-    const mode = args.permissionMode ?? 'default'
+    const chosen = args.permissionMode
     const { provider } = panel
 
-    if (!(await this.modes.allows(provider, mode, path, null))) {
+    if (chosen && !(await this.modes.allows(provider, chosen, path, null))) {
       return fail('refused', 'modeUnavailable')
     }
 
     const id = await panel.newConversation(path, {
       ...(args.model !== undefined && { model: args.model }),
       ...(args.effort !== undefined && { effort: args.effort }),
-      permissionMode: mode,
+      ...(chosen && { permissionMode: chosen }),
     })
     const created = panel.getState().conversations.find((one) => one.id === id)
 
     if (!created) return fail('failed')
 
-    const asked = created.permissionMode === mode
+    const mode = created.permissionMode
+    const asked = !chosen || mode === chosen
 
     if (!asked || !(await this.modes.allows(provider, mode, path, created))) {
-      console.warn(`[remote] новый разговор вышел в режиме ${created.permissionMode} - закрыт`)
+      console.warn(`[remote] новый разговор вышел в режиме ${mode} - закрыт`)
       await panel.close(id)
 
       return fail('refused', asked ? 'modeUnavailable' : 'permissionMode')

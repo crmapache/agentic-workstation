@@ -11,6 +11,7 @@ import {
   projectWorks,
   projectNeedsYou,
   conversationCounts,
+  startedConversations,
   projectWorksInBackground,
 } from '../../../../lib/projects.utils'
 import { useRouter } from '../../../../lib/router.store'
@@ -47,7 +48,8 @@ export const MachineProjects = ({
       const parts = [
         counts['waiting-for-you'] > 0 &&
           t('machines.counts.waiting', { count: counts['waiting-for-you'] }),
-        project.open && t('machines.counts.conversations', { count: project.conversations.length }),
+        project.open &&
+          t('machines.counts.conversations', { count: startedConversations(project).length }),
         project.queues.open > 0 && t('machines.counts.queues', { count: project.queues.open }),
       ].filter(Boolean)
 

@@ -214,6 +214,8 @@
     "toastDangerText": "rejected: the remote has commits you do not have.",
     "toastProgressTitle": "Downloading 0.2.0…",
     "toastProgressText": "64%",
+    "toastCountdownTitle": "3 cards sent to the queue",
+    "toastCountdownAction": "Open queues",
     "update": "Update",
     "later": "Later",
     "openPopover": "Open popover",

@@ -83,6 +83,11 @@ export const CONVERSATION_ARGS = {
   'conversation.stopTask': z.object({ conversationId: CONVERSATION_ID, taskId: TASK_ID }),
   /** «Don't continue»: панель не скажет своих слов после лимита, очередь уйдёт в свой срок. */
   'conversation.cancelCarryOn': z.object({ conversationId: CONVERSATION_ID }),
+  /**
+   * Новый разговор. Чего нет (модель, усилие, режим) - как у новой вкладки окна этого
+   * провайдера: закреплённое в его Settings → New chats, иначе как у выбранной вкладки проекта.
+   * IDE до 0.1.36 без режима начинала в default.
+   */
   'conversation.new': z.object({
     projectKey: PROJECT_KEY,
     provider: PROVIDER,

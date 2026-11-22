@@ -1,6 +1,7 @@
 import type {
   InventoryProject,
   ConversationStatus,
+  ConversationSummary,
 } from '@agentic-workstation/remote-protocol/wire-types'
 import type { AvatarTone } from '@agentic-workstation/ui/Avatar.types'
 
@@ -24,6 +25,14 @@ export const initialsOf = (name: string): string => {
   return letters.toUpperCase() || '?'
 }
 
+/**
+ * Разговоры проекта, которые видит телефон: без пустых вкладок «New chat» (IDE помечает их
+ * blank). Новый разговор начинают кнопкой в низу экрана, а пустая вкладка в списке - лишняя
+ * строка (просьба владельца).
+ */
+export const startedConversations = (project: InventoryProject): ConversationSummary[] =>
+  project.conversations.filter((conversation) => !conversation.blank)
+
 /** Сколько разговоров проекта в каждом состоянии - строка под именем проекта. */
 export const conversationCounts = (
   project: InventoryProject,
@@ -34,7 +43,7 @@ export const conversationCounts = (
     'waiting-for-you': 0,
   }
 
-  for (const conversation of project.conversations) counts[conversation.status] += 1
+  for (const conversation of startedConversations(project)) counts[conversation.status] += 1
 
   return counts
 }

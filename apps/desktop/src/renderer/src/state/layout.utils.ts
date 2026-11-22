@@ -17,10 +17,12 @@ import type {
   TerminalDockState,
 } from './layout.types'
 
-const asRecord = (value: unknown): Record<string, unknown> =>
+/** Сохранённое старой версией окна - объект с неизвестными полями; не объект - пустой. */
+export const asRecord = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
 
-const restoreArea = <ViewId extends string>(
+/** Выбранный вид и развёрнутость области; удалённый вид или чужое поле - по умолчанию. */
+export const restoreArea = <ViewId extends string>(
   saved: unknown,
   fallback: ViewAreaState<ViewId>,
   viewIds: readonly ViewId[],

@@ -8,7 +8,7 @@ import { RETRYABLE_FAILURES } from './UpdateNotice.constants'
 
 /**
  * Уведомление о новой версии IDE в углу окна. Само ничего не решает: состояние
- * ведёт главный процесс, отсюда уходят только «обновить», «скачать» и «позже».
+ * ведёт главный процесс, отсюда уходят только «обновить», «скачать» и «позже» (крестик).
  * Если поставить из приложения нельзя, вместо «обновить» - «скачать» и причина.
  */
 export const UpdateNotice = () => {
@@ -18,11 +18,7 @@ export const UpdateNotice = () => {
 
   if (!status || status.kind === 'idle') return null
 
-  const laterButton = (
-    <Button variant="ghost" size="sm" onClick={dismiss}>
-      {t('updates.later')}
-    </Button>
-  )
+  const laterClose = { label: t('updates.later'), onClose: dismiss }
 
   if (status.kind === 'available') {
     const isManual = status.install.mode === 'manual'
@@ -35,17 +31,15 @@ export const UpdateNotice = () => {
       <Toast
         title={t('updates.availableTitle', { version: status.version })}
         description={description}
+        close={laterClose}
         actions={
-          <>
-            <Button
-              variant="primary"
-              size="sm"
-              data-action="update-install"
-              onClick={isManual ? openReleasePage : install}>
-              {isManual ? t('updates.download') : t('updates.install')}
-            </Button>
-            {laterButton}
-          </>
+          <Button
+            variant="primary"
+            size="sm"
+            data-action="update-install"
+            onClick={isManual ? openReleasePage : install}>
+            {isManual ? t('updates.download') : t('updates.install')}
+          </Button>
         }
       />
     )
@@ -75,6 +69,7 @@ export const UpdateNotice = () => {
       tone="danger"
       title={t('updates.failedTitle', { version: status.version })}
       description={t(`updates.failureReason.${status.reason}`)}
+      close={laterClose}
       actions={
         <>
           {RETRYABLE_FAILURES.has(status.reason) && (
@@ -85,7 +80,6 @@ export const UpdateNotice = () => {
           <Button variant="secondary" size="sm" onClick={openReleasePage}>
             {t('updates.download')}
           </Button>
-          {laterButton}
         </>
       }
     />

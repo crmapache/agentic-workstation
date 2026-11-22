@@ -13,7 +13,8 @@ import type { IconButtonProps } from './IconButton.types'
  * подсказка, и имя для скринридера. Недоступная, которая объясняет почему, -
  * aria-disabled вместо disabled: подсказка всплывает, нажатие ничего не делает.
  * call - свет позвавшего (CallLight): в полосе иконок так горит вид, где кто-то позвал человека.
- * busy - идёт работа по нажатию: на месте иконки Spinner. Кнопка с текстом - Button.
+ * busy - идёт работа по нажатию: на месте иконки Spinner. round - круглая (крестик Toast в кольце
+ * отсчёта). Кнопка с текстом - Button.
  */
 export const IconButton = ({
   icon: Icon,
@@ -25,6 +26,7 @@ export const IconButton = ({
   call,
   callSince,
   busy = false,
+  round = false,
   type = 'button',
   onClick,
   ...rest
@@ -44,6 +46,7 @@ export const IconButton = ({
           styles[variant],
           active && styles.active,
           call && styles.calling,
+          round && styles.round,
         )}
         data-call={call ?? undefined}
         onClick={isUnavailable ? undefined : onClick}

@@ -2,7 +2,7 @@ import type { Question, QuestionAnswers } from '@shared/conversation'
 import type { InboxItem, InboxState } from '@shared/inbox'
 import { isInboxOpen, isInboxAsking, isInboxScheduled } from '@shared/inbox'
 
-import { PREVIEW_MAX } from './inbox.constants'
+import { PREVIEW_MAX, TOAST_HIDE_MS } from './inbox.constants'
 import type { InboxTab } from './inbox.types'
 
 /** Уведомления вкладки: входящие и закрытые - новые первыми, запланированные - ближние первыми. */
@@ -16,6 +16,13 @@ export const itemsOf = (state: InboxState | undefined, tab: InboxTab): InboxItem
     .filter((item) => isInboxScheduled(item))
     .sort((left, right) => left.deliverAt - right.deliverAt)
 }
+
+/**
+ * Через сколько карточка уходит из угла сама: отчёт и сообщение - через TOAST_HIDE_MS, всё есть на
+ * виде уведомлений. Вопрос прогона и «нужно внимание» стоят, пока их не закроют (undefined).
+ */
+export const toastCloseMs = (item: InboxItem): number | undefined =>
+  isInboxAsking(item) || item.tone === 'attention' ? undefined : TOAST_HIDE_MS
 
 export const tabCounts = (state: InboxState | undefined): Record<InboxTab, number> => ({
   open: itemsOf(state, 'open').length,

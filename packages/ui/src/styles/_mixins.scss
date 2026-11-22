@@ -193,16 +193,15 @@
   }
 }
 
-// Рамка поля ввода: тёмная плоская подложка с тонкой рамкой, в фокусе - оранжевая
-// рамка и мягкое кольцо. Одна на TextField, SelectField и поле разговора, чтобы фокус
-// везде выглядел одинаково. Радиус и раскладку задаёт тот, кто подключил. $focus - когда
-// поле «в фокусе»: у поля выбора это открытый список и фокус с клавиатуры, а не любой.
+// Рамка поля ввода: тёмная плоская подложка с тонкой рамкой, в фокусе - только оранжевая
+// рамка. Кольца снаружи нет (ADR 0109): оно съедало зазор до соседей, и поле липло к ним.
+// Одна на TextField, SelectField и поле разговора, чтобы фокус везде выглядел одинаково.
+// Радиус и раскладку задаёт тот, кто подключил. $focus - когда поле «в фокусе»: у поля
+// выбора это открытый список и фокус с клавиатуры, а не любой.
 @mixin field-frame($focus: ':focus-within') {
   border: var(--border-width) solid var(--color-border-strong);
   background-color: var(--color-surface-sunken);
-  transition:
-    border-color var(--duration-normal) var(--easing-standard),
-    box-shadow var(--duration-normal) var(--easing-standard);
+  transition: border-color var(--duration-normal) var(--easing-standard);
 
   @media (hover: hover) {
     &:hover:not(#{$focus}, :disabled) {
@@ -212,7 +211,6 @@
 
   &#{$focus} {
     border-color: var(--color-accent-border);
-    box-shadow: var(--shadow-focus);
   }
 }
 

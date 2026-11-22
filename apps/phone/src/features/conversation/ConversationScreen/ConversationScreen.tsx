@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { MessagesSquare, MessageSquareOff, SlidersHorizontal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,6 +8,8 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Feed } from '../Feed/Feed'
 import { QuoteButton } from '../QuoteButton/QuoteButton'
 import { useQuotableSelection } from '../QuoteButton/QuoteButton.hooks'
+import { TaskCapsules } from '../TaskCapsules/TaskCapsules'
+import { taskCapsules } from '../TaskCapsules/TaskCapsules.utils'
 import { canReadAloud } from '../../read-aloud/read-aloud.utils'
 import { useCallOfConversation } from '../../voice-call/voice-call.hooks'
 import type { RouteOf } from '../../../lib/route.types'
@@ -29,9 +32,10 @@ import { ConversationSubtitle } from './parts/ConversationSubtitle'
  * Разговор с провайдером (Claude Code, Codex, открытые модели): лента с ранними сообщениями по
  * просьбе, решение хода над полем, очередь, поле с фото и Stop идущего хода - всё в низу, под
  * пальцем. Пока ход идёт, новое сообщение встаёт в очередь IDE. Вопрос сбоку и настройки
- * разговора (модель, усилие, имя, быстрый режим) - значками в шапке; откат - у сообщения в ленте;
- * выделенное в ответе - цитатой в поле кнопкой над лентой. Чего провайдер не умеет (вопрос
- * сбоку, откат, остановка задачи), того на экране нет.
+ * разговора (модель, усилие, имя, быстрый режим) - значками в шапке; идущие агенты и фоновые
+ * команды - капсулами под шапкой, как в панели IDE; откат - у сообщения в ленте; выделенное в
+ * ответе - цитатой в поле кнопкой над лентой. Чего провайдер не умеет (вопрос сбоку, откат,
+ * остановка задачи), того на экране нет.
  */
 export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }) => {
   const { t } = useTranslation()
@@ -45,6 +49,7 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
   const quotable = useQuotableSelection(screen.bodyRef)
   const addQuote = useDraftsStore((state) => state.addQuote)
   const voiceCall = useCallOfConversation(route.agentId, route.conversationId)
+  const capsules = useMemo(() => taskCapsules(feed), [feed])
 
   const handleQuote = () => {
     const quote = quotable.take()
@@ -109,6 +114,12 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
               })}
             />
           )}
+          <TaskCapsules
+            capsules={capsules}
+            offset={offset}
+            openId={sheets.openCapsule}
+            onOpen={sheets.setOpenCapsule}
+          />
         </>
       }
       bodyRef={screen.bodyRef}
@@ -139,6 +150,8 @@ export const ConversationScreen = ({ route }: { route: RouteOf<'conversation'> }
           provider={provider}
           sheets={sheets}
           commands={commands}
+          capsules={capsules}
+          offset={offset}
         />
       )}
     </Screen>

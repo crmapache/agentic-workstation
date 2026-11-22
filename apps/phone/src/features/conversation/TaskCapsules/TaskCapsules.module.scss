@@ -1,0 +1,128 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Полоса капсул под шапкой - своя, с линией снизу, как ряд чипов над лентой панели IDE: лента
+// под ней прокручивается, и без края её срезанная строка читалась бы залезшей под капсулы. В одну
+// строку, лишнее листается пальцем вбок. Поля - как у ленты, не под вырезом экрана.
+.capsules {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) max(var(--size-panel-gutter), var(--offset-safe-right)) var(--space-1-5)
+    max(var(--size-panel-gutter), var(--offset-safe-left));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-bottom: var(--border-width) solid var(--color-border);
+  scrollbar-width: none;
+}
+
+// Капсула - одна кнопка: остановить можно только из листа, крестика под палец на ней нет - его
+// задевали бы, листая полосу. Высота - контрол md: под палец, но полоса не съедает ленту.
+// Ширину задаёт содержимое: полоса листается, а не сжимает капсулы.
+.capsule {
+  @include button-reset;
+
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1-5);
+  height: var(--size-control-md);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-normal) var(--easing-standard),
+    border-color var(--duration-normal) var(--easing-standard);
+
+  &:active,
+  &[aria-expanded='true'] {
+    border-color: var(--color-border-strong);
+    background-color: var(--color-bg-selected);
+    color: var(--color-fg);
+  }
+}
+
+// Фоновая команда и будильник - не агенты: пунктирная рамка, как у чипа окна.
+.static {
+  border-style: dashed;
+}
+
+.mark {
+  display: block;
+  flex: none;
+  color: var(--color-fg-subtle);
+}
+
+.name {
+  flex: none;
+  color: var(--color-fg);
+  font-weight: var(--font-weight-medium);
+}
+
+.time {
+  flex: none;
+  color: var(--color-fg-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+// Чем занят агент - узко, с многоточием: целиком - в листе.
+.meta {
+  @include truncate;
+
+  max-width: var(--size-stream-activity);
+  color: var(--color-fg-subtle);
+}
+
+// --- Лист задачи -----------------------------------------------------------------------
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sheetPart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.sheetLabel {
+  @include caps-label;
+
+  margin: 0;
+  color: var(--color-fg-subtle);
+}
+
+.sheetText {
+  margin: 0;
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.sheetCode {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+  color: var(--color-syntax-fg);
+  font-family: var(--font-code);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+// «Остановить» - во всю ширину низа листа: палец попадает без прицеливания.
+.sheetActions {
+  display: grid;
+  flex: 1;
+}

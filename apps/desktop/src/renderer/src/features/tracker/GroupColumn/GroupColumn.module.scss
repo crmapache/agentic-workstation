@@ -53,12 +53,6 @@
   font-size: var(--font-size-sm);
 }
 
-.tools {
-  display: flex;
-  align-items: center;
-  gap: var(--space-0-5);
-}
-
 // Низ колонки: «Add task» шириной карточки - сюда же бросают задачу в конец группы.
 .end {
   display: flex;

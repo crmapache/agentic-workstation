@@ -59,6 +59,19 @@ const outcomeOf = (conversation: Conversation): ConversationOutcome =>
 export const titleOf = (conversation: Conversation): string =>
   conversation.title || conversation.fork?.sourceTitle || 'New chat'
 
+/**
+ * Пустая вкладка «New chat»: у окна она есть всегда, а на телефоне - лишняя строка (просьба
+ * владельца). Начатый разговор узнаётся по имени (первое сообщение с текстом даёт его сразу),
+ * итогу хода (сообщение из одной картинки имени не даёт) и контексту; форк несёт чужой разговор.
+ */
+export const isBlank = (conversation: Conversation): boolean =>
+  !conversation.title &&
+  !conversation.fork &&
+  conversation.outcome === 'none' &&
+  statusOf(conversation) === 'idle' &&
+  conversation.queue.length === 0 &&
+  conversation.usage.contextTokens === 0
+
 /** Разговор в списке машины - с провайдером его панели. */
 export const summaryOf = (
   conversation: Conversation,
@@ -72,6 +85,7 @@ export const summaryOf = (
   outcome: outcomeOf(conversation),
   since,
   waiting: conversation.pending?.kind ?? null,
+  ...(isBlank(conversation) && { blank: true }),
 })
 
 /**

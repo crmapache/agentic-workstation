@@ -250,3 +250,6 @@ export const DATE_SAMPLE_WEEKDAYS: readonly string[] = [
   'Sat',
   'Sun',
 ]
+
+/** Карточка с отсчётом в витрине уходит быстрее настоящих: кольцо видно целиком за пару секунд. */
+export const TOAST_SAMPLE_CLOSE_MS = 6_000

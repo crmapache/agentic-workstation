@@ -8,6 +8,7 @@ import {
   projectWorks,
   projectNeedsYou,
   conversationCounts,
+  startedConversations,
   projectWorksInBackground,
 } from './projects.utils'
 
@@ -48,6 +49,15 @@ describe('проекты на телефоне', () => {
 
   it('счёт разговоров по состояниям', () => {
     expect(conversationCounts(project())).toEqual({ running: 1, idle: 1, 'waiting-for-you': 0 })
+  })
+
+  it('пустые вкладки «New chat» телефон не видит и не считает', () => {
+    const [first, second] = project().conversations
+    const blank = { ...second!, id: 'c', title: 'New chat', blank: true }
+    const withBlank = project({ conversations: [first!, second!, blank] })
+
+    expect(startedConversations(withBlank).map((one) => one.id)).toEqual(['a', 'b'])
+    expect(conversationCounts(withBlank)).toEqual({ running: 1, idle: 1, 'waiting-for-you': 0 })
   })
 
   it('ждёт человека: разговор с вопросом или прогон с вопросом', () => {

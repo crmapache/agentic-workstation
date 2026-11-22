@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 
 import type { RequestResponse } from '@shared/conversation'
 
-import { modelRefOf } from '../connections/opencode-config'
 import type { OpenCodeEvent, OpenCodeServer } from '../server/opencode-server'
 import { dataOf, OpenCodeReplyError } from '../server/opencode-server'
 import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-parts'
@@ -14,10 +13,10 @@ import { voiceNote } from '../../agents/conversation/voice-note'
 import { takeReleasedFrame } from '../../agents/history/released-runs'
 import { rankOf } from '../../agents/tabs/tab-names'
 import { openCodeOf } from './opencode-conversation'
-import { agentFor, rulesFor } from './opencode-modes'
 import type { OpenCodeHeld } from './opencode-requests'
 import { formAnswer, isOpenCodeHeld, permissionReply } from './opencode-requests'
 import { routeEvent, CHILD_EVENTS, eventSessionOf } from './opencode-router'
+import { OpenCodeSessionSettings } from './opencode-session-settings'
 import { isSessionOf } from './session-place'
 
 let epochs = 0
@@ -32,7 +31,7 @@ const COMPACT = /^\/compact\s*$/
  * Живая сессия разговора у OpenCode (ADR 0084): процесс `opencode serve --stdio` и сессия
  * разговора в нём. Сообщение - `prompt` (посреди хода - доставкой `steer`), вопросы - ответы на
  * разрешения и формы, остановка - `interrupt`. Модель, агент и правила режима сессия получает
- * перед ходом, если поменялись: смена посреди разговора - без перезапуска.
+ * перед ходом, если поменялись (OpenCodeSessionSettings): смена посреди разговора - без перезапуска.
  */
 export class OpenCodeSession implements AgentSession {
   readonly epoch = (epochs += 1)
@@ -44,8 +43,7 @@ export class OpenCodeSession implements AgentSession {
    * правила агента и самой сессии - правила режима им ставит IDE, их вопросы идут в разговор.
    */
   private readonly children = new Set<string>()
-  /** Что сессия уже знает: модель с вариантом, агент, правила - чтобы не слать лишнего. */
-  private applied = { model: '', agent: '', rules: '' }
+  private readonly settings: OpenCodeSessionSettings
 
   /**
    * env - окружение человека (его оболочка входа): его получают команды агента, а не окружение
@@ -55,7 +53,9 @@ export class OpenCodeSession implements AgentSession {
     readonly runtime: ConversationRuntime,
     readonly server: OpenCodeServer,
     private readonly env: Readonly<Record<string, string>>,
-  ) {}
+  ) {
+    this.settings = new OpenCodeSessionSettings(runtime, server)
+  }
 
   get isAlive(): boolean {
     return this.server.isAlive
@@ -91,7 +91,8 @@ export class OpenCodeSession implements AgentSession {
       this.sessionId = known
       await this.applySettings()
     } else {
-      await this.create()
+      this.sessionId = await this.settings.create()
+      this.runtime.update({ sessionId: this.sessionId })
     }
 
     // Команды агента - в окружении человека: ни ключи конфига, ни папки OpenCode им не видны,
@@ -100,7 +101,7 @@ export class OpenCodeSession implements AgentSession {
       body: { variables: this.env },
     })
 
-    this.contextWindow = openCodeOf(this.runtime).host.contextWindow(this.modelValue())
+    this.contextWindow = this.settings.contextWindow()
   }
 
   send(message: Outgoing, steering: boolean): void {
@@ -275,28 +276,12 @@ export class OpenCodeSession implements AgentSession {
     )
   }
 
-  /** Разрешённое без вопроса: свои серверы IDE процесса и то, что человек разрешил здесь. */
-  private allowedActions(): string[] {
-    const kit = openCodeOf(this.runtime)
-
-    return [...kit.allowedActions, ...kit.allowedHere]
-  }
-
-  /**
-   * Субагент разговора: правила режима - и ему (иначе в «Ask», «Read only» и «Plan» он правил
-   * бы и запускал команды по правилам своего агента). Правила ставятся вдогонку: до них
-   * субагент успевает разве что подумать.
-   */
+  /** Субагент разговора: его вопросы идут в разговор, правила режима - и ему. */
   private adopt(childId: string): void {
     if (!childId) return
 
     this.children.add(childId)
-
-    const rules = rulesFor(this.runtime.meta.permissionMode, this.allowedActions())
-
-    void this.server
-      .request('PATCH', `/api/session/${childId}`, { body: { permissions: rules } })
-      .catch((error: unknown) => console.warn('[opencode] правила субагенту не встали:', error))
+    this.settings.adopt(childId)
   }
 
   /** Ход субагента начался или кончился: точка вкладки, сон и отложенный перезапуск. */
@@ -323,79 +308,10 @@ export class OpenCodeSession implements AgentSession {
     feed.schedule()
   }
 
-  /** Модель разговора (`<подключение>/<модель>`): выбранная или по умолчанию панели. */
-  private modelValue(): string {
-    return this.runtime.meta.model ?? openCodeOf(this.runtime).host.defaultModel() ?? ''
-  }
-
-  /**
-   * Модель с вариантом усилия - ссылкой OpenCode; моделей нет - null. Вариант - только тот,
-   * что модель объявила: чужой OpenCode не примет.
-   */
-  private modelRef() {
-    const value = this.modelValue()
-    const ref = modelRefOf(value)
-    const { effort } = this.runtime.meta
-    const fits = effort !== null && openCodeOf(this.runtime).host.efforts(value).includes(effort)
-
-    return ref && { ...ref, ...(fits && { variant: effort }) }
-  }
-
-  private async create(): Promise<void> {
-    const { meta } = this.runtime
-    const model = this.modelRef()
-    const rules = rulesFor(meta.permissionMode, this.allowedActions())
-    const agent = agentFor(meta.permissionMode)
-    const reply = await this.server.request('POST', '/api/session', {
-      body: {
-        location: { directory: meta.projectPath },
-        agent,
-        permissions: rules,
-        ...(model && { model }),
-      },
-    })
-    const created = dataOf(reply)
-    const id = isRecord(created) && typeof created['id'] === 'string' ? created['id'] : ''
-
-    if (!id) throw new Error('opencode serve: сессия без id')
-
-    this.sessionId = id
-    this.applied = { model: JSON.stringify(model), agent, rules: JSON.stringify(rules) }
-    this.runtime.update({ sessionId: id })
-  }
-
-  /** Модель, агент и правила режима - сессии, если поменялись с прошлого раза. */
+  /** Модель, агент и правила режима - сессии и субагентам, если поменялись с прошлого раза. */
   private async applySettings(): Promise<void> {
-    const { meta } = this.runtime
-    const base = `/api/session/${this.sessionId}`
-    const model = this.modelRef()
-    const modelKey = JSON.stringify(model)
-    const agent = agentFor(meta.permissionMode)
-    const rules = rulesFor(meta.permissionMode, this.allowedActions())
-    const rulesKey = JSON.stringify(rules)
-
-    if (model && modelKey !== this.applied.model) {
-      await this.server.request('POST', `${base}/model`, { body: { model } })
-      this.applied.model = modelKey
-      this.contextWindow = openCodeOf(this.runtime).host.contextWindow(this.modelValue())
-    }
-
-    if (agent !== this.applied.agent) {
-      await this.server.request('POST', `${base}/agent`, { body: { agent } })
-      this.applied.agent = agent
-    }
-
-    if (rulesKey !== this.applied.rules) {
-      await this.server.request('PATCH', base, { body: { permissions: rules } })
-      this.applied.rules = rulesKey
-      // Субагенты живут с разговором: новый режим - и им.
-      await Promise.all(
-        [...this.children].map((child) =>
-          this.server
-            .request('PATCH', `/api/session/${child}`, { body: { permissions: rules } })
-            .catch(() => undefined),
-        ),
-      )
+    if (await this.settings.apply(this.sessionId, this.children)) {
+      this.contextWindow = this.settings.contextWindow()
     }
   }
 

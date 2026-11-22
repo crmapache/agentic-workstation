@@ -1,11 +1,18 @@
+import { useEffect } from 'react'
+
 import type { WorkspaceState } from '@shared/workspace'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
+import { hashKey, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'
 import { useIpcEvent } from '../lib/ipc.hooks'
 import { heldPaths, guardDiscard } from './discard-guard.store'
+import { useLayoutStore } from './layout.store'
 import { QUERY_KEYS } from './query-keys'
 import { useSelectionStore } from './selection.store'
+
+/** Ключ проектов в кэше строкой - так подписка на кэш узнаёт их запись среди всех. */
+const WORKSPACE_HASH = hashKey(QUERY_KEYS.workspace)
 
 /**
  * Открытые проекты. Владелец - главный процесс; здесь их зеркало в кэше React
@@ -27,11 +34,39 @@ export const useActiveProject = () => {
 }
 
 /**
+ * Раскладка окна - своя у каждого проекта: она переключается, как только в кэш лёг новый
+ * активный проект, кем бы он ни был записан (первый запрос, ответ на действие, событие).
+ * Подписка на кэш зовётся сразу, а не эффектом после отрисовки: код, который перешёл в проект
+ * и показывает вид (разговор прогона после tasks:openChat), показывает его уже в раскладке
+ * нового проекта, а не в старой, которую переход тут же сменил бы. Закрытые проекты уносят
+ * свои виды: открытый заново получит новый id. Возвращает отписку.
+ */
+export const followActiveProject = (queryClient: QueryClient) => {
+  const show = () => {
+    const state = queryClient.getQueryData<WorkspaceState>(QUERY_KEYS.workspace)
+    const layout = useLayoutStore.getState()
+
+    if (!state) return
+    if (state.activeProjectId) layout.showProject(state.activeProjectId)
+
+    layout.keepProjects(state.projects.map((project) => project.id))
+  }
+
+  show()
+
+  return queryClient.getQueryCache().subscribe((event) => {
+    if (event.type === 'updated' && event.query.queryHash === WORKSPACE_HASH) show()
+  })
+}
+
+/**
  * Держит кэш в синхроне с главным процессом. Подключается один раз, в корне окна.
  * Закрытый проект уносит свои вкладки файлов: открытый заново получит новый id.
  */
 export const useWorkspaceSync = () => {
   const queryClient = useQueryClient()
+
+  useEffect(() => followActiveProject(queryClient), [queryClient])
 
   useIpcEvent('workspace:changed', (state) => {
     queryClient.setQueryData(QUERY_KEYS.workspace, state)

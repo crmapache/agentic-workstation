@@ -32,6 +32,9 @@ const answerFor = (ask: ExtensionEditorAsk, workspace: WorkspaceState | undefine
     if (project.id !== workspace?.activeProjectId)
       void invoke('workspace:activateProject', { projectId: project.id })
 
+    // Раскладка проекта - сразу, до ответа главного процесса: иначе файл показался бы в
+    // раскладке прежнего проекта, а пришедшая смена проекта поставила бы его собственную.
+    useLayoutStore.getState().showProject(project.id)
     useSelectionStore.getState().selectFile(project.id, ask.path, { line: ask.line ?? 1 })
     useLayoutStore.getState().showMainView('file')
 

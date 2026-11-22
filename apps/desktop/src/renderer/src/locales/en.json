@@ -4385,7 +4385,7 @@
     "help": {
       "label": "About the tracker",
       "title": "Tracker",
-      "text": "Your own task board for this project. Projects are tabs; inside a project, flows hold groups of tasks in the order you do them, and a task can have follow-ups to its right.\n\nDrag tabs, flows, groups and cards to reorder them, or use Alt and the arrow keys on a card. Done cards stay where they are.\n\nBind a scenario to a card, then send a whole group to a scenario queue: its open cards go in, in board order. A card without a scenario stands in the queue greyed out, and the queue passes it. When a card's run is done, the card is marked done.\n\nThe board scrolls sideways with the bar at the bottom of the window, and opens at the first column with something left to do.\n\nAI in this IDE can read and edit the board through the Agentic Workstation connector. The board syncs to your cloud encrypted with your account key."
+      "text": "Your own task board for this project. Projects are tabs; inside a project, flows hold groups of tasks in the order you do them, and a task can have follow-ups to its right.\n\nDrag tabs, flows, groups and cards to reorder them, or use Alt and the arrow keys on a card. Done cards stay where they are.\n\nBind a scenario to a card, then send a whole group to a scenario queue from the group's menu: its open cards go in, in board order. A card without a scenario stands in the queue greyed out, and the queue passes it. When a card's run is done, the card is marked done.\n\nThe board scrolls sideways with the bar at the bottom of the window, and opens at the first column with something left to do.\n\nAI in this IDE can read and edit the board through the Agentic Workstation connector. The board syncs to your cloud encrypted with your account key."
     },
     "empty": {
       "noProject": "Open a project to see its board",
@@ -4592,8 +4592,7 @@
     "sent": {
       "title_one": "{{count}} card sent to the queue",
       "title_other": "{{count}} cards sent to the queue",
-      "open": "Open queues",
-      "close": "Close"
+      "open": "Open queues"
     },
     "archive": {
       "button": "Archive",
@@ -4621,7 +4620,6 @@
       "group": "Group deleted",
       "flow": "Flow deleted",
       "action": "Undo",
-      "close": "Close",
       "repeat": "Done. Next time: {{when}}"
     },
     "cloud": {

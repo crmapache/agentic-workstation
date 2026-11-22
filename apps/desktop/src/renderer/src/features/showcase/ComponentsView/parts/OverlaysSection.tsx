@@ -12,16 +12,15 @@ import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import { TextField } from '@agentic-workstation/ui/TextField'
-import { Toast } from '@agentic-workstation/ui/Toast'
 
-import styles from '../ComponentsView.module.scss'
 import lightboxSample from '../../assets/lightbox-sample.png'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { ModalSpecimen } from './ModalSpecimen'
+import { ToastSpecimen } from './ToastSpecimen'
 
 /**
- * Раздел «Оверлеи»: уведомления трёх видов, живая всплывающая панель с меню,
+ * Раздел «Оверлеи»: уведомления (крестик, отсчёт, прогресс), живая всплывающая панель с меню,
  * модальный диалог - с затемнением окна и без, окно с содержимым двух ширин и просмотр картинки
  * (со строкой под ней и крестиком под палец - как на телефоне). Всё настоящее - открывается,
  * закрывается по Esc и клику мимо.
@@ -37,40 +36,9 @@ export const OverlaysSection = () => {
 
   const closeDialog = () => setDialogBackdrop(null)
 
-  const laterButton = (
-    <Button variant="ghost" size="sm">
-      {t('samples.later')}
-    </Button>
-  )
-
   return (
     <ShowcaseSection title={t('sections.overlays')}>
-      <Specimen label={t('specimens.toast')} layout="column">
-        <div className={styles.stack}>
-          <Toast
-            title={t('samples.toastTitle')}
-            description={t('samples.toastText')}
-            actions={
-              <>
-                <Button variant="primary" size="sm">
-                  {t('samples.update')}
-                </Button>
-                {laterButton}
-              </>
-            }
-          />
-          <Toast
-            tone="danger"
-            title={t('samples.toastDangerTitle')}
-            description={t('samples.toastDangerText')}
-          />
-          <Toast
-            title={t('samples.toastProgressTitle')}
-            description={t('samples.toastProgressText')}
-            progress={0.64}
-          />
-        </div>
-      </Specimen>
+      <ToastSpecimen />
 
       <Specimen label={t('specimens.popover')}>
         <DropdownButton

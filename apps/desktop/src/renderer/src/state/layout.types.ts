@@ -51,6 +51,28 @@ export type Layout = {
 }
 
 /**
+ * Своя часть раскладки у каждого проекта: какой вид выбран в каждой области и что
+ * развёрнуто, вместе с терминалом. Ширины панелей и доля терминала - одни на окно: это
+ * размер окна и глаза человека, а не проект.
+ */
+export type ProjectViews = {
+  side: ViewAreaState<SideViewId>
+  main: ViewAreaState<MainViewId>
+  provider: ViewAreaState<ProviderViewId>
+  terminal: Pick<TerminalDockState, 'isOpen'>
+}
+
+/**
+ * Раскладка вместе с проектами: поля Layout - раскладка проекта projectId, у остальных
+ * открытых проектов - их виды в viewsByProject.
+ */
+export type ProjectLayouts = Layout & {
+  /** Чья раскладка в полях Layout; null - ещё ничья (раскладка от версии без проектов). */
+  projectId: string | null
+  viewsByProject: Record<string, ProjectViews>
+}
+
+/**
  * Раскладка на экране: сколько пикселей у каждой области при нынешнем месте в окне.
  * Сохранённые ширины - то, чего хочет человек; здесь - то, что влезло. Правая колонка
  * здесь - вместе с местом середины, которое она забрала, когда середине его не хватило.

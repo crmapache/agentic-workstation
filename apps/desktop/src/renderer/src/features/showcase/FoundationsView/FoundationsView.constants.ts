@@ -208,7 +208,7 @@ export const RADII = [
   '--radius-full',
 ] as const
 
-export const SHADOWS = ['--shadow-overlay', '--shadow-focus', '--shadow-danger'] as const
+export const SHADOWS = ['--shadow-overlay'] as const
 
 /** Все токены, значения которых витрина показывает рядом с именем. */
 export const VALUE_TOKENS: readonly string[] = [

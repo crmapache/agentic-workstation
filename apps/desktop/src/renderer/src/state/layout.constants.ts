@@ -1,7 +1,13 @@
 import type { ProviderId } from '@shared/providers'
 import { PROVIDER_IDS } from '@shared/providers'
 
-import type { PanelSide, MainViewId, SideViewId, ProviderViewId } from './layout.types'
+import type {
+  PanelSide,
+  MainViewId,
+  SideViewId,
+  ProjectViews,
+  ProviderViewId,
+} from './layout.types'
 
 /** Виды, которые есть сейчас. Сохранённый вид не из списка - удалённый, его не открыть. */
 export const SIDE_VIEW_IDS: readonly SideViewId[] = ['files', 'changes']
@@ -76,6 +82,17 @@ export const PROVIDER_MIN_HEIGHT = 250
 
 /** Открытый терминал - половина колонки, как попросил владелец. */
 export const DEFAULT_TERMINAL_SHARE = 0.5
+
+/**
+ * Виды проекта, в котором человек ещё не был: дерево, файл и разговор с Claude Code, терминал
+ * спрятан. С ними же открывается и самая первая раскладка.
+ */
+export const DEFAULT_PROJECT_VIEWS: ProjectViews = {
+  side: { activeViewId: 'files', isOpen: true },
+  main: { activeViewId: 'file', isOpen: true },
+  provider: { activeViewId: 'claude-code', isOpen: true },
+  terminal: { isOpen: false },
+}
 
 /** Ключ в localStorage. Версия в имени: сменилась форма - старое не подхватится. */
 export const LAYOUT_STORAGE_KEY = 'agentic-workstation.layout.v1'

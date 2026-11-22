@@ -20,8 +20,8 @@ import { UserItem } from './UserItem'
  * Элемент ленты по виду. Ответ модели - в капсуле: видно, где кончились шаги хода и начался
  * ответ. Карточка (stub: элемент не влез в кадр и урезанным) - своя строка, а не элемент своего
  * вида без полей. Незнакомый вид (IDE новее телефона) не рисуется вовсе.
- * Действия (остановить задачу, откатить к сообщению, цитировать ответ, прочитать его вслух) -
- * только у ленты живого разговора.
+ * Действия (откатить к сообщению, цитировать ответ, прочитать его вслух) - только у ленты живого
+ * разговора; остановить задачу - капсулой над лентой (TaskCapsules).
  */
 export const FeedItemView = memo(
   ({
@@ -65,7 +65,7 @@ export const FeedItemView = memo(
       case 'thinking':
         return <ThinkingItem item={item} />
       case 'tool':
-        return <ToolItem item={item} steps={steps} onStopTask={actions?.onStopTask} />
+        return <ToolItem item={item} steps={steps} />
       case 'shell':
         return <ShellItem item={item} />
       case 'turn':

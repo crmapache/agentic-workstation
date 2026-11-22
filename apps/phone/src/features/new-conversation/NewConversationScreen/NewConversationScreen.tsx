@@ -5,7 +5,7 @@ import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Section } from '@agentic-workstation/ui/Section'
 
-import { effortsOf, modeOptions, modelOptions, effortOptions } from '../../../lib/options.utils'
+import { effortsOf, modelOptions, effortOptions, newModeOptions } from '../../../lib/options.utils'
 import type { RouteOf } from '../../../lib/route.types'
 import { navigateFromHere } from '../../../lib/router.store'
 import { useCommand } from '../../../state/commands.hooks'
@@ -21,7 +21,9 @@ type NewArgs = CommandArgs<'conversation.new'>
  * Новый разговор в открытом проекте: провайдер, модель, усилие и режим - любой, в котором окно
  * IDE начало бы вкладку этого проекта (ADR 0076; погашенное у окна погашено и здесь). Модель,
  * усилие и режим - списками выбранного провайдера: другой провайдер начинает выбор заново, другая
- * модель снимает усилие, которого у неё нет. Первое сообщение пишется уже в самом разговоре.
+ * модель снимает усилие, которого у неё нет. Сначала всё «как в IDE» - как у новой вкладки окна
+ * этого провайдера (его Settings → New chats): выбирать заново каждый раз не нужно. Первое
+ * сообщение пишется уже в самом разговоре.
  */
 export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversation'> }) => {
   const { t } = useTranslation()
@@ -32,7 +34,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
   const [providerId, setProviderId] = useState('')
   const [model, setModel] = useState('')
   const [effort, setEffort] = useState('')
-  const [mode, setMode] = useState('default')
+  const [mode, setMode] = useState('')
   const create = useCommand(agentId, 'conversation.new')
   const provider = providers.find((one) => one.id === providerId) ?? providers[0]
 
@@ -42,7 +44,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
     setProviderId(id)
     setModel('')
     setEffort('')
-    setMode('default')
+    setMode('')
   }
 
   const handleModel = (value: string) => {
@@ -61,7 +63,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
         provider: provider.id,
         ...(model && { model }),
         ...(effort && { effort: effort as NonNullable<NewArgs['effort']> }),
-        permissionMode: mode as NonNullable<NewArgs['permissionMode']>,
+        ...(mode && { permissionMode: mode as NonNullable<NewArgs['permissionMode']> }),
       })
       .catch(() => null)) as { conversationId?: string } | null
 
@@ -120,7 +122,7 @@ export const NewConversationScreen = ({ route }: { route: RouteOf<'newConversati
           <Section size="sm" title={t('newConversation.mode')}>
             <OptionList
               label={t('newConversation.mode')}
-              options={modeOptions(t, provider, project?.unavailableModes?.[provider.id])}
+              options={newModeOptions(t, provider, project?.unavailableModes?.[provider.id])}
               isSelected={(value) => value === mode}
               onSelect={setMode}
             />
