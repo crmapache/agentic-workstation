@@ -1,0 +1,41 @@
+---
+paths:
+  - 'apps/desktop/src/main/voice/**'
+  - 'apps/desktop/src/main/remote/voice/**'
+  - 'apps/desktop/src/main/agents/conversation/voice-note.ts'
+  - 'apps/desktop/src/renderer/src/features/voice/**'
+  - 'apps/phone/src/features/voice-call/**'
+  - 'packages/voice-audio/**'
+  - 'packages/remote-protocol/src/audio-frame.ts'
+---
+
+# Голосовой режим (ADR 0104)
+
+Карта - раздел «Голосовой режим» в `docs/architecture.md`, план и журнал - `docs/plan-voice/`.
+
+- **Ключ Deepgram - только в главном процессе.** Он лежит в `voice.vault`, окну уходит лишь
+  хвост из четырёх знаков, телефону и релею - ничего, в журнал - никогда. В Deepgram ходит
+  только `main/voice/deepgram/`; окно и телефон - конечные точки звонка, а не клиенты Deepgram.
+- **Голосовые правила агенту - скрытой пометкой к реплике** (`voice-note.ts`), а не системным
+  промптом: CLI читает промпт только при запуске. Новый провайдер - пометка в его отправке и
+  разбор в повторе журнала, как у заметки редактора.
+- **Flux TTS (замер 2026-11-21):** ответ агента - один ход (фразы `Speak` по мере появления,
+  `Flush` - конец ответа), звук идёт до `Flush`. `Interrupt` берёт место от начала сессии,
+  снимает и ходы в очереди, после него сессия считается от места обрыва; звук, что ещё летит, -
+  выкинуть до `SpeechInterrupted`. Конец звука хода - `SpeechMetadata`, не `Flushed`.
+- **Эпоха ответа:** перебили - новая эпоха (`stopPlayback`); конечная точка выкидывает
+  непроигранное и кадры прежних эпох и считает проигранное заново. Без этого место обрыва врёт.
+- **Звук телефона - телом внутри SEALED** (`audio-frame.ts`), никогда в очереди: линии нет -
+  кадр пропадает (`RemoteAgent.stream`). Кнопки и отчёт о проигранном - словом `voice`.
+- **Safari:** динамик и микрофон телефона готовятся прямо в нажатии кнопки
+  (`PhoneCallEngine.prepare`), иначе звук не заведётся. Страница скрыта - звонок на паузе,
+  Deepgram закрыт, минуты не идут.
+- **Новый внешний путь данных голоса** - сначала `apps/site/privacy/index.html` (правило
+  главного процесса).
+- **Проверка:** живой звонок на Deepgram - `AGENTIC_WORKSTATION_VOICE_E2E=1` с
+  `DEEPGRAM_API_KEY` (`main/voice/voice-live.e2e.test.ts`). Окно - копия с микрофоном из WAV:
+  `AGENTIC_WORKSTATION_AGENT_ARGS="--disable-features=AudioServiceSandbox
+--use-fake-ui-for-media-stream --use-fake-device-for-media-stream
+--use-file-for-fake-audio-capture=<файл.wav>%noloop"` (без снятия песочницы звука Chromium
+  файл не прочтёт). Телефон - `pnpm --filter @agentic-workstation/phone e2e`
+  (`e2e/voice.browser.test.ts`) и `e2e/voice-interop.test.ts` через настоящий релей.

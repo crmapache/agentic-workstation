@@ -720,34 +720,67 @@ IDE `LinkWait`); токены и примитивы - `packages/ui` (разме�
 Боевой релей - `AGENTIC_WORKSTATION_PHONE_LIVE_RELAY` (страница - выложенная сборка), а с
 `AGENTIC_WORKSTATION_PHONE_LIVE_PAGE=local` - своя сборка через настоящую сеть до выкладки.
 
+## Голосовой режим
+
+Живой разговор с агентом голосом - из панели IDE или с телефона (ADR 0104). Вся логика голоса -
+в главном процессе (`main/voice/`): только он знает ключ Deepgram (`voice.vault`) и ходит в
+Deepgram. Окно и телефон - конечные точки звонка (`call/voice-endpoint.ts`): пишут микрофон
+кадрами PCM16 16 кГц по 80 мс и играют ответ PCM16 24 кГц. Звук в браузере - общий пакет
+`packages/voice-audio` (ворклет микрофона, проигрыватель ответа с эпохами и отчётом о
+проигранном).
+
+- **Deepgram** (`main/voice/deepgram/`): Flux STT `/v2/listen` (`flux-general-multi`,
+  переподключение с буфером микрофона до 5 с) и Flux TTS `/v2/speak` (ответ - один ход, фразы
+  уходят по мере появления, перебивание - `Interrupt` с местом в сессии).
+- **Звонок** (`main/voice/call/`): уши (`call-ears.ts` - ходы Flux в реплики, двухшаговое
+  перебивание), рот (`call-mouth.ts` - ответ агента по фразам в синтез, эпохи, что услышано),
+  мозг (`call-brain.ts` - реплики в разговор панели, вопросы агента вслух), звонок
+  (`voice-call.ts` - состояния, пауза, потеря связи, тишина). Разговор - обычный в проекте Home у
+  провайдера из настроек, через тот же порт панелей, что у телефона.
+- **Голосовые правила агенту** - скрытой пометкой к каждой реплике голосом
+  (`agents/conversation/voice-note.ts`), как заметка редактора: у всех провайдеров, без
+  перезапуска, повтор журнала её вынимает.
+- **Окно**: `features/voice` (звук звонка на всё окно, звонок в строке состояния), в панели -
+  кнопка звонка, полоса над полем и микрофон у голосовых сообщений; Settings → Voice.
+- **Телефон**: звук - телом внутри SEALED (`remote-protocol/src/audio-frame.ts`: первый байт
+  `0x01`/`0x02`, у JSON - `{`), кнопки и отчёт о проигранном - словом `voice`; в IDE -
+  `main/remote/voice/phone-voice.ts`, ответ кадрами по 200 мс без очереди. На телефоне строка
+  «Voice call» у машины, звук - в корне страницы (`features/voice-call`), экран звонка - экран
+  его разговора с полосой звонка сверху. Пуш `done` - когда агент доделал после звонка.
+
+Живая проверка на настоящем Deepgram - `AGENTIC_WORKSTATION_VOICE_E2E=1` и `DEEPGRAM_API_KEY`
+(`main/voice/voice-live.e2e.test.ts`); звонок в копии окна - микрофон из WAV через
+`AGENTIC_WORKSTATION_AGENT_ARGS` (`agent-window.sh`), телефон - `e2e/voice.browser.test.ts`.
+
 ## Части кода и кто кого импортирует
 
 Правило держит линтер (`boundaries/dependencies` в `eslint.config.mjs`), нарушение -
 ошибка, а не предупреждение.
 
-| Часть               | Где                             | Может импортировать                                                           |
-| ------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
-| `ui`                | `packages/ui/src`               | только себя                                                                   |
-| `shared`            | `apps/desktop/src/shared`       | только себя. Ни Electron, ни Node, ни React                                   |
-| `main`              | `apps/desktop/src/main`         | `main`, `shared`, протоколы (тесты - и `relay`, `store`, `cloud`)             |
-| `preload`           | `apps/desktop/src/preload`      | `preload`, `shared`                                                           |
-| `lib`               | `renderer/src/lib`              | `lib`, `shared`                                                               |
-| `state`             | `renderer/src/state`            | `state`, `lib`, `shared`                                                      |
-| `feature`           | `renderer/src/features/<имя>`   | свою фичу, `state`, `lib`, `shared`, `ui`, `locales`. Соседнюю фичу - никогда |
-| `workbench`         | `renderer/src/workbench`        | всё, кроме `app`                                                              |
-| `app`               | `renderer/src/app`              | всё в окне                                                                    |
-| `browser-protocol`  | `packages/browser-protocol/src` | только себя. Ни Node, ни Electron: едет и в расширение                        |
-| `browser-extension` | `apps/browser-extension/src`    | себя и `browser-protocol`                                                     |
-| `native-host`       | `apps/desktop/src/native-host`  | себя и `browser-protocol`. Чистый Node, без Electron                          |
-| `remote-protocol`   | `packages/remote-protocol/src`  | только себя. Ни Node, ни DOM: едет и в телефон                                |
-| `relay`             | `apps/relay/src`                | только себя (тесты - и `remote-protocol`). Свой сервер на Node                |
-| `phone`             | `apps/phone/src`                | себя, `ui`, `remote-protocol`. Ни Node, ни Electron, к IDE - только протокол  |
-| `phone-e2e`         | `apps/phone/e2e`                | `phone`, `main`, `shared`, `relay`, `remote-protocol`: настоящая IDE в тесте  |
-| `site`              | `apps/site/src`                 | себя и `ui` (только стили). Статическая страница, к IDE - ничего              |
-| `store-protocol`    | `packages/store-protocol/src`   | только себя. Node без Electron: едет в главный процесс и в сервер магазина    |
-| `store`             | `apps/store/src`                | себя и `store-protocol`. Свой сервер магазина расширений на Node              |
-| `cloud-protocol`    | `packages/cloud-protocol/src`   | только себя. Node без Electron: едет в главный процесс и в сервер облака      |
-| `cloud`             | `apps/cloud/src`                | себя и `cloud-protocol`. Свой сервер облака IDE на Node, хранит только шифр   |
+| Часть               | Где                             | Может импортировать                                                                     |
+| ------------------- | ------------------------------- | --------------------------------------------------------------------------------------- |
+| `ui`                | `packages/ui/src`               | только себя                                                                             |
+| `shared`            | `apps/desktop/src/shared`       | только себя. Ни Electron, ни Node, ни React                                             |
+| `main`              | `apps/desktop/src/main`         | `main`, `shared`, протоколы (тесты - и `relay`, `store`, `cloud`)                       |
+| `preload`           | `apps/desktop/src/preload`      | `preload`, `shared`                                                                     |
+| `lib`               | `renderer/src/lib`              | `lib`, `shared`                                                                         |
+| `state`             | `renderer/src/state`            | `state`, `lib`, `shared`                                                                |
+| `feature`           | `renderer/src/features/<имя>`   | свою фичу, `state`, `lib`, `shared`, `ui`, `locales`, `voice-audio`. Соседнюю - никогда |
+| `workbench`         | `renderer/src/workbench`        | всё, кроме `app`                                                                        |
+| `app`               | `renderer/src/app`              | всё в окне                                                                              |
+| `browser-protocol`  | `packages/browser-protocol/src` | только себя. Ни Node, ни Electron: едет и в расширение                                  |
+| `browser-extension` | `apps/browser-extension/src`    | себя и `browser-protocol`                                                               |
+| `native-host`       | `apps/desktop/src/native-host`  | себя и `browser-protocol`. Чистый Node, без Electron                                    |
+| `remote-protocol`   | `packages/remote-protocol/src`  | только себя. Ни Node, ни DOM: едет и в телефон                                          |
+| `relay`             | `apps/relay/src`                | только себя (тесты - и `remote-protocol`). Свой сервер на Node                          |
+| `phone`             | `apps/phone/src`                | себя, `ui`, `remote-protocol`, `voice-audio`. К IDE - только протокол                   |
+| `voice-audio`       | `packages/voice-audio/src`      | только себя. Web Audio: микрофон и ответ звонка окна и телефона                         |
+| `phone-e2e`         | `apps/phone/e2e`                | `phone`, `main`, `shared`, `relay`, `remote-protocol`: настоящая IDE в тесте            |
+| `site`              | `apps/site/src`                 | себя и `ui` (только стили). Статическая страница, к IDE - ничего                        |
+| `store-protocol`    | `packages/store-protocol/src`   | только себя. Node без Electron: едет в главный процесс и в сервер магазина              |
+| `store`             | `apps/store/src`                | себя и `store-protocol`. Свой сервер магазина расширений на Node                        |
+| `cloud-protocol`    | `packages/cloud-protocol/src`   | только себя. Node без Electron: едет в главный процесс и в сервер облака                |
+| `cloud`             | `apps/cloud/src`                | себя и `cloud-protocol`. Свой сервер облака IDE на Node, хранит только шифр             |
 
 Отсюда два следствия, которые чаще всего забывают:
 
