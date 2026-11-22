@@ -107,3 +107,12 @@
   заголовком релея; Home - не `~`; промпт CLI не меняется на ходу; дельты ответа есть у всех
   провайдеров). Вопросы заданы, ответы выше. Проба Deepgram прошла. Рабочая копия и ветка
   заведены.
+- 2026-11-21: этап 1 готов (коммиты b240943..). `main/voice/`: `deepgram/` (связь, STT с
+  переподключением, TTS одним ходом на ответ), `speech/` (фильтр и фразы), `call/` (уши, рот,
+  мозг, звонок, слова, фразы звонка), `voice-store.ts`, `voice-service.ts`, `voice-setup.ts`,
+  `voice-preview.ts`, `desktop-endpoint.ts`; каналы `voice:*` (`shared/ipc/voice.contract.ts`,
+  `main/ipc/voice-handlers.ts`); пометка `agents/conversation/voice-note.ts` у всех четырёх
+  провайдеров и в повторе журнала (Claude, Codex, OpenCode; ACP вырезает тег сам).
+  Проба TTS: звук до Flush, Interrupt снимает и очередь ходов, после него сессия считается от
+  места обрыва. Живой тест `voice-live.e2e.test.ts` (AGENTIC_WORKSTATION_VOICE_E2E=1) прошёл:
+  распознал, ответил, оборвал, передал услышанное. Дальше - окно (этап 2).
