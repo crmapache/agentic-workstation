@@ -99,9 +99,6 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@agentic-workstation/cloud-protocol':
-        specifier: workspace:*
-        version: link:../../packages/cloud-protocol
       '@jitl/quickjs-wasmfile-release-sync':
         specifier: 0.32.0
         version: 0.32.0
@@ -127,6 +124,9 @@ importers:
       '@agentic-workstation/cloud':
         specifier: workspace:*
         version: link:../cloud
+      '@agentic-workstation/cloud-protocol':
+        specifier: workspace:*
+        version: link:../../packages/cloud-protocol
       '@agentic-workstation/relay':
         specifier: workspace:*
         version: link:../relay

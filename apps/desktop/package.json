@@ -23,7 +23,6 @@
     "update:e2e": "bash scripts/update-e2e.sh"
   },
   "dependencies": {
-    "@agentic-workstation/cloud-protocol": "workspace:*",
     "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "koffi": "3.3.3",
     "node-pty": "1.2.0-beta.18",
@@ -34,6 +33,7 @@
     "@agentclientprotocol/sdk": "2.8.0",
     "@agentic-workstation/browser-protocol": "workspace:*",
     "@agentic-workstation/cloud": "workspace:*",
+    "@agentic-workstation/cloud-protocol": "workspace:*",
     "@agentic-workstation/relay": "workspace:*",
     "@agentic-workstation/remote-protocol": "workspace:*",
     "@agentic-workstation/store": "workspace:*",
