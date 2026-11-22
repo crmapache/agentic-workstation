@@ -31,12 +31,14 @@ import { ConversationLogContext } from '../../state/conversation-log.context'
 import { InboxCardContext } from '../../state/inbox-card.context'
 import { useArrangement, useLayoutStore } from '../../state/layout.store'
 import { OpenFileContext } from '../../state/open-file.context'
+import { useVoice } from '../../state/voice.queries'
 import { InboxCard } from '../../features/inbox/InboxCard/InboxCard'
 import { ProjectTabs } from '../../features/projects/ProjectTabs/ProjectTabs'
 import { RemoteButton } from '../../features/remote/RemoteButton/RemoteButton'
 import { MemorySaverButton } from '../../features/settings/MemorySaverButton/MemorySaverButton'
 import { MuteSoundsButton } from '../../features/settings/MuteSoundsButton/MuteSoundsButton'
 import { StatusBar } from '../../features/status-bar/StatusBar/StatusBar'
+import { VoiceCallStatus } from '../../features/voice/VoiceCallStatus/VoiceCallStatus'
 import { useRoomMeasure } from './Workbench.hooks'
 import styles from './Workbench.module.scss'
 
@@ -69,6 +71,7 @@ export const Workbench = () => {
   const projectCallsOf = useProjectCalls()
   const projectWorkOf = useProjectWork()
   const providerCalls = useProviderCalls()
+  const hasVoiceCall = Boolean(useVoice()?.call)
 
   // ⌘Esc из любой зоны: правая панель с Claude Code и клавиатура в её поле (или спрятать).
   useClaudePanelKey(toggleClaudePanel)
@@ -171,7 +174,15 @@ export const Workbench = () => {
             )}
           </div>
 
-          <StatusBar items={[<RemoteButton />, <MuteSoundsButton />, <MemorySaverButton />]} />
+          <StatusBar
+            items={[
+              <RemoteButton />,
+              <MuteSoundsButton />,
+              <MemorySaverButton />,
+              // Звонок - последним и только пока идёт: место соседей (их ключ) не сдвигается.
+              ...(hasVoiceCall ? [<VoiceCallStatus />] : []),
+            ]}
+          />
         </div>
 
         <Overlays />

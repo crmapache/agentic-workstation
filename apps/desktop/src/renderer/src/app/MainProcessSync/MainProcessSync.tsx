@@ -13,6 +13,7 @@ import { useStatisticsSync } from '../../state/statistics.queries'
 import { useTasksSync } from '../../state/tasks.queries'
 import { useTrackerSync } from '../../state/tracker.queries'
 import { useUpdateStatusSync } from '../../state/updates.queries'
+import { useVoiceSync } from '../../state/voice.queries'
 import { useWorkspaceSync } from '../../state/workspace.queries'
 import { useAsideSync } from '../../features/agent-panel/aside.queries'
 import { useConnectionsSync } from '../../features/agent-panel/connections.queries'
@@ -51,6 +52,7 @@ export const MainProcessSync = () => {
   useSoundsSync()
   useMemorySaverSync()
   useServiceAiSync()
+  useVoiceSync()
   useIdePrefsSync()
   useProvidersSync()
   useTasksSync()

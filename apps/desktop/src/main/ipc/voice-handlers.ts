@@ -25,6 +25,8 @@ const isFiniteNumber = (value: unknown): value is number =>
 export const createVoiceHandlers = (
   voice: VoiceService,
   store: VoiceStore,
+  /** Звонок из панели начался: окно - к проекту Home, где его разговор. */
+  showHome: () => Promise<unknown>,
 ): Pick<InvokeHandlers, VoiceChannels> => ({
   'voice:get': () => voice.view(),
   'voice:setSettings': ({ settings }) => voice.setSettings(settings),
@@ -60,7 +62,11 @@ export const createVoiceHandlers = (
   'voice:start': async () => {
     if (!(await microphoneAllowed())) return { ok: false, reason: 'microphone' }
 
-    return voice.start(desktopEndpoint)
+    const outcome = await voice.start(desktopEndpoint)
+
+    if (outcome.ok) await showHome()
+
+    return outcome
   },
   'voice:end': ({ callId }) => {
     assertString(callId, 'callId')

@@ -15,7 +15,8 @@
       "chat": "Chat",
       "sounds": "Sounds",
       "ai": "AI",
-      "git": "Git"
+      "git": "Git",
+      "voice": "Voice"
     },
     "ai": {
       "description": "Which AI does the background work of the IDE",
@@ -110,6 +111,42 @@
       "addFallback": "Add a fallback",
       "helpLabel": "About Commit and push",
       "help": "Commit and push takes every change in the project, as git add -A would, and makes one commit on the current branch, then pushes it. A branch without an upstream is published to the remote, like Push in the branch menu. There is no force push.\n\nThe message is written by the AI you choose here, in the style of the recent commits of the repository. If it fails - a limit, the CLI is missing, an error - the next one in the list is asked. Your staged files are not touched until a message is written, so if nobody answers, nothing changes.\n\nThe default model of Claude Code here is Haiku: it is fast and cheap, and a commit message needs no more."
+    },
+    "voice": {
+      "description": "Talk to an agent by voice from the panel or from your phone. Deepgram turns speech into text and reads the answers out; the agent thinks in a normal chat in Home.",
+      "enabled": "Voice mode",
+      "enabledHint": "Off - the voice button is grey here and on the phone.",
+      "key": "Deepgram API key",
+      "keyPlaceholder": "Paste the key",
+      "keySaved": "Saved, ends in {{hint}}",
+      "keyNone": "No key yet",
+      "keySave": "Save",
+      "keyForget": "Forget",
+      "keyCheck": "Check",
+      "keyCheck_ok": "The key works",
+      "keyCheck_invalid": "Deepgram rejected this key",
+      "keyCheck_unreachable": "Deepgram did not answer - check the network",
+      "keyHelp": "The key is stored encrypted on this computer and goes only to Deepgram. Your phone and the relay never get it.",
+      "language": "Language",
+      "languageMulti": "Multilingual (detect)",
+      "expected": "Expected languages",
+      "expectedHint": "Hints for the multilingual mode. None ticked - all ten.",
+      "voices": "Voice for each language",
+      "preview": "Listen",
+      "previewFailed": "Could not play a sample - check the key",
+      "speed": "Speech speed",
+      "bargeIn": "Interrupting the agent",
+      "bargeIn_high": "By voice, high sensitivity",
+      "bargeIn_medium": "By voice, medium sensitivity",
+      "bargeIn_low": "By voice, low sensitivity",
+      "bargeIn_button": "Only with the Stop button",
+      "permissionMode": "Permissions in voice chats",
+      "provider": "Who answers",
+      "region": "Deepgram region",
+      "region_global": "Global",
+      "region_eu": "EU",
+      "stillHere": "Soft tone while the agent works silently",
+      "nextCall": "Language and voices apply from the next call."
     }
   },
   "connectors": {
@@ -4620,6 +4657,48 @@
       "alreadyQueued": "This card is already in a queue.",
       "unknown": "Something went wrong.",
       "badRepeat": "The repeat is not valid."
+    }
+  },
+  "voice": {
+    "start": "Voice call",
+    "startTitle": "Voice call - a new chat in Home",
+    "unavailable": {
+      "off": "Turn on voice mode in Settings → Voice",
+      "noKey": "Add a Deepgram key in Settings → Voice"
+    },
+    "refused": {
+      "off": "Voice mode is off",
+      "noKey": "No Deepgram key",
+      "busy": "A voice call is already going",
+      "noProvider": "The provider for voice calls is not available",
+      "microphone": "No microphone access. Allow it in System Settings → Privacy & Security → Microphone.",
+      "failed": "The voice call did not start"
+    },
+    "state": {
+      "connecting": "Connecting",
+      "listening": "Listening",
+      "thinking": "Thinking",
+      "working": "Working",
+      "workingTool": "Working: {{tool}}",
+      "speaking": "Speaking",
+      "reconnecting": "Reconnecting",
+      "paused": "Paused"
+    },
+    "origin": {
+      "desktop": "Voice call",
+      "phone": "Call from phone"
+    },
+    "statusLine": "{{origin}} · {{state}}",
+    "end": "End call",
+    "stop": "Stop",
+    "mute": "Mute microphone",
+    "unmute": "Unmute microphone",
+    "ended": {
+      "lostLine": "The voice call ended: the phone lost the line",
+      "silence": "The voice call ended after a long silence",
+      "keyRejected": "The voice call ended: Deepgram rejected the key",
+      "deepgram": "The voice call ended: Deepgram is not answering",
+      "conversationGone": "The voice call ended: its chat was closed"
     }
   }
 }

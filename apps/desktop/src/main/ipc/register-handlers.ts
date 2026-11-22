@@ -142,7 +142,11 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createSoundsHandlers(services.sounds),
     ...createMemorySaverHandlers(services.memorySaver),
     ...createServiceAiHandlers(services.serviceAi),
-    ...createVoiceHandlers(services.voice.service, services.voice.store),
+    ...createVoiceHandlers(services.voice.service, services.voice.store, () => {
+      const home = services.workspace.getState().projects.find((project) => project.home)
+
+      return home ? services.workspace.activateProject(home.id) : Promise.resolve()
+    }),
     ...createIdePrefsHandlers(services.idePrefs),
     ...createCommitPushHandlers(workspace, services.commitPush),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),

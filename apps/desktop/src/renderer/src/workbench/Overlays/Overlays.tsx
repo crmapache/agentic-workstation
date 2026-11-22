@@ -12,11 +12,13 @@ import { SettingsDialog } from '../../features/settings/SettingsDialog/SettingsD
 import { TasksNotice } from '../../features/tasks/TasksNotice/TasksNotice'
 import { TrackerNotice } from '../../features/tracker/TrackerNotice/TrackerNotice'
 import { UpdateNotice } from '../../features/updates/UpdateNotice/UpdateNotice'
+import { VoiceHost } from '../../features/voice/VoiceHost/VoiceHost'
 
 /**
  * Всё, что встаёт поверх раскладки окна: поиск везде, вопросы и окна (несохранённое, настройки,
- * Remote Control, вопросы расширений) и карточки в углу. Здесь же - клавиши команд и мост
- * редактора расширений (ADR 0091): им нужен весь экран, а не одна зона.
+ * Remote Control, вопросы расширений) и карточки в углу. Здесь же - клавиши команд, мост
+ * редактора расширений (ADR 0091) и звук голосового звонка (ADR 0104): им нужен весь экран, а не
+ * одна зона.
  */
 export const Overlays = () => {
   useExtensionKeys()
@@ -29,6 +31,7 @@ export const Overlays = () => {
       <SettingsDialog />
       <RemoteModal />
       <ExtensionDialog />
+      <VoiceHost />
 
       <NotificationArea>
         <UpdateNotice />

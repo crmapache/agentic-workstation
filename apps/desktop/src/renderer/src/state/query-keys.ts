@@ -127,6 +127,7 @@ export const QUERY_KEYS = {
   /** Экономия памяти (ADR 0098): выбор человека и состояние служб редактора одним снимком. */
   memorySaver: ['memory-saver'],
   serviceAi: ['serviceAi'],
+  voice: ['voice'],
   idePrefs: ['idePrefs'],
   /** Задания по расписанию и сводки их прогонов (ADR 0069) - одним снимком. */
   tasks: ['tasks', 'state'],
