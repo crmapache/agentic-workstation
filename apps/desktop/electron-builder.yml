@@ -120,6 +120,10 @@ mac:
   gatekeeperAssess: false
   entitlements: packaging/entitlements.mac.plist
   entitlementsInherit: packaging/entitlements.mac.plist
+  # Голосовой звонок из панели (ADR 0104): без этой строки macOS не покажет вопрос о микрофоне,
+  # а молча откажет.
+  extendInfo:
+    NSMicrophoneUsageDescription: Agentic Workstation listens to you during a voice call with an agent.
 
 # Windows (ADR 0048): только x64, установщик NSIS на одного человека - без прав
 # администратора, в %LOCALAPPDATA%\Programs. Им же приложение обновляется само: качает

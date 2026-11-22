@@ -1,4 +1,4 @@
-import { systemPreferences } from 'electron'
+import { app, systemPreferences } from 'electron'
 
 import { broadcast } from '../ipc/broadcast'
 import type { VoiceEndpoint } from './call/voice-endpoint'
@@ -20,7 +20,13 @@ export const desktopEndpoint: VoiceEndpoint = {
  * некому - доступ решают настройки конфиденциальности системы, getUserMedia скажет сам.
  */
 export const microphoneAllowed = async (): Promise<boolean> => {
-  if (process.platform !== 'darwin') return true
+  // Микрофон из файла (проверка копии окна): настоящего устройства нет, спрашивать macOS незачем.
+  if (
+    process.platform !== 'darwin' ||
+    app.commandLine.hasSwitch('use-fake-device-for-media-stream')
+  ) {
+    return true
+  }
 
   const status = systemPreferences.getMediaAccessStatus('microphone')
 

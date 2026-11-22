@@ -76,8 +76,7 @@ export const VoiceLanguageCard = ({ settings, onChange }: VoiceCardProps) => {
         {voicedLanguages(settings).map((language) => (
           <SettingRow
             key={language}
-            label={t('settings.voice.voices')}
-            description={languageName(language)}>
+            label={t('settings.voice.voiceFor', { language: languageName(language) })}>
             <div className={styles.keyControl}>
               <PickButton
                 label={languageName(language)}

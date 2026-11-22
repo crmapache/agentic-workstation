@@ -115,7 +115,7 @@
     "voice": {
       "description": "Talk to an agent by voice from the panel or from your phone. Deepgram turns speech into text and reads the answers out; the agent thinks in a normal chat in Home.",
       "enabled": "Voice mode",
-      "enabledHint": "Off - the voice button is grey here and on the phone.",
+      "enabledHint": "When off, the voice button is grey here and on the phone.",
       "key": "Deepgram API key",
       "keyPlaceholder": "Paste the key",
       "keySaved": "Saved, ends in {{hint}}",
@@ -131,7 +131,6 @@
       "languageMulti": "Multilingual (detect)",
       "expected": "Expected languages",
       "expectedHint": "Hints for the multilingual mode. None ticked - all ten.",
-      "voices": "Voice for each language",
       "preview": "Listen",
       "previewFailed": "Could not play a sample - check the key",
       "speed": "Speech speed",
@@ -146,7 +145,8 @@
       "region_global": "Global",
       "region_eu": "EU",
       "stillHere": "Soft tone while the agent works silently",
-      "nextCall": "Language and voices apply from the next call."
+      "nextCall": "Language and voices apply from the next call.",
+      "voiceFor": "{{language}} voice"
     }
   },
   "connectors": {

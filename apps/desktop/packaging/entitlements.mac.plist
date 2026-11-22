@@ -15,5 +15,8 @@
   <true/>
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
   <true/>
+  <!-- Микрофон голосового звонка (ADR 0104): нужен, когда вернётся hardened runtime. -->
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
 </dict>
 </plist>

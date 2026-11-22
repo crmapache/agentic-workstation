@@ -10,6 +10,10 @@
 # start собирает текущий код в ~/.agentic-workstation-agent, открывает в окне переданные
 # папки как проекты (первая - активная) и ждёт порт отладки 5316. stop гасит окно и
 # удаляет папку целиком. Изменил код - stop и снова start.
+#
+# Свои флаги Chromium копии - в AGENTIC_WORKSTATION_AGENT_ARGS через пробел. Например, микрофон
+# из файла для голосового звонка (ADR 0104): --use-fake-ui-for-media-stream
+# --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=/путь/речь.wav%noloop
 
 set -euo pipefail
 
@@ -63,7 +67,7 @@ start() {
   AGENTIC_WORKSTATION_PROFILE_DIR="$WORK_DIR/profile" AGENTIC_WORKSTATION_CDP_PORT="$CDP_PORT" \
     AGENTIC_WORKSTATION_OUTSIDE_PORT="$OUTSIDE_PORT" \
     nohup ./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron "$WORK_DIR/out" \
-    --disable-backgrounding-occluded-windows >"$WORK_DIR/app.log" 2>&1 &
+    --disable-backgrounding-occluded-windows ${AGENTIC_WORKSTATION_AGENT_ARGS:-} >"$WORK_DIR/app.log" 2>&1 &
 
   for _ in $(seq 1 60); do
     curl -s "http://127.0.0.1:$CDP_PORT/json" >/dev/null 2>&1 && { sleep 2; echo "Окно готово, порт $CDP_PORT"; return; }
