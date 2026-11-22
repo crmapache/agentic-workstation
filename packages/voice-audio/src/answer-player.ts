@@ -1,6 +1,5 @@
 import { pcmToFloat } from './pcm'
-import type { PlayedSegment } from './played'
-import { playedMs } from './played'
+import { EpochClock } from './played'
 
 /** Частота ответа: родная у голосов Flux TTS, её же просит главный процесс IDE. */
 export const PLAY_RATE = 24000
@@ -21,7 +20,7 @@ export class AnswerPlayer {
   private readonly context = new AudioContext()
   private readonly gain = this.context.createGain()
   private sources: AudioBufferSourceNode[] = []
-  private segments: PlayedSegment[] = []
+  private readonly clock = new EpochClock()
   private epoch = 0
   private end = 0
   private readonly timer: ReturnType<typeof setInterval>
@@ -58,7 +57,7 @@ export class AnswerPlayer {
       this.sources = this.sources.filter((known) => known !== source)
     }
     this.sources.push(source)
-    this.segments.push({ start, duration: buffer.duration })
+    this.clock.add({ start, duration: buffer.duration })
     this.end = start + buffer.duration
   }
 
@@ -71,7 +70,7 @@ export class AnswerPlayer {
     for (const source of this.sources) source.stop()
 
     this.sources = []
-    this.segments = []
+    this.clock.reset()
     this.end = 0
     this.epoch = epoch
     this.gain.gain.cancelScheduledValues(this.context.currentTime)
@@ -100,12 +99,10 @@ export class AnswerPlayer {
     void this.context.close()
   }
 
+  /** Отчёт, пока есть что играть; дозвучало всё - последний отчёт, и молчать до новых кадров. */
   private report(): void {
-    if (this.segments.length === 0) return
+    if (!this.clock.isPlaying) return
 
-    this.onPlayed(this.epoch, Math.round(playedMs(this.segments, this.context.currentTime)))
-
-    // Всё дозвучало - отчёт сказан, дальше молчать до новых кадров.
-    if (this.context.currentTime >= this.end) this.segments = []
+    this.onPlayed(this.epoch, Math.round(this.clock.played(this.context.currentTime)))
   }
 }

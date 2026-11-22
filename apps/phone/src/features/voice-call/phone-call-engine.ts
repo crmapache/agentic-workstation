@@ -48,14 +48,24 @@ export class PhoneCallEngine {
     }
   }
 
-  /** IDE подняла звонок: кадры микрофона пошли, экран держится, пауза - по видимости. */
+  /** Звонок, к которому подключён движок; ещё не подняли - null. */
+  get call(): string | null {
+    return this.callId
+  }
+
+  /**
+   * IDE подняла звонок: кадры микрофона пошли, экран держится, пауза - по видимости. Страницу
+   * успели скрыть, пока звонок поднимался, - пауза объявляется сразу.
+   */
   attach(callId: string): void {
     if (this.callId) return
 
     this.callId = callId
     this.player.tone(CONNECTED_TONE_HZ)
     document.addEventListener('visibilitychange', this.visibility)
-    void this.holdScreen()
+    this.hidden = document.visibilityState === 'hidden'
+    if (this.hidden) this.say({ act: 'pause', callId })
+    else void this.holdScreen()
   }
 
   audio(frame: AudioFrame): void {

@@ -48,6 +48,8 @@ export const useVoiceCallHost = () => {
             }),
           )
         case 'ended':
+          // Конец чужого звонка (прежнего, оборванного) не глушит звук того, что идёт.
+          if (engine?.call !== voice.callId) return
           dropEngine(agentId)
 
           return CALM_ENDS.includes(voice.reason)

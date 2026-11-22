@@ -1,4 +1,10 @@
-import type { VoiceView, VoiceKeyCheck, VoiceSettings, VoiceStartOutcome } from '@shared/voice'
+import type {
+  VoiceView,
+  VoiceKeyCheck,
+  VoiceSettings,
+  VoiceStartOutcome,
+  VoiceSetKeyOutcome,
+} from '@shared/voice'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'
@@ -36,12 +42,14 @@ export const useSetVoiceSettings = (): ((settings: VoiceSettings) => Promise<Voi
   return save.mutateAsync
 }
 
-/** Сохранить или забыть ключ Deepgram; окно его обратно не получает. */
-export const useSetVoiceKey = (): ((key: string | null) => Promise<VoiceView>) => {
+/** Сохранить или забыть ключ Deepgram; окно его обратно не получает. Не встал - причина. */
+export const useSetVoiceKey = (): ((key: string | null) => Promise<VoiceSetKeyOutcome>) => {
   const queryClient = useQueryClient()
   const save = useMutation({
     mutationFn: (key: string | null) => invoke('voice:setKey', { key }),
-    onSuccess: (view) => queryClient.setQueryData(QUERY_KEYS.voice, view),
+    onSuccess: (outcome) => {
+      if (outcome.ok) queryClient.setQueryData(QUERY_KEYS.voice, outcome.view)
+    },
   })
 
   return save.mutateAsync
@@ -51,18 +59,28 @@ export const useSetVoiceKey = (): ((key: string | null) => Promise<VoiceView>) =
 export const checkVoiceKey = (key: string | null): Promise<VoiceKeyCheck> =>
   invoke('voice:checkKey', { key })
 
-/** Начать звонок из панели; ответ - звонок или причина отказа. */
+/** Начать звонок из панели; ответ - звонок или причина отказа, состояние - в кэш. */
 export const useStartVoiceCall = () => {
+  const queryClient = useQueryClient()
   const start = useMutation({
-    mutationFn: (): Promise<VoiceStartOutcome> => invoke('voice:start'),
+    mutationFn: () => invoke('voice:start'),
+    onSuccess: ({ view }) => queryClient.setQueryData(QUERY_KEYS.voice, view),
   })
 
-  return { start: start.mutateAsync, isStarting: start.isPending }
+  return {
+    start: async (): Promise<VoiceStartOutcome> => (await start.mutateAsync()).outcome,
+    isStarting: start.isPending,
+  }
 }
 
-/** Действия звонка, который идёт: положить трубку, «Стоп», микрофон. */
-export const voiceCallActions = (callId: string) => ({
-  end: () => invoke('voice:end', { callId }),
-  stop: () => invoke('voice:stop', { callId }),
-  mute: (on: boolean) => invoke('voice:mute', { callId, on }),
-})
+/** Действия звонка, который идёт: положить трубку, «Стоп», микрофон; ответ - в кэш. */
+export const useVoiceCallActions = (callId: string) => {
+  const queryClient = useQueryClient()
+  const put = (view: VoiceView) => queryClient.setQueryData(QUERY_KEYS.voice, view)
+
+  return {
+    end: () => void invoke('voice:end', { callId }).then(put),
+    stop: () => void invoke('voice:stop', { callId }).then(put),
+    mute: (on: boolean) => void invoke('voice:mute', { callId, on }).then(put),
+  }
+}

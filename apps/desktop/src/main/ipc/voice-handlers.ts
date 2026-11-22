@@ -3,11 +3,7 @@ import { VOICE_CATALOG } from '@shared/voice-catalog'
 import type { VoiceInvokeContract } from '@shared/ipc/voice.contract'
 
 import { desktopEndpoint, microphoneAllowed } from '../voice/desktop-endpoint'
-import { previewVoice } from '../voice/voice-preview'
-import { realTimer } from '../voice/voice-service'
 import type { VoiceService } from '../voice/voice-service'
-import type { VoiceStore } from '../voice/voice-store'
-import { dialDeepgram } from '../voice/deepgram/deepgram-link'
 import type { InvokeHandlers } from './handle'
 import { assertString } from './validate'
 
@@ -21,10 +17,12 @@ const KEY_MAX = 512
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
-/** Каналы голосового режима (ADR 0104): окну не верим - строки, кадры и числа проверяются. */
+/**
+ * Каналы голосового режима (ADR 0104): окну не верим - строки, кадры и числа проверяются, а
+ * ключ Deepgram и соединения с ним остаются в сервисе.
+ */
 export const createVoiceHandlers = (
   voice: VoiceService,
-  store: VoiceStore,
   /** Звонок из панели начался: окно - к проекту Home, где его разговор. */
   showHome: () => Promise<unknown>,
 ): Pick<InvokeHandlers, VoiceChannels> => ({
@@ -32,7 +30,9 @@ export const createVoiceHandlers = (
   'voice:setSettings': ({ settings }) => voice.setSettings(settings),
   'voice:setKey': ({ key }) => {
     if (key !== null) assertString(key, 'key')
-    if (key !== null && key.length > KEY_MAX) throw new Error('voice:setKey: key too long')
+    if (key !== null && key.length > KEY_MAX) {
+      return Promise.resolve({ ok: false, reason: 'malformed' as const })
+    }
 
     return voice.setKey(key)
   },
@@ -42,43 +42,41 @@ export const createVoiceHandlers = (
     return voice.checkKey(key?.slice(0, KEY_MAX) ?? null)
   },
   'voice:preview': async ({ language, voice: model }) => {
-    const key = store.key
-
-    if (!isVoiceLanguage(language) || !key) return null
+    if (!isVoiceLanguage(language)) return null
     if (!VOICE_CATALOG[language].some((option) => option.model === model)) return null
 
-    const pcm = await previewVoice({
-      key,
-      region: store.settings.region,
-      language,
-      voice: model,
-      speed: store.settings.speed,
-      dial: dialDeepgram,
-      timer: realTimer,
-    })
+    const pcm = await voice.preview(language, model)
 
     return pcm ? { pcm } : null
   },
   'voice:start': async () => {
-    if (!(await microphoneAllowed())) return { ok: false, reason: 'microphone' }
+    if (!(await microphoneAllowed())) {
+      return { outcome: { ok: false, reason: 'microphone' }, view: voice.view() }
+    }
 
     const outcome = await voice.start(desktopEndpoint)
 
     if (outcome.ok) await showHome()
 
-    return outcome
+    return { outcome, view: voice.view() }
   },
   'voice:end': ({ callId }) => {
     assertString(callId, 'callId')
     voice.end(callId)
+
+    return voice.view()
   },
   'voice:stop': ({ callId }) => {
     assertString(callId, 'callId')
     voice.call(callId)?.stop()
+
+    return voice.view()
   },
   'voice:mute': ({ callId, on }) => {
     assertString(callId, 'callId')
     voice.call(callId)?.mute(on === true)
+
+    return voice.view()
   },
   'voice:mic': ({ callId, pcm }) => {
     assertString(callId, 'callId')

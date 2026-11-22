@@ -20,9 +20,6 @@ import { AnswerChunks } from './answer-chunks'
  */
 export const SILENT_LINE_MS = 3000
 
-/** Пока агент работал, звонок положили: когда он доделает, телефону - пуш (ADR 0104). */
-const BUSY_STATES: readonly VoiceCallView['state'][] = ['thinking', 'working', 'speaking']
-
 export type PhoneVoiceDeps = {
   voice: VoicePort
   /** Слово звонка телефону - срочным: оно управляет звуком, который уже летит. */
@@ -89,7 +86,14 @@ export class PhoneVoiceDesk {
     const known = this.calls.get(deviceId)
     const call = known ? this.deps.voice.call(known.callId) : null
 
-    if (!known || !call || frame.kind !== 'mic' || known.paused) return
+    if (!known || !call || frame.kind !== 'mic') return
+
+    // Кадр микрофона - знак, что страница видна: слово «возврат» могло не дойти, пока поднималась
+    // линия после блокировки, а без этого звонок так и висел бы на паузе.
+    if (known.paused) {
+      known.paused = false
+      call.resume()
+    }
 
     if (known.lost) {
       known.lost = false
@@ -182,7 +186,8 @@ export class PhoneVoiceDesk {
     call.cancelSilence?.()
     call.answer.drop(Number.MAX_SAFE_INTEGER)
     if (this.calls.get(deviceId) === call) this.calls.delete(deviceId)
-    if (call.view && BUSY_STATES.includes(call.view.state)) {
+    // Звонок положили, пока агент работал: когда он доделает, телефону - пуш (ADR 0104).
+    if (call.view?.agentBusy) {
       this.followUps.set(cue.conversationId, deviceId)
     }
 

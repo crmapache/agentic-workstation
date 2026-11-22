@@ -27,17 +27,23 @@ export const useVoiceCall = (agentId: string) => {
     callId && void client.send(agentId, { p: PROTOCOL_VERSION, k: 'voice', callId, ...message })
 
   const start = async () => {
-    if (isCallActive(call)) return
+    if (isCallActive(useVoiceCallStore.getState().calls[agentId])) return
+
+    // Звонок «поднимается» сразу, до ожидания микрофона: второе нажатие его уже видит.
+    const ref = newId()
+
+    begin(agentId, ref)
 
     const engine = await PhoneCallEngine.prepare(client, agentId).catch(() => null)
 
-    if (!engine) return showToast(t('voice.micDenied'), t('voice.micDeniedHint'))
+    if (!engine) {
+      clear(agentId)
 
-    const ref = newId()
+      return showToast(t('voice.micDenied'), t('voice.micDeniedHint'))
+    }
 
     dropEngine(agentId)
     callEngines.set(agentId, engine)
-    begin(agentId, ref)
 
     if (await client.send(agentId, { p: PROTOCOL_VERSION, k: 'voice', act: 'start', ref })) return
 

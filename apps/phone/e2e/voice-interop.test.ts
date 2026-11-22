@@ -28,6 +28,7 @@ const VIEW: VoiceCallView = {
   heard: '',
   muted: false,
   language: null,
+  agentBusy: false,
   startedAt: 0,
 }
 

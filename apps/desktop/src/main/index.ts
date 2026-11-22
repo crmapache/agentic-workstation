@@ -61,6 +61,8 @@ const CDP_PORT = process.env['AGENTIC_WORKSTATION_CDP_PORT']
 if (!app.isPackaged && CDP_PORT) app.commandLine.appendSwitch('remote-debugging-port', CDP_PORT)
 
 let mainWindow: BrowserWindow | null = null
+/** Окно закрыли или оно упало: звонок из панели без него не живёт (ADR 0104). */
+let windowGone = (): void => undefined
 
 /** Выход дошёл до конца (всё сохранено и погашено): окну можно закрываться. */
 let quitDone = false
@@ -69,7 +71,9 @@ const openMainWindow = () => {
   mainWindow = createMainWindow(RENDERER_URL)
   mainWindow.on('closed', () => {
     mainWindow = null
+    windowGone()
   })
+  mainWindow.webContents.on('render-process-gone', () => windowGone())
   // На Windows крестик окна - это выход (ADR 0048). Закрой окно сразу, страница умерла бы до
   // сохранения редактора и вопроса о файлах в конфликте: закрытие идёт тем же выходом, что ⌘Q,
   // а окно закрывается, когда выход дошёл до конца. Выход отменили - окно остаётся.
@@ -240,6 +244,7 @@ const bootstrap = async () => {
     features.observeFeed(patch)
   }
   observeCall = features.observeCall
+  windowGone = () => features.voice.service.endFrom('desktop')
   searchProjects()
   watchProjects()
   onWorkspace = () => {

@@ -146,7 +146,9 @@
       "region_eu": "EU",
       "stillHere": "Soft tone while the agent works silently",
       "nextCall": "Language and voices apply from the next call.",
-      "voiceFor": "{{language}} voice"
+      "voiceFor": "{{language}} voice",
+      "keyRefused_malformed": "This does not look like a Deepgram key",
+      "keyRefused_noKeychain": "The key could not be stored: the system keychain is not available"
     }
   },
   "connectors": {

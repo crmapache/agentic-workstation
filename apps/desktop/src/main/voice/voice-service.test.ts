@@ -112,6 +112,38 @@ describe('VoiceService', () => {
     expect(service.view().call).toBeNull()
   })
 
+  it('lets only one of two starts in the same moment through', async () => {
+    const { service, panel } = await setup({ enabled: true }, 'k')
+    const [first, second] = await Promise.all([service.start(endpoint), service.start(endpoint)])
+
+    expect([first.ok, second.ok]).toEqual([true, false])
+    expect(second).toEqual({ ok: false, reason: 'busy' })
+    expect(panel.newConversation).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses a key that is not shaped like one and ends a call when the key changes', async () => {
+    const { service, store } = await setup({ enabled: true }, 'k')
+
+    expect(await service.setKey('Token abc 123')).toEqual({ ok: false, reason: 'malformed' })
+
+    vi.spyOn(store, 'setKey').mockResolvedValue({ ok: true })
+    await service.start(endpoint)
+    await service.setKey(null)
+
+    expect(service.view().call).toBeNull()
+  })
+
+  it('ends a panel call when the window is gone, not a phone one', async () => {
+    const { service } = await setup({ enabled: true }, 'k')
+
+    await service.start(endpoint)
+    service.endFrom('desktop')
+    expect(service.view().call).not.toBeNull()
+
+    service.endFrom('phone')
+    expect(service.view().call).toBeNull()
+  })
+
   it('shows the window only the tail of the key', async () => {
     const { service } = await setup({ enabled: true }, 'abcdefgh1234')
 

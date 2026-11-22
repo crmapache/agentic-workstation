@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { useVoice, voiceCallActions } from '../../../state/voice.queries'
+import { useVoice, useVoiceCallActions } from '../../../state/voice.queries'
 import { callStateText } from '../../../state/voice.utils'
 import styles from './VoiceCallStatus.module.scss'
 
@@ -15,10 +15,11 @@ import styles from './VoiceCallStatus.module.scss'
 export const VoiceCallStatus = () => {
   const { t } = useTranslation()
   const call = useVoice()?.call
+  const actions = useVoiceCallActions(call?.id ?? '')
 
   if (!call) return null
 
-  const handleEnd = () => void voiceCallActions(call.id).end()
+  const handleEnd = () => actions.end()
 
   return (
     <span className={styles.status}>

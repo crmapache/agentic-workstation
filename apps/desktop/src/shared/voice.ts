@@ -169,6 +169,22 @@ export type VoiceStartRefusal = VoiceUnavailable | 'busy' | 'noProvider' | 'micr
 export type VoiceStartOutcome =
   { ok: true; call: VoiceCallView } | { ok: false; reason: VoiceStartRefusal }
 
+/**
+ * Почему ключ не сохранён: не похож на ключ (пробелы, лишние знаки - так в подпротокол WebSocket
+ * не встанет) или связки ключей системы нет, а открытым ключ не пишется.
+ */
+export type VoiceKeyRefusal = 'malformed' | 'noKeychain'
+
+export type VoiceSetKeyOutcome =
+  { ok: true; view: VoiceView } | { ok: false; reason: VoiceKeyRefusal }
+
+/**
+ * Годен ли ключ по виду: знаки токена HTTP (RFC 7230) - ключ уходит подпротоколом WebSocket.
+ * У Deepgram это 40 шестнадцатеричных знаков, но других обещаний он не даёт.
+ */
+export const isVoiceKeyShape = (key: string): boolean =>
+  /^[A-Za-z0-9!#$%&'*+.^_`|~-]{16,512}$/.test(key)
+
 /** Ответ проверки ключа: годен, отвергнут Deepgram, Deepgram не ответил. */
 export type VoiceKeyCheck = 'ok' | 'invalid' | 'unreachable'
 
@@ -202,6 +218,8 @@ export type VoiceCallView = {
   muted: boolean
   /** Язык последней реплики (мультирежим) или выбранный. */
   language: VoiceLanguage | null
+  /** Агент работает (ход идёт), что бы ни делал звонок: положили трубку - пуш, когда доделает. */
+  agentBusy: boolean
   startedAt: number
 }
 

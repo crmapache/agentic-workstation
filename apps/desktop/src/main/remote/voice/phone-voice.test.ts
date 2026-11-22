@@ -20,6 +20,7 @@ const VIEW: VoiceCallView = {
   heard: '',
   muted: false,
   language: null,
+  agentBusy: false,
   startedAt: 0,
 }
 
@@ -148,7 +149,10 @@ describe('PhoneVoiceDesk', () => {
 
     desk.message('phone', start)
     await settle()
-    endpoint()?.cue({ kind: 'state', call: { ...VIEW, state: 'working', tool: 'Bash' } })
+    endpoint()?.cue({
+      kind: 'state',
+      call: { ...VIEW, state: 'working', tool: 'Bash', agentBusy: true },
+    })
     endpoint()?.cue({ kind: 'ended', reason: 'hangup', conversationId: 'c1' })
 
     expect(sent.at(-1)?.event).toMatchObject({
@@ -157,6 +161,29 @@ describe('PhoneVoiceDesk', () => {
       projectKey: 'p-home',
     })
     expect(desk.takeFollowUp('c1')).toBe('phone')
+    expect(desk.takeFollowUp('c1')).toBeNull()
+  })
+
+  it('takes a microphone frame after a pause for the page coming back', async () => {
+    const { desk, call } = setup()
+
+    desk.message('phone', start)
+    await settle()
+    desk.message('phone', { p: 1, k: 'voice', act: 'pause', callId: 'call1' })
+    desk.audio('phone', mic)
+
+    expect(call.resume).toHaveBeenCalled()
+    expect(call.mic).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not promise a push when the agent was idle at hang up', async () => {
+    const { desk, endpoint } = setup()
+
+    desk.message('phone', start)
+    await settle()
+    endpoint()?.cue({ kind: 'state', call: { ...VIEW, state: 'speaking' } })
+    endpoint()?.cue({ kind: 'ended', reason: 'hangup', conversationId: 'c1' })
+
     expect(desk.takeFollowUp('c1')).toBeNull()
   })
 

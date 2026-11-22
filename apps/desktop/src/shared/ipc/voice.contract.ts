@@ -5,6 +5,7 @@ import type {
   VoiceLanguage,
   VoiceSettings,
   VoiceStartOutcome,
+  VoiceSetKeyOutcome,
 } from '../voice'
 
 type CallRequest = { callId: string }
@@ -21,8 +22,8 @@ export type VoiceInvokeContract = {
   'voice:get': { request: void; response: VoiceView }
   /** Настройки целиком; ответ - то, что встало (негодное отброшено). */
   'voice:setSettings': { request: { settings: VoiceSettings }; response: VoiceView }
-  /** Новый ключ Deepgram или null - забыть. Окно ключ обратно не получает. */
-  'voice:setKey': { request: { key: string | null }; response: VoiceView }
+  /** Новый ключ Deepgram или null - забыть. Окно ключ обратно не получает; не встал - причина. */
+  'voice:setKey': { request: { key: string | null }; response: VoiceSetKeyOutcome }
   /** Проверить присланный ключ, а без него - сохранённый. */
   'voice:checkKey': { request: { key: string | null }; response: VoiceKeyCheck }
   /** Образец голоса для «Прослушать»; null - Deepgram не ответил или ключа нет. */
@@ -30,12 +31,12 @@ export type VoiceInvokeContract = {
     request: { language: VoiceLanguage; voice: string }
     response: { pcm: Uint8Array } | null
   }
-  /** Звонок из панели: новый разговор в Home. */
-  'voice:start': { request: void; response: VoiceStartOutcome }
-  'voice:end': { request: CallRequest; response: void }
+  /** Звонок из панели: новый разговор в Home; ответ - итог и состояние голоса после него. */
+  'voice:start': { request: void; response: { outcome: VoiceStartOutcome; view: VoiceView } }
+  'voice:end': { request: CallRequest; response: VoiceView }
   /** Кнопка «Стоп»: агент замолкает и останавливает работу. */
-  'voice:stop': { request: CallRequest; response: void }
-  'voice:mute': { request: CallRequest & { on: boolean }; response: void }
+  'voice:stop': { request: CallRequest; response: VoiceView }
+  'voice:mute': { request: CallRequest & { on: boolean }; response: VoiceView }
   /** Кадр микрофона, 80 мс PCM16 16 кГц. */
   'voice:mic': { request: CallRequest & { pcm: Uint8Array }; response: void }
   /** Сколько ответа эпохи проиграно (мс) - раз в 200 мс, пока звучит. */

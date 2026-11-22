@@ -248,6 +248,89 @@ describe('VoiceCall', () => {
     expect(h.cues.at(-1)).toEqual({ kind: 'ended', reason: 'keyRejected', conversationId: 'c1' })
   })
 
+  it('works out what was heard when the answer had already arrived whole', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Раз два три четыре.', false))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    h.speak()?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 2000))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+    h.call.played(0, 1000)
+    h.call.stop()
+
+    expect(h.says(h.speak()).some((message) => message.type === 'Interrupt')).toBe(false)
+    expect(h.notices).toContainEqual({ code: 'voice-heard', detail: 'Раз два' })
+  })
+
+  it('stops an answer that has no sound yet on Stop', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Первая фраза. Вторая', true))
+    const spoken = h.says(h.speak()).length
+
+    h.call.stop()
+    h.call.feed(h.answer('Первая фраза. Вторая фраза.', false))
+
+    expect(h.interrupt).toHaveBeenCalled()
+    expect(h.says(h.speak()).filter((message) => message.type === 'Speak')).toHaveLength(spoken)
+  })
+
+  it('keeps an answer said during a pause for after it, on a new epoch', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Первый ответ. ', true))
+    h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    h.speak()?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 500))
+    h.call.stop()
+    h.call.pause()
+    const sockets = h.sockets.length
+
+    h.call.feed({
+      conversationId: 'c1',
+      upserts: [
+        {
+          kind: 'assistant',
+          id: 'a2',
+          parentToolUseId: null,
+          text: 'Почта пуста.',
+          streaming: false,
+        },
+      ],
+    })
+    expect(h.sockets).toHaveLength(sockets)
+
+    h.call.resume()
+    await settle()
+
+    expect(h.cues).toContainEqual({ kind: 'stopPlayback', epoch: 2 })
+    expect(h.says(h.speak())).toContainEqual({ type: 'Speak', text: 'Почта пуста. ' })
+  })
+
+  it('ends cleanly when the conversation is gone even if stopping it throws', async () => {
+    const h = harness()
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.interrupt.mockImplementation(() => {
+      throw new Error('no conversation')
+    })
+    h.turn('EndOfTurn', 'подожди')
+    h.call.conversation(null)
+
+    expect(h.ended).toEqual(['conversationGone'])
+    expect(h.cues.at(-1)).toMatchObject({ kind: 'ended', reason: 'conversationGone' })
+  })
+
   it('ends the call after a minute without the line', () => {
     const h = harness()
 

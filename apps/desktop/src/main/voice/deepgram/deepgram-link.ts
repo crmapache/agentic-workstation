@@ -27,7 +27,17 @@ export const deepgramHost = (region: VoiceRegion): string =>
   region === 'eu' ? 'api.eu.deepgram.com' : 'api.deepgram.com'
 
 export const dialDeepgram: DeepgramDial = (url, key, handlers) => {
-  const socket = new WebSocket(url, ['token', key])
+  let socket: WebSocket
+
+  try {
+    socket = new WebSocket(url, ['token', key])
+  } catch (error) {
+    // Ключ не встал в подпротокол (кривые знаки): то же, что закрытое соединение - звонок решит.
+    console.warn('Voice: Deepgram socket was not created', error)
+    queueMicrotask(() => handlers.close(1006))
+
+    return { send: () => undefined, close: () => undefined }
+  }
 
   socket.binaryType = 'arraybuffer'
   socket.onopen = () => handlers.open()

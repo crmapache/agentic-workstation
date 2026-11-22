@@ -1,5 +1,5 @@
-import type { VoiceView, VoiceSettings, VoiceCapability } from '@shared/voice'
-import { parseVoiceSettings } from '@shared/voice'
+import type { VoiceView, VoiceSettings, VoiceCapability, VoiceKeyRefusal } from '@shared/voice'
+import { isVoiceKeyShape, parseVoiceSettings } from '@shared/voice'
 
 import type { JsonFile } from '../storage/json-file'
 import type { Vault } from '../storage/vault'
@@ -65,10 +65,23 @@ export class VoiceStore {
     return next
   }
 
-  /** Новый ключ или null - забыть. Пробелы по краям (вставка из письма) срезаются. */
-  async setKey(key: string | null): Promise<void> {
+  /**
+   * Новый ключ или null - забыть. Пробелы по краям (вставка из письма) срезаются; ключ не по виду
+   * и сбой связки ключей - отказ кодом, а не исключением в окно.
+   */
+  async setKey(key: string | null): Promise<{ ok: true } | { ok: false; reason: VoiceKeyRefusal }> {
     const trimmed = key?.trim() || null
 
-    await this.vault.set(KEY_ENTRY, trimmed)
+    if (trimmed !== null && !isVoiceKeyShape(trimmed)) return { ok: false, reason: 'malformed' }
+
+    try {
+      await this.vault.set(KEY_ENTRY, trimmed)
+
+      return { ok: true }
+    } catch (error) {
+      console.warn('Voice: the Deepgram key was not stored', error)
+
+      return { ok: false, reason: 'noKeychain' }
+    }
   }
 }

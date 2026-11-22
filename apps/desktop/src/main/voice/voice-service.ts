@@ -5,15 +5,19 @@ import type { FeedPatch } from '@shared/conversation-feed'
 import type { ProviderId } from '@shared/providers'
 import type {
   VoiceView,
+  VoiceOrigin,
   VoiceRegion,
   VoiceCallEnd,
   VoiceCallView,
   VoiceKeyCheck,
+  VoiceLanguage,
   VoiceCapability,
   VoiceStartOutcome,
+  VoiceSetKeyOutcome,
 } from '@shared/voice'
 
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
+import { previewVoice } from './voice-preview'
 import type { VoiceStore } from './voice-store'
 import type { Timer } from './call/utterances'
 import { VoiceCall } from './call/voice-call'
@@ -49,6 +53,13 @@ export const realTimer: Timer = (run, ms) => {
  */
 export class VoiceService {
   private active: { call: VoiceCall; provider: ProviderId } | null = null
+  /**
+   * Звонок поднимается (разговор ещё открывается): бронь ставится до первого ожидания, иначе два
+   * старта в одну секунду (двойное нажатие, панель и телефон) открыли бы два звонка.
+   */
+  private starting = false
+  /** Образец голоса, который сейчас синтезируется: второй ждёт первого, а не открывает сокет. */
+  private previewing: Promise<Uint8Array | null> | null = null
 
   constructor(private readonly deps: VoiceServiceDeps) {}
 
@@ -68,10 +79,39 @@ export class VoiceService {
     return this.changed()
   }
 
-  async setKey(key: string | null): Promise<VoiceView> {
-    await this.deps.store.setKey(key)
+  /**
+   * Новый ключ или null - забыть. Негодный по виду ключ не пишется: в подпротокол WebSocket он
+   * не встанет. Ключ сменили посреди звонка - звонок кладётся: прежний ключ не должен работать.
+   */
+  async setKey(key: string | null): Promise<VoiceSetKeyOutcome> {
+    const outcome = await this.deps.store.setKey(key)
 
-    return this.changed()
+    if (!outcome.ok) return outcome
+
+    this.active?.call.end('hangup')
+
+    return { ok: true, view: this.changed() }
+  }
+
+  /** Образец голоса для «Прослушать»; ключа нет или Deepgram не ответил - null. */
+  preview(language: VoiceLanguage, voice: string): Promise<Uint8Array | null> {
+    const { key, settings } = this.deps.store
+
+    if (!key) return Promise.resolve(null)
+
+    this.previewing ??= previewVoice({
+      key,
+      region: settings.region,
+      language,
+      voice,
+      speed: settings.speed,
+      dial: this.deps.dial,
+      timer: this.deps.timer,
+    }).finally(() => {
+      this.previewing = null
+    })
+
+    return this.previewing
   }
 
   /** Проверить ключ: присланный (ещё не сохранённый) или сохранённый. */
@@ -91,7 +131,7 @@ export class VoiceService {
 
     if (!capability.available) return { ok: false, reason: capability.reason }
     if (!key) return { ok: false, reason: 'noKey' }
-    if (this.active) return { ok: false, reason: 'busy' }
+    if (this.active || this.starting) return { ok: false, reason: 'busy' }
 
     const { settings } = store
     const port = panels().find((candidate) => candidate.provider === settings.provider)
@@ -100,6 +140,22 @@ export class VoiceService {
     if (!port?.info()) return { ok: false, reason: 'noProvider' }
     if (!home) return { ok: false, reason: 'failed' }
 
+    this.starting = true
+
+    try {
+      return await this.open(endpoint, port, home, key)
+    } finally {
+      this.starting = false
+    }
+  }
+
+  private async open(
+    endpoint: VoiceEndpoint,
+    port: ConversationsPort,
+    home: string,
+    key: string,
+  ): Promise<VoiceStartOutcome> {
+    const { settings } = this.deps.store
     const conversationId = await port
       .newConversation(home, { permissionMode: settings.permissionMode })
       .catch((error: unknown) => {
@@ -129,15 +185,29 @@ export class VoiceService {
       onEnded: (reason) => this.ended(call, reason),
     })
 
-    this.active = { call, provider: port.provider }
-
     const feed = await port.getFeed(conversationId).catch(() => null)
 
-    call.start(feed?.items ?? [])
-    call.conversation(conversationOf(port.getState(), conversationId))
+    this.active = { call, provider: port.provider }
+
+    try {
+      call.start(feed?.items ?? [])
+      call.conversation(conversationOf(port.getState(), conversationId))
+    } catch (error) {
+      // Звонок не поднялся (Deepgram не принял соединение) - он не должен висеть «занято».
+      console.warn('Voice: the call did not start', error)
+      call.end('deepgram')
+
+      return { ok: false, reason: 'failed' }
+    }
+
     this.changed()
 
     return { ok: true, call: call.view }
+  }
+
+  /** Конечная точка этого вида пропала (окно IDE закрыли или оно упало): её звонок кончается. */
+  endFrom(origin: VoiceOrigin): void {
+    if (this.active?.call.view.origin === origin) this.active.call.end('lostLine')
   }
 
   /** Звонок по id - для команд конечной точки; чужой или кончившийся - null. */

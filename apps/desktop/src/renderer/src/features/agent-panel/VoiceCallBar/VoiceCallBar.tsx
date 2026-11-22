@@ -6,7 +6,7 @@ import type { VoiceCallView } from '@shared/voice'
 import { Badge } from '@agentic-workstation/ui/Badge'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { voiceCallActions } from '../../../state/voice.queries'
+import { useVoiceCallActions } from '../../../state/voice.queries'
 import { callStateText } from '../../../state/voice.utils'
 import styles from './VoiceCallBar.module.scss'
 
@@ -17,7 +17,7 @@ import styles from './VoiceCallBar.module.scss'
  */
 export const VoiceCallBar = ({ call }: { call: VoiceCallView }) => {
   const { t } = useTranslation()
-  const actions = voiceCallActions(call.id)
+  const actions = useVoiceCallActions(call.id)
 
   const handleMute = () => void actions.mute(!call.muted)
   const handleStop = () => void actions.stop()

@@ -21,7 +21,7 @@ export type CallAgent = {
 export type CallBrainOptions = {
   agent: CallAgent
   /** Рот звонка сейчас: после паузы он новый. */
-  mouth: () => Pick<CallMouth, 'answer' | 'say' | 'isSpeaking'>
+  mouth: () => Pick<CallMouth, 'answer' | 'say' | 'isSpeaking' | 'cut'>
   /** Язык ответа сейчас: последней реплики или выбранный. */
   language: () => VoiceLanguage
   onWork: (work: AgentWork) => void
@@ -58,8 +58,29 @@ export class CallBrain {
   private writing = false
   private waiting: Utterance[] = []
   private heard: string | null = null
+  /** Звонок на паузе: ответы и вопросы копятся и звучат после возврата, а не в пустоту. */
+  private holding = false
+  private readonly held = new Map<string, { text: string; streaming: boolean }>()
 
   constructor(private readonly options: CallBrainOptions) {}
+
+  /** Пауза: всё, что агент скажет, - копить. */
+  hold(): void {
+    this.holding = true
+  }
+
+  /** Возврат: накопленное за паузу - новому рту, по порядку. */
+  release(): void {
+    this.holding = false
+
+    const language = this.options.language()
+
+    for (const [id, { text, streaming }] of this.held) {
+      this.options.mouth().answer(id, text, streaming, language)
+    }
+
+    this.held.clear()
+  }
 
   /** Агент говорит, пишет или работает: поддакивание тогда не реплика. */
   get isBusy(): boolean {
@@ -77,7 +98,7 @@ export class CallBrain {
 
       if (item.kind === 'assistant') {
         this.writing = item.streaming
-        this.options.mouth().answer(item.id, item.text, item.streaming, this.options.language())
+        this.speak(item.id, item.text, item.streaming)
       } else if (item.kind === 'tool') {
         this.tool = item.status === 'running' ? item.name : null
       }
@@ -92,11 +113,7 @@ export class CallBrain {
     const { pending } = conversation
 
     if (pending && pending.requestId !== this.pendingId) {
-      const language = this.options.language()
-
-      this.options
-        .mouth()
-        .say(`pending:${pending.requestId}`, announce(pending, language), language)
+      this.speak(`pending:${pending.requestId}`, announce(pending, this.options.language()), false)
     }
 
     this.pendingId = pending?.requestId ?? null
@@ -104,7 +121,7 @@ export class CallBrain {
     if (this.status === 'idle') {
       this.tool = null
       this.writing = false
-      this.release()
+      this.sendWaiting()
     }
 
     this.report()
@@ -112,12 +129,13 @@ export class CallBrain {
 
   utterance(utterance: Utterance): void {
     const running = this.status === 'running'
+    const stops = hasStopWord(utterance.text)
 
-    if (
-      running &&
-      (hasStopWord(utterance.text) || this.writing || this.options.mouth().isSpeaking)
-    ) {
-      this.options.agent.interrupt()
+    // «Стоп» глушит и ответ, у которого звука ещё нет: иначе он дозвучал бы после остановки.
+    if (stops) this.options.mouth().cut()
+
+    if (running && (stops || this.writing || this.options.mouth().isSpeaking)) {
+      this.interrupt()
       if (!onlyStops(utterance.text)) this.waiting.push(utterance)
 
       return
@@ -136,10 +154,24 @@ export class CallBrain {
 
   /** Звонок кончается: реплики, ждавшие конца хода, уходят в очередь разговора. */
   flush(): void {
-    this.release()
+    this.sendWaiting()
   }
 
-  private release(): void {
+  /** Остановить ход агента; разговора уже нет - не беда, звонок своё доделает. */
+  interrupt(): void {
+    try {
+      this.options.agent.interrupt()
+    } catch (error) {
+      console.warn('Voice: the conversation could not be stopped', error)
+    }
+  }
+
+  private speak(id: string, text: string, streaming: boolean): void {
+    if (this.holding) this.held.set(id, { text, streaming })
+    else this.options.mouth().answer(id, text, streaming, this.options.language())
+  }
+
+  private sendWaiting(): void {
     if (this.waiting.length === 0) return
 
     const waiting = this.waiting

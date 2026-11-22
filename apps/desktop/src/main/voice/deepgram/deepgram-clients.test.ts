@@ -242,7 +242,7 @@ describe('FluxSpeak', () => {
     sockets[0]?.handlers.open()
     sockets[0]?.handlers.close(1006)
 
-    expect(events).toEqual([{ kind: 'done' }])
+    expect(events).toEqual([{ kind: 'lost' }])
   })
 })
 

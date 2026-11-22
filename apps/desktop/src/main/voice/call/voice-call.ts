@@ -96,6 +96,7 @@ export class VoiceCall {
       heard: this.heard,
       muted: this.muted,
       language: this.language,
+      agentBusy: this.work.state !== 'idle',
     }
   }
 
@@ -141,10 +142,10 @@ export class VoiceCall {
     this.ears.setBargeIn(settings.bargeIn)
   }
 
-  /** Кнопка «Стоп»: замолчать и остановить работу агента. */
+  /** Кнопка «Стоп»: замолчать (и ответ, у которого звука ещё нет) и остановить работу агента. */
   stop(): void {
-    if (this.mouth.isSpeaking) this.mouth.cut()
-    if (this.work.state !== 'idle') this.options.agent.interrupt()
+    this.mouth.cut()
+    if (this.work.state !== 'idle') this.brain.interrupt()
   }
 
   mute(on: boolean): void {
@@ -156,8 +157,11 @@ export class VoiceCall {
     if (this.paused || this.ended) return
 
     this.paused = true
+    // Deepgram закрыт, пока звонок на паузе; что агент скажет за это время, мозг копит.
+    this.brain.hold()
     this.mouth.stop()
     this.ears.stop()
+    this.troubled = false
     this.changed()
   }
 
@@ -165,10 +169,16 @@ export class VoiceCall {
     if (!this.paused || this.ended) return
 
     this.paused = false
-    this.mouth = this.newMouth()
+    // Новый рот - с новой эпохи: проигрыватель конечной точки мог уйти вперёд после перебивания,
+    // и кадры прежней эпохи он бы выкинул.
+    const epoch = this.mouth.currentEpoch + 1
+
+    this.mouth = this.newMouth(epoch)
+    this.options.endpoint.cue({ kind: 'stopPlayback', epoch })
     this.ears = this.newEars()
     this.ears.start()
     this.mouth.warm(this.replyLanguage)
+    this.brain.release()
     this.changed()
   }
 
@@ -185,17 +195,26 @@ export class VoiceCall {
     if (this.ended) return
 
     this.ended = true
-    this.ears.flush()
-    this.brain.flush()
-    this.ears.stop()
-    this.mouth.stop()
-    if (reason !== 'conversationGone') this.options.agent.notice('voice-ended', reason)
 
-    for (const cancel of this.cancels.values()) cancel()
+    // Разговор закрыли - ждавшие реплики идти некуда. Иначе - уходят в его очередь.
+    const keep = reason !== 'conversationGone'
 
-    this.cancels.clear()
-    this.options.endpoint.cue({ kind: 'ended', reason, conversationId: this.conversationId })
-    this.options.onEnded(reason)
+    try {
+      if (keep) this.ears.flush()
+      if (keep) this.brain.flush()
+      if (keep) this.options.agent.notice('voice-ended', reason)
+    } catch (error) {
+      console.warn('Voice: the call could not leave its last words', error)
+    } finally {
+      this.ears.stop()
+      this.mouth.stop()
+
+      for (const cancel of this.cancels.values()) cancel()
+
+      this.cancels.clear()
+      this.options.endpoint.cue({ kind: 'ended', reason, conversationId: this.conversationId })
+      this.options.onEnded(reason)
+    }
   }
 
   private get replyLanguage(): VoiceLanguage {
@@ -211,11 +230,12 @@ export class VoiceCall {
     return 'listening'
   }
 
-  private newMouth(): CallMouth {
+  private newMouth(epoch = 0): CallMouth {
     const { key, dial, timer, endpoint } = this.options
     const { settings } = this
 
     return new CallMouth({
+      epoch,
       key,
       region: settings.region,
       speed: settings.speed,
@@ -241,6 +261,7 @@ export class VoiceCall {
       dial,
       timer,
       isSpeaking: () => this.mouth.isSpeaking,
+      isAnswering: () => this.mouth.hasAnswers,
       recentlySaid: () => this.mouth.recentlySaid,
       isAgentBusy: () => this.brain.isBusy,
       onHeard: (text) => {

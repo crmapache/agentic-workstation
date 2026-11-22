@@ -142,7 +142,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createSoundsHandlers(services.sounds),
     ...createMemorySaverHandlers(services.memorySaver),
     ...createServiceAiHandlers(services.serviceAi),
-    ...createVoiceHandlers(services.voice.service, services.voice.store, () => {
+    ...createVoiceHandlers(services.voice.service, () => {
       const home = services.workspace.getState().projects.find((project) => project.home)
 
       return home ? services.workspace.activateProject(home.id) : Promise.resolve()

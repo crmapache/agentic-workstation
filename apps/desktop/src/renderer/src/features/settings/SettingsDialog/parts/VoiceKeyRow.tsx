@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { VoiceKeyCheck } from '@shared/voice'
+import type { VoiceKeyCheck, VoiceKeyRefusal } from '@shared/voice'
 
 import { Button } from '@agentic-workstation/ui/Button'
 import { TextField } from '@agentic-workstation/ui/TextField'
@@ -20,20 +20,25 @@ export const VoiceKeyRow = () => {
   const saveKey = useSetVoiceKey()
   const [draft, setDraft] = useState('')
   const [check, setCheck] = useState<VoiceKeyCheck | null>(null)
+  const [refusal, setRefusal] = useState<VoiceKeyRefusal | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const description = key?.saved
     ? t('settings.voice.keySaved', { hint: key.hint ?? '' })
     : t('settings.voice.keyNone')
 
   const handleSave = async () => {
-    await saveKey(draft)
-    setDraft('')
+    const outcome = await saveKey(draft)
+
     setCheck(null)
+    setRefusal(outcome.ok ? null : outcome.reason)
+    if (outcome.ok) setDraft('')
   }
 
   const handleForget = async () => {
-    await saveKey(null)
+    const outcome = await saveKey(null)
+
     setCheck(null)
+    setRefusal(outcome.ok ? null : outcome.reason)
   }
 
   const handleCheck = async () => {
@@ -69,6 +74,9 @@ export const VoiceKeyRow = () => {
           <Button size="sm" variant="ghost" onClick={() => void handleForget()}>
             {t('settings.voice.keyForget')}
           </Button>
+        )}
+        {refusal && (
+          <span className={styles.keyBad}>{t(`settings.voice.keyRefused_${refusal}`)}</span>
         )}
         {check && (
           <span className={check === 'ok' ? styles.keyOk : styles.keyBad}>

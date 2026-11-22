@@ -7,6 +7,7 @@ import type { FluxTurn } from '../deepgram/flux-turn'
 import { judgeBargeIn, BARGE_IN_WINDOW_MS } from './barge-in'
 import type { Timer, Utterance } from './utterances'
 import { UtteranceDesk } from './utterances'
+import { hasStopWord } from './voice-words'
 
 /** Что делать с ответом, пока человек, кажется, заговорил поверх. */
 export type BargeIn = 'duck' | 'unduck' | 'stop'
@@ -21,6 +22,8 @@ export type CallEarsOptions = {
   timer: Timer
   /** Говорит ли сейчас агент (рот звонка) и что он сказал только что. */
   isSpeaking: () => boolean
+  /** Есть ли у рта ответы, звучащие или ещё без звука: «стоп» обрывает и их. */
+  isAnswering: () => boolean
   recentlySaid: () => string
   /** Говорит или работает ли агент: поддакивание тогда не реплика. */
   isAgentBusy: () => boolean
@@ -96,6 +99,8 @@ export class CallEars {
   private turn(turn: FluxTurn): void {
     if (!this.options.isSpeaking()) {
       this.endWindow()
+      // Ответ ещё без звука, а человек уже сказал «стоп» - не ждать конца реплики.
+      if (this.options.isAnswering() && hasStopWord(turn.transcript)) this.options.onBargeIn('stop')
       this.desk.turn(turn)
 
       return

@@ -19,6 +19,8 @@ export type SpeakEvent =
   | { kind: 'audio'; pcm: Buffer }
   | { kind: 'done' }
   | { kind: 'interrupted'; spoken: string; remaining: string }
+  /** Соединение упало посреди ответа: недозвучавшее пропало, продолжать его нельзя. */
+  | { kind: 'lost' }
 
 export type FluxSpeakOptions = {
   key: string
@@ -238,13 +240,15 @@ export class FluxSpeak {
 
     this.isOpen = false
     this.link = null
+    // Ждавшее открытия принадлежит пропавшим ходам: новое соединение начнёт с чистого.
+    this.outbox = []
     this.sessionMs = 0
     this.composing = false
     this.pendingTurns = 0
     this.discarding = false
     this.cancelKeepalive?.()
     // Оборвалось посреди ответа - звонок не должен ждать его конца вечно.
-    if (wasTurn && !this.stopped) this.options.onEvent({ kind: 'done' })
+    if (wasTurn && !this.stopped) this.options.onEvent({ kind: 'lost' })
   }
 }
 

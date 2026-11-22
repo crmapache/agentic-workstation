@@ -3,7 +3,7 @@ import { isVoiceLanguage } from '@shared/voice'
 
 import type { FluxTurn, FluxWord } from '../deepgram/flux-turn'
 import { confidenceOf } from '../deepgram/flux-turn'
-import { wordsOf, isBackchannel } from './voice-words'
+import { wordsOf, hasStopWord, isBackchannel } from './voice-words'
 
 /** Реплика человека, готовая уйти в чат. */
 export type Utterance = { text: string; language: VoiceLanguage }
@@ -93,7 +93,8 @@ export class UtteranceDesk {
       return
     }
 
-    if (wordsOf(held.text).length < LANGUAGE_MIN_WORDS) {
+    // Короткое ждёт продолжения, но не «стоп»: остановка не должна ждать секунду.
+    if (wordsOf(held.text).length < LANGUAGE_MIN_WORDS && !hasStopWord(held.text)) {
       this.held = held
       this.options.onHeard(held.text)
       this.dropHold?.()

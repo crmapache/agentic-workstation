@@ -1,18 +1,18 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-import type { Browser, Page } from 'playwright-core'
+import type { Page, Browser } from 'playwright-core'
 import { chromium } from 'playwright-core'
-import { it, expect, afterAll, describe, beforeAll, vi } from 'vitest'
+import { it, vi, expect, afterAll, describe, beforeAll } from 'vitest'
 
 import type { VoiceCallView } from '@shared/voice'
 
-import type { VoicePort } from '../../desktop/src/main/remote/bridge/bridge-ports'
 import { CONVERSATION_ID } from '../../desktop/src/main/remote/__fixtures__/fake-ide'
+import type { VoicePort } from '../../desktop/src/main/remote/bridge/bridge-ports'
 import type { VoiceEndpoint } from '../../desktop/src/main/voice/call/voice-endpoint'
 import type { Harness } from './ide-harness'
 import { until, startHarness } from './ide-harness'
-import { IPHONE, SHOTS, VIEWPORT, shotOf } from './phone-page'
+import { SHOTS, IPHONE, shotOf, VIEWPORT } from './phone-page'
 
 /**
  * Голосовой звонок с телефона (ADR 0104) в мобильном Chromium: собранный клиент раздаёт
@@ -34,6 +34,7 @@ const VIEW: VoiceCallView = {
   heard: '',
   muted: false,
   language: null,
+  agentBusy: false,
   startedAt: 0,
 }
 
