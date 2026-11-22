@@ -12,8 +12,10 @@
 # удаляет папку целиком. Изменил код - stop и снова start.
 #
 # Свои флаги Chromium копии - в AGENTIC_WORKSTATION_AGENT_ARGS через пробел. Например, микрофон
-# из файла для голосового звонка (ADR 0104): --use-fake-ui-for-media-stream
-# --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=/путь/речь.wav%noloop
+# из файла для голосового звонка (ADR 0104): --disable-features=AudioServiceSandbox
+# --use-fake-ui-for-media-stream --use-fake-device-for-media-stream
+# --use-file-for-fake-audio-capture=/путь/речь.wav%noloop (без снятия песочницы звука файл не
+# читается).
 
 set -euo pipefail
 
