@@ -1,9 +1,10 @@
 import { useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { AnswerPlayer } from '../answer-player'
-import type { MicCapture } from '../mic-capture'
-import { startMicCapture } from '../mic-capture'
+import { AnswerPlayer } from '@agentic-workstation/voice-audio/answer-player'
+import type { MicCapture } from '@agentic-workstation/voice-audio/mic-capture'
+import { startMicCapture } from '@agentic-workstation/voice-audio/mic-capture'
+
 import { invoke } from '../../../lib/ipc'
 import { useIpcEvent } from '../../../lib/ipc.hooks'
 import { useActionNoticeStore } from '../../../state/action-notice.store'

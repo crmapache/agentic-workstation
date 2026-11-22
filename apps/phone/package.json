@@ -15,6 +15,7 @@
   "dependencies": {
     "@agentic-workstation/remote-protocol": "workspace:*",
     "@agentic-workstation/ui": "workspace:*",
+    "@agentic-workstation/voice-audio": "workspace:*",
     "@tanstack/react-query": "5.104.3",
     "clsx": "2.1.1",
     "i18next": "26.4.6",

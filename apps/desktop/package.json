@@ -39,6 +39,7 @@
     "@agentic-workstation/store": "workspace:*",
     "@agentic-workstation/store-protocol": "workspace:*",
     "@agentic-workstation/ui": "workspace:*",
+    "@agentic-workstation/voice-audio": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@tanstack/react-query": "5.104.3",
     "@types/node": "24.13.3",

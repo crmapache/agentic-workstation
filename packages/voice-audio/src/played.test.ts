@@ -1,6 +1,6 @@
 import { it, expect, describe } from 'vitest'
 
-import { playedMs } from './voice-audio.utils'
+import { playedMs } from './played'
 
 describe('playedMs', () => {
   it('counts only what sounded, not the gap while a chunk was late', () => {

@@ -1,0 +1,18 @@
+{
+  "name": "@agentic-workstation/voice-audio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Звук голосового звонка в браузере (ADR 0104): микрофон кадрами PCM16 16 кГц и проигрыватель ответа - общий у окна IDE и телефона.",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

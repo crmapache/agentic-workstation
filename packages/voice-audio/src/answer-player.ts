@@ -1,8 +1,9 @@
-import { VOICE_PLAY_RATE } from '@shared/voice'
+import { pcmToFloat } from './pcm'
+import type { PlayedSegment } from './played'
+import { playedMs } from './played'
 
-import { pcmToFloat } from '../../lib/pcm'
-import type { PlayedSegment } from './voice-audio.utils'
-import { playedMs } from './voice-audio.utils'
+/** Частота ответа: родная у голосов Flux TTS, её же просит главный процесс IDE. */
+export const PLAY_RATE = 24000
 
 /** Запас перед первым куском: сетевой рывок не обрывает речь на полуслове (spec: 100-200 мс). */
 const LEAD_S = 0.15
@@ -25,7 +26,10 @@ export class AnswerPlayer {
   private end = 0
   private readonly timer: ReturnType<typeof setInterval>
 
-  constructor(private readonly onPlayed: (epoch: number, ms: number) => void) {
+  private readonly onPlayed: (epoch: number, ms: number) => void
+
+  constructor(onPlayed: (epoch: number, ms: number) => void) {
+    this.onPlayed = onPlayed
     this.gain.connect(this.context.destination)
     this.timer = setInterval(() => this.report(), REPORT_MS)
   }
@@ -38,7 +42,7 @@ export class AnswerPlayer {
 
     if (samples.length === 0) return
 
-    const buffer = this.context.createBuffer(1, samples.length, VOICE_PLAY_RATE)
+    const buffer = this.context.createBuffer(1, samples.length, PLAY_RATE)
 
     buffer.copyToChannel(samples, 0)
 

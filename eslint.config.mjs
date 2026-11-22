@@ -57,6 +57,9 @@ const ELEMENTS = [
   // протокол и дизайн-система; IDE он знает лишь по протоколу. Сквозные проверки (e2e/)
   // поднимают настоящий релей и RemoteService главного процесса с подделками сервисов IDE.
   { type: 'phone', pattern: 'apps/phone/src/**', partialMatch: false },
+  // Звук голосового звонка в браузере (ADR 0104): микрофон и проигрыватель ответа - общие у окна
+  // IDE и телефона. Только Web Audio, ни IDE, ни протокола он не знает.
+  { type: 'voice-audio', pattern: 'packages/voice-audio/src/**', partialMatch: false },
   { type: 'phone-e2e', pattern: 'apps/phone/e2e/**', partialMatch: false },
   // Сайт продукта (ADR 0068): статическая страница. Из общего - только стили дизайн-системы.
   { type: 'site', pattern: 'apps/site/src/**', partialMatch: false },
@@ -189,6 +192,7 @@ export default defineConfig(
       'apps/relay/src/**/*.ts',
       'apps/phone/src/**/*.{ts,tsx}',
       'apps/phone/e2e/**/*.ts',
+      'packages/voice-audio/src/**/*.ts',
       'apps/site/src/**/*.ts',
       'packages/store-protocol/src/**/*.ts',
       'apps/store/src/**/*.ts',
@@ -208,6 +212,7 @@ export default defineConfig(
         'apps/relay/src/**/*',
         'apps/phone/src/**/*',
         'apps/phone/e2e/**/*',
+        'packages/voice-audio/src/**/*',
         'apps/site/src/**/*',
         'packages/store-protocol/src/**/*',
         'apps/store/src/**/*',
@@ -227,6 +232,7 @@ export default defineConfig(
             'apps/relay/tsconfig.json',
             'apps/phone/tsconfig.app.json',
             'apps/phone/tsconfig.node.json',
+            'packages/voice-audio/tsconfig.json',
             'apps/site/tsconfig.json',
             'packages/store-protocol/tsconfig.json',
             'apps/store/tsconfig.json',
@@ -280,11 +286,12 @@ export default defineConfig(
               from: { element: { type: 'main' }, file: { categories: 'test' } },
               allow: allowTo('relay', 'store', 'cloud'),
             },
-            // Телефон не видит ни IDE, ни релея: только протокол и дизайн-систему.
+            // Телефон не видит ни IDE, ни релея: только протокол, дизайн-систему и звук звонка.
             {
               from: { element: { type: 'phone' } },
-              allow: allowTo('phone', 'ui', 'remote-protocol'),
+              allow: allowTo('phone', 'ui', 'remote-protocol', 'voice-audio'),
             },
+            { from: { element: { type: 'voice-audio' } }, allow: allowTo('voice-audio') },
             // Сквозная проверка телефона: настоящий релей, RemoteService главного процесса с
             // подделками сервисов IDE (их общий контракт - shared) и ядро телефона.
             // Сайт: себя и стили дизайн-системы (токены), к IDE и её частям - ничего.
@@ -314,7 +321,7 @@ export default defineConfig(
             // фичи workbench, общие данные лежат в state.
             {
               from: { element: { type: 'feature' } },
-              allow: allowTo('state', 'lib', 'shared', 'ui', 'locales'),
+              allow: allowTo('state', 'lib', 'shared', 'ui', 'locales', 'voice-audio'),
             },
             {
               from: { element: { type: 'feature' } },

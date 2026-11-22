@@ -7,6 +7,7 @@ import { VOICE_LANGUAGES, VOICE_PLAY_RATE } from '@shared/voice'
 import { Card } from '@agentic-workstation/ui/Card'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
+import { playPcmSample } from '@agentic-workstation/voice-audio/pcm'
 
 import styles from '../SettingsDialog.module.scss'
 import type { VoiceCardProps } from '../SettingsDialog.types'
@@ -18,7 +19,6 @@ import {
   languageModeChoices,
 } from '../../voice-settings.utils'
 import { invoke } from '../../../../lib/ipc'
-import { playPcmSample } from '../../../../lib/pcm'
 import { useActionNoticeStore } from '../../../../state/action-notice.store'
 import { PickButton } from './PickButton'
 import { PickRow } from './PickRow'
