@@ -116,3 +116,13 @@
   Проба TTS: звук до Flush, Interrupt снимает и очередь ходов, после него сессия считается от
   места обрыва. Живой тест `voice-live.e2e.test.ts` (AGENTIC_WORKSTATION_VOICE_E2E=1) прошёл:
   распознал, ответил, оборвал, передал услышанное. Дальше - окно (этап 2).
+- 2026-11-21: этап 2 готов. Окно: `state/voice.queries.ts`, `state/voice.utils.ts`,
+  `features/voice/` (ворклет микрофона, проигрыватель ответа, VoiceHost в Overlays,
+  VoiceCallStatus в строке состояния), в панели - VoiceCallAction (шапка вкладок), VoiceCallBar
+  (над полем), микрофон у голосовых сообщений; Settings → Voice; `lib/pcm.ts`. macOS:
+  NSMicrophoneUsageDescription и audio-input в сборке, звонок из панели спрашивает микрофон.
+  Живая проверка в копии: `AGENTIC_WORKSTATION_AGENT_ARGS` в `agent-window.sh`, микрофон из WAV
+  (`/tmp/voice-probe/make-wav.mjs`) с `--disable-features=AudioServiceSandbox` (иначе песочница
+  звука не читает файл), аккаунт Claude - копией `claude-accounts.json`. Прошёл весь круг:
+  живой текст, сообщение с микрофоном в Home, ответ Claude голосом, снова «слушаю».
+  Осталось прогнать `update:e2e` (тронут electron-builder.yml). Дальше - телефон (этап 3).
