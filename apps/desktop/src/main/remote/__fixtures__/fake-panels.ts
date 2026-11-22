@@ -1,6 +1,7 @@
 import type { Conversation, AgentPanelState } from '@shared/conversation'
 import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 import { capabilitiesOf } from '@shared/panel-capabilities'
+import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 import { worksUnattended } from '@shared/providers'
 
 import type { ConversationsPort } from '../bridge/bridge-ports'
@@ -92,6 +93,7 @@ export const addPanel = (ide: ReturnType<typeof fakeIde>, provider: CoreProvider
     models: MODELS[provider],
     refusedModes: { bypass: false, autoModels: [] },
     capabilities,
+    prefs: DEFAULT_PANEL_PREFS,
     // Лимиты ещё не узнали: телефону - usage null.
     accounts: { current: '', usage: {} },
   } as unknown as AgentPanelState

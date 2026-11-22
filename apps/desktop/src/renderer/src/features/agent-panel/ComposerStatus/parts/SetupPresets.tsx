@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { isModeOff } from '@shared/conversation'
 import type { SetupPreset } from '@shared/panel-prefs'
+import { shownPresets } from '@shared/panel-prefs'
 
 import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 
@@ -11,7 +12,7 @@ import { useConversationActions } from '../../conversation-actions.hooks'
 import { usePickableModels } from '../../models.hooks'
 import { useModeAvailability } from '../../modes.hooks'
 import { usePanelPrefs } from '../../panel.queries'
-import { activePreset, shownPresets, presetOptions, presetSummary } from '../../presets.utils'
+import { activePreset, presetOptions, presetSummary } from '../../presets.utils'
 import { useActiveProject } from '../../../../state/workspace.queries'
 
 /**

@@ -64,7 +64,9 @@ export const TRACKER_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'tracker_board',
     description: [
-      'The task tracker of a project: tracker projects (tabs) hold flows; a flow holds groups (columns left to right in work order: the leftmost is done first, a new group goes last, on the right); a group holds tasks (cards, top-down); a task may have follow-ups (cards that come after it, in a chain).',
+      'The task tracker of a project: tracker projects (tabs) hold flows; a flow holds groups (columns left to right in work order: the leftmost is done first, a new group goes last, on the right); a group holds tasks (cards, top-down); a task may have follow-ups (cards to its right, in a chain).',
+      'Laying out work: the steps of one piece of work are tasks of one group, in order - a new sequence gets its own group in the flow it belongs to. A follow-up is not a step of its task but what to do after it is done, like checking later, once new data comes in, that it really worked (give it a due if the time is known).',
+      "Tracker projects and flows are the user's: put cards into the ones that fit. If no flow fits, suggest a new one and make it only after the user agrees; suggest a new tracker project only for a very weighty reason - the user makes those.",
       'A card may be bound to a scenario: sent to a queue (tracker_send_to_queue) it runs that scenario with the card text and is marked done when its queue item is done (a repeating card moves to its next due instead - do not mark it done again).',
       'Ids here are what the other tracker_* tools take. Empty fields are left out; priority 1 is most urgent, 4 none; done shows only when true; due is local time; run is the queue item of the card on this computer.',
       'locked: run - the scenario of the card is queued or running, locked: done - it has done the card; a locked card takes only description and done.',
@@ -89,8 +91,10 @@ export const TRACKER_TOOLS: NativeTool<WorkstationPorts>[] = [
   },
   {
     name: 'tracker_save_project',
-    description:
+    description: [
       'Create a tracker project (a tab of the board; a new one goes last) or change its title or description.',
+      'Make a new one only when the user asks for it or agrees to it: the user makes tracker projects, so suggest one only for a very weighty reason, and put work into the existing ones.',
+    ].join(' '),
     access: 'write',
     inputSchema: {
       type: 'object',
@@ -118,12 +122,18 @@ export const TRACKER_TOOLS: NativeTool<WorkstationPorts>[] = [
   branchTool(
     'flow',
     'tracker_project_id',
-    'Create a flow (a row of groups inside a tracker project) or change its title or subtitle.',
+    [
+      'Create a flow (a row of groups inside a tracker project) or change its title or subtitle.',
+      'Make a new one only when the user asks for it or agrees to your suggestion: put work into the flow that fits, and if none does, suggest one first.',
+    ].join(' '),
   ),
   branchTool(
     'group',
     'flow_id',
-    'Create a group (a column of tasks inside a flow; groups go left to right in work order, the first to do on the left; a new one goes last) or change its title or subtitle.',
+    [
+      'Create a group (a column of tasks inside a flow; groups go left to right in work order, the first to do on the left; a new one goes last) or change its title or subtitle.',
+      'A group is one piece of work, its tasks are the steps in order: a new sequence of steps gets its own group without asking.',
+    ].join(' '),
   ),
   ...TRACKER_CARD_TOOLS,
   ...TRACKER_MOVE_TOOLS,

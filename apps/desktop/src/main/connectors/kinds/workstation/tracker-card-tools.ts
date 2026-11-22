@@ -150,6 +150,7 @@ export const TRACKER_CARD_TOOLS: NativeTool<WorkstationPorts>[] = [
     description: [
       'Create a card or change one (id: give only what changes; to move it use tracker_move).',
       'A new card is a task at the end of a group (group_id) or a follow-up at the end of a task chain (follow_up_of: the task or any of its follow-ups); before_id puts it before that card instead.',
+      'A next step of the work is a task of the group; a follow-up is only what to do after its task is done, like checking later that it worked.',
     ].join(' '),
     access: 'write',
     inputSchema: {
@@ -206,6 +207,7 @@ export const TRACKER_CARD_TOOLS: NativeTool<WorkstationPorts>[] = [
     name: 'tracker_add_cards',
     description: [
       'Add tasks to the end of a group in one call, each with its follow-ups: the way to turn a plan agreed in the chat into cards.',
+      'The steps of the plan are the tasks, in order (a new plan gets its own group, tracker_save_group), not follow-ups of one big task.',
       'Then send the group to a queue (tracker_send_to_queue) if its cards have scenarios.',
       'Every card is checked before the first one is made; if the board still refuses one, it stops there and says which and what was made.',
     ].join(' '),
@@ -224,7 +226,8 @@ export const TRACKER_CARD_TOOLS: NativeTool<WorkstationPorts>[] = [
               ...CARD_FIELDS_SCHEMA,
               follow_ups: {
                 type: 'array',
-                description: 'Cards that come after this task, in order. Same fields, no nesting.',
+                description:
+                  'What to do after this task is done, in order - like checking later, once new data comes in, that it worked; not its steps. Same fields, no nesting.',
                 items: { type: 'object', properties: CARD_FIELDS_SCHEMA, required: ['title'] },
               },
             },

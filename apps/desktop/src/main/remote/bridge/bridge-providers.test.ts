@@ -1,5 +1,7 @@
 import { it, expect, describe, afterEach } from 'vitest'
 
+import type { SetupPreset } from '@shared/panel-prefs'
+
 import { bridgeSetup, stopBridges } from '../__fixtures__/fake-bridge'
 import { PERMISSION, PROJECT_PATH, CONVERSATION_ID } from '../__fixtures__/fake-ide'
 import { addPanel, PANEL_PAST, PANEL_CONVERSATION } from '../__fixtures__/fake-panels'
@@ -89,6 +91,29 @@ describe('список машины - разговоры и провайдеры
       fastMode: false,
       rewindScopes: ['conversation', 'both'],
     })
+  })
+
+  it('пресеты - те, что стоят кнопками под полем окна; у открытых моделей их нет (ADR 0096)', async () => {
+    const { ide, codex, opencode, say, next } = threePanels()
+    const strong: SetupPreset = {
+      name: 'Strong',
+      model: 'opus',
+      effort: 'xhigh',
+      mode: 'bypassPermissions',
+    }
+    const fast: SetupPreset = { name: 'Fast', model: null, effort: null, mode: 'acceptEdits' }
+    const hidden: SetupPreset = { name: 'Plan', model: 'opus', effort: 'max', mode: 'plan' }
+    const plain: SetupPreset = { name: 'Plain', model: 'gpt-5.5', effort: 'low', mode: 'readOnly' }
+
+    ide.state.prefs = { ...ide.state.prefs, presetCount: 2, presets: [strong, fast, hidden] }
+    codex.state.prefs = { ...codex.state.prefs, presetCount: 1, presets: [plain] }
+    // Пресеты в записи открытых моделей (правка руками) кнопками не стоят и телефону не идут.
+    opencode.state.prefs = { ...opencode.state.prefs, presetCount: 1, presets: [plain] }
+    say({ k: 'hello' })
+
+    const { providers } = await next('inventory')
+
+    expect(providers.map((one) => one.presets)).toEqual([[strong, fast], [plain], []])
   })
 })
 

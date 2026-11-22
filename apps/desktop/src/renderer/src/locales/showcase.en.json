@@ -44,6 +44,7 @@
     "buttonsSmall": "Small buttons",
     "buttonsTouch": "Touch-sized buttons (phone)",
     "buttonsTouchWrap": "Touch-sized buttons: a long label wraps in a narrow column",
+    "toggleChipTouch": "Toggle chips, touch with fill: presets of a new phone conversation share one row",
     "textFieldTouch": "Touch-sized text field (phone): as tall as a touch button",
     "cardFit": "Card that fits its place: the text scrolls, the buttons stay in view",
     "modalTouch": "Modal with a touch-sized close button (phone)",

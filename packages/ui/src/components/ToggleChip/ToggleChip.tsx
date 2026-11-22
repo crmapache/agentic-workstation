@@ -8,7 +8,8 @@ import type { ToggleChipProps } from './ToggleChip.types'
  * Плашка-переключатель в ряду таких же: выбор нескольких из набора (проекты, где виден
  * коннектор). Включённая залита, выключенная - пунктир и тише. Ряд переносится. Одна
  * настройка с подписью и пояснением - Switch; один вариант из нескольких - Tabs. sm - в
- * плотной строке под полем ввода, рядом с тихим индикатором (пресеты).
+ * плотной строке под полем ввода, рядом с тихим индикатором (пресеты); touch с fill - те же
+ * пресеты под палец на телефоне, ряд поровну.
  */
 export const ToggleChip = ({
   label,
@@ -17,6 +18,7 @@ export const ToggleChip = ({
   hint,
   hintPlacement,
   size = 'md',
+  fill = false,
   onChange,
 }: ToggleChipProps) => {
   const chip = (
@@ -27,6 +29,7 @@ export const ToggleChip = ({
         styles.chip,
         styles[size],
         pressed && styles.pressed,
+        fill && styles.fill,
         Boolean(leading) && styles.withLeading,
       )}
       onClick={() => onChange(!pressed)}>

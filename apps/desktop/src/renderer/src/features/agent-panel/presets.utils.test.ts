@@ -2,17 +2,10 @@ import type { TFunction } from 'i18next'
 import { it, expect, describe } from 'vitest'
 
 import type { SetupPreset } from '@shared/panel-prefs'
-import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
+import { shownPresets, DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 
 import type { PickableModel } from './models.types'
-import {
-  presetsFor,
-  withPreset,
-  activePreset,
-  shownPresets,
-  presetOptions,
-  presetSummary,
-} from './presets.utils'
+import { presetsFor, withPreset, activePreset, presetOptions, presetSummary } from './presets.utils'
 
 const fast: SetupPreset = { name: 'Fast', model: 'sonnet', effort: 'low', mode: 'acceptEdits' }
 const deep: SetupPreset = { name: 'Deep', model: 'opus', effort: 'max', mode: 'bypassPermissions' }

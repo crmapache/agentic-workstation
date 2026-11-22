@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import { shownPresets } from '@shared/panel-prefs'
+
 import { ChoiceField } from '@agentic-workstation/ui/ChoiceField'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
@@ -9,7 +11,7 @@ import { usePickableModels } from '../models.hooks'
 import { usePanelPrefs } from '../panel.queries'
 import { usePanelStore } from '../panel.store'
 import type { MenuScreenProps } from '../panel.types'
-import { presetsFor, shownPresets, presetSummary } from '../presets.utils'
+import { presetsFor, presetSummary } from '../presets.utils'
 import { DEFAULT_CHOICE_ICON } from '../ComposerStatus/ComposerStatus.constants'
 import { modelIcon } from '../ComposerStatus/ComposerStatus.utils'
 import { PanelScreen } from '../PanelScreen/PanelScreen'

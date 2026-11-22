@@ -38,6 +38,29 @@
   font-size: var(--font-size-xs);
 }
 
+// Под палец (телефон): высота, поля и кегль - как у Button touch, рядом с которой стоит. Длинное
+// имя переносится, а не режется: в трети экрана телефона это то, что нажмут, как у кнопки.
+.touch {
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  text-align: center;
+  white-space: normal;
+
+  .label {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+// Ряд поровну: доля каждой не зависит от длины подписи.
+.fill {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+}
+
 // Со знаком слева - поле слева меньше: от рамки до знака столько же, сколько сверху и снизу.
 .withLeading {
   padding-left: var(--space-1);

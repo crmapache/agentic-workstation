@@ -125,6 +125,9 @@ export const PLAQUE_TONES: readonly BadgeTone[] = [
 /** Имена пресетов под полем ввода (ADR 0096) - то, что человек называет сам, не текст интерфейса. */
 export const PRESET_CHIP_SAMPLES: readonly string[] = ['Fast', 'Deep', 'Plan']
 
+/** Сколько пресетов в ряду у образца под палец: одна, две и три плашки делят ряд поровну. */
+export const PRESET_ROWS: readonly number[] = [1, 2, 3]
+
 // Имена проектов - данные, а не текст интерфейса.
 export const CHIP_SAMPLES: readonly ChipSample[] = [
   { name: 'agentic-workstation', initials: 'AW', tone: 0 },

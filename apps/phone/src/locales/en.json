@@ -503,6 +503,7 @@
   "newConversation": {
     "title": "New conversation",
     "provider": "Provider",
+    "presets": "Quick presets",
     "mode": "Mode",
     "create": "Start conversation",
     "noProvider": "No provider is available on the computer."

@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next'
 
 import type { Conversation, ConversationOptions } from '@shared/conversation'
-import type { PanelPrefs, SetupPreset } from '@shared/panel-prefs'
+import type { SetupPreset } from '@shared/panel-prefs'
 
 import type { PickableModel } from './models.types'
 import { modelLabel } from './models.utils'
@@ -9,10 +9,6 @@ import { SETUP_SEPARATOR } from './ComposerStatus/ComposerStatus.constants'
 
 /** Что пресет сравнивает и меняет у разговора. */
 type Setup = Pick<Conversation, 'model' | 'effort' | 'permissionMode'>
-
-/** Пресеты, которые стоят кнопками под полем: первые presetCount (ADR 0096). */
-export const shownPresets = (prefs: PanelPrefs): readonly SetupPreset[] =>
-  prefs.presets.slice(0, prefs.presetCount)
 
 /**
  * Какая кнопка горит: пресет, чьи модель и усилие стоят у разговора (ADR 0096). Режим в счёт

@@ -7,18 +7,22 @@ import { Card } from '@agentic-workstation/ui/Card'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { Modal } from '@agentic-workstation/ui/Modal'
 import { TextField } from '@agentic-workstation/ui/TextField'
+import { ToggleChip } from '@agentic-workstation/ui/ToggleChip'
 
+import { PRESET_ROWS, PRESET_CHIP_SAMPLES } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
  * Размеры под палец (телефонный клиент Remote Control): кнопки touch, длинная подпись в узкой
- * колонке переносится, поле touch ростом с кнопку, карточка fit над полем ввода (текст
- * прокручивается, кнопки на виду) и окно с крестиком под палец.
+ * колонке переносится, пресеты нового разговора - плашки touch, что делят ряд поровну, поле touch
+ * ростом с кнопку, карточка fit над полем ввода (текст прокручивается, кнопки на виду) и окно с
+ * крестиком под палец.
  */
 export const TouchSpecimens = () => {
   const { t } = useTranslation('showcase')
   const [answer, setAnswer] = useState('')
+  const [preset, setPreset] = useState(PRESET_CHIP_SAMPLES[0])
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
@@ -44,6 +48,23 @@ export const TouchSpecimens = () => {
             {t('samples.openRun')}
           </Button>
         </div>
+      </Specimen>
+
+      <Specimen label={t('specimens.toggleChipTouch')} layout="column">
+        {PRESET_ROWS.map((count) => (
+          <div key={count} className={styles.chipRow}>
+            {PRESET_CHIP_SAMPLES.slice(0, count).map((name) => (
+              <ToggleChip
+                key={name}
+                size="touch"
+                fill
+                label={name}
+                pressed={preset === name}
+                onChange={() => setPreset(name)}
+              />
+            ))}
+          </div>
+        ))}
       </Specimen>
 
       <Specimen label={t('specimens.textFieldTouch')} layout="column">

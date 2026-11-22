@@ -89,5 +89,12 @@ export const DEFAULT_PANEL_PREFS: PanelPrefs = {
   presets: [],
 }
 
+/**
+ * Пресеты, которые стоят кнопками под полем: первые presetCount (ADR 0096). Те же видит и
+ * телефон в новом разговоре.
+ */
+export const shownPresets = (prefs: Pick<PanelPrefs, 'presets' | 'presetCount'>): SetupPreset[] =>
+  prefs.presets.slice(0, prefs.presetCount)
+
 /** Изменение настроек: что не названо - остаётся как было. */
 export type PanelPrefsPatch = Partial<PanelPrefs>

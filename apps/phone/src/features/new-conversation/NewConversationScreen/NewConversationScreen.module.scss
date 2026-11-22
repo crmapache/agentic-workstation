@@ -3,3 +3,9 @@
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
 }
+
+// Пресеты - одним рядом: плашки fill делят его поровну, одна - на всю ширину.
+.presets {
+  display: flex;
+  gap: var(--space-2);
+}

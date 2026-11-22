@@ -218,6 +218,9 @@ describe('instructionsFor', () => {
 
     expect(text.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
     expect(text).toContain('tracker_add_cards')
+    // Раскладка трекера (ADR 0111) - в пояснении: описания инструментов модель видит не сразу.
+    expect(text).toContain('Steps of one job are tasks of one group')
+    expect(text).toContain('suggest a new flow and wait for a yes')
     expect(text).toContain(description)
   })
 

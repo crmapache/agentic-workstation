@@ -16,6 +16,7 @@ import { trackerKit } from '../../../tracker/tracker-test-kit'
 import { WorkstationLink } from '../../../workstation/workstation-link'
 import type { TasksPort, WorkstationPorts } from '../../../workstation/workstation-link'
 import type { ScenariosPort } from '../../../remote/bridge/bridge-ports'
+import { TRACKER_TOOLS } from './tracker-tools'
 import { createWorkstationSource } from './workstation-tools'
 
 const WEB = '/work/web'
@@ -188,6 +189,20 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
 }
 
 describe('трекер в инструментах самой IDE', () => {
+  // Раскладка работы (ADR 0111) живёт только в словах для модели - тест держит её от тихой потери.
+  it('описания учат раскладке: шаги - задачи группы, продолжение - проверка после, поток и проект - с согласия', () => {
+    const said = (name: string) =>
+      JSON.stringify(TRACKER_TOOLS.find((tool) => tool.name === name) ?? null)
+
+    expect(said('tracker_board')).toContain('steps of one piece of work are tasks of one group')
+    expect(said('tracker_board')).toContain('A follow-up is not a step of its task')
+    expect(said('tracker_add_cards')).toContain('not follow-ups of one big task')
+    expect(said('tracker_add_cards')).toContain('not its steps')
+    expect(said('tracker_save_flow')).toContain('only when the user asks for it or agrees')
+    expect(said('tracker_save_project')).toContain('only for a very weighty reason')
+    expect(said('tracker_save_group')).toContain('without asking')
+  })
+
   it('доска коротко: id на каждом уровне, пустое не пишется, срок - как его принимают', async () => {
     const { call, columns, card } = await ideOf()
     const { projectId, flowId, groupId } = await columns()

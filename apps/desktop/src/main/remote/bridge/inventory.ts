@@ -1,4 +1,5 @@
 import type { AgentPanelState } from '@shared/conversation'
+import { shownPresets } from '@shared/panel-prefs'
 import type { ProviderId, ProviderInfo } from '@shared/providers'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { TaskRunSummary } from '@shared/tasks'
@@ -61,8 +62,8 @@ const modelWire = (
 
 /**
  * Что можно выбрать у провайдера с телефона (ADR 0076, 0083): его модели (как в меню окна, со
- * своими у Claude Code), уровни усилия и режимы, и что он умеет сверх разговора - чего не умеет,
- * телефон не показывает.
+ * своими у Claude Code), уровни усилия и режимы, пресеты кнопок под полем (ADR 0096) и что он
+ * умеет сверх разговора - чего не умеет, телефон не показывает.
  */
 const capsOf = (info: ProviderInfo, state: AgentPanelState): ProviderCaps => {
   const fast = new Map(state.models.map((model) => [model.value, model.fast]))
@@ -82,6 +83,8 @@ const capsOf = (info: ProviderInfo, state: AgentPanelState): ProviderCaps => {
     rewindScopes: [...capabilities.rewindScopes],
     // Только свой чат (ADR 0094): телефон гасит его в выборе прогона и часа, а не узнаёт отказом.
     chatOnly: info.chatOnly === true,
+    // Те же кнопки, что под полем окна: у провайдера без пресетов (открытые модели) их нет.
+    presets: capabilities.presets ? shownPresets(state.prefs).map((preset) => ({ ...preset })) : [],
   }
 }
 

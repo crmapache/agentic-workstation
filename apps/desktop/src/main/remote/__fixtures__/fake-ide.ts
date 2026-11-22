@@ -1,6 +1,7 @@
 import type { Conversation, PendingRequest, AgentPanelState } from '@shared/conversation'
 import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
 import { CLAUDE_CAPABILITIES } from '@shared/panel-capabilities'
+import { DEFAULT_PANEL_PREFS } from '@shared/panel-prefs'
 import type { ScenarioQueuesView } from '@shared/scenario-queues'
 import type { ScenarioSchedule } from '@shared/scenarios'
 import type { WorkspaceState } from '@shared/workspace'
@@ -99,6 +100,7 @@ export const fakeIde = () => {
     accounts: accountsOf(),
     refusedModes: { bypass: false, autoModels: [] },
     capabilities: CLAUDE_CAPABILITIES,
+    prefs: DEFAULT_PANEL_PREFS,
   } as unknown as AgentPanelState
   /** Слои настроек проекта для режима: тест запрещает bypass руками. */
   const settings = { bypassDisabled: false }

@@ -389,13 +389,27 @@ describe('телефон в мобильном Chromium против насто�
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
     await page.getByText(/Bypass · /).waitFor()
 
-    // Новый разговор: сначала «как в IDE», за ним все режимы окна IDE теми же словами.
+    // Новый разговор: сначала «как в IDE», за ним все режимы окна IDE теми же словами. Пресеты
+    // кнопок под полем окна (ADR 0096) - плашками над моделью.
+    ide.ide.state.prefs = {
+      ...ide.ide.state.prefs,
+      presetCount: 2,
+      presets: [
+        { name: 'Strong', model: 'opus', effort: 'xhigh', mode: 'bypassPermissions' },
+        { name: 'Fast', model: 'sonnet', effort: 'high', mode: 'acceptEdits' },
+        { name: 'Hidden', model: 'opus', effort: 'max', mode: 'plan' },
+      ],
+    }
+    ide.service.panelChanged()
     await back()
     await page.getByRole('button', { name: 'New conversation' }).click()
     await page.getByRole('radio', { name: /Plan mode/ }).waitFor()
 
     const modes = page.getByRole('radiogroup', { name: 'Mode', exact: true }).getByRole('radio')
+    const presets = page.getByRole('group', { name: 'Quick presets' }).getByRole('button')
 
+    // Смену пресетов IDE рассылает сама, с паузой склейки перемен: ряд встаёт на открытом экране.
+    await presets.first().waitFor()
     expect(await modes.first().getAttribute('aria-checked')).toBe('true')
     expect(await modes.allTextContents()).toEqual([
       expect.stringContaining('as in the IDE settings'),
@@ -405,6 +419,37 @@ describe('телефон в мобильном Chromium против насто�
       expect.stringContaining('Auto'),
       expect.stringContaining('Bypass permissions'),
     ])
+    // Кнопками - только те, что стоят под полем окна; сначала не горит ни одна («как в IDE»).
+    expect(await presets.allTextContents()).toEqual(['Strong', 'Fast'])
+    expect(await presets.evaluateAll((chips) => chips.map((chip) => chip.ariaPressed))).toEqual([
+      'false',
+      'false',
+    ])
+    await expectOneRow(
+      '[aria-label="Quick presets"] button:has-text("Strong")',
+      '[aria-label="Quick presets"] button:has-text("Fast")',
+    )
+
+    // Две плашки делят ряд поровну.
+    const widths = await presets.evaluateAll((chips) =>
+      chips.map((chip) => chip.getBoundingClientRect().width),
+    )
+    const row = await page
+      .getByRole('group', { name: 'Quick presets' })
+      .evaluate((group) => group.getBoundingClientRect().width)
+
+    expect(Math.abs((widths[0] ?? 0) - (widths[1] ?? 0))).toBeLessThanOrEqual(1)
+    expect((widths[0] ?? 0) * 2).toBeGreaterThan(row - 16)
+
+    // Нажатие ставит модель, усилие и режим пресета разом.
+    await presets.filter({ hasText: 'Fast' }).click()
+
+    const checked = (name: RegExp) => page.getByRole('radio', { name }).getAttribute('aria-checked')
+
+    expect(await presets.nth(1).getAttribute('aria-pressed')).toBe('true')
+    expect(await checked(/^Sonnet 5/)).toBe('true')
+    expect(await checked(/^High effort/)).toBe('true')
+    expect(await checked(/^Accept edits/)).toBe('true')
     await shot('08-new-conversation')
     await back()
 
