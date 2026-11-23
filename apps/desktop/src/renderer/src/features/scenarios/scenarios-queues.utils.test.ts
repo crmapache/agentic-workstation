@@ -36,6 +36,7 @@ const queue = (id: string, patch: Partial<ScenarioQueue> = {}): ScenarioQueue =>
   name: `Queue ${id}`,
   nameSource: 'ai',
   createdAt: 0,
+  activeAt: 0,
   closedAt: 0,
   workdir: { kind: 'project' },
   items: [],

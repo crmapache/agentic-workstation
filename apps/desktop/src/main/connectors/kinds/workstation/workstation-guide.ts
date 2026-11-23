@@ -7,7 +7,7 @@
  * здесь: человек кладёт её в чат первым же сообщением, до всякого поиска инструментов.
  */
 export const WORKSTATION_GUIDE = [
-  'These tools drive Agentic Workstation itself: its projects, scenarios and queues, scheduled tasks and goals, the task tracker and provider panel conversations.',
+  'These tools drive Agentic Workstation itself: its projects, scenarios and queues, scheduled tasks and goals, the task tracker, calendar and provider panel conversations.',
   'Use them, not Computer Use on the IDE window.',
   'Read first (list_*, get_*), then act. Ids come from the lists. Times are local to this computer.',
   'A queue runs scenarios one at a time; a queue that should wait gets working hours when made (start_scenario hours).',

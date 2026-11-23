@@ -59,7 +59,7 @@ export class QueueHoursKeeper {
 
     if (queue && move?.kind === 'sleep') this.sleep(queue, now, move.until)
     if (queue && move?.kind === 'wake' && !waits) await this.wake(queue, now)
-    if (queue && move?.kind === 'retime') this.put(nap.retimeNap(queue, move.until))
+    if (queue && move?.kind === 'retime') this.put(nap.retimeNap(queue, move.until), true)
 
     const latest = this.host.book.get(queueId)
 
@@ -90,7 +90,7 @@ export class QueueHoursKeeper {
       running.runId !== '' &&
       this.host.desk(queue.projectPath).pauseForHours(running.runId)
 
-    this.put(nap.fallAsleep(queue, now, until, paused ? running.runId : ''))
+    this.put(nap.fallAsleep(queue, now, until, paused ? running.runId : ''), true)
   }
 
   /**
@@ -108,7 +108,7 @@ export class QueueHoursKeeper {
       this.missed(queue, runId, now)
     }
 
-    this.put(nap.wakeUp(this.host.book.get(queue.id) ?? queue))
+    this.put(nap.wakeUp(this.host.book.get(queue.id) ?? queue), true)
   }
 
   /** Прогон не продолжился: ждущие за ним - очередь встаёт; сказать человеку - всегда. */
@@ -126,8 +126,12 @@ export class QueueHoursKeeper {
     }
   }
 
-  private put(queue: ScenarioQueue) {
-    if (this.host.book.put(queue)) this.host.onQueues()
+  /**
+   * Записать очередь. quiet - сон и пробуждение по часам: это не дело очереди, и очередь, которая
+   * только спит и просыпается, всё равно закроется сама после двух недель без дела.
+   */
+  private put(queue: ScenarioQueue, quiet = false) {
+    if (this.host.book.put(queue, { quiet })) this.host.onQueues()
   }
 
   private plan(queueId: string, at: number) {

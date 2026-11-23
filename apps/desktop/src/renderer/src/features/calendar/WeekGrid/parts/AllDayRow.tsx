@@ -1,0 +1,33 @@
+import { clsx } from 'clsx'
+import { useTranslation } from 'react-i18next'
+
+import styles from '../WeekGrid.module.scss'
+import type { AllDayRowProps } from '../WeekGrid.types'
+import { allDayOn } from '../../calendar.utils'
+
+/** Полоса «весь день» над часами: отпуск, праздник, поездка - плашками по дням. */
+export const AllDayRow = ({ days, meetings, colorOf, onOpen }: AllDayRowProps) => {
+  const { t } = useTranslation()
+  const perDay = days.map((day) => allDayOn(meetings, day))
+
+  if (perDay.every((list) => list.length === 0)) return null
+
+  return (
+    <div className={styles.allDay}>
+      <span className={styles.gutterLabel}>{t('calendar.grid.allDay')}</span>
+      {days.map((day, index) => (
+        <div key={day} className={styles.allDayCell}>
+          {(perDay[index] ?? []).map((meeting) => (
+            <button
+              key={meeting.key}
+              type="button"
+              className={clsx(styles.chip, styles[`tone${colorOf(meeting.sourceIds[0] ?? '')}`])}
+              onClick={(click) => onOpen({ meeting, anchor: click.currentTarget })}>
+              {meeting.event.title || t('calendar.event.noTitle')}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}

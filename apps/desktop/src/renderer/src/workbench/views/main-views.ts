@@ -6,6 +6,7 @@ import {
   FileCode,
   Workflow,
   ChartColumn,
+  CalendarDays,
   SquareKanban,
   CalendarClock,
 } from 'lucide-react'
@@ -59,6 +60,17 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
     Component: lazy(() =>
       import('../../features/tasks/TasksView/TasksView').then((module) => ({
         default: module.TasksView,
+      })),
+    ),
+  },
+  {
+    id: 'calendar',
+    icon: CalendarDays,
+    labelKey: 'mainViews.calendar',
+    keywords: ['calls', 'meetings', 'events', 'schedule', 'overlaps', 'outlook', 'google calendar'],
+    Component: lazy(() =>
+      import('../../features/calendar/CalendarView/CalendarView').then((module) => ({
+        default: module.CalendarView,
       })),
     ),
   },

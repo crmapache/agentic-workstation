@@ -155,6 +155,15 @@ describe.skipIf(process.env['AGENTIC_WORKSTATION_OPENCODE_LIVE'] !== '1')(
       { timeout: LIVE_MS },
       async () => {
         const dir = await mkdtemp(join(homedir(), 'aw-opencode-run-live-'))
+        const ollamaLaunch = Promise.resolve({
+          config: OLLAMA_CONFIG,
+          connectors: null,
+          servers: [],
+          allowedActions: [],
+          env: {},
+          compact: false,
+          release: () => undefined,
+        })
         const host = {
           cli: () => locateOpenCodeCli(),
           dirs: () => ({
@@ -163,16 +172,8 @@ describe.skipIf(process.env['AGENTIC_WORKSTATION_OPENCODE_LIVE'] !== '1')(
             state: join(dir, 'oc', 'state'),
             cache: join(dir, 'oc', 'cache'),
           }),
-          launch: () =>
-            Promise.resolve({
-              config: OLLAMA_CONFIG,
-              connectors: null,
-              servers: [],
-              allowedActions: [],
-              env: {},
-              compact: false,
-              release: () => undefined,
-            }),
+          launch: () => ollamaLaunch,
+          launchWith: () => ollamaLaunch,
           models: () => [
             {
               value: 'ollama/gpt-oss:20b',

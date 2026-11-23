@@ -1,0 +1,274 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../calendar-tones' as *;
+@include calendar-tones;
+
+// Сетка: шапка дней и полоса «весь день» стоят, часы прокручиваются под ними. Колонка часов
+// слева и колонки дней - одной раскладкой во всех трёх рядах, чтобы дни шли ровно друг под другом.
+.grid {
+  --day-columns: repeat(7, minmax(0, 1fr));
+
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.single {
+  --day-columns: minmax(0, 1fr);
+}
+
+.head,
+.allDay,
+.body {
+  display: grid;
+  grid-template-columns: var(--size-calendar-gutter) var(--day-columns, minmax(0, 1fr));
+}
+
+.head {
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.gutter {
+  display: block;
+}
+
+.dayName {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1-5) var(--space-1);
+  color: var(--color-fg-muted);
+  line-height: var(--line-height-tight);
+}
+
+.weekday,
+.weekdayNarrow {
+  @include caps-label;
+}
+
+.weekdayNarrow {
+  display: none;
+}
+
+// Узкая неделя: день недели - одной буквой, иначе подписи соседних дней налезают друг на друга.
+@container (width < 560px) {
+  .weekday {
+    display: none;
+  }
+
+  .weekdayNarrow {
+    display: block;
+  }
+}
+
+.dayNumber {
+  color: var(--color-fg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.today,
+.today .dayNumber {
+  color: var(--color-fg-accent);
+}
+
+.allDay {
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.gutterLabel {
+  padding: var(--space-1);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  text-align: right;
+}
+
+.allDayCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  padding: var(--space-1);
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.chip {
+  @include button-reset;
+  @include truncate;
+  @include tinted-plaque(var(--tone, var(--color-calendar-0)));
+
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// Сутки - 24 часа высотой --size-calendar-hour: встречи стоят долями этой высоты.
+.body {
+  position: relative;
+  height: calc(var(--size-calendar-hour) * 24);
+}
+
+.hours {
+  display: flex;
+  flex-direction: column;
+}
+
+.hour {
+  flex: 1;
+  padding-right: var(--space-1-5);
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+// Подпись часа - по центру своей линии: сдвиг на половину строки текста, а не часа.
+.hourLabel {
+  display: block;
+  line-height: var(--line-height-tight);
+  translate: 0 -50%;
+}
+
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+.line {
+  flex: 1;
+  border-top: var(--border-width) solid var(--color-border);
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+// Общее время накладки: полоса цвета опасности поверх колонки, встречи - над ней.
+.band {
+  position: absolute;
+  top: var(--top, 0);
+  right: 0;
+  left: 0;
+  height: var(--height, 0);
+  border-block: var(--border-width) dashed var(--color-danger);
+  background: var(--color-danger-soft);
+  pointer-events: none;
+}
+
+.band.soft {
+  border-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) var(--tint-soft), transparent);
+}
+
+// Встреча: плашка цвета источника, место - доля суток и колонка среди пересекающихся.
+.block {
+  @include button-reset;
+  @include tinted-plaque(var(--tone, var(--color-calendar-0)));
+
+  position: absolute;
+  top: var(--top, 0);
+  left: calc(100% / var(--columns, 1) * var(--column, 0));
+  display: flex;
+  flex-direction: column;
+
+  // Подложка непрозрачная: линии часов и полоса накладки не просвечивают сквозь название.
+  background-color: color-mix(
+    in srgb,
+    var(--tone, var(--color-calendar-0)) var(--tint-soft),
+    var(--color-bg-app)
+  );
+  width: calc(100% / var(--columns, 1) - var(--space-0-5));
+  height: var(--height, 0);
+  padding: var(--space-0-5) var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .block:hover,
+  .chip:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--tone, var(--color-calendar-0)) var(--tint-border),
+      transparent
+    );
+  }
+}
+
+.clash {
+  border-color: var(--color-danger);
+  outline: var(--border-width) solid var(--color-danger);
+}
+
+.softClash {
+  border-color: var(--color-warning);
+  outline: var(--border-width) solid var(--color-warning);
+}
+
+.faded {
+  opacity: var(--opacity-muted);
+
+  .blockTitle {
+    text-decoration: line-through;
+  }
+}
+
+.doubtful {
+  border-style: dashed;
+}
+
+// Короткая встреча: название и время одной строкой.
+.compact {
+  flex-direction: row;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.blockTitle {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-weight: var(--font-weight-medium);
+}
+
+.blockTime {
+  @include truncate;
+
+  color: var(--color-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.twins {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: flex;
+  gap: var(--space-0-5);
+}
+
+.now {
+  position: absolute;
+  top: var(--top, 0);
+  right: 0;
+  left: 0;
+  z-index: var(--z-sticky);
+  border-top: var(--border-width) solid var(--color-danger);
+  pointer-events: none;
+}

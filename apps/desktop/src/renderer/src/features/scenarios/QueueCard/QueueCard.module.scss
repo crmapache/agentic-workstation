@@ -180,6 +180,14 @@
   line-height: var(--size-control-xs);
 }
 
+// Модель и усилие сценария - чипом сразу за состоянием: на чём он идёт, видно без открытия.
+.runsOn {
+  @include scenario-chip;
+  @include truncate;
+
+  flex: 0 1 auto;
+}
+
 // Меню ждущего - у правого края строки.
 .itemEnd {
   display: flex;

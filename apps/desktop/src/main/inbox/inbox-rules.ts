@@ -46,6 +46,7 @@ const ACTION_KINDS: readonly InboxActionKind[] = [
   'runAgain',
   'resume',
   'trust',
+  'showCalendar',
 ]
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

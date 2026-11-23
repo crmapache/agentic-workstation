@@ -11,6 +11,7 @@ import {
 import { responseOf, engineQuestionOf } from '../run-stream/engine-questions'
 import { RunJournal } from '../run-stream/run-journal'
 import { runModeOf } from '../run-stream/run-modes'
+import type { GatewayLaunch } from '../../connectors/gateway/launches'
 import type { OpenCodeCli } from '../../opencode/cli/opencode-locator'
 import type { OpenCodeLaunch } from '../../opencode/conversation/opencode-conversation'
 import type { OpenCodeHistory } from '../../opencode/conversation/opencode-feed'
@@ -48,6 +49,12 @@ export type OpenCodeRunHost = {
     model: string | null,
     ideServers: readonly string[],
     servers?: readonly string[],
+  ) => Promise<OpenCodeLaunch>
+  /** Запуск с готовым ключом шлюза (допуск, ADR 0114) вместо коннекторов проекта. */
+  launchWith: (
+    connectors: GatewayLaunch,
+    directory: string,
+    model: string | null,
   ) => Promise<OpenCodeLaunch>
   /** Модели подключений: «по умолчанию» и уровни усилия у модели. */
   models: () => readonly ModelInfo[]

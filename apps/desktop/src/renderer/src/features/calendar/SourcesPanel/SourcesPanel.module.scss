@@ -1,0 +1,90 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../calendar-tones' as *;
+@include calendar-tones;
+
+// Колонка источников: прокручивается сама, сетка рядом - сама.
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-3) var(--size-panel-gutter);
+  overflow-y: auto;
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+.title {
+  @include caps-label;
+
+  color: var(--color-fg-subtle);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Строка источника: точка цвета, имя и состояние, переключатель и меню справа.
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--color-bg-hover);
+  }
+}
+
+.hidden {
+  opacity: var(--opacity-muted);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  @include truncate;
+
+  color: var(--color-fg);
+  font-size: var(--font-size-md);
+}
+
+.status {
+  @include truncate;
+
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.busy {
+  color: var(--color-fg-accent);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}

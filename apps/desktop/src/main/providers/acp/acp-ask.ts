@@ -4,6 +4,7 @@ import { effortLevelOf } from '@shared/conversation'
 
 import type { AskOnce, AskOnceResult } from '../run-stream/ask-once'
 import { jsonOf, schemaNote, toolsByServer } from '../run-stream/ask-once'
+import { acpServersOf } from '../../acp/acp-connectors-bridge'
 import { AcpProcess, isAuthError, unsupported } from '../../acp/client/acp-process'
 import {
   ACP_PROMPT_TIMEOUT_MS,
@@ -56,11 +57,15 @@ export const askAcpOnce = async (host: AcpRunHost, ask: AskOnce): Promise<AskOnc
   await mkdir(ask.cwd, { recursive: true })
 
   const mcp = ask.tools?.mcp ?? null
-  // Коннекторы - проекта, о котором спрашивают, и только серверы с разрешёнными инструментами.
-  const readable = toolsByServer(mcp?.tools ?? [])
-  const connectors = mcp
-    ? host.connectors(mcp.projectPath, [], [...readable.keys()])
-    : { servers: [], launch: null }
+  // Коннекторы - проекта, о котором спрашивают, и только серверы с разрешёнными инструментами;
+  // или ключ с допуском от спросившего (он его и отзовёт: launch здесь - null).
+  const allowed = ask.gateway?.allowed ?? mcp?.tools ?? []
+  const readable = toolsByServer(allowed)
+  const connectors = ask.gateway
+    ? { servers: acpServersOf(ask.gateway), launch: null }
+    : mcp
+      ? host.connectors(mcp.projectPath, [], [...readable.keys()])
+      : { servers: [], launch: null }
 
   // Отменили, пока искался CLI: процесс не нужен вовсе.
   if (ask.signal?.aborted) {
@@ -69,7 +74,7 @@ export const askAcpOnce = async (host: AcpRunHost, ask: AskOnce): Promise<AskOnc
     return { error: 'cancelled' }
   }
 
-  const rules = { allowed: mcp?.tools ?? [], web: ask.tools?.web === true, readOnly: true }
+  const rules = { allowed, web: ask.tools?.web === true, readOnly: true }
   const calls = new AcpRunCalls(agent.lens(connectors.servers.map((one) => one.name)), agent.toolId)
   let sessionId = ''
   let finish: (result: AskOnceResult) => void = () => undefined

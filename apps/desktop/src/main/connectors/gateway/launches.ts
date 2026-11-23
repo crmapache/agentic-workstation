@@ -18,6 +18,25 @@ export type Launch = {
   workDir: string
   conversationId: string | null
   released: boolean
+  /** Допуск процесса (ADR 0114); нет - коннекторы его проекта, как у любого разговора. */
+  grant?: LaunchGrant | null
+}
+
+/** Закрепление процесса: профиль Chrome, где он работает, и сайты, куда ему можно ходить. */
+export type LaunchPin = {
+  /** Профиль Chrome; модель не уйдёт в другой. null - как обычно. */
+  browserProfile: string | null
+  /** Хосты, куда можно открыть и перейти (с их доменом); пусто - куда угодно. */
+  hosts: readonly string[]
+}
+
+/**
+ * Допуск процесса, которому IDE выдала ровно то, что ему нужно (фоновое чтение календаря ИИ):
+ * сервер → его инструменты, мимо доступности коннекторов по проектам, и закрепление.
+ */
+export type LaunchGrant = {
+  tools: ReadonlyMap<string, readonly string[]>
+  pin: LaunchPin
 }
 
 /**
@@ -85,10 +104,11 @@ export class GatewayLaunches {
     projectPath: string,
     entries: readonly GatewayEntry[],
     allowed: readonly string[] = [],
+    grant: LaunchGrant | null = null,
   ): Promise<McpLaunch> {
     const token = randomToken()
     const file = join(this.dir, `${randomUUID()}.json`)
-    const launch = this.register(projectPath, entries, allowed, token, file)
+    const launch = this.register(projectPath, entries, allowed, token, file, grant)
 
     try {
       await writeMcpConfig(file, claudeMcpConfig(entries, token))
@@ -106,8 +126,9 @@ export class GatewayLaunches {
     projectPath: string,
     entries: readonly GatewayEntry[],
     allowed: readonly string[] = [],
+    grant: LaunchGrant | null = null,
   ): GatewayLaunch {
-    return this.register(projectPath, entries, allowed, randomToken(), null)
+    return this.register(projectPath, entries, allowed, randomToken(), null, grant)
   }
 
   find(token: string): Launch | null {
@@ -120,6 +141,7 @@ export class GatewayLaunches {
     allowed: readonly string[],
     token: string,
     file: string | null,
+    grant: LaunchGrant | null,
   ): GatewayLaunch {
     const key = digest(token)
     const launch = {
@@ -128,6 +150,7 @@ export class GatewayLaunches {
       workDir: projectPath,
       conversationId: null as string | null,
       released: false,
+      grant,
       file,
     }
 

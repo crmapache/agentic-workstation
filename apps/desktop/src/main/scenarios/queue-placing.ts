@@ -15,6 +15,7 @@ import type { ScenarioCode } from '@shared/scenarios'
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import type { RunnerHost } from './queue-runner'
 import { queueWorktree } from './queue-worktree'
+import { runsOnOf } from './runs-on'
 import { addItem, fallbackName } from './queues/queue-rules'
 import { scopeOf } from './store/scenario-parse'
 
@@ -65,6 +66,7 @@ export const placeItem = async (
     provider: request.provider,
     addedAt: Date.now(),
     runId: '',
+    runsOn: runsOnOf(scenario, provider),
     state: 'waiting',
     refusal: null,
   }
@@ -130,12 +132,14 @@ const openQueue = async (
 
   if ('code' in workdir) return workdir
 
+  const now = Date.now()
   const queue: ScenarioQueue = {
     id,
     projectPath,
     name: fallbackName(item.scenarioName, item.inputs),
     nameSource: 'fallback',
-    createdAt: Date.now(),
+    createdAt: now,
+    activeAt: now,
     closedAt: 0,
     workdir,
     items: [item],

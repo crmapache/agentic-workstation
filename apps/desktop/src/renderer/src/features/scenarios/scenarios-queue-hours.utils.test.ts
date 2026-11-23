@@ -36,6 +36,7 @@ const queueOf = (patch: Partial<ScenarioQueue>, ...items: QueueItem[]): Scenario
   name: 'Queue',
   nameSource: 'ai',
   createdAt: 0,
+  activeAt: 0,
   closedAt: 0,
   workdir: { kind: 'project' },
   items,

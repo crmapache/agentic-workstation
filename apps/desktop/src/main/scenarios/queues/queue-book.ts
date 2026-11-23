@@ -30,11 +30,11 @@ export class QueueBook {
     return this.queues.get(id) ?? null
   }
 
-  /** Открытые сначала, внутри - по времени создания. */
+  /** Открытые сначала, внутри - новые сверху: свежая работа на виду, старая уходит вниз. */
   all(): ScenarioQueue[] {
     return [...this.queues.values()].sort(
       (left, right) =>
-        Number(left.closedAt > 0) - Number(right.closedAt > 0) || left.createdAt - right.createdAt,
+        Number(left.closedAt > 0) - Number(right.closedAt > 0) || right.createdAt - left.createdAt,
     )
   }
 
@@ -48,11 +48,15 @@ export class QueueBook {
     return null
   }
 
-  /** Записать изменённую очередь; та же самая (ничего не поменялось) - без записи. */
-  put(queue: ScenarioQueue): boolean {
+  /**
+   * Записать изменённую очередь; та же самая (ничего не поменялось) - без записи. Запись - дело
+   * очереди, и activeAt встаёт на сейчас; quiet - не дело (сон по часам, имя от ИИ): такая
+   * правка не держит открытой очередь, в которой ничего не происходит.
+   */
+  put(queue: ScenarioQueue, { quiet = false }: { quiet?: boolean } = {}): boolean {
     if (this.queues.get(queue.id) === queue) return false
 
-    this.queues.set(queue.id, queue)
+    this.queues.set(queue.id, quiet ? queue : { ...queue, activeAt: Date.now() })
     this.prune()
     this.save()
 

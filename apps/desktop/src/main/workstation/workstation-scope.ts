@@ -194,6 +194,7 @@ export const scopedPorts = (
   tasks: scopedTasks(ports.tasks, allowed),
   tracker: scopedTracker(ports.tracker, allowed),
   panels: () => ports.panels().map((port) => scopedPanel(port, allowed)),
-  // Расширения - на всю IDE, а не на проект: сужать нечего.
+  // Расширения и календарь - на всю IDE, а не на проект: сужать нечего.
   extensions: ports.extensions,
+  calendar: ports.calendar,
 })

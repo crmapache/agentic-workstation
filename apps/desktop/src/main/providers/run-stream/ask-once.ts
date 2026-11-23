@@ -1,3 +1,5 @@
+import type { GatewayLaunch } from '../../connectors/gateway/launches'
+
 /**
  * Разовый вопрос провайдеру со структурным ответом (служебные задачи IDE: имя очереди, проверка
  * цели, черновики; docs/plan-providers/50-ide.md). Свой разговор без вкладки и без следа в
@@ -28,6 +30,12 @@ export type AskOnce = {
    * этом остаётся, но только чтение и без веба. Нет - ни командной строки, ни файлов.
    */
   readProject?: boolean | undefined
+  /**
+   * Готовый ключ шлюза с допуском (ADR 0114, `GatewayHost.openGrantedInMemory`): его серверы и
+   * разрешённые инструменты (`allowed`) - всё, что модели можно сверх tools. Выдал и отзовёт
+   * спросивший: исполнитель его не отпускает.
+   */
+  gateway?: GatewayLaunch | undefined
 }
 
 /**

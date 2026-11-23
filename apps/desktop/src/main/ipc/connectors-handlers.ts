@@ -45,9 +45,9 @@ export const createConnectorsHandlers = (
   'connectors:addToType': (request) => connectors.addToType(assertAddToType(request)),
   'connectors:removeType': ({ typeId }) => connectors.removeType(field(typeId, 'typeId')),
   'connectors:updateType': (request) => connectors.updateType(assertUpdateType(request)),
-  'connectors:signIn': ({ id }) => connectors.signIn(field(id, 'id')),
-  'connectors:cancelSignIn': ({ id }) => connectors.cancelSignIn(field(id, 'id')),
-  'connectors:signOut': ({ id }) => connectors.signOut(field(id, 'id')),
+  'connectors:signIn': ({ id }) => connectors.signIns.signIn(field(id, 'id')),
+  'connectors:cancelSignIn': ({ id }) => connectors.signIns.cancel(field(id, 'id')),
+  'connectors:signOut': ({ id }) => connectors.signIns.signOut(field(id, 'id')),
   'connectors:setEnabled': ({ id, enabled }) =>
     connectors.setEnabled(field(id, 'id'), assertBoolean(enabled, 'enabled')),
   'connectors:setToolEnabled': ({ id, tool, enabled }) =>
@@ -58,7 +58,7 @@ export const createConnectorsHandlers = (
     ),
   'connectors:refresh': ({ id }) => connectors.refresh(field(id, 'id')),
   'connectors:setToken': ({ id, token }) =>
-    connectors.setToken(field(id, 'id'), field(token, 'token', MAX_SECRET)),
+    connectors.signIns.setToken(field(id, 'id'), field(token, 'token', MAX_SECRET)),
   'connectors:setDescription': ({ id, description }) =>
     connectors.setDescription(field(id, 'id'), assertDescription(description)),
   'connectors:setInProject': ({ id, projectPath, settings }) =>
@@ -97,8 +97,8 @@ export const createConnectorsHandlers = (
   },
   'connectors:aiJobFeed': ({ id, earlier }) =>
     connectors.ai.feed(field(id, 'id'), assertBoolean(earlier, 'earlier')),
-  'connectors:importGoogleApp': () => connectors.importGoogleApp(),
-  'connectors:forgetGoogleApp': () => connectors.forgetGoogleApp(),
+  'connectors:importGoogleApp': () => connectors.signIns.importGoogleApp(),
+  'connectors:forgetGoogleApp': () => connectors.signIns.forgetGoogleApp(),
   'connectors:agentApps': () => installedAgentApps(),
   'connectors:openInAgentApp': ({ app, prompt }) =>
     openInAgentApp(assertAgentApp(app), field(prompt, 'prompt', MAX_AGENT_PROMPT)),

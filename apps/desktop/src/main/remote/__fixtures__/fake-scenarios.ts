@@ -56,6 +56,7 @@ export const QUEUE: ScenarioQueue = {
   name: 'Cleanup',
   nameSource: 'ai',
   createdAt: 10,
+  activeAt: 10,
   closedAt: 0,
   workdir: {
     kind: 'worktree',

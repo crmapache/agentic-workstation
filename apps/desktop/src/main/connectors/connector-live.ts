@@ -42,11 +42,18 @@ export type LiveHost = {
 const toMcpTool = ({ access: _access, ...tool }: SourceTool): Tool => tool
 
 /** Процесс разговора для источника: без служебной пометки шлюза. */
-const sourceLaunch = ({ id, projectPath, workDir, conversationId }: Launch): SourceLaunch => ({
+const sourceLaunch = ({
   id,
   projectPath,
   workDir,
   conversationId,
+  grant,
+}: Launch): SourceLaunch => ({
+  id,
+  projectPath,
+  workDir,
+  conversationId,
+  ...(grant && { pin: grant.pin }),
 })
 
 const SIGN_IN_TEXT =

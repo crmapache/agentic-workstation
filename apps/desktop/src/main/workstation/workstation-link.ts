@@ -1,3 +1,5 @@
+import type { CalendarState } from '@shared/calendar'
+import type { CalendarMeeting, CalendarOverlap } from '@shared/calendar-overlaps'
 import type {
   TrackerOp,
   TrackerBoard,
@@ -61,6 +63,21 @@ export type WorkstationPorts = {
   panels: () => readonly ConversationsPort[]
   /** Расширения IDE (ADR 0091): поднимаются после портов, до того - null. */
   extensions: () => ExtensionsPort | null
+  /** Календарь звонков (ADR 0114): на всю IDE, не на проект. */
+  calendar: () => CalendarPort | null
+}
+
+/** Календарь звонков для ИИ в разговорах: звонки, накладки, синк. */
+export type CalendarPort = {
+  /** Человек оставил календарь разговорам (переключатель на виде Calendar). */
+  shared: () => boolean
+  state: () => CalendarState
+  meetingsIn: (
+    from: number,
+    to: number,
+  ) => { meetings: CalendarMeeting[]; overlaps: CalendarOverlap[] }
+  /** Запустить синк; ответ - сколько источников встало. */
+  sync: (withAi: boolean) => number
 }
 
 /** Расширения IDE для ИИ, который их пишет: состояние, журнал, перезапуск, команда. */

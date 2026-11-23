@@ -1,6 +1,8 @@
 import type { ToolAccess } from '@shared/connectors'
 import type { Tool, CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 
+import type { LaunchPin } from './gateway/launches'
+
 /**
  * Процесс разговора, который зовёт инструмент: ключ запуска шлюза, проект, папка, где процесс
  * работает (проект, у сессии сценария - её worktree), и разговор. Процессы одного разговора
@@ -13,6 +15,8 @@ export type SourceLaunch = {
   projectPath: string
   workDir: string
   conversationId: string | null
+  /** Закрепление процесса с допуском (ADR 0114): профиль Chrome и сайты. */
+  pin?: LaunchPin | null
 }
 
 /** Инструмент источника - как его увидит модель, плюс ступень доступа. */

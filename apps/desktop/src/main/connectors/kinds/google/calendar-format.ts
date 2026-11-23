@@ -1,3 +1,5 @@
+import { offsetAt, minutesOf } from '@shared/zone-time'
+
 import { ArgumentError } from '../native-tools'
 
 /** Время события в ответе Calendar API: весь день - date, иначе dateTime. */
@@ -27,24 +29,6 @@ const HAS_SECONDS = /T\d{2}:\d{2}:\d{2}/
 
 /** Сколько описания события отдавать модели. */
 const DESCRIPTION_LIMIT = 4000
-
-/** Смещение пояса в момент: «-06:00». Правила поясов и летнего времени знает Intl. */
-const offsetAt = (moment: Date, timeZone: string): string => {
-  const name =
-    new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' })
-      .formatToParts(moment)
-      .find((part) => part.type === 'timeZoneName')?.value ?? 'GMT'
-  const offset = name.replace('GMT', '')
-
-  return offset === '' ? '+00:00' : offset
-}
-
-const minutesOf = (offset: string): number => {
-  const sign = offset.startsWith('-') ? -1 : 1
-  const [hours = 0, minutes = 0] = offset.slice(1).split(':').map(Number)
-
-  return sign * (hours * 60 + minutes)
-}
 
 /**
  * Смещение пояса на местную полночь даты. Сначала по полудню UTC, потом уточняется на

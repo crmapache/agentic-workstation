@@ -18,8 +18,9 @@ import type { GroupColumnProps } from './GroupColumn.types'
 
 /**
  * Группа задач - колонка в порядке работы: шапка (тянется за неё же), задачи сверху вниз с
- * продолжениями справа и быстрое добавление внизу. Всю группу в очередь шлёт пункт её меню, как и
- * карточку.
+ * продолжениями справа и быстрое добавление внизу. Шапка - первая строка общей сетки ряда: у
+ * колонок одного потока она одной высоты, и первые задачи стоят на одной линии. Всю группу в
+ * очередь шлёт пункт её меню, как и карточку.
  */
 export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
   const { t } = useTranslation()
@@ -85,21 +86,23 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
         </button>
         <ActionsMenu label={t('tracker.group.menu')} items={items} />
       </header>
-      {group.tasks.map((task) => (
-        <TaskRow key={task.id} task={task} groupId={group.id} />
-      ))}
-      <div className={styles.end} data-group-end="">
-        {adding ? (
-          <QuickAdd
-            placeholder={t('tracker.card.taskPlaceholder')}
-            onAdd={handleAdd}
-            onClose={() => setAdding(false)}
-          />
-        ) : (
-          <Button variant="dashed" size="sm" icon={Plus} onClick={() => setAdding(true)}>
-            {t('tracker.group.addTask')}
-          </Button>
-        )}
+      <div className={styles.body} data-group-body="">
+        {group.tasks.map((task) => (
+          <TaskRow key={task.id} task={task} groupId={group.id} />
+        ))}
+        <div className={styles.end} data-group-end="">
+          {adding ? (
+            <QuickAdd
+              placeholder={t('tracker.card.taskPlaceholder')}
+              onAdd={handleAdd}
+              onClose={() => setAdding(false)}
+            />
+          ) : (
+            <Button variant="dashed" size="sm" icon={Plus} onClick={() => setAdding(true)}>
+              {t('tracker.group.addTask')}
+            </Button>
+          )}
+        </div>
       </div>
     </section>
   )

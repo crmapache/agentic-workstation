@@ -1,11 +1,12 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
-// Колонка группы: шапка шириной карточки, под ней ряды задач с продолжениями.
+// Колонка группы: шапка шириной карточки, под ней ряды задач с продолжениями. Строки колонки -
+// строки сетки ряда (subgrid): шапка высотой самой высокой шапки потока, задачи - под ней.
 .column {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--space-3);
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  row-gap: var(--space-3);
 }
 
 .dragging {
@@ -51,6 +52,13 @@
 
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
+}
+
+// Задачи колонки сверху вниз и «Add task» под ними.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 // Низ колонки: «Add task» шириной карточки - сюда же бросают задачу в конец группы.

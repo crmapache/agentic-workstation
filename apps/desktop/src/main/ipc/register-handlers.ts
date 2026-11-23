@@ -1,6 +1,7 @@
 import { shell } from 'electron'
 
 import type { ApplicationMenu } from '../menu'
+import type { CalendarRuntime } from '../calendar/calendar-setup'
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import type { DefinitionService } from '../definitions/definition-service'
@@ -31,6 +32,7 @@ import type { SearchDesk } from '../claude/search/search-desk'
 import type { CommitPushDesk } from '../git/commit-push/commit-push'
 import { createAccountsHandlers } from './accounts-handlers'
 import { createAgentHandlers } from './agent-handlers'
+import { createCalendarHandlers } from './calendar-handlers'
 import { createClaudeHandlers } from './claude-handlers'
 import { createClaudePanelHandlers } from './claude-panel-handlers'
 import { createClaudeSearchHandlers } from './claude-search-handlers'
@@ -117,6 +119,8 @@ type Services = HandlerContext & {
   extensions: ExtensionsRuntime
   /** Трекер задач (ADR 0101) и облако IDE (ADR 0102). */
   tracker: TrackerRuntime
+  /** Календарь звонков (ADR 0114): источники, синк, накладки. */
+  calendar: CalendarRuntime
   /** Меню приложения: кнопки полос окна в View (ADR 0112). */
   menu: ApplicationMenu
 }
@@ -160,6 +164,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
       services.tracker.runs,
       services.tracker.cloud,
     ),
+    ...createCalendarHandlers(services.calendar),
     ...createOpenModelsHandlers(services.openModels),
     ...createEditorHandlers(workspace, history, services.definitions, (root, path) =>
       services.extensions.service.fileSaved(root, path),

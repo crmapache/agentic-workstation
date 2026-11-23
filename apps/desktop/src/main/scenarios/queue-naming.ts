@@ -49,6 +49,6 @@ export class QueueNaming {
 
     if (this.asked.get(queueId) !== ticket || !title || !now) return
 
-    if (this.host.book.put(renameQueue(now, title, 'ai'))) this.host.onQueues()
+    if (this.host.book.put(renameQueue(now, title, 'ai'), { quiet: true })) this.host.onQueues()
   }
 }

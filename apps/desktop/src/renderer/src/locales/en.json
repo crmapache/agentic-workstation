@@ -788,6 +788,7 @@
     "tracker": "Tracker",
     "scenarios": "Scenarios",
     "tasks": "Tasks",
+    "calendar": "Calendar",
     "statistics": "Statistics",
     "connectors": "Connectors",
     "inbox": "Notifications",
@@ -1140,7 +1141,7 @@
     "help": {
       "label": "About scenarios",
       "title": "Scenarios",
-      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. The next one starts only when the one before it is done: if a run fails or is stopped, nothing after it starts until you continue that run from where it stopped or mark it done. Queues run side by side, so start a new one for unrelated work.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
+      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. The next one starts only when the one before it is done: if a run fails or is stopped, nothing after it starts until you continue that run from where it stopped or mark it done. Queues run side by side, so start a new one for unrelated work. The newest queue is on top. A queue where nothing has happened for two weeks closes by itself, unless a run is still going in it.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
     },
     "actions": {
       "new": "New scenario",
@@ -1219,7 +1220,11 @@
         "markDone": "Mark done",
         "markDoneHint": "You finished this work yourself. The queue counts it as done and does not start the next one on its own.",
         "doneByHand": "marked done by hand",
-        "placeholder": "tracker card without a scenario"
+        "placeholder": "tracker card without a scenario",
+        "runsOn": {
+          "defaultModel": "Default model",
+          "hint": "Runs on {{value}}: the main thread and the cards of this scenario"
+        }
       },
       "itemMenu": {
         "label": "Actions for {{name}}",
@@ -3961,6 +3966,7 @@
       "revise": "Keep planning",
       "answer": "Send answer",
       "showRun": "Show run",
+      "showCalendar": "Show calendar",
       "openChat": "Open in chat",
       "runAgain": "Run again",
       "resume": "Continue",
@@ -4746,6 +4752,229 @@
         "empty": "Nothing to read aloud: this reply is only code, tables or links",
         "failed": "Reading aloud did not start"
       }
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "help": {
+      "label": "About the calendar",
+      "title": "Call calendar",
+      "text": "All your calls from every calendar you add, on one grid. Overlapping calls are outlined in red, and the time they share is shaded.\n\nSources:\n- Google Calendar - an account connected in Connectors, read directly.\n- ICS link - a subscription link (Outlook \"Publish calendar\", iCloud, Fastmail, Calendly). Read directly.\n- AI in the browser - for calendars without a connector, such as a work Outlook: AI opens the calendar page in your Chrome, in the profile where you are signed in, and reads the next weeks. It can only open that site and read; it cannot type, answer invites or touch other tabs.\n- AI on the screen - AI reads a calendar app through Computer Use. It takes the mouse, so it runs only when you press Sync.\n\nGoogle and ICS sources refresh by themselves every 15 minutes. Sources read by AI refresh only when you press Sync: each read takes a few minutes and uses tokens.\n\nDuplicates (the same meeting in two calendars) are shown once. Back-to-back calls, all-day events, declined and \"free\" events are not overlaps."
+    },
+    "actions": {
+      "add": "Add source"
+    },
+    "empty": {
+      "title": "No calendars yet",
+      "note": "Add the calendars your calls come from: Google, a subscription link, or a work calendar that AI reads in your browser."
+    },
+    "modes": {
+      "label": "Period",
+      "week": "Week",
+      "day": "Day"
+    },
+    "navigator": {
+      "previous": {
+        "week": "Previous week",
+        "day": "Previous day"
+      },
+      "next": {
+        "week": "Next week",
+        "day": "Next day"
+      },
+      "pick": "Pick a day",
+      "today": "Today",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
+    },
+    "overlaps": {
+      "inPeriod_one": "{{count}} overlap",
+      "inPeriod_other": "{{count}} overlaps",
+      "next": "Next overlap"
+    },
+    "sync": {
+      "all": "Sync",
+      "running": "Syncing calendars",
+      "left_one": "{{count}} source syncing",
+      "left_other": "{{count}} sources syncing",
+      "stop": "Stop syncing"
+    },
+    "sources": {
+      "label": "Calendar sources",
+      "title": "Sources",
+      "show": "Show {{name}}",
+      "menu": "Actions for {{name}}",
+      "stop": "Stop",
+      "sync": "Sync now",
+      "edit": "Edit",
+      "countOverlaps": "Count in overlaps",
+      "remove": "Remove",
+      "hide": "Hide sources",
+      "showPanel": "Show sources"
+    },
+    "settings": {
+      "notify": "Notify about overlaps",
+      "notifyNote": "A notification when a sync finds a new overlap ahead",
+      "share": "Share with AI chats",
+      "shareNote": "AI in any chat can read your calls and overlaps"
+    },
+    "days": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday"
+    },
+    "status": {
+      "reading": "AI is reading…",
+      "syncing": "Syncing…",
+      "queued": "Waiting for its turn",
+      "suspiciousEmpty": "AI found no events where there were some; check the page",
+      "never": "Not synced yet",
+      "synced_one": "{{count}} event · {{when}}",
+      "synced_other": "{{count}} events · {{when}}"
+    },
+    "failures": {
+      "signed-out": "Signed out: sign in again in Connectors",
+      "connector-missing": "Its connector is gone",
+      "connector-off": "Its connector is turned off",
+      "network": "No connection",
+      "http": "The calendar server refused",
+      "parse": "Not a calendar file",
+      "too-large": "The calendar file is too large",
+      "vault-unavailable": "The link could not be stored securely",
+      "provider-unsupported": "This AI cannot read calendars yet",
+      "provider-missing": "The AI is not installed or did not answer",
+      "ai-failed": "AI could not read the calendar",
+      "ai-invalid": "AI gave an answer that does not add up",
+      "timeout": "Took too long",
+      "cancelled": "Stopped",
+      "login-required": "Sign in to the calendar in that Chrome profile",
+      "not-found": "Calendar not found",
+      "profile-offline": "The Chrome profile is not open",
+      "computer-busy": "Another chat is using the computer",
+      "computer-denied": "Computer Use needs permissions"
+    },
+    "grid": {
+      "allDay": "All day"
+    },
+    "event": {
+      "noTitle": "(No title)",
+      "label": "{{title}}, {{time}}",
+      "labelClash": "{{title}}, {{time}}, overlaps another call",
+      "response": "My answer",
+      "status": "Status",
+      "location": "Where",
+      "organizer": "Organizer",
+      "clashes": "Overlaps with {{titles}}",
+      "join": "Join",
+      "open": "Open in calendar"
+    },
+    "responses": {
+      "accepted": "Accepted",
+      "tentative": "Maybe",
+      "declined": "Declined",
+      "pending": "Not answered",
+      "organizer": "Organizer",
+      "unknown": "Unknown"
+    },
+    "statuses": {
+      "confirmed": "Confirmed",
+      "tentative": "Tentative",
+      "cancelled": "Cancelled"
+    },
+    "kinds": {
+      "google": {
+        "label": "Google Calendar",
+        "note": "A connected Google Calendar account, read directly",
+        "placeholder": "Personal"
+      },
+      "ics": {
+        "label": "ICS link",
+        "note": "Any calendar with a subscription link: Outlook, iCloud, Fastmail, Calendly",
+        "placeholder": "iCloud"
+      },
+      "ai-browser": {
+        "label": "AI in the browser",
+        "note": "AI opens the calendar page in your Chrome and reads it: work Outlook and the like",
+        "placeholder": "Work Outlook"
+      },
+      "ai-screen": {
+        "label": "AI on the screen",
+        "note": "AI reads a calendar app on your screen; it takes the mouse while reading",
+        "placeholder": "Outlook app"
+      }
+    },
+    "form": {
+      "newTitle": "Add calendar source",
+      "editTitle": "Edit calendar source",
+      "help": {
+        "label": "About this source",
+        "google": "Pick a Google Calendar account connected in Connectors and the calendars to show. It is read directly through Google, without AI, and refreshes every 15 minutes.",
+        "ics": "Paste a subscription link (ICS or webcal). Outlook: Settings → Calendar → Shared calendars → Publish a calendar → ICS. iCloud: share the calendar publicly. The link works like a password, so it is stored encrypted on this computer.",
+        "ai-browser": "For a calendar without a connector, such as a work Outlook. AI opens the page in your Chrome, in the profile where you are signed in, and reads the weeks ahead. It may open only that site, cannot type, answer invites or touch your tabs, and closes its tab when done. Outlook and Google move between weeks by address; turn on clicking only if your calendar cannot. Each read takes a few minutes and uses tokens, so it runs when you press Sync.",
+        "ai-screen": "AI reads a calendar app on your screen through Computer Use. It takes the mouse and keyboard while reading, with Pause and Stop at the bottom of the screen, so it runs only when you press Sync."
+      },
+      "failures": {
+        "invalid": "Something in the form is not right",
+        "not-found": "This source is gone",
+        "vault-unavailable": "Secure storage is not available: the link cannot be saved",
+        "connector-missing": "The connector is gone"
+      },
+      "problems": {
+        "name": "Give the source a name",
+        "connector": "Pick a connector",
+        "url": "Add the address",
+        "profile": "Pick the Chrome profile",
+        "app": "Name the app",
+        "provider": "Pick an AI that can read calendars"
+      },
+      "save": "Save",
+      "add": "Add",
+      "kind": "Where the calls come from",
+      "name": "Name",
+      "color": "Color",
+      "colorN": "Color {{index}}",
+      "inOverlaps": "Count in overlaps",
+      "inOverlapsNote": "Turn off for holiday and team calendars",
+      "icsUrl": "Subscription link",
+      "icsKeep": "Leave empty to keep the current link",
+      "icsNote": "The link is stored encrypted on this computer",
+      "pageUrl": "Calendar page",
+      "allowClicks": "Let AI click the calendar's buttons",
+      "allowClicksNote": "Only if the calendar has no date in its address",
+      "app": "App",
+      "noConnector": {
+        "google": "No Google Calendar account is connected yet",
+        "ics": "",
+        "ai-browser": "The Browser connector is not set up yet",
+        "ai-screen": "The Computer Use connector is not set up yet"
+      },
+      "openConnectors": "Open Connectors",
+      "connector": {
+        "google": "Google account",
+        "ics": "Connector",
+        "ai-browser": "Browser",
+        "ai-screen": "Computer"
+      },
+      "connectorOff": "Turned off",
+      "calendarsLoading": "Loading calendars…",
+      "calendars": "Calendars",
+      "primary": "Main calendar of the account",
+      "profile": "Chrome profile",
+      "noProfiles": "No Chrome profile with the Agentic Workstation extension is connected",
+      "hints": "Hints for AI",
+      "hintsPlaceholder": {
+        "google": "",
+        "ics": "",
+        "ai-browser": "For example: switch to the Work calendar, week view",
+        "ai-screen": "For example: the calendar is the second icon in the sidebar"
+      },
+      "provider": "AI",
+      "providerUnverified": "Not checked for reading calendars yet",
+      "model": "Model",
+      "defaultModel": "Default",
+      "weeks": "Read ahead",
+      "weeksN_one": "{{count}} week",
+      "weeksN_other": "{{count}} weeks"
     }
   }
 }

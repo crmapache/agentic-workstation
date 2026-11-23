@@ -1,6 +1,7 @@
 import { isProviderId } from '@shared/providers'
 import { cleanHours } from '@shared/queue-hours'
 import type {
+  RunsOn,
   QueueNap,
   QueueHold,
   QueueItem,
@@ -50,6 +51,9 @@ const answers = (value: unknown): Record<string, string> =>
       )
     : {}
 
+const parseRunsOn = (value: unknown): RunsOn[] =>
+  isRaw(value) ? [{ model: text(value.model), effort: text(value.effort) }] : []
+
 const parseItem = (value: unknown): QueueItem | null => {
   const placeholder = isRaw(value) && value.placeholder === true
 
@@ -68,6 +72,7 @@ const parseItem = (value: unknown): QueueItem | null => {
     state: oneOf(value.state, STATES, 'waiting'),
     // Причина отказа - код окна; старый код, которого окно не знает, покажется общим текстом.
     refusal: (text(value.refusal) || null) as QueueItem['refusal'],
+    ...(Array.isArray(value.runsOn) && { runsOn: value.runsOn.flatMap(parseRunsOn) }),
     ...(value.doneByHand === true && { doneByHand: true }),
     ...(placeholder && { placeholder: true }),
   }
@@ -113,24 +118,34 @@ const parseNap = (value: unknown): QueueNap | null =>
     ? { at: count(value.at), until: count(value.until), runId: text(value.runId) }
     : null
 
+/**
+ * Последнее дело очереди, которую записал выпуск без activeAt: самое позднее, что она о себе
+ * помнит, - создание, постановка сценария, остановка.
+ */
+const lastKnownDeed = (createdAt: number, items: QueueItem[], hold: QueueHold | null): number =>
+  Math.max(createdAt, hold?.at ?? 0, ...items.map((item) => item.addedAt))
+
 export const parseQueue = (value: unknown): ScenarioQueue | null => {
   if (!isRaw(value) || !text(value.id) || !text(value.projectPath)) return null
 
   const items = Array.isArray(value.items)
     ? value.items.map(parseItem).filter((item): item is QueueItem => item !== null)
     : []
+  const createdAt = count(value.createdAt)
+  const hold = parseHold(value.hold)
 
   return {
     id: text(value.id),
     projectPath: text(value.projectPath),
     name: text(value.name) || 'Queue',
     nameSource: oneOf(value.nameSource, NAME_SOURCES, 'fallback'),
-    createdAt: count(value.createdAt),
+    createdAt,
+    activeAt: count(value.activeAt) || lastKnownDeed(createdAt, items, hold),
     closedAt: count(value.closedAt),
     workdir: parseWorkdir(value.workdir),
     items,
     stopAfterItemId: text(value.stopAfterItemId),
-    hold: parseHold(value.hold),
+    hold,
     // Очередь старого выпуска часов не знала: работает в любое время.
     hours: parseHours(value.hours),
     nap: parseNap(value.nap),

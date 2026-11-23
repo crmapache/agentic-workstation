@@ -22,7 +22,37 @@ export const agentCall = (call: NativeCall): AgentCall => ({
   projectPath: call.launch?.projectPath ?? null,
   workDir: call.launch?.workDir ?? null,
   signal: call.signal,
+  pinnedProfile: call.launch?.pin?.browserProfile ?? null,
 })
+
+/** Домен хоста: два последних слова, у «co.uk» и подобных - три. */
+const siteOf = (host: string): string => {
+  const labels = host.toLowerCase().split('.')
+  const second = labels.at(-2) ?? ''
+  const short = (labels.at(-1)?.length ?? 0) === 2 && /^(co|com|org|net|gov|edu|ac)$/.test(second)
+
+  return labels.slice(short ? -3 : -2).join('.')
+}
+
+/**
+ * Можно ли процессу с закреплением (ADR 0114) открыть адрес: только https/http на сайтах из
+ * закрепления (с их доменом - Outlook ходит по поддоменам). Без закрепления - можно всё.
+ * Иначе описание встречи могло бы уговорить модель унести прочитанное в адресе чужого сайта.
+ */
+export const pinnedSiteAllows = (url: string, hosts: readonly string[] | undefined): boolean => {
+  if (!hosts?.length || url === '') return true
+
+  try {
+    const target = new URL(url)
+
+    return (
+      (target.protocol === 'https:' || target.protocol === 'http:') &&
+      hosts.some((host) => siteOf(host) === siteOf(target.hostname))
+    )
+  } catch {
+    return false
+  }
+}
 
 const tabById = (tabId: number): WantedTab => ({
   profileKey: null,
@@ -138,7 +168,17 @@ export const urlArg = (value: unknown): string => {
  * настоящему пути. Распакованное расширение по умолчанию читает file:, и без этой проверки
  * страница уговорила бы модель открыть ~/.ssh или ключи в соседней папке.
  */
-export const allowedUrl = async (url: string, workDir: string | null): Promise<string> => {
+export const allowedUrl = async (
+  url: string,
+  workDir: string | null,
+  hosts?: readonly string[],
+): Promise<string> => {
+  if (!pinnedSiteAllows(url, hosts)) {
+    throw new ArgumentError(
+      `This run may open only ${hosts?.join(', ') ?? ''} and its subdomains; ${url} is outside it.`,
+    )
+  }
+
   if (!url.startsWith('file:')) return url
 
   const path = fileURLToPath(url)

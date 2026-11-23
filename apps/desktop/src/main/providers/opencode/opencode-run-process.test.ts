@@ -104,6 +104,17 @@ type Call = { method: string; url: string; body: Record<string, unknown> | null 
 const calls = async (): Promise<Call[]> =>
   JSON.parse(await readFile(join(dir, 'calls.json'), 'utf8').catch(() => '[]')) as Call[]
 
+const launched = (servers: readonly string[]) =>
+  Promise.resolve({
+    config: '{}',
+    connectors: null,
+    servers,
+    allowedActions: [],
+    env: {},
+    compact: false,
+    release: () => undefined,
+  })
+
 const host = (servers: readonly string[] = []): OpenCodeRunHost => ({
   cli: () =>
     Promise.resolve({
@@ -117,16 +128,8 @@ const host = (servers: readonly string[] = []): OpenCodeRunHost => ({
     state: join(dir, 's'),
     cache: join(dir, 'k'),
   }),
-  launch: () =>
-    Promise.resolve({
-      config: '{}',
-      connectors: null,
-      servers,
-      allowedActions: [],
-      env: {},
-      compact: false,
-      release: () => undefined,
-    }),
+  launch: () => launched(servers),
+  launchWith: () => launched(servers),
   models: () => [
     {
       value: 'ollama/gpt-oss:20b',

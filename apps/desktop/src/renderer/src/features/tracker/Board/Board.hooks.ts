@@ -19,7 +19,7 @@ const rectOf = (node: Element): Rect => {
   return { left, top, width, height }
 }
 
-/** Зазор флекс-раскладки узла в пикселях: между колонками (column) или рядами (row). */
+/** Зазор раскладки узла (флекс или сетка) в пикселях: между колонками (column) или рядами (row). */
 const gapOf = (node: Element | null, axis: 'column' | 'row'): number => {
   if (!node) return 0
 
@@ -78,6 +78,8 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
 
   const card = under.closest<HTMLElement>('[data-card]')
   const column = under.closest<HTMLElement>('[data-group-column]')
+  // Задачи стоят столбиком в теле колонки, а не в ней самой: зазор между ними - зазор тела.
+  const body = column?.querySelector('[data-group-body]') ?? null
 
   if (card?.dataset.card && card.dataset.group !== undefined)
     return {
@@ -86,7 +88,7 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       groupId: card.dataset.group,
       followUp: card.dataset.followUp === 'true',
       rect: rectOf(card),
-      gap: gapOf(column, 'row'),
+      gap: gapOf(body, 'row'),
       chainGap: gapOf(card.parentElement, 'column'),
     }
 
@@ -97,7 +99,7 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       kind: 'group',
       id: column.dataset.groupColumn,
       end: end ? rectOf(end) : null,
-      gap: gapOf(column, 'row'),
+      gap: gapOf(body, 'row'),
     }
   }
 

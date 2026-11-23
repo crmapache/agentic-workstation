@@ -4,6 +4,15 @@ import { onlyServers } from '../opencode/connections/only-servers'
 import type { AcpConnectors } from './conversation/acp-conversation'
 import { acpOf } from './conversation/acp-conversation'
 
+/** Серверы шлюза словами ACP: HTTP с ключом процесса в заголовке. */
+export const acpServersOf = (launch: GatewayLaunch | null): AcpConnectors['servers'] =>
+  (launch?.servers ?? []).map((entry) => ({
+    type: 'http' as const,
+    name: entry.name,
+    url: entry.url,
+    headers: [{ name: 'Authorization', value: `Bearer ${launch?.token ?? ''}` }],
+  }))
+
 /**
  * Коннекторы IDE для процессов разговоров ACP (ADR 0029, 0092), как у Codex и OpenCode: серверы
  * шлюза агент получает в `session/new` (MCP по HTTP, ключ процесса - в заголовке), на диск ключ
@@ -19,7 +28,7 @@ export class AcpConnectorsBridge {
   constructor(private readonly runtimes: () => Iterable<ConversationRuntime>) {}
 
   /**
-   * Серверы шлюза словами ACP: HTTP с ключом процесса в заголовке. ideServers - свои серверы IDE
+   * Серверы шлюза проекта словами ACP. ideServers - свои серверы IDE
    * только этому процессу (инструменты поручения у прогона, ADR 0080); only - только эти серверы
    * (разовому вопросу - те, чьи инструменты ему разрешены), нет - все серверы проекта.
    */
@@ -30,15 +39,7 @@ export class AcpConnectorsBridge {
   ): AcpConnectors {
     const launch = onlyServers(this.configFor(projectPath, ideServers), only)
 
-    return {
-      launch,
-      servers: (launch?.servers ?? []).map((entry) => ({
-        type: 'http' as const,
-        name: entry.name,
-        url: entry.url,
-        headers: [{ name: 'Authorization', value: `Bearer ${launch?.token ?? ''}` }],
-      })),
-    }
+    return { launch, servers: acpServersOf(launch) }
   }
 
   serversChanged(affects: (projectPath: string) => boolean): void {

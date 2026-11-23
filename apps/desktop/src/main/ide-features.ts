@@ -7,6 +7,8 @@ import type { ProviderId } from '@shared/providers'
 import { PROVIDER_IDS } from '@shared/providers'
 import { SECOND_MS } from '@shared/time-units'
 
+import type { CalendarRuntime } from './calendar/calendar-setup'
+import { startCalendar } from './calendar/calendar-setup'
 import type { ClaudeService } from './claude/claude-service'
 import type { ConnectorsService } from './connectors/connectors-service'
 import type { DefinitionService } from './definitions/definition-service'
@@ -89,6 +91,8 @@ export type IdeFeatures = {
   tracker: TrackerRuntime
   /** Голосовой режим (ADR 0104): звонок из панели и с телефона. */
   voice: VoiceRuntime
+  /** Календарь звонков (ADR 0114): источники, синк, накладки. */
+  calendar: CalendarRuntime
   /** Выход из IDE: связь с телефонами гаснет, прогоны пишутся остановленными, база закрывается. */
   shutdown: () => Promise<void>
 }
@@ -191,6 +195,8 @@ export const startIdeFeatures = async (setup: {
       }
     }
   }
+  // Календарь - после Stop капсулы: его чтение по экрану гаснет тем же Stop.
+  const calendar = await startCalendar({ ...setup, inbox: automation.inbox })
   // Коннектор самой IDE оживает, когда поднялось всё, чем он управляет; расширения - вслед за
   // портами: их ручка ide.control зовёт те же инструменты.
   let extensions: ExtensionsRuntime | null = null
@@ -200,6 +206,7 @@ export const startIdeFeatures = async (setup: {
     scenarios,
     tasks: automation.tasks,
     tracker,
+    calendar,
     claude,
     panels: setup.panels,
     extensions: () => extensions?.service ?? null,
@@ -237,6 +244,7 @@ export const startIdeFeatures = async (setup: {
     commitPush,
     tracker,
     voice,
+    calendar,
     observeState: (provider, state) => {
       voice.service.state(provider, state)
       providers.changed(provider, state)
@@ -273,6 +281,7 @@ export const startIdeFeatures = async (setup: {
         // Расширения - первыми: их хуки и вызовы ходят в то, что гаснет ниже.
         await extensions?.shutdown().catch(warnShutdown)
         setup.connectors.workstation.ports = null
+        calendar.shutdown()
         await automation.shutdown().catch(warnShutdown)
         await remote.shutdown().catch(warnShutdown)
         await tracker.shutdown().catch(warnShutdown)

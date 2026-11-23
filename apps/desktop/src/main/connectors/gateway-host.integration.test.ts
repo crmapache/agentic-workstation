@@ -229,4 +229,38 @@ describe('GatewayHost', () => {
     expect(idled).not.toHaveBeenCalled()
     expect(ended).not.toHaveBeenCalled()
   })
+  it('процесс с допуском видит только выданный сервер, мимо проектов, и ничего больше', async () => {
+    await registry.add(
+      blankConnector({ id: 'n', kind: 'notifications', label: '', serverName: 'notifications' }),
+    )
+    const grant = {
+      tools: new Map([['only-a', ['open', 'snapshot']]]),
+      pin: { browserProfile: 'Work', hosts: ['outlook.office.com'] },
+    }
+    const launch = (await host.openGranted('/data/calendar/Calendar', grant))!
+    const servers = await serversIn(launch.path)
+
+    expect(Object.keys(servers)).toEqual(['only-a'])
+    expect(launch.allowed).toEqual(['mcp__only-a__open', 'mcp__only-a__snapshot'])
+    expect(await status(servers['only-a']!)).not.toBe(404)
+    expect(asked.at(-1)?.grant?.pin.browserProfile).toBe('Work')
+
+    const other = {
+      ...servers['only-a']!,
+      url: servers['only-a']!.url.replace('only-a', 'everywhere'),
+    }
+
+    expect(await status(other)).toBe(404)
+  })
+
+  it('выключенный коннектор по допуску не выдаётся', async () => {
+    await registry.update('only-a', { enabled: false })
+
+    const grant = {
+      tools: new Map([['only-a', ['open']]]),
+      pin: { browserProfile: null, hosts: [] },
+    }
+
+    expect(await host.openGranted('/data/calendar/Calendar', grant)).toBeNull()
+  })
 })

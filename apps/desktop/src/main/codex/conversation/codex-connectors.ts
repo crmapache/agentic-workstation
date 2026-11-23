@@ -93,12 +93,15 @@ export const codexServerNames = (
  * человека из его конфига Codex, все до одного: конфиг не правится, выключение действует
  * только на процессы IDE. Сервер - целиком одной встроенной таблицей с транспортом: таблицу
  * без него Codex отвергал («invalid transport»). С `onlyTools` у сервера шлюза - только эти
- * инструменты (`enabled_tools`), сервер без своих в нём не идёт вовсе.
+ * инструменты (`enabled_tools`), сервер без своих в нём не идёт вовсе. approved - инструменты
+ * выданы допуском шлюза (ADR 0114): Codex не спрашивает одобрения (`approve`), а без вопроса
+ * в разовом прогоне он отказал бы всему, что не только читает.
  */
 export const connectorArgs = (
   servers: readonly GatewayEntry[],
   userServers: readonly UserServer[],
   onlyTools?: ReadonlyMap<string, readonly string[]>,
+  approved = false,
 ): string[] => {
   const names = codexServerNames(servers, userServers)
 
@@ -110,10 +113,11 @@ export const connectorArgs = (
       if ((onlyTools && !tools) || !named(name)) return []
 
       const only = tools ? `, enabled_tools=${JSON.stringify(tools)}` : ''
+      const approve = approved ? ', default_tools_approval_mode="approve"' : ''
 
       return [
         '-c',
-        `mcp_servers.${name}={url=${JSON.stringify(server.url)}, bearer_token_env_var="${GATEWAY_TOKEN_ENV}"${only}}`,
+        `mcp_servers.${name}={url=${JSON.stringify(server.url)}, bearer_token_env_var="${GATEWAY_TOKEN_ENV}"${only}${approve}}`,
       ]
     }),
     ...userServers

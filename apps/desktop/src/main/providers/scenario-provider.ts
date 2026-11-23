@@ -1,5 +1,6 @@
 import type { ConversationFeed } from '@shared/conversation-feed'
 import type { ProviderId } from '@shared/providers'
+import type { RunsOn } from '@shared/scenario-queues'
 import type { ScenarioDraftOutcome } from '@shared/scenario-view'
 import type { ScenarioCode, ScenarioScope } from '@shared/scenarios'
 
@@ -55,6 +56,12 @@ export type ScenarioProvider = {
   chatIdOf: (sessionId: string) => Promise<string | null>
   /** Модель и усилие новой вкладки - на них идут пустые поля сценария. */
   defaults: () => { model: string; effort: string }
+  /**
+   * Модель и усилие, с которыми провайдер правда поднимет сессию: чужую ему модель (сценарий
+   * писали для другого провайдера) он меняет на свою по умолчанию, чужой уровень - на уровень
+   * модели. Этим очередь показывает, на чём идёт сценарий; нет - берёт как есть.
+   */
+  fitRunsOn?: ((choice: RunsOn) => RunsOn) | undefined
   accounts: EngineAccounts
   /** Короткое имя работы по её описанию; null - модель не ответила. */
   suggestTitle: (description: string) => Promise<string | null>

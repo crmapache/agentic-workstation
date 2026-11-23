@@ -6,7 +6,7 @@ import type { QueueWorkdir, ScenarioQueue } from '@shared/scenario-queues'
 import type { QueueStatus } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import { useProviders } from '../../../state/providers.queries'
-import { PROVIDER_LIST } from './QueueCard.constants'
+import { WORD_LIST } from './QueueCard.constants'
 
 /**
  * Текущее время, пока часы идут: показание прогона - в секундах, поэтому шаг CLOCK_TICK_MS.
@@ -42,7 +42,7 @@ export const useProviderLabel = (queue: ScenarioQueue): string => {
     ...new Set(queue.items.filter((item) => !item.placeholder).map((item) => item.provider)),
   ]
 
-  return PROVIDER_LIST.format(ids.map((id) => data?.find((one) => one.id === id)?.label ?? id))
+  return WORD_LIST.format(ids.map((id) => data?.find((one) => one.id === id)?.label ?? id))
 }
 
 /** Состояние очереди словом - одно для полосы, плотной карточки и выбора очереди в окне запуска. */

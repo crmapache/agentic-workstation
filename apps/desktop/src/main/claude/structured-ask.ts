@@ -45,6 +45,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 /**
+ * `--safe-mode` гасит и серверы из `--mcp-config` (проверено на Claude Code 2.1.293: init с
+ * пустым mcp_servers). Вопросу с коннекторами та же изоляция другим набором: без слоёв настроек
+ * человека (с ними уходят его хуки и плагины) и без навыков; CLAUDE.md и авто-память - окружением
+ * (`isolationEnv`).
+ */
+const MCP_ISOLATION_ARGS = ['--setting-sources', '', '--disable-slash-commands']
+
+/** Окружение вопроса: с коннекторами - без CLAUDE.md и памяти человека (их не гасит флаг). */
+export const isolationEnv = (
+  env: Record<string, string>,
+  withMcp: boolean,
+): Record<string, string> =>
+  withMcp
+    ? { ...env, CLAUDE_CODE_DISABLE_CLAUDE_MDS: '1', CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' }
+    : env
+
+/**
  * Ограда служебного процесса ИИ: ответ по схеме и только разрешённые инструменты.
  * Инструменты - белым списком (`--tools`), а не запретом лишних: запрет пропустил бы любой
  * инструмент, которого нет в списке, а модель читает чужие страницы и может получить из них
@@ -63,7 +80,7 @@ export const fenceArgs = (
   return [
     '--json-schema',
     JSON.stringify(request.schema),
-    '--safe-mode',
+    ...(request.mcpConfig ? MCP_ISOLATION_ARGS : ['--safe-mode']),
     '--restricted',
     '--strict-mcp-config',
     ...(request.mcpConfig ? ['--mcp-config', request.mcpConfig] : []),
@@ -90,9 +107,17 @@ export const askArgs = (
 export const askStructured = async (cli: ClaudeCli, request: AskRequest): Promise<AskResult> => {
   await mkdir(request.cwd, { recursive: true })
 
-  const run = await runCli(cli, askArgs(request), request.cwd, request.timeoutMs, request.prompt, {
-    signal: request.signal,
-  })
+  const fenced = { ...cli, env: isolationEnv(cli.env, Boolean(request.mcpConfig)) }
+  const run = await runCli(
+    fenced,
+    askArgs(request),
+    request.cwd,
+    request.timeoutMs,
+    request.prompt,
+    {
+      signal: request.signal,
+    },
+  )
 
   if (request.signal.aborted) return { failure: 'cancelled', detail: '', costUsd: 0 }
 

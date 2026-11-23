@@ -1,5 +1,5 @@
-import type { QueueItem, ScenarioQueue, QueueNameSource } from '@shared/scenario-queues'
-import { isItemOver } from '@shared/scenario-queues'
+import type { RunsOn, QueueItem, ScenarioQueue, QueueNameSource } from '@shared/scenario-queues'
+import { isItemOver, QUEUE_IDLE_CLOSE_MS } from '@shared/scenario-queues'
 import type { RunState } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
 
@@ -110,9 +110,43 @@ const patchItem = (
   items: queue.items.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
 })
 
-/** Элемент стартовал прогоном runId. */
-export const markStarted = (queue: ScenarioQueue, itemId: string, runId: string): ScenarioQueue =>
-  patchItem(queue, itemId, { state: 'running', runId, refusal: null })
+/** Элемент стартовал прогоном runId; runsOn - по снимку сценария, с которым прогон пошёл. */
+export const markStarted = (
+  queue: ScenarioQueue,
+  itemId: string,
+  runId: string,
+  runsOn?: RunsOn[],
+): ScenarioQueue =>
+  patchItem(queue, itemId, { state: 'running', runId, refusal: null, ...(runsOn && { runsOn }) })
+
+/**
+ * Пересчитанное «на чём идёт» элемента: с полки - только ждущему (стартовавший идёт по своему
+ * снимку, и полка ему уже не указ), по прогону - только тому, у кого записи ещё нет (очередь
+ * старого выпуска).
+ */
+export type FreshRunsOn = { itemId: string; runsOn: RunsOn[]; from: 'shelf' | 'run' }
+
+const sameRunsOn = (left: readonly RunsOn[] | undefined, right: readonly RunsOn[]): boolean =>
+  left !== undefined &&
+  left.length === right.length &&
+  left.every((one, at) => one.model === right[at]?.model && one.effort === right[at]?.effort)
+
+/** Положить пересчитанное; ничего не поменялось - та же очередь, без записи. */
+export const withRunsOn = (queue: ScenarioQueue, fresh: readonly FreshRunsOn[]): ScenarioQueue => {
+  let changed = false
+  const items = queue.items.map((item) => {
+    const next = fresh.find((one) => one.itemId === item.id)
+    const fits = next?.from === 'shelf' ? item.state === 'waiting' : !item.runsOn
+
+    if (!next || !fits || sameRunsOn(item.runsOn, next.runsOn)) return item
+
+    changed = true
+
+    return { ...item, runsOn: next.runsOn }
+  })
+
+  return changed ? { ...queue, items } : queue
+}
 
 /**
  * Элемент не стартовал: остаётся первым с причиной, очередь стоит. Выброшенный, он просто
@@ -293,6 +327,13 @@ export const renameQueue = (
 /** Закрыть можно только то, что не идёт: идущий прогон сначала останавливают. */
 export const closeQueue = (queue: ScenarioQueue, now: number): ScenarioQueue | null =>
   runningItem(queue) ? null : { ...queue, closedAt: now, stopAfterItemId: '' }
+
+/**
+ * Открытая очередь давно без дела - закрыть её самой, как кнопкой Close. Идущий прогон держит
+ * очередь открытой сколько угодно (стоит на паузе, ждёт ответа): его останавливает только человек.
+ */
+export const isIdleTooLong = (queue: ScenarioQueue, now: number): boolean =>
+  queue.closedAt === 0 && !runningItem(queue) && now - queue.activeAt >= QUEUE_IDLE_CLOSE_MS
 
 /**
  * Продолжить прогон элемента, который кончился (остановлен, упал): только последнего

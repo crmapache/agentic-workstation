@@ -16,6 +16,7 @@ export const MAIN_VIEW_IDS: readonly MainViewId[] = [
   'tracker',
   'scenarios',
   'tasks',
+  'calendar',
   'statistics',
   'connectors',
   'inbox',

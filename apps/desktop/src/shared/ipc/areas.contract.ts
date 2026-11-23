@@ -1,5 +1,7 @@
 import type { AgentEventContract, AgentInvokeContract } from './agent.contract'
 import { AGENT_EVENTS, AGENT_CHANNELS } from './agent.contract'
+import type { CalendarEventContract, CalendarInvokeContract } from './calendar.contract'
+import { CALENDAR_EVENTS, CALENDAR_CHANNELS } from './calendar.contract'
 import type { ClaudeComposerInvokeContract } from './claude-composer.contract'
 import { CLAUDE_COMPOSER_CHANNELS } from './claude-composer.contract'
 import type { ClaudePanelEventContract, ClaudePanelInvokeContract } from './claude-panel.contract'
@@ -102,7 +104,8 @@ export type AreaInvokeContract = AgentInvokeContract &
   OpenModelsInvokeContract &
   ExtensionsInvokeContract &
   ExtensionStoreInvokeContract &
-  TrackerInvokeContract
+  TrackerInvokeContract &
+  CalendarInvokeContract
 
 export type AreaEventContract = AgentEventContract &
   ClaudeTabsEventContract &
@@ -128,7 +131,8 @@ export type AreaEventContract = AgentEventContract &
   InboxEventContract &
   OpenModelsEventContract &
   ExtensionsEventContract &
-  TrackerEventContract
+  TrackerEventContract &
+  CalendarEventContract
 
 /** Каналы областей в рантайме: их разворачивает INVOKE_CHANNELS. */
 export const AREA_CHANNELS = {
@@ -163,6 +167,7 @@ export const AREA_CHANNELS = {
   ...EXTENSIONS_CHANNELS,
   ...EXTENSION_STORE_CHANNELS,
   ...TRACKER_CHANNELS,
+  ...CALENDAR_CHANNELS,
 } satisfies Record<keyof AreaInvokeContract, true>
 
 /** События областей: их разворачивает EVENT_CHANNELS. */
@@ -192,4 +197,5 @@ export const AREA_EVENTS = {
   ...OPEN_MODELS_EVENTS,
   ...EXTENSIONS_EVENTS,
   ...TRACKER_EVENTS,
+  ...CALENDAR_EVENTS,
 } satisfies Record<keyof AreaEventContract, true>

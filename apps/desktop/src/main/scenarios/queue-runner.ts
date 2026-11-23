@@ -16,8 +16,10 @@ import { launchRun, carryOnRun } from './launch-run'
 import { QueueHoursKeeper } from './queue-hours-keeper'
 import { QueueNaming } from './queue-naming'
 import { shortId, placeItem, placePlaceholder } from './queue-placing'
+import { refreshRunsOn } from './queue-runs-on'
 import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
+import { runsOnOf } from './runs-on'
 import type { QueueBook } from './queues/queue-book'
 import { setHours, forgetNapRun } from './queues/queue-nap'
 import * as rules from './queues/queue-rules'
@@ -241,6 +243,26 @@ export class QueueRunner {
     return null
   }
 
+  /**
+   * Закрыть открытые очереди, в которых две недели ничего не происходит (rules.isIdleTooLong), -
+   * тем же путём, что кнопка Close: пустой worktree уходит вместе с ней. Очередь посреди шага не
+   * трогается: шаг мог как раз поднимать её сценарий.
+   */
+  async closeIdle(now = Date.now()): Promise<void> {
+    for (const queue of this.host.book.all()) {
+      if (rules.isIdleTooLong(queue, now) && !this.stepping.has(queue.id)) {
+        await this.act(queue.id, { kind: 'close' })
+      }
+    }
+  }
+
+  /** Удар часов сервиса: закрыть давно стоящие очереди, остальным - шаг (страховка таймеров). */
+  async beat(): Promise<void> {
+    await this.closeIdle()
+
+    for (const queue of this.host.book.all()) await this.step(queue.id)
+  }
+
   /** Подхватить остановленный прогон элемента: только последний прошедший, пока за ним пусто. */
   async carryOn(runId: string): Promise<ScenarioCode | null> {
     const found = this.host.book.byRun(runId)
@@ -272,6 +294,11 @@ export class QueueRunner {
     this.host.onQueues()
 
     return null
+  }
+
+  /** Пересчитать, на чём идут элементы открытых очередей (queue-runs-on.ts). */
+  refreshRunsOn(): Promise<void> {
+    return refreshRunsOn(this.host)
   }
 
   /** Имя от ИИ - см. QueueNaming: принимается ответ только на свежий вопрос. */
@@ -316,8 +343,8 @@ export class QueueRunner {
     const provider = this.host.provider(item.provider)
     const runId = shortId()
     const cwd = workdirOf(passed)
-    const refusal: ScenarioCode | null = !cwd
-      ? 'worktreeFailed'
+    const launched = !cwd
+      ? { code: 'worktreeFailed' as const }
       : provider
         ? await launchRun(this.host.desk(passed.projectPath), provider, {
             id: item.scenarioId,
@@ -329,16 +356,17 @@ export class QueueRunner {
             queueId,
             itemId: item.id,
           })
-        : 'providerMissing'
+        : { code: 'providerMissing' as const }
     const latest = this.host.book.get(queueId) ?? passed
-    const next = refusal
-      ? rules.markRefused(latest, item.id, refusal, Date.now())
-      : rules.markStarted(latest, item.id, runId)
+    const next =
+      'code' in launched
+        ? rules.markRefused(latest, item.id, launched.code, Date.now())
+        : rules.markStarted(latest, item.id, runId, runsOnOf(launched.snapshot, provider))
 
     this.host.book.put(next)
     this.host.onQueues()
 
-    if (refusal) this.sayHold(latest, next)
+    if ('code' in launched) this.sayHold(latest, next)
   }
 
   private applied(queue: ScenarioQueue, action: QueueAction): ScenarioQueue | null {

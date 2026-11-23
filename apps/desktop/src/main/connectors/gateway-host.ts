@@ -4,8 +4,9 @@ import type { LiveConnector } from './connector-live'
 import type { ConnectorRegistry } from './connector-registry'
 import { ConnectorGateway } from './gateway/gateway'
 import type { GatewayServer } from './gateway/gateway'
+import { grantedServer } from './gateway/granted'
 import { GatewayLaunches } from './gateway/launches'
-import type { Launch, McpLaunch, GatewayLaunch } from './gateway/launches'
+import type { Launch, McpLaunch, LaunchGrant, GatewayLaunch } from './gateway/launches'
 import type { GatewayEntry } from './gateway/mcp-config'
 import { WORKSTATION_READ_TOOLS } from './kinds/workstation/workstation-tools'
 
@@ -56,15 +57,22 @@ export class GatewayHost {
         resolve: (name, launch) => {
           const own = this.ide.get(name)
 
-          if (own) return own(launch)
+          if (own && !launch.grant) return own(launch)
 
           const connector = registry.byServer(name)
+          // Процесс с допуском видит только выданное, мимо доступности по проектам.
+          const granted = launch.grant?.tools.get(name)
 
-          if (!connector || !isAvailableIn(connector.availability, launch.projectPath)) {
+          if (
+            !connector ||
+            (launch.grant ? !granted : !isAvailableIn(connector.availability, launch.projectPath))
+          ) {
             return null
           }
 
-          return live(connector.id)?.gatewayServer(launch) ?? null
+          const server = live(connector.id)?.gatewayServer(launch) ?? null
+
+          return server && granted ? grantedServer(server, granted) : server
         },
       },
       version,
@@ -106,6 +114,41 @@ export class GatewayHost {
     const plan = this.planFor(projectPath, ideServers)
 
     return plan && this.launches.issueInMemory(projectPath, plan.entries, plan.allowed)
+  }
+
+  /**
+   * Процесс с допуском (ADR 0114): только выданные серверы и инструменты, все - без вопроса
+   * человеку (их выбрал он сам, настраивая источник), ни уведомлений, ни самой IDE. Выключенный
+   * коннектор не выдаётся. Нечего выдать - null.
+   */
+  openGranted(workDir: string, grant: LaunchGrant): Promise<McpLaunch | null> {
+    const plan = this.grantedPlan(grant)
+
+    return plan
+      ? this.launches.issue(workDir, plan.entries, plan.allowed, grant)
+      : Promise.resolve(null)
+  }
+
+  /** То же без файла - процессу, который берёт серверы флагами (Codex, ACP, OpenCode). */
+  openGrantedInMemory(workDir: string, grant: LaunchGrant): GatewayLaunch | null {
+    const plan = this.grantedPlan(grant)
+
+    return plan && this.launches.issueInMemory(workDir, plan.entries, plan.allowed, grant)
+  }
+
+  private grantedPlan(grant: LaunchGrant): { entries: GatewayEntry[]; allowed: string[] } | null {
+    const entries = this.registry.connectors.flatMap((connector) => {
+      const url = this.gateway.urlOf(connector.serverName)
+
+      return url && connector.enabled && grant.tools.has(connector.serverName)
+        ? [{ name: connector.serverName, url }]
+        : []
+    })
+    const allowed = entries.flatMap(({ name }) =>
+      (grant.tools.get(name) ?? []).map((tool) => `mcp__${name}__${tool}`),
+    )
+
+    return entries.length ? { entries, allowed } : null
   }
 
   private planFor(

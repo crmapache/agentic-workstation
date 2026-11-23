@@ -68,7 +68,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * другого провайдера), - модель Codex по умолчанию; каталога ещё нет - решает сам Codex. Чужой
  * уровень не шлётся - берётся уровень модели по умолчанию.
  */
-const choiceOf = (spec: SessionSpec, models: readonly ModelInfo[]) => {
+export const choiceOf = (
+  spec: Pick<SessionSpec, 'model' | 'effort'>,
+  models: readonly ModelInfo[],
+): { model: string | null; effort: string | null } => {
   const known = models.find((one) => one.value === spec.model)
   const model = known ?? models.find((one) => one.isDefault) ?? models[0] ?? null
   const levels = model?.efforts ?? CODEX_EFFORT_LEVELS
