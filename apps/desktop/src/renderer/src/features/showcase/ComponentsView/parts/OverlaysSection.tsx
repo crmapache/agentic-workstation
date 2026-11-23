@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FilePlus, FolderOpen } from 'lucide-react'
+import { Eye, Globe, FileCode, FilePlus, FolderOpen, SquareArrowOutUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
@@ -9,6 +9,7 @@ import { DropdownButton } from '@agentic-workstation/ui/DropdownButton'
 import { Lightbox } from '@agentic-workstation/ui/Lightbox'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
+import { MenuSubmenu } from '@agentic-workstation/ui/MenuSubmenu'
 import { Popover } from '@agentic-workstation/ui/Popover'
 import { usePopover } from '@agentic-workstation/ui/Popover.hooks'
 import { TextField } from '@agentic-workstation/ui/TextField'
@@ -20,10 +21,10 @@ import { ModalSpecimen } from './ModalSpecimen'
 import { ToastSpecimen } from './ToastSpecimen'
 
 /**
- * Раздел «Оверлеи»: уведомления (крестик, отсчёт, прогресс), живая всплывающая панель с меню,
- * модальный диалог - с затемнением окна и без, окно с содержимым двух ширин и просмотр картинки
- * (со строкой под ней и крестиком под палец - как на телефоне). Всё настоящее - открывается,
- * закрывается по Esc и клику мимо.
+ * Раздел «Оверлеи»: уведомления (крестик, отсчёт, прогресс), живая всплывающая панель с меню и
+ * меню сбоку (доступные пункты и погашенный), модальный диалог - с затемнением окна и без, окно с
+ * содержимым двух ширин и просмотр картинки (со строкой под ней и крестиком под палец - как на
+ * телефоне). Всё настоящее - открывается, закрывается по Esc и клику мимо.
  */
 export const OverlaysSection = () => {
   const { t } = useTranslation('showcase')
@@ -55,6 +56,28 @@ export const OverlaysSection = () => {
                 label={t('samples.openFile')}
                 onSelect={() => undefined}
               />
+              <MenuSubmenu
+                icon={SquareArrowOutUpRight}
+                label={t('samples.openWith')}
+                menuLabel={t('samples.openWithMenu')}>
+                <MenuItem
+                  icon={FileCode}
+                  label={t('samples.openWithEditor')}
+                  onSelect={() => undefined}
+                />
+                <MenuItem
+                  icon={Globe}
+                  label={t('samples.openWithBrowser')}
+                  onSelect={() => undefined}
+                />
+                <MenuItem
+                  icon={Eye}
+                  label={t('samples.openWithUnavailable')}
+                  description={t('samples.notInstalled')}
+                  disabled
+                  onSelect={() => undefined}
+                />
+              </MenuSubmenu>
             </Menu>
           )}
         </Popover>

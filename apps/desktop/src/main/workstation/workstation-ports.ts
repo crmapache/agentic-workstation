@@ -36,6 +36,7 @@ export const workstationPorts = (setup: {
       board: (place) => setup.tracker.tracker.board(place),
       apply: (place, op) => setup.tracker.tracker.apply(place, op),
       send: (place, request) => setup.tracker.runs.send(place, request),
+      pathsOf: (id) => setup.tracker.tracker.pathsOf(id),
     },
     panels: () => panels.list(),
     extensions: setup.extensions,

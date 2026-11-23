@@ -1,6 +1,7 @@
 import type { DraftChip, DraftToken, MessageDraft } from '@shared/message-draft'
 
 import {
+  REPLAY_CARD,
   REPLAY_RANGE,
   QUOTATION_MIN,
   REPLAY_COMMAND,
@@ -162,10 +163,28 @@ const plainTokens = (text: string, said: string, quoted: { count: number }): Dra
   return tokens
 }
 
+/** Куски файла с текстом («Send to Chat») - целиком: кавычки и «@» внутри кода - часть кода. */
+const snippetTokens = (text: string, said: string, quoted: { count: number }): DraftToken[] => {
+  const tokens: DraftToken[] = []
+  let at = 0
+
+  for (const match of text.matchAll(REPLAY_SNIPPET)) {
+    const [whole, path = '', range = '', , snippet = ''] = match
+
+    tokens.push(...plainTokens(text.slice(at, match.index), said, quoted))
+    tokens.push(chipToken({ kind: 'ref', value: path, range, text: snippet }))
+    at = match.index + whole.length
+  }
+
+  tokens.push(...plainTokens(text.slice(at), said, quoted))
+
+  return tokens
+}
+
 /**
  * Текст сообщения обратно кусками. answered - что агент уже сказал в разговоре: по
- * нему кавычки отличаются от цитаты ответа. Куски файла с текстом («Send to Chat») узнаются
- * первыми, целиком: кавычки и «@» внутри кода - часть кода.
+ * нему кавычки отличаются от цитаты ответа. Карточки трекера и куски файла с текстом узнаются
+ * первыми, целиком: кавычки, «@» и код внутри описания карточки - часть карточки.
  */
 export const replayedDraft = (text: string, answered: readonly string[] = []): MessageDraft => {
   const { quotes, body } = takeQuotedLines(text)
@@ -175,15 +194,15 @@ export const replayedDraft = (text: string, answered: readonly string[] = []): M
   const quoted = { count: 0 }
   let at = 0
 
-  for (const match of head.rest.matchAll(REPLAY_SNIPPET)) {
-    const [whole, path = '', range = '', , snippet = ''] = match
+  for (const match of head.rest.matchAll(REPLAY_CARD)) {
+    const [whole, cardId = '', card = ''] = match
 
-    tokens.push(...plainTokens(head.rest.slice(at, match.index), said, quoted))
-    tokens.push(chipToken({ kind: 'ref', value: path, range, text: snippet }))
+    tokens.push(...snippetTokens(head.rest.slice(at, match.index), said, quoted))
+    tokens.push(chipToken({ kind: 'card', value: cardId, text: card }))
     at = match.index + whole.length
   }
 
-  tokens.push(...plainTokens(head.rest.slice(at), said, quoted))
+  tokens.push(...snippetTokens(head.rest.slice(at), said, quoted))
 
   return { tokens: merge(tokens), quotes }
 }

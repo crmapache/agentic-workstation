@@ -43,6 +43,8 @@ export type TrackerPort = {
   board: (place: TrackerPlace) => Promise<TrackerBoard>
   apply: (place: TrackerPlace, op: TrackerOp) => Promise<TrackerOutcome>
   send: (place: TrackerPlace, request: TrackerSendRequest) => Promise<TrackerSendOutcome>
+  /** Пути проектов, на чьей доске лежит запись; доски никому не заводит. */
+  pathsOf: (id: string) => string[]
 }
 
 /**

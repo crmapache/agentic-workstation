@@ -1,6 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
 import type { DraftToken } from '@shared/message-draft'
+import { cardChip } from '@shared/tracker-link'
 
 import { chipLabel, chipTitle, collapsesPaste, truncateMiddle } from './chips.utils'
 import { clipboardHtml, clipboardTextOf, clipboardTokens } from './draft-clipboard.utils'
@@ -68,6 +69,27 @@ describe('черновик для модели', () => {
     expect(replayedDraft(sent).tokens).toEqual(snippet)
   })
 
+  it('карточка трекера - ссылка и текст карточки в теге, из транскрипта - снова чип', () => {
+    const card = cardChip({
+      id: 'c-1',
+      title: 'Fix the warning',
+      subtitle: '',
+      description: 'See "the log" at @src/a.ts\n```sh\nnpm test\n```',
+    })
+    const sent: DraftToken[] = [
+      { kind: 'chip', chip: card },
+      { kind: 'text', value: 'start with tests' },
+    ]
+    const text = tokensText(sent, 0)
+
+    expect(text).toBe(
+      '<tracker-card link="aw://tracker/card/c-1">\nFix the warning\n\nSee "the log" at @src/a.ts\n```sh\nnpm test\n```\n</tracker-card>\nstart with tests',
+    )
+    expect(replayedDraft(text, ['the log is long enough to be a quotation here']).tokens).toEqual(
+      sent,
+    )
+  })
+
   it('чип в конец - с пробелами, чтобы не слипся со словом', () => {
     expect(appendChip([{ kind: 'text', value: 'see' }], { kind: 'quote', value: 'ref1' })).toEqual([
       { kind: 'text', value: 'see' },
@@ -88,6 +110,18 @@ describe('чипы', () => {
     )
   })
 
+  it('у карточки - заголовок, длинный режется в конце; подсказка - начало текста', () => {
+    const card = cardChip({
+      id: 'c-1',
+      title: 'Find out why the Runner drops the first stage of the run',
+      subtitle: 'Runner',
+      description: '',
+    })
+
+    expect(chipLabel(card)).toBe('Find out why the Runner drops the f…')
+    expect(chipTitle(card)).toBe('Find out why the Runner drops the first stage of the run\nRunner')
+  })
+
   it('вставка сворачивается по строкам, «никогда» - кроме огромной', () => {
     expect(collapsesPaste('a\nb', 2)).toBe(true)
     expect(collapsesPaste('one line', 2)).toBe(false)
@@ -104,6 +138,12 @@ describe('буфер обмена', () => {
     )
     expect(clipboardTokens(clipboardHtml(tokens))).toEqual(tokens)
     expect(clipboardTokens('<b>someone else</b>')).toBeNull()
+  })
+
+  it('карточка в тексте буфера - ссылка на неё', () => {
+    const card = cardChip({ id: 'c-1', title: 'Fix', subtitle: '', description: '' })
+
+    expect(clipboardTextOf([{ kind: 'chip', chip: card }])).toBe('aw://tracker/card/c-1')
   })
 })
 

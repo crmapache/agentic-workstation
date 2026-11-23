@@ -9,6 +9,7 @@ import type {
   TrackerArchived,
   TrackerScenario,
 } from '@shared/tracker'
+import { cardLink } from '@shared/tracker-link'
 
 import { repeatView, autoRunView } from './tracker-repeat-args'
 import { timeOf } from './workstation-args'
@@ -136,6 +137,40 @@ export const locate = (board: TrackerBoard, id: string): Spot | null => {
   return followUp
     ? { view: cardView(followUp), parentId: chain.groupId, chainOf: chain.task.id }
     : null
+}
+
+const placedTasks = (board: TrackerBoard) =>
+  board.projects.flatMap((project) =>
+    project.flows.flatMap((flow) =>
+      flow.groups.flatMap((group) => group.tasks.map((task) => ({ project, flow, group, task }))),
+    ),
+  )
+
+const titled = (one: { id: string; title: string }) => ({ id: one.id, title: one.title })
+
+/**
+ * Одна карточка по ссылке из чата (tracker_card, ADR 0113): сама карточка (у задачи - с
+ * продолжениями, у продолжения - задача, чьё оно), где лежит и ссылка. Путь проекта - чтобы
+ * правка карточки из чужого проекта назвала её доску. null - на открытой части доски её нет.
+ */
+export const cardPlaceView = (board: TrackerBoard, id: string) => {
+  const spot = placedTasks(board).find(
+    ({ task }) => task.id === id || task.followUps.some((one) => one.id === id),
+  )
+
+  if (!spot) return null
+
+  const followUp = spot.task.followUps.find((one) => one.id === id)
+
+  return {
+    ...(followUp ? cardView(followUp) : taskView(spot.task)),
+    ...(followUp && { follow_up_of: titled(spot.task) }),
+    link: cardLink(id),
+    project_path: board.projectPath,
+    tracker_project: titled(spot.project),
+    flow: titled(spot.flow),
+    group: titled(spot.group),
+  }
 }
 
 /** Куда встаёт запись: вкладки, потоки проекта, группы потока, задачи группы, цепочка задачи. */

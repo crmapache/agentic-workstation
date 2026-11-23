@@ -7,9 +7,9 @@
 
 /**
  * Вид вложения: файл, картинка, папка, команда, кусок файла из редактора, цитата из
- * ответа и свёрнутая длинная вставка.
+ * ответа, свёрнутая длинная вставка и карточка трекера (ADR 0113).
  */
-export type ChipKind = 'file' | 'img' | 'dir' | 'cmd' | 'ref' | 'quote' | 'paste'
+export type ChipKind = 'file' | 'img' | 'dir' | 'cmd' | 'ref' | 'quote' | 'paste' | 'card'
 
 export const CHIP_KINDS: readonly ChipKind[] = [
   'file',
@@ -19,13 +19,14 @@ export const CHIP_KINDS: readonly ChipKind[] = [
   'ref',
   'quote',
   'paste',
+  'card',
 ]
 
 export type DraftChip = {
   kind: ChipKind
   /**
    * Что за вложением: путь (от корня проекта или абсолютный), «Image #3» у вставленной
-   * картинки, имя команды без «/», «ref1» у цитаты, «pasted» у вставки.
+   * картинки, имя команды без «/», «ref1» у цитаты, «pasted» у вставки, id карточки трекера.
    */
   value: string
   /** Строки у куска файла из редактора: «L12-L18». */
@@ -34,7 +35,7 @@ export type DraftChip = {
   data?: string | undefined
   /** Куда байты вставленной картинки записаны на диск: путь для копии и после перезапуска. */
   path?: string | undefined
-  /** Полный текст цитаты или свёрнутой вставки: он и уходит модели. */
+  /** Полный текст цитаты, свёрнутой вставки или карточки трекера: он и уходит модели. */
   text?: string | undefined
 }
 

@@ -2,6 +2,7 @@ import type { ImageMediaType, ImageAttachment } from '@shared/conversation'
 import { IMAGE_MEDIA_TYPES } from '@shared/conversation'
 import type { DraftChip, DraftQuote, DraftToken, MessageDraft } from '@shared/message-draft'
 import type { ProviderId } from '@shared/providers'
+import { cardLink } from '@shared/tracker-link'
 
 import type { ComposerDraft } from './draft.types'
 
@@ -49,6 +50,14 @@ export const referenceText = (chip: DraftChip): string => {
   return `${place}:\n${fence}\n${chip.text}\n${fence}\n`
 }
 
+/**
+ * Карточка трекера (ADR 0113): ссылка - чтобы модель перечитала и отметила её (tracker_card), и
+ * текст карточки внутри тега - Markdown описания остаётся Markdown, а не блоком кода. Тег
+ * кончается переводом строки - слова после чипа идут уже под ним.
+ */
+export const cardReferenceText = (chip: DraftChip): string =>
+  `<tracker-card link="${cardLink(chip.value)}">\n${chip.text ?? ''}\n</tracker-card>\n`
+
 /** Вложение внутри строки - ровно то, что модель увидит на его месте. */
 export const tokenText = (token: DraftToken): string => {
   if (token.kind === 'text') return token.value
@@ -61,6 +70,7 @@ export const tokenText = (token: DraftToken): string => {
   if (chip.kind === 'quote') return `"${chip.text ?? ''}"`
   // Свёрнутая вставка - ровно вставленный текст: свёрнута она только на экране.
   if (chip.kind === 'paste') return chip.text ?? ''
+  if (chip.kind === 'card') return cardReferenceText(chip)
   // Картинка без байтов выбрана файлом - обычная ссылка, которую модель прочтёт.
   return `@${chip.value}`
 }

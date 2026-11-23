@@ -28,7 +28,9 @@
     }
   }
 
-  &:focus-within .actions {
+  // Открытое меню «⋯» держит кнопки на виду: курсор ушёл в меню, а кнопка, чьё оно, не гаснет.
+  &:focus-within .actions,
+  .actions:has(:popover-open) {
     opacity: 1;
     pointer-events: auto;
   }

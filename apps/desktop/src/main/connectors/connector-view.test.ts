@@ -221,6 +221,7 @@ describe('instructionsFor', () => {
     // Раскладка трекера (ADR 0111) - в пояснении: описания инструментов модель видит не сразу.
     expect(text).toContain('Steps of one job are tasks of one group')
     expect(text).toContain('suggest a new flow and wait for a yes')
+    expect(text).toContain('aw://tracker/card/<id> is a tracker card')
     expect(text).toContain(description)
   })
 

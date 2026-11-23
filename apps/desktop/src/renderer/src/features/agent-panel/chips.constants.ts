@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Image, Quote, SquareSlash, ClipboardList } from 'lucide-react'
+import { Image, Quote, SquareSlash, SquareKanban, ClipboardList } from 'lucide-react'
 
 import type { ChipKind } from '@shared/message-draft'
 
@@ -13,6 +13,9 @@ export const MAX_LABEL_LENGTH = 28
 /** Сколько слов цитаты и вставки видно на чипе. */
 export const QUOTE_PREVIEW_WORDS = 5
 export const PASTE_PREVIEW_WORDS = 7
+
+/** Сколько знаков заголовка карточки трекера видно на чипе. */
+export const CARD_LABEL_CHARS = 36
 
 /** Потолок подписи вставки символами: одно «слово» бывает адресом без пробелов. */
 export const PASTE_PREVIEW_CHARS = 40
@@ -35,10 +38,11 @@ export const CHIP_PATH_KINDS: Record<PathChipKind, FileIconKind> = {
   dir: 'folder',
 }
 
-/** Значок чипа без пути: картинка, команда, цитата, вставка. */
+/** Значок чипа без пути: картинка, команда, цитата, вставка, карточка (значок вида трекера). */
 export const CHIP_ICONS: Record<Exclude<ChipKind, PathChipKind>, LucideIcon> = {
   img: Image,
   cmd: SquareSlash,
   quote: Quote,
   paste: ClipboardList,
+  card: SquareKanban,
 }

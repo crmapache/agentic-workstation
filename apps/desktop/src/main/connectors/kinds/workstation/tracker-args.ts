@@ -42,8 +42,10 @@ export const trackerPlaceOf = (
   args: Record<string, unknown>,
   call: NativeCall,
   ports: WorkstationPorts,
-): TrackerPlace => {
-  const rootPath = projectOf(args, call, ports.projects)
+): TrackerPlace => placeOfPath(projectOf(args, call, ports.projects), ports)
+
+/** Доска по пути проекта: имя и отметка дома - у открытого или недавнего, иначе имя папки. */
+export const placeOfPath = (rootPath: string, ports: WorkstationPorts): TrackerPlace => {
   const state = ports.projects.state()
   const open = state.projects.find((project) => project.rootPath === rootPath)
   const ref = open ?? state.recentProjects.find((project) => project.rootPath === rootPath)

@@ -12,7 +12,8 @@ import type { MenuItemProps } from './MenuItem.types'
  * справа (объяснение во второй строке - с переносом, wrapDescription). Выбор закрывает
  * всплывающую панель, в которой пункт стоит (с keepOpen - нет: дальше следующий шаг). С selection -
  * вариант выбора с отметкой (вопрос с вариантами ответа). С iconTone и chevron -
- * строка бокового меню: иконка в плитке, значение справа, стрелка на следующий экран.
+ * строка бокового меню: иконка в плитке, значение справа, стрелка на следующий экран. С expanded -
+ * пункт, за которым меню сбоку (его ставит MenuSubmenu).
  */
 export const MenuItem = ({
   label,
@@ -29,10 +30,13 @@ export const MenuItem = ({
   selection,
   checked = false,
   keepOpen = false,
+  expanded,
   onSelect,
 }: MenuItemProps) => {
+  const opensMenu = expanded !== undefined
+
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (selection !== 'multiple' && !keepOpen)
+    if (selection !== 'multiple' && !keepOpen && !opensMenu)
       event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover()
     onSelect()
   }
@@ -56,7 +60,13 @@ export const MenuItem = ({
       disabled={disabled}
       aria-current={current || undefined}
       aria-checked={selection ? checked : undefined}
-      className={clsx(styles.menuItem, (current || (selection && checked)) && styles.current)}
+      aria-haspopup={opensMenu ? 'menu' : undefined}
+      aria-expanded={expanded}
+      className={clsx(
+        styles.menuItem,
+        (current || (selection && checked)) && styles.current,
+        expanded && styles.expanded,
+      )}
       onClick={handleClick}>
       <span className={clsx(styles.visual, iconTone && [styles.tile, styles[iconTone]])}>
         {visual}
@@ -74,7 +84,7 @@ export const MenuItem = ({
           {hint}
         </span>
       )}
-      {chevron && (
+      {(chevron || opensMenu) && (
         <ChevronRight
           className={styles.chevron}
           size={MENU_ICON_SIZE}

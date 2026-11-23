@@ -66,10 +66,11 @@ export const trackerKit = async (
 
 /**
  * Трекер со связкой очередей на подставных сценариях (время - 7000) и группой «Неделя 1»: card -
- * карточка в ней, со сценарием fix (bound) или без. Закрыть - service.close().
+ * карточка в ней, со сценарием fix (bound) или без; now - часы трекера (без него - настоящие).
+ * Закрыть - service.close().
  */
-export const runsKit = async (shelf: Scenario[]) => {
-  const kit = await trackerKit()
+export const runsKit = async (shelf: Scenario[], now?: () => number) => {
+  const kit = await trackerKit(now ? { now } : {})
   const fake = scenariosFake(shelf)
   const runs = new TrackerRuns(kit.service, fake.port, () => 7000)
   const projectId = await kit.make({ kind: 'project.create', title: 'P' })

@@ -5,6 +5,7 @@ import { baseName } from '../../lib/path.utils'
 import {
   TITLE_LINES,
   CHIP_PATH_KINDS,
+  CARD_LABEL_CHARS,
   MAX_LABEL_LENGTH,
   PASTE_SCAN_CHARS,
   TITLE_LINE_CHARS,
@@ -45,11 +46,22 @@ const pastePreview = (text: string): string => {
   return `${words.slice(0, PASTE_PREVIEW_WORDS).join(' ').slice(0, PASTE_PREVIEW_CHARS)}…`
 }
 
-/** Подпись на самом чипе: имя файла (путь целиком - в тексте модели), начало цитаты. */
+/** Заголовок карточки - первая строка её текста; длинный режется в конце, начало важнее. */
+const cardPreview = (text: string): string => {
+  const title = text.split('\n', 1)[0]?.trim() ?? ''
+
+  return title.length > CARD_LABEL_CHARS ? `${title.slice(0, CARD_LABEL_CHARS - 1)}…` : title
+}
+
+/**
+ * Подпись на самом чипе: имя файла (путь целиком - в тексте модели), начало цитаты, заголовок
+ * карточки.
+ */
 export const chipLabel = (chip: DraftChip): string => {
   if (chip.kind === 'quote') return `${chip.value}: ${quotePreview(chip.text ?? '')}`
   if (chip.kind === 'paste') return pastePreview(chip.text ?? '')
   if (chip.kind === 'cmd') return `/${chip.value}`
+  if (chip.kind === 'card') return cardPreview(chip.text ?? '')
 
   const name = truncateMiddle(baseName(chip.value))
 
@@ -90,7 +102,8 @@ export const chipTitle = (chip: DraftChip): string => {
     return text.length > QUOTE_TITLE_CHARS ? `${text.slice(0, QUOTE_TITLE_CHARS)}…` : text
   }
 
-  if (chip.kind === 'paste') return hintPreview(chip.text ?? '')
+  // Вставка и карточка: под курсором - начало того, что уедет модели.
+  if (chip.kind === 'paste' || chip.kind === 'card') return hintPreview(chip.text ?? '')
 
   const title = chip.range ? `${chip.value} ${chip.range}` : chip.value
 

@@ -1,12 +1,13 @@
 import type { TrackerOp } from '@shared/tracker'
+import { cardIdOf } from '@shared/tracker-link'
 
-import { stringArg } from '../native-tools'
+import { stringArg, ArgumentError } from '../native-tools'
 import type { NativeTool } from '../native-tools'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
-import { noMove, present, textArg, savedView, trackerPlaceOf } from './tracker-args'
+import { noMove, present, textArg, savedView, placeOfPath, trackerPlaceOf } from './tracker-args'
 import { TRACKER_CARD_TOOLS } from './tracker-card-tools'
 import { TRACKER_MOVE_TOOLS } from './tracker-move-tools'
-import { boardView } from './tracker-views'
+import { boardView, cardPlaceView } from './tracker-views'
 import { PROJECT_ARG } from './workstation-args'
 import { trackerError } from './workstation-words'
 
@@ -87,6 +88,46 @@ export const TRACKER_TOOLS: NativeTool<WorkstationPorts>[] = [
         throw trackerError('notFound', 'tracker_project_id')
 
       return boardView(board, only)
+    },
+  },
+  {
+    name: 'tracker_card',
+    description: [
+      'One tracker card by its link aw://tracker/card/<id> or its id: the user puts such links into the chat to point at a card (to implement it, to discuss it).',
+      'Gives the card (a task with its follow-ups, a follow-up with the task it follows), its link and where it lies: project_path, tracker project, flow and group.',
+      'The card is looked for on every board this conversation may see, its own project first; project narrows it to one board.',
+      'To change the card, pass its id and its project_path as project to the other tracker_* tools.',
+    ].join(' '),
+    access: 'read',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card: { type: 'string', description: 'The link aw://tracker/card/<id> or the card id.' },
+        project: PROJECT_ARG,
+      },
+      required: ['card'],
+    },
+    run: async (args, ports, call) => {
+      const id = cardIdOf(stringArg(args, 'card', true))
+      const own = call.launch?.projectPath
+      // Без проекта - только доски, где карточка правда лежит: board завёл бы доску каждому.
+      const places =
+        args['project'] === undefined
+          ? ports.tracker
+              .pathsOf(id)
+              .sort((a, b) => Number(b === own) - Number(a === own))
+              .map((path) => placeOfPath(path, ports))
+          : [trackerPlaceOf(args, call, ports)]
+
+      for (const place of places) {
+        const view = cardPlaceView(await ports.tracker.board(place), id)
+
+        if (view) return view
+      }
+
+      throw new ArgumentError(
+        'card: no such card on the boards this conversation may see - it was deleted, or its project is closed to this conversation.',
+      )
     },
   },
   {

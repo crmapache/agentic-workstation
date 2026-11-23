@@ -540,7 +540,13 @@ xterm.js (`features/terminal`), место в колонке - `workbench/Termin
 инструментами `tracker_*` коннектора `workstation` и раскладывает работу по словам IDE
 ([ADR 0111](adr/0111-tracker-layout-rules-for-ai.md)): шаги одной работы - задачи одной группы,
 продолжение - проверка после выполненной задачи, новый поток и проект трекера - только с
-согласия человека. Каналы - `tracker:*`, `cloud:*`
+согласия человека. Карточка уходит в чат ИИ ([ADR 0113](adr/0113-tracker-card-link-in-chat.md)):
+«Implement» в меню карточки - чипом `card` в новый разговор выбранного провайдера
+(`ChatHandoff.provider` и `fresh`, решение панели - `handoffStep`; список - кнопки правой полосы,
+меню сбоку - `MenuSubmenu`), «Copy link» - ссылкой
+`aw://tracker/card/<id>` (`shared/tracker-link.ts`) и чипом в text/html буфера
+(`lib/draft-clipboard.ts`); по ссылке ИИ читает карточку инструментом `tracker_card` с любой доски
+этой машины, которую разговору видно (`TrackerService.pathsOf`). Каналы - `tracker:*`, `cloud:*`
 (`shared/ipc/tracker.contract.ts`).
 
 **Облако IDE** ([ADR 0102](adr/0102-cloud-e2e-sync.md)) - сервер `apps/cloud`

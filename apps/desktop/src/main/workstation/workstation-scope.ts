@@ -158,6 +158,8 @@ const scopedTracker = (tracker: TrackerPort, allowed: (path: string) => boolean)
     board: (place) => (check(place), tracker.board(place)),
     apply: (place, op) => (check(place), tracker.apply(place, op)),
     send: (place, request) => (check(place), tracker.send(place, request)),
+    // Доска чужого проекта разговору не видна - и путь к ней тоже.
+    pathsOf: (id) => tracker.pathsOf(id).filter(allowed),
   }
 }
 

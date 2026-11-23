@@ -139,6 +139,7 @@ describe('инструменты самой IDE', () => {
     expect(WORKSTATION_READ_TOOLS).toContain('list_queues')
     expect(WORKSTATION_READ_TOOLS).not.toContain('start_scenario')
     expect(WORKSTATION_READ_TOOLS).toContain('tracker_board')
+    expect(WORKSTATION_READ_TOOLS).toContain('tracker_card')
     expect(WORKSTATION_READ_TOOLS).not.toContain('tracker_add_cards')
   })
 

@@ -5,6 +5,11 @@
   @include enter-transition(calc(var(--offset-enter) * -1));
 
   padding: var(--space-1-5);
+
+  // Панель в верхнем слое, но pointer-events наследует от места в разметке: кнопка, которая
+  // появляется только под курсором (меню карточки трекера), отдавала панели своё none, и пункты
+  // переставали ловить мышь, как только курсор уходил с кнопки на панель.
+  pointer-events: auto;
   overflow: auto;
   max-height: 80vh;
   border-radius: var(--radius-xl);
@@ -26,6 +31,19 @@
   inset: auto;
   margin: var(--space-1-5) 0 0;
   position-area: block-end span-inline-end;
+  position-try-fallbacks:
+    flip-inline,
+    flip-block,
+    flip-block flip-inline;
+}
+
+// Меню сбоку от пункта, который его открыл (MenuSubmenu): за краем родительской панели, верхний
+// пункт - вровень с открывшим (панель поднята на свою рамку и поле). Не влезает справа - слева, снизу - вверх; поля разворачиваются
+// вместе с панелью.
+.side {
+  inset: auto;
+  margin: calc((var(--space-1-5) + var(--border-width)) * -1) 0 0 var(--space-2);
+  position-area: inline-end span-block-end;
   position-try-fallbacks:
     flip-inline,
     flip-block,
@@ -57,4 +75,11 @@
 .field {
   width: anchor-size(width);
   min-width: min(var(--size-popover-md), 100vw - 2 * var(--offset-overlay-side));
+}
+
+// По содержимому, но не шире md: в коротком меню сбоку (MenuSubmenu) пустой хвост справа уводил бы
+// его далеко от пункта, который его открыл.
+.content {
+  width: max-content;
+  max-width: min(var(--size-popover-md), 100vw - 2 * var(--offset-overlay-side));
 }

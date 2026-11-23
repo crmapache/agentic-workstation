@@ -24,6 +24,11 @@
   }
 }
 
+// Пункт, чьё меню сбоку открыто, горит, как под курсором: видно, откуда меню.
+.expanded {
+  background-color: var(--color-bg-hover);
+}
+
 // Текущий выбор - залитая строка, как выбранный раздел в навигации.
 .current {
   background-color: var(--color-bg-selected);

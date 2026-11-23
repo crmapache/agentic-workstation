@@ -12,3 +12,6 @@ export type CardTileProps = {
 }
 
 export type CardMetaProps = { card: TrackerCard; today: number }
+
+/** Что меню «⋯» знает о карточке: её саму, группу, ось сдвига и задачу цепочки. */
+export type CardMenuArgs = Pick<CardTileProps, 'card' | 'groupId' | 'followUp' | 'rootId'>

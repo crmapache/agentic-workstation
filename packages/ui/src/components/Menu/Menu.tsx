@@ -9,12 +9,13 @@ import {
 } from './Menu.constants'
 import styles from './Menu.module.scss'
 import type { MenuProps } from './Menu.types'
-import { nextIndex } from './Menu.utils'
+import { ownItems, nextIndex, isOwnEvent } from './Menu.utils'
 
 /**
  * Меню внутри всплывающей панели: секции, пункты, поле поиска. Стрелки ходят по
  * пунктам (из поля поиска - на первый), Home и End - в начало и конец, Enter
- * выбирает. Пункты - MenuItem, группы - MenuSection, линии - MenuSeparator.
+ * выбирает. Пункты - MenuItem, группы - MenuSection, линии - MenuSeparator, меню сбоку -
+ * MenuSubmenu.
  */
 export const Menu = ({ label, autoFocus = false, header, children }: MenuProps) => {
   const ref = useRef<HTMLDivElement>(null)
@@ -22,18 +23,21 @@ export const Menu = ({ label, autoFocus = false, header, children }: MenuProps) 
   useEffect(() => {
     if (!autoFocus) return
 
-    const target =
-      ref.current?.querySelector<HTMLElement>(AUTOFOCUS_SELECTOR) ??
-      ref.current?.querySelector<HTMLElement>(CURRENT_ITEM_SELECTOR) ??
-      ref.current?.querySelector<HTMLElement>(ITEM_SELECTOR)
+    const menu = ref.current
+    const target = menu
+      ? (menu.querySelector<HTMLElement>(AUTOFOCUS_SELECTOR) ??
+        ownItems(menu, CURRENT_ITEM_SELECTOR)[0] ??
+        ownItems(menu, ITEM_SELECTOR)[0])
+      : undefined
 
     target?.focus()
   }, [autoFocus])
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!NAVIGATION_KEYS.has(event.key)) return
+    // Стрелки вложенного меню сбоку (MenuSubmenu) - его, а не этого: оно стоит внутри.
+    if (!NAVIGATION_KEYS.has(event.key) || !isOwnEvent(event)) return
 
-    const items = [...event.currentTarget.querySelectorAll<HTMLElement>(ITEM_SELECTOR)]
+    const items = ownItems(event.currentTarget, ITEM_SELECTOR)
     const current = items.indexOf(document.activeElement as HTMLElement)
     const target = nextIndex(event.key, current, items.length)
 

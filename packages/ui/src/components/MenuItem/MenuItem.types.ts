@@ -38,5 +38,10 @@ export type MenuItemProps = {
    * её усилие). Панель закроет последний шаг или человек.
    */
   keepOpen?: boolean | undefined
+  /**
+   * Пункт открывает меню сбоку (MenuSubmenu): стрелка справа, выбор панель не закрывает, открытое
+   * меню держит пункт подсвеченным. true - меню открыто.
+   */
+  expanded?: boolean | undefined
   onSelect: () => void
 }

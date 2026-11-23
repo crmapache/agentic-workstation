@@ -106,6 +106,21 @@ export class TrackerService {
     return this.boardIn(place.rootPath, await this.spaceOf(place))
   }
 
+  /**
+   * Проекты IDE этого компьютера, на чьей доске лежит запись (ссылка на карточку из чата, ADR
+   * 0113): пути, привязанные к её пространству. Ничего не заводит - board завёл бы доску каждому
+   * проекту, где её ищут, и новое пространство ушло бы в облако.
+   */
+  pathsOf(id: string): string[] {
+    const spaceId = new TrackerTree(this.book.records()).spaceOf(id)
+
+    if (!spaceId) return []
+
+    return Object.entries(this.book.bindings())
+      .filter(([, bound]) => bound === spaceId)
+      .map(([path]) => path)
+  }
+
   /** Правка доски; отказ - кодом. */
   async apply(place: TrackerPlace, op: TrackerOp): Promise<TrackerOutcome> {
     const spaceId = await this.spaceOf(place)

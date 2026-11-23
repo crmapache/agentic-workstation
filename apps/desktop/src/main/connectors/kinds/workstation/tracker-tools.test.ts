@@ -132,6 +132,7 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
       board: (place) => kit.service.board(place),
       apply: (place, op) => kit.service.apply(place, op),
       send: (place, request) => runs.send(place, request),
+      pathsOf: (id) => kit.service.pathsOf(id),
     },
     panels: () => [],
     extensions: () => null,
@@ -185,7 +186,7 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
     ])
   }
 
-  return { call, columns, card, tasks, started, refuse }
+  return { call, columns, card, tasks, started, refuse, service: kit.service }
 }
 
 describe('трекер в инструментах самой IDE', () => {
@@ -501,6 +502,61 @@ describe('трекер в инструментах самой IDE', () => {
     expect((await call('tracker_send_to_queue', { group_id: groupId })).text).toBe(
       `Card ${y} "Y": The queue is busy right now (a scenario runs or its worktree is being removed). Sent before it, they stay in queue queue-1: ${x}.`,
     )
+  })
+
+  it('карточка по ссылке из чата: с местом на доске, продолжение - со своей задачей', async () => {
+    const { call, columns, card } = await ideOf()
+    const { projectId, flowId, groupId } = await columns()
+    const task = await card({ group_id: groupId, title: 'Fix the warning', description: 'Why' })
+    const check = await card({ follow_up_of: task, title: 'Check later' })
+    const read = (await call('tracker_card', { card: `aw://tracker/card/${task}` })).json
+
+    expect(read).toEqual({
+      id: task,
+      title: 'Fix the warning',
+      description: 'Why',
+      priority: 4,
+      follow_ups: [{ id: check, title: 'Check later', priority: 4 }],
+      link: `aw://tracker/card/${task}`,
+      project_path: WEB,
+      tracker_project: { id: projectId, title: 'Release' },
+      flow: { id: flowId, title: 'Backend' },
+      group: { id: groupId, title: 'Week 1' },
+    })
+    expect((await call('tracker_card', { card: check })).json).toMatchObject({
+      id: check,
+      follow_up_of: { id: task, title: 'Fix the warning' },
+    })
+  })
+
+  it('карточка чужого проекта - с его путём; закрытый проект и пропавшая - отказ, доски не заводятся', async () => {
+    const open = await ideOf()
+    const away = await open.columns(OUTSIDE, 'api')
+    const id = (
+      await open.call(
+        'tracker_save_card',
+        { project: 'api', group_id: away.groupId, title: 'API task' },
+        OUTSIDE,
+      )
+    ).json.id
+
+    expect((await open.call('tracker_card', { card: id })).json['project_path']).toBe(API)
+    expect((await open.call('tracker_card', { card: 'nope' })).text).toContain('no such card')
+    // Поиск по ссылке не завёл доску проекту разговора: board завёл бы её и отдал в облако.
+    expect(open.service.book.binding(WEB)).toBeNull()
+    expect((await open.call('tracker_card', { card: id, project: 'web' })).error).toBe(true)
+
+    const closed = await ideOf((path) => path === WEB)
+    const hidden = await closed.columns(OUTSIDE, 'api')
+    const secret = (
+      await closed.call(
+        'tracker_save_card',
+        { project: 'api', group_id: hidden.groupId, title: 'Secret' },
+        OUTSIDE,
+      )
+    ).json.id
+
+    expect((await closed.call('tracker_card', { card: secret })).text).toContain('no such card')
   })
 
   it('сужение по проектам: чужая доска не видна ни по имени, ни по id, снаружи - видна', async () => {

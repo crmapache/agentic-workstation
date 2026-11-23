@@ -1,7 +1,6 @@
 import { lazy } from 'react'
-import { Boxes, Orbit, Aperture, MoonStar } from 'lucide-react'
 
-import { AI_ICON } from '../../lib/ai-icon.constants'
+import { PROVIDER_ICONS, PROVIDER_LABEL_KEYS } from '../../lib/provider-panels.constants'
 import type { ProviderViewId } from '../../state/layout.types'
 import type { ViewDescriptor } from './views.types'
 
@@ -13,8 +12,8 @@ import type { ViewDescriptor } from './views.types'
 export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
   {
     id: 'claude-code',
-    icon: AI_ICON,
-    labelKey: 'providerViews.claudeCode',
+    icon: PROVIDER_ICONS.claude,
+    labelKey: PROVIDER_LABEL_KEYS.claude,
     // Панель за границей ошибок: упавшая отрисовка - экран «Reload the panel», а не пустота.
     Component: lazy(() =>
       import('../../features/agent-panel/ClaudeCodePanel/ClaudeCodePanel').then((module) => ({
@@ -23,11 +22,10 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
     ),
   },
   {
-    // Codex (ADR 0083): та же панель провайдера, свои вкладки, настройки и лимиты. Иконка -
-    // диафрагма: терминал занят кнопкой терминала под ней, а знак ИИ - панелью Claude Code.
+    // Codex (ADR 0083): та же панель провайдера, свои вкладки, настройки и лимиты.
     id: 'codex',
-    icon: Aperture,
-    labelKey: 'providerViews.codex',
+    icon: PROVIDER_ICONS.codex,
+    labelKey: PROVIDER_LABEL_KEYS.codex,
     Component: lazy(() =>
       import('../../features/agent-panel/CodexPanel/CodexPanel').then((module) => ({
         default: module.CodexPanel,
@@ -35,10 +33,10 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
     ),
   },
   {
-    // Google Antigravity (ADR 0092): `agy acp`, только чат человека (ADR 0094). Иконка - орбита.
+    // Google Antigravity (ADR 0092): `agy acp`, только чат человека (ADR 0094).
     id: 'antigravity',
-    icon: Orbit,
-    labelKey: 'providerViews.antigravity',
+    icon: PROVIDER_ICONS.antigravity,
+    labelKey: PROVIDER_LABEL_KEYS.antigravity,
     Component: lazy(() =>
       import('../../features/agent-panel/AntigravityPanel/AntigravityPanel').then((module) => ({
         default: module.AntigravityPanel,
@@ -46,10 +44,10 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
     ),
   },
   {
-    // Kimi Code (ADR 0092): `kimi acp`. Иконка - луна со звездой: Moonshot AI.
+    // Kimi Code (ADR 0092): `kimi acp`.
     id: 'kimi',
-    icon: MoonStar,
-    labelKey: 'providerViews.kimi',
+    icon: PROVIDER_ICONS.kimi,
+    labelKey: PROVIDER_LABEL_KEYS.kimi,
     Component: lazy(() =>
       import('../../features/agent-panel/KimiPanel/KimiPanel').then((module) => ({
         default: module.KimiPanel,
@@ -59,8 +57,8 @@ export const PROVIDER_VIEWS: readonly ViewDescriptor<ProviderViewId>[] = [
   {
     // Открытые модели (ADR 0084): OpenCode с моделями из подключений - локальных и облачных.
     id: 'open-models',
-    icon: Boxes,
-    labelKey: 'providerViews.openModels',
+    icon: PROVIDER_ICONS.opencode,
+    labelKey: PROVIDER_LABEL_KEYS.opencode,
     Component: lazy(() =>
       import('../../features/agent-panel/OpenModelsPanel/OpenModelsPanel').then((module) => ({
         default: module.OpenModelsPanel,

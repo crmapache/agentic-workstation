@@ -1,17 +1,16 @@
 import type { DraftChip, DraftToken } from '@shared/message-draft'
 import { CHIP_KINDS } from '@shared/message-draft'
+import { cardLink } from '@shared/tracker-link'
 
+import { tokensHtml, CLIPBOARD_ATTRIBUTE } from '../../lib/draft-clipboard'
 import { tokensText } from './draft.utils'
 
 /**
  * Поле ввода в буфере обмена. Модели вложение - «@путь» или «[Image #3]», а человек
  * уносит копию в задачу, чат, терминал: там нужен сам путь. Рядом с текстом в text/html
- * едет полное описание кусков с байтами картинок - из него при вставке чипы
- * восстанавливаются живыми, и после перезапуска IDE тоже.
+ * едет полное описание кусков с байтами картинок (lib/draft-clipboard) - из него при вставке
+ * чипы восстанавливаются живыми, и после перезапуска IDE тоже.
  */
-
-/** Метка своего содержимого в text/html буфера. */
-export const CLIPBOARD_ATTRIBUTE = 'data-agentic-workstation-tokens'
 
 /** Вложение в буфере: путь, а не подпись и не синтаксис поля. */
 export const clipboardText = (token: DraftToken): string => {
@@ -21,6 +20,8 @@ export const clipboardText = (token: DraftToken): string => {
 
   if (chip.kind === 'cmd') return `/${chip.value}`
   if (chip.kind === 'quote' || chip.kind === 'paste') return chip.text ?? ''
+  // Карточка - ссылкой: её понимает чат IDE, а текст карточки в чате или задаче - лишняя простыня.
+  if (chip.kind === 'card') return cardLink(chip.value)
   if (chip.kind === 'ref') {
     const place = chip.range ? `${chip.value} (${chip.range})` : chip.value
 
@@ -35,16 +36,9 @@ export const clipboardText = (token: DraftToken): string => {
 export const clipboardTextOf = (tokens: readonly DraftToken[]): string =>
   tokens.map(clipboardText).join('')
 
-const escapeHtml = (text: string): string =>
-  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-/**
- * Что кладётся в text/html: описание кусков в атрибуте, читаемый текст внутри. Переносы
- * - <br>: в HTML перевод строки - пробел, и в редакторе или мессенджере сообщение
- * легло бы одним абзацем.
- */
+/** Что кладётся в text/html: куски и тот же текст, что увидит модель. */
 export const clipboardHtml = (tokens: readonly DraftToken[]): string =>
-  `<span style="white-space:pre-wrap" ${CLIPBOARD_ATTRIBUTE}="${encodeURIComponent(JSON.stringify(tokens))}">${escapeHtml(tokensText(tokens)).replace(/\n/g, '<br>')}</span>`
+  tokensHtml(tokens, tokensText(tokens))
 
 const DATA_URL = /^data:image\/[\w+.-]+;base64,[A-Za-z0-9+/]+=*$/
 

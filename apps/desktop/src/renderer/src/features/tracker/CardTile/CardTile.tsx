@@ -1,19 +1,7 @@
 import type { MouseEvent, KeyboardEvent } from 'react'
 import { clsx } from 'clsx'
-import {
-  Plus,
-  Send,
-  Pencil,
-  Trash2,
-  ArrowUp,
-  ListPlus,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-
-import { isInQueue } from '@shared/tracker'
 
 import { ChoiceMark } from '@agentic-workstation/ui/ChoiceMark'
 import { IconButton } from '@agentic-workstation/ui/IconButton'
@@ -21,8 +9,8 @@ import { IconButton } from '@agentic-workstation/ui/IconButton'
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
 import { ActionsMenu } from '../ActionsMenu/ActionsMenu'
-import type { ActionItem } from '../ActionsMenu/ActionsMenu.types'
 import { useBoard } from '../Board/Board.context'
+import { useCardMenu } from './CardTile.hooks'
 import styles from './CardTile.module.scss'
 import type { CardTileProps } from './CardTile.types'
 import { CardMeta } from './parts/CardMeta'
@@ -38,44 +26,8 @@ export const CardTile = ({ card, groupId, followUp, rootId, onAddFollowUp }: Car
   const { press, draggingId, today, moveBy } = useBoard()
   const { apply } = useTrackerActions()
   const edit = useTrackerStore((state) => state.edit)
-  const openSend = useTrackerStore((state) => state.openSend)
   const source = { kind: 'card' as const, id: card.id }
-  const items: ActionItem[] = [
-    { key: 'edit', icon: Pencil, label: t('tracker.card.edit'), onSelect: () => handleOpen() },
-    {
-      key: 'follow',
-      icon: ListPlus,
-      label: t('tracker.card.addFollowUp'),
-      onSelect: () => edit({ kind: 'newCard', groupId, followUpOf: rootId }),
-    },
-    {
-      key: 'send',
-      icon: Send,
-      label: t('tracker.card.send'),
-      // Карточка, которая уже стоит в очереди, второй раз не уходит - главный процесс откажет.
-      disabled: !card.scenario || isInQueue(card.run),
-      onSelect: () => openSend({ kind: 'card', cardId: card.id }),
-    },
-    {
-      key: 'back',
-      icon: followUp ? ArrowLeft : ArrowUp,
-      label: followUp ? t('tracker.card.moveLeft') : t('tracker.card.moveUp'),
-      onSelect: () => moveBy(source, -1),
-    },
-    {
-      key: 'forward',
-      icon: followUp ? ArrowRight : ArrowDown,
-      label: followUp ? t('tracker.card.moveRight') : t('tracker.card.moveDown'),
-      onSelect: () => moveBy(source, 1),
-    },
-    {
-      key: 'delete',
-      icon: Trash2,
-      label: t('tracker.card.delete'),
-      danger: true,
-      onSelect: () => void apply({ kind: 'card.delete', id: card.id }),
-    },
-  ]
+  const items = useCardMenu({ card, groupId, followUp, rootId })
 
   const handleOpen = () => edit({ kind: 'card', cardId: card.id })
   // Заголовок - кнопка для клавиатуры: открывает сам и не даёт нажатию дойти до плитки,
