@@ -1,5 +1,7 @@
 import type { DragEvent, ClipboardEvent } from 'react'
 
+import type { CommandEntry } from '@shared/slash-catalog'
+
 import { invoke, pathForFile } from '../../lib/ipc'
 import { readProjectPaths } from '../../lib/project-drag'
 import { collapsesPaste } from './chips.utils'
@@ -13,7 +15,6 @@ import type { Field, ChipSpot, FieldInsert } from './field.types'
 import { MAX_IMAGES } from './images.constants'
 import { prepareImage } from './images.utils'
 import { captureWrittenCommand } from './slash-capture.utils'
-import type { CommandEntry } from './slash.types'
 
 type ClipboardOptions = {
   field: Field

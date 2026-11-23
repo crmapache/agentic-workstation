@@ -1,10 +1,8 @@
 import { Suspense } from 'react'
 import clsx from 'clsx'
-import { SquareTerminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconButton } from '@agentic-workstation/ui/IconButton'
-
+import { useBarMenu } from '../actions/bar-menu'
 import { useClaudePanelKey, useClaudePanelToggle } from '../actions/claude-panel'
 import { useFileViewOnSelect } from '../actions/file-view'
 import { useOpenFile } from '../actions/open-file'
@@ -13,10 +11,10 @@ import { useTerminalKey, useTerminalToggle } from '../actions/terminal-dock'
 import { useWindowCommands } from '../actions/window-commands'
 import { ActivityBar } from '../ActivityBar/ActivityBar'
 import { Overlays } from '../Overlays/Overlays'
-import { SideFooter } from '../SideFooter/SideFooter'
 import { SidePanel } from '../SidePanel/SidePanel'
 import { TerminalDock } from '../TerminalDock/TerminalDock'
 import { TitleBar } from '../TitleBar/TitleBar'
+import { useBarFooters } from '../views/bar-footers'
 import { CONVERSATION_LOG } from '../views/conversation-log'
 import { useViewLists, useGoneViewFallback } from '../views/extension-views'
 import { useMainViewBadges } from '../views/main-view-badges'
@@ -66,6 +64,7 @@ export const Workbench = () => {
   const toggleClaudePanel = useClaudePanelToggle()
   const terminal = useTerminalToggle()
   const views = useViewLists()
+  const footers = useBarFooters(terminal.toggle)
   const mainBadges = { ...useMainViewBadges(), ...views.badges }
   const sideMarks = useSideViewMarks()
   const projectCallsOf = useProjectCalls()
@@ -82,6 +81,12 @@ export const Workbench = () => {
   useWindowCommands()
   usePresence()
   useGoneViewFallback(views.main, views.side)
+  // Галочки кнопок полос в меню View (ADR 0112).
+  useBarMenu({
+    side: { views: views.side, footer: footers.side },
+    main: { views: views.mainBar, footer: [] },
+    provider: { views: PROVIDER_VIEWS, footer: footers.provider },
+  })
 
   return (
     <OpenFileContext value={openFile}>
@@ -92,13 +97,14 @@ export const Workbench = () => {
 
           <div ref={rowRef} className={styles.body}>
             <ActivityBar
+              bar="side"
               edge="start"
               label={t('sideViews.label')}
               views={views.side}
               marks={sideMarks}
               activeViewId={side.activeViewId}
               isPanelOpen={arrangement.isSideShown}
-              footer={<SideFooter />}
+              footer={footers.side}
               onSelect={selectSideView}
             />
             <SidePanel
@@ -113,6 +119,7 @@ export const Workbench = () => {
             />
 
             <ActivityBar
+              bar="main"
               edge="start"
               label={t('mainViews.label')}
               views={views.mainBar}
@@ -149,21 +156,14 @@ export const Workbench = () => {
               onResize={(delta) => resizePanel('provider', delta)}
             />
             <ActivityBar
+              bar="provider"
               edge="end"
               label={t('providerViews.label')}
               views={PROVIDER_VIEWS}
               calls={providerCalls}
               activeViewId={provider.activeViewId}
               isPanelOpen={provider.isOpen}
-              footer={
-                <IconButton
-                  icon={SquareTerminal}
-                  label={t('terminal.toggle')}
-                  active={isTerminalOpen}
-                  tooltipPlacement="start"
-                  onClick={terminal.toggle}
-                />
-              }
+              footer={footers.provider}
               onSelect={selectProviderView}
             />
 

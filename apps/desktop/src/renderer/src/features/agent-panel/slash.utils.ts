@@ -1,97 +1,12 @@
-import type { SlashCommand } from '@shared/conversation'
-import type { CommandHint } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 
-import { MAX_SUGGESTIONS, UNAVAILABLE_IN_STREAM, INTERNAL_COMMAND_PREFIX } from './slash.constants'
-import type { HeldChoice, CommandEntry, CommandOption } from './slash.types'
+import { MAX_SUGGESTIONS } from './slash.constants'
+import type { HeldChoice, CommandOption } from './slash.types'
 
 /**
  * Подсказка «/» прямо в поле, как в терминале: список сужается по мере набора и
  * исчезает, как только строка перестала быть командой (поведение - как в ACC).
  */
-
-/** Команду можно предложить: CLI в потоке её выполнит, и она не служебная. */
-const isOffered = (name: string) =>
-  !name.startsWith(INTERNAL_COMMAND_PREFIX) && !UNAVAILABLE_IN_STREAM.has(name)
-
-/**
- * Команды CLI для проекта и свои команды CLI одним списком: проект - в порядке CLI, имя
- * без пояснения (из init или с диска IDE) берёт его и признак своей команды у своей
- * команды CLI; свои, которых проект ещё не назвал (до первого хода), - следом.
- */
-export const withBuiltins = (
-  project: readonly SlashCommand[],
-  builtins: readonly SlashCommand[],
-): SlashCommand[] => {
-  const known = new Map(builtins.map((command) => [command.name, command]))
-  const named = new Set(project.map((command) => command.name))
-
-  return [
-    ...project.map((command) =>
-      command.description ? command : (known.get(command.name) ?? command),
-    ),
-    ...builtins.filter((command) => !named.has(command.name)),
-  ]
-}
-
-/**
- * Каталог по порядку: команды панели, встроенные с пояснениями, команды от CLI (свои -
- * с меткой встроенной), потом найденное на диске и ещё не названное CLI - по имени, чтобы
- * тот же набор файлов не перерисовывал список в другом порядке. Файл с диска важнее
- * своего пояснения.
- */
-export const buildCommands = (
-  panel: readonly CommandEntry[],
-  builtin: readonly CommandEntry[],
-  cli: readonly SlashCommand[],
-  disk: readonly CommandHint[],
-): CommandEntry[] => {
-  const hints = new Map(disk.map((hint) => [hint.name, hint]))
-  const seen = new Set<string>()
-  const entries: CommandEntry[] = []
-  const add = (entry: CommandEntry) => {
-    if (seen.has(entry.id)) return
-
-    seen.add(entry.id)
-    entries.push(entry)
-  }
-
-  for (const entry of panel) add(entry)
-
-  for (const entry of builtin) {
-    const hint = hints.get(entry.id)
-
-    add({
-      ...entry,
-      hint: hint?.description || entry.hint,
-      argumentHint: hint?.argumentHint || entry.argumentHint,
-    })
-  }
-
-  for (const command of cli) {
-    if (!isOffered(command.name)) continue
-
-    const hint = hints.get(command.name)
-
-    add({
-      id: command.name,
-      hint: hint?.description || command.description,
-      argumentHint: hint?.argumentHint || command.argumentHint || undefined,
-      group: command.builtin ? 'built-in' : 'project',
-    })
-  }
-
-  const onDisk = disk
-    .filter((hint) => !seen.has(hint.name) && isOffered(hint.name))
-    .map((hint): CommandEntry => ({
-      id: hint.name,
-      hint: hint.description,
-      argumentHint: hint.argumentHint || undefined,
-      group: 'project',
-    }))
-    .sort((one, other) => (one.id < other.id ? -1 : one.id > other.id ? 1 : 0))
-
-  return [...entries, ...onDisk]
-}
 
 /** Сначала начинающиеся с набранного - это и ищут, набирая первые буквы. */
 export const matchCommands = (

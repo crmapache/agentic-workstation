@@ -24,6 +24,7 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       '--color-fg-muted',
       '--color-fg-subtle',
       '--color-fg-disabled',
+      '--color-fg-faint',
       '--color-fg-accent',
     ],
   },

@@ -1,5 +1,6 @@
 import { shell } from 'electron'
 
+import type { ApplicationMenu } from '../menu'
 import type { ClaudeService } from '../claude/claude-service'
 import type { ConnectorsService } from '../connectors/connectors-service'
 import type { DefinitionService } from '../definitions/definition-service'
@@ -116,6 +117,8 @@ type Services = HandlerContext & {
   extensions: ExtensionsRuntime
   /** Трекер задач (ADR 0101) и облако IDE (ADR 0102). */
   tracker: TrackerRuntime
+  /** Меню приложения: кнопки полос окна в View (ADR 0112). */
+  menu: ApplicationMenu
 }
 
 /**
@@ -173,7 +176,7 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createClaudePanelHandlers(claude),
     ...createClaudeSettingsHandlers(workspace, claude),
     ...createClaudeSearchHandlers(workspace, services.conversationSearch),
-    ...createWindowHandlers(services.getWindow),
+    ...createWindowHandlers(services.getWindow, services.menu),
     ...createConnectorsHandlers(services.connectors),
     ...createComputerHandlers(services.connectors.computer),
     ...createTerminalHandlers(workspace, services.terminals),

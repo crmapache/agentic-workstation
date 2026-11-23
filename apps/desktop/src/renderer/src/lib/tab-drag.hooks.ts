@@ -8,30 +8,37 @@ import {
   AUTO_SCROLL_MAX_STEP_PX,
 } from './drag-gesture.constants'
 import { autoScrollStep } from './drag-gesture.utils'
-import { SWAP_GAP_PX, GLIDE_WAIT_MS } from './tab-drag.constants'
-import type { MoveTab, TabSlot, TabDragView } from './tab-drag.types'
+import { AXIS_KEYS, SWAP_GAP_PX, GLIDE_WAIT_MS } from './tab-drag.constants'
+import type { MoveTab, TabSlot, DragAxis, TabDragView } from './tab-drag.types'
 import { beforeOf, nextPlace, shiftsFor, clampOffset, landingOffset } from './tab-drag.utils'
 
 const IDLE: TabDragView = { signature: '', draggedId: null, offset: 0, shifts: {} }
 
 /** Сколько вкладка сейчас сдвинута от своего места - у браузера, с учётом идущего перехода. */
-const liveShift = (node: HTMLElement): number => {
+const liveShift = (node: HTMLElement, axis: DragAxis): number => {
   const { transform } = getComputedStyle(node)
 
-  return !transform || transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41
+  return !transform || transform === 'none'
+    ? 0
+    : new DOMMatrixReadOnly(transform)[AXIS_KEYS[axis].shift]
 }
 
 /**
  * Место вкладки в ряду (координаты ряда, с прокруткой) - с долями пикселя и без сдвига
  * жеста: по нему соседи встанут ровно туда, где их потом нарисует новый порядок.
  */
-const slotOf = (id: string, node: HTMLElement, list: HTMLElement): TabSlot => {
+const slotOf = (id: string, node: HTMLElement, list: HTMLElement, axis: DragAxis): TabSlot => {
+  const keys = AXIS_KEYS[axis]
   const box = node.getBoundingClientRect()
 
   return {
     id,
-    left: box.left - liveShift(node) - list.getBoundingClientRect().left + list.scrollLeft,
-    width: box.width,
+    start:
+      box[keys.start] -
+      liveShift(node, axis) -
+      list.getBoundingClientRect()[keys.start] +
+      list[keys.scroll],
+    size: box[keys.size],
   }
 }
 
@@ -58,14 +65,16 @@ const afterGlide = (node: HTMLElement | undefined, then: () => void) => {
 }
 
 /**
- * Перетаскивание вкладок в одном ряду (проекты IDE, проекты трекера): порог 4 пикселя, вкладка едет за рукой в
+ * Перетаскивание вкладок в одном ряду (проекты IDE, проекты трекера) или иконок в одной группе
+ * полосы окна (axis 'y', ADR 0112): порог 4 пикселя, вкладка едет за рукой в
  * пределах ряда, соседи уступают ей место переходом, у края ряд, который листается, едет сам;
  * Esc - отмена. Отпустили - вкладка доезжает до нового места, и только тогда порядок уходит
  * главному процессу: пришедший порядок рисует вкладки ровно там, где они уже стоят, и кадр
  * его прихода идёт без переходов (data-landing) - ничто не прыгает. Активный проект жест не
  * меняет, и клик, которым кончается жест, вкладку не открывает.
  */
-export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
+export const useTabRowDrag = (ids: readonly string[], move: MoveTab, axis: DragAxis = 'x') => {
+  const keys = AXIS_KEYS[axis]
   const nodes = useRef(new Map<string, HTMLDivElement>())
   const latest = useRef({ ids, move })
   const settling = useRef(false)
@@ -103,7 +112,7 @@ export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
     latest.current.ids.flatMap((id) => {
       const node = nodes.current.get(id)
 
-      return node ? [slotOf(id, node, list)] : []
+      return node ? [slotOf(id, node, list, axis)] : []
     })
 
   /**
@@ -144,24 +153,31 @@ export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
     const list = event.currentTarget.closest<HTMLElement>('[data-tab-row]')
     const order = latest.current.ids.join()
 
-    // Крестик - кнопка, а не ручка; прошлая вкладка ещё доезжает - ждать её.
+    // Крестик - кнопка, а не ручка: ручка - сама вкладка (role="tab") или кнопка с
+    // data-drag-handle (иконка полосы окна). Прошлая вкладка ещё доезжает - ждать её.
     if (event.button !== 0 || !list || settling.current) return
-    if (button && button.getAttribute('role') !== 'tab') return
+    if (
+      button &&
+      button.getAttribute('role') !== 'tab' &&
+      !button.hasAttribute('data-drag-handle')
+    ) {
+      return
+    }
 
-    const startX = event.clientX
-    const startScroll = list.scrollLeft
+    const startAt = event[keys.pointer]
+    const startScroll = list[keys.scroll]
     let slots: TabSlot[] | null = null
     let from = -1
     let place = -1
-    let pointerX = startX
+    let pointerAt = startAt
     let frame = 0
     let isCancelled = false
 
     const update = () => {
       if (!slots) return
 
-      const dx = pointerX - startX + list.scrollLeft - startScroll
-      const offset = clampOffset(slots, from, dx)
+      const delta = pointerAt - startAt + list[keys.scroll] - startScroll
+      const offset = clampOffset(slots, from, delta)
 
       place = nextPlace(slots, from, place, offset, SWAP_GAP_PX)
       setView({ signature: order, draggedId: id, offset, shifts: shiftsFor(slots, from, place) })
@@ -169,15 +185,22 @@ export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
 
     // У края ряд едет сам, пока рука там, даже если она не двигается.
     const scrollTick = () => {
-      const box = list.getBoundingClientRect()
+      const rect = list.getBoundingClientRect()
+      const box = { left: rect[keys.start], right: rect[keys.end] }
       const room = {
-        before: list.scrollLeft,
-        after: list.scrollWidth - list.clientWidth - list.scrollLeft,
+        before: list[keys.scroll],
+        after: list[keys.scrollSize] - list[keys.clientSize] - list[keys.scroll],
       }
-      const step = autoScrollStep(pointerX, box, room, AUTO_SCROLL_EDGE_PX, AUTO_SCROLL_MAX_STEP_PX)
+      const step = autoScrollStep(
+        pointerAt,
+        box,
+        room,
+        AUTO_SCROLL_EDGE_PX,
+        AUTO_SCROLL_MAX_STEP_PX,
+      )
 
       if (step !== 0) {
-        list.scrollLeft += step
+        list[keys.scroll] += step
         update()
       }
 
@@ -193,14 +216,14 @@ export const useTabRowDrag = (ids: readonly string[], move: MoveTab) => {
     }
 
     const handleMove = (moved: MouseEvent) => {
-      pointerX = moved.clientX
+      pointerAt = moved[keys.pointer]
 
       if (isCancelled) return
       // Ряд сменился посреди жеста (проект открыли или закрыли) - снимок уже не про него.
       if (latest.current.ids.join() !== order) return cancel()
 
       if (!slots) {
-        if (Math.abs(pointerX - startX) < DRAG_THRESHOLD_PX) return
+        if (Math.abs(pointerAt - startAt) < DRAG_THRESHOLD_PX) return
 
         slots = snapshot(list)
         from = slots.findIndex((slot) => slot.id === id)

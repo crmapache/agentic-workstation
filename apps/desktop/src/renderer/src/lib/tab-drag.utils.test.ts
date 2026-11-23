@@ -6,9 +6,9 @@ import { beforeOf, nextPlace, shiftsFor, clampOffset, landingOffset } from './ta
 
 /** Три вкладки по 100 пикселей с зазором 4: 0-100, 104-204, 208-308. */
 const SLOTS: TabSlot[] = [
-  { id: 'a', left: 0, width: 100 },
-  { id: 'b', left: 104, width: 100 },
-  { id: 'c', left: 208, width: 100 },
+  { id: 'a', start: 0, size: 100 },
+  { id: 'b', start: 104, size: 100 },
+  { id: 'c', start: 208, size: 100 },
 ]
 
 describe('перетаскивание вкладок проектов', () => {

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useQuery, skipToken } from '@tanstack/react-query'
 
 import type { QueuesMessage } from '@agentic-workstation/remote-protocol/agent-messages'
+import type { SlashCommandsWire } from '@agentic-workstation/remote-protocol/conversation-wire-types'
 import type { FeedView } from '@agentic-workstation/remote-protocol/feed'
 import type { ShelvesWire } from '@agentic-workstation/remote-protocol/scenario-wire-types'
 import type {
@@ -25,7 +26,7 @@ import type { MachineView, MirroredInventory } from './remote.types'
  * Данные IDE для экранов. Почти всё приходит само (зеркало в state/mirror.ts): запрос здесь
  * только наблюдает ключ (skipToken), а то, что смотреть, экран просит подпиской useWatch.
  * Спрашиваются по требованию список пар (хранилище телефона) и командой - полки сценариев,
- * история проекта и картинка сообщения.
+ * история проекта, каталог «/» разговора и картинка сообщения.
  */
 
 export const useMachines = () => {
@@ -124,6 +125,28 @@ export const useHistory = (agentId: string, projectKey: string, provider: string
       return outcome.data as HistoryWire
     },
     staleTime: 30_000,
+  })
+}
+
+/**
+ * Каталог «/» разговора - командой, когда человек начал набирать команду (wanted), а не на
+ * каждый открытый разговор. Свежим считается полминуты: новый скилл на машине появится в
+ * подсказке со следующим «/». IDE старше команды отказывает - подсказка без каталога IDE, только
+ * со своими командами телефона; повторять отказ незачем.
+ */
+export const useSlashCommands = (agentId: string, conversationId: string, wanted: boolean) => {
+  const client = useClient()
+
+  return useQuery({
+    queryKey: queryKeys.slashCommands(agentId, conversationId),
+    queryFn: wanted
+      ? async (): Promise<SlashCommandsWire> =>
+          (await commandData(client, agentId, 'conversation.commands', {
+            conversationId,
+          })) as SlashCommandsWire
+      : skipToken,
+    staleTime: 30_000,
+    retry: false,
   })
 }
 

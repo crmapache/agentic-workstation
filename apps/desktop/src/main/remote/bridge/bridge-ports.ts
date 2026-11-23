@@ -9,6 +9,7 @@ import type {
   ConversationOptions,
 } from '@shared/conversation'
 import type { ConversationFeed } from '@shared/conversation-feed'
+import type { CommandHint } from '@shared/message-draft'
 import type { AsideExchange } from '@shared/panel-extras'
 import type { ProviderId, ProviderInfo } from '@shared/providers'
 import type { RewindScope, RewindOutcome, RewindPreview } from '@shared/rewind'
@@ -92,6 +93,11 @@ export type ConversationsPort = {
    */
   bypassDisabled?: ((projectPath: string) => Promise<boolean>) | undefined
   rename: (conversationId: string, title: string) => Promise<unknown>
+  /**
+   * Команды и скиллы проекта и пользователя на диске (claude:listCommands) - для каталога «/».
+   * Нет - провайдер команд с диска не читает (capabilities.diskCommands).
+   */
+  diskCommands?: ((projectPath: string) => Promise<CommandHint[]>) | undefined
   /** Прошлые разговоры проекта (agent:listHistory). */
   history: (projectPath: string) => Promise<HistoryEntry[]>
   /**

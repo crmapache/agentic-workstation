@@ -380,7 +380,29 @@
     "removeQuote": "Remove quote {{number}}",
     "tooBig": "This is too much for one message. Attach less.",
     "tooMany": "Some files were left out: one message takes up to 6 photos and 6 files.",
-    "quote": "Quote"
+    "quote": "Quote",
+    "slash": {
+      "commands": "Commands",
+      "values": "Values",
+      "valuesOf": "Values of /{{command}}",
+      "count": "{{shown}} of {{total}}",
+      "close": "Close the list",
+      "builtIn": "built-in",
+      "fastOn": "turn fast mode on",
+      "fastOff": "turn fast mode off",
+      "hints": {
+        "btw": "ask a quick side question - the work goes on",
+        "fast": "toggle fast mode for this conversation",
+        "model": "switch the model for this conversation",
+        "effort": "set how long {{agent}} thinks before acting",
+        "context": "what fills the context window right now",
+        "cost": "spend and usage windows of this session",
+        "usage": "subscription windows and when they reset",
+        "code-review": "review a pull request",
+        "compact": "free up context - {{agent}} sums up the conversation so far",
+        "review": "{{agent}} reviews the uncommitted changes, or what you name"
+      }
+    }
   },
   "feed": {
     "earlier": "Load earlier messages",

@@ -1,7 +1,8 @@
 import type { DraftToken } from '@shared/message-draft'
+import type { CommandEntry, CommandGroup } from '@shared/slash-catalog'
 
 import type { MatchRange } from '../../lib/fuzzy-match.types'
-import type { CommandEntry, CommandGroup, CommandOption } from './slash.types'
+import type { CommandOption } from './slash.types'
 
 /**
  * Строка подсказки над полем: команда, значение её аргумента или файл проекта. id - то,

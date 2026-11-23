@@ -10,7 +10,8 @@ import { splitByRanges } from './ListBoxOption.utils'
 /**
  * Вариант в ListBox: иконка или значок, подпись с подсвеченными совпадениями, серое
  * пояснение в той же строке и подсказка справа. Одна строка, чтобы в списке поиска
- * помещалось много вариантов. Пункт меню с фокусом - MenuItem.
+ * помещалось много вариантов; под палец (size touch) - пояснение второй строкой. Пункт меню с
+ * фокусом - MenuItem.
  */
 export const ListBoxOption = ({
   id,
@@ -21,6 +22,7 @@ export const ListBoxOption = ({
   icon: Icon,
   leading,
   hint,
+  size = 'md',
   active,
   onSelect,
   onActivate,
@@ -44,7 +46,11 @@ export const ListBoxOption = ({
       id={id}
       role="option"
       aria-selected={active}
-      className={clsx(styles.listBoxOption, active && styles.active)}
+      className={clsx(
+        styles.listBoxOption,
+        size === 'touch' && styles.touch,
+        active && styles.active,
+      )}
       onMouseDown={handleMouseDown}
       onMouseMove={active ? undefined : onActivate}
       onClick={onSelect}>

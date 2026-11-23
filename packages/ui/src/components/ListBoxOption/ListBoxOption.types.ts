@@ -7,6 +7,13 @@ export type TextRange = {
   length: number
 }
 
+/**
+ * md - строка списка окна: подпись и пояснение в одну строку. touch - под палец на телефоне: не
+ * ниже цели касания, пояснение под подписью в две строки (в одной строке на узком экране от него
+ * остаётся десяток знаков).
+ */
+export type ListBoxOptionSize = 'md' | 'touch'
+
 export type ListBoxOptionProps = {
   /** optionId(index) из useListBox: на выделенный вариант указывает поле. */
   id: string
@@ -22,6 +29,7 @@ export type ListBoxOptionProps = {
   leading?: ReactNode | undefined
   /** Справа серым: сочетание клавиш, файл и номер строки. */
   hint?: string | undefined
+  size?: ListBoxOptionSize | undefined
   /** Выделен - клавишами или мышью. Enter выберет его. */
   active: boolean
   onSelect: () => void

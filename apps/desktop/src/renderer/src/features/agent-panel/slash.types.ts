@@ -1,14 +1,3 @@
-/** Откуда команда: панель выполняет сама, встроенная в CLI, своя или проекта с диска. */
-export type CommandGroup = 'panel' | 'built-in' | 'project'
-
-/** Строка подсказки «/»: имя без «/», пояснение и синтаксис аргумента. */
-export type CommandEntry = {
-  id: string
-  hint: string
-  argumentHint?: string | undefined
-  group: CommandGroup
-}
-
 /** Значение аргумента для второго шага подсказки (/model opus, /effort high). */
 export type CommandOption = { id: string; hint: string }
 

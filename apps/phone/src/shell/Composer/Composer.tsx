@@ -3,17 +3,18 @@ import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '@agentic-workstation/ui/IconButton'
 
-import { useComposer } from './Composer.hooks'
+import { useComposer, useSlashSuggest } from './Composer.hooks'
 import styles from './Composer.module.scss'
 import type { ComposerProps } from './Composer.types'
 import { AttachmentStrip } from './parts/AttachmentStrip'
 import { QuoteList } from './parts/QuoteList'
+import { SlashSuggest } from './parts/SlashSuggest'
 
 /**
  * Поле сообщения во всю ширину, под ним ряд кнопок, как в ACC: скрепка слева, справа - то, что
  * даёт экран (Stop хода), и «отправить». Скрепка открывает выбор самой системы: фото, камера,
- * файлы. Над полем - цитаты из ленты и вложения. Enter на телефоне переносит строку, отправка -
- * кнопкой. Пока ход идёт, сообщение встаёт в очередь IDE.
+ * файлы. Над полем - цитаты из ленты и вложения, а по «/» - подсказка команд (slash). Enter на
+ * телефоне переносит строку, отправка - кнопкой. Пока ход идёт, сообщение встаёт в очередь IDE.
  */
 export const Composer = ({
   draftKey,
@@ -22,11 +23,13 @@ export const Composer = ({
   allowAttachments = true,
   disabled = false,
   actions,
+  slash,
   onSend,
 }: ComposerProps) => {
   const { t } = useTranslation()
   const composer = useComposer({ draftKey, onSend })
   const { text, setText, images, files, isBusy, fieldRef, fileRef } = composer
+  const suggest = useSlashSuggest(text, setText, fieldRef, disabled ? undefined : slash)
   const canSend = !disabled && !isBusy && !composer.isEmpty
 
   return (
@@ -40,6 +43,9 @@ export const Composer = ({
           onRemoveFile={composer.removeFile}
         />
       )}
+      {suggest.shown && (
+        <SlashSuggest state={suggest.shown} onPick={suggest.pick} onDismiss={suggest.dismiss} />
+      )}
       <textarea
         ref={fieldRef}
         className={styles.field}
@@ -49,7 +55,11 @@ export const Composer = ({
         aria-label={placeholder}
         enterKeyHint="enter"
         disabled={disabled}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          setText(event.target.value)
+          suggest.track(event.target)
+        }}
+        onSelect={(event) => suggest.track(event.currentTarget)}
       />
       <div className={styles.tools}>
         {allowAttachments && (

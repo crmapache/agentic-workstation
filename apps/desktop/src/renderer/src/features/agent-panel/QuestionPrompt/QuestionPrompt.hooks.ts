@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import type { ClipboardEvent } from 'react'
+import type { DragEvent, KeyboardEvent } from 'react'
+
+import type { DraftToken } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 
 import type { AskDraft } from '../ask-draft.types'
 import {
@@ -10,15 +13,22 @@ import {
   writeOwnAnswer,
   EMPTY_ASK_DRAFT,
   firstUnanswered,
-  pasteIntoOwnAnswer,
 } from '../ask-draft.utils'
 import { useComposerStore } from '../composer.store'
 import { useConversationActions } from '../conversation-actions.hooks'
+import { useFieldClipboard } from '../field-clipboard.hooks'
+import { carriesFiles } from '../field-clipboard.utils'
+import { useFieldInsert } from '../field-insert.hooks'
+import { fieldOwnKey } from '../field-keys.utils'
+import { useField } from '../field.hooks'
 import { usePaneKey } from '../pane-keys.hooks'
 import { typedInto } from '../pane-keys.utils'
-import { pastedPaths } from '../pasted-files'
+import { useIdePrefs } from '../../../state/ide-prefs.queries'
 import { MAX_DIGIT_KEYS } from './QuestionPrompt.constants'
-import type { QuestionPromptProps } from './QuestionPrompt.types'
+import type { OwnAnswerFieldProps, QuestionPromptProps } from './QuestionPrompt.types'
+
+/** В своём ответе команд «/» нет: набранное имя чипом не становится. */
+const NO_COMMANDS: readonly CommandEntry[] = []
 
 /**
  * Вопрос с вариантами (как в ACC): черновик ответов - вне карточки (смена вкладки её
@@ -26,7 +36,7 @@ import type { QuestionPromptProps } from './QuestionPrompt.types'
  * цифре; одиночный выбор сам ведёт к следующему вопросу, множественный - по Enter.
  * Enter: всё отвечено - отправить, иначе - дальше. Чужие поля и черновик в поле не трогаем.
  */
-export const useQuestion = ({ projectId, conversation, request }: QuestionPromptProps) => {
+export const useQuestion = ({ conversation, request }: QuestionPromptProps) => {
   const { respond } = useConversationActions()
   const { questions } = request
   const draft = useComposerStore((store) => store.askDrafts[request.requestId] ?? EMPTY_ASK_DRAFT)
@@ -79,21 +89,6 @@ export const useQuestion = ({ projectId, conversation, request }: QuestionPrompt
     if (next >= 0) setActive(next)
   }
 
-  const pasteOwn = (index: number) => (event: ClipboardEvent<HTMLInputElement>) => {
-    const files = Array.from(event.clipboardData.files)
-
-    if (files.length === 0) return
-
-    event.preventDefault()
-
-    const at = event.currentTarget.selectionStart ?? event.currentTarget.value.length
-    const to = event.currentTarget.selectionEnd ?? at
-
-    void pastedPaths(projectId, files).then((paths) => {
-      if (paths.length > 0) write((current) => pasteIntoOwnAnswer(current, index, paths, at, to))
-    })
-  }
-
   usePaneKey((event, composerEmpty) => {
     if (event.metaKey || event.ctrlKey || event.altKey || typedInto(event.target, composerEmpty)) {
       return false
@@ -136,9 +131,8 @@ export const useQuestion = ({ projectId, conversation, request }: QuestionPrompt
     toggleCollapsed: () => setIsCollapsed((value) => !value),
     pick,
     openOther,
-    writeOwn: (index: number, value: string) =>
-      write((current) => writeOwnAnswer(current, index, value)),
-    pasteOwn,
+    writeOwn: (index: number, tokens: DraftToken[]) =>
+      write((current) => writeOwnAnswer(current, index, tokens)),
     submit,
     dismiss: () =>
       void respond(conversation.id, request.requestId, {
@@ -146,4 +140,43 @@ export const useQuestion = ({ projectId, conversation, request }: QuestionPrompt
         decision: { behavior: 'deny', message: '' },
       }),
   }
+}
+
+/**
+ * Поле своего ответа - то же поле с чипами, что у сообщения: файл и картинка из буфера, Finder и
+ * дерева встают чипами, а не путями, длинная вставка сворачивается, отмена - своя. Ответ одной
+ * строкой, как прежде: Enter строку не переносит, Shift+Enter - переносит.
+ */
+export const useOwnAnswerField = (
+  { projectId, tokens, onChange }: Pick<OwnAnswerFieldProps, 'projectId' | 'tokens' | 'onChange'>,
+  chipClassName: string,
+) => {
+  const { pasteCollapse } = useIdePrefs()
+  const field = useField({ tokens, onChange, imageBase: 0, commands: NO_COMMANDS, chipClassName })
+  const insert = useFieldInsert(field)
+  const clipboard = useFieldClipboard({
+    field,
+    insert,
+    projectId,
+    pasteCollapse,
+    imageBase: 0,
+    commands: NO_COMMANDS,
+  })
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.nativeEvent.isComposing || fieldOwnKey(event, field)) return
+    if (event.key !== 'Enter') return
+
+    event.preventDefault()
+
+    // Перенос - командой браузера, как у поля сообщения: свой узел через Range теряет каретку.
+    if (event.shiftKey) document.execCommand('insertLineBreak')
+  }
+
+  // Бросить сюда можно только файлы: брошенный текст браузер ставит в точку броска сам.
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (carriesFiles(event.dataTransfer)) event.preventDefault()
+  }
+
+  return { field, clipboard, handleKeyDown, handleDragOver }
 }

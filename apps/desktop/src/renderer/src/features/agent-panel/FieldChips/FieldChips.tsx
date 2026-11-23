@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
-import type { FieldChipsProps } from '../Composer.types'
-import { expandChip, removeChip } from '../../field-chips'
-import { chipPicture } from '../../picture.utils'
-import { DraftChipView } from '../../DraftChipView/DraftChipView'
+import { expandChip, removeChip } from '../field-chips'
+import { chipPicture } from '../picture.utils'
+import { DraftChipView } from '../DraftChipView/DraftChipView'
+import type { FieldChipsProps } from './FieldChips.types'
 
 /**
- * Внутренности чипов поля - порталами в их узлы: сам узел - простой DOM внутри
+ * Внутренности чипов поля (сообщения и своего ответа на вопрос) - порталами в их узлы: сам узел - простой DOM внутри
  * contentEditable, а подпись, иконка, подсказка (у картинки - превью) и кнопки - нашими
  * компонентами. Клик по картинке в поле ничего не открывает: он ставит каретку.
  * Крестик и «развернуть» идут той же дорогой, что Backspace: событием input поля.

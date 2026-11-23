@@ -60,6 +60,7 @@ export const QuestionPrompt = (props: QuestionPromptProps) => {
               {request.questions.map((item, index) => (
                 <QuestionBlock
                   key={item.question}
+                  projectId={props.projectId}
                   question={item}
                   index={index}
                   draft={question.draft}
@@ -73,8 +74,7 @@ export const QuestionPrompt = (props: QuestionPromptProps) => {
                     question.setActive(index)
                     question.openOther(index)
                   }}
-                  onOwnAnswer={(value) => question.writeOwn(index, value)}
-                  onOwnPaste={question.pasteOwn(index)}
+                  onOwnAnswer={(tokens) => question.writeOwn(index, tokens)}
                   onFocus={() => question.setActive(index)}
                 />
               ))}

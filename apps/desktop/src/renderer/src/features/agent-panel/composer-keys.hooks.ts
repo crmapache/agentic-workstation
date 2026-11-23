@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 
 import type { DraftToken } from '@shared/message-draft'
 
+import { fieldOwnKey } from './field-keys.utils'
 import type { Field } from './field.types'
 import { enterAction } from './send-key.utils'
 
@@ -19,9 +20,6 @@ type KeyOptions = {
   keyQueues: boolean
   isRunning: boolean
 }
-
-const isLetter = (event: KeyboardEvent, letter: string) =>
-  event.code === `Key${letter.toUpperCase()}` || event.key.toLowerCase() === letter
 
 /**
  * Клавиши поля (как в ACC), по старшинству: набор иероглифа - не наш, подсвеченный чип,
@@ -77,13 +75,7 @@ export const useComposerKeys = (options: KeyOptions) => {
       return
     }
 
-    if (field.handleChipKey(native)) return
-
-    if ((event.metaKey || event.ctrlKey) && (isLetter(event, 'z') || isLetter(event, 'y'))) {
-      event.preventDefault()
-
-      return isLetter(event, 'y') || event.shiftKey ? field.redo() : field.undo()
-    }
+    if (fieldOwnKey(event, field)) return
 
     if (options.suggestKey(native)) return
 

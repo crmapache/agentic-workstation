@@ -1,6 +1,8 @@
 import type { HistoryEntry } from '@shared/conversation'
 import type { FeedItem, ConversationFeed } from '@shared/conversation-feed'
+import type { CommandEntry } from '@shared/slash-catalog'
 
+import type { SlashCommandsWire } from '@agentic-workstation/remote-protocol/conversation-wire-types'
 import type {
   HistoryWire,
   FeedPageWire,
@@ -12,7 +14,8 @@ import type { Redact } from './fit'
 import { sizeOf, BODY_BUDGET } from './fit'
 
 /**
- * Ответы на чтение по просьбе телефона - историю, страницу ленты выше и картинку - в один кадр.
+ * Ответы на чтение по просьбе телефона - историю, страницу ленты выше, картинку и каталог «/» - в
+ * один кадр.
  * Ответ команды на провод частями не режется (части - только от телефона), поэтому каждый
  * меряется здесь и урезается честно: история - свежими, страница - ближними к ленте строками,
  * картинка - уменьшенной копией с пометкой reduced.
@@ -50,6 +53,39 @@ export const PICTURE_STEPS = [
   { edge: 800, quality: 65 },
   { edge: 640, quality: 60 },
 ] as const
+
+/**
+ * Сколько знаков пояснения команды уходит телефону: там под именем две строки, а описание скилла
+ * бывает в абзац. Целиком его не прочесть и в окне - строка подсказки там одна.
+ */
+export const COMMAND_HINT_CHARS = 240
+
+const clipped = (text: string, limit: number): string =>
+  text.length > limit ? `${text.slice(0, limit - 1).trimEnd()}…` : text
+
+/**
+ * Каталог «/» в кадр: по порядку окна, без папок машины в пояснениях, сколько влезло. Команда
+ * панели сюда не попадает - её телефону не выполнить; группа на проводе - встроенная или своя.
+ */
+export const commandsThatFit = (
+  entries: readonly CommandEntry[],
+  redact: Redact,
+  budget = READ_BUDGET,
+): SlashCommandsWire => {
+  const commands = entries
+    .filter((entry) => entry.group !== 'panel')
+    .map((entry) => ({
+      name: entry.id,
+      hint: clipped(redact(entry.hint), COMMAND_HINT_CHARS),
+      argumentHint: redact(entry.argumentHint ?? ''),
+      group: entry.group === 'built-in' ? ('built-in' as const) : ('project' as const),
+    }))
+  const offered = commands.length
+
+  while (commands.length > 0 && sizeOf({ commands, more: true }) > budget) commands.pop()
+
+  return { commands, more: commands.length < offered }
+}
 
 /** История проекта: свежие сверху, без папок в заголовках, сколько влезло в кадр. */
 export const historyThatFits = (

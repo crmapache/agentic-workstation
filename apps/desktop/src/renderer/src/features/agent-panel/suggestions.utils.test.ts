@@ -1,8 +1,8 @@
 import { it, expect, describe } from 'vitest'
 
 import type { DraftToken } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 
-import type { CommandEntry } from './slash.types'
 import { fileRows, slashState, prepareMentionTargets } from './suggestions.utils'
 
 const commands: CommandEntry[] = [

@@ -1,9 +1,9 @@
 import type { RefObject } from 'react'
 
 import type { DraftChip, DraftToken } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 
 import type { ChipRegistry } from './field-chips'
-import type { CommandEntry } from './slash.types'
 
 /** Что полю ввода нужно снаружи: куски из черновика и куда сообщать правки. */
 export type FieldOptions = {

@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { Conversation } from '@shared/conversation'
+import type { CommandEntry } from '@shared/slash-catalog'
+import { withBuiltins, buildCommands, BUILTIN_ARGUMENTS } from '@shared/slash-catalog'
 import type { Project } from '@shared/workspace'
 import { useQuery } from '@tanstack/react-query'
 
@@ -22,10 +24,8 @@ import {
   PANEL_ARGUMENTS,
   BUILTIN_COMMANDS,
   DEFAULT_ARGUMENT,
-  BUILTIN_ARGUMENTS,
 } from './slash.constants'
-import type { CommandEntry, CommandOption } from './slash.types'
-import { withBuiltins, buildCommands } from './slash.utils'
+import type { CommandOption } from './slash.types'
 
 /**
  * Каталог «/» для поля: команды панели (только те, что умеют что-то в IDE), встроенные

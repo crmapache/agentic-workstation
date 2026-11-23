@@ -115,6 +115,12 @@ export const FILE_SAMPLES: readonly FileSample[] = [
   { name: 'tokens.css', folder: 'packages/ui/src/styles' },
 ]
 
+/** Команды для списка под палец: встроенная с длинным пояснением и своя с короткой подсказкой. */
+export const TOUCH_COMMAND_SAMPLES = [
+  { name: 'compact', group: 'built-in' },
+  { name: 'deploy', group: '' },
+] as const
+
 /** Кольца лимитов: в запасе, быстрее нормы с темпом недели, почти кончилось, доплата. */
 export const RING_SAMPLES: readonly RingSample[] = [
   { key: 'calm', value: 22, pace: null, tone: 'success', burning: false },

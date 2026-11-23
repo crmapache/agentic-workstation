@@ -4,26 +4,29 @@ import type { TabSlot } from './tab-drag.types'
 const gapOf = (slots: readonly TabSlot[]): number => {
   const [first, second] = slots
 
-  return first && second ? second.left - (first.left + first.width) : 0
+  return first && second ? second.start - (first.start + first.size) : 0
 }
 
-/** Сдвиг несомой вкладки под рукой, но в пределах ряда: за первую и последнюю она не уходит. */
-export const clampOffset = (slots: readonly TabSlot[], from: number, dx: number): number => {
+/**
+ * Сдвиг несомой вкладки под рукой, но в пределах ряда: за первую и последнюю она не уходит.
+ * Здесь и ниже всё - вдоль оси ряда (TabSlot): «вперёд» - вправо или вниз, «назад» - влево или вверх.
+ */
+export const clampOffset = (slots: readonly TabSlot[], from: number, delta: number): number => {
   const carried = slots[from]
   const first = slots[0]
   const last = slots.at(-1)
 
   if (!carried || !first || !last) return 0
 
-  const min = first.left - carried.left
-  const max = last.left + last.width - (carried.left + carried.width)
+  const min = first.start - carried.start
+  const max = last.start + last.size - (carried.start + carried.size)
 
-  return Math.min(Math.max(dx, min), max)
+  return Math.min(Math.max(delta, min), max)
 }
 
 /**
- * Место, куда встанет несомая вкладка при сдвиге offset: сосед справа пройден, когда её правый
- * край миновал его середину, сосед слева - когда левый край. По середине самой вкладки до
+ * Место, куда встанет несомая вкладка при сдвиге offset: сосед впереди пройден, когда её передний
+ * край миновал его середину, сосед позади - когда задний. По середине самой вкладки до
  * последнего места было бы не дойти: у края ряда её середина лишь встаёт на середину крайней.
  */
 const placeAt = (slots: readonly TabSlot[], from: number, offset: number): number => {
@@ -31,13 +34,13 @@ const placeAt = (slots: readonly TabSlot[], from: number, offset: number): numbe
 
   if (!carried) return from
 
-  const left = carried.left + offset
-  const right = left + carried.width
-  const middle = (slot: TabSlot) => slot.left + slot.width / 2
-  const passedRight = slots.filter((slot, index) => index > from && right > middle(slot)).length
-  const passedLeft = slots.filter((slot, index) => index < from && left < middle(slot)).length
+  const start = carried.start + offset
+  const end = start + carried.size
+  const middle = (slot: TabSlot) => slot.start + slot.size / 2
+  const passedAhead = slots.filter((slot, index) => index > from && end > middle(slot)).length
+  const passedBehind = slots.filter((slot, index) => index < from && start < middle(slot)).length
 
-  return from + passedRight - passedLeft
+  return from + passedAhead - passedBehind
 }
 
 /**
@@ -58,8 +61,8 @@ export const nextPlace = (
 }
 
 /**
- * Сдвиги соседей, уступивших место: вкладки между старым и новым местом едут на ширину
- * несомой и зазор - влево, если её несут вправо, и вправо, если влево.
+ * Сдвиги соседей, уступивших место: вкладки между старым и новым местом едут на размер
+ * несомой и зазор - назад, если её несут вперёд, и вперёд, если назад.
  */
 export const shiftsFor = (
   slots: readonly TabSlot[],
@@ -70,7 +73,7 @@ export const shiftsFor = (
 
   if (!carried || place === from) return {}
 
-  const stride = carried.width + gapOf(slots)
+  const stride = carried.size + gapOf(slots)
   const moved = place > from ? slots.slice(from + 1, place + 1) : slots.slice(place, from)
   const shift = place > from ? -stride : stride
 
@@ -78,8 +81,8 @@ export const shiftsFor = (
 }
 
 /**
- * Сдвиг брошенной вкладки до её нового места: правым краем к правому краю той, чьё место она
- * заняла, если её несли вправо, и левым к левому - если влево.
+ * Сдвиг брошенной вкладки до её нового места: передним краем к переднему краю той, чьё место
+ * она заняла, если её несли вперёд, и задним к заднему - если назад.
  */
 export const landingOffset = (slots: readonly TabSlot[], from: number, place: number): number => {
   const carried = slots[from]
@@ -88,8 +91,8 @@ export const landingOffset = (slots: readonly TabSlot[], from: number, place: nu
   if (!carried || !target || place === from) return 0
 
   return place > from
-    ? target.left + target.width - (carried.left + carried.width)
-    : target.left - carried.left
+    ? target.start + target.size - (carried.start + carried.size)
+    : target.start - carried.start
 }
 
 /** Перед какой вкладкой встать, чтобы оказаться на месте place; null - в конец ряда. */

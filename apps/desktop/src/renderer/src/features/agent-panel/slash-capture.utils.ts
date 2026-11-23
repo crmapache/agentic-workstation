@@ -1,8 +1,9 @@
 import type { DraftToken } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 
 import { asideQuestion } from './aside.utils'
 import { PANEL_COMMANDS } from './slash.constants'
-import type { CommandEntry, LocalCommand, CommandOption } from './slash.types'
+import type { LocalCommand, CommandOption } from './slash.types'
 
 /**
  * Команда в черновике: когда набранное имя становится чипом, что заменяется выбором из

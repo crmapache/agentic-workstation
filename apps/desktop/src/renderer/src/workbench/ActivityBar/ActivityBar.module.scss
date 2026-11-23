@@ -1,10 +1,12 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
 // Полоса иконок - узкий лист рядом с листом панели. Сверху иконку отделяет тот же
-// зазор, что и по бокам. Активный вид отмечает сама кнопка - залитой плашкой.
+// зазор, что и по бокам. Активный вид отмечает сама кнопка - залитой плашкой. Относительно
+// неё встаёт якорь меню правой кнопки.
 .activityBar {
   @include window-sheet;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -14,18 +16,47 @@
   padding: var(--space-1-5) 0;
 }
 
-// Низ полосы: прижат к нижнему краю, как кнопка Terminal в полосе WebStorm.
-.footer {
+// Группа кнопок - свой ряд перетаскивания: виды сверху или кнопки низа.
+.group {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+// Низ полосы: прижат к нижнему краю, как кнопка Terminal в полосе WebStorm.
+.bottom {
   margin-top: auto;
 }
 
+// Пришёл новый порядок после перетаскивания: сдвиги снимаются без перехода (как у вкладок).
+.group[data-landing] > * {
+  transition: none;
+}
+
 // Иконка со значком: значок прибит к её правому верхнему углу и не ловит мышь - нажимают иконку.
+// Соседи уступают место несомой кнопке переходом сдвига.
 .item {
   position: relative;
   display: flex;
+  border-radius: var(--radius-sm);
+  transition: transform var(--duration-normal) var(--easing-standard);
+}
+
+// Кнопку несут рукой: поверх соседей, плашкой и без задержки - плавность здесь читалась бы
+// как отставание от курсора (как у вкладки, ClosableTab).
+.lifted {
+  z-index: var(--z-sticky);
+  background-color: var(--color-surface-raised-hover);
+  cursor: grabbing;
+  transition: none;
+}
+
+// Точка нажатия правой кнопкой - якорь её меню.
+.anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }
 
 // Число того, что ждёт человека - капля на углу иконки, как число непрочитанных у кнопки ленты

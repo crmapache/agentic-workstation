@@ -3578,6 +3578,10 @@
   },
   "activityBar": {
     "waiting": "{{label}} - {{count}} waiting for you",
+    "menu": "{{bar}} buttons",
+    "hide": "Hide {{label}}",
+    "buttons": "Show in bar",
+    "reset": "Reset to default",
     "changes": {
       "modified": "Changes - uncommitted changes",
       "conflict": "Changes - merge conflict"

@@ -148,6 +148,8 @@ describe('белый список команд', () => {
         index: -1,
       }).ok,
     ).toBe(false)
+    expect(parseCommand('conversation.commands', { conversationId: CONVERSATION }).ok).toBe(true)
+    expect(parseCommand('conversation.commands', { conversationId: '../x' }).ok).toBe(false)
   })
 
   it('у каждой команды свой предел частоты', () => {

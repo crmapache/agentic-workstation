@@ -5,7 +5,9 @@ import type { ConversationWire } from '@agentic-workstation/remote-protocol/wire
 import type { useConversationScreen, useConversationCommands } from '../ConversationScreen.hooks'
 import styles from '../ConversationScreen.module.scss'
 import { PendingCard } from '../../PendingCard/PendingCard'
+import type { OutgoingMessage } from '../../../../lib/attachments'
 import { Composer } from '../../../../shell/Composer/Composer'
+import type { ComposerSlash } from '../../../../shell/Composer/Composer.types'
 import { CarryOnRow } from './CarryOnRow'
 import { ConversationMeters } from './ConversationMeters'
 import { QueuedMessages } from './QueuedMessages'
@@ -22,6 +24,8 @@ export const ConversationFooter = ({
   offset,
   screen,
   commands,
+  slash,
+  onSend,
 }: {
   conversation: ConversationWire | undefined
   draftKey: string
@@ -29,6 +33,10 @@ export const ConversationFooter = ({
   offset: number
   screen: ReturnType<typeof useConversationScreen>
   commands: ReturnType<typeof useConversationCommands>
+  /** Подсказка «/»: каталог IDE и свои команды телефона. */
+  slash: ComposerSlash
+  /** Отправка поля: своя команда телефона или сообщение в разговор. */
+  onSend: (message: OutgoingMessage) => Promise<boolean>
 }) => {
   const { t } = useTranslation()
   const busy = conversation?.status === 'running'
@@ -70,7 +78,8 @@ export const ConversationFooter = ({
             />
           )
         }
-        onSend={screen.handleSend}
+        slash={slash}
+        onSend={onSend}
       />
     </div>
   )

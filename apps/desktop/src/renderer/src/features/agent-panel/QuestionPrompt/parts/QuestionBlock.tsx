@@ -9,6 +9,8 @@ import { TextField } from '@agentic-workstation/ui/TextField'
 import { MAX_DIGIT_KEYS } from '../QuestionPrompt.constants'
 import styles from '../QuestionPrompt.module.scss'
 import type { QuestionBlockProps } from '../QuestionPrompt.types'
+import { plainText } from '../../draft.utils'
+import { OwnAnswerField } from './OwnAnswerField'
 
 /** Цифра варианта справа: десятый и дальше - без неё. */
 const digitOf = (position: number) => (position < MAX_DIGIT_KEYS ? String(position + 1) : undefined)
@@ -16,10 +18,12 @@ const digitOf = (position: number) => (position < MAX_DIGIT_KEYS ? String(positi
 /**
  * Один вопрос: метка, текст и варианты с отметкой - кружок для одного ответа, квадрат
  * для нескольких - и цифрой справа. «Other» - на следующей цифре, открывает поле своего
- * ответа; вставленный файл ложится туда путём, в место каретки. Вопрос без вариантов - сразу
- * поле; где свой ответ не принимают, «Other» нет; секретный ответ поле прячет.
+ * ответа - поле с чипами, как у сообщения (вставленный файл - чипом в место каретки). Вопрос
+ * без вариантов - сразу поле; где свой ответ не принимают, «Other» нет; секретный ответ -
+ * обычное поле с точками вместо букв.
  */
 export const QuestionBlock = ({
+  projectId,
   question,
   index,
   draft,
@@ -28,14 +32,13 @@ export const QuestionBlock = ({
   onPick,
   onOther,
   onOwnAnswer,
-  onOwnPaste,
   onFocus,
 }: QuestionBlockProps) => {
   const { t } = useTranslation()
   const selection = question.multiSelect ? 'multiple' : 'single'
   const picks = draft.picks[index] ?? []
   const ownOnly = question.options.length === 0
-  const own = draft.custom[index] ?? (ownOnly ? '' : undefined)
+  const own = draft.custom[index] ?? (ownOnly ? [] : undefined)
 
   return (
     <div className={styles.question} data-keyed={isKeyed || undefined}>
@@ -77,16 +80,26 @@ export const QuestionBlock = ({
           )}
         </Menu>
       )}
-      {own !== undefined && (
+      {own !== undefined && question.secret && (
         <TextField
           label={t('agentPanel.question.other')}
           hideLabel
           autoFocus={grabsFocus || ownOnly}
-          type={question.secret ? 'password' : 'text'}
-          value={own}
+          type="password"
+          value={plainText(own)}
           placeholder={t('agentPanel.question.otherPlaceholder')}
+          onChange={(value) => onOwnAnswer(value ? [{ kind: 'text', value }] : [])}
+          onFocus={onFocus}
+        />
+      )}
+      {own !== undefined && !question.secret && (
+        <OwnAnswerField
+          projectId={projectId}
+          tokens={own}
+          label={t('agentPanel.question.other')}
+          placeholder={t('agentPanel.question.otherPlaceholder')}
+          autoFocus={grabsFocus || ownOnly}
           onChange={onOwnAnswer}
-          onPaste={onOwnPaste}
           onFocus={onFocus}
         />
       )}

@@ -7,12 +7,13 @@ import { useListBox } from '@agentic-workstation/ui/ListBox.hooks'
 import { ListBoxOption } from '@agentic-workstation/ui/ListBoxOption'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
-import { FILE_SAMPLES } from '../ComponentsView.constants'
+import { FILE_SAMPLES, TOUCH_COMMAND_SAMPLES } from '../ComponentsView.constants'
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
  * Образец списка поиска: поле и ListBox под ним. Живой - печатаешь, список
- * фильтруется, стрелки двигают выделение, а фокус остаётся в поле.
+ * фильтруется, стрелки двигают выделение, а фокус остаётся в поле. Ниже - тот же список
+ * под палец (size touch): подсказка «/» над полем сообщения телефона.
  */
 export const SearchListSpecimen = () => {
   const { t } = useTranslation('showcase')
@@ -25,40 +26,59 @@ export const SearchListSpecimen = () => {
   const handlePick = (index: number) => setPicked(files[index]?.name ?? '')
 
   return (
-    <Specimen label={t('specimens.listBox')} layout="column">
-      <TextField
-        {...list.comboboxProps}
-        label={t('samples.listBoxLabel')}
-        hideLabel
-        icon={Search}
-        placeholder={t('samples.listBoxPlaceholder')}
-        value={query}
-        onChange={setQuery}
-        onKeyDown={(event) => list.handleKeyDown(event, handlePick)}
-      />
-      {files.length > 0 && (
-        <ListBox {...list.listBoxProps} label={t('samples.listBoxLabel')}>
-          {files.map((file, index) => (
+    <>
+      <Specimen label={t('specimens.listBox')} layout="column">
+        <TextField
+          {...list.comboboxProps}
+          label={t('samples.listBoxLabel')}
+          hideLabel
+          icon={Search}
+          placeholder={t('samples.listBoxPlaceholder')}
+          value={query}
+          onChange={setQuery}
+          onKeyDown={(event) => list.handleKeyDown(event, handlePick)}
+        />
+        {files.length > 0 && (
+          <ListBox {...list.listBoxProps} label={t('samples.listBoxLabel')}>
+            {files.map((file, index) => (
+              <ListBoxOption
+                key={file.name}
+                id={list.optionId(index)}
+                icon={FileCode}
+                label={file.name}
+                highlight={
+                  needle
+                    ? [{ start: file.name.toLowerCase().indexOf(needle), length: needle.length }]
+                    : []
+                }
+                description={file.folder}
+                hint={file.name === picked ? '↵' : undefined}
+                active={index === list.activeIndex}
+                onSelect={() => setPicked(file.name)}
+                onActivate={() => list.setActiveIndex(index)}
+              />
+            ))}
+          </ListBox>
+        )}
+        {files.length === 0 && t('samples.listBoxEmpty')}
+      </Specimen>
+      <Specimen label={t('specimens.listBoxTouch')} layout="column">
+        <ListBox id="showcase-touch-list" label={t('samples.listBoxTouchLabel')}>
+          {TOUCH_COMMAND_SAMPLES.map((command, index) => (
             <ListBoxOption
-              key={file.name}
-              id={list.optionId(index)}
-              icon={FileCode}
-              label={file.name}
-              highlight={
-                needle
-                  ? [{ start: file.name.toLowerCase().indexOf(needle), length: needle.length }]
-                  : []
-              }
-              description={file.folder}
-              hint={file.name === picked ? '↵' : undefined}
-              active={index === list.activeIndex}
-              onSelect={() => setPicked(file.name)}
-              onActivate={() => list.setActiveIndex(index)}
+              key={command.name}
+              id={`showcase-touch-list-${index}`}
+              size="touch"
+              label={`/${command.name}`}
+              description={t(`samples.listBoxTouchHints.${command.name}`)}
+              hint={command.group || undefined}
+              active={false}
+              onSelect={() => setPicked(command.name)}
+              onActivate={() => undefined}
             />
           ))}
         </ListBox>
-      )}
-      {files.length === 0 && t('samples.listBoxEmpty')}
-    </Specimen>
+      </Specimen>
+    </>
   )
 }

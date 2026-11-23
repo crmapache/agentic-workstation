@@ -1,6 +1,8 @@
 import type { Question, QuestionAnswers } from '@shared/conversation'
+import type { DraftToken } from '@shared/message-draft'
 
 import type { AskDraft } from './ask-draft.types'
+import { tokenText, isPastedImage } from './draft.utils'
 
 /**
  * Ответы на вопрос с вариантами, пока их собирают (как в ACC, feed/askDraft). Черновик
@@ -47,35 +49,37 @@ export const openOwnAnswer = (draft: AskDraft, question: Question, index: number
 
   return {
     picks: question.multiSelect ? draft.picks : { ...draft.picks, [index]: [] },
-    custom: { ...draft.custom, [index]: '' },
+    custom: { ...draft.custom, [index]: [] },
   }
 }
 
-export const writeOwnAnswer = (draft: AskDraft, index: number, value: string): AskDraft => ({
+export const writeOwnAnswer = (draft: AskDraft, index: number, tokens: DraftToken[]): AskDraft => ({
   ...draft,
-  custom: { ...draft.custom, [index]: value },
+  custom: { ...draft.custom, [index]: tokens },
 })
 
-/** Пути вставленного - в место каретки, без склейки со словами вокруг. */
-export const pasteIntoOwnAnswer = (
-  draft: AskDraft,
-  index: number,
-  paths: readonly string[],
-  at: number,
-  to: number,
-): AskDraft => {
-  const value = draft.custom[index] ?? ''
-  const head = value.slice(0, Math.min(at, value.length))
-  const tail = value.slice(Math.min(to, value.length))
-  const before = head && !/\s$/.test(head) ? `${head} ` : head
-  const after = tail && !/^\s/.test(tail) ? ` ${tail}` : tail
+/**
+ * Свой ответ текстом для CLI. Ответ уходит только текстом, байтов картинки рядом нет: файл и
+ * картинка - ссылкой «@путь», как в сообщении (вставленная картинка - путём, куда IDE её записала;
+ * не записалась - ссылки нет). Остальные чипы - тем же текстом, что в сообщении.
+ */
+export const ownAnswerText = (tokens: readonly DraftToken[]): string =>
+  tokens
+    .map((token) => {
+      if (token.kind === 'chip' && token.chip.kind === 'img') {
+        const { chip } = token
 
-  return writeOwnAnswer(draft, index, `${before}${paths.join(' ')}${after}`)
-}
+        if (chip.path) return `@${chip.path}`
+        if (isPastedImage(chip)) return ''
+      }
+
+      return tokenText(token)
+    })
+    .join('')
 
 /** Ответ на один вопрос: свой текст важнее галочек, галочки - через запятую. */
 export const answerFor = (draft: AskDraft, index: number): string =>
-  draft.custom[index]?.trim() || (draft.picks[index] ?? []).join(', ')
+  ownAnswerText(draft.custom[index] ?? []).trim() || (draft.picks[index] ?? []).join(', ')
 
 /** Все ли вопросы отвечены - можно отправлять. */
 export const askAnswered = (questions: readonly Question[], draft: AskDraft): boolean =>

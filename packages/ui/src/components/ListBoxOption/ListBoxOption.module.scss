@@ -73,3 +73,22 @@
   color: var(--color-fg-disabled);
   font-size: var(--font-size-xs);
 }
+
+// Под палец: строка не ниже цели касания, пояснение - под подписью, до двух строк.
+.touch {
+  min-height: var(--size-touch-target);
+  padding: var(--space-1-5) var(--space-2);
+
+  .text {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-0-5);
+  }
+
+  .description {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

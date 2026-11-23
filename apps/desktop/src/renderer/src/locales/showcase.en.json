@@ -80,6 +80,7 @@
     "resizeHandle": "Resize handle",
     "resizeHandleInGap": "Resize handle between sheets",
     "listBox": "Search list",
+    "listBoxTouch": "Search list - touch (phone): the explanation goes under the name, up to two lines",
     "cardAccent": "Card - waiting for you",
     "disclosure": "Disclosure rows",
     "closableTabs": "Closable tabs",
@@ -251,6 +252,11 @@
     "listBoxLabel": "Files",
     "listBoxPlaceholder": "Type part of a file name",
     "listBoxEmpty": "Nothing found",
+    "listBoxTouchLabel": "Commands",
+    "listBoxTouchHints": {
+      "compact": "Free up context - the agent sums up the conversation so far and keeps going from the summary",
+      "deploy": "Ship the current branch"
+    },
     "permission": "Permission",
     "permissionText": "Claude wants to run npm test",
     "allow": "Allow",

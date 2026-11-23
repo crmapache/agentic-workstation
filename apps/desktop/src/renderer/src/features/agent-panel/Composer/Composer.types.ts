@@ -4,7 +4,6 @@ import type { Conversation } from '@shared/conversation'
 import type { Project } from '@shared/workspace'
 
 import type { FitStep } from '../composer-fit.utils'
-import type { ChipRegistry } from '../field-chips'
 import type { SuggestRow } from '../suggestions.types'
 
 export type ComposerProps = {
@@ -24,11 +23,6 @@ export type SuggestListProps = {
   isFiles: boolean
   onPick: (row: SuggestRow) => void
   onHover: (index: number) => void
-}
-
-export type FieldChipsProps = {
-  registry: ChipRegistry
-  fieldRef: RefObject<HTMLDivElement | null>
 }
 
 export type GhostHintProps = {

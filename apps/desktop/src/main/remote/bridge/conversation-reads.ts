@@ -1,3 +1,6 @@
+import type { CommandEntry } from '@shared/slash-catalog'
+import { withBuiltins, buildCommands, BUILTIN_ARGUMENTS } from '@shared/slash-catalog'
+
 import type { CommandArgs } from '@agentic-workstation/remote-protocol/commands'
 
 import type { BridgePorts, ConversationsPort } from './bridge-ports'
@@ -5,9 +8,16 @@ import type { Outcome } from './command-ledger'
 import { searchWire, aiSearchWire } from './conversation-extras-wire'
 import type { Redact } from './fit'
 import { done, fail } from './outcomes'
+import type { Owner } from './panels'
 import { panelOf } from './panels'
 import type { ProjectKeys } from './project-keys'
-import { pageBefore, historyThatFits, pictureThatFits, feedWithRowAbove } from './reads-fit'
+import {
+  pageBefore,
+  commandsThatFit,
+  historyThatFits,
+  pictureThatFits,
+  feedWithRowAbove,
+} from './reads-fit'
 
 /**
  * Прогоны поиска модели с телефона - под своей приставкой: номер называет телефон, и с номером
@@ -19,7 +29,7 @@ const remoteRun = (runId: string) => `remote:${runId}`
  * Чтение разговоров по просьбе телефона: история проекта у провайдера и продолжение прошлого
  * разговора, страница ленты выше того, что у телефона, картинка сообщения для просмотра. Те же
  * методы панели провайдера, что зовёт окно (agent:listHistory, openHistory, loadEarlier,
- * getImage); ответ каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в
+ * getImage, claude:listCommands); ответ каждой команды влезает в один кадр (reads-fit.ts). Разговор - только в
  * открытом проекте: его панель, id и проект находит ConversationCommands до того, как позвать
  * сюда. Поиск по разговорам - тоже чтение, только у Claude Code: набранный - индексом IDE,
  * описанный - моделью (SearchDesk).
@@ -128,6 +138,34 @@ export class ConversationReads {
     )
 
     return fitted ? done(fitted) : fail('refused', 'imageTooBig')
+  }
+
+  /**
+   * Каталог «/» разговора по правилам поля окна (shared/slash-catalog): встроенные команды,
+   * которые выполняет CLI провайдера, названные CLI для проекта и его свои, найденное на диске.
+   * Команд панели нет: их выполняет окно, а свои (/btw, /fast, /model, /effort) - телефон. Диск
+   * не прочёлся - каталог без него, а не отказ: CLI назвал почти всё и сам.
+   */
+  async commands({ panel, conversation }: Owner): Promise<Outcome> {
+    const state = panel.getState()
+    const path = conversation.projectPath
+    const builtin = state.capabilities.commands.map((id): CommandEntry => ({
+      id,
+      hint: '',
+      argumentHint: BUILTIN_ARGUMENTS[id],
+      group: 'built-in',
+    }))
+    const cli = withBuiltins(state.commandsByProject[path] ?? [], state.builtinCommands)
+    const disk =
+      state.capabilities.diskCommands && panel.diskCommands
+        ? await panel.diskCommands(path).catch((error: unknown) => {
+            console.warn('[remote] команды с диска не прочлись:', error)
+
+            return []
+          })
+        : []
+
+    return done(commandsThatFit(buildCommands([], builtin, cli, disk), this.redact()))
   }
 
   /** Папка открытого проекта по ключу; закрытый - notOpen, незнакомый - notFound. */

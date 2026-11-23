@@ -1,14 +1,21 @@
 import { app, Menu, BrowserWindow } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 
-import type { WindowCommand } from '@shared/window'
+import type { BarMenuEntry, WindowCommand } from '@shared/window'
 
 import { IS_MAC } from './platform'
 import { broadcast } from './ipc/broadcast'
+import { barMenuItems } from './window/bar-menu'
 import { isPanelFocused } from './agents/tabs/panel-focus'
 
 type MenuActions = {
   openProject: () => void
+}
+
+/** Меню приложения после установки: его части, которые знает только окно. */
+export type ApplicationMenu = {
+  /** Кнопки полос окна (ADR 0112): меню View пересобирается с новыми галочками. */
+  showBars: (bars: BarMenuEntry[]) => void
 }
 
 /**
@@ -78,15 +85,29 @@ const textSizeItems: MenuItemConstructorOptions[] = [
 ]
 
 /**
+ * Кнопки полос окна в View: подменю каждой полосы с галочками (barMenuItems). Пока окно их не
+ * прислало - ничего, иначе меню показало бы полосы без кнопок.
+ */
+const barItems = (bars: readonly BarMenuEntry[]): MenuItemConstructorOptions[] =>
+  bars.length > 0
+    ? [
+        ...barMenuItems(bars, (command) => broadcast('window:barMenu', command)),
+        { type: 'separator' },
+      ]
+    : []
+
+/**
  * Меню приложения. Стандартные разделы macOS (правка, вид, окно) дают системные
  * сочетания: копирование, вставку, полноэкранный режим. Свои пункты - только то,
  * что относится ко всей IDE, а не к одному виду. Закрытие, перезагрузка и масштаб - свои, а
  * не роли: их клавиши значат другое (closeTab, reloadUnlessPanel, textSizeItems). На Windows
  * полосы меню не видно (шапку рисует страница), меню только держит сочетания клавиш: разделов
- * программы и окна macOS там нет, настройки и выход - в File.
+ * программы и окна macOS там нет, настройки и выход - в File; кнопки полос там возвращают
+ * правой кнопкой на полосе. Electron не меняет готовое меню по частям, поэтому новые галочки
+ * полос - это всё меню заново.
  */
-export const installApplicationMenu = ({ openProject }: MenuActions) => {
-  const template: MenuItemConstructorOptions[] = [
+export const installApplicationMenu = ({ openProject }: MenuActions): ApplicationMenu => {
+  const build = (bars: readonly BarMenuEntry[]): MenuItemConstructorOptions[] => [
     ...(IS_MAC ? [appMenu] : []),
     {
       label: 'File',
@@ -108,6 +129,7 @@ export const installApplicationMenu = ({ openProject }: MenuActions) => {
         { type: 'separator' },
         ...textSizeItems,
         { type: 'separator' },
+        ...barItems(bars),
         { role: 'togglefullscreen' },
       ],
     },
@@ -126,6 +148,10 @@ export const installApplicationMenu = ({ openProject }: MenuActions) => {
         ]
       : []),
   ]
+  const install = (bars: readonly BarMenuEntry[]) =>
+    Menu.setApplicationMenu(Menu.buildFromTemplate(build(bars)))
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+  install([])
+
+  return { showBars: install }
 }

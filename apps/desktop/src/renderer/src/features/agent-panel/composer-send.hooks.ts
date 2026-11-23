@@ -1,5 +1,6 @@
 import type { EffortLevel, Conversation } from '@shared/conversation'
 import type { EditorRef } from '@shared/message-draft'
+import type { CommandEntry } from '@shared/slash-catalog'
 import type { Project } from '@shared/workspace'
 
 import { useComposerStore } from './composer.store'
@@ -18,7 +19,7 @@ import { editorGoes } from './editor-context.utils'
 import { usePanelPrefs, useEffortLevels } from './panel.queries'
 import { localCommand, captureWrittenCommand } from './slash-capture.utils'
 import { DEFAULT_ARGUMENT } from './slash.constants'
-import type { PanelAction, CommandEntry, LocalCommand, CommandOption } from './slash.types'
+import type { PanelAction, LocalCommand, CommandOption } from './slash.types'
 
 type SendOptions = {
   project: Project

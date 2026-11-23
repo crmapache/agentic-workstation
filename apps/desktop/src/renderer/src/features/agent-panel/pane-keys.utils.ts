@@ -39,6 +39,8 @@ export const nextMode = (
 export const typedInto = (target: EventTarget | null, composerEmpty: boolean): boolean => {
   if (!(target instanceof HTMLElement)) return false
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return true
+  // Поле с чипами, которое всегда поле (свой ответ на вопрос), а не поле сообщения.
+  if (target.closest('[data-typed-field]')) return true
 
   return target.isContentEditable && !composerEmpty
 }

@@ -84,3 +84,21 @@ export type RewindPreviewWire =
 export type RewindOutcomeWire =
   | { rewound: true; prefill: string; filesFailed: string | null }
   | { rewound: false; reason: string; detail: string }
+
+/**
+ * Строка каталога «/» (conversation.commands): имя без «/», пояснение и синтаксис аргумента.
+ * group - встроенная в CLI или своя (проекта, пользователя, плагина, MCP). Встроенную без
+ * пояснения телефон поясняет сам, если знает её.
+ */
+export type SlashCommandWire = {
+  name: string
+  hint: string
+  argumentHint: string
+  group: 'built-in' | 'project'
+}
+
+/**
+ * Каталог «/» разговора по порядку окна: встроенные, названные CLI, потом найденные на диске по
+ * имени. Сколько влезло в кадр; more - IDE знает ещё.
+ */
+export type SlashCommandsWire = { commands: SlashCommandWire[]; more: boolean }

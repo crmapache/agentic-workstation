@@ -1,8 +1,8 @@
 /**
  * Ключи кэша React Query. Всё под ключами - зеркало того, что держит IDE (она владеет
  * состоянием, телефон только показывает), плюс список пар из хранилища телефона и то, что
- * телефон читает командой по просьбе экрана (полки, сценарий, журнал шага, история, картинка
- * сообщения, откат, аккаунты и коннекторы машины).
+ * телефон читает командой по просьбе экрана (полки, сценарий, журнал шага, история, каталог «/»,
+ * картинка сообщения, откат, аккаунты и коннекторы машины).
  */
 export const queryKeys = {
   machines: ['machines'] as const,
@@ -15,6 +15,8 @@ export const queryKeys = {
   shelves: (agentId: string, projectKey: string) => ['shelves', agentId, projectKey] as const,
   history: (agentId: string, projectKey: string, provider: string) =>
     ['history', agentId, projectKey, provider] as const,
+  slashCommands: (agentId: string, conversationId: string) =>
+    ['slashCommands', agentId, conversationId] as const,
   image: (agentId: string, conversationId: string, messageId: string, index: number) =>
     ['image', agentId, conversationId, messageId, index] as const,
   scenario: (agentId: string, projectKey: string, scope: string, scenarioId: string) =>

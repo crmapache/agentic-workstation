@@ -1,4 +1,5 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useMemo, useState, useEffect, useLayoutEffect } from 'react'
+import type { RefObject } from 'react'
 import type { ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,9 +14,11 @@ import {
 import type { PreparedImage } from '../../lib/images'
 import { MAX_IMAGES, prepareImage } from '../../lib/images'
 import { messageText } from '../../lib/quotes.utils'
+import type { SlashRow } from '../../lib/slash.utils'
+import { slashState } from '../../lib/slash.utils'
 import { useDraftsStore } from '../../state/drafts.store'
 import { useToastStore } from '../../state/toast.store'
-import type { ComposerProps } from './Composer.types'
+import type { ComposerProps, ComposerSlash } from './Composer.types'
 
 const NO_QUOTES: string[] = []
 
@@ -152,5 +155,60 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
     isEmpty,
     fieldRef,
     fileRef,
+  }
+}
+
+/**
+ * Подсказка «/» над полем: читает начало поля до каретки (команду можно поставить и перед уже
+ * написанным), выбор ставит «/команда » или значение её аргумента на это место и оставляет
+ * каретку за ним. Закрытый крестиком список не встаёт, пока набранное не поменялось.
+ */
+export const useSlashSuggest = (
+  text: string,
+  setText: (value: string) => void,
+  fieldRef: RefObject<HTMLTextAreaElement | null>,
+  slash: ComposerSlash | undefined,
+) => {
+  const [caret, setCaret] = useState(text.length)
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const placeCaret = useRef<number | null>(null)
+  const head = text.slice(0, caret)
+  const state = useMemo(
+    () => (slash ? slashState(head, slash.commands, slash.argumentSets) : null),
+    [head, slash],
+  )
+
+  // Каретка - за выбранным, клавиатура остаётся: дальше печатают аргумент или текст.
+  useLayoutEffect(() => {
+    const field = fieldRef.current
+    const at = placeCaret.current
+
+    if (!field || at === null) return
+
+    placeCaret.current = null
+    field.focus()
+    field.setSelectionRange(at, at)
+  }, [text, fieldRef])
+
+  const track = (field: HTMLTextAreaElement) => setCaret(field.selectionStart)
+
+  const pick = (row: SlashRow) => {
+    if (!state) return
+
+    const value = state.kind === 'commands' ? `/${row.id} ` : `/${state.command} ${row.id}`
+    const rest = text.slice(head.length)
+
+    placeCaret.current = value.length
+    setCaret(value.length)
+    setText(value + (value.endsWith(' ') && rest.startsWith(' ') ? rest.slice(1) : rest))
+    // Значение выбрано - его список своё сказал; у команды - второй шаг или ничего.
+    setDismissed(state.kind === 'values' ? `${state.command}\u0000${row.id}` : null)
+  }
+
+  return {
+    shown: state && state.key !== dismissed ? state : null,
+    track,
+    pick,
+    dismiss: () => setDismissed(state?.key ?? null),
   }
 }

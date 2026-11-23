@@ -279,6 +279,7 @@ ACC ([ADR 0011](0011-remote-access-acc-protocol.md)). Владелец отве�
 | `rewindPreview`, `rewind`                                                                              | `conversation.rewindPreview`, `conversation.rewind`                         | откат кода - только то, что писали инструменты агента; за «точно?»                                                       |
 | `history`, `historyPage`                                                                               | `conversation.history`, `conversation.earlier`                              | история - и у недавнего проекта (только список)                                                                          |
 | `resumeSession`                                                                                        | `conversation.openHistory`                                                  | только в открытом проекте                                                                                                |
+| `commands`, `hints`                                                                                    | `conversation.commands`                                                     | каталог «/» по просьбе поля; /btw, /fast, /model, /effort телефон выполняет сам                                          |
 | `search`, `searchAi`, `searchCancel`                                                                   | `conversation.search`, `conversation.searchAi`, `conversation.searchCancel` | поиск - в открытом проекте; прогон модели - `remote:<id>`                                                                |
 | `newSession`                                                                                           | `conversation.new`                                                          | строже ACC: только default, acceptEdits, plan                                                                            |
 | `renameSession`                                                                                        | `conversation.rename`                                                       |                                                                                                                          |
@@ -324,6 +325,14 @@ ACC ([ADR 0011](0011-remote-access-acc-protocol.md)). Владелец отве�
 
 Решения, принятые по ходу:
 
+- **Каталог «/» - чтением по просьбе поля, а не в снимке разговора** (2026-11-22, просьба
+  владельца «подсказки скиллов, как в ACC»). Скиллов с описаниями бывает сотня - десятки
+  килобайт, а снимок разговора уходит на каждую перемену. Телефон спрашивает
+  `conversation.commands`, когда в поле начали набирать «/», и полминуты считает ответ свежим.
+  Порядок и отбор - те же правила, что у поля окна (`shared/slash-catalog.ts`): встроенные
+  провайдера, названные CLI, найденное на диске; команд панели нет. Свои команды телефон
+  выполняет сам, как панель: /btw - вопрос сбоку, /fast - быстрый режим, /model и /effort со
+  знакомым значением - выбор разговора, без значения - настройки разговора.
 - **Почта - замаскированной** (`mz…e@gmail.com`: два знака начала, один знак конца, домен;
   имя короче четырёх - один знак). Чтобы отличить свои аккаунты, хватает, а адрес целиком с
   машины не уходит: экран телефона видят чужие глаза, а клиент телефону отдаёт релей (раздел

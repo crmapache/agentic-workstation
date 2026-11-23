@@ -134,6 +134,11 @@ export const CONVERSATION_ARGS = {
     messageId: ITEM_ID,
     index: z.int().min(0).max(99),
   }),
+  /**
+   * Каталог «/» разговора - подсказка над полем, как у поля окна: команды и скиллы, которые
+   * выполнит CLI этого разговора (свои, проекта, с диска). Только чтение.
+   */
+  'conversation.commands': z.object({ conversationId: CONVERSATION_ID }),
   /** Поиск по разговорам открытого проекта - индексом IDE, ответ кусками в один кадр. */
   'conversation.search': z.object({ projectKey: PROJECT_KEY, query: QUERY }),
   /**
@@ -186,6 +191,7 @@ export const CONVERSATION_LIMITS: Readonly<Record<keyof typeof CONVERSATION_ARGS
   'conversation.openHistory': 10,
   'conversation.earlier': 30,
   'conversation.image': 30,
+  'conversation.commands': 30,
   'conversation.search': 30,
   'conversation.searchAi': 5,
   'conversation.searchCancel': 10,

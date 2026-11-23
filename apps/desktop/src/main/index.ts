@@ -334,8 +334,9 @@ const bootstrap = async () => {
     terminals.killAllNow()
   })
 
-  registerInvokeHandlers(createInvokeHandlers(services), RENDERER_URL)
-  installApplicationMenu({ openProject: () => void pickAndOpenProject(services) })
+  const menu = installApplicationMenu({ openProject: () => void pickAndOpenProject(services) })
+
+  registerInvokeHandlers(createInvokeHandlers({ ...services, menu }), RENDERER_URL)
   openMainWindow()
   updates.start()
 }

@@ -1,4 +1,5 @@
 @use '@agentic-workstation/ui/mixins' as *;
+@use '../field-chip' as *;
 
 // Снизу - зазор до строки под полем (модель, усилие, режим), как в ACC: селектор
 // принадлежит полю и стоит к нему вплотную, а не отдельной полосой.
@@ -68,28 +69,9 @@
   }
 }
 
-// Узел чипа в поле: неделимый, внутренности рисует React порталом. Выделение не заходит
-// внутрь плашки: протяжка по полю берёт чип целиком, а не кусок его подписи.
-// Плашка в поле - по середине строки, а не строчных букв, как в ленте: рядом мигает каретка, а
-// она стоит ровно по строке, и плашка по строчным сидела бы на полтора пикселя ниже неё. Сверху
-// строки и с полем в половину разницы высот - середина плашки точно на середине строки; подпись
-// внутри при этом встаёт на базовую линию текста вокруг.
+// Узел чипа - общий рецепт поля с чипами (тот же у своего ответа на вопрос).
 .chip {
-  display: inline;
-  user-select: none;
-
-  // Плашка - корень DraftChipView с data-kind: селектор сильнее её собственного поля.
-  > [data-kind] {
-    --chip-gap: calc((var(--field-font-size) - var(--font-size-sm)) * var(--line-height-normal));
-
-    margin-block: calc(var(--chip-gap) / 2 - var(--border-width));
-    vertical-align: top;
-  }
-
-  // Стрелка остановилась на чипе: Backspace уберёт именно его.
-  &[data-selected] > * {
-    outline: var(--focus-ring-width) solid var(--color-focus);
-  }
+  @include field-chip(var(--field-font-size));
 }
 
 // Серый синтаксис аргумента - слой поверх поля, где встанет следующий символ.
@@ -99,7 +81,7 @@
   z-index: var(--z-sticky);
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--color-fg-disabled);
+  color: var(--color-fg-faint);
   font-size: var(--font-size-md);
   white-space: pre;
   pointer-events: none;

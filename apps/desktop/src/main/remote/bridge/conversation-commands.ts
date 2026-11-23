@@ -133,6 +133,8 @@ export class ConversationCommands {
         return this.reads.earlier(panel, command.args)
       case 'conversation.image':
         return this.reads.image(panel, command.args)
+      case 'conversation.commands':
+        return this.reads.commands(owner)
       default:
         return this.tools.run(command, owner)
     }

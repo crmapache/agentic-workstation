@@ -84,6 +84,7 @@ export const claudePort = (claude: ClaudeService): ConversationsPort => ({
 
     return openedId(await claude.openHistory(projectPath, sessionId), projectPath, sessionId)
   },
+  diskCommands: (projectPath) => claude.composer.commands(projectPath),
   cancelCarryOn: (id) => claude.panel.carryOn.cancel(id),
   askAside: (id, question, askId) => claude.panel.aside.askFor(id, question, askId),
   cancelAside: (id, askId) => claude.panel.aside.cancel(id, askId),
