@@ -5,7 +5,7 @@ import { nextDue } from '@shared/task-clock'
 import { isNextSkipped } from '@shared/tasks'
 import type { Task, TaskRunState, TaskSchedule } from '@shared/tasks'
 
-import { momentLabel, weekdayNames, weekdayDayLabel } from '../../lib/dates.utils'
+import { momentLabel, weekdayNames, dayHeadingLabel, weekdayDayLabel } from '../../lib/dates.utils'
 import { scheduleWords } from './tasks.utils'
 
 /**
@@ -22,12 +22,16 @@ export const useTaskWords = () => {
     return t(`tasks.schedule.${words.key}`, words.values)
   }
 
-  const moment = (ms: number, now: number) =>
-    momentLabel(ms, now, {
-      today: t('inbox.nearDays.today'),
-      tomorrow: t('inbox.nearDays.tomorrow'),
-      yesterday: t('inbox.nearDays.yesterday'),
-    })
+  const near = {
+    today: t('inbox.nearDays.today'),
+    tomorrow: t('inbox.nearDays.tomorrow'),
+    yesterday: t('inbox.nearDays.yesterday'),
+  }
+
+  const moment = (ms: number, now: number) => momentLabel(ms, now, near)
+
+  /** День заголовком группы прогонов: «Today», «Wed, Nov 18». */
+  const day = (ms: number, now: number) => dayHeadingLabel(ms, now, near)
 
   /**
    * Ближайший срок задания по расписанию: «Next Today 09:00»; пропущенный - следующий за ним и
@@ -64,5 +68,5 @@ export const useTaskWords = () => {
       .join(' · ')
   }
 
-  return { schedule, moment, next, goal }
+  return { schedule, moment, day, next, goal }
 }

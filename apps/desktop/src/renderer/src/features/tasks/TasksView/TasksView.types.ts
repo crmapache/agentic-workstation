@@ -16,6 +16,9 @@ export type TaskRowProps = {
   now: number
 }
 
+/** Прогоны одного местного дня: ключ `YYYY-MM-DD`, момент для заголовка, прогоны по порядку. */
+export type RunDay = { key: string; at: number; runs: TaskRunSummary[] }
+
 export type RunListProps = { runs: readonly TaskRunSummary[]; now: number }
 
 export type RunRowProps = { run: TaskRunSummary; now: number }

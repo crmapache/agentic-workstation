@@ -1,3 +1,5 @@
+import { Flag, Workflow, CalendarDays } from 'lucide-react'
+
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 import type { BarChartPoint } from '@agentic-workstation/ui/BarChart.types'
 import type { CalendarHeatmapDay } from '@agentic-workstation/ui/CalendarHeatmap.types'
@@ -11,6 +13,7 @@ import type {
   AvatarSample,
   FileIconSample,
   ProgressSample,
+  IconBadgeSample,
 } from './ComponentsView.types'
 import { calendarSample } from './ComponentsView.utils'
 
@@ -69,6 +72,15 @@ export const BADGE_SAMPLES: readonly BadgeSample[] = [
   { tone: 'info', labelKey: 'samples.indexing' },
   { tone: 'accent', labelKey: 'samples.ahead' },
   { tone: 'neutral', labelKey: 'samples.idle' },
+]
+
+// Метки со значком - как нижняя строка карточки трекера: срок и приоритет плашкой, сценарий -
+// значком на месте точки.
+export const ICON_BADGE_SAMPLES: readonly IconBadgeSample[] = [
+  { tone: 'warning', variant: 'soft', icon: CalendarDays, labelKey: 'samples.dueToday' },
+  { tone: 'danger', variant: 'soft', icon: Flag, labelKey: 'samples.priority' },
+  { tone: 'neutral', variant: 'marker', icon: Workflow, labelKey: 'samples.scenario' },
+  { tone: 'success', variant: 'marker', icon: Workflow, labelKey: 'samples.scenarioDone' },
 ]
 
 // Обозначения клавиш - символы, а не слова: не переводятся.

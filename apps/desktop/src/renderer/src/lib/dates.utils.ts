@@ -83,6 +83,18 @@ export const nearDayLabel = (ms: number, now: number, words: NearDayWords): stri
 }
 
 /**
+ * День заголовком группы в списке: «Today», «Yesterday», дальше - «Wed, Nov 18», в другом году -
+ * с годом. Не «Mon», как у момента в строке: над группой день недели без числа не узнать.
+ */
+export const dayHeadingLabel = (ms: number, now: number, words: NearDayWords): string => {
+  if (Math.abs(daysBetween(now, ms)) <= 1) return nearDayLabel(ms, now, words)
+
+  return new Date(ms).getFullYear() === new Date(now).getFullYear()
+    ? weekdayDayLabel(ms)
+    : fullDayLabel(ms)
+}
+
+/**
  * Момент словами для строки списка: «Today 09:00», «Tomorrow 09:00», в пределах недели -
  * «Mon 18:12», дальше - «Tue, Dec 1, 09:00» (дата с запятой внутри - и час через запятую).
  */

@@ -29,6 +29,22 @@
   }
 }
 
+// Значок говорит, о чём метка, и встаёт на место точки: точка рядом с ним - лишний знак.
+.withIcon.marker::before {
+  content: none;
+}
+
+.icon {
+  display: block;
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.marker .icon {
+  color: var(--tone);
+}
+
 .soft {
   @include tinted-plaque(var(--tone));
   @include caps-label;

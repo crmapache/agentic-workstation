@@ -17,6 +17,7 @@ import {
   BADGE_SAMPLES,
   AVATAR_SAMPLES,
   FILE_ICON_SAMPLES,
+  ICON_BADGE_SAMPLES,
   FILE_ICON_SMALL_SAMPLES,
 } from '../ComponentsView.constants'
 import styles from '../ComponentsView.module.scss'
@@ -97,6 +98,14 @@ export const IndicatorsSection = () => {
       <Specimen label={t('specimens.badgeSoft')}>
         {BADGE_SAMPLES.map(({ tone, labelKey }) => (
           <Badge key={tone} tone={tone} variant="soft">
+            {t(labelKey)}
+          </Badge>
+        ))}
+      </Specimen>
+
+      <Specimen label={t('specimens.badgeIcons')}>
+        {ICON_BADGE_SAMPLES.map(({ tone, variant, icon, labelKey }) => (
+          <Badge key={labelKey} tone={tone} variant={variant} icon={icon}>
             {t(labelKey)}
           </Badge>
         ))}

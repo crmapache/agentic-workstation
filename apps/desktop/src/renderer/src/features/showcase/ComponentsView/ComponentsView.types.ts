@@ -1,7 +1,8 @@
 import type { ParseKeys } from 'i18next'
+import type { LucideIcon } from 'lucide-react'
 
 import type { AvatarTone } from '@agentic-workstation/ui/Avatar.types'
-import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
+import type { BadgeTone, BadgeVariant } from '@agentic-workstation/ui/Badge.types'
 import type { FileIconKind } from '@agentic-workstation/ui/FileIcon.types'
 import type { ProgressBarTone } from '@agentic-workstation/ui/ProgressBar.types'
 import type { RingMeterTone } from '@agentic-workstation/ui/RingMeter.types'
@@ -14,6 +15,8 @@ export type SampleScopeId = 'all' | 'only'
 export type AvatarSample = { tone: AvatarTone; initials: string }
 
 export type BadgeSample = { tone: BadgeTone; labelKey: ParseKeys<'showcase'> }
+
+export type IconBadgeSample = BadgeSample & { icon: LucideIcon; variant: BadgeVariant }
 
 export type FileSample = { name: string; folder: string }
 

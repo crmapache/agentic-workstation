@@ -8,6 +8,7 @@ import {
   ordinalLabel,
   monthDayLabel,
   clockOfMinutes,
+  dayHeadingLabel,
 } from './dates.utils'
 
 const WORDS = { today: 'Today', tomorrow: 'Tomorrow', yesterday: 'Yesterday' }
@@ -53,6 +54,13 @@ describe('ближние дни словами', () => {
     expect(nearDayLabel(at(24), NOW, WORDS)).toBe('Tue')
     expect(nearDayLabel(at(14), NOW, WORDS)).toBe('Sat')
     expect(nearDayLabel(at(27), NOW, WORDS)).toBe('Fri, Nov 27')
+  })
+
+  it('заголовок дня - ближние словами, остальные датой с днём недели, чужой год - с годом', () => {
+    expect(dayHeadingLabel(at(20, 23), NOW, WORDS)).toBe('Today')
+    expect(dayHeadingLabel(at(19, 0, 5), NOW, WORDS)).toBe('Yesterday')
+    expect(dayHeadingLabel(at(18), NOW, WORDS)).toBe('Wed, Nov 18')
+    expect(dayHeadingLabel(new Date(2025, 11, 30).getTime(), NOW, WORDS)).toBe('Tue, Dec 30, 2025')
   })
 
   it('момент - тот же день и час; полная дата отделяет час запятой', () => {

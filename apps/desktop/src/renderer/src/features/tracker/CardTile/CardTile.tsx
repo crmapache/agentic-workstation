@@ -117,34 +117,32 @@ export const CardTile = ({ card, groupId, followUp, rootId, onAddFollowUp }: Car
       )}
       onMouseDown={(event) => press(event, source)}
       onClick={handleOpen}>
-      <div className={styles.top}>
+      <button
+        type="button"
+        className={styles.check}
+        aria-pressed={card.done}
+        aria-label={card.done ? t('tracker.card.markUndone') : t('tracker.card.markDone')}
+        onMouseDown={handleStop}
+        onClick={handleToggle}>
+        <ChoiceMark shape="square" checked={card.done} tone="success" />
+      </button>
+      <div className={styles.text}>
         <button
           type="button"
-          className={styles.check}
-          aria-pressed={card.done}
-          aria-label={card.done ? t('tracker.card.markUndone') : t('tracker.card.markDone')}
-          onMouseDown={handleStop}
-          onClick={handleToggle}>
-          <ChoiceMark shape="square" checked={card.done} tone="success" />
+          className={styles.title}
+          onClick={handleTitleClick}
+          onKeyDown={handleKey}>
+          {card.title}
         </button>
-        <div className={styles.text}>
-          <button
-            type="button"
-            className={styles.title}
-            onClick={handleTitleClick}
-            onKeyDown={handleKey}>
-            {card.title}
-          </button>
-          {card.subtitle && <span className={styles.subtitle}>{card.subtitle}</span>}
-        </div>
-        <div className={styles.actions}>
-          {onAddFollowUp && (
-            <span onMouseDown={handleStop} onClick={handleAddFollowUp}>
-              <IconButton icon={Plus} size="xs" label={t('tracker.card.addFollowUp')} />
-            </span>
-          )}
-          <ActionsMenu label={t('tracker.card.menu', { title: card.title })} items={items} />
-        </div>
+        {card.subtitle && <span className={styles.subtitle}>{card.subtitle}</span>}
+      </div>
+      <div className={styles.actions}>
+        {onAddFollowUp && (
+          <span onMouseDown={handleStop} onClick={handleAddFollowUp}>
+            <IconButton icon={Plus} size="xs" label={t('tracker.card.addFollowUp')} />
+          </span>
+        )}
+        <ActionsMenu label={t('tracker.card.menu', { title: card.title })} items={items} />
       </div>
       {card.description && <p className={styles.description}>{card.description}</p>}
       <CardMeta card={card} today={today} />

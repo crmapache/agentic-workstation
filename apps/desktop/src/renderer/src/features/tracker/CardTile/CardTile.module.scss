@@ -1,9 +1,13 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
 // Карточка доски - плитка ширины колонки: в ряд с продолжениями они стоят ровной сеткой.
+// Галочка - своей колонкой, всё остальное (заголовок, описание, нижняя строка) - во второй: текст
+// карточки начинается с одной линии, а не заголовок с отступом, а описание - от края.
 .card {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   gap: var(--space-2);
   width: var(--size-tile-min);
   padding: var(--space-3);
@@ -20,11 +24,13 @@
 
     &:hover .actions {
       opacity: 1;
+      pointer-events: auto;
     }
   }
 
   &:focus-within .actions {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -41,13 +47,6 @@
 .dragging {
   border-style: dashed;
   opacity: var(--opacity-muted);
-}
-
-.top {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-2);
 }
 
 .check {
@@ -83,19 +82,31 @@
   font-size: var(--font-size-sm);
 }
 
-// «⋯» видна под рукой и при фокусе внутри карточки, иначе не шумит.
+// «⋯» видна под рукой и при фокусе внутри карточки, иначе не шумит. Встаёт поверх угла, а не
+// колонкой: пустая колонка под невидимые кнопки рвала заголовок на середине ширины. Пока не
+// видна, нажатия проходят к заголовку под ней.
 .actions {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
   display: flex;
   align-items: center;
   gap: var(--space-0-5);
+  padding: var(--space-0-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
   opacity: 0;
+  pointer-events: none;
 }
 
-// Начало описания - три строки: карточка - не заметка, всё описание - в её окне.
+// Начало описания - три строки: карточка - не заметка, всё описание - в её окне. Длинная ссылка
+// переносится, а не режется о правый край, как у заголовка.
 .description {
+  grid-column: 2;
   display: -webkit-box;
   overflow: hidden;
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
   white-space: pre-line;
@@ -103,13 +114,19 @@
   -webkit-line-clamp: 3;
 }
 
+// Между метками шире, чем между строками: метка без плашки (сценарий) иначе липнет к соседней.
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  grid-column: 2;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
 }
 
+// Знак повтора внутри метки срока, после даты.
 .metaIcon {
+  display: block;
+  flex: none;
   width: var(--size-icon-sm);
   height: var(--size-icon-sm);
 }
