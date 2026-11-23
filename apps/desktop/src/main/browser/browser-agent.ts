@@ -29,6 +29,8 @@ export type AgentCall = {
   projectPath: string | null
   workDir: string | null
   signal?: AbortSignal | undefined
+  /** Профиль, закреплённый за процессом (ADR 0114): главнее названного моделью и проектного. */
+  pinnedProfile?: string | null | undefined
 }
 
 /** Какую вкладку назвала модель: ссылка (профиль, метка запуска, заголовок) или номер. */
@@ -184,10 +186,12 @@ export class BrowserAgent {
     wanted: string | undefined,
     call: AgentCall,
   ): Promise<string> {
+    const named = call.pinnedProfile ?? wanted
+
     try {
-      return this.pickProfile(session, wanted, call.projectPath)
+      return this.pickProfile(session, named, call.projectPath)
     } catch (error) {
-      const name = wanted ?? (call.projectPath ? this.projectProfile(call.projectPath) : null)
+      const name = named ?? (call.projectPath ? this.projectProfile(call.projectPath) : null)
       const isOffline = error instanceof BrowserError && error.code === 'profile-offline'
 
       if (!isOffline || !name || !this.openProfile) throw error

@@ -1,3 +1,4 @@
+import type { CalendarRuntime } from '../calendar/calendar-setup'
 import type { ClaudeService } from '../claude/claude-service'
 import { panelsPort } from '../remote/panel-ports'
 import { scenariosPort } from '../remote/remote-setup'
@@ -22,6 +23,8 @@ export const workstationPorts = (setup: {
   panels: PanelRegistry
   /** Расширения IDE: поднимаются позже портов (ADR 0091), до того - null. */
   extensions: () => ExtensionsPort | null
+  /** Календарь звонков (ADR 0114). */
+  calendar: CalendarRuntime
 }): WorkstationPorts => {
   const panels = panelsPort(setup.claude, setup.panels)
 
@@ -40,5 +43,11 @@ export const workstationPorts = (setup: {
     },
     panels: () => panels.list(),
     extensions: setup.extensions,
+    calendar: () => ({
+      shared: () => setup.calendar.service.settings.shareWithAi,
+      state: () => setup.calendar.service.state(),
+      meetingsIn: (from, to) => setup.calendar.service.meetingsIn(from, to),
+      sync: (withAi) => setup.calendar.sync.syncFromAi(withAi),
+    }),
   }
 }

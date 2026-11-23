@@ -96,6 +96,17 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
     ],
   },
   {
+    titleKey: 'groups.calendar',
+    tokens: [
+      '--color-calendar-0',
+      '--color-calendar-1',
+      '--color-calendar-2',
+      '--color-calendar-3',
+      '--color-calendar-4',
+      '--color-calendar-5',
+    ],
+  },
+  {
     titleKey: 'groups.lines',
     tokens: [
       '--color-border',

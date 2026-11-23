@@ -10,6 +10,7 @@ export type MainViewId =
   | 'tracker'
   | 'scenarios'
   | 'tasks'
+  | 'calendar'
   | 'statistics'
   | 'connectors'
   | 'inbox'

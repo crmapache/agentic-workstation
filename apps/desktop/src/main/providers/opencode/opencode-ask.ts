@@ -17,7 +17,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * человеку), схема ответа - в промпте, JSON - из текста. Сессия удаляется после ответа: в истории проекта её быть не должно.
  */
 export const askOpenCodeOnce = async (
-  host: Pick<OpenCodeRunHost, 'cli' | 'dirs' | 'launch' | 'models'>,
+  host: Pick<OpenCodeRunHost, 'cli' | 'dirs' | 'launch' | 'launchWith' | 'models'>,
   ask: AskOnce,
 ): Promise<AskOnceResult> => {
   const cli = await host.cli()
@@ -28,15 +28,12 @@ export const askOpenCodeOnce = async (
 
   const mcp = ask.tools?.mcp ?? null
   // Коннекторы - проекта, о котором спрашивают; процесс при этом - в своей пустой папке.
-  const readable = toolsByServer(mcp?.tools ?? [])
+  const readable = toolsByServer(ask.gateway?.allowed ?? mcp?.tools ?? [])
   // В конфиг - только серверы с разрешёнными инструментами; нет инструментов - нет коннекторов.
-  const launched = await host.launch(
-    mcp?.projectPath ?? ask.cwd,
-    ask.cwd,
-    ask.model,
-    [],
-    [...readable.keys()],
-  )
+  // Ключ с допуском выдал спросивший и отзовёт сам: процессу - копия без отзыва.
+  const launched = ask.gateway
+    ? await host.launchWith({ ...ask.gateway, release: () => undefined }, ask.cwd, ask.model)
+    : await host.launch(mcp?.projectPath ?? ask.cwd, ask.cwd, ask.model, [], [...readable.keys()])
 
   // Отменили, пока поднимался конфиг: процесс не нужен вовсе.
   if (ask.signal?.aborted) {

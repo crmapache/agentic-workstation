@@ -41,6 +41,7 @@ const queue = (id: string): ScenarioQueue => ({
   name: id,
   nameSource: 'ai',
   createdAt: 0,
+  activeAt: 0,
   closedAt: 0,
   workdir: { kind: 'project' },
   items: [],

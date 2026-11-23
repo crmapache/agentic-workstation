@@ -47,6 +47,10 @@ describe('askArgs', () => {
       'mcp__gmail-work__search_threads',
     ])
     expect(look[look.indexOf('--effort') + 1]).toBe('low')
+    // --safe-mode погасил бы и сервер шлюза: изоляция - без слоёв настроек и навыков.
+    expect(look).not.toContain('--safe-mode')
+    expect(look[look.indexOf('--setting-sources') + 1]).toBe('')
+    expect(look).toContain('--disable-slash-commands')
     expect(askArgs({ schema: {}, tools: [], mcpTools: ['mcp__x__y'] })).not.toContain(
       '--allowedTools',
     )

@@ -1,6 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
 import type { QueueItem, ScenarioQueue } from '@shared/scenario-queues'
+import { QUEUE_IDLE_CLOSE_MS } from '@shared/scenario-queues'
 
 import {
   addItem,
@@ -9,6 +10,7 @@ import {
   removeItem,
   reopenItem,
   settleItem,
+  withRunsOn,
   markRefused,
   markStarted,
   nextToStart,
@@ -19,6 +21,7 @@ import {
   recoverQueue,
   resumeTarget,
   setStopAfter,
+  isIdleTooLong,
   markDoneByHand,
   passPlaceholders,
   holdBeforeFailure,
@@ -44,6 +47,7 @@ const queueOf = (...items: QueueItem[]): ScenarioQueue => ({
   name: 'Q',
   nameSource: 'fallback',
   createdAt: 1,
+  activeAt: 1,
   closedAt: 0,
   workdir: { kind: 'project' },
   items,
@@ -385,5 +389,58 @@ describe('placeholders - tracker cards without a scenario', () => {
 
     expect(setStopAfter(queue, 'p').stopAfterItemId).toBe('')
     expect(renameQueue(queue, '', 'user').name).toBe('Scenario a')
+  })
+})
+
+describe('closing a queue left idle', () => {
+  const quiet = (queue: ScenarioQueue): ScenarioQueue => ({ ...queue, activeAt: 1_000 })
+  const later = 1_000 + QUEUE_IDLE_CLOSE_MS
+
+  it('closes an open queue two weeks after anything happened in it, not a moment before', () => {
+    const queue = quiet(queueOf(item('a', { state: 'done' })))
+
+    expect(isIdleTooLong(queue, later - 1)).toBe(false)
+    expect(isIdleTooLong(queue, later)).toBe(true)
+  })
+
+  it('closes a forgotten queue with work still waiting behind a hold', () => {
+    const held = {
+      ...quiet(queueOf(item('a', { state: 'failed' }), item('b'))),
+      hold: { reason: 'failed' as const, itemId: 'a', at: 1_000 },
+    }
+
+    expect(isIdleTooLong(held, later)).toBe(true)
+  })
+
+  it('keeps a queue with a run in it however long the run stands, and leaves a closed one be', () => {
+    const running = quiet(queueOf(item('a', { state: 'running', runId: 'r' })))
+    const closed = { ...quiet(queueOf(item('a', { state: 'done' }))), closedAt: 2_000 }
+
+    expect(isIdleTooLong(running, later * 2)).toBe(false)
+    expect(isIdleTooLong(closed, later * 2)).toBe(false)
+  })
+})
+
+describe('what queue items run on', () => {
+  const opus = [{ model: 'opus', effort: 'high' }]
+  const sonnet = [{ model: 'sonnet', effort: 'low' }]
+
+  it('keeps the snapshot a run started with, whatever the shelf says later', () => {
+    const started = markStarted(queueOf(item('a', { runsOn: opus }), item('b')), 'a', 'r', sonnet)
+    const fresh = withRunsOn(started, [
+      { itemId: 'a', runsOn: opus, from: 'shelf' },
+      { itemId: 'b', runsOn: opus, from: 'shelf' },
+    ])
+
+    expect(fresh.items.map((one) => one.runsOn)).toEqual([sonnet, opus])
+  })
+
+  it('fills an older started item from its run once, and changes nothing that is already so', () => {
+    const queue = queueOf(item('a', { state: 'done', runId: 'r' }), item('b', { runsOn: opus }))
+    const filled = withRunsOn(queue, [{ itemId: 'a', runsOn: opus, from: 'run' }])
+
+    expect(filled.items[0]?.runsOn).toEqual(opus)
+    expect(withRunsOn(filled, [{ itemId: 'a', runsOn: sonnet, from: 'run' }])).toBe(filled)
+    expect(withRunsOn(filled, [{ itemId: 'b', runsOn: opus, from: 'shelf' }])).toBe(filled)
   })
 })

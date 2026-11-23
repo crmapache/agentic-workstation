@@ -68,7 +68,7 @@ export const BROWSER_PAGE_TOOLS: NativeTool<BrowserAgent>[] = [
     }),
     run: async (args, agent, call) => {
       const at = agentCall(call)
-      const url = await allowedUrl(urlArg(args['url']), at.workDir)
+      const url = await allowedUrl(urlArg(args['url']), at.workDir, call.launch?.pin?.hosts)
       const page = await agent.open(at, url, stringArg(args, 'profile'))
 
       return where(page, 0)
@@ -96,7 +96,7 @@ export const BROWSER_PAGE_TOOLS: NativeTool<BrowserAgent>[] = [
     inputSchema: schema({ ...TAB_PROPERTY, url: { type: 'string' } }, ['url']),
     run: async (args, agent, call) => {
       const at = agentCall(call)
-      const url = await allowedUrl(urlArg(args['url']), at.workDir)
+      const url = await allowedUrl(urlArg(args['url']), at.workDir, call.launch?.pin?.hosts)
 
       if (!url) throw new ArgumentError('"url" is required.')
 

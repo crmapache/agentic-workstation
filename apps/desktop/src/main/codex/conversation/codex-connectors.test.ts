@@ -73,6 +73,20 @@ describe('коннекторы IDE в Codex', () => {
     ])
   })
 
+  it('допуск шлюза: выданные инструменты Codex не спрашивает (approve)', () => {
+    expect(
+      connectorArgs(
+        [{ name: 'browser-chrome', url: 'http://127.0.0.1:5000/mcp/browser-chrome' }],
+        [],
+        new Map([['browser-chrome', ['open', 'snapshot']]]),
+        true,
+      ),
+    ).toEqual([
+      '-c',
+      'mcp_servers.browser-chrome={url="http://127.0.0.1:5000/mcp/browser-chrome", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN", enabled_tools=["open","snapshot"], default_tools_approval_mode="approve"}',
+    ])
+  })
+
   it('серверы человека из `codex mcp list --json`: адрес или команда; без транспорта и мусор - мимо', () => {
     expect(
       userServersOf(

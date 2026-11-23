@@ -1,4 +1,5 @@
-import type { QueueHold, QueueItem, ScenarioQueue } from '@shared/scenario-queues'
+import type { ProviderId } from '@shared/providers'
+import type { RunsOn, QueueHold, QueueItem, ScenarioQueue } from '@shared/scenario-queues'
 import type { RunSummary } from '@shared/scenario-runs'
 
 import type { QueueRest } from '../scenarios-queue-hours.utils'
@@ -39,6 +40,11 @@ export type QueueItemChipProps = {
   number: number
   live: RunSummary | undefined
 }
+
+/** Модель элемента очереди и её уровни усилия - один чип строки (runsOnChips). */
+export type RunsOnChip = { model: string; efforts: string[] }
+
+export type QueueItemRunsOnProps = { provider: ProviderId; runsOn: readonly RunsOn[] }
 
 export type QueueItemMenuProps = {
   queue: ScenarioQueue

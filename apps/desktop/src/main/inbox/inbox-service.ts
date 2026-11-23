@@ -250,6 +250,7 @@ export class InboxService implements TaskInboxPort {
       case 'dismiss':
         return this.dismiss([item.id])
       case 'showRun':
+      case 'showCalendar':
         return { ok: true, state: this.markRead([item.id]) }
       case 'open':
         return this.open(item, button)

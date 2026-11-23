@@ -23,6 +23,18 @@ export const QUERY_KEYS = {
   trackerBoard: (projectPath: string) => ['tracker', 'board', projectPath],
   /** Облако IDE (ADR 0102): синхронизация доски, аккаунт. */
   cloudState: ['cloud', 'state'],
+  /** Календарь звонков (ADR 0114): источники и синк. */
+  calendar: ['calendar', 'state'],
+  /** События календаря за период; ревизия - перечитать после перемены. */
+  calendarEvents: (from: number, to: number, revision: number) => [
+    'calendar',
+    'events',
+    from,
+    to,
+    revision,
+  ],
+  /** Календари аккаунта Google - для формы источника. */
+  calendarGoogle: (connectorId: string) => ['calendar', 'google', connectorId],
   /** Капсула Computer Use (ADR 0057): что делает ИИ на компьютере; свободен - null. */
   computerCapsule: ['computer', 'capsule'],
   updateStatus: ['updates', 'status'],

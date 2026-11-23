@@ -1,6 +1,7 @@
 import type { ProviderId } from './providers'
 import type { RunSummary } from './scenario-runs'
 import type { ScenarioCode, ScenarioScope } from './scenarios'
+import { DAY_MS } from './time-units'
 
 /**
  * Очередь сценариев («ветка» в словах владельца, Queue в интерфейсе): именованная линия
@@ -15,6 +16,13 @@ import type { ScenarioCode, ScenarioScope } from './scenarios'
  */
 export type QueueItemState = 'waiting' | 'running' | 'done' | 'failed' | 'stopped' | 'skipped'
 
+/**
+ * Модель и усилие сессии прогона - какими их поднимет провайдер: пустые поля сценария уже
+ * заменены моделью и усилием новой вкладки, чужая провайдеру модель - его моделью. Пусто - решает
+ * сам CLI (его модель или усилие по умолчанию).
+ */
+export type RunsOn = { model: string; effort: string }
+
 /** Один сценарий в очереди - с ответами на вводы и провайдером, выбранными при запуске. */
 export type QueueItem = {
   id: string
@@ -26,6 +34,13 @@ export type QueueItem = {
   addedAt: number
   /** Прогон этого элемента; пусто - ещё не стартовал. */
   runId: string
+  /**
+   * На чём идёт сценарий: голова и каждая карточка, разные пары по порядку - голова первой. У
+   * ждущего - по сценарию на полке (правка сценария его обновляет), у стартовавшего - по снимку,
+   * с которым прогон пошёл. Нет поля - пометка или элемент старого выпуска, который ещё не
+   * пересчитали.
+   */
+  runsOn?: RunsOn[] | undefined
   state: QueueItemState
   /** Почему не стартовал: очередь стоит на нём с этой причиной. */
   refusal: ScenarioCode | null
@@ -111,7 +126,16 @@ export type ScenarioQueue = {
   name: string
   nameSource: QueueNameSource
   createdAt: number
-  /** Закрыта человеком (0 - открыта): уходит в историю и больше не исполняется. */
+  /**
+   * Когда с очередью последний раз что-то случилось: поставили сценарий, он стартовал или
+   * кончился, человек её поправил. Сон по рабочим часам и имя от ИИ - не дело. Открытая очередь
+   * без дела дольше двух недель закрывается сама (QUEUE_IDLE_CLOSE_MS).
+   */
+  activeAt: number
+  /**
+   * Закрыта (0 - открыта) человеком или сама, после двух недель без дела: уходит в историю и
+   * больше не исполняется.
+   */
   closedAt: number
   workdir: QueueWorkdir
   /** По порядку: прошедшие, идущий, ждущие. */
@@ -185,6 +209,12 @@ export type QueueAction =
 export type WorktreeFacts = { exists: boolean; dirty: boolean; commitsAhead: number }
 
 export type WorktreeAction = { kind: 'open' } | { kind: 'remove'; force: boolean }
+
+/**
+ * Сколько открытая очередь может стоять без дела, пока не закроется сама: она давно сделала своё
+ * или брошена, а список очередей - это то, что идёт сейчас (решение владельца).
+ */
+export const QUEUE_IDLE_CLOSE_MS = 14 * DAY_MS
 
 export const isItemOver = (state: QueueItemState): boolean =>
   state === 'done' || state === 'failed' || state === 'stopped' || state === 'skipped'

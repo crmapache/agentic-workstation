@@ -1,3 +1,4 @@
+import { useCalendarSync } from '../../state/calendar.queries'
 import { useConnectorsSync } from '../../state/connectors.queries'
 import { useExtensionsSync } from '../../state/extensions.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
@@ -58,6 +59,7 @@ export const MainProcessSync = () => {
   useTasksSync()
   useInboxSync()
   useTrackerSync()
+  useCalendarSync()
   useConnectionsSync()
   useExtensionsSync()
 

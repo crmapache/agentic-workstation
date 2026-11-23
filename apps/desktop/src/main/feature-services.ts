@@ -18,4 +18,5 @@ export const featureServices = (features: IdeFeatures) => ({
   extensions: features.extensions,
   tracker: features.tracker,
   voice: features.voice,
+  calendar: features.calendar,
 })

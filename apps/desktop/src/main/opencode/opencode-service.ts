@@ -267,6 +267,7 @@ export class OpenModelsService extends AgentPanel {
           onlyServers(this.connectors.configFor(projectPath, ideServers), servers),
           directory,
         ),
+      launchWith: (connectors, directory, model) => this.launchOn(model, connectors, directory),
       models: () => this.menuModels(),
       messages: (sessionId, cursor) => this.catalog.messages(sessionId, cursor),
       dropBrief: (sessionId) => this.catalog.dropInstructions(sessionId, BRIEFING_KEY),

@@ -18,10 +18,11 @@ import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
 import { ScenarioStatePill } from '../../ScenarioStatePill/ScenarioStatePill'
 import { QueueItemMenu } from './QueueItemMenu'
+import { QueueItemRunsOn } from './QueueItemRunsOn'
 
 /**
- * Один сценарий очереди строкой во всю ширину: место, имя, состояние, метка «встанет после него»,
- * ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
+ * Один сценарий очереди строкой во всю ширину: место, имя, состояние, на какой модели и с каким
+ * усилием идёт, метка «встанет после него», ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
  * носит меню у правого края: сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
  * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Отказ старта - под
  * именем, если его не сказала полоса остановки. Пометка - карточка трекера без сценария - бледная,
@@ -94,6 +95,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         ) : (
           <ScenarioStatePill of="run" state={item.state} />
         )}
+        {item.runsOn && <QueueItemRunsOn provider={item.provider} runsOn={item.runsOn} />}
         {isMarked && (
           <Tooltip label={t('scenarios.queues.items.stopMark')}>
             <OctagonPause

@@ -1,7 +1,7 @@
 import { cardRuns, answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { ScenarioRun } from '@shared/scenario-runs'
 import { isRunFinished } from '@shared/scenario-runs'
-import type { ScenarioCode, ScenarioScope } from '@shared/scenarios'
+import type { Scenario, ScenarioCode, ScenarioScope } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import type { RunDesk } from './run-desk'
@@ -48,25 +48,26 @@ const failedToBegin = async (desk: RunDesk, engine: ScenarioEngine, record: Scen
 /**
  * Поднять прогон - одним кодом для очереди и расписания (launch в ACC). Запуск отклоняется
  * до подъёма процесса: сломанный сценарий, пустой обязательный ответ, нет CLI, нет доверия.
+ * Поднятый отдаёт снимок сценария, с которым пошёл: по нему очередь говорит, на чём он идёт.
  */
 export const launchRun = async (
   desk: RunDesk,
   provider: ScenarioProvider,
   request: LaunchRequest,
-): Promise<ScenarioCode | null> => {
-  if (desk.isClosing) return 'runBusy'
+): Promise<{ code: ScenarioCode } | { snapshot: Scenario }> => {
+  if (desk.isClosing) return { code: 'runBusy' }
 
   const scenario = await desk.store.find(request.id, request.scope)
 
-  if (!scenario) return 'scenarioGone'
-  if (!isRunnable(scenario)) return 'scenarioBroken'
-  if (missingInputs(scenario, request.inputs).length > 0) return 'scenarioMissingInput'
+  if (!scenario) return { code: 'scenarioGone' }
+  if (!isRunnable(scenario)) return { code: 'scenarioBroken' }
+  if (missingInputs(scenario, request.inputs).length > 0) return { code: 'scenarioMissingInput' }
 
   const ready = await prepared(desk, provider, request.cwd)
 
-  if ('code' in ready) return ready.code
+  if ('code' in ready) return { code: ready.code }
   // Пока искали CLI, IDE начала закрываться: движок, поднятый после остановки, никто бы не погасил.
-  if (desk.isClosing) return 'runBusy'
+  if (desk.isClosing) return { code: 'runBusy' }
 
   const record: ScenarioRun = {
     id: request.runId,
@@ -120,7 +121,7 @@ export const launchRun = async (
     await failedToBegin(desk, engine, record)
   }
 
-  return null
+  return { snapshot: scenario }
 }
 
 /**

@@ -1,0 +1,36 @@
+// Цвет источника календаря (ADR 0114): .toneN ставит --tone, блоки и точки модуля красятся им.
+// Подключается в корне модуля: классы CSS Modules локальные, а тоны одни на весь календарь.
+@mixin calendar-tones {
+  .tone0 {
+    --tone: var(--color-calendar-0);
+  }
+
+  .tone1 {
+    --tone: var(--color-calendar-1);
+  }
+
+  .tone2 {
+    --tone: var(--color-calendar-2);
+  }
+
+  .tone3 {
+    --tone: var(--color-calendar-3);
+  }
+
+  .tone4 {
+    --tone: var(--color-calendar-4);
+  }
+
+  .tone5 {
+    --tone: var(--color-calendar-5);
+  }
+
+  // Точка цвета источника: в списке источников, на карточке встречи, у дублей на блоке.
+  .dot {
+    flex: none;
+    width: var(--size-status-dot);
+    height: var(--size-status-dot);
+    border-radius: var(--radius-full);
+    background: var(--tone, var(--color-calendar-0));
+  }
+}

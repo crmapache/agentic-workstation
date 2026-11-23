@@ -1,0 +1,90 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../calendar-tones' as *;
+@include calendar-tones;
+
+// Поля одно под другим, у каждого своя подпись - как в окне задания.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.grow {
+  flex: 1;
+  min-width: var(--size-setting-control);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.caption {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.note {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+}
+
+// Цвет источника: круглые кнопки тонов, выбранная - с кольцом.
+.colors {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.color {
+  @include button-reset;
+
+  width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  background: var(--tone, var(--color-calendar-0));
+  cursor: pointer;
+}
+
+.picked {
+  outline: var(--border-width) solid var(--color-fg);
+  outline-offset: var(--space-0-5);
+}
+
+.calendars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.problem {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.failure {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.footerEnd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}

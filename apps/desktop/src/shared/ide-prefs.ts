@@ -76,7 +76,11 @@ const aiChoice = (value: unknown): AiChoice | null => {
   }
 }
 
-const commitAi = (value: unknown): AiChoice[] | undefined => {
+/**
+ * Цепочка «основной и запасные» из записи (Commit and push, чтение календаря): негодные звенья
+ * выпадают, лишние за COMMIT_AI_MAX - тоже; пустая или не список - undefined.
+ */
+export const parseAiChain = (value: unknown): AiChoice[] | undefined => {
   if (!Array.isArray(value)) return undefined
 
   const chain = value
@@ -93,7 +97,7 @@ export const parseIdePrefs = (value: unknown, base: IdePrefs = DEFAULT_IDE_PREFS
 
   return {
     pasteCollapse: lines(input['pasteCollapse']) ?? base.pasteCollapse,
-    commitAi: commitAi(input['commitAi']) ?? base.commitAi,
+    commitAi: parseAiChain(input['commitAi']) ?? base.commitAi,
   }
 }
 

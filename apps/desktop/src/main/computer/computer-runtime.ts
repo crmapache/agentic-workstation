@@ -100,6 +100,11 @@ export class ComputerRuntime {
     return this.access
   }
 
+  /** Чей разговор держит компьютер (ключ вызова); свободен - null. */
+  get holding(): string | null {
+    return this.desk.holding
+  }
+
   capsuleView(): CapsuleView | null {
     return this.capsule.view()
   }

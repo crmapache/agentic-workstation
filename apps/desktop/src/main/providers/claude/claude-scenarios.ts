@@ -76,6 +76,7 @@ export const claudeScenarioProvider = (
       }
     },
     defaults,
+    fitRunsOn: (choice) => ({ ...choice, model: claudeModelOr(choice.model, claude) }),
     accounts: scenarioAccounts(claude),
     suggestTitle: async (description) => {
       const located = await claude.cli.locate()

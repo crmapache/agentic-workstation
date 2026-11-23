@@ -136,6 +136,7 @@ const ideOf = async (allowed?: (path: string) => boolean) => {
     },
     panels: () => [],
     extensions: () => null,
+    calendar: () => null,
   }
   const link = new WorkstationLink()
 

@@ -1,0 +1,58 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Вид середины окна: шапка с листанием прибита сверху, ниже - источники и сетка рядом.
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.empty {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-4) var(--size-panel-gutter);
+  overflow-y: auto;
+}
+
+.body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: var(--size-calendar-sources) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.wide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+// Листание периода, неделя или день и накладки - одной строкой под заголовком.
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.navigator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.overlaps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sync {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}

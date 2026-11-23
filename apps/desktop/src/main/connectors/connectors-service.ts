@@ -6,7 +6,6 @@ import { runsCommand, BUILT_IN_KINDS } from '@shared/connectors'
 import type {
   ConnectorsState,
   AddToTypeRequest,
-  GoogleAppOutcome,
   AddConnectorError,
   UpdateTypeRequest,
   ConnectorInProject,
@@ -16,6 +15,7 @@ import type {
 
 import type { ComputerRuntime } from '../computer/computer-runtime'
 import type { WorkstationLink } from '../workstation/workstation-link'
+import { CalendarConnectors } from './calendar-access'
 import { ConnectorAccess } from './connector-access'
 import { newConnector } from './connector-add'
 import type { NewConnector } from './connector-add'
@@ -25,6 +25,7 @@ import { migrateRegistry } from './connector-migrate'
 import { GoalConnectors } from './connector-probe'
 import { ConnectorRegistry } from './connector-registry'
 import { secretsKey } from './connector-secrets'
+import { ConnectorSignIns } from './connector-sign-ins'
 import { parseStoredConnectors } from './connector-store'
 import { ConnectorTypeDesk } from './connector-type-desk'
 import { typeView } from './connector-types'
@@ -61,6 +62,10 @@ export class ConnectorsService {
   private readonly types: ConnectorTypeDesk
   /** Вход в IDE снаружи (ADR 0090): сервер workstation на постоянном порту с ключом. */
   readonly outside: OutsideAccess
+  /** Что нужно календарю (ADR 0114): вход Google без модели, шлюз с допуском для чтения ИИ. */
+  readonly calendar: CalendarConnectors
+  /** Входы по кнопкам окна: войти, выйти, ключ, свой клиент Google. */
+  readonly signIns: ConnectorSignIns
 
   private constructor(
     private readonly registry: ConnectorRegistry,
@@ -91,6 +96,19 @@ export class ConnectorsService {
       this.live,
     )
     this.goals = new GoalConnectors(registry, (id) => this.live.get(id), this.gateway)
+    this.calendar = new CalendarConnectors(
+      registry,
+      (id) => this.live.get(id),
+      this.gateway,
+      () => this.access.googleClient(),
+    )
+    this.signIns = new ConnectorSignIns({
+      registry,
+      access: this.access,
+      state: () => this.getState(),
+      broadcast: () => this.broadcast(),
+      changedServer: (id) => this.changedServer(id),
+    })
 
     this.imports = new ImportDesk({
       serverNames: () => registry.serverNames(),
@@ -329,28 +347,6 @@ export class ConnectorsService {
     return this.broadcast()
   }
 
-  signIn(id: string): ConnectorsState {
-    const connector = this.registry.find(id)
-
-    if (connector) this.access.signIn(connector)
-
-    return this.broadcast()
-  }
-
-  cancelSignIn(id: string): ConnectorsState {
-    this.access.cancel(id)
-
-    return this.getState()
-  }
-
-  async signOut(id: string): Promise<ConnectorsState> {
-    const connector = this.registry.find(id)
-
-    if (connector) await this.access.signOut(connector)
-
-    return this.broadcast()
-  }
-
   /** Выключенный коннектор гасит свои процессы команд; включённый - перечитывает инструменты. */
   async setEnabled(id: string, enabled: boolean): Promise<ConnectorsState> {
     await this.registry.update(id, { enabled })
@@ -380,27 +376,6 @@ export class ConnectorsService {
     await this.live.get(id)?.refresh(true)
 
     return this.changedServer(id)
-  }
-
-  /** Новый ключ своего MCP или коннектора от ИИ (ConnectorAccess.setToken). */
-  async setToken(id: string, token: string): Promise<ConnectorsState> {
-    const connector = this.registry.find(id)
-
-    if (connector) await this.access.setToken(connector, token)
-
-    return this.changedServer(id)
-  }
-
-  async importGoogleApp(): Promise<GoogleAppOutcome> {
-    const error = await this.access.importGoogleApp()
-
-    return { state: error ? this.getState() : this.broadcast(), error }
-  }
-
-  async forgetGoogleApp(): Promise<ConnectorsState> {
-    await this.access.forgetGoogleApp()
-
-    return this.broadcast()
   }
 
   /** Добавить без входа в браузере: его начинает только человек (перенос, готовое от ИИ). */

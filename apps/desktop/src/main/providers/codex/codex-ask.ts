@@ -35,8 +35,10 @@ export const askCodexOnce = async (
   if (ask.signal?.aborted) return { error: 'cancelled' }
 
   const mcp = ask.tools?.mcp ?? null
-  const launch = mcp ? host.gateway(mcp.projectPath, []) : null
-  const readable = toolsByServer(mcp?.tools ?? [])
+  // Ключ с допуском выдал спросивший и отзовёт сам; свой - только у вопроса по проекту.
+  const own = !ask.gateway && mcp ? host.gateway(mcp.projectPath, []) : null
+  const launch = ask.gateway ?? own
+  const readable = toolsByServer(ask.gateway?.allowed ?? mcp?.tools ?? [])
 
   let said = ''
   let finish: (result: AskOnceResult) => void = () => undefined
@@ -45,8 +47,8 @@ export const askCodexOnce = async (
     {
       binary: cli.binary,
       args: [
-        // Серверы шлюза - только с инструментами чтения: разрешений здесь Codex не спрашивает.
-        ...connectorArgs(launch?.servers ?? [], userServers, readable),
+        // Серверы шлюза - только с разрешёнными поимённо инструментами: чтение или допуск.
+        ...connectorArgs(launch?.servers ?? [], userServers, readable, Boolean(ask.gateway)),
         // Автору сценария - чтение проекта командной строкой; остальным - ни команд, ни файлов.
         ...(ask.readProject ? [] : noBuiltInToolsArgs()),
         ...(ask.tools?.web ? ['-c', 'web_search="live"'] : []),
@@ -113,6 +115,6 @@ export const askCodexOnce = async (
     clearTimeout(timer)
     ask.signal?.removeEventListener('abort', cancel)
     void server.stop()
-    launch?.release()
+    own?.release()
   }
 }

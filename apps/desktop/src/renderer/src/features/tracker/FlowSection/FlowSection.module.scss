@@ -98,18 +98,23 @@
   scrollbar-width: none;
 }
 
-// Колонки плотно, по верху; зазор шире зазора между карточками цепочки - колонка не сливается
-// с продолжениями соседней.
+// Колонки плотно, слева направо; зазор шире зазора между карточками цепочки - колонка не
+// сливается с продолжениями соседней. Две строки на весь ряд - шапки и задачи: колонка берёт обе
+// (GroupColumn), и шапка без подзаголовка тянется до высоты соседних, а не поднимает свои задачи.
 .track {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-5);
+  display: grid;
+  grid-template-rows: auto auto;
+  grid-auto-columns: max-content;
+  grid-auto-flow: column;
+  column-gap: var(--space-5);
   width: max-content;
 }
 
+// «New group» - на строке шапок, своей высоты.
 .rowEnd {
   display: flex;
-  flex: none;
+  grid-row: 1;
+  align-self: start;
   width: var(--size-tile-min);
 
   > * {

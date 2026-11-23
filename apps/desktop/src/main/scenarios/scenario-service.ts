@@ -115,6 +115,8 @@ export class ScenarioService {
     const service = new ScenarioService(book, options)
 
     await service.recover()
+    // Элементы, поставленные до правки сценария или старым выпуском, - на чём идут сейчас.
+    void service.runner.refreshRunsOn()
 
     return service
   }
@@ -338,6 +340,9 @@ export class ScenarioService {
   }
 
   sendShelves(projectPath: string): void {
+    // Полки поменялись (поправили сценарий) - ждущие в очередях пойдут уже по новому: и
+    // показывать их так.
+    void this.runner.refreshRunsOn()
     void this.shelves
       .view(projectPath)
       .then((view) => this.options.events.onShelves(projectPath, view))
@@ -398,6 +403,6 @@ export class ScenarioService {
       }
     }
 
-    for (const queue of this.book.all()) await this.runner.step(queue.id)
+    await this.runner.beat()
   }
 }

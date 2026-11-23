@@ -106,6 +106,7 @@ const ideOf = ({
     tracker: {} as TrackerPort,
     panels: () => [panel, codex] as unknown as ConversationsPort[],
     extensions: () => null,
+    calendar: () => null,
   }
   const link = new WorkstationLink()
 

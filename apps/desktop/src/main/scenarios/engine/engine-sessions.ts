@@ -1,6 +1,7 @@
 import type { RunStep } from '@shared/scenario-runs'
 import type { ScenarioCard } from '@shared/scenarios'
 
+import { cardRunsOn, headRunsOn } from '../runs-on'
 import type { CliMessage } from '../../claude/cli/cli-messages'
 import { numberField, recordField } from '../../claude/cli/cli-messages'
 import type { EngineCore } from './engine-core'
@@ -48,14 +49,12 @@ export const openHead = (
   resumeFrom: string,
   takingOver = false,
 ): ScenarioSession => {
-  const { model, effort } = e.host.defaults()
   const session: ScenarioSession = new ScenarioSession(
     e.host.spawn,
     {
       sessionId: resumeFrom || e.host.newSessionId(),
       resume: Boolean(resumeFrom),
-      model: e.scenario.head.model || model,
-      effort: e.scenario.head.effort || effort,
+      ...headRunsOn(e.scenario, e.host.defaults()),
       // Голова спрашивает, прежде чем делать: всё пишущее - карточкам (engine-questions.ts).
       // Голова на месте карточки получает доверие карточек - режим сценария.
       permissionMode: takingOver ? e.scenario.head.permissionMode || 'default' : 'default',
@@ -88,7 +87,6 @@ export const openCard = (
   card: ScenarioCard,
   resumeFrom = '',
 ): ScenarioSession => {
-  const { model, effort } = e.host.defaults()
   // Помощники процесса - его собственные и умирают с ним: у каждого процесса свой счёт.
   const work = new BackgroundWork()
   const session: ScenarioSession = new ScenarioSession(
@@ -96,8 +94,7 @@ export const openCard = (
     {
       sessionId: resumeFrom || e.host.newSessionId(),
       resume: Boolean(resumeFrom),
-      model: card.model || e.scenario.head.model || model,
-      effort: card.effort || e.scenario.head.effort || effort,
+      ...cardRunsOn(card, e.scenario, e.host.defaults()),
       permissionMode: card.permissionMode || e.scenario.head.permissionMode || 'default',
       briefing: cardBriefing(step.item?.again ?? ''),
       accountId: e.accountId,

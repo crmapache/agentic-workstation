@@ -11,7 +11,7 @@ import { makeThumbnail } from '../../agents/images/thumbnail'
 import { CodexFeedSync } from '../../codex/conversation/codex-feed'
 import { askCodexOnce } from './codex-ask'
 import { codexRunAccounts } from './codex-run-accounts'
-import { CodexRunProcess } from './codex-run-process'
+import { choiceOf, CodexRunProcess } from './codex-run-process'
 
 /** Папка журналов сессий прогонов Codex в данных IDE (run-journal.ts). */
 export const CODEX_RUNS_DIR = join('run-sessions', 'codex')
@@ -57,6 +57,16 @@ export const codexScenarioProvider = (
       return null
     },
     spawn: (spec, place, wires) => new CodexRunProcess(host, spec, place, wires),
+    // Тем же выбором, что и прогон; каталога ещё нет - как в сценарии: решать будет сам Codex.
+    fitRunsOn: (choice) => {
+      const models = facts.models()
+
+      if (models.length === 0) return choice
+
+      const fitted = choiceOf(choice, models)
+
+      return { model: fitted.model ?? '', effort: fitted.effort ?? '' }
+    },
     transcriptDirs: () => Promise.resolve([journalDir]),
     chatIdOf: async (sessionId) => (await RunJournal.open(journalDir, sessionId)).native,
     // Журнал шага - ходами потока Codex (`thread/turns/list`), как лента вкладки.
