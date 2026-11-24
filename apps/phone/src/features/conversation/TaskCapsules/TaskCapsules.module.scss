@@ -21,6 +21,7 @@
 // Ширину задаёт содержимое: полоса листается, а не сжимает капсулы.
 .capsule {
   @include button-reset;
+  @include code-font;
 
   display: flex;
   flex: none;
@@ -31,7 +32,6 @@
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: nowrap;
   transition:
@@ -109,12 +109,13 @@
 }
 
 .sheetCode {
+  @include code-font;
+
   margin: 0;
   padding: var(--space-2);
   border-radius: var(--radius-md);
   background-color: var(--color-surface-sunken);
   color: var(--color-syntax-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

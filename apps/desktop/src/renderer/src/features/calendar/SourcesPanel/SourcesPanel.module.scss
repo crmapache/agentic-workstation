@@ -2,23 +2,6 @@
 @use '../calendar-tones' as *;
 @include calendar-tones;
 
-// Колонка источников: прокручивается сама, сетка рядом - сама.
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
-  padding: var(--space-3) var(--size-panel-gutter);
-  overflow-y: auto;
-  border-right: var(--border-width) solid var(--color-border);
-}
-
-.title {
-  @include caps-label;
-
-  color: var(--color-fg-subtle);
-}
-
 .list {
   display: flex;
   flex-direction: column;
@@ -78,13 +61,4 @@
 
 .warning {
   color: var(--color-warning);
-}
-
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: auto;
-  padding-top: var(--space-3);
-  border-top: var(--border-width) solid var(--color-border);
 }

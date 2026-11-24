@@ -74,11 +74,12 @@
 // Счётчик раздела: с нуля и тусклый, с находкой - ярче. Ширина цифр ровная - число
 // растёт, не толкая соседние вкладки на пиксели.
 .count {
+  @include code-font;
+
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
   background-color: var(--color-bg-hover);
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

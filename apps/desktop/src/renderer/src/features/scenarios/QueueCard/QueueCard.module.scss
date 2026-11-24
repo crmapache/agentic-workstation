@@ -156,9 +156,10 @@
 }
 
 .itemNumber {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }
@@ -238,8 +239,9 @@
 
 // Сколько карточек готово рядом с полосой - показание, как цифры прогона.
 .progressCount {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

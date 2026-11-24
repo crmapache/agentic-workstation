@@ -9,6 +9,8 @@
 // Чип вида: тонированная плашка, как у вызовов. Тон - свой цвет агента: серым он сливался
 // с THINK соседней строки; красный - только у упавшего (цвет смыслом, ADR 0006).
 .chip {
+  @include code-font;
+
   --tone: var(--color-agent);
 
   @include tinted-plaque(var(--tone));
@@ -17,7 +19,6 @@
   flex-shrink: 0;
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
-  font-family: var(--font-code);
 }
 
 .chipFailed {
@@ -25,9 +26,10 @@
 }
 
 .type {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
@@ -45,9 +47,10 @@
 }
 
 .duration {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }
@@ -88,10 +91,11 @@
 // Задание как написано, с переносами: промпт - документ, а не фраза. Длинное листается
 // внутри блока, а не уводит за собой ленту.
 .prompt {
+  @include code-font;
+
   max-height: var(--size-scroll-compact-max);
   overflow: auto;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;

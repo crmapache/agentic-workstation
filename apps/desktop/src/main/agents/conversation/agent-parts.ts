@@ -42,7 +42,7 @@ export type AgentFeedBuilder = {
   readonly work: WorkClock
   /** Ход кончился, а фоновые агенты ещё работают: для точки на вкладке это «работает». */
   readonly hasBackgroundWork: boolean
-  /** Идут фоновые команды: процесс не засыпает, пока они живы. */
+  /** Идут фоновые команды или наблюдатели (Monitor): процесс не засыпает, пока они живы. */
   readonly hasBackgroundCommands: boolean
   /** Агент поставил себе будильник, и он ещё не сработал: его держит процесс. */
   readonly hasWakeup: boolean

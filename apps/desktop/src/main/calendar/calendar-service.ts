@@ -5,19 +5,24 @@ import type {
   CalendarState,
   CalendarSource,
   CalendarOutcome,
-  CalendarSettings,
   CalendarSourceDraft,
   CalendarSourcePatch,
 } from '@shared/calendar'
-import { IDLE_SYNC } from '@shared/calendar'
+import { IDLE_SYNC, isAiSourceKind } from '@shared/calendar'
 import type { CalendarMeeting, CalendarOverlap } from '@shared/calendar-overlaps'
-import { meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
-import { icsUrl, icsMask, parseCalendarSettings } from '@shared/calendar-parse'
+import { meetingsOf, overlapsOf, normalTitle } from '@shared/calendar-overlaps'
+import { parseCalendarSettings } from '@shared/calendar-parse'
+import type { OverlapView, OverlapBriefOutcome } from '@shared/calendar-review'
+import type { CalendarSettings } from '@shared/calendar-settings'
 import type { InboxItem } from '@shared/inbox'
+import { MINUTE_MS } from '@shared/time-units'
 
+import { keepMoves, movesBetween } from './calendar-moves'
 import { overlapCard, overlapNews } from './calendar-notify'
+import { overlapBrief } from './calendar-overlap-brief'
 import type { SourceResult } from './calendar-snapshot'
 import { syncAfter, replaceCovered, isSuspiciousEmpty } from './calendar-snapshot'
+import { sourceOfDraft } from './calendar-source-draft'
 import type { StoredEvents, CalendarStore, StoredCalendar } from './calendar-store'
 import { icsSecretKey } from './calendar-store'
 import { touches, keptWindow, directWindow } from './calendar-window'
@@ -29,32 +34,23 @@ export type CalendarServiceDeps = {
   store: CalendarStore
   now: () => number
   onState: (state: CalendarState) => void
-  /** Карточка о новых накладках - в уведомления IDE. */
+  /** Карточки календаря (накладки, напоминания) - в уведомления IDE. */
   post: (item: InboxItem) => void
+  zone: () => string
 }
 
-/** Поля, от которых зависит, что читается: их смена - новый снимок с нуля. */
-const specKey = (source: CalendarSource | CalendarSourceDraft): string => {
-  const {
-    id: _id,
-    name: _name,
-    color: _color,
-    visible: _visible,
-    inOverlaps: _in,
-    ...spec
-  } = source
-
-  return JSON.stringify(spec)
-}
+/** Только то, что можно держать в памяти часов календаря: напоминания и утренний синк. */
+export type CalendarMarks = Pick<StoredCalendar, 'reminded' | 'morningOn'>
 
 /**
- * Календарь звонков (ADR 0114): источники, снимки их событий, настройки и объявленные накладки.
- * Владелец данных - здесь; окну - состоянием после каждой перемены, события - запросом за период.
- * Читает источники движок синка (calendar-sync.ts) и приносит прочитанное в applyRead.
+ * Календарь звонков (ADR 0114, 0116): источники, снимки их событий, настройки, объявленные и
+ * просмотренные накладки, история переносов. Владелец данных - здесь; окну - состоянием после
+ * каждой перемены, события и накладки - запросом. Читает источники движок синка
+ * (calendar-sync.ts) и приносит прочитанное в applyRead.
  */
 export class CalendarService {
   private revision = 0
-  /** Накладки впереди: счётчик на кнопке и начала - окну листать к следующей. */
+  /** Непросмотренные накладки впереди: счётчик на кнопке и начала - окну листать к следующей. */
   private upcoming: number[] = []
   private readonly phases = new Map<string, 'queued' | 'running'>()
 
@@ -84,6 +80,7 @@ export class CalendarService {
       revision: this.revision,
       upcomingOverlaps: this.upcoming.length,
       nextOverlaps: this.upcoming.slice(0, NEXT_OVERLAPS_MAX),
+      seenOverlaps: Object.keys(this.calendar.seen),
       vault: this.deps.store.vault.available,
     }
   }
@@ -94,6 +91,10 @@ export class CalendarService {
 
   get sources(): readonly CalendarSource[] {
     return this.calendar.sources
+  }
+
+  get marks(): CalendarMarks {
+    return { reminded: this.calendar.reminded, morningOn: this.calendar.morningOn }
   }
 
   source(id: string): CalendarSource | null {
@@ -133,43 +134,84 @@ export class CalendarService {
     return { meetings, overlaps: overlapsOf(meetings, counts) }
   }
 
+  /** Накладки впереди (до конца окна прямых источников) с обеими встречами и отметкой «видел». */
+  overlapsAhead(): OverlapView[] {
+    const now = this.deps.now()
+    const { meetings, overlaps } = this.meetingsIn(now, directWindow(now).to)
+    const byKey = new Map(meetings.map((meeting) => [meeting.key, meeting]))
+
+    return overlaps.flatMap((overlap) => {
+      const a = byKey.get(overlap.a)
+      const b = byKey.get(overlap.b)
+
+      return overlap.end > now && a && b
+        ? [{ ...overlap, a, b, seen: overlap.key in this.calendar.seen }]
+        : []
+    })
+  }
+
+  /** Отметить накладку просмотренной или снять отметку. Перенос встречи даёт новую накладку. */
+  async markOverlap(key: string, seen: boolean): Promise<CalendarState> {
+    const { [key]: _was, ...rest } = this.calendar.seen
+    const overlap = this.overlapsAhead().find((one) => one.key === key)
+
+    this.calendar = {
+      ...this.calendar,
+      seen: seen && overlap ? { ...rest, [key]: overlap.end } : rest,
+    }
+    this.upcoming = this.upcomingStarts()
+    await this.persist()
+
+    return this.state()
+  }
+
+  /** Разбор накладки для чата ИИ; накладки уже нет (перенесли, прошла) - отказ. */
+  overlapBrief(key: string): OverlapBriefOutcome {
+    const view = this.overlapsAhead().find((one) => one.key === key)
+
+    if (!view) return { ok: false }
+
+    const kept = keptWindow(this.deps.now())
+    const repeats = ({ event, sourceIds }: CalendarMeeting) =>
+      sourceIds
+        .flatMap((id) => this.events.bySource[id] ?? [])
+        .filter(
+          (one) =>
+            normalTitle(one.title) === normalTitle(event.title) &&
+            Math.abs(one.start - event.start) >= MINUTE_MS &&
+            touches(kept, one.start, one.end),
+        )
+        .map((one) => one.start)
+        .sort((a, b) => a - b)
+
+    return {
+      ok: true,
+      ...overlapBrief({
+        view,
+        sources: this.calendar.sources,
+        moves: this.calendar.moves,
+        repeats,
+        settings: this.calendar.settings,
+        zone: this.deps.zone(),
+      }),
+    }
+  }
+
   /**
    * Новый источник или правка. changed - поменялось, что читается (новый, другой календарь или
    * адрес): снимок стёрт, движку пора прочитать заново.
    */
   async save(draft: CalendarSourceDraft): Promise<{ outcome: CalendarOutcome; changed: boolean }> {
     const previous = draft.id ? this.source(draft.id) : null
-    const refused = (code: 'invalid' | 'not-found' | 'vault-unavailable') => ({
-      outcome: { ok: false as const, code },
-      changed: false,
-    })
 
-    if (draft.id && !previous) return refused('not-found')
+    if (draft.id && !previous) return { outcome: { ok: false, code: 'not-found' }, changed: false }
 
     const id = previous?.id ?? randomUUID()
-    let source: CalendarSource
+    const result = await sourceOfDraft(draft, previous, id, this.deps.store.vault)
 
-    if (draft.kind === 'ics') {
-      const url = draft.url ? icsUrl(draft.url) : null
+    if (!result.ok) return { outcome: result, changed: false }
 
-      if (!url && !previous) return refused('invalid')
-      if (url && !this.deps.store.vault.available) return refused('vault-unavailable')
-      if (url) await this.deps.store.vault.set(icsSecretKey(id), url.href)
-
-      const urlMask = url ? icsMask(url) : previous?.kind === 'ics' ? previous.urlMask : ''
-
-      // Полная ссылка - только в хранилище: в источник (диск, окно) идёт маска хоста.
-      const { url: _url, ...rest } = draft
-
-      source = { ...rest, id, kind: 'ics', urlMask }
-    } else {
-      source = { ...draft, id }
-    }
-
-    const changed =
-      !previous ||
-      specKey(previous) !== specKey(source) ||
-      (draft.kind === 'ics' && draft.url !== '')
+    const { source, changed } = result
 
     this.calendar = {
       ...this.calendar,
@@ -223,6 +265,12 @@ export class CalendarService {
     return this.state()
   }
 
+  /** Отметки часов календаря (напоминания, утренний синк): на диск, окну они не нужны. */
+  async setMarks(marks: Partial<CalendarMarks>): Promise<void> {
+    this.calendar = { ...this.calendar, ...marks }
+    await this.deps.store.writeCalendar(this.calendar)
+  }
+
   /** Фаза синка источника (очередь, идёт); null - стоит. Окну - сразу. */
   setPhase(id: string, phase: 'queued' | 'running' | null): void {
     if (phase) this.phases.set(id, phase)
@@ -231,7 +279,7 @@ export class CalendarService {
     this.deps.onState(this.state())
   }
 
-  /** Прочитанное источником: новый снимок, синк, накладки - и окну. */
+  /** Прочитанное источником: переносы, новый снимок, синк, накладки - и окну. */
   async applyRead(id: string, result: SourceResult): Promise<void> {
     const source = this.source(id)
 
@@ -246,6 +294,18 @@ export class CalendarService {
       : previous
     const warned =
       result.ok && result.byAi && isSuspiciousEmpty(previous, result.events, result.covered)
+    // Пустой подозрительный ответ ИИ - не повод записать все встречи удалёнными.
+    const moves =
+      result.ok && !warned
+        ? movesBetween({
+            previous,
+            next: snapshot,
+            covered: result.covered,
+            now,
+            byTitle: isAiSourceKind(source.kind),
+            clashed: this.clashedAt(now),
+          })
+        : []
 
     this.calendar = {
       ...this.calendar,
@@ -253,6 +313,7 @@ export class CalendarService {
         ...this.calendar.sync,
         [id]: syncAfter(this.calendar.sync[id] ?? IDLE_SYNC, result, snapshot, warned, now),
       },
+      moves: moves.length ? keepMoves(this.calendar.moves, moves, now) : this.calendar.moves,
     }
 
     if (result.ok) await this.replaceEvents(id, snapshot)
@@ -261,29 +322,45 @@ export class CalendarService {
     await this.persist()
   }
 
-  /** Начала накладок впереди: от сейчас до конца окна прямых источников, по порядку. */
-  private upcomingStarts(): number[] {
-    const now = this.deps.now()
+  /** Стояло ли событие в накладке до этого чтения: встреча его источника, то же время и название. */
+  private clashedAt(now: number): (event: CalendarEvent) => boolean {
+    const clashing = this.overlapsAhead()
+      .filter((view) => view.end > now)
+      .flatMap((view) => [view.a, view.b])
 
-    return this.meetingsIn(now, directWindow(now).to)
-      .overlaps.filter((overlap) => overlap.end > now)
-      .map((overlap) => overlap.start)
+    return (event) =>
+      clashing.some(
+        (meeting) =>
+          meeting.sourceIds.includes(event.sourceId) &&
+          Math.abs(meeting.event.start - event.start) < MINUTE_MS &&
+          normalTitle(meeting.event.title) === normalTitle(event.title),
+      )
+  }
+
+  /** Начала непросмотренных накладок впереди, по порядку. */
+  private upcomingStarts(): number[] {
+    return this.overlapsAhead()
+      .filter((view) => !view.seen)
+      .map((view) => view.start)
       .sort((a, b) => a - b)
   }
 
-  /** Новые накладки - одной карточкой, если человек их хочет; объявленные запоминаются. */
+  /**
+   * Новые накладки - одной карточкой, если человек их хочет; объявленные запоминаются, отметки
+   * «видел» у прошедших забываются.
+   */
   private announce(now: number): void {
-    const { meetings, overlaps } = this.meetingsIn(now, directWindow(now).to)
-    const upcoming = overlaps.filter((overlap) => overlap.end > now)
-    const { fresh, notified } = overlapNews(upcoming, this.calendar.notified, now)
+    const ahead = this.overlapsAhead()
+    const { fresh, notified } = overlapNews(ahead, this.calendar.notified, now)
+    const seen = Object.fromEntries(
+      Object.entries(this.calendar.seen).filter(([, end]) => end > now),
+    )
 
-    this.upcoming = upcoming.map((overlap) => overlap.start).sort((a, b) => a - b)
-    this.calendar = { ...this.calendar, notified }
+    this.calendar = { ...this.calendar, notified, seen }
+    this.upcoming = this.upcomingStarts()
 
     if (fresh.length && this.calendar.settings.notifyOverlaps) {
-      const byKey = new Map(meetings.map((meeting) => [meeting.key, meeting]))
-
-      this.deps.post(overlapCard(fresh, byKey, this.calendar.sources))
+      this.deps.post(overlapCard(fresh, this.calendar.sources))
     }
   }
 

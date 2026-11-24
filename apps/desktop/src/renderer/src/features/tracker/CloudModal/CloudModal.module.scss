@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 .body {
   display: flex;
   flex-direction: column;
@@ -23,8 +25,9 @@
 }
 
 .account {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

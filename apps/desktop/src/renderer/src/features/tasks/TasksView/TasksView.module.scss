@@ -135,9 +135,10 @@
 
 // Час и длительность - показания: консольный шрифт, ровные цифры.
 .runReading {
+  @include code-font;
+
   grid-column: 1;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

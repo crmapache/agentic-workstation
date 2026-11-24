@@ -44,7 +44,6 @@ export const workstationPorts = (setup: {
     panels: () => panels.list(),
     extensions: setup.extensions,
     calendar: () => ({
-      shared: () => setup.calendar.service.settings.shareWithAi,
       state: () => setup.calendar.service.state(),
       meetingsIn: (from, to) => setup.calendar.service.meetingsIn(from, to),
       sync: (withAi) => setup.calendar.sync.syncFromAi(withAi),

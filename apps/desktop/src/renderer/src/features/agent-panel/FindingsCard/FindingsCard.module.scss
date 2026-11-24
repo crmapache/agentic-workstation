@@ -22,14 +22,15 @@
 
 .label {
   @include caps-label;
+  @include code-font;
 
   color: var(--tone);
-  font-family: var(--font-code);
 }
 
 .count {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -49,22 +50,22 @@
 
 .place {
   @include truncate;
+  @include code-font;
 
   min-width: 0;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .tag {
   @include caps-label;
+  @include code-font;
 
   flex-shrink: 0;
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
   background-color: var(--color-bg-active);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
 }
 
 .fixed {
@@ -79,9 +80,10 @@
 
 // Не метка, а предупреждение: проверка не подтвердила находку.
 .maybe {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-warning);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -107,8 +109,9 @@
 }
 
 .file {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   overflow-wrap: anywhere;
 }

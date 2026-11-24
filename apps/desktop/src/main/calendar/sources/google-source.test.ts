@@ -8,7 +8,7 @@ import type { GoogleFetch } from './google-source'
 const WINDOW = { from: Date.UTC(2026, 10, 1), to: Date.UTC(2026, 11, 31) }
 
 describe('Google events', () => {
-  it('maps an invite: my answer, Meet link, organizer, iCalUID for duplicates', () => {
+  it('maps an invite: my answer, Meet link, people, links, iCalUID for duplicates', () => {
     const event = googleEventOf('personal', 'primary', {
       id: 'abc_20261124',
       iCalUID: 'abc@google.com',
@@ -16,10 +16,16 @@ describe('Google events', () => {
       start: { dateTime: '2026-11-24T09:00:00-06:00' },
       end: { dateTime: '2026-11-24T09:30:00-06:00' },
       organizer: { email: 'ana@example.com', displayName: 'Ana' },
-      attendees: [{ email: 'me@example.com', responseStatus: 'tentative', self: true }],
+      attendees: [
+        { email: 'me@example.com', responseStatus: 'tentative', self: true },
+        { email: 'ana@example.com', responseStatus: 'accepted', organizer: true },
+        { email: 'bo@example.com', displayName: 'Bo', responseStatus: 'needsAction' },
+      ],
       conferenceData: {
         entryPoints: [{ entryPointType: 'video', uri: 'https://meet.google.com/x-y-z' }],
       },
+      description: 'Agenda: https://docs.google.com/document/d/1 and https://meet.google.com/x-y-z',
+      attachments: [{ title: 'Slides', fileUrl: 'https://drive.google.com/file/d/2' }],
       htmlLink: 'https://www.google.com/calendar/event?eid=abc',
     })
 
@@ -31,7 +37,15 @@ describe('Google events', () => {
       end: Date.UTC(2026, 10, 24, 15, 30),
       response: 'tentative',
       joinUrl: 'https://meet.google.com/x-y-z',
-      organizer: 'Ana',
+      organizer: { name: 'Ana', email: 'ana@example.com', url: null },
+      // Я и организатор - не гости.
+      attendees: [{ name: 'Bo', email: 'bo@example.com', url: null }],
+      link: 'https://www.google.com/calendar/event?eid=abc',
+      // Звонок и само событие стоят своими кнопками - в прочих ссылках их нет.
+      links: [
+        { label: 'Slides', url: 'https://drive.google.com/file/d/2' },
+        { label: 'docs.google.com/document/d/1', url: 'https://docs.google.com/document/d/1' },
+      ],
       busy: 'busy',
     })
   })

@@ -63,9 +63,9 @@
 
   // Команда в терминал - моноширинным, как в терминале.
   &[data-shell] {
-    --field-font-size: var(--font-size-sm);
+    @include code-font;
 
-    font-family: var(--font-code);
+    --field-font-size: var(--font-size-sm);
   }
 }
 
@@ -139,7 +139,8 @@
 // Процент - цветом ступени, моноширинным: цифры не прыгают при смене. Ступени - роли
 // --color-gauge-*: их приглушает режим спокойных цветов.
 .contextValue {
-  font-family: var(--font-code);
+  @include code-font;
+
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 

@@ -56,10 +56,11 @@
 }
 
 .number {
+  @include code-font;
+
   flex-shrink: 0;
   min-width: var(--space-3);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

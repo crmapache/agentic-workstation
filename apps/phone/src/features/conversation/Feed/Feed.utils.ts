@@ -138,6 +138,10 @@ const actionSummary = (action: Fields): string | null => {
       return text(action, 'pattern') || path
     case 'command':
       return text(action, 'description') || firstLine(text(action, 'command'))
+    case 'monitor':
+      return (
+        text(action, 'description') || firstLine(text(action, 'command')) || text(action, 'url')
+      )
     case 'web':
       return text(action, 'target')
     case 'mcp':
@@ -261,7 +265,8 @@ export const inputText = (
   limit = 2000,
 ): string => {
   const command = action
-    ? action['kind'] === 'command' && text(action, 'command')
+    ? (action['kind'] === 'command' || action['kind'] === 'monitor') &&
+      (text(action, 'command') || text(action, 'url'))
     : name === 'Bash' && text(input, 'command')
   const raw = command === false ? JSON.stringify(input, null, 2) : command
 

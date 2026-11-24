@@ -2,7 +2,7 @@ import { structuredPatch } from 'diff'
 
 import type { PatchHunk, ToolInput, ToolAction } from '@shared/conversation-feed'
 
-import { isRecord, stringField } from '../cli/cli-messages'
+import { isRecord, recordField, stringField } from '../cli/cli-messages'
 
 /** Сколько контекста вокруг правки, когда дифф по входу считаем сами. */
 const CONTEXT_LINES = 2
@@ -99,6 +99,14 @@ const agentAction = (name: string, input: ToolInput): ToolAction => ({
   workflow: name === 'Workflow',
 })
 
+/** Monitor: команда оболочки или WebSocket (`ws.url`) - одно из двух. */
+const monitorAction = (input: ToolInput): ToolAction => ({
+  kind: 'monitor',
+  command: stringField(input, 'command'),
+  url: stringField(recordField(input, 'ws'), 'url'),
+  description: stringField(input, 'description'),
+})
+
 /** Свои инструменты Claude Code по имени; MCP и незнакомые - отдельно. */
 const knownAction = (name: string, input: ToolInput): ToolAction | null => {
   switch (name) {
@@ -127,6 +135,8 @@ const knownAction = (name: string, input: ToolInput): ToolAction | null => {
         command: stringField(input, 'command'),
         description: stringField(input, 'description'),
       }
+    case 'Monitor':
+      return monitorAction(input)
     case 'WebFetch':
       return { kind: 'web', target: stringField(input, 'url') }
     case 'WebSearch':

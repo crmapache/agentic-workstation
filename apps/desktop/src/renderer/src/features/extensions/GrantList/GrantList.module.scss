@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Права строками: имя и риск в ряд, пояснение под ними, рамки (сайты, программы) - кодом.
 .grants {
   display: flex;
@@ -39,8 +41,9 @@
 }
 
 .code {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }

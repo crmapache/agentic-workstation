@@ -29,10 +29,10 @@
 
 .target {
   @include truncate;
+  @include code-font;
 
   min-width: 0;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 

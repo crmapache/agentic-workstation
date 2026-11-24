@@ -16,7 +16,46 @@
       "sounds": "Sounds",
       "ai": "AI",
       "git": "Git",
-      "voice": "Voice"
+      "voice": "Voice",
+      "calendar": "Calendar"
+    },
+    "calendar": {
+      "description": "Working time, call reminders and the morning sync of the call calendar",
+      "helpLabel": "About calendar settings",
+      "help": "Working hours and days shape the grid: working time is lighter, days off are darker, and the grid opens at the start of your day. The morning sync starts with them too.\n\nCall reminders arrive in the IDE notifications, with a Join button when the call has a link. Up to three per call, each any number of minutes, hours or days before. Declined, cancelled, free and all-day events get no reminders.\n\nAt the start of the work day the IDE can read the calendars that AI reads in your browser, so the day starts with fresh calls. AI on the screen is never started by itself: it needs the mouse, so you get a reminder instead.",
+      "workTitle": "Working time",
+      "workHours": "Working hours",
+      "workHoursNote": "Lighter on the grid; the morning sync starts with them",
+      "from": "From",
+      "to": "To",
+      "hour": "Hour",
+      "minute": "Minutes",
+      "workDays": "Working days",
+      "workDaysNote": "Other days are darker on the grid",
+      "notifyTitle": "Notifications",
+      "notify": "Notify about overlaps",
+      "notifyNote": "A notification when a sync finds a new overlap ahead",
+      "reminders": "Call reminders",
+      "remindersNote": "A notification before each call, up to three",
+      "reminderN": "Reminder {{index}}",
+      "reminderAmount": "How long before",
+      "reminderUnit": "Unit",
+      "units": {
+        "minutes": "minutes before",
+        "hours": "hours before",
+        "days": "days before"
+      },
+      "removeReminder": "Remove reminder {{index}}",
+      "addReminder": "Add a reminder",
+      "noReminders": "No reminders",
+      "syncTitle": "Sync",
+      "morning": "At the start of the work day",
+      "morningNote": "For calendars that AI reads",
+      "morningModes": {
+        "sync": "Sync calendars AI reads in the browser",
+        "remind": "Only remind me to sync",
+        "off": "Do nothing"
+      }
     },
     "ai": {
       "description": "Which AI does the background work of the IDE",
@@ -2214,6 +2253,10 @@
         "stopAgentTitle": "Stop this agent?",
         "stopCommand": "Stop this command",
         "stopCommandTitle": "Stop this command?",
+        "monitor": "watch",
+        "monitorTitle": "Monitor",
+        "stopMonitor": "Stop this monitor",
+        "stopMonitorTitle": "Stop this monitor?",
         "wakeup": "wake",
         "wakeIn": "in {{duration}}",
         "wakeupTitle": "Wakes the agent at {{clock}}",
@@ -2472,6 +2515,7 @@
         "edit": "EDIT",
         "write": "WRITE",
         "bash": "BASH",
+        "watch": "WATCH",
         "web": "WEB",
         "mcp": "MCP",
         "skill": "SKILL",
@@ -2657,6 +2701,10 @@
         "label": "BACKGROUND",
         "restarted": "{{cli}} was restarted here, and this background command stopped with it:",
         "exited": "{{cli}} stopped, and this background command stopped with it:"
+      },
+      "monitorLost": {
+        "restarted": "{{cli}} was restarted here, and this monitor stopped with it:",
+        "exited": "{{cli}} stopped, and this monitor stopped with it:"
       },
       "wakeupLost": {
         "restarted": "{{cli}} was restarted here, and the wakeup the agent set for {{clock}} was lost with it.",
@@ -3967,6 +4015,7 @@
       "answer": "Send answer",
       "showRun": "Show run",
       "showCalendar": "Show calendar",
+      "syncCalendar": "Sync now",
       "openChat": "Open in chat",
       "runAgain": "Run again",
       "resume": "Continue",
@@ -4759,7 +4808,7 @@
     "help": {
       "label": "About the calendar",
       "title": "Call calendar",
-      "text": "All your calls from every calendar you add, on one grid. Overlapping calls are outlined in red, and the time they share is shaded.\n\nSources:\n- Google Calendar - an account connected in Connectors, read directly.\n- ICS link - a subscription link (Outlook \"Publish calendar\", iCloud, Fastmail, Calendly). Read directly.\n- AI in the browser - for calendars without a connector, such as a work Outlook: AI opens the calendar page in your Chrome, in the profile where you are signed in, and reads the next weeks. It can only open that site and read; it cannot type, answer invites or touch other tabs.\n- AI on the screen - AI reads a calendar app through Computer Use. It takes the mouse, so it runs only when you press Sync.\n\nGoogle and ICS sources refresh by themselves every 15 minutes. Sources read by AI refresh only when you press Sync: each read takes a few minutes and uses tokens.\n\nDuplicates (the same meeting in two calendars) are shown once. Back-to-back calls, all-day events, declined and \"free\" events are not overlaps."
+      "text": "All your calls from every calendar you add, on one grid. Working hours are lighter and days off are darker: set them in Settings → Calendar, along with call reminders.\n\nMarks on a call:\n- Red outline and a shaded part inside - it overlaps another call. Yellow - one of the two is tentative.\n- Dashed border with a question mark - tentative: not confirmed by you or by the organizer.\n- Faded and struck through - declined or cancelled.\n\nThe Overlaps tab lists every overlap ahead. Mark one as seen and it stops glowing. Ask AI opens a new chat where AI weighs both calls, looks at how earlier conflicts went and drafts whom to write and what. It only suggests: it never sends anything and never mentions one job's calls to another.\n\nSources:\n- Google Calendar - an account connected in Connectors, read directly.\n- ICS link - a subscription link (Outlook \"Publish calendar\", iCloud, Fastmail, Calendly). Read directly.\n- AI in the browser - for calendars without a connector, such as a work Outlook: AI opens the calendar page in your Chrome, in the profile where you are signed in, and reads the next weeks. It can only open that site and read. With clicking allowed it opens events to get join links, guests and links, but never answers invites or touches other tabs.\n- AI on the screen - AI reads a calendar app through Computer Use. It takes the mouse, so it runs only when you press Sync.\n\nGoogle and ICS sources refresh by themselves every 15 minutes. Sources read by AI refresh when you press Sync and once at the start of your work day; AI on the screen only reminds you, because it needs the mouse.\n\nDuplicates (the same meeting in two calendars) are shown once. Back-to-back calls, all-day events, declined and \"free\" events are not overlaps."
     },
     "actions": {
       "add": "Add source"
@@ -4770,17 +4819,20 @@
     },
     "modes": {
       "label": "Period",
+      "day": "Day",
       "week": "Week",
-      "day": "Day"
+      "month": "Month"
     },
     "navigator": {
       "previous": {
         "week": "Previous week",
-        "day": "Previous day"
+        "day": "Previous day",
+        "month": "Previous month"
       },
       "next": {
         "week": "Next week",
-        "day": "Next day"
+        "day": "Next day",
+        "month": "Next month"
       },
       "pick": "Pick a day",
       "today": "Today",
@@ -4790,7 +4842,30 @@
     "overlaps": {
       "inPeriod_one": "{{count}} overlap",
       "inPeriod_other": "{{count}} overlaps",
-      "next": "Next overlap"
+      "next": "Next overlap",
+      "none": "No overlapping calls ahead",
+      "allSeen": "Every overlap ahead is marked as seen",
+      "seen_one": "Seen ({{count}})",
+      "seen_other": "Seen ({{count}})",
+      "soft": "one is tentative",
+      "show": "Show {{time}} on the grid",
+      "mark": "Mark as seen",
+      "unmark": "Highlight again",
+      "ask": "Ask AI",
+      "askWith": "Ask AI in",
+      "noProject": "Open a project to start a chat",
+      "gone": "This overlap is gone: one of the calls has moved"
+    },
+    "sidebar": {
+      "label": "Calendar sidebar",
+      "sources": "Sources",
+      "overlaps": "Overlaps",
+      "resize": "Resize the calendar sidebar"
+    },
+    "month": {
+      "openDay": "Open {{day}}",
+      "more_one": "+{{count}} more",
+      "more_other": "+{{count}} more"
     },
     "sync": {
       "all": "Sync",
@@ -4801,7 +4876,6 @@
     },
     "sources": {
       "label": "Calendar sources",
-      "title": "Sources",
       "show": "Show {{name}}",
       "menu": "Actions for {{name}}",
       "stop": "Stop",
@@ -4811,12 +4885,6 @@
       "remove": "Remove",
       "hide": "Hide sources",
       "showPanel": "Show sources"
-    },
-    "settings": {
-      "notify": "Notify about overlaps",
-      "notifyNote": "A notification when a sync finds a new overlap ahead",
-      "share": "Share with AI chats",
-      "shareNote": "AI in any chat can read your calls and overlaps"
     },
     "days": {
       "today": "Today",
@@ -4861,10 +4929,24 @@
       "label": "{{title}}, {{time}}",
       "labelClash": "{{title}}, {{time}}, overlaps another call",
       "response": "My answer",
-      "status": "Status",
       "location": "Where",
       "organizer": "Organizer",
-      "clashes": "Overlaps with {{titles}}",
+      "organizerTag": "organizer",
+      "youOrganize": "You organize this call",
+      "calendars": "Calendars",
+      "shownFree": "Shown as free",
+      "guests_one": "{{count}} guest",
+      "guests_other": "{{count}} guests",
+      "more_one": "and {{count}} more",
+      "more_other": "and {{count}} more",
+      "links": "Links",
+      "clash": "Overlaps with {{title}}",
+      "clashSeen": "Overlap seen: {{title}}",
+      "tags": {
+        "tentative": "Tentative",
+        "declined": "Declined",
+        "cancelled": "Cancelled"
+      },
       "join": "Join",
       "open": "Open in calendar"
     },
@@ -4878,7 +4960,7 @@
     },
     "statuses": {
       "confirmed": "Confirmed",
-      "tentative": "Tentative",
+      "tentative": "Tentative event",
       "cancelled": "Cancelled"
     },
     "kinds": {
@@ -4910,7 +4992,7 @@
         "label": "About this source",
         "google": "Pick a Google Calendar account connected in Connectors and the calendars to show. It is read directly through Google, without AI, and refreshes every 15 minutes.",
         "ics": "Paste a subscription link (ICS or webcal). Outlook: Settings → Calendar → Shared calendars → Publish a calendar → ICS. iCloud: share the calendar publicly. The link works like a password, so it is stored encrypted on this computer.",
-        "ai-browser": "For a calendar without a connector, such as a work Outlook. AI opens the page in your Chrome, in the profile where you are signed in, and reads the weeks ahead. It may open only that site, cannot type, answer invites or touch your tabs, and closes its tab when done. Outlook and Google move between weeks by address; turn on clicking only if your calendar cannot. Each read takes a few minutes and uses tokens, so it runs when you press Sync.",
+        "ai-browser": "For a calendar without a connector, such as a work Outlook. AI opens the page in your Chrome, in the profile where you are signed in, and reads the weeks ahead. It may open only that site, cannot type, answer invites or touch your tabs, and closes its tab when done. Allow clicking so AI can open each event and read its join link, guests and links; it is also how AI changes weeks when the address has no date. Each read takes a few minutes and uses tokens, so it runs when you press Sync and once at the start of your work day.",
         "ai-screen": "AI reads a calendar app on your screen through Computer Use. It takes the mouse and keyboard while reading, with Pause and Stop at the bottom of the screen, so it runs only when you press Sync."
       },
       "failures": {
@@ -4939,8 +5021,8 @@
       "icsKeep": "Leave empty to keep the current link",
       "icsNote": "The link is stored encrypted on this computer",
       "pageUrl": "Calendar page",
-      "allowClicks": "Let AI click the calendar's buttons",
-      "allowClicksNote": "Only if the calendar has no date in its address",
+      "allowClicks": "Let AI click in the calendar",
+      "allowClicksNote": "To open events and read join links, guests and links, and to change weeks when the address has no date. AI never answers invites",
       "app": "App",
       "noConnector": {
         "google": "No Google Calendar account is connected yet",

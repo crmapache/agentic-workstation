@@ -63,6 +63,8 @@ const actionText = (action: ToolAction): string => {
       return `${action.pattern} ${action.path}`.trim()
     case 'command':
       return action.command
+    case 'monitor':
+      return action.command || action.url
     case 'web':
     case 'other':
       return action.target

@@ -127,7 +127,7 @@ describe('ICS parsing', () => {
     ])
   })
 
-  it('reads status, Outlook busy status, organizer and the Teams link', () => {
+  it('reads status, Outlook busy status, people, the Teams link and other links', () => {
     const [event] =
       parse(
         ics(
@@ -139,6 +139,9 @@ describe('ICS parsing', () => {
             'STATUS:CANCELLED',
             'X-MICROSOFT-CDO-BUSYSTATUS:TENTATIVE',
             'ORGANIZER;CN=Ana Ruiz:mailto:ana@example.com',
+            'ATTENDEE;CN=Ana Ruiz:mailto:ana@example.com',
+            'ATTENDEE;CN=Bo Lee;ROLE=OPT-PARTICIPANT:mailto:bo@example.com',
+            'ATTACH;FILENAME=Agenda.pdf:https://files.example.com/agenda.pdf',
             'LOCATION:Microsoft Teams Meeting',
             'DESCRIPTION:Join: https://teams.microsoft.com/l/meetup-join/abc and docs https://example.com/doc',
           ),
@@ -148,9 +151,15 @@ describe('ICS parsing', () => {
     expect(event).toMatchObject({
       status: 'cancelled',
       busy: 'tentative',
-      organizer: 'Ana Ruiz',
+      organizer: { name: 'Ana Ruiz', email: 'ana@example.com', url: null },
+      attendees: [{ name: 'Bo Lee', email: 'bo@example.com', url: null }],
       joinUrl: 'https://teams.microsoft.com/l/meetup-join/abc',
       location: 'Microsoft Teams Meeting',
+      locationUrl: null,
+      links: [
+        { label: 'Agenda.pdf', url: 'https://files.example.com/agenda.pdf' },
+        { label: 'example.com/doc', url: 'https://example.com/doc' },
+      ],
     })
   })
 

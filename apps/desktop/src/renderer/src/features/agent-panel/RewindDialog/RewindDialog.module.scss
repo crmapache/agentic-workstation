@@ -36,13 +36,15 @@
 }
 
 .added {
+  @include code-font;
+
   color: var(--color-success);
-  font-family: var(--font-code);
 }
 
 .removed {
+  @include code-font;
+
   color: var(--color-danger);
-  font-family: var(--font-code);
 }
 
 .fileList {
@@ -56,11 +58,12 @@
 
 // Имя первым, папка после и бледнее: обрезанный с конца путь прятал бы как раз имя.
 .file {
+  @include code-font;
+
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
   min-width: 0;
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

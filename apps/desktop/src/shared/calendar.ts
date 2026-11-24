@@ -1,3 +1,4 @@
+import type { CalendarSettings } from './calendar-settings'
 import type { AiChoice } from './ide-prefs'
 import type { ProviderId } from './providers'
 
@@ -109,6 +110,16 @@ export type EventBusy = 'busy' | 'free' | 'tentative' | 'away'
 export type EventResponse =
   'accepted' | 'tentative' | 'declined' | 'pending' | 'organizer' | 'unknown'
 
+/** Человек встречи: имя, почта и ссылка на него (профиль, чат), что нашлось у источника. */
+export type EventPerson = { name: string; email: string | null; url: string | null }
+
+/** Ссылка встречи, кроме звонка и самого события: повестка, документ, запись. */
+export type EventLink = { label: string; url: string }
+
+/** Гостей и ссылок у встречи храним не больше: карточке и ИИ хватает, снимок не пухнет. */
+export const EVENT_PEOPLE_MAX = 50
+export const EVENT_LINKS_MAX = 10
+
 export type CalendarEvent = {
   /** Ключ события в своём источнике: uid и начало повтора. */
   key: string
@@ -130,9 +141,15 @@ export type CalendarEvent = {
   /** Ссылка на звонок (Meet, Zoom, Teams), только https. */
   joinUrl: string | null
   location: string | null
-  organizer: string | null
+  /** Ссылка на место (карта, комната), только https. */
+  locationUrl: string | null
+  organizer: EventPerson | null
+  /** Гости, без организатора; не больше EVENT_PEOPLE_MAX. */
+  attendees: EventPerson[]
   /** Событие в самом источнике (страница Google), null - негде открыть. */
   link: string | null
+  /** Прочие ссылки встречи, только https; не больше EVENT_LINKS_MAX. */
+  links: EventLink[]
 }
 
 /** Почему источник не прочитался: текст - в окне по коду. */
@@ -184,18 +201,6 @@ export const IDLE_SYNC: SourceSync = {
   count: 0,
 }
 
-export type CalendarSettings = {
-  /** Новая накладка в будущем - карточкой в уведомлениях IDE. */
-  notifyOverlaps: boolean
-  /** Инструменты calendar_* сервера IDE отдают календарь разговорам. */
-  shareWithAi: boolean
-}
-
-export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
-  notifyOverlaps: true,
-  shareWithAi: true,
-}
-
 export type CalendarSourceView = CalendarSource & { sync: SourceSync }
 
 export type CalendarState = {
@@ -203,10 +208,12 @@ export type CalendarState = {
   settings: CalendarSettings
   /** Растёт с каждой переменой событий: окно перечитывает свой период. */
   revision: number
-  /** Накладок впереди (до конца окна прямых источников): счётчик на кнопке вида. */
+  /** Непросмотренных накладок впереди (до конца окна прямых источников): счётчик на кнопке вида. */
   upcomingOverlaps: number
-  /** Начала накладок впереди по порядку (мс UTC, до 50): «следующая накладка» листает к ней. */
+  /** Начала непросмотренных накладок впереди по порядку (мс UTC, до 50): «следующая» листает к ней. */
   nextOverlaps: number[]
+  /** Ключи накладок, которые человек отметил просмотренными: на сетке они не горят. */
+  seenOverlaps: string[]
   /** Хранилище секретов недоступно: ICS-ссылку не сохранить. */
   vault: boolean
 }

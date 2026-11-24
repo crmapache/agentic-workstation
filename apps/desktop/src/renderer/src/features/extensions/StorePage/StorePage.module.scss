@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -60,7 +62,8 @@
 }
 
 .updateVersions {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }

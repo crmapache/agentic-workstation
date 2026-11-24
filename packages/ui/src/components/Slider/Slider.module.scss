@@ -1,3 +1,5 @@
+@use '../../styles/mixins' as *;
+
 .slider {
   display: flex;
   flex-direction: column;
@@ -17,10 +19,11 @@
 }
 
 .value {
+  @include code-font;
+
   flex-shrink: 0;
   min-width: var(--size-slider-value);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   text-align: right;
 }

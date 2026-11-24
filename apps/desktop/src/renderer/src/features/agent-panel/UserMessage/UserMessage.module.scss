@@ -40,8 +40,9 @@
 }
 
 .time {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -86,12 +87,13 @@
 }
 
 .editorLine {
+  @include code-font;
+
   display: flex;
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -129,17 +131,19 @@
 }
 
 .pasteCount {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 // Три строки - сколько занял бы абзац ответа: дальше это уже вторая лента.
 .pastePreview {
+  @include code-font;
+
   display: -webkit-box;
   overflow: hidden;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -148,11 +152,12 @@
 }
 
 .pasteBody {
+  @include code-font;
+
   max-height: var(--size-code-max);
   overflow: auto;
   overscroll-behavior: contain;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;
@@ -160,8 +165,9 @@
 }
 
 .pasteCut {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

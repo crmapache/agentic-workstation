@@ -1,7 +1,6 @@
 import type {
   CalendarColor,
   CalendarSource,
-  CalendarSettings,
   GoogleSourceSpec,
   CalendarDraftSpec,
   AiScreenSourceSpec,
@@ -11,13 +10,14 @@ import type {
   CalendarSourceDraft,
   CalendarSourcePatch,
 } from './calendar'
+import { AI_HINTS_MAX, AI_WEEKS_MAX, CALENDAR_COLORS, AI_WEEKS_DEFAULT } from './calendar'
+import type { CalendarSettings } from './calendar-settings'
 import {
-  AI_HINTS_MAX,
-  AI_WEEKS_MAX,
-  CALENDAR_COLORS,
-  AI_WEEKS_DEFAULT,
+  REMINDERS_MAX,
+  MORNING_SYNC_MODES,
+  REMINDER_MINUTES_MAX,
   DEFAULT_CALENDAR_SETTINGS,
-} from './calendar'
+} from './calendar-settings'
 import type { AiChoice } from './ide-prefs'
 import { parseAiChain } from './ide-prefs'
 
@@ -185,6 +185,46 @@ export const parseSourcePatch = (value: unknown): CalendarSourcePatch => {
   }
 }
 
+const DAY_MINUTES = 24 * 60
+
+/** Минуты от полуночи в пределах суток, кратные пяти; не число - null. */
+const minuteOf = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(Math.max(Math.round(value / 5) * 5, 0), DAY_MINUTES)
+    : null
+
+/** Рабочее время: конец позже начала, иначе прежнее. */
+const workHoursOf = (
+  value: unknown,
+  base: CalendarSettings['workHours'],
+): CalendarSettings['workHours'] => {
+  const input = isRecord(value) ? value : {}
+  const from = minuteOf(input['from']) ?? base.from
+  const to = minuteOf(input['to']) ?? base.to
+
+  return to > from ? { from, to } : base
+}
+
+/** Рабочие дни: 0-6 без повторов, по порядку; не массив - прежние. */
+const workDaysOf = (value: unknown, base: number[]): number[] =>
+  Array.isArray(value)
+    ? [...new Set(value)]
+        .filter((day): day is number => Number.isInteger(day) && day >= 0 && day <= 6)
+        .sort((a, b) => a - b)
+    : base
+
+/** Напоминания: целые минуты в пределах недели, без повторов, по убыванию, не больше трёх. */
+const remindersOf = (value: unknown, base: number[]): number[] =>
+  Array.isArray(value)
+    ? [...new Set(value)]
+        .filter(
+          (minutes): minutes is number =>
+            Number.isInteger(minutes) && minutes >= 0 && minutes <= REMINDER_MINUTES_MAX,
+        )
+        .sort((a, b) => b - a)
+        .slice(0, REMINDERS_MAX)
+    : base
+
 /** Настройки поверх base: негодное поле остаётся прежним. */
 export const parseCalendarSettings = (
   value: unknown,
@@ -194,6 +234,10 @@ export const parseCalendarSettings = (
 
   return {
     notifyOverlaps: flag(input['notifyOverlaps'], base.notifyOverlaps),
-    shareWithAi: flag(input['shareWithAi'], base.shareWithAi),
+    workHours: workHoursOf(input['workHours'], base.workHours),
+    workDays: workDaysOf(input['workDays'], base.workDays),
+    reminders: remindersOf(input['reminders'], base.reminders),
+    morningSync:
+      MORNING_SYNC_MODES.find((mode) => mode === input['morningSync']) ?? base.morningSync,
   }
 }

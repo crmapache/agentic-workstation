@@ -25,10 +25,10 @@
 .path {
   @include button-reset;
   @include truncate;
+  @include code-font;
 
   min-width: 0;
   color: inherit;
-  font-family: var(--font-code);
   font-size: inherit;
   transition: color var(--duration-fast) var(--easing-standard);
 

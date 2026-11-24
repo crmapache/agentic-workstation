@@ -77,9 +77,10 @@
 
 // Главное число - моноширинным, цифры не прыгают при смене; цвет - ступень показания.
 .headValue {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
 }
@@ -99,16 +100,18 @@
 }
 
 .rowValue {
+  @include code-font;
+
   justify-self: end;
   padding-left: var(--space-4);
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-variant-numeric: tabular-nums;
 }
 
 .aside {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
 
   &:not(:empty) {
     padding-left: var(--space-1-5);

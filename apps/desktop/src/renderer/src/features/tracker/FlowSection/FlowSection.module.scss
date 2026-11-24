@@ -72,10 +72,11 @@
 
 // Сколько групп и задач - справа от заголовков, счётчиком.
 .count {
+  @include code-font;
+
   flex: none;
   margin-left: auto;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }

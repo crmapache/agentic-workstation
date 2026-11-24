@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Поля один под другим, каждое со своей подписью - как в окне запуска сценария.
 .body {
   display: flex;
@@ -53,8 +55,9 @@
 }
 
 .timeColon {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
 }
 
 .due {

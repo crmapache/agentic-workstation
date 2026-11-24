@@ -1,7 +1,7 @@
 import type { CalendarState, CalendarSourceView } from '@shared/calendar'
 
 export type SourcesPanelProps = {
-  state: CalendarState | undefined
+  state: CalendarState
 }
 
 export type SourceRowProps = {

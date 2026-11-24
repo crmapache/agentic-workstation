@@ -2,9 +2,10 @@
 
 // Итог вызова - мелким моно тише цели: это подпись, а не содержание строки.
 .meta {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

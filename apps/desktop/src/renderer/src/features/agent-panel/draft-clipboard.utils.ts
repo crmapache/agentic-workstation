@@ -19,7 +19,9 @@ export const clipboardText = (token: DraftToken): string => {
   const { chip } = token
 
   if (chip.kind === 'cmd') return `/${chip.value}`
-  if (chip.kind === 'quote' || chip.kind === 'paste') return chip.text ?? ''
+  if (chip.kind === 'quote' || chip.kind === 'paste' || chip.kind === 'overlap') {
+    return chip.text ?? ''
+  }
   // Карточка - ссылкой: её понимает чат IDE, а текст карточки в чате или задаче - лишняя простыня.
   if (chip.kind === 'card') return cardLink(chip.value)
   if (chip.kind === 'ref') {

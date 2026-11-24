@@ -233,7 +233,7 @@ export class FeedBuilder {
     return this.agents.hasWork
   }
 
-  /** Идут фоновые команды Bash: дети процесса CLI, его сон убил бы их молча. */
+  /** Идут фоновые команды Bash или наблюдатели Monitor: их держит процесс CLI, его сон убил бы их молча. */
   get hasBackgroundCommands(): boolean {
     return this.agents.hasCommands
   }

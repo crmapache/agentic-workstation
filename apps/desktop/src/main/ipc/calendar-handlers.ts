@@ -8,8 +8,8 @@ import { assertString } from './validate'
 
 type CalendarChannels = keyof CalendarInvokeContract
 
-/** Период событий за раз: сетка показывает неделю, с запасом - шесть. */
-const EVENTS_SPAN_MAX = 42 * DAY_MS
+/** Период событий за раз: месяц на сетке - до шести недель, и час запаса на перевод часов. */
+const EVENTS_SPAN_MAX = 43 * DAY_MS
 
 const moment = (value: unknown, name: string): number => {
   if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${name} - не время`)
@@ -86,6 +86,17 @@ export const createCalendarHandlers = (
       assertString(connectorId, 'connectorId')
 
       return calendar.googleCalendars(connectorId)
+    },
+    'calendar:overlaps': () => service.overlapsAhead(),
+    'calendar:markOverlap': ({ key, seen }) => {
+      assertString(key, 'key')
+
+      return service.markOverlap(key, seen === true)
+    },
+    'calendar:overlapBrief': ({ key }) => {
+      assertString(key, 'key')
+
+      return service.overlapBrief(key)
     },
   }
 }

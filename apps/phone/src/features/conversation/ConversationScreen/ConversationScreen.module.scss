@@ -114,7 +114,8 @@
 }
 
 .meterValue {
-  font-family: var(--font-code);
+  @include code-font;
+
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 

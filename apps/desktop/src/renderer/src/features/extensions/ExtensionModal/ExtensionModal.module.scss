@@ -41,6 +41,8 @@
 }
 
 .problem {
+  @include code-font;
+
   margin: 0;
   padding: var(--space-2) var(--space-3);
   max-height: calc(14em * var(--font-scale));
@@ -49,7 +51,6 @@
   border-radius: var(--radius-lg);
   background-color: var(--color-surface-sunken);
   color: var(--color-danger);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-snug);
   white-space: pre-wrap;
@@ -107,8 +108,9 @@
 }
 
 .entry {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
   white-space: pre-wrap;

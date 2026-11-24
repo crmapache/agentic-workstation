@@ -1,5 +1,6 @@
 import type { CalendarState } from '@shared/calendar'
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import type { CalendarSettings } from '@shared/calendar-settings'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 
 import { invoke } from '../lib/ipc'
 import { useIpcEvent } from '../lib/ipc.hooks'
@@ -26,6 +27,38 @@ export const useCalendarEvents = (from: number, to: number) => {
     staleTime: Infinity,
     placeholderData: keepPreviousData,
   })
+}
+
+/**
+ * Накладки впереди с обеими встречами и отметкой «видел» (ADR 0116). Ключ держит ревизию и
+ * отметки: события или отметки поменялись - список новый. Минута - чтобы прошедшие уходили.
+ */
+export const useCalendarOverlaps = () => {
+  const state = useCalendar().data
+
+  return useQuery({
+    queryKey: QUERY_KEYS.calendarOverlaps(
+      state?.revision ?? 0,
+      (state?.seenOverlaps ?? []).join('\n'),
+    ),
+    queryFn: () => invoke('calendar:overlaps'),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Настройки календаря (Settings → Calendar): ответ - состояние целиком, сразу в кэш. */
+export const useSetCalendarSettings = (): ((
+  settings: Partial<CalendarSettings>,
+) => Promise<CalendarState>) => {
+  const queryClient = useQueryClient()
+  const save = useMutation({
+    mutationFn: (settings: Partial<CalendarSettings>) =>
+      invoke('calendar:setSettings', { settings }),
+    onSuccess: (state) => queryClient.setQueryData(QUERY_KEYS.calendar, state),
+  })
+
+  return save.mutateAsync
 }
 
 /** Календари аккаунта Google коннектора - для формы источника. */

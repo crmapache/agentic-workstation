@@ -5,6 +5,7 @@
 .editorChip {
   @include button-reset;
   @include interactive-surface;
+  @include code-font;
 
   // Имя не ужимается вместе с Send и Queue: ряд отдаёт его целиком (composer-fit.utils.ts).
   position: relative;
@@ -18,7 +19,6 @@
   padding: 0 var(--space-1-5);
   border-radius: var(--radius-sm);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   cursor: pointer;
 }

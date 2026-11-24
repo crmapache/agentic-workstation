@@ -17,9 +17,9 @@
 
 .value {
   @include truncate;
+  @include code-font;
 
   min-width: 0;
-  font-family: var(--font-code);
 }
 
 // Ссылку режет начало: строка идёт справа налево и прячет лишнее слева, многоточием там же, а

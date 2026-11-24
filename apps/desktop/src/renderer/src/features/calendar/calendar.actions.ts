@@ -1,7 +1,6 @@
 import type {
   CalendarState,
   CalendarOutcome,
-  CalendarSettings,
   CalendarSourceDraft,
   CalendarSourcePatch,
 } from '@shared/calendar'
@@ -27,8 +26,8 @@ export const useCalendarActions = () => {
     patch: async (id: string, patch: CalendarSourcePatch) =>
       took(await invoke('calendar:patchSource', { id, patch })),
     remove: async (id: string) => took(await invoke('calendar:removeSource', { id })),
-    setSettings: async (settings: Partial<CalendarSettings>) =>
-      took(await invoke('calendar:setSettings', { settings })),
+    markOverlap: async (key: string, seen: boolean) =>
+      took(await invoke('calendar:markOverlap', { key, seen })),
     save: async (source: CalendarSourceDraft): Promise<CalendarOutcome> => {
       const outcome = await invoke('calendar:saveSource', { source })
 

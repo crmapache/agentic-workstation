@@ -1,7 +1,10 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Итог хода - тусклая подпись моно под ответом: сколько шло, без значков и цены.
 .turnSummary {
+  @include code-font;
+
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

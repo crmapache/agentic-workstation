@@ -142,26 +142,28 @@
 }
 
 .tokens {
+  @include code-font;
+
   flex: none;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .toolSummary {
   @include truncate;
+  @include code-font;
 
   flex: 1;
   min-width: 0;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
 }
 
 .counts {
+  @include code-font;
+
   display: flex;
   flex: none;
   gap: var(--space-1);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -203,13 +205,14 @@
 
 .output,
 .errorOutput {
+  @include code-font;
+
   max-height: var(--size-code-compact-max);
   margin: 0;
   padding: var(--space-2);
   overflow: auto;
   border-radius: var(--radius-md);
   background-color: var(--color-surface-sunken);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

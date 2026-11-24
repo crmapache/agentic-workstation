@@ -95,9 +95,10 @@
 }
 
 .forkMark {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--tab-mark, var(--color-fg-subtle));
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
 }

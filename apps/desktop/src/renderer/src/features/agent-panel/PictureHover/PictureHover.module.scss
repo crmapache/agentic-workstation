@@ -66,16 +66,18 @@
 // Путь выбранной картинки целиком: на чипе он разрезан. Переносится где угодно - в
 // пути пробелов нет.
 .name {
+  @include code-font;
+
   padding: 0 var(--space-0-5);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   overflow-wrap: anywhere;
 }
 
 .caption {
+  @include code-font;
+
   padding: 0 var(--space-0-5);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }

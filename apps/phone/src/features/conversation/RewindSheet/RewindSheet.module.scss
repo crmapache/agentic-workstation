@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 .sheet {
   display: flex;
   flex-direction: column;
@@ -27,7 +29,8 @@
 
 .added,
 .removed {
-  font-family: var(--font-code);
+  @include code-font;
+
   font-size: var(--font-size-xs);
 }
 
@@ -49,8 +52,9 @@
 }
 
 .file {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }

@@ -1,3 +1,7 @@
+import type { ToolFeedItem } from '@shared/conversation-feed'
+
+import type { ShellTask } from './StreamSwitcher.types'
+
 /**
  * Команда двумя словами для чипа: `pnpm dev`, `sandbox.sh`. Описание модели - целое
  * предложение, на узкой панели оно вытолкнуло бы остальные чипы.
@@ -9,6 +13,30 @@ export const commandLabel = (command: string): string => {
 
   return second && !second.startsWith('-') ? `${name} ${second}` : name
 }
+
+/** Что за фоновой задачей процесса - по виду её вызова: команда оболочки или адрес сокета. */
+export const shellTaskOf = ({ action, task }: ToolFeedItem): ShellTask => {
+  const kind = task?.kind === 'monitor' ? 'monitor' : 'command'
+
+  if (action.kind === 'command') {
+    return { kind, command: action.command, url: '', description: action.description }
+  }
+
+  if (action.kind === 'monitor') {
+    return { kind, command: action.command, url: action.url, description: action.description }
+  }
+
+  return { kind, command: '', url: '', description: '' }
+}
+
+/**
+ * Подпись на чипе: у команды - она двумя словами, у наблюдателя - описание модели. Его команда
+ * обычно `tail -F … | grep`, и двумя словами это просто «tail».
+ */
+export const shellLabel = (shell: ShellTask): string =>
+  shell.kind === 'monitor'
+    ? shell.description || commandLabel(shell.command) || shell.url
+    : commandLabel(shell.command) || shell.description
 
 /**
  * Сколько осталось до будильника - грубо и вверх: «45s», «14m», «1h 05m». Секунды нужны

@@ -30,11 +30,12 @@
 // касается: «8 of 9 on» читается словами. Стоит на одной строке с заголовком (по базовой
 // линии), а не по центру: мельче и моноширинное, по центру оно висело выше букв заголовка.
 .count {
+  @include code-font;
+
   padding: 0 var(--space-1-5);
   border-radius: var(--radius-xs);
   background-color: var(--color-bg-hover);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-regular);
   letter-spacing: normal;

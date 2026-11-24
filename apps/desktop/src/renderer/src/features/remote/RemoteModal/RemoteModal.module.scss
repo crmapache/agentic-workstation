@@ -21,8 +21,9 @@
 
 // Отпечаток сверяют глазами с экраном телефона: моноширинный, крупнее подписи.
 .fingerprint {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-md);
 }
 
@@ -39,8 +40,9 @@
 }
 
 .relayHost {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
 }
 
 .hint {
@@ -83,8 +85,9 @@
 }
 
 .countdown {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-md);
   font-variant-numeric: tabular-nums;
 }
@@ -138,8 +141,8 @@
 
 .phoneMeta {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }

@@ -90,6 +90,24 @@ describe('черновик для модели', () => {
     )
   })
 
+  it('накладка звонков - разбор в теге с ключом, из транскрипта - снова чип с подписью', () => {
+    const overlap = {
+      kind: 'overlap' as const,
+      value: 'standup@29 & "review"@30',
+      text: 'Overlap: Standup / Review\n\nTwo of my calls overlap.',
+    }
+    const sent: DraftToken[] = [
+      { kind: 'chip', chip: overlap },
+      { kind: 'text', value: 'the client call matters more' },
+    ]
+    const text = tokensText(sent, 0)
+
+    expect(text).toContain('<calendar-overlap key="standup%4029%20%26%20%22review%22%4030">')
+    expect(replayedDraft(text).tokens).toEqual(sent)
+    expect(chipLabel(overlap)).toBe('Overlap: Standup / Review')
+    expect(clipboardTextOf([{ kind: 'chip', chip: overlap }])).toBe(overlap.text)
+  })
+
   it('чип в конец - с пробелами, чтобы не слипся со словом', () => {
     expect(appendChip([{ kind: 'text', value: 'see' }], { kind: 'quote', value: 'ref1' })).toEqual([
       { kind: 'text', value: 'see' },

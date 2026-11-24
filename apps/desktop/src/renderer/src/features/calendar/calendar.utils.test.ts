@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 import type { CalendarEvent } from '@shared/calendar'
 import { meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
 
-import { bandsOn, allDayOn, blocksOn, periodOf, steppedAnchor } from './calendar.utils'
+import { allDayOn, blocksOn, periodOf, steppedAnchor } from './calendar.utils'
 
 /** Местное время: 23 ноября 2026 - понедельник. */
 const at = (day: number, hour: number, minute = 0) =>
@@ -21,8 +21,11 @@ const event = (patch: Partial<CalendarEvent> & { key: string }): CalendarEvent =
   response: 'accepted',
   joinUrl: null,
   location: null,
+  locationUrl: null,
   organizer: null,
+  attendees: [],
   link: null,
+  links: [],
   ...patch,
 })
 
@@ -36,6 +39,16 @@ describe('calendar period', () => {
     expect(periodOf('day', at(26, 15))).toMatchObject({ from: at(26, 0), to: at(27, 0) })
     expect(steppedAnchor('week', at(26, 15), 1)).toBe(at(3 + 30, 0))
     expect(steppedAnchor('day', at(26, 15), -1)).toBe(at(25, 0))
+  })
+
+  it('shows a month as six weeks from the Monday before the 1st and steps by months', () => {
+    const month = periodOf('month', at(26, 15))
+
+    // 1 ноября 2026 - воскресенье: сетка с понедельника 26 октября.
+    expect(month.from).toBe(new Date(2026, 9, 26).getTime())
+    expect(month.days).toHaveLength(42)
+    expect(month.month).toBe(at(1, 0))
+    expect(steppedAnchor('month', at(26, 15), 1)).toBe(new Date(2026, 11, 1).getTime())
   })
 })
 
@@ -76,16 +89,17 @@ describe('calendar day layout', () => {
     ])
   })
 
-  it('shows the shared span of an overlap as a band and all-day events by date', () => {
+  it('puts the shared span inside each clashing block, and all-day events by date', () => {
     const meetings = meetingsOf([
       event({ key: 'a', start: at(24, 10), end: at(24, 11) }),
       event({ key: 'b', start: at(24, 10, 30), end: at(24, 12) }),
       event({ key: 'trip', allDay: { from: '2026-11-24', to: '2026-11-26' } }),
     ])
+    const [a, b] = blocksOn(meetings, overlapsOf(meetings), at(24, 0))
 
-    expect(bandsOn(overlapsOf(meetings), at(24, 0))).toEqual([
-      { startMinute: 630, endMinute: 660, soft: false },
-    ])
+    // Общие 10:30-11:00: вторая половина часа «a» и первая треть полутора часов «b».
+    expect(a?.zones).toEqual([{ top: 0.5, height: 0.5, soft: false }])
+    expect(b?.zones).toEqual([{ top: 0, height: 1 / 3, soft: false }])
     expect(allDayOn(meetings, at(25, 0)).map(({ key }) => key)).toEqual(['trip'])
     expect(allDayOn(meetings, at(26, 0))).toEqual([])
   })

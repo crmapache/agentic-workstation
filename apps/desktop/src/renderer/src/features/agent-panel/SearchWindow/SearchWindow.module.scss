@@ -147,8 +147,9 @@
 }
 
 .askNote {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -195,6 +196,8 @@
 
 // Только счёт: плашки клавиш под каждым списком читались мусором, а клавиши работают и так.
 .foot {
+  @include code-font;
+
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -203,7 +206,6 @@
   padding: 0 var(--space-3);
   border-top: var(--border-width) solid var(--color-border);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -252,9 +254,10 @@
 }
 
 .groupMeta {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }
@@ -337,8 +340,9 @@ button.hitBody {
 }
 
 .hitMeta {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -407,17 +411,19 @@ button.hitBody {
 }
 
 .progressMeta {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .steps {
+  @include code-font;
+
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

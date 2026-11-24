@@ -1,8 +1,9 @@
 import type { CalendarEvent } from '@shared/calendar'
 import type { CalendarMeeting, CalendarOverlap } from '@shared/calendar-overlaps'
-import { DAY_MS } from '@shared/time-units'
+import { DAY_MS, MINUTE_MS } from '@shared/time-units'
 
 import { clockLabel, weekdayDayLabel } from '../../../lib/dates.utils'
+import type { Clash } from './EventCard.types'
 
 /** Местная полночь даты «2026-11-24». */
 const dayOf = (date: string): number => {
@@ -29,15 +30,28 @@ export const whenLabel = (event: CalendarEvent): string => {
     : `${weekdayDayLabel(event.start)}, ${clockLabel(event.start)} - ${weekdayDayLabel(event.end)}, ${clockLabel(event.end)}`
 }
 
-/** С какими встречами эта накладывается. */
+/** Длительность: «30 min», «1 h», «1 h 30 min». */
+export const durationLabel = (ms: number): string => {
+  const minutes = Math.round(ms / MINUTE_MS)
+  const rest = minutes % 60
+
+  if (minutes < 60) return `${minutes} min`
+
+  return rest ? `${Math.floor(minutes / 60)} h ${rest} min` : `${minutes / 60} h`
+}
+
+/** С какими встречами эта накладывается: накладка и другая встреча. */
 export const clashesOf = (
   meeting: CalendarMeeting,
   meetings: readonly CalendarMeeting[],
   overlaps: readonly CalendarOverlap[],
-): CalendarMeeting[] =>
-  overlaps
-    .filter((overlap) => overlap.a === meeting.key || overlap.b === meeting.key)
-    .map((overlap) =>
-      meetings.find((one) => one.key === (overlap.a === meeting.key ? overlap.b : overlap.a)),
+): Clash[] =>
+  overlaps.flatMap((overlap) => {
+    if (overlap.a !== meeting.key && overlap.b !== meeting.key) return []
+
+    const other = meetings.find(
+      (one) => one.key === (overlap.a === meeting.key ? overlap.b : overlap.a),
     )
-    .filter((one) => one !== undefined)
+
+    return other ? [{ overlap, meeting: other }] : []
+  })

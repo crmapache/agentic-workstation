@@ -1,7 +1,10 @@
 import type { RunningTask } from '../Feed/Feed.types'
 
-/** Вид капсулы - как чипы над лентой панели IDE: субагент, флот, фоновая команда, будильник. */
-export type CapsuleKind = 'agent' | 'workflow' | 'command' | 'wakeup'
+/**
+ * Вид капсулы - как чипы над лентой панели IDE: субагент, флот, фоновая команда, наблюдатель
+ * (Monitor: его события будят агента), будильник.
+ */
+export type CapsuleKind = 'agent' | 'workflow' | 'command' | 'monitor' | 'wakeup'
 
 /** Идущая задача разговора капсулой: всё, что видно на ней и в листе по нажатию. */
 export type Capsule = {
@@ -14,7 +17,7 @@ export type Capsule = {
   activity: string
   /** Поручение агента или что делает команда - словами модели. */
   description: string
-  /** Задание агента целиком или команда как есть. */
+  /** Задание агента целиком, команда как есть или адрес сокета наблюдателя. */
   detail: string
   /** Начало по часам IDE (мс); 0 - неизвестно. */
   startedAt: number

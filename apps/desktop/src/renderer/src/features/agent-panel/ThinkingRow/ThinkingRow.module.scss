@@ -17,18 +17,19 @@
 
 .lastThought {
   @include truncate;
+  @include code-font;
 
   flex: 1;
   min-width: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
 .count {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

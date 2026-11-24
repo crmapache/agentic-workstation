@@ -26,12 +26,15 @@ const CapsuleMark = ({ capsule }: { capsule: Capsule }) => {
     )
   }
 
-  return <Spinner size="sm" tone={capsule.kind === 'command' ? 'neutral' : 'accent'} />
+  const isShell = capsule.kind === 'command' || capsule.kind === 'monitor'
+
+  return <Spinner size="sm" tone={isShell ? 'neutral' : 'accent'} />
 }
 
 /**
  * Капсула задачи: знак, имя (тип агента, «bg», «wake»), время по часам IDE и чем занята -
- * узко, с многоточием. Фоновая команда и будильник - не агенты: пунктирная рамка, как в окне.
+ * узко, с многоточием. Фоновая команда, наблюдатель и будильник - не агенты: пунктирная рамка,
+ * как в окне.
  * Нажатие открывает лист задачи, капсула горит, пока он открыт.
  */
 export const CapsuleChip = ({

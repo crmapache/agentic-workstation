@@ -9,9 +9,10 @@ type AddNotice = (code: NoticeCode, detail: string, extra: NoticeExtra) => void
 
 /**
  * Фон процесса CLI - всё, что живёт в нём дольше хода: субагенты и флоты workflow, фоновые
- * команды (события task_*) и будильник, который агент поставил себе. Всё это умирает вместе
- * с процессом. Агента закрывает его карточка; команда и будильник пропали бы молча, поэтому о
- * них - отметка в ленте: иначе разговор ждал бы отчёта или пробуждения, которых не будет.
+ * команды и наблюдатели Monitor (события task_*) и будильник, который агент поставил себе. Всё
+ * это умирает вместе с процессом. Агента закрывает его карточка; команда, наблюдатель и будильник
+ * пропали бы молча, поэтому о них - отметка в ленте: иначе разговор ждал бы отчёта, события или
+ * пробуждения, которых не будет.
  */
 export class ProcessBackground {
   readonly agents: AgentTasks
@@ -28,8 +29,10 @@ export class ProcessBackground {
 
   /** Процесс ушёл: reason - почему (умер сам или заменён нарочно). */
   release(reason: ClosedReason, at: number): void {
-    for (const name of this.agents.release(reason, at)) {
-      this.addNotice('command-lost', name, { subject: reason })
+    for (const { kind, name } of this.agents.release(reason, at)) {
+      this.addNotice(kind === 'monitor' ? 'monitor-lost' : 'command-lost', name, {
+        subject: reason,
+      })
     }
 
     const dueAt = this.wakeup.release(at)

@@ -111,15 +111,17 @@
 }
 
 .outlineNote {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .outlineCount {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -151,6 +153,8 @@
 
 // Номер этапа или карточки - плашкой цифрой: порядок читается раньше имени.
 .number {
+  @include code-font;
+
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -161,7 +165,6 @@
   border-radius: var(--radius-xs);
   background-color: var(--color-bg-hover);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-2xs);
 }
 
@@ -354,10 +357,10 @@
 // Как имя пишется в промпте - тем же цветом, что подсветка в самом промпте.
 .mention {
   @include truncate;
+  @include code-font;
 
   flex: 1;
   min-width: 0;
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
@@ -432,6 +435,8 @@
 
 .promptBack,
 .promptField {
+  @include code-font;
+
   box-sizing: border-box;
   width: 100%;
   min-height: calc(var(--size-control-lg) * 3);
@@ -439,9 +444,7 @@
   margin: 0;
   padding: var(--space-2);
   border: none;
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
-  font-variant-ligatures: none;
   line-height: var(--line-height-normal);
   letter-spacing: normal;
   white-space: pre-wrap;

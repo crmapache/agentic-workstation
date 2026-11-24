@@ -13,10 +13,10 @@
 
 .label {
   @include caps-label;
+  @include code-font;
 
   flex-shrink: 0;
   color: var(--color-accent-strong);
-  font-family: var(--font-code);
 }
 
 .text {

@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import type { ProviderId } from '@shared/providers'
 import type { TrackerCard } from '@shared/tracker'
 import { isInQueue } from '@shared/tracker'
 import { cardChip, cardLink } from '@shared/tracker-link'
@@ -24,44 +23,19 @@ import { useBoard } from '../Board/Board.context'
 import { copyTokens } from '../../../lib/draft-clipboard'
 import { PROVIDER_ICONS, PROVIDER_LABEL_KEYS } from '../../../lib/provider-panels.constants'
 import { useActionNoticeStore } from '../../../state/action-notice.store'
-import { useBarArrangement } from '../../../state/bar-buttons.store'
-import { shownIds } from '../../../state/bar-buttons.utils'
-import { useChatHandoffStore } from '../../../state/chat-handoff.store'
-import {
-  PANEL_PROVIDERS,
-  PROVIDER_VIEW_OF,
-  PROVIDER_VIEW_IDS,
-} from '../../../state/layout.constants'
-import { useLayoutStore } from '../../../state/layout.store'
-import { useProviders } from '../../../state/providers.queries'
-import { useActiveProject } from '../../../state/workspace.queries'
+import { useChatTargets } from '../../../state/chat-targets.hooks'
 import type { CardMenuArgs } from './CardTile.types'
 
 /**
  * Карточка в чат ИИ (ADR 0113). «Implement» - чипом в новый чат выбранного провайдера: панель
  * показывается, карточка начинает свой разговор (пустая вкладка - она и есть), отправляет
- * человек. Провайдеры - те, чьи кнопки стоят на правой полосе, в её порядке: спрятанную кнопку
- * человек убрал как ненужную. «Copy link» - ссылкой в буфер, и живым чипом для поля любого чата
- * IDE.
+ * человек. «Copy link» - ссылкой в буфер, и живым чипом для поля любого чата IDE.
  */
 const useCardChat = (card: TrackerCard) => {
   const { t } = useTranslation()
-  const project = useActiveProject()
-  const { data: providers = [] } = useProviders()
-  const arrangement = useBarArrangement('provider')
-  const showProviderView = useLayoutStore((state) => state.showProviderView)
   const notify = useActionNoticeStore((state) => state.show)
-  const shown = shownIds(PROVIDER_VIEW_IDS, arrangement, 'top')
-  const order = (id: ProviderId) => shown.indexOf(PROVIDER_VIEW_OF[id])
+  const chat = useChatTargets()
 
-  const implement = (provider: ProviderId) => {
-    if (!project) return
-
-    useChatHandoffStore
-      .getState()
-      .hand({ projectId: project.id, provider, chip: cardChip(card), fresh: true })
-    showProviderView(PROVIDER_VIEW_OF[provider])
-  }
   const copyLink = () => {
     const chip = cardChip(card)
 
@@ -70,21 +44,14 @@ const useCardChat = (card: TrackerCard) => {
       () => notify({ tone: 'danger', title: t('tracker.card.linkNotCopied') }),
     )
   }
-  const targets: ActionLeaf[] = PANEL_PROVIDERS.filter((id) => order(id) >= 0)
-    .sort((a, b) => order(a) - order(b))
-    .map((id) => {
-      // Список ещё не пришёл - пункт доступен: отказ, если он будет, скажет сама панель.
-      const missing = providers.find((one) => one.id === id)?.available === false
-
-      return {
-        key: id,
-        icon: PROVIDER_ICONS[id],
-        label: t(PROVIDER_LABEL_KEYS[id]),
-        description: missing ? t('common.notInstalled') : undefined,
-        disabled: missing,
-        onSelect: () => implement(id),
-      }
-    })
+  const targets: ActionLeaf[] = chat.targets.map(({ provider, missing }) => ({
+    key: provider,
+    icon: PROVIDER_ICONS[provider],
+    label: t(PROVIDER_LABEL_KEYS[provider]),
+    description: missing ? t('common.notInstalled') : undefined,
+    disabled: missing,
+    onSelect: () => chat.hand?.(provider, cardChip(card)),
+  }))
 
   return { targets, copyLink }
 }

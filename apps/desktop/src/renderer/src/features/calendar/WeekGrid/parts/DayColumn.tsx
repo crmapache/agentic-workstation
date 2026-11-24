@@ -3,23 +3,25 @@ import { clsx } from 'clsx'
 import { HOURS } from '../WeekGrid.constants'
 import styles from '../WeekGrid.module.scss'
 import type { DayColumnProps } from '../WeekGrid.types'
-import { nowStyle, bandStyle } from '../WeekGrid.utils'
+import { nowStyle, workStyle } from '../WeekGrid.utils'
 import { EventBlock } from './EventBlock'
 
-/** Колонка дня: линии часов, полосы общего времени накладок, встречи и линия «сейчас». */
-export const DayColumn = ({ blocks, bands, nowMinute, colorOf, onOpen }: DayColumnProps) => (
-  <div className={styles.day}>
+/**
+ * Колонка дня: линии часов, рабочее время подложкой светлее (у выходного вся колонка темнее),
+ * встречи и линия «сейчас».
+ */
+export const DayColumn = ({ blocks, work, nowMinute, colorOf, onOpen }: DayColumnProps) => (
+  <div className={clsx(styles.day, !work && styles.dayOff)}>
     {HOURS.map((hour) => (
       <span key={hour} className={styles.line} />
     ))}
-    {bands.map((band) => (
+    {work && (
       <span
-        key={`${band.startMinute}-${band.endMinute}`}
-        className={clsx(styles.band, band.soft && styles.soft)}
-        // eslint-disable-next-line no-restricted-syntax -- место полосы зависит от времени накладки
-        style={bandStyle(band)}
+        className={styles.work}
+        // eslint-disable-next-line no-restricted-syntax -- рабочее время задаёт человек в настройках
+        style={workStyle(work)}
       />
-    ))}
+    )}
     {blocks.map((block) => (
       <EventBlock key={block.meeting.key} block={block} colorOf={colorOf} onOpen={onOpen} />
     ))}

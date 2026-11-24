@@ -1,8 +1,9 @@
 import { it, expect, describe } from 'vitest'
 
 import type { CalendarEvent, CalendarState } from '@shared/calendar'
-import { IDLE_SYNC, DEFAULT_CALENDAR_SETTINGS } from '@shared/calendar'
+import { IDLE_SYNC } from '@shared/calendar'
 import { meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
+import { DEFAULT_CALENDAR_SETTINGS } from '@shared/calendar-settings'
 
 import type { CalendarPort, WorkstationPorts } from '../../../workstation/workstation-link'
 import { CALENDAR_TOOLS } from './calendar-tools'
@@ -22,8 +23,11 @@ const event = (key: string, start: number, end: number): CalendarEvent => ({
   response: 'accepted',
   joinUrl: null,
   location: null,
+  locationUrl: null,
   organizer: null,
+  attendees: [],
   link: null,
+  links: [],
 })
 
 const STATE: CalendarState = {
@@ -43,16 +47,16 @@ const STATE: CalendarState = {
   revision: 1,
   upcomingOverlaps: 1,
   nextOverlaps: [],
+  seenOverlaps: [],
   vault: true,
 }
 
-const portsWith = (shared: boolean, synced: boolean[] = []): WorkstationPorts => {
+const portsWith = (synced: boolean[] = []): WorkstationPorts => {
   const meetings = meetingsOf([
     event('Client call', at(10), at(11)),
     event('Review', at(10, 30), at(12)),
   ])
   const calendar: CalendarPort = {
-    shared: () => shared,
     state: () => STATE,
     meetingsIn: () => ({ meetings, overlaps: overlapsOf(meetings) }),
     sync: (withAi) => {
@@ -79,7 +83,7 @@ describe('calendar tools', () => {
   it('lists calls with calendar names and overlap marks, reading only', async () => {
     const result = (await tool('calendar_events').run(
       { from: '2026-11-24' },
-      portsWith(true),
+      portsWith(),
       call,
     )) as {
       events: { title: string; calendars: string[]; overlaps_another: boolean }[]
@@ -97,7 +101,7 @@ describe('calendar tools', () => {
   })
 
   it('gives overlaps with both meetings and the shared span', async () => {
-    const [overlap] = (await tool('calendar_conflicts').run({}, portsWith(true), call)) as {
+    const [overlap] = (await tool('calendar_conflicts').run({}, portsWith(), call)) as {
       first: { title: string }
       second: { title: string }
       start: string
@@ -108,20 +112,17 @@ describe('calendar tools', () => {
     expect(overlap?.start).toMatch(/T10:30/)
   })
 
-  it('refuses when the user keeps the calendar out of chats, and checks the period', async () => {
-    await expect(tool('calendar_events').run({}, portsWith(false), call)).rejects.toThrow(
-      /out of AI chats/,
-    )
+  it('checks the period', async () => {
     await expect(
-      tool('calendar_events').run({ from: '2026-11-24', to: '2026-11-01' }, portsWith(true), call),
+      tool('calendar_events').run({ from: '2026-11-24', to: '2026-11-01' }, portsWith(), call),
     ).rejects.toThrow(/after "from"/)
   })
 
   it('syncs without AI unless asked', async () => {
     const synced: boolean[] = []
 
-    await tool('calendar_sync').run({}, portsWith(true, synced), call)
-    await tool('calendar_sync').run({ include_ai: true }, portsWith(true, synced), call)
+    await tool('calendar_sync').run({}, portsWith(synced), call)
+    await tool('calendar_sync').run({ include_ai: true }, portsWith(synced), call)
 
     expect(tool('calendar_sync').access).toBe('write')
     expect(synced).toEqual([false, true])

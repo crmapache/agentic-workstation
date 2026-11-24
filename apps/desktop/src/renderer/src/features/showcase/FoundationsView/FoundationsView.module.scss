@@ -40,17 +40,17 @@
 
 .name {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .value {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -123,8 +123,9 @@
 }
 
 .codeSample {
+  @include code-font;
+
   color: var(--color-fg-accent);
-  font-family: var(--font-code);
   font-size: var(--font-size-md);
   user-select: text;
 }

@@ -77,6 +77,7 @@ export const NoticeRow = memo(({ item }: NoticeRowProps) => {
     case 'outranked':
     case 'connectors-missing':
     case 'command-lost':
+    case 'monitor-lost':
     case 'wakeup-lost':
       return <NoticeLabelRow item={item} />
     case 'voice-started':

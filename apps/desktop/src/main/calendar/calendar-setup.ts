@@ -12,6 +12,8 @@ import { broadcast } from '../ipc/broadcast'
 import type { ScenarioProvider } from '../providers/scenario-provider'
 import { ELECTRON_CIPHER } from '../storage/electron-cipher'
 import { Vault } from '../storage/vault'
+import { CalendarClock } from './calendar-clock'
+import { morningFailureCard } from './calendar-morning'
 import { CalendarService } from './calendar-service'
 import type { SourceResult } from './calendar-snapshot'
 import { CalendarStore } from './calendar-store'
@@ -68,10 +70,10 @@ const directReader =
   }
 
 /**
- * Календарь звонков (ADR 0114): `calendar.json`, `calendar-events.json` и ссылки ICS в своём
- * `calendar.vault`, движок синка с таймером и чтением после сна, ИИ-читатель через шлюз с
- * допуском. Новые накладки - карточкой в уведомлениях IDE. Stop в капсуле Computer гасит и
- * чтение календаря по экрану.
+ * Календарь звонков (ADR 0114, 0116): `calendar.json`, `calendar-events.json` и ссылки ICS в
+ * своём `calendar.vault`, движок синка с таймером и чтением после сна, ИИ-читатель через шлюз с
+ * допуском, часы напоминаний и утреннего синка. Новые накладки и напоминания - карточками в
+ * уведомлениях IDE. Stop в капсуле Computer гасит и чтение календаря по экрану.
  */
 export const startCalendar = async (setup: {
   dataDir: string
@@ -86,6 +88,7 @@ export const startCalendar = async (setup: {
     now: () => Date.now(),
     onState: (state) => broadcast('calendar:changed', state),
     post: (item) => setup.inbox.post(item),
+    zone: machineZone,
   })
   const { computer } = setup.connectors
   const reader = new CalendarAiReader({
@@ -104,15 +107,24 @@ export const startCalendar = async (setup: {
     direct: directReader(service, setup.connectors),
     ai: (source, signal) => reader.read(source, signal),
   })
+  const clock = new CalendarClock(service, sync, (item) => setup.inbox.post(item))
   const stopped = computer.stopped
-  const resumed = () => sync.resumed()
+  const resumed = () => {
+    sync.resumed()
+    void clock.tick()
+  }
 
   computer.stopped = (key) => {
     stopped(key)
     reader.stop(key)
   }
+  sync.onMorningFailure = (source, failure) => setup.inbox.post(morningFailureCard(source, failure))
+  // Кнопка Sync в карточке «не синхронизирован сегодня»: человек нажал сам - читаются все, и
+  // по экрану тоже.
+  setup.inbox.calendarSync = () => sync.sync(null, true)
   powerMonitor.on('resume', resumed)
   sync.start()
+  clock.start()
 
   return {
     service,
@@ -126,6 +138,8 @@ export const startCalendar = async (setup: {
     },
     shutdown: () => {
       powerMonitor.off('resume', resumed)
+      setup.inbox.calendarSync = null
+      clock.stop()
       sync.stop()
     },
   }

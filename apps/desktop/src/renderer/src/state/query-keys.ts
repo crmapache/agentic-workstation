@@ -35,6 +35,7 @@ export const QUERY_KEYS = {
   ],
   /** Календари аккаунта Google - для формы источника. */
   calendarGoogle: (connectorId: string) => ['calendar', 'google', connectorId],
+  calendarOverlaps: (revision: number, seen: string) => ['calendar', 'overlaps', revision, seen],
   /** Капсула Computer Use (ADR 0057): что делает ИИ на компьютере; свободен - null. */
   computerCapsule: ['computer', 'capsule'],
   updateStatus: ['updates', 'status'],

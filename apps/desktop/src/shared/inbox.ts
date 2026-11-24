@@ -27,7 +27,8 @@ export const ASKING_KINDS: readonly InboxKind[] = ['question', 'permission', 'pl
  * - showRun - открыть прогон в виде заданий; openChat - разговор прогона вкладкой панели;
  * - runAgain - тот же запуск заново; resume - продолжить прерванный разговор прогона;
  * - trust - довериться папке проекта и запустить;
- * - showCalendar - открыть календарь звонков (накладка, ADR 0114).
+ * - showCalendar - открыть календарь звонков (накладка, ADR 0114);
+ * - syncCalendar - прочитать все календари и открыть календарь (утро без синка, ADR 0116).
  */
 export type InboxActionKind =
   | 'reply'
@@ -44,6 +45,7 @@ export type InboxActionKind =
   | 'resume'
   | 'trust'
   | 'showCalendar'
+  | 'syncCalendar'
 
 /** Кнопка; label пуст - подпись по виду кнопки даёт окно (i18n). */
 export type InboxAction = {

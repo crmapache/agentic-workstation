@@ -21,32 +21,33 @@
 
 .running {
   @include breathing;
+  @include code-font;
 
   flex-shrink: 0;
   color: var(--color-fg-accent);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .command {
   @include truncate;
+  @include code-font;
 
   flex: 1;
   min-width: 0;
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   user-select: text;
 }
 
 .output {
+  @include code-font;
+
   max-height: var(--size-code-max);
   margin: 0;
   padding: var(--space-2) var(--space-3);
   overflow: auto;
   border-top: var(--border-width) solid var(--color-border);
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;

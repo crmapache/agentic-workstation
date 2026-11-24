@@ -5,11 +5,13 @@ import { isRecord, stringField } from '../cli/cli-messages'
 import type { FeedStore } from '../../agents/feed/feed-store'
 import {
   AGENT_CALLS,
+  MONITOR_CALL,
   NOTIFIED_TASK,
   MAX_AGENT_STEPS,
   NOTIFIED_STATUS,
   LAUNCHED_TASK_ID,
   NOTIFIED_SUMMARY,
+  SHELL_TASK_TYPES,
   BACKGROUND_LAUNCH,
   NOTIFIED_TOOL_USE,
   NOTIFICATION_BLOCK,
@@ -45,13 +47,34 @@ const outcomeOf = (status: string): CliTaskOutcome =>
 
 const kindOfCall = (name: string): CliTask['kind'] => (name === 'Workflow' ? 'workflow' : 'agent')
 
+/** Задача за процессом CLI, а не за агентом: фоновая команда или наблюдатель. */
+type ShellKind = Extract<CliTask['kind'], 'command' | 'monitor'>
+
+/** Фоновая задача, погибшая с процессом: лента скажет о ней отметкой своего вида. */
+export type LostTask = { kind: ShellKind; name: string }
+
 /** Фоновая команда - Bash с run_in_background; долгая обычная идёт тем же каналом, но видна своей карточкой. */
 const isBackgroundCommand = (call: ToolFeedItem) =>
   call.name === 'Bash' && call.input['run_in_background'] === true
 
-/** Как назвать команду в ленте: её описание, без него - сама команда. */
-const commandName = (call: ToolFeedItem) =>
-  call.action.kind === 'command' ? call.action.description || call.action.command : ''
+/** Чья задача local_bash или monitor_ws: наблюдателя, фоновой команды или ничья из наших. */
+const shellKindOf = (call: ToolFeedItem): ShellKind | null => {
+  if (call.name === MONITOR_CALL) return 'monitor'
+
+  return isBackgroundCommand(call) ? 'command' : null
+}
+
+/** Задача команды или наблюдателя: шагов агента у неё нет, конец закрывает задачу, а не карточку. */
+const isShellTask = (task: CliTask | undefined) =>
+  task?.kind === 'command' || task?.kind === 'monitor'
+
+/** Как назвать фоновую задачу в ленте: её описание, без него - сама команда или адрес. */
+const shellName = ({ action }: ToolFeedItem) => {
+  if (action.kind === 'command') return action.description || action.command
+  if (action.kind === 'monitor') return action.description || action.command || action.url
+
+  return ''
+}
 
 const tagOf = (pattern: RegExp, text: string) => pattern.exec(text)?.[1]?.trim() ?? ''
 
@@ -78,7 +101,8 @@ export const withStep = (task: CliTask, step: string): Pick<CliTask, 'steps' | '
 }
 
 /**
- * Задачи CLI (события task_*): субагенты, флоты workflow, фоновые команды. Такая задача
+ * Задачи CLI (события task_*): субагенты, флоты workflow, фоновые команды и наблюдатели
+ * Monitor (агент кончил ход и ждёт их событий - работа идёт, хоть хода и нет). Такая задача
  * приходит двумя путями (вызов в ответе модели и системные события), переживает ход,
  * который её поднял, и находится по двум именам (tool_use_id и task_id). Агента,
  * поднятого скиллом, вызова Task в потоке нет вовсе - для него заводится свой вызов.
@@ -89,7 +113,7 @@ export class AgentTasks {
   private readonly cards = new Map<string, string>()
   /** Агенты и флоты в фоне: ход их не ждёт, конец придёт уведомлением. */
   private readonly background = new Set<string>()
-  /** Идущие фоновые команды: task_id → id вызова Bash. */
+  /** Идущие фоновые команды и наблюдатели: task_id → id вызова Bash или Monitor. */
   private readonly commands = new Map<string, string>()
 
   constructor(private readonly store: FeedStore) {}
@@ -102,7 +126,7 @@ export class AgentTasks {
     return [...this.background].some((id) => this.tool(id)?.status === 'running')
   }
 
-  /** Идут фоновые команды: они дети процесса CLI и умрут вместе с ним. */
+  /** Идут фоновые команды или наблюдатели: они живут в процессе CLI и умрут вместе с ним. */
   get hasCommands(): boolean {
     return this.commands.size > 0
   }
@@ -147,12 +171,12 @@ export class AgentTasks {
 
   /**
    * Процесс ушёл (умер или заменён нарочно): фоновые агенты закрыты с причиной, фоновые
-   * команды остановлены - они дети процесса CLI, и IDE гасит его вместе со всей группой
-   * (CLI и сам добивает их на выходе: в уведомлении - killed). Возвращает имена оборванных
-   * команд: лента скажет о каждой, иначе их чип пропал бы молча, а агент ждал бы отчёта.
+   * команды и наблюдатели остановлены - они дети процесса CLI, и IDE гасит его вместе со всей
+   * группой (CLI и сам добивает их на выходе: в уведомлении - killed). Возвращает оборванные:
+   * лента скажет о каждой, иначе их чип пропал бы молча, а агент ждал бы отчёта или события.
    */
-  release(reason: ClosedReason, at: number): string[] {
-    const lost: string[] = []
+  release(reason: ClosedReason, at: number): LostTask[] {
+    const lost: LostTask[] = []
 
     for (const id of this.background) {
       const call = this.tool(id)
@@ -174,7 +198,10 @@ export class AgentTasks {
       if (!call?.task) continue
 
       this.setTask(call, { ...call.task, outcome: 'stopped', endedAt: at })
-      lost.push(commandName(call))
+      lost.push({
+        kind: call.task.kind === 'monitor' ? 'monitor' : 'command',
+        name: shellName(call),
+      })
     }
 
     this.forget()
@@ -226,12 +253,14 @@ export class AgentTasks {
     const call = this.tool(toolUseId)
     const taskType = stringField(message, 'task_type')
 
-    if (taskType === 'local_bash') {
-      if (!call || !isBackgroundCommand(call)) return
+    if (SHELL_TASK_TYPES.has(taskType)) {
+      const kind = call ? shellKindOf(call) : null
+
+      if (!call || !kind) return
 
       this.commands.set(taskId, call.id)
 
-      return this.setTask(call, newTask(taskId, 'command', true, at))
+      return this.setTask(call, newTask(taskId, kind, true, at))
     }
 
     if (call && AGENT_CALLS.has(call.name)) {
@@ -295,7 +324,7 @@ export class AgentTasks {
     const call = this.cardOf(taskId, message)
     const task = call?.task
 
-    if (!call || !task || task.kind === 'command') return
+    if (!call || !task || isShellTask(task)) return
 
     const activity = stringField(message, 'description') || task.activity
     const fleet = fleetOf(message['workflow_progress'])
@@ -321,7 +350,7 @@ export class AgentTasks {
     if (commandId) this.commands.delete(taskId)
     if (!call) return
 
-    if (call.task?.kind === 'command' || isBackgroundCommand(call)) {
+    if (isShellTask(call.task) || isBackgroundCommand(call)) {
       const task = call.task ?? newTask(taskId, 'command', true, 0)
 
       return this.setTask(call, { ...task, outcome, summary, endedAt: at })

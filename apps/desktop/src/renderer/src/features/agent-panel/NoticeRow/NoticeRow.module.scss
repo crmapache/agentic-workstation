@@ -26,16 +26,17 @@
 
 .checkpointChip {
   @include caps-label;
+  @include code-font;
 
   flex-shrink: 0;
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
 }
 
 .checkpointText {
+  @include code-font;
+
   min-width: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -85,10 +86,10 @@
 
 .label {
   @include caps-label;
+  @include code-font;
 
   flex-shrink: 0;
   color: var(--tone);
-  font-family: var(--font-code);
 }
 
 .pending {
@@ -96,9 +97,10 @@
 }
 
 .text {
+  @include code-font;
+
   min-width: 0;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   overflow-wrap: anywhere;
 }
 
@@ -124,9 +126,10 @@
 }
 
 .aside {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -243,10 +246,10 @@
 
 .sessionCode {
   @include truncate;
+  @include code-font;
 
   min-width: 0;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

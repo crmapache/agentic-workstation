@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import type { CalendarSettings } from '@shared/calendar-settings'
 import type { AiChoice } from '@shared/ide-prefs'
 import type { ProviderInfo } from '@shared/providers'
 import type { SoundEvent } from '@shared/sounds'
@@ -68,4 +69,18 @@ export type VoicePreviewButtonProps = {
   /** Проба этого языка: готовится, звучит или её нет. */
   phase: VoicePreview['phase'] | null
   onToggle: () => void
+}
+
+export type WorkTimeRowsProps = {
+  settings: CalendarSettings
+  onChange: (patch: Partial<CalendarSettings>) => void
+}
+
+export type ReminderRowProps = {
+  /** Место в списке: подпись поля для скринридера. */
+  index: number
+  /** За сколько минут до звонка. */
+  minutes: number
+  onChange: (minutes: number) => void
+  onRemove: () => void
 }

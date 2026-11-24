@@ -20,7 +20,16 @@ const RULES = [
   '- Times exactly as the calendar shows them, as wall time YYYY-MM-DDTHH:MM; time_zone is the zone the calendar shows times in.',
   '- All-day events: dates (YYYY-MM-DD), all_day true, end is the day after the last day.',
   '- A Teams, Zoom or Meet link on the event goes to join_url; otherwise null. Unknown fields: null or "unknown".',
+  '- Links: give every link you can find, https only, exactly as shown. event_url - the address of the event itself; organizer_url and each guest url - a link to that person (profile, chat; for Microsoft Teams users https://teams.microsoft.com/l/chat/0/0?users=EMAIL); location_url - a link to the place; links - everything else (agenda, documents, recordings), each with a short label. Never invent a link you did not see, except the Teams chat link built from an email.',
+  '- Guests (attendees): everyone the event lists except me and the organizer, with email when shown.',
 ]
+
+/** Как прочитать подробности встречи: только открыть и прочитать, ничего в ней не нажимать. */
+const DETAILS_WITH_CLICKS =
+  '4. The week view rarely shows join links, guests and other links. Open the details of every event in the days you read, one by one, even when one shows nothing new: click the event block itself, read the details with "snapshot", then go on to the next event (open the week address again if the details hide the week). Inside the details never click anything: no Accept, Decline, Tentative, Join, Reply, Forward, Edit, Delete or Cancel.'
+
+const DETAILS_WITHOUT_CLICKS =
+  '4. You cannot open events: read links, organizer and guests only where the week view shows them; otherwise null or an empty list.'
 
 /**
  * Промпт чтения календаря ИИ (ADR 0114): что прочитать, как ходить и что нельзя. Подсказки
@@ -42,16 +51,17 @@ export const calendarBrief = (
           '1. Open the page with "open" (a new tab of your own). Prefer the week or work week view.',
           '2. Read with "snapshot"; take a "screenshot" only when the snapshot is unclear.',
           source.allowClicks
-            ? "3. Move between weeks with an address that has the date in it (Outlook: .../calendar/view/week/YYYY/MM/DD, Google: .../r/week/YYYY/MM/DD) or with the calendar's own previous / next / today and view buttons. Click nothing else."
+            ? "3. Move between weeks with an address that has the date in it (Outlook: .../calendar/view/week/YYYY/MM/DD, Google: .../r/week/YYYY/MM/DD) or with the calendar's own previous / next / today and view buttons. Apart from opening events (step 4), click nothing else."
             : '3. Move between weeks only with an address that has the date in it (Outlook: .../calendar/view/week/YYYY/MM/DD, Google: .../r/week/YYYY/MM/DD). You cannot click.',
-          '4. When you are done, call "finish".',
+          source.allowClicks ? DETAILS_WITH_CLICKS : DETAILS_WITHOUT_CLICKS,
+          '5. When you are done, call "finish".',
         ]
       : [
           `Read the calendar in the app "${source.app}" on this computer through the computer tools.`,
           'How to work:',
           '1. Take a screenshot. If the app is not in front, open it with "open_app".',
           '2. Switch it to the week view and move between weeks with its own previous / next buttons or keys. Zoom in when text is small.',
-          '3. Do not open events, do not type, and leave everything else on the screen alone.',
+          '3. Do not open events, do not type, and leave everything else on the screen alone. Links: only those written on the screen; otherwise null or an empty list.',
         ]
 
   return [

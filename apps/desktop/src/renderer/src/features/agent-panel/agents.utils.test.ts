@@ -44,10 +44,12 @@ const task = (over: Partial<CliTask> = {}): CliTask => ({
 })
 
 /** Вид действия по имени - как его поставил бы драйвер Claude. */
-const actionOf = (name: string): ToolAction =>
-  name === 'Bash'
-    ? { kind: 'command', command: '', description: '' }
-    : { kind: 'agent', agent: '', description: '', prompt: '', workflow: name === 'Workflow' }
+const actionOf = (name: string): ToolAction => {
+  if (name === 'Bash') return { kind: 'command', command: '', description: '' }
+  if (name === 'Monitor') return { kind: 'monitor', command: '', url: '', description: '' }
+
+  return { kind: 'agent', agent: '', description: '', prompt: '', workflow: name === 'Workflow' }
+}
 
 const tool = (id: string, name: string, over: Partial<ToolFeedItem> = {}): ToolFeedItem => ({
   kind: 'tool',
@@ -98,7 +100,7 @@ describe('pendingAgents', () => {
 })
 
 describe('чипы потоков', () => {
-  it('живые агенты и открытый, даже кончившийся; команды - пока идут', () => {
+  it('живые агенты и открытый, даже кончившийся; команды и наблюдатели - пока идут', () => {
     const items: FeedItem[] = [
       tool('a', 'Task'),
       tool('b', 'Task', { status: 'done' }),
@@ -108,10 +110,15 @@ describe('чипы потоков', () => {
         status: 'done',
         task: task({ kind: 'command', outcome: 'completed' }),
       }),
+      tool('watch', 'Monitor', { status: 'done', task: task({ kind: 'monitor' }) }),
+      tool('watched', 'Monitor', {
+        status: 'done',
+        task: task({ kind: 'monitor', outcome: 'completed' }),
+      }),
     ]
 
     expect(streamAgents(items, 'b').map((item) => item.id)).toEqual(['a', 'b'])
-    expect(runningCommands(items).map((item) => item.id)).toEqual(['cmd'])
+    expect(runningCommands(items).map((item) => item.id)).toEqual(['cmd', 'watch'])
   })
 
   it('будильник - пока не сработал и не пропал', () => {
@@ -177,11 +184,14 @@ describe('isAnythingRunning', () => {
   } as Conversation
   const command = tool('cmd', 'Bash', { status: 'done', task: task({ kind: 'command' }) })
 
-  it('ход, фоновые агенты или живая фоновая команда - идёт; всё кончилось - стоит', () => {
+  it('ход, фоновые агенты, живая фоновая команда или наблюдатель - идёт; всё кончилось - стоит', () => {
     expect(isAnythingRunning({ ...idle, status: 'running' }, [])).toBe(true)
     expect(isAnythingRunning({ ...idle, backgroundWork: true }, [])).toBe(true)
     expect(isAnythingRunning(idle, [command])).toBe(true)
     expect(isAnythingRunning(idle, [])).toBe(false)
+    expect(
+      isAnythingRunning(idle, [{ ...command, name: 'Monitor', task: task({ kind: 'monitor' }) }]),
+    ).toBe(true)
     expect(
       isAnythingRunning(idle, [
         { ...command, task: task({ kind: 'command', outcome: 'stopped' }) },

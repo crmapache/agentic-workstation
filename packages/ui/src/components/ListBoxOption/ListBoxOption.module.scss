@@ -50,7 +50,8 @@
 }
 
 .code {
-  font-family: var(--font-code);
+  @include code-font;
+
   font-size: var(--font-size-sm);
 }
 

@@ -78,7 +78,8 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
 
   const card = under.closest<HTMLElement>('[data-card]')
   const column = under.closest<HTMLElement>('[data-group-column]')
-  // Задачи стоят столбиком в теле колонки, а не в ней самой: зазор между ними - зазор тела.
+  // Карточки стоят столбиками в теле колонки (GroupLanes): зазор между задачами - зазор их
+  // столбика, между карточками цепочки - зазор между столбиками тела.
   const body = column?.querySelector('[data-group-body]') ?? null
 
   if (card?.dataset.card && card.dataset.group !== undefined)
@@ -88,8 +89,8 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       groupId: card.dataset.group,
       followUp: card.dataset.followUp === 'true',
       rect: rectOf(card),
-      gap: gapOf(body, 'row'),
-      chainGap: gapOf(card.parentElement, 'column'),
+      gap: gapOf(card.parentElement, 'row'),
+      chainGap: gapOf(body, 'column'),
     }
 
   if (column?.dataset.groupColumn) {
@@ -99,7 +100,7 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       kind: 'group',
       id: column.dataset.groupColumn,
       end: end ? rectOf(end) : null,
-      gap: gapOf(body, 'row'),
+      gap: gapOf(end?.parentElement ?? null, 'row'),
     }
   }
 

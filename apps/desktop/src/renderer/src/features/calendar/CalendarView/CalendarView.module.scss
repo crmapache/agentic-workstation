@@ -1,10 +1,22 @@
 @use '@agentic-workstation/ui/mixins' as *;
 
-// Вид середины окна: шапка с листанием прибита сверху, ниже - источники и сетка рядом.
+// Вид середины окна: слева во всю высоту боковая панель (ширину тянут ручкой), справа -
+// шапка с синком и листанием и сетка под ней.
 .view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+}
+
+.withSidebar {
+  grid-template-columns: var(--sidebar-width, var(--size-calendar-sources)) minmax(0, 1fr);
+}
+
+.main {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
 .empty {
@@ -14,15 +26,12 @@
   overflow-y: auto;
 }
 
+// Сетка недели, дня или месяца - всё место под шапкой.
 .body {
-  display: grid;
+  display: flex;
   flex: 1;
-  grid-template-columns: var(--size-calendar-sources) minmax(0, 1fr);
+  flex-direction: column;
   min-height: 0;
-}
-
-.wide {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 // Листание периода, неделя или день и накладки - одной строкой под заголовком.

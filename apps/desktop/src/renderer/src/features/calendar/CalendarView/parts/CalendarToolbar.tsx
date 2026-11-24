@@ -15,12 +15,12 @@ import type { CalendarToolbarProps } from '../CalendarView.types'
 import { periodLabel } from '../CalendarView.utils'
 import { useCalendarStore } from '../../calendar.store'
 import type { CalendarMode } from '../../calendar.types'
-import { startOfDay, steppedAnchor, nextOverlapAfter } from '../../calendar.utils'
+import { startOfDay, startOfMonth, steppedAnchor, nextOverlapAfter } from '../../calendar.utils'
 import { fullDayLabel, weekdayNames, monthYearLabel } from '../../../../lib/dates.utils'
 
 /**
- * Листание периода (стрелки, дата календарём, «Today»), неделя или день и накладки периода с
- * переходом к следующей впереди.
+ * Листание периода (стрелки, дата календарём, «Today»), день, неделя или месяц и
+ * непросмотренные накладки периода с переходом к следующей впереди.
  */
 export const CalendarToolbar = ({ period, now, overlaps, upcoming }: CalendarToolbarProps) => {
   const { t } = useTranslation()
@@ -32,9 +32,14 @@ export const CalendarToolbar = ({ period, now, overlaps, upcoming }: CalendarToo
   const toggleSources = useCalendarStore((store) => store.toggleSources)
   const popover = usePopover()
   const today = startOfDay(now)
-  const showsToday = period.from <= now && now < period.to
+  // У месяца сетка шире самого месяца: «сегодня» видно, только если это его месяц.
+  const showsToday =
+    mode === 'month' ? startOfMonth(now) === period.month : period.from <= now && now < period.to
   const next = nextOverlapAfter(upcoming, period.to)
-  const modes = (['week', 'day'] as const).map((id) => ({ id, label: t(`calendar.modes.${id}`) }))
+  const modes = (['day', 'week', 'month'] as const).map((id) => ({
+    id,
+    label: t(`calendar.modes.${id}`),
+  }))
 
   const handleStep = (step: -1 | 1) => setAnchor(steppedAnchor(mode, anchor ?? now, step))
   const handlePick = (day: number) => {

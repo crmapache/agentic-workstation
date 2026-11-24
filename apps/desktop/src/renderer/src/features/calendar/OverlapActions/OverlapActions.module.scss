@@ -1,0 +1,8 @@
+// Кнопки накладки в ряд: в карточке - справа, в строке списка - у её края.
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}

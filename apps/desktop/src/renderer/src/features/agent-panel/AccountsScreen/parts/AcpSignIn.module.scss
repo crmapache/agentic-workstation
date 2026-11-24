@@ -34,8 +34,9 @@
 
 // Код устройства Kimi: его переписывают на странице входа глазами.
 .code {
+  @include code-font;
+
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-xl);
   letter-spacing: 0.1em;
 }

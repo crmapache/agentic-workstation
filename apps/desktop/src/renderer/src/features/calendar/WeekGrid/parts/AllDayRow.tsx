@@ -6,7 +6,7 @@ import type { AllDayRowProps } from '../WeekGrid.types'
 import { allDayOn } from '../../calendar.utils'
 
 /** Полоса «весь день» над часами: отпуск, праздник, поездка - плашками по дням. */
-export const AllDayRow = ({ days, meetings, colorOf, onOpen }: AllDayRowProps) => {
+export const AllDayRow = ({ days, meetings, colorOf, isDayOff, onOpen }: AllDayRowProps) => {
   const { t } = useTranslation()
   const perDay = days.map((day) => allDayOn(meetings, day))
 
@@ -16,7 +16,7 @@ export const AllDayRow = ({ days, meetings, colorOf, onOpen }: AllDayRowProps) =
     <div className={styles.allDay}>
       <span className={styles.gutterLabel}>{t('calendar.grid.allDay')}</span>
       {days.map((day, index) => (
-        <div key={day} className={styles.allDayCell}>
+        <div key={day} className={clsx(styles.allDayCell, isDayOff(day) && styles.dayOff)}>
           {(perDay[index] ?? []).map((meeting) => (
             <button
               key={meeting.key}

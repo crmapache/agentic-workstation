@@ -50,6 +50,8 @@
 // кнопок подвала: иконки файлов и «Show all» - одна колонка. Скругление концентрично углу
 // списка: радиус рамки минус поле до неё.
 .row {
+  @include code-font;
+
   display: flex;
   flex: 1;
   align-items: center;
@@ -58,7 +60,6 @@
   padding: 0 var(--space-2);
   border-radius: calc(var(--radius-lg) - var(--changes-inset));
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
   text-align: left;

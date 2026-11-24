@@ -7,6 +7,7 @@ import { Tabs } from '@agentic-workstation/ui/Tabs'
 import { useSettingsStore } from '../settings.store'
 import { SETTINGS_SECTIONS } from './SettingsDialog.constants'
 import { AppearancePane } from './parts/AppearancePane'
+import { CalendarPane } from './parts/CalendarPane'
 import { ChatPane } from './parts/ChatPane'
 import { GitPane } from './parts/GitPane'
 import { ServiceAiPane } from './parts/ServiceAiPane'
@@ -57,6 +58,7 @@ export const SettingsDialog = () => {
       {section === 'ai' && <ServiceAiPane />}
       {section === 'voice' && <VoicePane />}
       {section === 'git' && <GitPane />}
+      {section === 'calendar' && <CalendarPane />}
     </Modal>
   )
 }

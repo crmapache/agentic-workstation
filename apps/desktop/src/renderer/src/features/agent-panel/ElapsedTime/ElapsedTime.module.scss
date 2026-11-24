@@ -1,8 +1,11 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Время справа в шапке - моно с ровными цифрами: соседние строки не пляшут, пока тикают.
 .elapsedTime {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

@@ -10,6 +10,7 @@ import { isTimeZone, wallTimeToUtc } from '@shared/zone-time'
 import type { SourceResult } from '../calendar-snapshot'
 import type { SyncWindow } from '../calendar-window'
 import { eventKey, allDayRange } from '../calendar-window'
+import { linksOf, peopleOf, personOf } from '../sources/event-links'
 import { httpsUrl } from '../sources/join-url'
 
 /** Событий от ИИ за раз: больше за восемь недель не бывает, а лишнее - мусор страницы. */
@@ -49,7 +50,22 @@ const eventSchema = z.object({
     .catch('unknown'),
   join_url: z.string().nullable().catch(null),
   location: z.string().nullable().catch(null),
+  // Люди и ссылки - добавка к встрече: кривые не делают её негодной.
+  location_url: z.string().nullable().catch(null),
   organizer: z.string().nullable().catch(null),
+  organizer_email: z.string().nullable().catch(null),
+  organizer_url: z.string().nullable().catch(null),
+  attendees: z
+    .array(
+      z.object({
+        name: z.string().catch(''),
+        email: z.string().nullable().catch(null),
+        url: z.string().nullable().catch(null),
+      }),
+    )
+    .catch([]),
+  event_url: z.string().nullable().catch(null),
+  links: z.array(z.object({ label: z.string().catch(''), url: z.string() })).catch([]),
 })
 
 type AiEvent = z.infer<typeof eventSchema>
@@ -107,6 +123,10 @@ const eventOf = (raw: unknown, sourceId: string, zone: string): CalendarEvent | 
     return null
 
   const uid = uidOf(title, start)
+  const joinUrl = httpsUrl(event.join_url)
+  const link = httpsUrl(event.event_url)
+  const locationUrl = httpsUrl(event.location_url)
+  const organizer = personOf(event.organizer, event.organizer_email, event.organizer_url)
 
   return {
     key: eventKey(sourceId, uid, ''),
@@ -119,10 +139,17 @@ const eventOf = (raw: unknown, sourceId: string, zone: string): CalendarEvent | 
     status: STATUS[event.status],
     busy: BUSY[event.show_as],
     response: RESPONSE[event.my_response],
-    joinUrl: httpsUrl(event.join_url),
+    joinUrl,
     location: clean(event.location),
-    organizer: clean(event.organizer),
-    link: null,
+    locationUrl,
+    organizer,
+    attendees: peopleOf(
+      event.attendees
+        .map((one) => personOf(one.name, one.email, one.url))
+        .filter((one) => !organizer?.email || one?.email !== organizer.email),
+    ),
+    link,
+    links: linksOf(event.links, [], [joinUrl, link, locationUrl]),
   }
 }
 

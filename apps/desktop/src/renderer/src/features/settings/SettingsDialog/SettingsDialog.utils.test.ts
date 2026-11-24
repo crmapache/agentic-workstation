@@ -2,7 +2,13 @@ import { it, expect, describe } from 'vitest'
 
 import type { ProviderInfo } from '@shared/providers'
 
-import { editChoice, nextFallback, clampPasteCollapse } from './SettingsDialog.utils'
+import {
+  editChoice,
+  nextFallback,
+  reminderParts,
+  reminderAmount,
+  clampPasteCollapse,
+} from './SettingsDialog.utils'
 
 const provider = (id: ProviderInfo['id'], patch: Partial<ProviderInfo> = {}): ProviderInfo => ({
   id,
@@ -73,5 +79,23 @@ describe('цепочка сообщения коммита', () => {
       effort: '',
     })
     expect(editChoice(choice, { effort: 'low' }, provider('claude')).effort).toBe('low')
+  })
+})
+
+describe('напоминания о звонке', () => {
+  it('показывает минуты самой крупной единицей, которой они делятся нацело', () => {
+    expect(reminderParts(10)).toEqual({ amount: 10, unit: 'minutes' })
+    expect(reminderParts(90)).toEqual({ amount: 90, unit: 'minutes' })
+    expect(reminderParts(120)).toEqual({ amount: 2, unit: 'hours' })
+    expect(reminderParts(2880)).toEqual({ amount: 2, unit: 'days' })
+    expect(reminderParts(0)).toEqual({ amount: 0, unit: 'minutes' })
+  })
+
+  it('берёт из поля только целое от нуля', () => {
+    expect(reminderAmount(' 15 ')).toBe(15)
+    expect(reminderAmount('0')).toBe(0)
+    expect(reminderAmount('')).toBeNull()
+    expect(reminderAmount('1.5')).toBeNull()
+    expect(reminderAmount('-3')).toBeNull()
   })
 })

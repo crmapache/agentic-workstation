@@ -37,11 +37,16 @@ export const streamAgents = (items: readonly FeedItem[], selected: string | null
       isAgentCall(item) && (isLiveAgent(item) || item.id === selected),
   )
 
-/** Фоновые команды Bash, которые ещё идут: чип с крестиком, пока процесс жив. */
+/**
+ * Фоновые команды Bash и наблюдатели Monitor, которые ещё идут: чип с крестиком, пока процесс
+ * жив. Наблюдатель - та же команда в фоне, только каждая её строка будит агента.
+ */
 export const runningCommands = (items: readonly FeedItem[]): ToolFeedItem[] =>
   items.filter(
     (item): item is ToolFeedItem =>
-      item.kind === 'tool' && item.task?.kind === 'command' && item.task.outcome === null,
+      item.kind === 'tool' &&
+      (item.task?.kind === 'command' || item.task?.kind === 'monitor') &&
+      item.task.outcome === null,
   )
 
 /** Будильники агента, которые ещё не сработали: чип со временем, пока их держит процесс. */
@@ -53,7 +58,8 @@ export const pendingWakeups = (items: readonly FeedItem[]): ToolFeedItem[] =>
 
 /**
  * Идёт ли в разговоре хоть что-то: модель работает сама (ход, фоновые агенты) или жива
- * фоновая команда, о конце которой CLI её разбудит. Нет - всё стоит до слова человека.
+ * фоновая команда, о конце которой CLI её разбудит, или наблюдатель, чьи события её будят
+ * (агент кончил ход и ждёт их). Нет - всё стоит до слова человека.
  */
 export const isAnythingRunning = (conversation: Conversation, items: readonly FeedItem[]) =>
   worksOnItsOwn(conversation) || runningCommands(items).length > 0

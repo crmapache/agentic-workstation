@@ -172,10 +172,10 @@
 
 .hoursNext {
   @include truncate;
+  @include code-font;
 
   max-width: 100%;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

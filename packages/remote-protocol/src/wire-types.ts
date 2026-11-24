@@ -250,6 +250,8 @@ export type ToolActionWire =
   | { kind: 'edit'; path: string }
   | { kind: 'write'; path: string; lines: number }
   | { kind: 'command'; command: string; description: string }
+  /** Наблюдатель: команда оболочки или адрес сокета (одно из двух). Телефон постарше - по имени. */
+  | { kind: 'monitor'; command: string; url: string; description: string }
   | { kind: 'web'; target: string }
   | { kind: 'mcp'; server: string; tool: string; target: string; path: string }
   | { kind: 'skill'; skill: string; args: string }

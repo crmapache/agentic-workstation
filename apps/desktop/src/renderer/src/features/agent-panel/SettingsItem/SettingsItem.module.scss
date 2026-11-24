@@ -45,8 +45,9 @@
   font-size: var(--font-size-xs);
 
   &[data-code] {
+    @include code-font;
+
     color: var(--color-fg-muted);
-    font-family: var(--font-code);
   }
 }
 

@@ -83,6 +83,25 @@ describe('claudeToolAction', () => {
     })
   })
 
+  it('наблюдатель - команда или адрес сокета, одно из двух', () => {
+    expect(
+      claudeToolAction('Monitor', { command: 'tail -F app.log', description: 'Watch the log' }),
+    ).toEqual({
+      kind: 'monitor',
+      command: 'tail -F app.log',
+      url: '',
+      description: 'Watch the log',
+    })
+    expect(
+      claudeToolAction('Monitor', { ws: { url: 'wss://a.b/feed' }, description: 'Watch the feed' }),
+    ).toEqual({
+      kind: 'monitor',
+      command: '',
+      url: 'wss://a.b/feed',
+      description: 'Watch the feed',
+    })
+  })
+
   it('субагент и workflow, план, вопрос', () => {
     expect(
       claudeToolAction('Task', { subagent_type: 'Explore', description: 'Find', prompt: 'Look' }),

@@ -8,11 +8,18 @@ const field = (input: unknown, key: string): string | null => {
   return typeof value === 'string' ? value : null
 }
 
-/** Команда вызова по виду действия (любой провайдер); null - вызов не команда или IDE постарше. */
+/**
+ * Команда вызова по виду действия (любой провайдер); у наблюдателя - его команда или адрес
+ * сокета. null - вызов не команда или IDE постарше.
+ */
 const commandOf = (
   pending: PendingOf<'permission'>,
 ): { command: string; description: string } | null => {
   const { action } = pending
+
+  if (action?.kind === 'monitor') {
+    return { command: action.command || action.url, description: action.description }
+  }
 
   return action?.kind === 'command' && typeof action.command === 'string' ? action : null
 }

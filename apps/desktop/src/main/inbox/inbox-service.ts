@@ -52,6 +52,8 @@ const KEEP_PLANNING = 'The person did not approve the plan. Keep planning.'
 export class InboxService implements TaskInboxPort {
   /** Ставит связка: прогоны заданий и разговоры поднимаются раньше уведомлений. */
   routes: InboxRoutes | null = null
+  /** Синк всех календарей, кнопкой карточки календаря; ставит календарь при старте (ADR 0116). */
+  calendarSync: (() => void) | null = null
   private writing: Promise<unknown> = Promise.resolve()
   /** Уведомления, чья кнопка нажата и ответ ещё идёт. */
   private readonly pressing = new Set<string>()
@@ -252,6 +254,13 @@ export class InboxService implements TaskInboxPort {
       case 'showRun':
       case 'showCalendar':
         return { ok: true, state: this.markRead([item.id]) }
+      case 'syncCalendar':
+        if (!this.calendarSync) return { ok: false, code: 'actionGone' }
+
+        this.calendarSync()
+        this.close(item.id, label)
+
+        return { ok: true, state: this.view() }
       case 'open':
         return this.open(item, button)
       case 'openChat':

@@ -17,16 +17,17 @@
 
 .branch {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
 // Путь целиком, с переносом: по нему worktree находят в терминале.
 .path {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   overflow-wrap: anywhere;
 }

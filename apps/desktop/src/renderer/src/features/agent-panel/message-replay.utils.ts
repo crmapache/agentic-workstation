@@ -5,6 +5,7 @@ import {
   REPLAY_RANGE,
   QUOTATION_MIN,
   REPLAY_COMMAND,
+  REPLAY_OVERLAP,
   REPLAY_SNIPPET,
   REPLAY_TRAILING,
   REPLAY_QUOTATION,
@@ -181,6 +182,37 @@ const snippetTokens = (text: string, said: string, quoted: { count: number }): D
   return tokens
 }
 
+/** Ключ накладки из тега; чужая запись (не код адреса) - как есть, а не падение разбора. */
+const keyOf = (encoded: string): string => {
+  try {
+    return decodeURIComponent(encoded)
+  } catch {
+    return encoded
+  }
+}
+
+/**
+ * Карточки трекера и накладки звонков в тексте по порядку: их теги поле пишет само, внутри -
+ * текст, который принадлежит им целиком.
+ */
+const attachedIn = (text: string): { index: number; length: number; chip: DraftChip }[] =>
+  [
+    ...[...text.matchAll(REPLAY_CARD)].map((match) => ({
+      index: match.index,
+      length: match[0].length,
+      chip: { kind: 'card' as const, value: match[1] ?? '', text: match[2] ?? '' },
+    })),
+    ...[...text.matchAll(REPLAY_OVERLAP)].map((match) => ({
+      index: match.index,
+      length: match[0].length,
+      chip: {
+        kind: 'overlap' as const,
+        value: keyOf(match[1] ?? ''),
+        text: match[2] ?? '',
+      },
+    })),
+  ].sort((a, b) => a.index - b.index)
+
 /**
  * Текст сообщения обратно кусками. answered - что агент уже сказал в разговоре: по
  * нему кавычки отличаются от цитаты ответа. Карточки трекера и куски файла с текстом узнаются
@@ -194,12 +226,10 @@ export const replayedDraft = (text: string, answered: readonly string[] = []): M
   const quoted = { count: 0 }
   let at = 0
 
-  for (const match of head.rest.matchAll(REPLAY_CARD)) {
-    const [whole, cardId = '', card = ''] = match
-
+  for (const match of attachedIn(head.rest)) {
     tokens.push(...snippetTokens(head.rest.slice(at, match.index), said, quoted))
-    tokens.push(chipToken({ kind: 'card', value: cardId, text: card }))
-    at = match.index + whole.length
+    tokens.push(chipToken(match.chip))
+    at = match.index + match.length
   }
 
   tokens.push(...snippetTokens(head.rest.slice(at), said, quoted))

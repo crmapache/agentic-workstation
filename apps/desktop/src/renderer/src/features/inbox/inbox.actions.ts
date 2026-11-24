@@ -46,7 +46,9 @@ export const useInboxActions = () => {
     }
 
     // Накладка звонков (ADR 0114): календарь общий - открывается сразу, без проекта.
-    if (action.kind === 'showCalendar') useLayoutStore.getState().showMainView('calendar')
+    if (action.kind === 'showCalendar' || action.kind === 'syncCalendar') {
+      useLayoutStore.getState().showMainView('calendar')
+    }
 
     const ok = took(
       await invoke('inbox:act', { itemId: item.id, actionId: action.id, text, answers }),

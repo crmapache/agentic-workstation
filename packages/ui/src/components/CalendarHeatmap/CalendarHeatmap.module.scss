@@ -2,6 +2,8 @@
 
 // Календарь года: клетки одного тона ступенями, подписи - тише данных, моноширинным.
 .calendarHeatmap {
+  @include code-font;
+
   --tone: var(--color-chart-1);
 
   display: flex;
@@ -10,7 +12,6 @@
   min-width: 0;
   margin: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--size-chart-cell);
 }

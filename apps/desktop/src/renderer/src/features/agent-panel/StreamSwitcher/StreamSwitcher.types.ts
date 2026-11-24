@@ -6,8 +6,14 @@ export type StreamSwitcherProps = {
   items: readonly FeedItem[]
 }
 
-/** Что останавливают: задачу CLI, её вид (агент или команда) и о чём она - для вопроса. */
-export type StopTarget = { taskId: string; kind: 'agent' | 'command'; subject: string }
+/** Фоновая задача процесса CLI, а не агент: команда Bash или наблюдатель Monitor. */
+export type ShellKind = 'command' | 'monitor'
+
+/** Фоновая задача процесса для чипа: команда оболочки или адрес сокета (одно из двух) и зачем она. */
+export type ShellTask = { kind: ShellKind; command: string; url: string; description: string }
+
+/** Что останавливают: задачу CLI, её вид (агент, команда, наблюдатель) и о чём она - для вопроса. */
+export type StopTarget = { taskId: string; kind: 'agent' | ShellKind; subject: string }
 
 export type AgentChipProps = {
   tool: ToolFeedItem
@@ -24,9 +30,8 @@ export type CommandChipProps = {
 }
 
 export type CommandViewProps = {
-  command: string
-  /** Зачем команда - слова модели из вызова; пусто - строки нет. */
-  description: string
+  /** Команда или адрес сокета наблюдателя и зачем она - слова модели из вызова. */
+  shell: ShellTask
   /** С какого момента идёт (мс); 0 - не известно, времени не будет. */
   startedAt: number
   /** Остановить - тем же вопросом, что крестик чипа; null - CLI не назвал задачу. */

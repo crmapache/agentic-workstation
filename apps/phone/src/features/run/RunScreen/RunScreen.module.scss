@@ -23,6 +23,8 @@
 }
 
 .detail {
+  @include code-font;
+
   max-height: var(--size-scroll-compact-max);
   margin: 0;
   padding: var(--space-2) var(--space-3);
@@ -30,7 +32,6 @@
   border-radius: var(--radius-md);
   background-color: var(--color-surface-sunken);
   color: var(--color-syntax-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -83,9 +84,10 @@
 }
 
 .stepCost {
+  @include code-font;
+
   flex: none;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

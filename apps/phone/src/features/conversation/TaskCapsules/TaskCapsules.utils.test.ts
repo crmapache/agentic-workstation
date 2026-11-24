@@ -150,6 +150,36 @@ describe('капсулы над лентой - идущие задачи раз�
     expect(capsuleMeta(taskCapsules({ items: [command('bash')] })[0]!)).toBe('pnpm dev')
   })
 
+  it('наблюдатель - капсулой рядом с командами, на ней - описание, в листе - его команда', () => {
+    const monitor: FeedItemWire = {
+      id: 'watch',
+      kind: 'tool',
+      name: 'Monitor',
+      action: {
+        kind: 'monitor',
+        command: 'tail -F build.log | grep --line-buffered error',
+        url: '',
+        description: 'Watch the build for errors',
+      },
+      status: 'done',
+      parentToolUseId: null,
+      task: task({ taskId: 'bmon_1', kind: 'monitor', startedAt: 1100 }),
+    }
+    const capsules = taskCapsules({ items: [monitor, agent('a1'), command('bash')] })
+
+    expect(capsules.map((one) => [one.id, one.kind])).toEqual([
+      ['a1', 'agent'],
+      ['watch', 'monitor'],
+      ['bash', 'command'],
+    ])
+    expect(capsules[1]).toMatchObject({
+      detail: 'tail -F build.log | grep --line-buffered error',
+      startedAt: 1100,
+      stop: { taskId: 'bmon_1', kind: 'monitor' },
+    })
+    expect(capsuleMeta(capsules[1]!)).toBe('Watch the build for errors')
+  })
+
   it('под заголовком листа - сколько идёт, у будильника - сколько ждать', () => {
     const [running, wakeup] = taskCapsules({
       items: [

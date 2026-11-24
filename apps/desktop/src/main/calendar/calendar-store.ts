@@ -1,8 +1,11 @@
 import { join } from 'node:path'
 
-import type { SourceSync, CalendarEvent, CalendarSource, CalendarSettings } from '@shared/calendar'
-import { IDLE_SYNC, CALENDAR_FAILURES, DEFAULT_CALENDAR_SETTINGS } from '@shared/calendar'
+import type { SourceSync, EventPerson, CalendarEvent, CalendarSource } from '@shared/calendar'
+import { IDLE_SYNC, CALENDAR_FAILURES } from '@shared/calendar'
 import { parseStoredSource, parseCalendarSettings } from '@shared/calendar-parse'
+import type { MoveRecord } from '@shared/calendar-review'
+import type { CalendarSettings } from '@shared/calendar-settings'
+import { DEFAULT_CALENDAR_SETTINGS } from '@shared/calendar-settings'
 
 import { JsonFile } from '../storage/json-file'
 import type { Vault } from '../storage/vault'
@@ -15,6 +18,14 @@ export type StoredCalendar = {
   settings: CalendarSettings
   /** Ключ накладки → конец её общего отрезка: объявленные один раз, забываются после конца. */
   notified: Record<string, number>
+  /** Накладки, отмеченные «видел»: ключ → конец общего отрезка, прошедшие забываются. */
+  seen: Record<string, number>
+  /** Переносы встреч, замеченные синком, новые первыми: история для разбора накладок. */
+  moves: MoveRecord[]
+  /** Напоминание о звонке уже было: ключ (встреча, начало, минуты) → начало встречи. */
+  reminded: Record<string, number>
+  /** День (ГГГГ-ММ-ДД), когда утренний синк уже прошёл; пусто - ещё не было. */
+  morningOn: string
 }
 
 /** Снимки событий по источникам: пишутся часто и бывают большими - отдельным файлом. */
@@ -26,6 +37,10 @@ const EMPTY_CALENDAR: StoredCalendar = {
   sync: {},
   settings: DEFAULT_CALENDAR_SETTINGS,
   notified: {},
+  seen: {},
+  moves: [],
+  reminded: {},
+  morningOn: '',
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -53,6 +68,37 @@ const syncOf = (value: unknown): SourceSync => {
   }
 }
 
+/** Словарь «ключ → число» с диска: чужие значения выпадают. */
+const numbersOf = (value: unknown): Record<string, number> =>
+  Object.fromEntries(
+    Object.entries(isRecord(value) ? value : {}).filter(
+      (entry): entry is [string, number] => typeof entry[1] === 'number',
+    ),
+  )
+
+const MOVE_KINDS: readonly MoveRecord['kind'][] = ['moved', 'declined', 'cancelled', 'removed']
+
+const moveOf = (value: unknown): MoveRecord | null => {
+  if (!isRecord(value)) return null
+
+  const at = numberOrNull(value['at'])
+  const from = numberOrNull(value['from'])
+  const kind = MOVE_KINDS.find((one) => one === value['kind'])
+
+  return at !== null && from !== null && kind && typeof value['sourceId'] === 'string'
+    ? {
+        at,
+        sourceId: value['sourceId'],
+        title: typeof value['title'] === 'string' ? value['title'] : '',
+        organizer: typeof value['organizer'] === 'string' ? value['organizer'] : null,
+        from,
+        to: numberOrNull(value['to']),
+        kind,
+        clashed: value['clashed'] === true,
+      }
+    : null
+}
+
 export const parseStoredCalendar = (value: unknown): StoredCalendar => {
   if (!isRecord(value)) return EMPTY_CALENDAR
 
@@ -60,24 +106,65 @@ export const parseStoredCalendar = (value: unknown): StoredCalendar => {
     .map(parseStoredSource)
     .filter((source) => source !== null)
   const sync = isRecord(value['sync']) ? value['sync'] : {}
-  const notified = isRecord(value['notified']) ? value['notified'] : {}
 
   return {
     version: 1,
     sources,
     sync: Object.fromEntries(sources.map((source) => [source.id, syncOf(sync[source.id])])),
     settings: parseCalendarSettings(value['settings']),
-    notified: Object.fromEntries(
-      Object.entries(notified).filter(
-        (entry): entry is [string, number] => typeof entry[1] === 'number',
-      ),
+    notified: numbersOf(value['notified']),
+    seen: numbersOf(value['seen']),
+    moves: (Array.isArray(value['moves']) ? value['moves'] : [])
+      .map(moveOf)
+      .filter((move) => move !== null),
+    reminded: numbersOf(value['reminded']),
+    morningOn: typeof value['morningOn'] === 'string' ? value['morningOn'] : '',
+  }
+}
+
+const textOrNull = (value: unknown): string | null => (typeof value === 'string' ? value : null)
+
+/** Человек встречи с диска; до ADR 0116 организатор был строкой - она и есть имя. */
+const personOf = (value: unknown): EventPerson | null => {
+  if (typeof value === 'string') return value ? { name: value, email: null, url: null } : null
+  if (!isRecord(value) || typeof value['name'] !== 'string') return null
+
+  return { name: value['name'], email: textOrNull(value['email']), url: textOrNull(value['url']) }
+}
+
+/**
+ * Событие с диска: форма, без которой сетка упала бы, и поля, которых не было у старых
+ * снимков (люди и ссылки, ADR 0116), - пустыми.
+ */
+const storedEventOf = (value: unknown): CalendarEvent | null => {
+  if (
+    !isRecord(value) ||
+    typeof value['key'] !== 'string' ||
+    typeof value['start'] !== 'number' ||
+    typeof value['end'] !== 'number'
+  ) {
+    return null
+  }
+
+  const event = value as unknown as CalendarEvent
+  const attendees = Array.isArray(value['attendees']) ? value['attendees'] : []
+  const links = Array.isArray(value['links']) ? value['links'] : []
+
+  return {
+    ...event,
+    locationUrl: textOrNull(value['locationUrl']),
+    organizer: personOf(value['organizer']),
+    attendees: attendees.map(personOf).filter((person) => person !== null),
+    links: links.filter(
+      (link): link is CalendarEvent['links'][number] =>
+        isRecord(link) && typeof link['label'] === 'string' && typeof link['url'] === 'string',
     ),
   }
 }
 
 /**
- * События с диска: их писала сама IDE, поэтому проверка лёгкая - только форма, без которой
- * сетка упала бы. Снимок источника, которого больше нет, выпадает.
+ * События с диска: их писала сама IDE, поэтому проверка лёгкая. Снимок источника, которого
+ * больше нет, выпадает.
  */
 export const parseStoredEvents = (value: unknown, sourceIds: readonly string[]): StoredEvents => {
   const bySource = isRecord(value) && isRecord(value['bySource']) ? value['bySource'] : {}
@@ -90,15 +177,7 @@ export const parseStoredEvents = (value: unknown, sourceIds: readonly string[]):
 
         return [
           id,
-          Array.isArray(events)
-            ? events.filter(
-                (event): event is CalendarEvent =>
-                  isRecord(event) &&
-                  typeof event['key'] === 'string' &&
-                  typeof event['start'] === 'number' &&
-                  typeof event['end'] === 'number',
-              )
-            : [],
+          Array.isArray(events) ? events.map(storedEventOf).filter((event) => event !== null) : [],
         ]
       }),
     ),

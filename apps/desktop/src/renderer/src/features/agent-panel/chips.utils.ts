@@ -55,13 +55,13 @@ const cardPreview = (text: string): string => {
 
 /**
  * Подпись на самом чипе: имя файла (путь целиком - в тексте модели), начало цитаты, заголовок
- * карточки.
+ * карточки или разбора накладки.
  */
 export const chipLabel = (chip: DraftChip): string => {
   if (chip.kind === 'quote') return `${chip.value}: ${quotePreview(chip.text ?? '')}`
   if (chip.kind === 'paste') return pastePreview(chip.text ?? '')
   if (chip.kind === 'cmd') return `/${chip.value}`
-  if (chip.kind === 'card') return cardPreview(chip.text ?? '')
+  if (chip.kind === 'card' || chip.kind === 'overlap') return cardPreview(chip.text ?? '')
 
   const name = truncateMiddle(baseName(chip.value))
 
@@ -102,8 +102,10 @@ export const chipTitle = (chip: DraftChip): string => {
     return text.length > QUOTE_TITLE_CHARS ? `${text.slice(0, QUOTE_TITLE_CHARS)}…` : text
   }
 
-  // Вставка и карточка: под курсором - начало того, что уедет модели.
-  if (chip.kind === 'paste' || chip.kind === 'card') return hintPreview(chip.text ?? '')
+  // Вставка, карточка и накладка: под курсором - начало того, что уедет модели.
+  if (chip.kind === 'paste' || chip.kind === 'card' || chip.kind === 'overlap') {
+    return hintPreview(chip.text ?? '')
+  }
 
   const title = chip.range ? `${chip.value} ${chip.range}` : chip.value
 

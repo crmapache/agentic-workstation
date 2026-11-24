@@ -1,0 +1,103 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../calendar-tones' as *;
+@include calendar-tones;
+
+.empty {
+  margin: 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.day {
+  @include caps-label;
+
+  margin: 0;
+  color: var(--color-fg-subtle);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Накладка: рамка цвета опасности, как обводка встреч на сетке; кнопки - в правом верхнем
+// углу, текст под ними не прячется. Просмотренная - обычной рамкой.
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-1-5) var(--space-1-5) var(--space-2);
+  border: var(--border-width) solid
+    color-mix(in srgb, var(--color-danger) var(--tint-border), transparent);
+  border-radius: var(--radius-md);
+}
+
+.softRow {
+  border-color: color-mix(in srgb, var(--color-warning) var(--tint-border), transparent);
+}
+
+.seenRow {
+  border-color: var(--color-border);
+
+  .span {
+    color: var(--color-fg-muted);
+  }
+}
+
+.jump {
+  @include button-reset;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--color-bg-hover);
+  }
+}
+
+.span {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.soft {
+  color: var(--color-warning);
+}
+
+.meeting {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--font-size-sm);
+}
+
+.meetingTitle {
+  @include truncate;
+
+  color: var(--color-fg);
+}
+
+.meetingTime {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}

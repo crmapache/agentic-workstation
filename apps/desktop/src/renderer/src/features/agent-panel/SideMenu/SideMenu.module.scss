@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 .version {
-  font-family: var(--font-code);
+  @include code-font;
 }

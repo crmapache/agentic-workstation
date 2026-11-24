@@ -115,8 +115,9 @@
 }
 
 .small {
+  @include code-font;
+
   gap: var(--space-1);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
@@ -160,6 +161,8 @@
 // Знак с кольцом работы вокруг (Spinner around): номер в кружке ростом с маленький контрол, как
 // текущая остановка дороги сценария. Кольцо - на месте рамки кружка, коробку ему даёт обёртка.
 .spinnerSign {
+  @include code-font;
+
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -169,7 +172,6 @@
   border-radius: var(--radius-full);
   background-color: var(--color-bg-selected);
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-2xs);
 }
 
@@ -223,10 +225,11 @@
 }
 
 .fitScroll {
+  @include code-font;
+
   min-height: 0;
   margin: 0;
   overflow-y: auto;
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
 }

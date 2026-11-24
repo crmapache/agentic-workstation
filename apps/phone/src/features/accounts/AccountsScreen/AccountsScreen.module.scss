@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 .body {
   display: flex;
   flex-direction: column;
@@ -23,8 +25,9 @@
 }
 
 .windowValue {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

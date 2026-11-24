@@ -67,6 +67,11 @@ export type ToolAction =
   | { kind: 'edit'; path: string; preview: PatchHunk[] }
   | { kind: 'write'; path: string; preview: PatchHunk[]; lines: number }
   | { kind: 'command'; command: string; description: string }
+  /**
+   * Наблюдатель (Monitor у Claude Code): каждая строка вывода команды или кадр WebSocket будит
+   * агента. Задано одно из двух - command или url.
+   */
+  | { kind: 'monitor'; command: string; url: string; description: string }
   | { kind: 'web'; target: string }
   | { kind: 'mcp'; server: string; tool: string; target: string; path: string }
   | { kind: 'skill'; skill: string; args: string }
@@ -218,12 +223,12 @@ export type CliTaskOutcome = 'completed' | 'failed' | 'stopped'
 
 /**
  * Задача CLI за вызовом: субагент (Task, Agent или поднятый скиллом), флот workflow,
- * фоновая команда Bash, будильник, который агент поставил себе (wakeup). taskId - имя
- * задачи у CLI, им её останавливают (stop_task); у будильника его нет.
+ * фоновая команда Bash, наблюдатель Monitor, будильник, который агент поставил себе (wakeup).
+ * taskId - имя задачи у CLI, им её останавливают (stop_task); у будильника его нет.
  */
 export type CliTask = {
   taskId: string
-  kind: 'agent' | 'workflow' | 'command' | 'wakeup'
+  kind: 'agent' | 'workflow' | 'command' | 'monitor' | 'wakeup'
   /** Ушла в фон: ход её не ждёт, конец придёт уведомлением. */
   background: boolean
   /** Когда CLI сообщил начало и конец (мс); 0 - ещё не было. */
@@ -360,6 +365,8 @@ export type NoticeCode =
    * (ClosedReason: restarted - перезапуск или переезд на аккаунт, exited - процесс кончился).
    */
   | 'command-lost'
+  /** Наблюдатель Monitor погиб с процессом CLI: detail - его описание, subject - как у command-lost. */
+  | 'monitor-lost'
   /** Будильник агента пропал с процессом CLI: detail - его срок (мс), subject - как у command-lost. */
   | 'wakeup-lost'
   /** Голосовой звонок начался (ADR 0104): detail - откуда (desktop, phone). */

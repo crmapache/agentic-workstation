@@ -63,9 +63,10 @@
 }
 
 .count {
+  @include code-font;
+
   padding: 0 var(--space-1);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

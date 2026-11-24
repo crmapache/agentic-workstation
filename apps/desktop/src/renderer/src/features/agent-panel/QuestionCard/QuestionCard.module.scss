@@ -26,8 +26,9 @@
 }
 
 .time {
+  @include code-font;
+
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

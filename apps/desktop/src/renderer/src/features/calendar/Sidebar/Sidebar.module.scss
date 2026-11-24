@@ -1,0 +1,32 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
+// Панель во всю высоту вида; ручка ширины - у её правого края, по линии.
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+// Полоса вкладок - ростом с полосу шапки вида справа (PageHeader): линии под ними идут вровень.
+.head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: calc(var(--size-control-md) + 2 * var(--space-1-5) + var(--border-width));
+  padding: var(--space-1-5) var(--size-panel-gutter);
+  border-bottom: var(--border-width) solid var(--color-border);
+  background-color: var(--color-surface-panel);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-3) var(--size-panel-gutter);
+  overflow-y: auto;
+}

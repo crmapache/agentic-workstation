@@ -1,5 +1,8 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Имя мода приглушено и моноширинным - как в карточке модов над полем.
 .name {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
 }

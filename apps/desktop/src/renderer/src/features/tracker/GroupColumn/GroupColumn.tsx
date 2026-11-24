@@ -1,9 +1,6 @@
-import { useState } from 'react'
 import { clsx } from 'clsx'
-import { Plus, Send, Pencil, Trash2, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Send, Pencil, Trash2, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-
-import { Button } from '@agentic-workstation/ui/Button'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
@@ -11,14 +8,13 @@ import { queueCardsOf } from '../tracker.utils'
 import { ActionsMenu } from '../ActionsMenu/ActionsMenu'
 import type { ActionItem } from '../ActionsMenu/ActionsMenu.types'
 import { useBoard } from '../Board/Board.context'
-import { QuickAdd } from '../QuickAdd/QuickAdd'
-import { TaskRow } from '../TaskRow/TaskRow'
 import styles from './GroupColumn.module.scss'
 import type { GroupColumnProps } from './GroupColumn.types'
+import { GroupLanes } from './parts/GroupLanes'
 
 /**
- * Группа задач - колонка в порядке работы: шапка (тянется за неё же), задачи сверху вниз с
- * продолжениями справа и быстрое добавление внизу. Шапка - первая строка общей сетки ряда: у
+ * Группа задач - колонка в порядке работы: шапка (тянется за неё же), под ней задачи сверху вниз
+ * и справа столбики их продолжений (GroupLanes). Шапка - первая строка общей сетки ряда: у
  * колонок одного потока она одной высоты, и первые задачи стоят на одной линии. Всю группу в
  * очередь шлёт пункт её меню, как и карточку.
  */
@@ -28,7 +24,6 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
   const { apply } = useTrackerActions()
   const edit = useTrackerStore((state) => state.edit)
   const openSend = useTrackerStore((state) => state.openSend)
-  const [adding, setAdding] = useState(false)
   const source = { kind: 'group' as const, id: group.id }
   // Одни пометки - не очередь: запускать в ней нечего.
   const canSend = queueCardsOf(group).some((card) => card.scenario)
@@ -67,9 +62,6 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
     },
   ]
 
-  const handleAdd = async (title: string) =>
-    (await apply({ kind: 'card.create', groupId: group.id, fields: { title } })).ok
-
   return (
     <section
       className={clsx(styles.column, draggingId === group.id && styles.dragging)}
@@ -86,24 +78,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
         </button>
         <ActionsMenu label={t('tracker.group.menu')} items={items} />
       </header>
-      <div className={styles.body} data-group-body="">
-        {group.tasks.map((task) => (
-          <TaskRow key={task.id} task={task} groupId={group.id} />
-        ))}
-        <div className={styles.end} data-group-end="">
-          {adding ? (
-            <QuickAdd
-              placeholder={t('tracker.card.taskPlaceholder')}
-              onAdd={handleAdd}
-              onClose={() => setAdding(false)}
-            />
-          ) : (
-            <Button variant="dashed" size="sm" icon={Plus} onClick={() => setAdding(true)}>
-              {t('tracker.group.addTask')}
-            </Button>
-          )}
-        </div>
-      </div>
+      <GroupLanes group={group} />
     </section>
   )
 }

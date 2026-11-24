@@ -156,21 +156,26 @@
   }
 }
 
-// Общее время накладки: полоса цвета опасности поверх колонки, встречи - над ней.
-.band {
+// Рабочее время рабочего дня: подложка светлее остальной колонки, линии часов - сквозь неё.
+.work {
   position: absolute;
   top: var(--top, 0);
   right: 0;
   left: 0;
   height: var(--height, 0);
-  border-block: var(--border-width) dashed var(--color-danger);
-  background: var(--color-danger-soft);
+  background: var(--color-calendar-work-time);
   pointer-events: none;
 }
 
-.band.soft {
-  border-color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) var(--tint-soft), transparent);
+// Выходной день: колонка, её клетка «весь день» и подпись в шапке - темнее целиком.
+.dayOff {
+  background: var(--color-calendar-day-off);
+}
+
+.dayName.dayOff .weekday,
+.dayName.dayOff .weekdayNarrow,
+.dayName.dayOff .dayNumber {
+  color: var(--color-fg-subtle);
 }
 
 // Встреча: плашка цвета источника, место - доля суток и колонка среди пересекающихся.
@@ -225,7 +230,7 @@
 .faded {
   opacity: var(--opacity-muted);
 
-  .blockTitle {
+  .blockName {
     text-decoration: line-through;
   }
 }
@@ -241,18 +246,53 @@
   align-items: baseline;
 }
 
+// Название и время - над зоной накладки: она лежит внутри блока под текстом.
 .blockTitle {
-  @include truncate;
-
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  min-width: 0;
   color: var(--color-fg);
   font-weight: var(--font-weight-medium);
+}
+
+.blockName {
+  @include truncate;
+}
+
+.tagIcon {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  color: var(--color-fg-muted);
 }
 
 .blockTime {
   @include truncate;
 
+  position: relative;
   color: var(--color-fg-muted);
   font-variant-numeric: tabular-nums;
+}
+
+// Общее время накладки - внутри самого блока, во всю его ширину: краями блока и обрезается,
+// под соседние встречи и в зазоры между ними не вылезает.
+.zone {
+  position: absolute;
+  top: var(--top, 0);
+  right: 0;
+  left: 0;
+  height: var(--height, 0);
+  border-block: var(--border-width) dashed
+    color-mix(in srgb, var(--color-danger) var(--tint-border), transparent);
+  background: color-mix(in srgb, var(--color-danger) var(--tint-soft), transparent);
+  pointer-events: none;
+}
+
+.softZone {
+  border-color: color-mix(in srgb, var(--color-warning) var(--tint-border), transparent);
+  background: color-mix(in srgb, var(--color-warning) var(--tint-soft), transparent);
 }
 
 .twins {

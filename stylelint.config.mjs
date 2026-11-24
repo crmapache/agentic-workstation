@@ -16,6 +16,22 @@ const TEXT_SHADOW_MESSAGE = 'Тени у текста нет: стиль пло�
 const APP_REGION_MESSAGE =
   'Область перетаскивания окна - только миксинами window-drag-region и over-window-drag-region'
 
+/** Анимация перечисляет свойства: `all` тянет за собой всё, что поменяется рядом. */
+const TRANSITION_ALL = {
+  transition: ['/\\ball\\b/'],
+  'transition-property': ['all'],
+}
+
+/**
+ * Шрифт кода - только миксином code-font: сам JetBrains Mono склеивает `!==`, `=>`, `>=` в
+ * значки, и шрифт без миксина показал бы их вместо набранных символов.
+ */
+const CODE_FONT = {
+  'font-family': ['/--font-code/'],
+  font: ['/--font-code/'],
+}
+const CODE_FONT_MESSAGE = 'Шрифт кода - миксином @include code-font: он выключает лигатуры'
+
 /** Свойства, которым разрешены только токены (и пара безопасных ключевых слов). */
 const TOKEN_ONLY_PROPERTIES = [
   '/color$/',
@@ -72,10 +88,15 @@ export default {
       ['linear-gradient', 'radial-gradient', 'conic-gradient'],
       ['repeating-linear-gradient', 'repeating-radial-gradient', 'drop-shadow'],
     ].flat(),
-    'declaration-property-value-disallowed-list': {
-      transition: ['/\\ball\\b/'],
-      'transition-property': ['all'],
-    },
+    'declaration-property-value-disallowed-list': [
+      { ...TRANSITION_ALL, ...CODE_FONT },
+      {
+        message: (property, value) =>
+          property in CODE_FONT
+            ? CODE_FONT_MESSAGE
+            : `Disallowed value "${value}" for property "${property}"`,
+      },
+    ],
     // Объёма нет (ADR 0006): тени у текста запрещены вовсе, а box-shadow - только у
     // всплывающего слоя; поле в фокусе - одной рамкой, без кольца (ADR 0109). Градиент как фон - подложка окна и цвет букв
     // перелива «думает» (ADR 0025): это не объём, а цвет.
@@ -136,10 +157,12 @@ export default {
       },
     },
     {
-      // Миксины области перетаскивания окна - единственное место, где она задаётся.
+      // Миксины области перетаскивания окна и шрифта кода - единственное место, где они
+      // задаются.
       files: ['packages/ui/src/styles/_mixins.scss'],
       rules: {
         'property-disallowed-list': [['text-shadow'], { message: TEXT_SHADOW_MESSAGE }],
+        'declaration-property-value-disallowed-list': TRANSITION_ALL,
       },
     },
     {

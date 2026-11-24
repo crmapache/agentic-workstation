@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Дорога карточек: кружки ростом с маленький контрол, связка - короткая черта одной длины
 // везде, складка «+N» - плашка в полторы остановки. Размеры частей - здесь, и только здесь: ряд
 // складывается по образцу (.probe), нарисованному этими же классами, и растёт вместе с размером
@@ -124,6 +126,8 @@
 }
 
 .stop {
+  @include code-font;
+
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
@@ -134,7 +138,6 @@
   border: var(--border-width) solid var(--color-border-strong);
   border-radius: var(--radius-full);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-2xs);
   line-height: var(--line-height-tight);
 }
@@ -191,6 +194,8 @@
 // Складка «+N» - плашка ростом с остановку в пунктирной рамке: часть дороги, а не подпись,
 // повисшая между кружками.
 .fold {
+  @include code-font;
+
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -200,7 +205,6 @@
   border: var(--border-width) dashed var(--color-border-strong);
   border-radius: var(--radius-full);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-2xs);
   line-height: var(--line-height-tight);
 }

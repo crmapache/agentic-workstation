@@ -4,6 +4,15 @@
  */
 export const AGENT_CALLS = new Set(['Task', 'Agent', 'Workflow'])
 
+/** Вызов наблюдателя: каждая строка вывода его команды (или кадр сокета) будит агента. */
+export const MONITOR_CALL = 'Monitor'
+
+/**
+ * Задачи CLI за процессом оболочки или сокетом, а не за агентом: фоновая команда Bash и
+ * наблюдатель Monitor с командой - local_bash, наблюдатель с WebSocket - monitor_ws.
+ */
+export const SHELL_TASK_TYPES = new Set(['local_bash', 'monitor_ws'])
+
 /**
  * Ответ CLI на запуск в фоне: это подтверждение запуска, а не отчёт. Workflow с CLI
  * 2.1.257 отвечает так же своими словами и дальше идёт фоновой задачей.

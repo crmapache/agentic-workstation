@@ -1,8 +1,11 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Счёт строк - счётчик: мельче подписи ветки, моноширинный, цифры одной ширины - не прыгает,
 // когда меняется на каждую правку. Цвета - как у счёта строк в панели Claude Code.
 .added,
 .deleted {
-  font-family: var(--font-code);
+  @include code-font;
+
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

@@ -32,8 +32,8 @@ const pathOrText = (
 
 /**
  * Цель вызова в шапке, как в ACC: у скилла - имя и аргументы, у файла - путь от корня,
- * у команды - первая строка, у поиска - папка или шаблон, дальше адрес, запрос, описание;
- * ничего - имя.
+ * у команды - первая строка, у наблюдателя - зачем он (его команда - `tail -F … | grep`), у
+ * поиска - папка или шаблон, дальше адрес, запрос, описание; ничего - имя.
  */
 export const toolTarget = (tool: Pick<ToolFeedItem, 'name' | 'action'>, root?: string): string => {
   const { action } = tool
@@ -51,6 +51,8 @@ export const toolTarget = (tool: Pick<ToolFeedItem, 'name' | 'action'>, root?: s
       return pathOrText(tool, action.path, action.pattern, root)
     case 'command':
       return firstLine(action.command) || tool.name
+    case 'monitor':
+      return firstLine(action.description || action.command || action.url) || tool.name
     case 'web':
       return action.target || toolLabel(tool)
     case 'mcp':

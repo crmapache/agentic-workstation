@@ -44,7 +44,11 @@ const unexpected =
 export class CalendarSync {
   private readonly running = new Map<string, AbortController>()
   private readonly aiQueue: string[] = []
+  /** Источники, поставленные утренним синком: их сбой - карточкой, человека рядом может не быть. */
+  private readonly morning = new Set<string>()
   private aiBusy = false
+  /** Утренний синк не прочитал источник. */
+  onMorningFailure: (source: CalendarSource, failure: CalendarFailure) => void = () => undefined
   private timer: ReturnType<typeof setInterval> | null = null
   private wake: ReturnType<typeof setTimeout> | null = null
 
@@ -100,6 +104,16 @@ export class CalendarSync {
     return started
   }
 
+  /** Утренний синк (ADR 0116): ИИ-источники в браузере, которые сегодня ещё не читались. */
+  syncMorning(sources: readonly CalendarSource[]): void {
+    for (const source of sources) {
+      if (!isAi(source) || source.kind !== 'ai-browser') continue
+
+      this.morning.add(source.id)
+      this.enqueueAi(source)
+    }
+  }
+
   /** Остановить синк источника или всех: очередь ИИ пустеет, идущие гаснут. */
   cancel(sourceId: string | null): void {
     for (let index = this.aiQueue.length - 1; index >= 0; index -= 1) {
@@ -107,6 +121,7 @@ export class CalendarSync {
 
       if (id !== undefined && (sourceId === null || id === sourceId)) {
         this.aiQueue.splice(index, 1)
+        this.morning.delete(id)
         this.service.setPhase(id, null)
       }
     }
@@ -191,7 +206,13 @@ export class CalendarSync {
       const result = await this.readers.ai(source, controller.signal).catch(unexpected('ai-failed'))
 
       await this.service.applyRead(source.id, result)
+
+      // Остановленный человеком - не сбой: он сам знает.
+      if (this.morning.has(source.id) && !result.ok && result.failure !== 'cancelled') {
+        this.onMorningFailure(source, result.failure)
+      }
     } finally {
+      this.morning.delete(source.id)
       this.running.delete(source.id)
       this.aiBusy = false
       void this.pumpAi()

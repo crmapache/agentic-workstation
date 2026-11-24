@@ -21,10 +21,14 @@ export const useCalendarViewed = () => {
   }, [queryClient])
 }
 
-/** Встречи периода (дубли слиты) и их накладки - теми же правилами, что у главного процесса. */
+/**
+ * Встречи периода (дубли слиты) и их накладки - теми же правилами, что у главного процесса.
+ * active - накладки, которые человек ещё не отметил «видел»: только они горят на сетке.
+ */
 export const useMeetings = (
   events: readonly CalendarEvent[],
   sources: readonly CalendarSourceView[],
+  seen: readonly string[],
 ) =>
   useMemo(() => {
     const meetings = meetingsOf(
@@ -32,6 +36,7 @@ export const useMeetings = (
       sources.map((source) => source.id),
     )
     const counts = (id: string) => sources.find((source) => source.id === id)?.inOverlaps === true
+    const overlaps = overlapsOf(meetings, counts)
 
-    return { meetings, overlaps: overlapsOf(meetings, counts) }
-  }, [events, sources])
+    return { meetings, overlaps, active: overlaps.filter((one) => !seen.includes(one.key)) }
+  }, [events, sources, seen])

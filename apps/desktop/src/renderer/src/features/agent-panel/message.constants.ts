@@ -45,6 +45,10 @@ export const REPLAY_SNIPPET = /(?<=^|[\s(])@(\S+) \((L[^)]*)\):\n(`{3,})\n([\s\S
 export const REPLAY_CARD =
   /<tracker-card link="aw:\/\/tracker\/card\/([^"\s]+)">\n([\s\S]*?)\n<\/tracker-card>(?:\n|$)/g
 
+/** Накладка звонков на разбор, как её пишет поле (overlapReferenceText): тег с ключом и разбор. */
+export const REPLAY_OVERLAP =
+  /<calendar-overlap key="([^"\s]+)">\n([\s\S]*?)\n<\/calendar-overlap>(?:\n|$)/g
+
 /**
  * Сколько вставки рисуется раскрытой: стокилобайтный лог в ленте перерисовывался бы на
  * каждый кусок печатающегося ответа. Копия берёт вставку целиком.

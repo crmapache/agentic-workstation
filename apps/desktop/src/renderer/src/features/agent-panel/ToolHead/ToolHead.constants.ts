@@ -9,6 +9,7 @@ export const CHIP_KEYS: Record<ToolChip, ParseKeys> = {
   EDIT: 'agentPanel.feed.chips.edit',
   WRITE: 'agentPanel.feed.chips.write',
   BASH: 'agentPanel.feed.chips.bash',
+  WATCH: 'agentPanel.feed.chips.watch',
   WEB: 'agentPanel.feed.chips.web',
   MCP: 'agentPanel.feed.chips.mcp',
   SKILL: 'agentPanel.feed.chips.skill',

@@ -21,19 +21,20 @@
 
 .label {
   @include truncate;
+  @include code-font;
 
   flex: 1 1 auto;
   min-width: 0;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
 .facts,
 .model {
+  @include code-font;
+
   flex-shrink: 0;
   color: var(--color-fg-disabled);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -62,8 +63,9 @@
 
 // Как написано, с переносами: промпт и ответ - документы, в абзац их не сложить.
 .text {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;
@@ -79,9 +81,9 @@
 
 .step {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

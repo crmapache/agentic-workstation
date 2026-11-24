@@ -71,8 +71,9 @@
 // Размер картинки и файла - числа: моно с ровными цифрами, как время в ленте.
 .info,
 .percent {
+  @include code-font;
+
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

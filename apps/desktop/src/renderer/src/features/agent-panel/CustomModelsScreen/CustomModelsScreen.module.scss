@@ -36,9 +36,9 @@
 
 .name {
   @include truncate;
+  @include code-font;
 
   flex: 1;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }

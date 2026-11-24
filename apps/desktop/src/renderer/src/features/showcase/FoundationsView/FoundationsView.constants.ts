@@ -104,6 +104,8 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       '--color-calendar-3',
       '--color-calendar-4',
       '--color-calendar-5',
+      '--color-calendar-work-time',
+      '--color-calendar-day-off',
     ],
   },
   {

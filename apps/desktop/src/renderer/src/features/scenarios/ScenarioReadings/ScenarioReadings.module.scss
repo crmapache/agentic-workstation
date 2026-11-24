@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Показания переносятся целиком, а не по словам: подпись не отрывается от своего значения.
 .scenarioReadings {
   display: flex;
@@ -21,8 +23,9 @@
 // Значение - показание прибора: консольный шрифт, цифры одной ширины - часы тикают, а строка
 // не дрожит.
 .value {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }

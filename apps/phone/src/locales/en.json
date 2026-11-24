@@ -464,6 +464,7 @@
       "connectors-missing": "Connectors are not available",
       "model-swap": "Model changed",
       "command-lost": "A background command stopped with the agent",
+      "monitor-lost": "A monitor stopped with the agent",
       "wakeup-lost": "The wakeup the agent set was lost with it",
       "voice-started": "Voice call started",
       "voice-ended": "Voice call ended",
@@ -754,6 +755,7 @@
     "workflow": "workflow",
     "workflowCount": "workflow:{{count}}",
     "background": "bg",
+    "monitor": "watch",
     "wakeup": "wake",
     "wakeIn": "in {{time}}",
     "running": "Running · {{time}}",
@@ -763,6 +765,7 @@
       "workflow": "Workflow",
       "workflowFleet": "Workflow · {{done}} of {{total}} done",
       "command": "Background command",
+      "monitor": "Monitor",
       "wakeup": "Wake-up",
       "wakeupAt": "Wakes the agent at {{clock}}"
     },
@@ -778,7 +781,8 @@
     "stop": {
       "agent": "Stop this agent",
       "workflow": "Stop this workflow",
-      "command": "Stop this command"
+      "command": "Stop this command",
+      "monitor": "Stop this monitor"
     }
   },
   "aside": {

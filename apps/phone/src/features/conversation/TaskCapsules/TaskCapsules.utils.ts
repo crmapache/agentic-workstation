@@ -61,7 +61,7 @@ const capsuleOf = (item: FeedItemWire, steps: Map<string, number>): Capsule | nu
     ? isWorkflow(item)
       ? 'workflow'
       : 'agent'
-    : live && (taskKind === 'command' || taskKind === 'wakeup')
+    : live && (taskKind === 'command' || taskKind === 'monitor' || taskKind === 'wakeup')
       ? taskKind
       : null
 
@@ -75,7 +75,9 @@ const capsuleOf = (item: FeedItemWire, steps: Map<string, number>): Capsule | nu
     agent: isAgent ? text(action, 'agent') || text(input, 'subagent_type') : '',
     activity: text(task ?? {}, 'activity'),
     description: text(action, 'description') || text(input, 'description'),
-    detail: isAgent ? text(action, 'prompt') : text(action, 'command') || text(input, 'command'),
+    detail: isAgent
+      ? text(action, 'prompt')
+      : text(action, 'command') || text(action, 'url') || text(input, 'command'),
     // Агент - со своего вызова, как у чипа окна; фоновая команда - с начала задачи.
     startedAt: isAgent ? count(item, 'startedAt') : count(task ?? {}, 'startedAt'),
     dueAt: kind === 'wakeup' ? count(task ?? {}, 'dueAt') : 0,
@@ -87,7 +89,7 @@ const capsuleOf = (item: FeedItemWire, steps: Map<string, number>): Capsule | nu
 
 /**
  * Капсулы над лентой - как чипы панели IDE (StreamSwitcher): живые агенты верхнего уровня по
- * порядку запуска, потом фоновые команды и будильники агента. Кончилась задача - капсулы нет.
+ * порядку запуска, потом фоновые команды и наблюдатели, потом будильники агента. Кончилась задача - капсулы нет.
  * Строки вызова выше загруженной ленты на телефоне нет - нет и её капсулы.
  */
 export const taskCapsules = (view: Pick<FeedView, 'items' | 'steps'> | undefined): Capsule[] => {
@@ -95,7 +97,13 @@ export const taskCapsules = (view: Pick<FeedView, 'items' | 'steps'> | undefined
 
   const steps = stepCounts(view)
   const capsules = view.items.flatMap((item) => capsuleOf(item, steps) ?? [])
-  const rank: Record<CapsuleKind, number> = { agent: 0, workflow: 0, command: 1, wakeup: 2 }
+  const rank: Record<CapsuleKind, number> = {
+    agent: 0,
+    workflow: 0,
+    command: 1,
+    monitor: 1,
+    wakeup: 2,
+  }
 
   return capsules.sort((first, second) => rank[first.kind] - rank[second.kind])
 }
@@ -120,6 +128,9 @@ export const capsuleMeta = (capsule: Capsule): string => {
       return capsule.activity || capsule.description
     case 'command':
       return commandLabel(capsule.detail) || capsule.description
+    // Команда наблюдателя обычно `tail -F … | grep`: двумя словами это просто «tail».
+    case 'monitor':
+      return capsule.description || commandLabel(capsule.detail)
     case 'wakeup':
       return ''
   }
@@ -156,6 +167,8 @@ export const capsuleName = (t: TFunction, capsule: Capsule): string => {
         : t('capsules.workflow')
     case 'command':
       return t('capsules.background')
+    case 'monitor':
+      return t('capsules.monitor')
     case 'wakeup':
       return t('capsules.wakeup')
   }
@@ -195,6 +208,8 @@ export const capsuleTitle = (t: TFunction, capsule: Capsule, offset: number): st
         : t('capsules.titles.workflow')
     case 'command':
       return t('capsules.titles.command')
+    case 'monitor':
+      return t('capsules.titles.monitor')
     case 'wakeup':
       return capsule.dueAt
         ? t('capsules.titles.wakeupAt', { clock: clockText(capsule.dueAt - offset) })
@@ -224,6 +239,7 @@ export const sheetLines = (t: TFunction, capsule: Capsule): SheetLine[] => {
         ...line('steps', capsule.steps > 0 ? t('feed.steps', { count: capsule.steps }) : ''),
       ]
     case 'command':
+    case 'monitor':
       return [...line('purpose', capsule.description), ...line('command', capsule.detail, true)]
     case 'wakeup':
       return line('wakeWith', capsule.activity)

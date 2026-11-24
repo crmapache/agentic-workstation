@@ -307,18 +307,19 @@
 }
 
 .specName {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
 .specPath,
 .forgottenPath {
   @include truncate;
+  @include code-font;
 
   min-width: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
@@ -336,8 +337,9 @@
 }
 
 .hostName {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }

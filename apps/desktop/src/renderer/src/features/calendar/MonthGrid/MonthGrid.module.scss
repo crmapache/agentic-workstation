@@ -1,0 +1,163 @@
+@use '@agentic-workstation/ui/mixins' as *;
+@use '../calendar-tones' as *;
+@include calendar-tones;
+
+// Месяц: строка дней недели и шесть недель клетками, всё место под шапкой поровну.
+.month {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.head,
+.cells {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.head {
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.weekday {
+  @include caps-label;
+
+  padding: var(--space-1-5) var(--space-1);
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+.cells {
+  flex: 1;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-1);
+  overflow: hidden;
+  border-bottom: var(--border-width) solid var(--color-border);
+  border-left: var(--border-width) solid var(--color-border);
+
+  &:nth-child(7n + 1) {
+    border-left: none;
+  }
+}
+
+// Выходной - темнее, как колонка на неделе.
+.dayOff {
+  background: var(--color-calendar-day-off);
+}
+
+.weekday.dayOff {
+  color: var(--color-fg-subtle);
+}
+
+// День соседнего месяца: виден, но тише - месяц читается сразу.
+.other {
+  .number,
+  .chip,
+  .more {
+    opacity: var(--opacity-muted);
+  }
+}
+
+.number {
+  @include button-reset;
+  @include interactive-surface;
+
+  align-self: flex-start;
+  min-width: var(--size-control-xs);
+  height: var(--size-control-xs);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.today {
+  background-color: var(--color-accent-soft);
+  color: var(--color-fg-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+// Встреча: время и название строкой на подложке цвета календаря.
+.chip {
+  @include button-reset;
+  @include tinted-plaque(var(--tone, var(--color-calendar-0)));
+
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  align-items: baseline;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  cursor: pointer;
+}
+
+// Встреча со временем - без заливки, только точкой цвета через рамку: день не тонет в плашках.
+.chip:not(.allDay) {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+@media (hover: hover) {
+  .chip:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--tone, var(--color-calendar-0)) var(--tint-soft),
+      transparent
+    );
+  }
+}
+
+.clash,
+.chip.clash:not(.allDay) {
+  border-color: var(--color-danger);
+}
+
+.softClash,
+.chip.softClash:not(.allDay) {
+  border-color: var(--color-warning);
+}
+
+.chipTime {
+  flex: none;
+  color: var(--tone, var(--color-calendar-0));
+  font-variant-numeric: tabular-nums;
+}
+
+.chipTitle {
+  @include truncate;
+
+  color: var(--color-fg);
+}
+
+.more {
+  @include button-reset;
+
+  align-self: flex-start;
+  padding: 0 var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .more:hover {
+    color: var(--color-fg);
+  }
+}

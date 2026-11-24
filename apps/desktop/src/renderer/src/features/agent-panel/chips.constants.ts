@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Image, Quote, SquareSlash, SquareKanban, ClipboardList } from 'lucide-react'
+import { Image, Quote, CalendarX2, SquareSlash, SquareKanban, ClipboardList } from 'lucide-react'
 
 import type { ChipKind } from '@shared/message-draft'
 
@@ -38,11 +38,15 @@ export const CHIP_PATH_KINDS: Record<PathChipKind, FileIconKind> = {
   dir: 'folder',
 }
 
-/** Значок чипа без пути: картинка, команда, цитата, вставка, карточка (значок вида трекера). */
+/**
+ * Значок чипа без пути: картинка, команда, цитата, вставка, карточка (значок вида трекера),
+ * накладка звонков.
+ */
 export const CHIP_ICONS: Record<Exclude<ChipKind, PathChipKind>, LucideIcon> = {
   img: Image,
   cmd: SquareSlash,
   quote: Quote,
   paste: ClipboardList,
   card: SquareKanban,
+  overlap: CalendarX2,
 }

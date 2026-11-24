@@ -96,10 +96,11 @@
 
 // Слова CLI под ошибкой: как есть, тише и кодом - их копируют в вопрос, а не читают.
 .detail {
+  @include code-font;
+
   display: block;
   margin-top: var(--space-1);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

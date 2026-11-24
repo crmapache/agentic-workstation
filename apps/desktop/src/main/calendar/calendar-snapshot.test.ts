@@ -19,8 +19,11 @@ const event = (key: string, day: number): CalendarEvent => ({
   response: 'accepted',
   joinUrl: null,
   location: null,
+  locationUrl: null,
   organizer: null,
+  attendees: [],
   link: null,
+  links: [],
 })
 
 /** ИИ прочитал две недели вперёд от сегодня. */

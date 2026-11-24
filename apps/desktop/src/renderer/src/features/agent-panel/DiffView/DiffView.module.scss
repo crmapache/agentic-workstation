@@ -11,8 +11,9 @@
 }
 
 .scroller {
+  @include code-font;
+
   overflow-x: auto;
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
 }
@@ -92,13 +93,13 @@
 .more {
   @include button-reset;
   @include interactive-surface;
+  @include code-font;
 
   display: block;
   width: 100%;
   padding: var(--space-0-5) var(--space-2);
   border-top: var(--border-width) solid var(--color-border);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   text-align: left;
 }

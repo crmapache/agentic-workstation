@@ -1,8 +1,8 @@
 import type { CalendarMeeting, CalendarOverlap } from '@shared/calendar-overlaps'
 import { MINUTE_MS } from '@shared/time-units'
 
-import { WEEK_DAYS, DAY_MINUTES, MIN_BLOCK_MINUTES } from './calendar.constants'
-import type { DayBand, DayBlock, CalendarMode, CalendarPeriod } from './calendar.types'
+import { WEEK_DAYS, DAY_MINUTES, MONTH_GRID_DAYS, MIN_BLOCK_MINUTES } from './calendar.constants'
+import type { DayBlock, ClashZone, CalendarMode, CalendarPeriod } from './calendar.types'
 
 /** Местная полночь дня момента. */
 export const startOfDay = (ms: number): number => {
@@ -26,18 +26,41 @@ export const startOfWeek = (ms: number): number => {
   return addDays(midnight, -weekday)
 }
 
-/** Период сетки: неделя вокруг дня (с понедельника) или сам день. */
-export const periodOf = (mode: CalendarMode, anchor: number): CalendarPeriod => {
-  const from = mode === 'week' ? startOfWeek(anchor) : startOfDay(anchor)
-  const count = mode === 'week' ? WEEK_DAYS : 1
-  const days = Array.from({ length: count }, (_, index) => addDays(from, index))
+/** Полночь первого числа месяца дня. */
+export const startOfMonth = (ms: number): number => {
+  const date = new Date(ms)
 
-  return { from, to: addDays(from, count), days }
+  return new Date(date.getFullYear(), date.getMonth(), 1).getTime()
 }
 
-/** Соседний период: step - назад (-1) или вперёд (1) на неделю или день. */
-export const steppedAnchor = (mode: CalendarMode, anchor: number, step: -1 | 1): number =>
-  addDays(startOfDay(anchor), step * (mode === 'week' ? WEEK_DAYS : 1))
+/**
+ * Период сетки: неделя вокруг дня (с понедельника), сам день или месяц - шесть недель с
+ * понедельника до первого числа: любой месяц целиком, а высота сетки не прыгает.
+ */
+export const periodOf = (mode: CalendarMode, anchor: number): CalendarPeriod => {
+  const month = startOfMonth(anchor)
+  const from =
+    mode === 'month'
+      ? startOfWeek(month)
+      : mode === 'week'
+        ? startOfWeek(anchor)
+        : startOfDay(anchor)
+  const count = mode === 'month' ? MONTH_GRID_DAYS : mode === 'week' ? WEEK_DAYS : 1
+  const days = Array.from({ length: count }, (_, index) => addDays(from, index))
+
+  return { from, to: addDays(from, count), days, month }
+}
+
+/** Соседний период: step - назад (-1) или вперёд (1) на неделю, день или месяц. */
+export const steppedAnchor = (mode: CalendarMode, anchor: number, step: -1 | 1): number => {
+  if (mode === 'month') {
+    const date = new Date(anchor)
+
+    return new Date(date.getFullYear(), date.getMonth() + step, 1).getTime()
+  }
+
+  return addDays(startOfDay(anchor), step * (mode === 'week' ? WEEK_DAYS : 1))
+}
 
 /** Дата дня на часах этого компьютера: «2026-11-24» - так хранятся события на весь день. */
 export const localDateOf = (midnight: number): string => {
@@ -75,6 +98,33 @@ const fragmentsOn = (meetings: readonly CalendarMeeting[], day: number, next: nu
       }
     })
     .sort((a, b) => a.startMinute - b.startMinute || b.endMinute - a.endMinute)
+
+/**
+ * Общее время накладок встречи внутри её блока на этом дне: доли высоты блока. Зона живёт в
+ * самом блоке и обрезается его краями - полоса под соседними блоками вылезала бы из-за них.
+ */
+const zonesOf = (
+  fragment: Fragment,
+  overlaps: readonly CalendarOverlap[],
+  day: number,
+): ClashZone[] => {
+  const { meeting, startMinute, endMinute } = fragment
+  const length = endMinute - startMinute
+
+  return overlaps
+    .filter((overlap) => overlap.a === meeting.key || overlap.b === meeting.key)
+    .map((overlap) => {
+      const from = Math.max(startMinute, minuteOf(overlap.start, day))
+      const to = Math.min(endMinute, minuteOf(overlap.end, day))
+
+      return {
+        top: (from - startMinute) / length,
+        height: (to - from) / length,
+        soft: overlap.soft,
+      }
+    })
+    .filter((zone) => zone.height > 0)
+}
 
 /**
  * Встречи дня колонками, как в календарях: пересекающиеся (по видимой высоте) делят ширину,
@@ -122,6 +172,7 @@ export const blocksOn = (
       columns: 1,
       clashing: soft !== undefined,
       soft: soft === true,
+      zones: zonesOf(fragment, overlaps, day),
     }
 
     group.push(block)
@@ -132,19 +183,6 @@ export const blocksOn = (
   closeGroup()
 
   return blocks
-}
-
-/** Общие отрезки накладок на этом дне, в минутах: заштрихованная полоса на сетке. */
-export const bandsOn = (overlaps: readonly CalendarOverlap[], day: number): DayBand[] => {
-  const next = addDays(day, 1)
-
-  return overlaps
-    .filter((overlap) => overlap.start < next && overlap.end > day)
-    .map((overlap) => ({
-      startMinute: Math.max(0, minuteOf(overlap.start, day)),
-      endMinute: Math.min(DAY_MINUTES, minuteOf(overlap.end, day)),
-      soft: overlap.soft,
-    }))
 }
 
 /** Доля суток в процентах: верх и высота блока на сетке. */

@@ -34,9 +34,9 @@
 
 .dialogSubject {
   @include truncate;
+  @include code-font;
 
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 

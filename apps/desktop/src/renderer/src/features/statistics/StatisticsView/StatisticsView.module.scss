@@ -162,11 +162,12 @@
 }
 
 .delta {
+  @include code-font;
+
   display: inline-flex;
   align-items: center;
   gap: var(--space-0-5);
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 
   svg {
@@ -242,8 +243,9 @@
 }
 
 .rankedValue {
+  @include code-font;
+
   flex: none;
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }

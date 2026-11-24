@@ -1,3 +1,5 @@
+@use '../../styles/mixins' as *;
+
 // Код - на самой тёмной поверхности, как блок кода в ответе: ровный фон, тонкая рамка.
 .snippet {
   display: flex;
@@ -13,11 +15,12 @@
 // Первая строка - по середине кнопки копии: поля сверху и снизу добирают строку до её
 // высоты. Перенесённые строки идут ниже.
 .code {
+  @include code-font;
+
   flex: 1;
   min-width: 0;
   padding-block: calc((var(--size-control-sm) - 1lh) / 2);
   color: var(--color-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   white-space: pre-wrap;

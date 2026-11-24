@@ -8,6 +8,7 @@
 
 .details {
   @include disclosure-body;
+  @include code-font;
 
   display: flex;
   flex-direction: column;
@@ -16,7 +17,6 @@
   padding-top: var(--space-1-5);
   padding-right: var(--space-2);
   padding-bottom: var(--space-1-5);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   user-select: text;

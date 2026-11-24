@@ -97,11 +97,12 @@
 }
 
 .workingLine {
+  @include code-font;
+
   display: flex;
   align-items: center;
   gap: var(--space-1-5);
   min-height: var(--size-control-sm);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 

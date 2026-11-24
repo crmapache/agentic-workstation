@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Вход снаружи: переключатель, состояние с адресом и кнопки - одна под другой.
 .stack {
   display: flex;
@@ -14,9 +16,10 @@
 }
 
 .address {
+  @include code-font;
+
   overflow: hidden;
   color: var(--color-fg-muted);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   text-overflow: ellipsis;
   white-space: nowrap;

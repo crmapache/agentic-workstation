@@ -1,3 +1,5 @@
+@use '@agentic-workstation/ui/mixins' as *;
+
 // Упавшая панель: текст ошибки моноширинным и тихо - для того, кто будет разбираться.
 .action {
   display: flex;
@@ -9,9 +11,10 @@
 }
 
 .message {
+  @include code-font;
+
   margin: 0;
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   text-align: center;
   overflow-wrap: anywhere;

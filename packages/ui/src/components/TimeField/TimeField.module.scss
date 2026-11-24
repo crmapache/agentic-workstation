@@ -1,3 +1,5 @@
+@use '../../styles/mixins' as *;
+
 // Подпись над полями - как у SelectField и TextField: поле времени стоит с ними в одной форме.
 .timeField {
   display: flex;
@@ -18,8 +20,9 @@
 }
 
 .colon {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
 }
 
 .note {

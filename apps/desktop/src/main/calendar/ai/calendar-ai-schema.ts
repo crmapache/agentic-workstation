@@ -5,6 +5,24 @@
  */
 const nullableText = { type: ['string', 'null'] }
 
+const PERSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'email', 'url'],
+  properties: {
+    name: { type: 'string' },
+    email: nullableText,
+    url: { ...nullableText, description: 'Link to the person: profile or chat' },
+  },
+} as const
+
+const LINK_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['label', 'url'],
+  properties: { label: { type: 'string' }, url: { type: 'string' } },
+} as const
+
 const EVENT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -18,7 +36,13 @@ const EVENT_SCHEMA = {
     'my_response',
     'join_url',
     'location',
+    'location_url',
     'organizer',
+    'organizer_email',
+    'organizer_url',
+    'attendees',
+    'event_url',
+    'links',
   ],
   properties: {
     title: { type: 'string' },
@@ -42,7 +66,17 @@ const EVENT_SCHEMA = {
     },
     join_url: { ...nullableText, description: 'Teams, Zoom or Meet link shown on the event' },
     location: nullableText,
-    organizer: nullableText,
+    location_url: { ...nullableText, description: 'Link to the place: map, room, venue page' },
+    organizer: { ...nullableText, description: 'Organizer name' },
+    organizer_email: nullableText,
+    organizer_url: { ...nullableText, description: 'Link to the organizer: profile or chat' },
+    attendees: { type: 'array', items: PERSON_SCHEMA, description: 'Guests, without me' },
+    event_url: { ...nullableText, description: "Address of the event's own page" },
+    links: {
+      type: 'array',
+      items: LINK_SCHEMA,
+      description: 'Any other links on the event: agenda, documents, recordings',
+    },
   },
 } as const
 

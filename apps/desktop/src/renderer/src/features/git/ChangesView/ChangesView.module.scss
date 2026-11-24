@@ -108,10 +108,11 @@
 }
 
 .letter {
+  @include code-font;
+
   flex-shrink: 0;
   margin-left: auto;
   padding-left: var(--space-1);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
 
+import { SHELL_KEYS } from '../StreamSwitcher.constants'
 import styles from '../StreamSwitcher.module.scss'
 import type { CommandViewProps } from '../StreamSwitcher.types'
 import { commandSteps } from '../StreamSwitcher.utils'
@@ -11,26 +12,32 @@ import { StatusDot } from '../../StatusDot/StatusDot'
 import { ChipClock } from './ChipClock'
 
 /**
- * Что за фоновая команда - панелью по нажатию на её чип: сколько идёт, зачем (описание
- * модели) и сама команда с подсветкой, цепочка - строкой на шаг, длинная строка
- * переносится. Копия - кнопкой в углу кода; остановка - тем же вопросом, что крестик чипа.
+ * Что за фоновая команда или наблюдатель - панелью по нажатию на чип: сколько идёт, зачем
+ * (описание модели) и сама команда с подсветкой, цепочка - строкой на шаг, длинная строка
+ * переносится; у наблюдателя сокета - его адрес. Копия - кнопкой в углу кода; остановка - тем
+ * же вопросом, что крестик чипа.
  */
-export const CommandView = ({ command, description, startedAt, onStop }: CommandViewProps) => {
+export const CommandView = ({ shell, startedAt, onStop }: CommandViewProps) => {
   const { t } = useTranslation()
+  const keys = SHELL_KEYS[shell.kind]
 
   return (
     <div className={styles.commandView}>
       <div className={styles.commandHead}>
         <StatusDot status="running" />
-        <span className={styles.commandTitle}>{t('agentPanel.agents.streams.commandTitle')}</span>
+        <span className={styles.commandTitle}>{t(keys.title)}</span>
         <ChipClock startedAt={startedAt} />
       </div>
-      {description && <div className={styles.commandDescription}>{description}</div>}
-      <CodeBlock code={commandSteps(command)} language="bash" compact wrap />
+      {shell.description && <div className={styles.commandDescription}>{shell.description}</div>}
+      {shell.command ? (
+        <CodeBlock code={commandSteps(shell.command)} language="bash" compact wrap />
+      ) : (
+        shell.url && <CodeBlock code={shell.url} compact wrap />
+      )}
       {onStop && (
         <div className={styles.commandActions}>
           <Button size="sm" variant="ghost" icon={Square} onClick={onStop}>
-            {t('agentPanel.agents.streams.stopCommand')}
+            {t(keys.stop)}
           </Button>
         </div>
       )}

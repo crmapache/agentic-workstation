@@ -38,8 +38,11 @@ const event = (sourceId: string, key: string, start: number, end: number): Calen
   response: 'accepted',
   joinUrl: null,
   location: null,
+  locationUrl: null,
   organizer: null,
+  attendees: [],
   link: null,
+  links: [],
 })
 
 const ics = (
@@ -92,6 +95,7 @@ describe('CalendarService', () => {
       now: () => NOW,
       onState: () => undefined,
       post: (item) => posted.push(item),
+      zone: () => 'UTC',
     })
 
   beforeEach(async () => {
@@ -209,6 +213,7 @@ describe('CalendarSync', () => {
       now: () => NOW,
       onState: () => undefined,
       post: () => undefined,
+      zone: () => 'UTC',
     })
     let running = 0
     let most = 0

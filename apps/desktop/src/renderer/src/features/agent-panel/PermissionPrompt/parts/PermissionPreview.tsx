@@ -8,8 +8,8 @@ import { inputText } from '../../panel.utils'
 import { DiffView } from '../../DiffView/DiffView'
 
 /**
- * Что именно разрешают: команда целиком, дифф правки, адрес. Решать надо по сути
- * действия, а не по имени инструмента.
+ * Что именно разрешают: команда целиком (и у наблюдателя), дифф правки, адрес. Решать надо
+ * по сути действия, а не по имени инструмента.
  */
 export const PermissionPreview = ({ request }: PermissionPreviewProps) => {
   const { action, input } = request
@@ -17,6 +17,13 @@ export const PermissionPreview = ({ request }: PermissionPreviewProps) => {
 
   if (action.kind === 'command' && action.command) {
     return <pre className={styles.command}>{`$ ${action.command}`}</pre>
+  }
+
+  // Наблюдатель исполняет команду оболочки или открывает сокет - разрешают именно их.
+  if (action.kind === 'monitor' && (action.command || action.url)) {
+    return (
+      <pre className={styles.command}>{action.command ? `$ ${action.command}` : action.url}</pre>
+    )
   }
 
   if (rows.length > 0) {

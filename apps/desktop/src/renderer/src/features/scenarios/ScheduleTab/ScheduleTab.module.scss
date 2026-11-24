@@ -68,8 +68,9 @@
 
 // Час - показание (кегль времени, xs), но главное в строке: ярко и плотнее подписи под ним.
 .clock {
+  @include code-font;
+
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
@@ -77,8 +78,9 @@
 }
 
 .away {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
   white-space: nowrap;
 }

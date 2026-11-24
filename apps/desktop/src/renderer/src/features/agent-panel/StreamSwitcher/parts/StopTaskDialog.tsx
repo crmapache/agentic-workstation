@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Dialog } from '@agentic-workstation/ui/Dialog'
 
+import { SHELL_KEYS } from '../StreamSwitcher.constants'
 import styles from '../StreamSwitcher.module.scss'
 import type { StopTaskDialogProps } from '../StreamSwitcher.types'
 import { useStopTask } from '../../agents.queries'
@@ -14,7 +15,10 @@ import { useStopTask } from '../../agents.queries'
 export const StopTaskDialog = ({ conversationId, target, onClose }: StopTaskDialogProps) => {
   const { t } = useTranslation()
   const stopTask = useStopTask()
-  const isCommand = target.kind === 'command'
+  const title =
+    target.kind === 'agent'
+      ? 'agentPanel.agents.streams.stopAgentTitle'
+      : SHELL_KEYS[target.kind].stopTitle
 
   const handleSubmit = () => {
     stopTask.mutate({ conversationId, taskId: target.taskId })
@@ -24,11 +28,7 @@ export const StopTaskDialog = ({ conversationId, target, onClose }: StopTaskDial
   return (
     <Dialog
       open
-      title={
-        isCommand
-          ? t('agentPanel.agents.streams.stopCommandTitle')
-          : t('agentPanel.agents.streams.stopAgentTitle')
-      }
+      title={t(title)}
       onSubmit={handleSubmit}
       onClose={onClose}
       actions={

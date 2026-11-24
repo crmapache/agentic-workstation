@@ -7,7 +7,9 @@ import { providerEfforts } from '@shared/providers'
 
 import type { ChoiceOption } from '@agentic-workstation/ui/ChoiceField.types'
 
+import type { ReminderUnit } from '../settings.types'
 import { takesIdeWork } from '../../../lib/provider-choices'
+import { REMINDER_UNIT_MINUTES } from './SettingsDialog.constants'
 
 /**
  * Набранное в поле - в порог сворачивания вставки: целое в пределах. Недописанное и
@@ -66,4 +68,23 @@ export const editChoice = (
   const known = next.effort === '' || providerEfforts(provider, next.model).includes(next.effort)
 
   return known ? next : { ...next, effort: '' }
+}
+
+/** Напоминание минутами - числом и самой крупной единицей, которой оно делится нацело. */
+export const reminderParts = (minutes: number): { amount: number; unit: ReminderUnit } => {
+  if (minutes > 0 && minutes % REMINDER_UNIT_MINUTES.days === 0) {
+    return { amount: minutes / REMINDER_UNIT_MINUTES.days, unit: 'days' }
+  }
+  if (minutes > 0 && minutes % REMINDER_UNIT_MINUTES.hours === 0) {
+    return { amount: minutes / REMINDER_UNIT_MINUTES.hours, unit: 'hours' }
+  }
+
+  return { amount: minutes, unit: 'minutes' }
+}
+
+/** Число из поля напоминания: целое от нуля; иначе null - поле вернёт прежнее. */
+export const reminderAmount = (text: string): number | null => {
+  const amount = Number(text.trim())
+
+  return text.trim() !== '' && Number.isInteger(amount) && amount >= 0 ? amount : null
 }

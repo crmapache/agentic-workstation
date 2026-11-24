@@ -69,8 +69,6 @@ export type WorkstationPorts = {
 
 /** Календарь звонков для ИИ в разговорах: звонки, накладки, синк. */
 export type CalendarPort = {
-  /** Человек оставил календарь разговорам (переключатель на виде Calendar). */
-  shared: () => boolean
   state: () => CalendarState
   meetingsIn: (
     from: number,

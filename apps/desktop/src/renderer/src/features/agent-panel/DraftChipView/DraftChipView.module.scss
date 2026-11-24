@@ -3,6 +3,7 @@
 // Плашка вложения внутри строки текста: не ломает высоту строки, тон - по смыслу.
 .draftChip {
   @include tinted-plaque(var(--chip-tone));
+  @include code-font;
 
   --chip-tone: var(--color-info);
 
@@ -16,7 +17,6 @@
   margin: calc(var(--space-0-5) * -1) var(--space-0-5);
   padding: 0 var(--space-1);
   border-radius: var(--radius-sm);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
 

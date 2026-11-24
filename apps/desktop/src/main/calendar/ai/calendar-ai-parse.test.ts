@@ -48,6 +48,52 @@ describe('AI calendar answer', () => {
     })
   })
 
+  it('takes people and links, drops non-https ones and keeps an event with broken extras', () => {
+    const result = parseCalendarAnswer(
+      answer({
+        events: [
+          event({
+            organizer_email: 'ana@example.com',
+            organizer_url: 'https://teams.microsoft.com/l/chat/0/0?users=ana@example.com',
+            attendees: [
+              { name: 'Bo', email: 'bo@example.com', url: null },
+              { name: '', email: 'not an email', url: 'javascript:alert(1)' },
+            ],
+            event_url: 'https://outlook.office.com/calendar/item/AAA',
+            location_url: 'http://insecure.example.com/room',
+            links: [
+              { label: 'Agenda', url: 'https://example.com/agenda' },
+              { label: 'Join', url: 'https://teams.microsoft.com/l/meetup-join/x' },
+            ],
+          }),
+          event({
+            title: 'Second',
+            start: '2026-11-25T09:00',
+            end: '2026-11-25T10:00',
+            links: 'oops',
+          }),
+        ],
+      }),
+      'work',
+      ASKED,
+    )
+    const [first, second] = result.ok ? result.events : []
+
+    expect(first).toMatchObject({
+      organizer: {
+        name: 'Ana',
+        email: 'ana@example.com',
+        url: 'https://teams.microsoft.com/l/chat/0/0?users=ana@example.com',
+      },
+      attendees: [{ name: 'Bo', email: 'bo@example.com', url: null }],
+      link: 'https://outlook.office.com/calendar/item/AAA',
+      locationUrl: null,
+      // Ссылка на звонок - своя кнопка Join, в прочих ссылках её нет.
+      links: [{ label: 'Agenda', url: 'https://example.com/agenda' }],
+    })
+    expect(second).toMatchObject({ title: 'Second', links: [], attendees: [] })
+  })
+
   it('keeps the covered window inside what was asked', () => {
     const result = parseCalendarAnswer(
       answer({ covered_from: '2026-11-01', covered_to: '2026-12-31' }),

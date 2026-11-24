@@ -17,6 +17,7 @@ import {
   GoogleAppRejectedError,
 } from '../../connectors/kinds/google/google-session'
 import { CALENDAR_API } from '../../connectors/kinds/google/google.constants'
+import { linksOf, peopleOf, personOf, locationUrlOf } from './event-links'
 import type { SourceRead } from './ics-source'
 import { httpsUrl, joinUrlIn } from './join-url'
 
@@ -36,7 +37,14 @@ type GoogleEvent = {
   end?: GoogleTime
   htmlLink?: string
   organizer?: { email?: string; displayName?: string; self?: boolean }
-  attendees?: { email?: string; responseStatus?: string; self?: boolean }[]
+  attendees?: {
+    email?: string
+    displayName?: string
+    responseStatus?: string
+    self?: boolean
+    organizer?: boolean
+  }[]
+  attachments?: { fileUrl?: string; title?: string }[]
   hangoutLink?: string
   conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] }
   transparency?: string
@@ -46,11 +54,12 @@ type GoogleEvent = {
 
 type EventsPage = { items?: GoogleEvent[]; nextPageToken?: string }
 
-/** Только нужные поля: описание - ради ссылки на Zoom в нём, остальное - на карточку. */
+/** Только нужные поля: описание - ради ссылок на звонок и документы в нём, остальное - на карточку. */
 const EVENT_FIELDS =
   'nextPageToken,items(id,iCalUID,status,summary,location,description,start,end,htmlLink,' +
-  'organizer(email,displayName,self),attendees(email,responseStatus,self),hangoutLink,' +
-  'conferenceData(entryPoints(entryPointType,uri)),transparency,eventType,originalStartTime)'
+  'organizer(email,displayName,self),attendees(email,displayName,responseStatus,self,organizer),' +
+  'attachments(fileUrl,title),hangoutLink,conferenceData(entryPoints(entryPointType,uri)),' +
+  'transparency,eventType,originalStartTime)'
 
 /** Страниц на календарь: 2500 событий на страницу, за три месяца столько не бывает. */
 const PAGES_MAX = 10
@@ -105,6 +114,11 @@ export const googleEventOf = (
 
   if (Number.isNaN(start) || Number.isNaN(end)) return null
 
+  const joinUrl =
+    httpsUrl(videoLink(event)) ?? joinUrlIn([event.location ?? null, event.description ?? null])
+  const link = httpsUrl(event.htmlLink)
+  const locationUrl = locationUrlOf(event.location)
+
   return {
     key: eventKey(sourceId, `${calendarId}/${event.id}`, ''),
     sourceId,
@@ -116,11 +130,22 @@ export const googleEventOf = (
     status: statusOf(event),
     busy: busyOf(event),
     response: responseOf(event),
-    joinUrl:
-      httpsUrl(videoLink(event)) ?? joinUrlIn([event.location ?? null, event.description ?? null]),
+    joinUrl,
     location: event.location?.trim() || null,
-    organizer: event.organizer?.displayName ?? event.organizer?.email ?? null,
-    link: httpsUrl(event.htmlLink),
+    locationUrl,
+    organizer: personOf(event.organizer?.displayName, event.organizer?.email),
+    // Я и организатор - не гости: организатор стоит своей строкой.
+    attendees: peopleOf(
+      (event.attendees ?? [])
+        .filter((attendee) => !attendee.self && !attendee.organizer)
+        .map((attendee) => personOf(attendee.displayName, attendee.email)),
+    ),
+    link,
+    links: linksOf(
+      (event.attachments ?? []).map((file) => ({ label: file.title, url: file.fileUrl })),
+      [event.description],
+      [joinUrl, link, locationUrl],
+    ),
   }
 }
 

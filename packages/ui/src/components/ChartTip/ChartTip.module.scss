@@ -48,8 +48,9 @@
 
 // Число впереди и ярче: ряд человек уже знает по черте, ему нужна цифра.
 .value {
+  @include code-font;
+
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-weight: var(--font-weight-medium);
 }
 
@@ -96,8 +97,9 @@
 
 // Число куска - моноширинным и ярче имени: его ищут глазами.
 .legendValue {
+  @include code-font;
+
   color: var(--color-fg);
-  font-family: var(--font-code);
 }
 
 // Тоны рядов - после ключа и квадратика: класс тона на том же элементе перекрывает тон по

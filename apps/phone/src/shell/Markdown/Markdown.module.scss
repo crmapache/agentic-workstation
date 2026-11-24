@@ -43,10 +43,11 @@
 }
 
 .inlineCode {
+  @include code-font;
+
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
   background-color: var(--color-surface-sunken);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
@@ -61,20 +62,22 @@
 }
 
 .codeLanguage {
+  @include code-font;
+
   padding: var(--space-1) var(--space-3);
   border-bottom: var(--border-width) solid var(--color-border);
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-xs);
 }
 
 .pre {
+  @include code-font;
+
   max-height: var(--size-code-max);
   margin: 0;
   padding: var(--space-2) var(--space-3);
   overflow: auto;
   color: var(--color-syntax-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   white-space: pre;

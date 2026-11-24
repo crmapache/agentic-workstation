@@ -1,4 +1,4 @@
-import type { CalendarSourceView } from '@shared/calendar'
+import type { EventPerson, CalendarSourceView } from '@shared/calendar'
 import { isAiSourceKind } from '@shared/calendar'
 import type { CalendarMeeting } from '@shared/calendar-overlaps'
 import { DAY_MS } from '@shared/time-units'
@@ -17,11 +17,6 @@ const calendarOf = (ports: WorkstationPorts): CalendarPort => {
   const calendar = ports.calendar()
 
   if (!calendar) throw new ArgumentError('The calendar is starting. Try again in a moment.')
-  if (!calendar.shared()) {
-    throw new ArgumentError(
-      'The user keeps the call calendar out of AI chats (Agentic Workstation → Calendar). Ask them.',
-    )
-  }
 
   return calendar
 }
@@ -68,6 +63,12 @@ const periodOf = (args: Record<string, unknown>, days: number) => {
 const names = (sources: readonly CalendarSourceView[], ids: readonly string[]) =>
   ids.map((id) => sources.find((source) => source.id === id)?.name ?? id)
 
+const personView = (person: EventPerson) => ({
+  name: person.name,
+  email: person.email,
+  url: person.url,
+})
+
 const meetingView = (meeting: CalendarMeeting, sources: readonly CalendarSourceView[]) => {
   const { event } = meeting
 
@@ -82,7 +83,11 @@ const meetingView = (meeting: CalendarMeeting, sources: readonly CalendarSourceV
     my_response: event.response,
     join_url: event.joinUrl,
     location: event.location,
-    organizer: event.organizer,
+    location_url: event.locationUrl,
+    organizer: event.organizer ? personView(event.organizer) : null,
+    guests: event.attendees.map(personView),
+    event_url: event.link,
+    links: event.links,
   }
 }
 
@@ -134,7 +139,7 @@ export const CALENDAR_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'calendar_conflicts',
     description:
-      'Overlapping calls in a period: pairs of meetings that take the same time, with the shared span. Back-to-back meetings, all-day events, declined and free events do not count; soft means one of them is tentative.',
+      "Overlapping calls in a period: pairs of meetings that take the same time, with the shared span. Back-to-back meetings, all-day events, declined and free events do not count; soft means one of them is tentative; seen_by_user means the user marked it as seen and keeps both. Each calendar is a separate job or part of life: never mention one calendar's meeting to the people of another.",
     access: 'read',
     inputSchema: {
       type: 'object',
@@ -149,7 +154,7 @@ export const CALENDAR_TOOLS: NativeTool<WorkstationPorts>[] = [
         const { from, to } = periodOf(args, 14)
         const { meetings, overlaps } = calendar.meetingsIn(from, to)
         const byKey = new Map(meetings.map((meeting) => [meeting.key, meeting]))
-        const sources = calendar.state().sources
+        const { sources, seenOverlaps } = calendar.state()
         const view = (key: string) => {
           const meeting = byKey.get(key)
 
@@ -160,6 +165,7 @@ export const CALENDAR_TOOLS: NativeTool<WorkstationPorts>[] = [
           start: localIso(overlap.start),
           end: localIso(overlap.end),
           soft: overlap.soft,
+          seen_by_user: seenOverlaps.includes(overlap.key),
           first: view(overlap.a),
           second: view(overlap.b),
         }))

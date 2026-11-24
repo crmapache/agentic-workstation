@@ -194,12 +194,13 @@
   // Код в строке - как в ленте Claude Code: моноширинный на тёмной плашке.
   :not(pre) > code,
   kbd {
+    @include code-font;
+
     padding: 0 var(--space-1);
     border: var(--border-width) solid var(--color-border);
     border-radius: var(--radius-xs);
     background-color: var(--color-surface-sunken);
     color: var(--color-fg-strong);
-    font-family: var(--font-code);
     font-size: var(--font-size-sm);
   }
 
@@ -326,11 +327,12 @@
 }
 
 .code {
+  @include code-font;
+
   display: block;
   width: max-content;
   min-width: 100%;
   color: var(--color-syntax-fg);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
   white-space: pre;

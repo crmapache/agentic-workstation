@@ -2,87 +2,178 @@
 @use '../calendar-tones' as *;
 @include calendar-tones;
 
+// Карточка в панели: поля панели уже есть, свои - только сверху и снизу и чуть по бокам.
 .card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--space-3);
+  padding: var(--space-1-5) var(--space-1-5) var(--space-1);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .title {
   color: var(--color-fg-strong);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
   overflow-wrap: anywhere;
 }
 
 .when {
   color: var(--color-fg-muted);
   font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+// Строки со значками: значок - колонкой слева, текст переносится под себя.
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: var(--size-icon-md) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  color: var(--color-fg);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+// Значок ростом со строку текста: стоит ровно по её середине, сколько бы строк ни было.
+.factIcon {
+  display: flex;
+  align-items: center;
+  height: 1lh;
+  color: var(--color-fg-subtle);
+
+  svg {
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
+  }
+}
+
+.factText {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .sources {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .source {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
-  color: var(--color-fg);
-  font-size: var(--font-size-sm);
 }
 
-.facts {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  font-size: var(--font-size-sm);
-
-  dt {
-    color: var(--color-fg-subtle);
-  }
-
-  dd {
-    margin: 0;
-    color: var(--color-fg);
-    overflow-wrap: anywhere;
-  }
+.subtle {
+  color: var(--color-fg-subtle);
 }
 
-.clash {
-  display: flex;
-  gap: var(--space-1-5);
-  color: var(--color-danger);
-  font-size: var(--font-size-sm);
-}
-
-.clashIcon,
-.linkIcon {
-  flex: none;
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+.warn {
+  color: var(--color-warning);
 }
 
 .link {
+  color: var(--color-fg);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-underline-offset: var(--space-0-5);
+}
+
+@media (hover: hover) {
+  .link:hover {
+    color: var(--color-fg-accent);
+    text-decoration-color: currentcolor;
+  }
+}
+
+// Накладка: подложка опасности, значок по первой строке, кнопки - строкой под текстом справа.
+.clash {
+  display: grid;
+  grid-template-columns: var(--size-icon-md) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-width) solid
+    color-mix(in srgb, var(--color-danger) var(--tint-border), transparent);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.clashSoft {
+  border-color: color-mix(in srgb, var(--color-warning) var(--tint-border), transparent);
+  background: color-mix(in srgb, var(--color-warning) var(--tint-soft), transparent);
+  color: var(--color-warning);
+}
+
+.clashSeen {
+  border-color: var(--color-border);
+  background: transparent;
+  color: var(--color-fg-muted);
+}
+
+.clashIcon {
+  display: flex;
+  align-items: center;
+  height: 1lh;
+
+  svg {
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
+  }
+}
+
+.clashText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.clashMeta {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.clashActions {
+  grid-column: 1 / -1;
+}
+
+// Действия встречи - справа внизу: «открыть в календаре» тише, Join - главным тоном.
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.action {
   @include interactive-surface;
 
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
-  padding: var(--space-1) var(--space-2);
+  height: var(--size-control-sm);
+  padding: 0 var(--space-2);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-fg);
@@ -90,7 +181,14 @@
   text-decoration: none;
 }
 
+.actionIcon {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
 .join {
   border-color: var(--color-accent-border);
+  background-color: var(--color-accent-soft);
   color: var(--color-fg-accent);
 }

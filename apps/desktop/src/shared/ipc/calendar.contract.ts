@@ -2,11 +2,12 @@ import type {
   CalendarEvent,
   CalendarState,
   CalendarOutcome,
-  CalendarSettings,
   CalendarSourceDraft,
   CalendarSourcePatch,
   GoogleCalendarsOutcome,
 } from '../calendar'
+import type { OverlapView, OverlapBriefOutcome } from '../calendar-review'
+import type { CalendarSettings } from '../calendar-settings'
 
 /**
  * Часть контракта (contract.ts) про календарь звонков (ADR 0114). Календарь общий на IDE, не
@@ -38,6 +39,12 @@ export type CalendarInvokeContract = {
   'calendar:viewed': { request: void; response: CalendarState }
   /** Календари аккаунта Google коннектора - для формы источника. */
   'calendar:googleCalendars': { request: { connectorId: string }; response: GoogleCalendarsOutcome }
+  /** Накладки впереди (до конца окна прямых источников) с обеими встречами и отметкой «видел». */
+  'calendar:overlaps': { request: void; response: OverlapView[] }
+  /** Отметить накладку просмотренной (она перестаёт гореть) или снять отметку. */
+  'calendar:markOverlap': { request: { key: string; seen: boolean }; response: CalendarState }
+  /** Разбор накладки для чата ИИ: обе встречи, история переносов и правила. */
+  'calendar:overlapBrief': { request: { key: string }; response: OverlapBriefOutcome }
 }
 
 export type CalendarEventContract = {
@@ -57,6 +64,9 @@ export const CALENDAR_CHANNELS = {
   'calendar:setSettings': true,
   'calendar:viewed': true,
   'calendar:googleCalendars': true,
+  'calendar:overlaps': true,
+  'calendar:markOverlap': true,
+  'calendar:overlapBrief': true,
 } satisfies Record<keyof CalendarInvokeContract, true>
 
 /** События этой части: их разворачивает EVENT_CHANNELS. */

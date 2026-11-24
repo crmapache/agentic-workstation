@@ -10,8 +10,9 @@ import { LabelRow } from './LabelRow'
  * Отметки с подписью, как в ACC: SESSION - процесс упал (с кодом выхода и причиной из
  * stderr), FAST - быстрый режим не включился и почему, SETTINGS - репозиторий перебивает
  * выбранный аккаунт: чьи имена, без значений. CONNECTORS - процесс поднялся без
- * коннекторов IDE. BACKGROUND - фоновая команда или будильник агента погибли с процессом:
- * их чип пропал, а агент, который ждал отчёта или пробуждения, иначе ждал бы молча.
+ * коннекторов IDE. BACKGROUND - фоновая команда, наблюдатель или будильник агента погибли с
+ * процессом: их чип пропал, а агент, который ждал отчёта, события или пробуждения, иначе ждал
+ * бы молча.
  */
 export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
   const { t } = useTranslation()
@@ -38,8 +39,9 @@ export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
     )
   }
 
-  if (item.code === 'command-lost' || item.code === 'wakeup-lost') {
+  if (item.code === 'command-lost' || item.code === 'monitor-lost' || item.code === 'wakeup-lost') {
     const why = item.subject === 'restarted' ? 'restarted' : 'exited'
+    const lost = item.code === 'monitor-lost' ? 'monitorLost' : 'commandLost'
 
     return (
       <LabelRow label={t('agentPanel.notice.commandLost.label')} tone="warning">
@@ -47,7 +49,7 @@ export const NoticeLabelRow = ({ item }: NoticeItemProps) => {
           t(`agentPanel.notice.wakeupLost.${why}`, { clock: formatClock(Number(item.detail)) })
         ) : (
           <>
-            {t(`agentPanel.notice.commandLost.${why}`)}{' '}
+            {t(`agentPanel.notice.${lost}.${why}`)}{' '}
             <span className={styles.modelTo}>{item.detail}</span>
           </>
         )}

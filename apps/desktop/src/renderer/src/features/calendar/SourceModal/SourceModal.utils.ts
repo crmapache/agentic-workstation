@@ -41,7 +41,8 @@ export const formOf = (source: CalendarSourceView | null, color: CalendarColor):
     profile: source?.kind === 'ai-browser' ? source.profile : '',
     app: source?.kind === 'ai-screen' ? source.app : '',
     hints: source && 'hints' in source ? source.hints : '',
-    allowClicks: source?.kind === 'ai-browser' ? source.allowClicks : false,
+    // Новому - с кликами: без них ИИ не откроет встречу и не возьмёт звонок и людей (ADR 0116).
+    allowClicks: source?.kind === 'ai-browser' ? source.allowClicks : true,
     weeksAhead: source && 'weeksAhead' in source ? source.weeksAhead : AI_WEEKS_DEFAULT,
     provider: ai?.provider ?? 'claude',
     model: ai?.model ?? '',

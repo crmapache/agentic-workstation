@@ -6,12 +6,14 @@ import { isTimeZone, wallTimeToUtc } from '@shared/zone-time'
 
 import type { SyncWindow } from '../calendar-window'
 import { eventKey, allDayRange } from '../calendar-window'
+import { linksOf, peopleOf, personOf, locationUrlOf } from './event-links'
 import { httpsUrl, joinUrlIn } from './join-url'
 import { WINDOWS_ZONES } from './windows-zones.constants'
 
 type IcalTime = InstanceType<typeof ICAL.Time>
 type IcalEvent = InstanceType<typeof ICAL.Event>
 type IcalComponent = InstanceType<typeof ICAL.Component>
+type IcalProperty = InstanceType<typeof ICAL.Property>
 
 /**
  * Шагов повтора на серию: ежедневная встреча с 2010 года - около шести тысяч шагов до сегодня,
@@ -84,15 +86,25 @@ const busyOf = (component: IcalComponent): EventBusy => {
   }
 }
 
-const organizerOf = (component: IcalComponent): string | null => {
-  const organizer = component.getFirstProperty('organizer')
-  const name = organizer?.getParameter('cn')
-  const value = organizer?.getFirstValue()
+/** Человек из свойства ORGANIZER или ATTENDEE: имя - CN, почта - адрес mailto. */
+const personIn = (property: IcalProperty | null) => {
+  const name = property?.getParameter('cn')
+  const value = property?.getFirstValue()
 
-  if (typeof name === 'string' && name.trim()) return name.trim()
-
-  return typeof value === 'string' && value ? value.replace(/^mailto:/i, '') : null
+  return personOf(typeof name === 'string' ? name : null, typeof value === 'string' ? value : null)
 }
+
+/** Вложения-ссылки (ATTACH с адресом, а не байтами): подпись - имя файла, если есть. */
+const attachmentsOf = (component: IcalComponent) =>
+  component.getAllProperties('attach').map((attach) => {
+    const name = attach.getParameter('filename') ?? attach.getParameter('x-filename')
+    const value = attach.getFirstValue()
+
+    return {
+      label: typeof name === 'string' ? name : null,
+      url: typeof value === 'string' ? value : null,
+    }
+  })
 
 type Occurrence = { start: IcalTime; end: IcalTime; item: IcalEvent; recurrenceId: string }
 
@@ -114,7 +126,17 @@ const eventOf = (
   const end = allDay
     ? Date.parse(`${allDay.to}T00:00:00Z`)
     : utcOf(occurrence.end, tzidOf(component, 'dtend') ?? tzidOf(component, 'dtstart'), machineZone)
-  const url = textOf(component, 'url')
+  const link = httpsUrl(textOf(component, 'url'))
+  const location = textOf(component, 'location')
+  const joinUrl = joinUrlIn([
+    textOf(component, 'x-microsoft-skypeteamsmeetingurl'),
+    textOf(component, 'x-google-conference'),
+    link,
+    location,
+    textOf(component, 'description'),
+  ])
+  const locationUrl = locationUrlOf(location)
+  const organizer = personIn(component.getFirstProperty('organizer'))
 
   return {
     key: eventKey(sourceId, uid, occurrence.recurrenceId),
@@ -127,16 +149,23 @@ const eventOf = (
     status: statusOf(component),
     busy: busyOf(component),
     response: 'unknown',
-    joinUrl: joinUrlIn([
-      textOf(component, 'x-microsoft-skypeteamsmeetingurl'),
-      textOf(component, 'x-google-conference'),
-      url,
-      textOf(component, 'location'),
-      textOf(component, 'description'),
-    ]),
-    location: textOf(component, 'location') || null,
-    organizer: organizerOf(component),
-    link: httpsUrl(url),
+    joinUrl,
+    location: location || null,
+    locationUrl,
+    organizer,
+    // Организатор стоит своей строкой: у Outlook он бывает и среди гостей.
+    attendees: peopleOf(
+      component
+        .getAllProperties('attendee')
+        .map(personIn)
+        .filter((person) => !organizer?.email || person?.email !== organizer.email),
+    ),
+    link,
+    links: linksOf(
+      attachmentsOf(component),
+      [textOf(component, 'description')],
+      [joinUrl, link, locationUrl],
+    ),
   }
 }
 

@@ -59,12 +59,13 @@
 }
 
 .inlineCode {
+  @include code-font;
+
   padding: 0 var(--space-1);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-xs);
   background-color: var(--color-surface-sunken);
   color: var(--color-fg-strong);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
 }
 
@@ -134,8 +135,9 @@
 
 // Маркер как в ACC: моноширинный, тише текста - он отмечает пункт, а не читается.
 .marker {
+  @include code-font;
+
   color: var(--color-fg-subtle);
-  font-family: var(--font-code);
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
