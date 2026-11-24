@@ -110,6 +110,36 @@ describe('computer tools', () => {
     )
   })
 
+  it('passes expect to the click and marks a refused click as an error with its screenshot', async () => {
+    const { calls } = source()
+    const refusing = createComputerSource(
+      {
+        ...fakeAgent().agent,
+        click: (call: DeskCall, ...args: unknown[]) => {
+          calls.push({ method: 'click', call, args })
+
+          return Promise.resolve({ ...ANSWER, text: 'Nothing was clicked.', isRefusal: true })
+        },
+      } as unknown as ComputerAgent,
+      () => undefined,
+    )
+    const result = await refusing.callTool(
+      'click',
+      { x: 1, y: 2, expect: ' Save ' },
+      undefined,
+      LAUNCH,
+    )
+    const blank = await refusing.callTool('click', { x: 1, y: 2, expect: '  ' }, undefined, LAUNCH)
+
+    expect(calls[0]?.args[1]).toEqual({ button: 'left', count: 1, chord: null, expect: 'Save' })
+    expect(result).toMatchObject({
+      isError: true,
+      content: [{ type: 'image' }, { type: 'text', text: 'Nothing was clicked.' }],
+    })
+    expect(blank).toMatchObject({ isError: true })
+    expect(calls).toHaveLength(1)
+  })
+
   it('turns scroll direction and notches into pixels', async () => {
     const { source: computer, calls } = source()
 

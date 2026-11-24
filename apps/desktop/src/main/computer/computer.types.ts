@@ -40,11 +40,33 @@ export type InputDriver = {
    */
   canReach?: (at: Point | null) => boolean
   /**
+   * Что под точкой экрана (ADR 0119): доступность macOS, UI Automation Windows. Рука спрашивает
+   * прямо перед каждым нажатием. Нет - элемент не определить, клик без expect идёт как раньше.
+   */
+  elementAt?: (at: Point) => ElementLookup
+  /**
    * Буфер обмена для текста: есть у Windows, там текст вставляется, а не печатается знаками
    * (ADR 0058). У мака нет - знаки CoreGraphics доходят верно.
    */
   clipboard?: TextClipboard
 }
+
+/**
+ * Клик руки: кнопка, сколько раз, модификаторы своими клавишами и подпись того, что модель хочет
+ * нажать (expect, ADR 0119).
+ */
+export type HandClick = {
+  button: MouseButton
+  count: number
+  modifiers: readonly Modifier[]
+  expect?: string | undefined
+}
+
+/** Элемент под точкой экрана: роль и имя словами, приложение, действует ли он по нажатию. */
+export type ScreenElement = { role: string; name: string; app: string; isActionable: boolean }
+
+/** Что под точкой: элемент - или почему его не узнать (нет доступности, приложение молчит). */
+export type ElementLookup = { element: ScreenElement } | { element: null; reason: string }
 
 /**
  * Вставки текста одного набора. Буфер человека запоминается на открытии и возвращается на

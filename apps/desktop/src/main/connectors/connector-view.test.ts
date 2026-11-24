@@ -194,6 +194,13 @@ describe('instructionsFor', () => {
       expect(text).toContain(description)
       // Правило сообщений людям (ADR 0095) - в пояснении обоих, а не только в описании type.
       expect(text).toMatch(/Messages to people: write paragraphs.*Shift\+(Enter|Return)/)
+      // Правило клика (ADR 0119): кнопки, которые отправляют и отменяют, - по ref в Chrome и с
+      // expect на компьютере; ответ сверить с намерением.
+      expect(text).toMatch(
+        kind === 'browser'
+          ? /send, accept, decline, delete or pay: only by ref from a fresh snapshot; check the answer's clicked/
+          : /Click buttons, menu items, links and fields with expect/,
+      )
     }
 
     // На Windows у Computer Use строкой больше - и она тоже должна влезать.

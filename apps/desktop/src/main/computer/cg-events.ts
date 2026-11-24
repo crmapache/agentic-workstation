@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 
 import type * as Koffi from 'koffi'
 
+import { macElementAt } from './ax-element'
 import {
   EVENT,
   MOUSE_BUTTON,
@@ -141,6 +142,8 @@ export const macInput: InputDriver = {
 
     postAndRelease(lib, event)
   },
+  // Что под точкой - доступность macOS (ADR 0119): рука спрашивает перед каждым нажатием.
+  elementAt: macElementAt,
   // Флаги модификаторов - в младших 24 битах: Number не теряет их ни из числа, ни из BigInt.
   heldFlags: () => Number(loaded().flagsState(HID_SYSTEM_STATE)) & MODIFIER_FLAGS,
   isButtonHeld: () => {

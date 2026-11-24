@@ -23,6 +23,7 @@ import {
   tabArg,
   pointArg,
   agentCall,
+  expectArg,
   targetArg,
   referenceOf,
   REF_PROPERTY,
@@ -115,14 +116,21 @@ const filesArg = async (args: Record<string, unknown>, workDir: string | null) =
 /** Мышь и клавиатура во вкладке: курсор агента подъезжает перед нажатием. */
 export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
   {
+    // Проверка попадания (ADR 0119): ref, ушедший из-под мыши, не нажимается; x,y в кнопку,
+    // ссылку, пункт меню или поле - только с expect; ответ говорит, что нажато.
     name: 'click',
     description:
-      'Click an element by ref (from the snapshot) or at x,y: your pointer moves there like a hand and clicks. double for a double click, button "right" for the context menu.',
+      'Click an element by ref from the snapshot (the main way) or at x,y: your pointer moves there like a hand and clicks. Right before the press it checks what is under the pointer: a ref that moved or got covered is not clicked. At x,y a button, link, menu item or field needs expect, otherwise nothing is clicked. The answer names what was clicked (clicked): check it is what you meant. double for a double click, button "right" for the context menu.',
     access: 'write',
     inputSchema: schema({
       ...TAB_PROPERTY,
       ...REF_PROPERTY,
       ...POINT_PROPERTIES,
+      expect: {
+        type: 'string',
+        description:
+          'The whole label of what you mean to click, like "Accept": the press goes only if the element under the pointer has exactly this name (case, extra spaces and a trailing "…" or ":" do not matter). Needed at x,y for buttons, links, menu items and fields.',
+      },
       double: { type: 'boolean' },
       button: { type: 'string', enum: [...BUTTONS] },
     }),
@@ -130,12 +138,20 @@ export const BROWSER_INPUT_TOOLS: NativeTool<BrowserAgent>[] = [
       const page = await agent.page(agentCall(call), tabArg(args))
       const target = targetArg(args)
       const button = (stringArg(args, 'button') ?? 'left') as MouseButton
+      const expect = expectArg(args)
+      let clicked = ''
 
       if (!BUTTONS.includes(button)) throw new ArgumentError('"button" is left, right or middle.')
 
-      return act(page, () =>
-        click(page, target, { button, double: booleanArg(args, 'double', false) }),
-      )
+      const result = await act(page, async () => {
+        clicked = await click(page, target, {
+          button,
+          double: booleanArg(args, 'double', false),
+          expect,
+        })
+      })
+
+      return { clicked, ...result }
     },
   },
   {

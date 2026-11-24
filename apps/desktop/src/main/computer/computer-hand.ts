@@ -25,10 +25,13 @@ import type {
   Point,
   Keymap,
   Modifier,
+  HandClick,
   InputDriver,
   MouseButton,
   PasteSession,
+  ElementLookup,
 } from './computer.types'
+import { clickRefusal, elementUnder, pressedSoFar } from './screen-element'
 
 const INTERRUPTED =
   'The user moved the mouse or clicked while you were acting, so the action stopped partway. ' +
@@ -160,14 +163,20 @@ export class ComputerHand {
     }
   }
 
-  /** Клик с модификаторами (⌘-клик): они нажимаются своими клавишами вокруг клика. */
+  /**
+   * Клик с модификаторами (⌘-клик): они нажимаются своими клавишами вокруг клика. Прямо перед
+   * каждым нажатием - что под точкой (ADR 0119): пока рука шла, окно могло перерисоваться. Не то,
+   * что задумано (expect), или действующий элемент без expect - нажатие не уходит. Ответ - что
+   * было под первым нажатием.
+   */
   async click(
     at: Point,
     area: Rect,
-    options: { button: MouseButton; count: number; modifiers: readonly Modifier[] },
+    options: HandClick,
     signal: AbortSignal,
-  ): Promise<void> {
+  ): Promise<ElementLookup> {
     const { sleep, random } = this.motion
+    let first: ElementLookup | null = null
 
     this.checkReach(at)
     await this.moveTo(at, area, signal)
@@ -177,6 +186,15 @@ export class ComputerHand {
         if (click > 1) await sleep(doubleGapMs(random), signal)
 
         this.guard(true)
+
+        const seen = elementUnder(this.input, at)
+        const refusal = clickRefusal(seen, options.expect)
+
+        if (refusal) {
+          throw new ComputerError('mismatch', `${refusal} ${pressedSoFar(first, click - 1)}`)
+        }
+
+        first ??= seen
         this.input.mouse('down', at, options.button, click, flags)
         // Кнопку отпускают всегда: обрыв посреди нажатия не должен оставить её зажатой.
         await sleep(holdMs(random)).finally(() =>
@@ -184,6 +202,8 @@ export class ComputerHand {
         )
       }
     })
+
+    return first ?? elementUnder(this.input, at)
   }
 
   async drag(from: Point, to: Point, area: Rect, signal: AbortSignal): Promise<void> {

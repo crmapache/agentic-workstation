@@ -41,7 +41,7 @@ const tree = (title: string, children: [role: string, name: string, backend: num
  * «Deep» - ещё один фрейм своего процесса. Фрейм своего процесса читается своей сессией, его
  * узлы - в координатах его окна; место его iframe - getBoxModel в сессии родителя.
  */
-const setup = () => {
+const setup = (hits: Record<string, number> = { main: 20, CROSS: 40, DEEP: 41 }) => {
   const hub = new FakeHub()
 
   hub.connect('work', 'Work')
@@ -87,6 +87,10 @@ const setup = () => {
   })
   hub.cdp.set('DOM.getBoxModel', (params, _key, frame) => ({
     model: { content: boxes[frame ?? 'main']?.[params['backendNodeId'] as number] ?? [] },
+  }))
+  // Под мышью в документе каждой сессии - свой узел: в главном - iframe Cross, в нём - Deep.
+  hub.cdp.set('DOM.getNodeForLocation', (_params, _key, frame) => ({
+    backendNodeId: hits[frame ?? 'main'],
   }))
   // Каждый узел - квадрат 10 на 10 в начале окна своего документа.
   hub.cdp.set('DOM.getContentQuads', () => ({ quads: [[0, 0, 10, 0, 10, 10, 0, 10]] }))
@@ -171,10 +175,31 @@ describe('фреймы в снимке и действиях', () => {
       ['DEEP', 41],
     ])
     expect(cdpCalls(hub, 'DOM.getContentQuads').map((call) => call.frame)).toEqual(['DEEP'])
+    // Перед нажатием - что под мышью: iframe Cross в странице, в нём iframe Deep, в нём кнопка;
+    // точка в каждом документе - за вычетом места его iframe.
+    expect(
+      cdpCalls(hub, 'DOM.getNodeForLocation').map((call) => [
+        call.frame,
+        call.params['x'],
+        call.params['y'],
+      ]),
+    ).toEqual([
+      [undefined, 135, 245],
+      ['CROSS', 35, 45],
+      ['DEEP', 5, 5],
+    ])
+    // Имя попадания - в сессии кнопки, путь каждого iframe (ref на него попадает внутрь) - в
+    // сессии его родителя.
+    expect(cdpCalls(hub, 'Accessibility.getPartialAXTree')).toEqual([
+      { frame: undefined, params: { backendNodeId: 20, fetchRelatives: true } },
+      { frame: 'CROSS', params: { backendNodeId: 40, fetchRelatives: true } },
+      { frame: 'DEEP', params: { backendNodeId: 41, fetchRelatives: true } },
+    ])
   })
 
   it('фрейм процесса страницы: координаты уже страницы, без сдвига; ввод - функцией в его документе', async () => {
-    const { hub, agent } = setup()
+    const hits: Record<string, number> = { main: 11 }
+    const { hub, agent } = setup(hits)
     const page = await agent.open(callOf('p1'), '')
 
     hub.cdp.set('DOM.resolveNode', () => ({ object: { objectId: 'obj' } }))
@@ -191,6 +216,8 @@ describe('фреймы в снимке и действиях', () => {
       )?.params,
     ).toMatchObject({ x: 5, y: 5 })
 
+    hits['main'] = 20
+    hits['CROSS'] = 21
     await typeText(page, { ref: 'f2e1', text: 'Ada' })
 
     // Функции поля - в документе его фрейма; в главном документе - только план прокрутки

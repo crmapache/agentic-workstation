@@ -3,6 +3,9 @@ import { screen } from 'electron'
 import { ComputerError } from './computer-error'
 import { LIVE_MOTION } from './computer-hand'
 import type { Point, InputDriver } from './computer.types'
+import { createUiaFinder } from './uia-element'
+import type { UiaPort } from './uia-element'
+import { loadUiaPort } from './uia-native'
 import { createWindowsClipboard } from './win-clipboard'
 import {
   GA_ROOT,
@@ -138,15 +141,20 @@ export const createWindowsInput = (lib: () => WinNative, points: WinScreen): Inp
 }
 
 let native: WinNative | null = null
+let uia: UiaPort | null = null
+
+const winNative = () => (native ??= loadWinNative())
+
+const toPixels = (at: Point) =>
+  screen.dipToScreenPoint({ x: Math.round(at.x), y: Math.round(at.y) })
 
 /**
  * Мышь, клавиатура и буфер обмена этого Windows: вызовы грузятся на первом действии (на маке их
- * не зовёт никто), точки пересчитывает Electron - он знает масштаб каждого монитора.
+ * не зовёт никто), точки пересчитывает Electron - он знает масштаб каждого монитора. Что под
+ * точкой - UI Automation (ADR 0119), тоже на первом клике.
  */
 export const windowsInput: InputDriver = {
-  ...createWindowsInput(() => (native ??= loadWinNative()), {
-    toPixels: (at) => screen.dipToScreenPoint({ x: Math.round(at.x), y: Math.round(at.y) }),
-    toDip: (at) => screen.screenToDipPoint(at),
-  }),
+  ...createWindowsInput(winNative, { toPixels, toDip: (at) => screen.screenToDipPoint(at) }),
   clipboard: createWindowsClipboard(LIVE_MOTION),
+  elementAt: createUiaFinder(() => (uia ??= loadUiaPort(winNative)), toPixels, process.pid),
 }

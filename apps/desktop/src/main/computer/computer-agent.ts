@@ -14,9 +14,13 @@ import { shootRegion, listDisplays, shootDisplay } from './computer-screen'
 import type { Picture } from './computer-screen'
 import { SETTLE_AFTER_OPEN_MS, SETTLE_AFTER_ACTION_MS } from './computer.constants'
 import type { Point, MouseButton } from './computer.types'
+import { clickedText } from './screen-element'
 
-/** Ответ инструмента: картинка экрана и что про неё знать. */
-export type ComputerAnswer = { picture: Picture; text: string }
+/**
+ * Ответ инструмента: картинка экрана и что про неё знать. isRefusal - действие не сделано
+ * проверкой (ADR 0119): модель получает и снимок, и отказ.
+ */
+export type ComputerAnswer = { picture: Picture; text: string; isRefusal?: boolean }
 
 /** Что агенту нужно от IDE: стол, рука, разрешения, капсула (пропускать клики сквозь себя). */
 export type ComputerPort = {
@@ -44,6 +48,8 @@ const PAUSED_SINCE =
 const LAYOUT_CHANGED =
   'The displays changed since your latest screenshot (one was connected, removed or resized), ' +
   'so this action did not run. Take a new screenshot.'
+
+const MISMATCH_NEXT = 'Look at this screenshot before you click again.'
 
 /** Клавиатуре точка не нужна: под капсулой она не бьёт никогда. */
 const NOWHERE = (): Point[] => []
@@ -103,20 +109,25 @@ export class ComputerAgent {
     })
   }
 
+  /** Клик; ответ - что нажато (ADR 0119), а не голые координаты: модель сверяет с намерением. */
   click(
     call: DeskCall,
     at: { x: number; y: number },
-    options: { button: MouseButton; count: number; chord: KeyChord | null },
+    options: { button: MouseButton; count: number; chord: KeyChord | null; expect?: string },
   ): Promise<ComputerAnswer> {
     const target = (frame: ShotFrame) => [toScreen(frame, at.x, at.y)]
 
     return this.act(call, target, async (frame, signal) => {
       const point = toScreen(frame, at.x, at.y)
       const modifiers = options.chord?.modifiers ?? []
+      const seen = await this.port.hand.click(
+        point,
+        frame.display.bounds,
+        { ...options, modifiers },
+        signal,
+      )
 
-      await this.port.hand.click(point, frame.display.bounds, { ...options, modifiers }, signal)
-
-      return `Clicked at (${at.x}, ${at.y}).`
+      return clickedText(seen, at)
     })
   }
 
@@ -266,16 +277,26 @@ export class ComputerAgent {
       if (isUnder) this.port.passThrough(true)
 
       let said: string
+      let isRefusal = false
 
       try {
         said = await work(frame, signal)
+      } catch (error) {
+        // Проверка не пустила нажатие: модель видит, что там на самом деле, - свежим снимком.
+        if (!(error instanceof ComputerError) || error.code !== 'mismatch') throw error
+
+        said = `${error.message} ${MISMATCH_NEXT}`
+        isRefusal = true
       } finally {
         if (isUnder) this.port.passThrough(false)
       }
 
       await LIVE_MOTION.sleep(SETTLE_AFTER_ACTION_MS, signal)
 
-      return this.shoot(call, frame.display, [pausedNote(pausedMs), said].filter(Boolean).join(' '))
+      const text = [pausedNote(pausedMs), said].filter(Boolean).join(' ')
+      const answer = await this.shoot(call, frame.display, text)
+
+      return isRefusal ? { ...answer, isRefusal } : answer
     })
   }
 

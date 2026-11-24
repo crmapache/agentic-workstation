@@ -11,16 +11,18 @@ import {
   oneOfArg,
   pointArg,
   typeArgs,
+  expectArg,
   POINT_PROPERTIES,
 } from './computer-args'
 
 /** Снимок с подписью - картинкой и текстом, как его отдаёт MCP. */
-const answer = ({ picture, text }: ComputerAnswer) =>
+const answer = ({ picture, text, isRefusal }: ComputerAnswer) =>
   new ToolOutput({
     content: [
       { type: 'image', data: picture.data, mimeType: picture.mimeType },
       { type: 'text', text },
     ],
+    ...(isRefusal ? { isError: true } : {}),
   })
 
 const AFTER = 'Returns a fresh screenshot.'
@@ -94,12 +96,19 @@ export const COMPUTER_TOOLS: NativeTool<ComputerAgent>[] = [
     },
   },
   {
+    // Проверка попадания (ADR 0119): кнопка, пункт меню, ссылка или поле - только с expect;
+    // ответ говорит, что нажато, а не координаты.
     name: 'click',
-    description: `Move the mouse to a point like a person and click. ${AFTER}`,
+    description: `Move the mouse to a point like a person and click. Right before the press it checks what is under the pointer: a button, menu item, link or field needs expect, and a mismatch is not clicked. The answer names what was clicked: check it is what you meant. ${AFTER}`,
     access: 'write',
     inputSchema: schema(
       {
         ...POINT_PROPERTIES,
+        expect: {
+          type: 'string',
+          description:
+            'The whole label of what you mean to click, like "Save" or "7": the press goes only if the element under the pointer has exactly this name (case, extra spaces and a trailing "…" or ":" do not matter).',
+        },
         button: { type: 'string', enum: BUTTONS, description: 'Default: left.' },
         clicks: { type: 'number', description: '2 - double click, 3 - triple click. Default: 1.' },
         modifiers: {
@@ -116,6 +125,7 @@ export const COMPUTER_TOOLS: NativeTool<ComputerAgent>[] = [
           button: oneOfArg(args, 'button', BUTTONS, 'left'),
           count: numberArg(args, 'clicks', { min: 1, max: 3, fallback: 1 }),
           chord: chordArg(stringArg(args, 'modifiers')),
+          ...expectArg(args),
         }),
       ),
   },

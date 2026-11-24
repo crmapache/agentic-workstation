@@ -131,6 +131,24 @@ export const targetArg = (args: Record<string, unknown>): Target => {
 }
 
 /**
+ * Подпись того, что модель хочет нажать (ADR 0119). Нет - undefined; пустая - ошибка: молча
+ * нажать без сверки, которую модель попросила, нельзя.
+ */
+export const expectArg = (args: Record<string, unknown>): string | undefined => {
+  const value = args['expect']
+
+  if (value === undefined || value === null) return undefined
+
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new ArgumentError(
+      '"expect" must be the label you mean to click, like "Accept" (a non-empty string).',
+    )
+  }
+
+  return value.trim()
+}
+
+/**
  * Адрес для перехода: без схемы - https (модель часто пишет example.com); javascript: и
  * адреса Chrome (chrome://) не открываются - в них агенту нечего делать.
  */

@@ -21,6 +21,7 @@ import { createBrowserSource } from '../connectors/kinds/browser/browser-tools'
 import type { BrowserAgent } from './browser-agent'
 import { BrowserHub } from './browser-hub'
 import { installBridge } from './native-host-install'
+import { formPage, invitePage, inviteFramePage } from './__fixtures__/invite-pages'
 import { isAccent, decodePng } from './__fixtures__/png-pixels'
 import type { Pixels } from './__fixtures__/png-pixels'
 
@@ -229,6 +230,9 @@ const PAGES: Record<string, string> = {
   '/far': FAR,
   '/big': BIG,
   '/frame-same': frameDoc('same'),
+  '/invite': invitePage(true),
+  '/invite-still': invitePage(false),
+  '/form': formPage,
   '/frame-deep': frameDoc('deep'),
 }
 
@@ -338,13 +342,21 @@ describe.skipIf(!ready)(
       server = createServer((request, response) => {
         response.writeHead(200, { 'Content-Type': 'text/html' })
         response.end(
-          request.url === '/frames' ? framesPage(cross) : (PAGES[request.url ?? ''] ?? PAGE),
+          request.url === '/frames'
+            ? framesPage(cross)
+            : request.url === '/invite-frame'
+              ? inviteFramePage(cross)
+              : (PAGES[request.url ?? ''] ?? PAGE),
         )
       })
       // Второй сайт для фрейма другого процесса: тот же адрес машины, но под именем localhost.
-      crossServer = createServer((_request, response) => {
+      crossServer = createServer((request, response) => {
         response.writeHead(200, { 'Content-Type': 'text/html' })
-        response.end(frameDoc('cross', `${base}/frame-deep`))
+        response.end(
+          request.url === '/invite-still'
+            ? invitePage(false)
+            : frameDoc('cross', `${base}/frame-deep`),
+        )
       })
       await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
       await new Promise<void>((resolve) => crossServer.listen(0, '127.0.0.1', resolve))
@@ -883,6 +895,170 @@ describe.skipIf(!ready)(
       expect(await valueOf('- textbox "Field deep"')).toBe('Again')
       json(await call('finish'))
     }, 120_000)
+
+    // Случай 24 ноября 2026 (ADR 0119): Outlook перерисовал панель, пока мышь шла к «Aceptar», и
+    // нажатие ушло в «Rechazar». Проверка в момент нажатия больше этого не пускает.
+    it('клик сверяет попадание в момент нажатия: сдвиг полосы, expect, холст, фрейм, курсор', async () => {
+      const counts = async () =>
+        JSON.parse(text(await call('evaluate', { expression: 'window.counts' }))) as Record<
+          string,
+          number
+        >
+      const clickError = async (args: Record<string, unknown>) => {
+        const result = await call('click', args)
+
+        expect(result.isError).toBe(true)
+
+        return text(result)
+      }
+
+      // ref на «Aceptar», а полоса уезжает, как только мышь пошла: нажата «Aceptar», «Rechazar» - ноль.
+      json(await call('open', { url: `${base}/invite` }))
+
+      const shifting = text(await call('snapshot'))
+
+      expect(
+        json<{ clicked: string }>(
+          await call('click', { ref: refOf(shifting, '- button "Aceptar"') }),
+        ).clicked,
+      ).toBe('button "Aceptar"')
+      expect(await counts()).toEqual({ Aceptar: 1, Rechazar: 0, Seguir: 0, Canvas: 0 })
+      json(await call('finish'))
+
+      // x,y в середину «Aceptar» с expect, а под точкой уже «Rechazar» - отказ, ноль нажатий.
+      json(await call('open', { url: `${base}/invite` }))
+      expect(await clickError({ x: 360, y: 120, expect: 'Aceptar' })).toContain(
+        'Under the pointer is button "Rechazar", not "Aceptar". Nothing was clicked.',
+      )
+      expect(await counts()).toEqual({ Aceptar: 0, Rechazar: 0, Seguir: 0, Canvas: 0 })
+      json(await call('finish'))
+
+      json(await call('open', { url: `${base}/invite-still` }))
+
+      // x,y в кнопку без expect - отказ с подсказкой про ref.
+      expect(await clickError({ x: 360, y: 120 })).toContain(
+        'Under (360, 120) is button "Aceptar". Nothing was clicked. Click it by ref from a fresh snapshot, or pass expect',
+      )
+      // x,y по холсту без expect - клик проходит, ответ называет холст.
+      expect(json<{ clicked: string }>(await call('click', { x: 200, y: 360 })).clicked).toBe(
+        'Canvas',
+      )
+      // Обычный клик по ref - в ответе роль и имя кнопки.
+      const still = text(await call('snapshot'))
+
+      expect(
+        json<{ clicked: string }>(await call('click', { ref: refOf(still, '- button "Seguir"') }))
+          .clicked,
+      ).toBe('button "Seguir"')
+
+      // Курсор агента стоит ровно в точке нажатия поверх страницы, но попадание - по странице
+      // под ним: с ignorePointerEventsNone Chrome ударил бы в слой курсора, а не в кнопку.
+      const [x, y] = JSON.parse(
+        text(await call('evaluate', { expression: 'window.lastDown' })),
+      ) as [number, number]
+      const tabId = tabIdOf(
+        tabsOf(await call('tabs')).find((tab) => tab.url.endsWith('/invite-still'))?.tab ?? '',
+      )
+      const nameAt = async (ignorePointerEventsNone: boolean) => {
+        const { backendNodeId } = (await cdp(tabId, 'DOM.getNodeForLocation', {
+          x,
+          y,
+          ignorePointerEventsNone,
+        })) as { backendNodeId: number }
+        const { node } = (await cdp(tabId, 'DOM.describeNode', { backendNodeId })) as {
+          node: { nodeName: string }
+        }
+
+        return node.nodeName
+      }
+
+      expect(await nameAt(false)).toBe('BUTTON')
+      expect(await nameAt(true)).not.toBe('BUTTON')
+      expect(
+        json<{ clicked: string }>(await call('click', { x, y, expect: 'seguir' })).clicked,
+      ).toBe('button "Seguir"')
+      expect(await counts()).toEqual({ Aceptar: 0, Rechazar: 0, Seguir: 2, Canvas: 1 })
+      json(await call('finish'))
+
+      // Полоса во фрейме другого источника: ref и expect работают сквозь его iframe.
+      json(await call('open', { url: `${base}/invite-frame` }))
+
+      const framed = text(await call('snapshot'))
+      const seguir = refOf(framed, '- button "Seguir"')
+
+      expect(seguir).toMatch(/^f1e\d+$/)
+      expect(json<{ clicked: string }>(await call('click', { ref: seguir })).clicked).toBe(
+        'button "Seguir"',
+      )
+      // Кнопка «Aceptar» - (300..420, 100..140) окна фрейма; где фрейм - спросить страницу:
+      // клик по ref мог её прокрутить.
+      const [left, top] = JSON.parse(
+        text(
+          await call('evaluate', {
+            expression:
+              "(() => { const r = document.querySelector('iframe').getBoundingClientRect(); return [r.left, r.top] })()",
+          }),
+        ),
+      ) as [number, number]
+
+      expect(
+        json<{ clicked: string }>(
+          await call('click', { x: left + 360, y: top + 120, expect: 'Aceptar' }),
+        ).clicked,
+      ).toBe('button "Aceptar"')
+      expect(await clickError({ x: left + 480, y: top + 120, expect: 'Aceptar' })).toContain(
+        'Under the pointer is button "Rechazar", not "Aceptar".',
+      )
+      expect(text(await call('snapshot'))).toContain(
+        'Pressed Aceptar 1, Pressed Rechazar 0, Pressed Seguir 1, Pressed Canvas 0',
+      )
+      json(await call('finish'))
+    }, 120_000)
+
+    // Соседи с похожими именами, подписи полей и ссылка на сам iframe (ADR 0119).
+    it('клик: соседняя кнопка с похожим именем, подпись флажка, флажок под подписью, iframe по ref', async () => {
+      const checked = async (id: string) =>
+        JSON.parse(
+          text(await call('evaluate', { expression: `document.getElementById('${id}').checked` })),
+        ) as boolean
+
+      json(await call('open', { url: `${base}/form` }))
+
+      // «Save» входит в «Don't Save», но это соседняя кнопка: отказ, ни одного нажатия.
+      const missed = await call('click', { x: 480, y: 120, expect: 'Save' })
+
+      expect(missed.isError).toBe(true)
+      expect(text(missed)).toContain('Under the pointer is button "Don\'t Save", not "Save".')
+      expect(
+        JSON.parse(text(await call('evaluate', { expression: 'window.counts' }))) as unknown,
+      ).toEqual({ Save: 0, "Don't Save": 0 })
+
+      // Текст подписи жмёт её флажок: без expect - отказ, с её текстом - флажок нажат.
+      const label = await call('click', { x: 120, y: 209 })
+
+      expect(text(label)).toContain('is checkbox "Delete my account forever"')
+      expect(await checked('danger')).toBe(false)
+      expect(
+        json<{ clicked: string }>(
+          await call('click', { x: 120, y: 209, expect: 'Delete my account forever' }),
+        ).clicked,
+      ).toBe('checkbox "Delete my account forever"')
+      expect(await checked('danger')).toBe(true)
+
+      // Поле спрятано под своей подписью: под точкой подпись и её ::before, а нажат - флажок.
+      const form = text(await call('snapshot'))
+
+      expect(
+        json<{ clicked: string }>(
+          await call('click', { ref: refOf(form, '- checkbox "Remember me"') }),
+        ).clicked,
+      ).toBe('checkbox "Remember me"')
+      expect(await checked('remember')).toBe(true)
+
+      // Ссылка на сам iframe своего процесса: попадание - в его документе, и это внутри ref.
+      json(await call('click', { ref: refOf(form, '- iframe "Same frame"') }))
+      json(await call('finish'))
+    }, 60_000)
 
     it('берёт вкладку человека по ссылке и отпускает её, не закрывая', async () => {
       const human = tabsOf(await call('tabs')).find((tab) => tab.url === 'about:blank')

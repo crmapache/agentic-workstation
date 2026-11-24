@@ -1,53 +1,30 @@
 import { BrowserError } from './browser-error'
 import { SET_VALUE, setsValue, sameFieldValue, fieldValueRefused } from './field-values'
-import { holdMs, pickMs, keyGapMs, settleMs, doubleGapMs } from './human-motion'
+import { pickMs, keyGapMs, settleMs } from './human-motion'
 import type { Page } from './page'
+import { click } from './page-click'
 import { callOn, nodeCdp } from './page-nodes'
 import type { Point, Target } from './page-nodes'
-import { mouse, wheel, moveTo, viewportOf } from './page-pointer'
-import type { MouseButton } from './page-pointer'
+import { wheel, moveTo, viewportOf } from './page-pointer'
 import { aimOf, revealByHand } from './page-reveal'
 import { press, typeInto, checkField, focusedField } from './page-typing'
 import type { FieldCheck } from './page-typing'
 import { isMultiline, normalizeBreaks, multilineSubmitRefused } from './typed-lines'
 
 /**
- * Действия во вкладке через CDP (ADR 0040, 0044): клики и ввод - `Input.*`, как от настоящей
- * мыши и клавиатуры. Рука - как у человека (human-motion.ts): мышь идёт к цели путём, жмёт
- * не в центр и держит кнопку, текст печатается по клавише, колесо крутится толчками. Ввод
- * всегда идёт в саму вкладку, и во фрейм другого процесса тоже: Chrome сам отдаёт его фрейму
- * под точкой или в фокусе.
+ * Действия во вкладке через CDP (ADR 0040, 0044): клики (page-click.ts, со сверкой попадания,
+ * ADR 0119) и ввод - `Input.*`, как от настоящей мыши и клавиатуры. Рука - как у человека
+ * (human-motion.ts): мышь идёт к цели путём, жмёт не в центр и держит кнопку, текст печатается
+ * по клавише, колесо крутится толчками. Ввод всегда идёт в саму вкладку, и во фрейм другого
+ * процесса тоже: Chrome сам отдаёт его фрейму под точкой или в фокусе.
  */
 
 export type { MouseButton } from './page-pointer'
 export type { FieldCheck } from './page-typing'
 export { press } from './page-typing'
+export { click } from './page-click'
 
 const pause = (page: Page, ms: number) => page.motion.sleep(ms, page.signal)
-
-export const click = async (
-  page: Page,
-  target: Target,
-  { button = 'left', double = false }: { button?: MouseButton; double?: boolean } = {},
-): Promise<void> => {
-  const point = await aimOf(page, target)
-  const { random } = page.motion
-
-  await moveTo(page, point, double ? 'double' : button === 'right' ? 'right' : 'click')
-  await pause(page, settleMs(random))
-
-  for (const count of double ? [1, 2] : [1]) {
-    if (count > 1) await pause(page, doubleGapMs(random))
-
-    await mouse(page, 'mousePressed', point, button, count)
-
-    try {
-      await pause(page, holdMs(random))
-    } finally {
-      await mouse(page, 'mouseReleased', point, button, count)
-    }
-  }
-}
 
 export const hover = async (page: Page, target: Target): Promise<void> => {
   await moveTo(page, await aimOf(page, target), 'move')

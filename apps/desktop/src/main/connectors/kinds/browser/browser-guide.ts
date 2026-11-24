@@ -11,12 +11,18 @@
  *
  * Сообщения людям (ADR 0095): без абзацев модель писала их одной строкой - боялась, что перевод
  * строки отправит сообщение. Теперь type переносит строку Shift+Enter и показывает поле
- * редактора текстом и картинкой; правило - глазами сверить поле и чат до Enter. Пояснение режет
- * Claude Code на 2048 знаках вместе с описанием человека (держит тест), поэтому слова сжаты.
+ * редактора текстом и картинкой; правило - глазами сверить поле и чат до Enter.
+ *
+ * Клик (ADR 0119): 24 ноября 2026 агент нажал «Aceptar» в Outlook по точке со снимка, а под ней
+ * уже была «Rechazar». Инструмент теперь сверяет попадание сам, а правило здесь - чтобы кнопки,
+ * которые что-то отправляют или отменяют, модель жала только по ref и сверяла ответ clicked.
+ * Пояснение режет Claude Code на 2048 знаках вместе с описанием человека (держит тест), поэтому
+ * слова сжаты.
  */
 export const BROWSER_GUIDE = [
-  "The user watches you work in their Chrome: your pointer moves, clicks and types like a person, at the pace of a fast computer user. Do everything on a page with click, type, fill, select, press, hover and scroll; fill a whole form with one fill call. Use evaluate only to read or compute, never to click, type, tick, pick or submit: a script acts invisibly and instantly, the user can't follow it, and sites take it for a bot.",
-  "Tabs: first see what the user has open (tabs). Then work in your own tab (open), even if the same page is open in one of theirs. Take a tab of the user's (take) only when they ask for it, directly or indirectly, or the context makes it clear: they half-filled a form there and ask you to finish it, or started something there and ask you to go on.",
+  "The user watches your pointer click and type in their Chrome like a fast person. Act on a page only with click, type, fill, select, press, hover and scroll; a whole form - one fill call. Use evaluate only to read or compute, never to click, type, tick, pick or submit: a script acts invisibly, the user can't follow it, and sites take it for a bot.",
+  "Buttons that send, accept, decline, delete or pay: only by ref from a fresh snapshot; check the answer's clicked is what you meant.",
+  'Tabs: first see what the user has open (tabs), then work in your own tab (open), even if the page is open in theirs. Take a tab of theirs (take) only when they ask, directly or indirectly, or the context makes it clear: they half-filled a form or started something there and ask you to go on.',
   "Messages to people: write paragraphs like a person; type makes line breaks Shift+Enter, so chats don't send early. Before Enter, check the field picture it returns and the chat.",
 ].join('\n')
 

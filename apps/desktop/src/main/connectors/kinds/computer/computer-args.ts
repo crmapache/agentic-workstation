@@ -98,6 +98,24 @@ export const chordArg = (value: string | undefined): KeyChord | null => {
   }
 }
 
+/**
+ * Подпись того, что модель хочет нажать (ADR 0119): нет - пусто; пустая - ошибка, молча нажать
+ * без сверки, которую модель попросила, нельзя.
+ */
+export const expectArg = (args: Record<string, unknown>): { expect?: string } => {
+  const value = args['expect']
+
+  if (value === undefined || value === null) return {}
+
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new ArgumentError(
+      '"expect" must be the label you mean to click, like "Save" (a non-empty string)',
+    )
+  }
+
+  return { expect: value.trim() }
+}
+
 /** Один из вариантов; нет - значение по умолчанию. */
 export const oneOfArg = <T extends string>(
   args: Record<string, unknown>,

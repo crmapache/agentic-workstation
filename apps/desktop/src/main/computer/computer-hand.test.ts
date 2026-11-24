@@ -111,6 +111,67 @@ describe('computer hand', () => {
     expect(events).toEqual(['down:left:1', 'up:left:1', 'down:left:2', 'up:left:2'])
   })
 
+  // ADR 0119: что под точкой - после пути руки, прямо перед нажатием, и перед каждым нажатием.
+  it('checks what is under the point right before each press and does not press a mismatch', async () => {
+    const { input, events, state } = fakeInput()
+    const looked: Point[] = []
+    const names = ['7', '8']
+    const hand = new ComputerHand(
+      {
+        ...input,
+        elementAt: () => {
+          looked.push({ ...state.at })
+
+          return {
+            element: {
+              role: 'button',
+              name: names.shift() ?? '',
+              app: 'Calculator',
+              isActionable: true,
+            },
+          }
+        },
+      },
+      instant(),
+    )
+    const target = { x: 500, y: 400 }
+    const failed = await hand
+      .click(target, AREA, { button: 'left', count: 2, modifiers: [], expect: '7' }, signal())
+      .catch((error: unknown) => error)
+
+    expect(looked).toEqual([target, target])
+    expect(events).toEqual(['down:left:1', 'up:left:1'])
+    expect(failed).toMatchObject({
+      code: 'mismatch',
+      message:
+        'Under the pointer is button "8" in Calculator, not "7". The first click went to button "7" in Calculator; the rest of the clicks were not sent.',
+    })
+  })
+
+  it('answers with what it pressed, and without a lookup clicks as before only without expect', async () => {
+    const { input, events } = fakeInput()
+    const seven = { role: 'button', name: '7', app: 'Calculator', isActionable: true }
+    const hand = new ComputerHand({ ...input, elementAt: () => ({ element: seven }) }, instant())
+    const options = { button: 'left' as const, count: 1, modifiers: [] }
+
+    expect(await hand.click({ x: 5, y: 5 }, AREA, { ...options, expect: '7' }, signal())).toEqual({
+      element: seven,
+    })
+    await expect(hand.click({ x: 5, y: 5 }, AREA, options, signal())).rejects.toMatchObject({
+      code: 'mismatch',
+    })
+
+    const blind = new ComputerHand(input, instant())
+
+    expect(await blind.click({ x: 5, y: 5 }, AREA, options, signal())).toMatchObject({
+      element: null,
+    })
+    await expect(
+      blind.click({ x: 5, y: 5 }, AREA, { ...options, expect: '7' }, signal()),
+    ).rejects.toMatchObject({ code: 'mismatch' })
+    expect(events).toEqual(['down:left:1', 'up:left:1', 'down:left:1', 'up:left:1'])
+  })
+
   it('stops the moment the person moves the mouse away from the hand', async () => {
     const { input, state } = fakeInput()
     let sleeps = 0

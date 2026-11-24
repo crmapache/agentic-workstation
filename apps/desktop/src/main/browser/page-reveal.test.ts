@@ -13,10 +13,11 @@ afterEach(async () => {
 })
 
 /**
- * Вкладка с элементом e1 в главном документе и f1e1 во фрейме процесса страницы. Страница
- * отвечает на план прокрутки по очереди из plans, на «доехала?» - местом из settled.
+ * Вкладка с элементом e1 (узел 5) в главном документе и f1e1 (узел 7) во фрейме процесса
+ * страницы. Страница отвечает на план прокрутки по очереди из plans, на «доехала?» - местом из
+ * settled; под мышью в момент нажатия - узел hit.
  */
-const setup = (plans: unknown[], settled: number[]) => {
+const setup = (plans: unknown[], settled: number[], hit = 5) => {
   const hub = new FakeHub()
 
   hub.connect('work', 'Work')
@@ -28,6 +29,7 @@ const setup = (plans: unknown[], settled: number[]) => {
     return { result: { value: { gone: false, value } } }
   })
   hub.cdp.set('DOM.getContentQuads', () => ({ quads: [[100, 100, 140, 100, 140, 120, 100, 120]] }))
+  hub.cdp.set('DOM.getNodeForLocation', () => ({ backendNodeId: hit }))
 
   // Рука без пауз и с серединой вместо разброса.
   const agent = new BrowserAgent(hub, {
@@ -117,7 +119,7 @@ describe('прокрутка к элементу рукой', () => {
   })
 
   it('элемент во фрейме: колесо - до его iframe в главном документе, внутри - программно', async () => {
-    const { hub, agent } = setup([{ done: true }], [0, 0])
+    const { hub, agent } = setup([{ done: true }], [0, 0], 7)
 
     await click(await open(agent), { ref: 'f1e1' })
 
