@@ -1,5 +1,6 @@
 import type { ClosedReason } from '@shared/conversation-feed'
 
+import { awaitsBackground } from '../feed/background-work'
 import type { ConversationRuntime } from './conversation-runtime'
 import { IDLE_SLEEP_MS } from './conversation.constants'
 
@@ -94,8 +95,6 @@ export class SessionRecycle {
 
   /** Фон сессии: агенты, флоты workflow, команды, наблюдатели, будильник. Он умирает с процессом CLI. */
   private get hasBackground(): boolean {
-    const { builder } = this.runtime.feed
-
-    return builder.hasBackgroundWork || builder.hasBackgroundCommands || builder.hasWakeup
+    return awaitsBackground(this.runtime.feed.builder)
   }
 }

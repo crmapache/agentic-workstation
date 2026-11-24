@@ -119,8 +119,8 @@ export class AgentTasks {
   constructor(private readonly store: FeedStore) {}
 
   /**
-   * Не встала ли работа: идут фоновые агенты, флоты, агенты скилла. Фоновые команды не
-   * в счёт: поднятый так dev-сервер не отчитывается никогда и держал бы работу открытой.
+   * Идут фоновые агенты, флоты, агенты скилла. Команды и наблюдатели - отдельно (hasCommands):
+   * их держит процесс CLI, а не агент, и у них свой чип над лентой.
    */
   get hasWork(): boolean {
     return [...this.background].some((id) => this.tool(id)?.status === 'running')

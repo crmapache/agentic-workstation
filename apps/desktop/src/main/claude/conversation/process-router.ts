@@ -3,9 +3,10 @@ import { announceAgentEdit } from '../changes/agent-edits-tap'
 import type { CliMessage } from '../cli/cli-messages'
 import { recordField, stringField } from '../cli/cli-messages'
 import type { TurnEnd, ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { awaitsBackground } from '../../agents/feed/background-work'
 import { claudeOf } from './claude-conversation'
 import { mergeCommands, modelsFromReply, commandsFromInit, commandsFromChange } from './cli-replies'
-import { COMMAND_RESULT_GRACE_MS } from './conversation.constants'
+import { COMMAND_RESULT_GRACE_MS, BACKGROUND_WAKE_GRACE_MS } from './conversation.constants'
 import { forgetTitle } from './session-title'
 import { lifecycleOf, isFinalState, isStartupResult } from './turn-command'
 import { usageFromResult, liveContextTokens, usageFromContextReply } from './usage'
@@ -103,7 +104,7 @@ const applyResult = (runtime: ConversationRuntime, result: CliMessage): boolean 
 
   feed.builder.finishTurn(result, interrupted)
 
-  const stillWorking = feed.builder.hasBackgroundWork
+  const stillWorking = awaitsBackground(feed.builder)
   const call = callForResult(result, { interrupted, stillWorking })
 
   if (call) runtime.host.onCall(meta.id, call)
@@ -140,6 +141,26 @@ const applyLifecycle = (runtime: ConversationRuntime, uuid: string, state: strin
     claudeOf(runtime).feed.builder.closeTurnWithoutResult(interrupted)
     closeTurn(runtime, { interrupted, isError: false, usage: runtime.meta.usage })
   }, COMMAND_RESULT_GRACE_MS).unref()
+}
+
+/**
+ * Фон начал или кончил работу - точка вкладки говорит «работает» и после хода. Кончился между
+ * ходами - CLI тут же будит агента ходом с отчётом, и вкладка ждёт этого хода, а не мигает
+ * «готово» на миг между ними (и коннекторы не убирают курсор агента, который сейчас вернётся).
+ * Хода нет и через паузу - фон остановил человек: работа встала, часы «Worked» закрыты.
+ */
+const noteBackground = (runtime: ConversationRuntime) => {
+  const { builder } = claudeOf(runtime).feed
+  const awaits = awaitsBackground(builder)
+
+  if (runtime.meta.backgroundWork === awaits) return
+  if (awaits || runtime.turnActive) return runtime.update({ backgroundWork: awaits })
+
+  setTimeout(() => {
+    const settled = runtime.meta.backgroundWork && !awaitsBackground(builder)
+
+    if (!runtime.isDisposed && !runtime.turnActive && settled) runtime.syncStatus()
+  }, BACKGROUND_WAKE_GRACE_MS).unref()
 }
 
 /**
@@ -190,10 +211,7 @@ export const routeMessage = (runtime: ConversationRuntime, message: CliMessage):
   feed.builder.apply(message)
   feed.schedule()
 
-  // Фоновый субагент начал или кончил работу - точка вкладки говорит «работает» и после хода.
-  if (meta.backgroundWork !== feed.builder.hasBackgroundWork) {
-    runtime.update({ backgroundWork: feed.builder.hasBackgroundWork })
-  }
+  noteBackground(runtime)
 
   // Вход истёк: процесс держит мёртвый токен в памяти - следующий ход пусть идёт в новом.
   if (message.type === 'assistant' && message['error'] === 'authentication_failed') {

@@ -15,6 +15,7 @@ import type {
 import { turnChanges } from '../changes/turn-changes'
 import type { CliMessage } from '../cli/cli-messages'
 import { isRecord, numberField, recordField, stringField } from '../cli/cli-messages'
+import { awaitsBackground } from '../../agents/feed/background-work'
 import { FeedStore } from '../../agents/feed/feed-store'
 import { TurnTracker } from '../../agents/feed/turn-tracker'
 import { WorkClock } from '../../agents/feed/work-clock'
@@ -84,6 +85,7 @@ export class FeedBuilder {
     nextId: (prefix) => this.nextId(prefix),
     addNotice: (code, detail, extra) => this.addNotice(code, detail, extra),
     release: (reason, at) => this.background.release(reason, at),
+    awaitsBackground: () => awaitsBackground(this),
   })
   /** Список задач до каждого сообщения человека: откат к сообщению возвращает его. */
   private readonly tasksBefore = new Map<string, TaskEntry[]>()
@@ -209,10 +211,14 @@ export class FeedBuilder {
     })
   }
 
-  /** Конец хода по `result` (turn-closer.ts). interrupted - ход останавливали. */
+  /**
+   * Конец хода по `result` (turn-closer.ts). interrupted - ход останавливали. Будильник, чей
+   * срок пришёлся на этот ход, сработал в нём - до подписи хода: иначе она ждала бы его, а
+   * разговор звал «готово».
+   */
   finishTurn(result: CliMessage, interrupted: boolean): void {
-    this.closer.finish(result, interrupted)
     this.background.wakeup.noteTurn(this.now())
+    this.closer.finish(result, interrupted)
   }
 
   /** Ход кончился без `result` (turn-closer.ts): незаконченное закрыто, итога нет. */
@@ -226,8 +232,8 @@ export class FeedBuilder {
   }
 
   /**
-   * Работа не встала: идут фоновые субагенты, флоты workflow, агенты скилла (без фоновых
-   * команд - они не отчитываются). Процесс не усыпляется, подпись «Worked» ждёт.
+   * Идут фоновые субагенты, флоты workflow, агенты скилла. Встала ли работа, решает весь фон
+   * вместе с командами, наблюдателями и будильником (awaitsBackground).
    */
   get hasBackgroundWork(): boolean {
     return this.agents.hasWork

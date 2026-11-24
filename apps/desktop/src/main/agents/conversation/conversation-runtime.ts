@@ -12,6 +12,7 @@ import type {
   ConversationFeed,
 } from '@shared/conversation-feed'
 
+import { awaitsBackground } from '../feed/background-work'
 import { syncWork } from '../feed/work-clock'
 import type { PanelHooks } from '../hooks/conversation-hooks'
 import { turnSummary } from '../hooks/turn-summary'
@@ -28,7 +29,7 @@ import { ConversationOutbox } from './outbox'
 import { matchesRequest } from './request-match'
 import { SessionRecycle } from './session-recycle'
 
-/** Разговор работает: идёт ход (с вопросами к человеку) или фоновые агенты. */
+/** Разговор работает: идёт ход (с вопросами к человеку) или фон, который разбудит агента. */
 const isWorking = (meta: Conversation): boolean => meta.status !== 'idle' || meta.backgroundWork
 
 /** Чем кончился ход: остановкой, ошибкой и с какими цифрами контекста. */
@@ -261,15 +262,16 @@ export class ConversationRuntime {
     const { outcome } = this.meta
     const settled = outcome === 'error' || outcome === 'crashed' || outcome === 'interrupted'
     const { builder } = this.feed
+    const backgroundWork = awaitsBackground(builder)
 
     this.update({
       pending: first?.pending ?? null,
       pendingCount: this.held.length,
       status,
       outcome: this.turnActive && settled ? 'done' : outcome,
-      backgroundWork: builder.hasBackgroundWork,
+      backgroundWork,
       // Счётчик работы для строки статуса: паузы на вопросах, конец, когда всё встало.
-      ...syncWork(builder.work, status, builder.hasBackgroundWork, Date.now()),
+      ...syncWork(builder.work, status, backgroundWork, Date.now()),
     })
   }
 

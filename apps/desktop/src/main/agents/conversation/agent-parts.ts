@@ -40,7 +40,10 @@ export type AgentFeedBuilder = {
   /** Элементы ленты по порядку - то, что видит окно. */
   readonly items: readonly FeedItem[]
   readonly work: WorkClock
-  /** Ход кончился, а фоновые агенты ещё работают: для точки на вкладке это «работает». */
+  /**
+   * Ход кончился, а фоновые агенты ещё работают. Работает ли разговор после хода, решает весь
+   * фон вместе (awaitsBackground): агенты, команды, наблюдатели и будильник.
+   */
   readonly hasBackgroundWork: boolean
   /** Идут фоновые команды или наблюдатели (Monitor): процесс не засыпает, пока они живы. */
   readonly hasBackgroundCommands: boolean

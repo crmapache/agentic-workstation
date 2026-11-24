@@ -1,4 +1,5 @@
 import type { OpenCodeEvent } from '../server/opencode-server'
+import { awaitsBackground } from '../../agents/feed/background-work'
 import { outranks } from '../../agents/tabs/tab-names'
 import { openCodeOf } from './opencode-conversation'
 import type { ToolFacts } from './opencode-requests'
@@ -68,7 +69,7 @@ const executionEnded = (session: OpenCodeSession, type: string, data: Record<str
   runtime.settleTurn({ interrupted, isError, usage: runtime.meta.usage })
 
   // Субагенты ещё работают - разговор не готов: «готово» прозвучит, когда кончится их ход.
-  const stillWorking = openCodeOf(runtime).feed.builder.hasBackgroundWork
+  const stillWorking = awaitsBackground(openCodeOf(runtime).feed.builder)
 
   if (!interrupted && (isError || !stillWorking)) {
     runtime.host.onCall(runtime.meta.id, isError ? 'error' : 'turnDone')

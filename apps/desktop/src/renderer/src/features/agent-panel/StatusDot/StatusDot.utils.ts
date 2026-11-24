@@ -8,8 +8,8 @@ type DotSource = Pick<
 >
 
 /**
- * Работает ли агент: идёт ход или ждут фоновые субагенты. Это «running» точки и вопрос
- * перед закрытием вкладки клавишей.
+ * Работает ли агент: идёт ход или фон, который его разбудит (агенты, команда, наблюдатель,
+ * будильник). Это «running» точки и вопрос перед закрытием вкладки клавишей.
  */
 export const isWorking = (conversation: DotSource): boolean =>
   conversation.status !== 'idle' || conversation.backgroundWork

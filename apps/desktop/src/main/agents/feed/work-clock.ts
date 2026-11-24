@@ -5,8 +5,9 @@ export type WorkView = { startedAt: number | null; pausedMs: number }
  * Время работы над запросом человека (в ACC - stint). Один запрос - не один ход: агент,
  * поднявший фоновых субагентов, замолкает, и каждый их отчёт поднимает ход заново. CLI
  * знает только ход, поэтому подпись «Worked» под ответом считает панель: от сообщения
- * человека (или хода, поднятого без нас) до момента, когда работа встала - нет хода и
- * фоновых агентов. Время на вопросах человеку (разрешение, план) вычитается.
+ * человека (или хода, поднятого без нас) до момента, когда работа встала - нет хода и фона,
+ * который разбудит агента (awaitsBackground). Время на вопросах человеку (разрешение, план)
+ * вычитается.
  */
 export class WorkClock {
   private startedAt: number | null = null
@@ -58,19 +59,19 @@ export class WorkClock {
 
 /**
  * Часы работы по статусу разговора: вопрос к человеку - пауза, ход снова идёт - пауза
- * кончилась, нет ни хода, ни фоновых агентов - работа встала. Ответ - поля вкладки для
- * живого счётчика в окне.
+ * кончилась, нет ни хода, ни фона, который разбудит агента, - работа встала. Ответ - поля
+ * вкладки для живого счётчика в окне.
  */
 export const syncWork = (
   clock: WorkClock,
   status: 'idle' | 'running' | 'waiting',
-  hasBackgroundWork: boolean,
+  awaitsBackground: boolean,
   at: number,
 ): { workStartedAt: number | null; workPausedMs: number } => {
   if (status === 'waiting') clock.pause(at)
   else clock.resume(at)
 
-  if (status === 'idle' && !hasBackgroundWork) clock.end()
+  if (status === 'idle' && !awaitsBackground) clock.end()
 
   const { startedAt, pausedMs } = clock.view
 

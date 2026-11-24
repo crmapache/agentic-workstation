@@ -12,7 +12,7 @@ import type {
 
 import { actionWire } from './action-wire'
 
-/** Состояние для телефона: ход ждёт человека, идёт (и фоновые агенты), свободен. */
+/** Состояние для телефона: ход ждёт человека, идёт (и фон, который разбудит агента), свободен. */
 export const statusOf = (conversation: Conversation): ConversationStatus => {
   if (conversation.pending || conversation.status === 'waiting') return 'waiting-for-you'
   if (conversation.status === 'running' || conversation.backgroundWork) return 'running'

@@ -248,7 +248,11 @@ export type Conversation = {
   pinned?: boolean | undefined
   status: ConversationStatus
   outcome: TurnOutcome
-  /** Ход кончился, а фоновые субагенты ещё работают: для точки на вкладке это «работает». */
+  /**
+   * Ход кончился, а работа - нет: идут фоновые агенты, команда или наблюдатель Monitor, стоит
+   * будильник агента. CLI сам разбудит агента их итогом, поэтому точка вкладки - «работает», а
+   * «готово» не звучит.
+   */
   backgroundWork: boolean
   /** Модель для CLI. null - как в настройках CLI. */
   model: string | null

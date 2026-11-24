@@ -1,5 +1,6 @@
 import { claudeOf } from '../conversation/claude-conversation'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { awaitsBackground } from '../../agents/feed/background-work'
 import type { CarryOnDesk } from './carry-on-desk'
 import { owedFor } from './carry-ons'
 import { FORCED_MOVE_MS } from './panel.constants'
@@ -50,11 +51,8 @@ export class AccountMoves {
 
       if (this.gentle || this.forced.has(id)) continue
 
-      const { builder } = claudeOf(runtime).feed
-      const holds = builder.hasBackgroundWork || builder.hasBackgroundCommands || builder.hasWakeup
-
       if (runtime.turnActive) this.interrupt(runtime)
-      else if (holds) this.swapQuietly(runtime, now)
+      else if (awaitsBackground(claudeOf(runtime).feed.builder)) this.swapQuietly(runtime, now)
       else this.host.carryOn.sayNext(runtime, now)
     }
   }

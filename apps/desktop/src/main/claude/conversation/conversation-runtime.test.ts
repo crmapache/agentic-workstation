@@ -13,7 +13,11 @@ import type { ClaudeHost } from './claude-conversation'
 import { claudeOf } from './claude-conversation'
 import { claudeDriver } from './claude-driver'
 import { ClaudeSession } from './claude-session'
-import { REWOUND_DENY, COMMAND_RESULT_GRACE_MS } from './conversation.constants'
+import {
+  REWOUND_DENY,
+  COMMAND_RESULT_GRACE_MS,
+  BACKGROUND_WAKE_GRACE_MS,
+} from './conversation.constants'
 import { PLAN_ANSWERED_IN_CHAT } from './pending-requests'
 import { rewind } from './rewind'
 import { openClaudeSession } from './spawn'
@@ -177,6 +181,13 @@ const compactLines = (command: string): object[] =>
     .split('\n')
     .filter(Boolean)
     .map((line) => JSON.parse(line.replaceAll('{{command}}', command)) as object)
+
+/** Настоящая запись CLI 2.1.293 из папки __fixtures__ (своей или ленты) - строками потока. */
+const recorded = (path: string): Record<string, unknown>[] =>
+  readFileSync(join(import.meta.dirname, path), 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>)
 
 /** Отметка CLI о команде. */
 const lifecycle = (command: string, state: string) => ({
@@ -723,6 +734,8 @@ describe('конец хода', () => {
   })
 
   it('работа встала - коннекторы узнают сразу; пока работает фоновый флот - нет', async () => {
+    vi.useFakeTimers()
+
     const runtime = makeRuntime({ value: true })
     const fake = fakeProcess()
     const idle = vi.fn()
@@ -765,6 +778,11 @@ describe('конец хода', () => {
       task_id: 'wf-1',
       status: 'completed',
     })
+    // Флот отчитался между ходами: CLI сейчас разбудит агента - курсор агента ещё нужен.
+    expect(idle).toHaveBeenCalledOnce()
+
+    receive(runtime, fake, { type: 'system', subtype: 'init', session_id: 's1' })
+    receive(runtime, fake, result)
     expect(idle).toHaveBeenCalledTimes(2)
   })
 
@@ -887,5 +905,131 @@ describe('процесс не поднялся', () => {
     expect(runtime.turnActive).toBe(false)
     expect(runtime.meta.queue.map((item) => item.text)).toEqual(['hello'])
     expect(runtime.meta.error).toBe('start-failed')
+  })
+})
+
+describe('«готово» - когда работа встала целиком', () => {
+  /** Сколько раз разговор позвал «ход закончен». */
+  const doneCalls = (onCall: ReturnType<typeof vi.fn>) =>
+    onCall.mock.calls.filter(([, reason]) => reason === 'turnDone').length
+
+  it('фоновая команда: ход, который её поднял, не зовёт; зовёт ход, которым CLI разбудил агента', async () => {
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const onCall = vi.spyOn(runtime.host, 'onCall')
+    const lines = recorded('__fixtures__/background-command.ndjson')
+    const firstEnd = lines.findIndex((line) => line['type'] === 'result')
+    const woken = lines.findLastIndex((line) => line['subtype'] === 'init')
+
+    nextProcess(fake)
+    await runtime.send(msg('render'))
+
+    for (const line of lines.slice(0, firstEnd + 1)) receive(runtime, fake, line)
+
+    expect(doneCalls(onCall)).toBe(0)
+    expect(runtime.meta).toMatchObject({ status: 'idle', backgroundWork: true })
+    expect(runtime.meta.workStartedAt).not.toBeNull()
+    // Промежуточный ход подписан цифрой CLI, а не временем всего запроса.
+    expect(
+      claudeOf(runtime).feed.builder.items.findLast((item) => item.kind === 'turn'),
+    ).toMatchObject({
+      durationMs: lines[firstEnd]?.['duration_ms'],
+    })
+
+    // Команда кончилась: до хода, которым CLI будит агента, вкладка не мигает «готово».
+    for (const line of lines.slice(firstEnd + 1, woken)) receive(runtime, fake, line)
+
+    expect(runtime.meta.backgroundWork).toBe(true)
+
+    for (const line of lines.slice(woken)) receive(runtime, fake, line)
+
+    expect(doneCalls(onCall)).toBe(1)
+    expect(runtime.meta).toMatchObject({
+      status: 'idle',
+      backgroundWork: false,
+      workStartedAt: null,
+    })
+  })
+
+  it('фоновую команду остановил человек: CLI агента не будит - тишина, вкладка свободна после паузы', async () => {
+    vi.useFakeTimers()
+
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const onCall = vi.spyOn(runtime.host, 'onCall')
+
+    nextProcess(fake)
+    await runtime.send(msg('render'))
+
+    for (const line of recorded('__fixtures__/background-stopped.ndjson')) {
+      receive(runtime, fake, line)
+    }
+
+    expect(runtime.meta.backgroundWork).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(BACKGROUND_WAKE_GRACE_MS)
+
+    expect(runtime.meta).toMatchObject({
+      status: 'idle',
+      backgroundWork: false,
+      workStartedAt: null,
+    })
+    expect(doneCalls(onCall)).toBe(0)
+  })
+
+  it('наблюдатель Monitor: каждое событие - ход без зова, «готово» один раз, когда он кончился', async () => {
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const onCall = vi.spyOn(runtime.host, 'onCall')
+    const lines = recorded('../feed/__fixtures__/monitor.ndjson')
+    const ended = lines.findIndex((line) => line['subtype'] === 'task_notification')
+
+    nextProcess(fake)
+    await runtime.send(msg('watch'))
+
+    for (const line of lines.slice(0, ended)) receive(runtime, fake, line)
+
+    expect(doneCalls(onCall)).toBe(0)
+    expect(runtime.meta.backgroundWork).toBe(true)
+
+    for (const line of lines.slice(ended)) receive(runtime, fake, line)
+
+    expect(doneCalls(onCall)).toBe(1)
+    expect(runtime.meta.backgroundWork).toBe(false)
+  })
+
+  it('будильник агента: ход, который его поставил, не зовёт; зовёт ход, которым он сработал', async () => {
+    vi.useFakeTimers()
+
+    const runtime = makeRuntime({ value: true })
+    const fake = fakeProcess()
+    const onCall = vi.spyOn(runtime.host, 'onCall')
+
+    nextProcess(fake)
+    await runtime.send(msg('check the deploy later'))
+    receive(runtime, fake, {
+      type: 'assistant',
+      message: {
+        id: 'm1',
+        content: [
+          { type: 'tool_use', id: 'wk', name: 'ScheduleWakeup', input: { prompt: 'go on' } },
+        ],
+      },
+    })
+    receive(runtime, fake, {
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'wk', content: 'Next wakeup' }] },
+      tool_use_result: { scheduledFor: Date.now() + 60_000 },
+    })
+    receive(runtime, fake, { type: 'result', num_turns: 2, result: 'waiting', total_cost_usd: 0 })
+
+    expect(doneCalls(onCall)).toBe(0)
+    expect(runtime.meta.backgroundWork).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(60_000)
+    receive(runtime, fake, { type: 'system', subtype: 'init', session_id: 's1' })
+    receive(runtime, fake, { type: 'result', num_turns: 1, result: 'deployed', total_cost_usd: 0 })
+
+    expect(doneCalls(onCall)).toBe(1)
   })
 })

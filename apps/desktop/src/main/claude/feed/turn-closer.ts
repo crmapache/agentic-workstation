@@ -24,6 +24,8 @@ export type TurnCloserHost = {
   addNotice: (code: NoticeCode, detail?: string, extra?: NoticeExtra) => void
   /** Фон ушёл с процессом: агенты закрыты, оборванные команды - отметками в ленте. */
   release: (reason: ClosedReason, at: number) => void
+  /** Ход кончился, а фон ещё разбудит агента (awaitsBackground): работа запроса не встала. */
+  awaitsBackground: () => boolean
 }
 
 /**
@@ -54,8 +56,8 @@ export class TurnCloser {
    * Конец хода по `result`. Рукопожатие свежего процесса сюда не доходит - его отсеивает
    * разговор (conversation/turn-command.ts), а итог локальной команды (/compact, /clear) -
    * такой же ход: со своей ценой и временем. Подпись времени - у хода, которым работа
-   * встала, время всего запроса без пауз; у промежуточного (ждём фоновых агентов) - цифра
-   * CLI за ход.
+   * встала, время всего запроса без пауз; у промежуточного (ждём фоновых агентов, команду,
+   * наблюдателя или будильник) - цифра CLI за ход.
    */
   finish(result: CliMessage, interrupted: boolean): void {
     const { host } = this
@@ -78,7 +80,7 @@ export class TurnCloser {
       this.noteError(detail, overSampling(numberField(result, 'api_error_status'), detail))
     }
 
-    const workMs = host.agents.hasWork ? null : host.work.elapsed(at)
+    const workMs = host.awaitsBackground() ? null : host.work.elapsed(at)
 
     host.turns.finish({
       id: host.nextId('turn'),

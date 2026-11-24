@@ -24,8 +24,8 @@ const isLiveAgent = (item: FeedItem): boolean =>
   item.parentToolUseId === null && isAgentCall(item) && item.status === 'running'
 
 /**
- * Сколько субагентов ещё работает - для «Waiting for N subagents» и «работа встала».
- * Фоновые команды не в счёт: dev-сервер не отчитывается никогда и держал бы строку вечно.
+ * Сколько субагентов ещё работает - для «Waiting for N subagents». Фоновые команды не в
+ * счёт: у них свой чип над лентой.
  */
 export const pendingAgents = (items: readonly FeedItem[]): number =>
   items.filter(isLiveAgent).length
@@ -57,9 +57,9 @@ export const pendingWakeups = (items: readonly FeedItem[]): ToolFeedItem[] =>
   )
 
 /**
- * Идёт ли в разговоре хоть что-то: модель работает сама (ход, фоновые агенты) или жива
- * фоновая команда, о конце которой CLI её разбудит, или наблюдатель, чьи события её будят
- * (агент кончил ход и ждёт их). Нет - всё стоит до слова человека.
+ * Идёт ли в разговоре хоть что-то: модель работает сама (ход и фон, который её разбудит) или
+ * жива фоновая команда или наблюдатель - и тогда, когда точка вкладки зовёт человека вопросом.
+ * Нет - всё стоит до слова человека.
  */
 export const isAnythingRunning = (conversation: Conversation, items: readonly FeedItem[]) =>
   worksOnItsOwn(conversation) || runningCommands(items).length > 0
