@@ -37,6 +37,7 @@ describe('Google events', () => {
       end: Date.UTC(2026, 10, 24, 15, 30),
       response: 'tentative',
       joinUrl: 'https://meet.google.com/x-y-z',
+      format: 'call',
       organizer: { name: 'Ana', email: 'ana@example.com', url: null },
       // Я и организатор - не гости.
       attendees: [{ name: 'Bo', email: 'bo@example.com', url: null }],

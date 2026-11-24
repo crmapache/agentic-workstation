@@ -6,6 +6,7 @@ import { isTimeZone, wallTimeToUtc } from '@shared/zone-time'
 
 import type { SyncWindow } from '../calendar-window'
 import { eventKey, allDayRange } from '../calendar-window'
+import { eventFormatOf } from './event-format'
 import { linksOf, peopleOf, personOf, locationUrlOf } from './event-links'
 import { httpsUrl, joinUrlIn } from './join-url'
 import { WINDOWS_ZONES } from './windows-zones.constants'
@@ -152,6 +153,7 @@ const eventOf = (
     joinUrl,
     location: location || null,
     locationUrl,
+    format: eventFormatOf(joinUrl, location),
     organizer,
     // Организатор стоит своей строкой: у Outlook он бывает и среди гостей.
     attendees: peopleOf(

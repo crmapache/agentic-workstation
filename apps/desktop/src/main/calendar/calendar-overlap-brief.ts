@@ -1,4 +1,4 @@
-import type { EventPerson, CalendarSource } from '@shared/calendar'
+import type { EventFormat, EventPerson, CalendarSource } from '@shared/calendar'
 import type { CalendarMeeting } from '@shared/calendar-overlaps'
 import type { MoveRecord, OverlapView } from '@shared/calendar-review'
 import type { CalendarSettings } from '@shared/calendar-settings'
@@ -53,6 +53,13 @@ export type BriefInput = {
   zone: string
 }
 
+/** Как проходит встреча - словами для ИИ: у личной встречи время уходит ещё и на дорогу. */
+const HELD: Record<EventFormat, string> = {
+  call: 'online or by phone',
+  'in-person': 'in person, so getting there and back takes time too',
+  unknown: 'not stated',
+}
+
 const meetingLines = (index: number, meeting: CalendarMeeting, input: BriefInput): string[] => {
   const { event } = meeting
   const names = meeting.sourceIds.map(
@@ -73,6 +80,7 @@ const meetingLines = (index: number, meeting: CalendarMeeting, input: BriefInput
     `- Organizer: ${event.organizer ? person(event.organizer) : 'unknown'}`,
     `- Guests (${event.attendees.length}): ${guests || 'not listed'}${more > 0 ? `; and ${more} more` : ''}`,
     `- My answer: ${event.response}; status: ${event.status}; shown as: ${event.busy}`,
+    `- Held: ${HELD[event.format]}`,
     ...(event.location ? [`- Where: ${event.location}`] : []),
     `- Join link: ${event.joinUrl ?? 'none'}`,
     ...(event.link ? [`- Event page: ${event.link}`] : []),

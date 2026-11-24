@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 
 import type { SourceSync, EventPerson, CalendarEvent, CalendarSource } from '@shared/calendar'
-import { IDLE_SYNC, CALENDAR_FAILURES } from '@shared/calendar'
+import { IDLE_SYNC, isEventFormat, CALENDAR_FAILURES } from '@shared/calendar'
 import { parseStoredSource, parseCalendarSettings } from '@shared/calendar-parse'
 import type { MoveRecord } from '@shared/calendar-review'
 import type { CalendarSettings } from '@shared/calendar-settings'
@@ -9,6 +9,7 @@ import { DEFAULT_CALENDAR_SETTINGS } from '@shared/calendar-settings'
 
 import { JsonFile } from '../storage/json-file'
 import type { Vault } from '../storage/vault'
+import { eventFormatOf } from './sources/event-format'
 
 /** Источники, их синк, настройки и уже объявленные накладки. */
 export type StoredCalendar = {
@@ -134,7 +135,7 @@ const personOf = (value: unknown): EventPerson | null => {
 
 /**
  * Событие с диска: форма, без которой сетка упала бы, и поля, которых не было у старых
- * снимков (люди и ссылки, ADR 0116), - пустыми.
+ * снимков (люди и ссылки, ADR 0116), - пустыми, а звонок-или-лично - по полям события.
  */
 const storedEventOf = (value: unknown): CalendarEvent | null => {
   if (
@@ -153,6 +154,10 @@ const storedEventOf = (value: unknown): CalendarEvent | null => {
   return {
     ...event,
     locationUrl: textOrNull(value['locationUrl']),
+    // До звонка-или-лично снимки его не несли: решается по ссылке и месту, ИИ уточнит на синке.
+    format: isEventFormat(value['format'])
+      ? value['format']
+      : eventFormatOf(textOrNull(value['joinUrl']), textOrNull(value['location'])),
     organizer: personOf(value['organizer']),
     attendees: attendees.map(personOf).filter((person) => person !== null),
     links: links.filter(

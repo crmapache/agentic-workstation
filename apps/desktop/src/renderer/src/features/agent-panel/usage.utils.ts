@@ -83,11 +83,8 @@ export const busiestWindow = (usage: AccountUsage, now: number): UsageWindow | n
       null,
     )
 
-/**
- * Когда аккаунт снова примет работу: окно тарифа упёрлось - его сброс, упёрлись оба -
- * поздний. Идёт доплата - аккаунт работает и ничего не ждёт; сброс не назван - null.
- */
-export const availableAgainAt = (usage: AccountUsage, now: number): number | null => {
+/** Сброс упёршихся окон тарифа: упёрлись оба - поздний; доплата или сброс не назван - null. */
+const windowsAgainAt = (usage: AccountUsage, now: number): number | null => {
   if (usage.extra) return null
 
   const resets = usage.windows
@@ -97,6 +94,23 @@ export const availableAgainAt = (usage: AccountUsage, now: number): number | nul
   if (resets.length === 0 || resets.some((reset) => reset === null)) return null
 
   return Math.max(...resets.filter((reset) => reset !== null))
+}
+
+/**
+ * Когда аккаунт снова примет работу: по упёршимся окнам тарифа (доплата - ждать нечего) и по
+ * отказу лимита самого CLI (`refusedUntil`), позднее из двух. Отказ - слово сервера, а не
+ * расчёт: он в силе и при доплате, и когда цифры окон отстали.
+ */
+export const availableAgainAt = (
+  usage: AccountUsage,
+  now: number,
+  refusedUntil?: number,
+): number | null => {
+  const byWindows = windowsAgainAt(usage, now)
+
+  if (refusedUntil === undefined || refusedUntil <= now) return byWindows
+
+  return Math.max(refusedUntil, byWindows ?? refusedUntil)
 }
 
 /** Ступени лестницы колец: в запасе, быстрее нормы, заметно быстрее, тревога. */

@@ -189,9 +189,11 @@
   flex: 0 1 auto;
 }
 
-// Меню ждущего - у правого края строки.
+// Меню ждущего и кнопки несделанного - у правого края строки.
 .itemEnd {
   display: flex;
+  gap: var(--space-1);
+  align-items: center;
   margin-left: auto;
 }
 

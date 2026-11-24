@@ -17,6 +17,7 @@ import {
   GoogleAppRejectedError,
 } from '../../connectors/kinds/google/google-session'
 import { CALENDAR_API } from '../../connectors/kinds/google/google.constants'
+import { eventFormatOf } from './event-format'
 import { linksOf, peopleOf, personOf, locationUrlOf } from './event-links'
 import type { SourceRead } from './ics-source'
 import { httpsUrl, joinUrlIn } from './join-url'
@@ -133,6 +134,7 @@ export const googleEventOf = (
     joinUrl,
     location: event.location?.trim() || null,
     locationUrl,
+    format: eventFormatOf(joinUrl, event.location ?? null),
     organizer: personOf(event.organizer?.displayName, event.organizer?.email),
     // Я и организатор - не гости: организатор стоит своей строкой.
     attendees: peopleOf(

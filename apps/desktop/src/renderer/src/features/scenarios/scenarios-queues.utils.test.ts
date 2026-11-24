@@ -14,6 +14,7 @@ import {
   waitingItems,
   projectQueues,
   folderNeighbours,
+  canCarryOnFromRow,
 } from './scenarios-queues.utils'
 
 const item = (id: string, patch: Partial<QueueItem> = {}): QueueItem => ({
@@ -152,6 +153,36 @@ describe('элементы очереди', () => {
     expect(isUnfinished(item('a', { state: 'done' }))).toBe(false)
     expect(isUnfinished(item('a'))).toBe(false)
     expect(isUnfinished(null)).toBe(false)
+  })
+
+  it('продолжить со строки - последний несделанный с прогоном, если полоса не зовёт к тому же', () => {
+    const cut = item('b', { state: 'stopped', runId: 'run-b' })
+    const alone = queue('q', { items: [item('a', { state: 'done', runId: 'run-a' }), cut] })
+    const hold = { reason: 'interrupted' as const, itemId: 'b', at: 1 }
+
+    // Оборван выходом IDE последним: полосы нет, продолжают со строки.
+    expect(canCarryOnFromRow(alone, cut)).toBe(true)
+    // Полоса без ждущих зовёт только Dismiss - строка продолжает сама.
+    expect(canCarryOnFromRow({ ...alone, hold }, cut)).toBe(true)
+    // За ним ждут: главная кнопка полосы уже «Continue the run».
+    expect(canCarryOnFromRow({ ...alone, hold, items: [...alone.items, item('c')] }, cut)).toBe(
+      false,
+    )
+    // Не последний прошедший, сделанный, без прогона, очередь закрыта или занята - нельзя.
+    expect(canCarryOnFromRow(alone, alone.items[0] ?? cut)).toBe(false)
+    expect(
+      canCarryOnFromRow({ ...alone, items: [{ ...cut, runId: '' }] }, { ...cut, runId: '' }),
+    ).toBe(false)
+    expect(canCarryOnFromRow({ ...alone, closedAt: 5 }, cut)).toBe(false)
+    expect(
+      canCarryOnFromRow({ ...alone, items: [cut, item('c', { state: 'running' })] }, cut),
+    ).toBe(false)
+    expect(
+      canCarryOnFromRow(
+        { ...alone, items: [cut, item('c', { state: 'failed', runId: 'run-c' })] },
+        cut,
+      ),
+    ).toBe(false)
   })
 
   it('слова остановки', () => {

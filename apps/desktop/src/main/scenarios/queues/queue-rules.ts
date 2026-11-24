@@ -1,5 +1,10 @@
 import type { RunsOn, QueueItem, ScenarioQueue, QueueNameSource } from '@shared/scenario-queues'
-import { isItemOver, QUEUE_IDLE_CLOSE_MS } from '@shared/scenario-queues'
+import {
+  isItemOver,
+  lastOverItem,
+  carryOnItemOf,
+  QUEUE_IDLE_CLOSE_MS,
+} from '@shared/scenario-queues'
 import type { RunState } from '@shared/scenario-runs'
 import type { ScenarioCode } from '@shared/scenarios'
 
@@ -26,16 +31,6 @@ export type ItemOutcome = 'done' | 'failed' | 'stopped'
 export const runningItem = (queue: ScenarioQueue): QueueItem | null =>
   queue.items.find((item) => item.state === 'running') ?? null
 
-/**
- * Прошедшие сценарии по порядку. Пропущенная пометка - не сценарий: её исход ничего не решает,
- * и после неё «последним» остаётся сценарий перед ней.
- */
-const passedRuns = (queue: ScenarioQueue): QueueItem[] =>
-  queue.items.filter((item) => isItemOver(item.state) && !item.placeholder)
-
-/** Последний прошедший сценарий - тот, чей исход решает, можно ли начинать следующий. */
-const lastOver = (queue: ScenarioQueue): QueueItem | null => passedRuns(queue).at(-1) ?? null
-
 const hasWaiting = (queue: ScenarioQueue): boolean =>
   queue.items.some((item) => item.state === 'waiting')
 
@@ -45,7 +40,7 @@ const hasWaiting = (queue: ScenarioQueue): boolean =>
  * после недоделанного значит начать поверх чужой незаконченной работы.
  */
 const stuckItem = (queue: ScenarioQueue): QueueItem | null => {
-  const last = lastOver(queue)
+  const last = lastOverItem(queue)
 
   return last && last.state !== 'done' ? last : null
 }
@@ -340,11 +335,7 @@ export const isIdleTooLong = (queue: ScenarioQueue, now: number): boolean =>
  * прошедшего сценария, пока за ним ничего не стартовало, - иначе папка уже ушла вперёд.
  */
 export const reopenItem = (queue: ScenarioQueue, itemId: string): ScenarioQueue | null => {
-  if (queue.closedAt > 0 || runningItem(queue)) return null
-
-  const last = lastOver(queue)
-
-  if (!last || last.id !== itemId || last.state === 'done') return null
+  if (carryOnItemOf(queue)?.id !== itemId) return null
 
   // Очередь стояла «после него» (остановка рукой или «Stop after current»): продолженный, он
   // снова кончится остановкой, а не запуском следующего без Resume.

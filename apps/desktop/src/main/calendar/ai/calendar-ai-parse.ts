@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto'
 
 import { z } from 'zod'
 
-import type { EventBusy, EventStatus, CalendarEvent, EventResponse } from '@shared/calendar'
+import type {
+  EventBusy,
+  EventFormat,
+  EventStatus,
+  CalendarEvent,
+  EventResponse,
+} from '@shared/calendar'
 import { normalTitle } from '@shared/calendar-overlaps'
 import { DAY_MS, MINUTE_MS } from '@shared/time-units'
 import { isTimeZone, wallTimeToUtc } from '@shared/zone-time'
@@ -10,6 +16,7 @@ import { isTimeZone, wallTimeToUtc } from '@shared/zone-time'
 import type { SourceResult } from '../calendar-snapshot'
 import type { SyncWindow } from '../calendar-window'
 import { eventKey, allDayRange } from '../calendar-window'
+import { eventFormatOf } from '../sources/event-format'
 import { linksOf, peopleOf, personOf } from '../sources/event-links'
 import { httpsUrl } from '../sources/join-url'
 
@@ -52,6 +59,7 @@ const eventSchema = z.object({
   location: z.string().nullable().catch(null),
   // Люди и ссылки - добавка к встрече: кривые не делают её негодной.
   location_url: z.string().nullable().catch(null),
+  format: z.enum(['call', 'in_person', 'unknown']).catch('unknown'),
   organizer: z.string().nullable().catch(null),
   organizer_email: z.string().nullable().catch(null),
   organizer_url: z.string().nullable().catch(null),
@@ -84,6 +92,12 @@ const RESPONSE: Record<AiEvent['my_response'], EventResponse> = {
   declined: 'declined',
   not_responded: 'pending',
   organizer: 'organizer',
+  unknown: 'unknown',
+}
+
+const FORMAT: Record<AiEvent['format'], EventFormat> = {
+  call: 'call',
+  in_person: 'in-person',
   unknown: 'unknown',
 }
 
@@ -127,6 +141,7 @@ const eventOf = (raw: unknown, sourceId: string, zone: string): CalendarEvent | 
   const link = httpsUrl(event.event_url)
   const locationUrl = httpsUrl(event.location_url)
   const organizer = personOf(event.organizer, event.organizer_email, event.organizer_url)
+  const location = clean(event.location)
 
   return {
     key: eventKey(sourceId, uid, ''),
@@ -140,8 +155,9 @@ const eventOf = (raw: unknown, sourceId: string, zone: string): CalendarEvent | 
     busy: BUSY[event.show_as],
     response: RESPONSE[event.my_response],
     joinUrl,
-    location: clean(event.location),
+    location,
     locationUrl,
+    format: eventFormatOf(joinUrl, location, FORMAT[event.format]),
     organizer,
     attendees: peopleOf(
       event.attendees

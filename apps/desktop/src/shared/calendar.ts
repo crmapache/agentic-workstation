@@ -110,6 +110,19 @@ export type EventBusy = 'busy' | 'free' | 'tentative' | 'away'
 export type EventResponse =
   'accepted' | 'tentative' | 'declined' | 'pending' | 'organizer' | 'unknown'
 
+/**
+ * Как проходит встреча: звонок (ссылка на звонок, «Teams», телефон), лично (адрес, комната,
+ * карта) или не сказано. Прямые источники решают по полям события, ИИ-источник - и словом ИИ,
+ * который видел встречу на странице. Угадывать по одному названию не беремся: «не сказано»
+ * честнее догадки.
+ */
+export const EVENT_FORMATS = ['call', 'in-person', 'unknown'] as const
+
+export type EventFormat = (typeof EVENT_FORMATS)[number]
+
+export const isEventFormat = (value: unknown): value is EventFormat =>
+  EVENT_FORMATS.includes(value as EventFormat)
+
 /** Человек встречи: имя, почта и ссылка на него (профиль, чат), что нашлось у источника. */
 export type EventPerson = { name: string; email: string | null; url: string | null }
 
@@ -143,6 +156,8 @@ export type CalendarEvent = {
   location: string | null
   /** Ссылка на место (карта, комната), только https. */
   locationUrl: string | null
+  /** Звонок, лично или не сказано: слова карточки («this call» или «this meeting») и ИИ. */
+  format: EventFormat
   organizer: EventPerson | null
   /** Гости, без организатора; не больше EVENT_PEOPLE_MAX. */
   attendees: EventPerson[]

@@ -7,7 +7,6 @@ import type { AccountCardProps } from '../AccountsScreen.types'
 import { accountTitle } from '../AccountsScreen.utils'
 import { SettingsItem } from '../../SettingsItem/SettingsItem'
 import { UsageWindows } from '../../UsageWindows/UsageWindows'
-import { formatClock } from '../../UserMessage/UserMessage.utils'
 
 /**
  * Аккаунт: имя, тариф и почта, вошёл ли CLI, его лимиты. Выбранный помечен, у
@@ -40,12 +39,6 @@ export const AccountCard = ({
           {account.signedIn === true && (
             <Badge tone="success">{t('agentPanel.accounts.signedIn')}</Badge>
           )}
-          {/* Лимит отказал аккаунту до сброса (прошедшие главный процесс снимает сам). */}
-          {refusedUntil !== undefined && (
-            <Badge tone="warning">
-              {t('agentPanel.accounts.refusedUntil', { clock: formatClock(refusedUntil) })}
-            </Badge>
-          )}
         </>
       }
       details={[
@@ -73,7 +66,9 @@ export const AccountCard = ({
           </Button>
         </>
       }>
-      {usage && <UsageWindows usage={usage} />}
+      {/* Отказ лимита - строкой «снова доступен» под лимитами, а не меткой в шапке: метка
+          теснила имя, а срок и так стоит под полосами. */}
+      {usage && <UsageWindows usage={usage} refusedUntil={refusedUntil} />}
     </SettingsItem>
   )
 }

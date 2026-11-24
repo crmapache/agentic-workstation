@@ -15,9 +15,10 @@ import { PeopleFacts } from './parts/PeopleFacts'
 import { ResponseFact } from './parts/ResponseFact'
 
 /**
- * Карточка встречи рядом с её блоком: когда и сколько, из каких календарей, мой ответ, где, кто
- * организует и кто приглашён, ссылки встречи; накладки - с «видел» и «Ask AI». Join и «открыть
- * в календаре» - справа внизу, ссылками: окно отдаёт их браузеру человека.
+ * Карточка встречи рядом с её блоком: когда, сколько и как (звонок или лично, если известно), из
+ * каких календарей, мой ответ, где, кто организует и кто приглашён, ссылки встречи; накладки - с
+ * «видел» и «Ask AI». Join и «открыть в календаре» - справа внизу, ссылками: окно отдаёт их
+ * браузеру человека.
  */
 export const EventCard = ({
   opened,
@@ -41,6 +42,7 @@ export const EventCard = ({
           <div className={styles.when}>
             {whenLabel(event)}
             {!event.allDay && ` · ${durationLabel(event.end - event.start)}`}
+            {event.format !== 'unknown' && ` · ${t(`calendar.event.formats.${event.format}`)}`}
           </div>
         </div>
         <ul className={styles.facts}>

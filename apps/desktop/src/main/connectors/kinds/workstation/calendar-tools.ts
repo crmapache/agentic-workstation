@@ -84,6 +84,7 @@ const meetingView = (meeting: CalendarMeeting, sources: readonly CalendarSourceV
     join_url: event.joinUrl,
     location: event.location,
     location_url: event.locationUrl,
+    format: event.format,
     organizer: event.organizer ? personView(event.organizer) : null,
     guests: event.attendees.map(personView),
     event_url: event.link,

@@ -17,13 +17,14 @@ import type { UsageWindowsProps } from './UsageWindows.types'
 
 /**
  * Лимиты аккаунта строками: окно, полоса, процент и когда сбросится. Под ними - доплата,
- * когда аккаунт упёрся, снова примет работу, и как давно сняты цифры, если сервер давно
- * не отвечал. Окно, чей сброс прошёл, - пустое: новое окно, а не вчерашние цифры.
+ * когда аккаунт снова примет работу (упёрся в окно или CLI отказал по лимиту), и как давно
+ * сняты цифры, если сервер давно не отвечал. Окно, чей сброс прошёл, - пустое: новое окно, а
+ * не вчерашние цифры.
  */
-export const UsageWindows = ({ usage }: UsageWindowsProps) => {
+export const UsageWindows = ({ usage, refusedUntil }: UsageWindowsProps) => {
   const { t } = useTranslation()
   const now = useNow(true, USAGE_TICK_MS)
-  const again = availableAgainAt(usage, now)
+  const again = availableAgainAt(usage, now, refusedUntil)
   const age = now - usage.fetchedAt
 
   return (

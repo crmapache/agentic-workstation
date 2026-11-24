@@ -5,6 +5,7 @@ import type {
   QueueHoldReason,
   ScenarioQueuesView,
 } from '@shared/scenario-queues'
+import { carryOnItemOf } from '@shared/scenario-queues'
 import type { RunState, RunSummary } from '@shared/scenario-runs'
 import { isRunAsking } from '@shared/scenario-runs'
 
@@ -109,6 +110,18 @@ export const holdItemOf = (queue: ScenarioQueue): QueueItem | null =>
 /** Элемент кончился несделанным: упал или остановлен. Мимо него очередь не идёт (ADR 0082). */
 export const isUnfinished = (item: QueueItem | null): boolean =>
   item?.state === 'failed' || item?.state === 'stopped'
+
+/**
+ * Нести ли строке элемента кнопку «продолжить прогон»: его можно продолжить с места (правило
+ * `carryOnItemOf`, то же у главного процесса), а полоса остановки не предлагает того же своей
+ * главной кнопкой - она это делает, когда за ним ждут другие. Так элемент, оборванный выходом IDE
+ * или остановленный последним в очереди, продолжается прямо со строки, без окна прогона.
+ */
+export const canCarryOnFromRow = (queue: ScenarioQueue, item: QueueItem): boolean =>
+  carryOnItemOf(queue)?.id === item.id &&
+  isUnfinished(item) &&
+  item.runId !== '' &&
+  !(queue.hold && waitingItems(queue).length > 0)
 
 /**
  * Какими словами сказать об остановке (ключ в `scenarios.queues.hold`). Помеченный руками стоит

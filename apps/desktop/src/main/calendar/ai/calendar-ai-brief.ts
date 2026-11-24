@@ -20,6 +20,7 @@ const RULES = [
   '- Times exactly as the calendar shows them, as wall time YYYY-MM-DDTHH:MM; time_zone is the zone the calendar shows times in.',
   '- All-day events: dates (YYYY-MM-DD), all_day true, end is the day after the last day.',
   '- A Teams, Zoom or Meet link on the event goes to join_url; otherwise null. Unknown fields: null or "unknown".',
+  '- format: "call" when the event is held online or by phone (a join link, a Teams or Zoom mark, a dial-in number), "in_person" when it happens at a physical place (an address, a meeting room, a venue), "unknown" when the event does not say. Never guess it from the title alone.',
   '- Links: give every link you can find, https only, exactly as shown. event_url - the address of the event itself; organizer_url and each guest url - a link to that person (profile, chat; for Microsoft Teams users https://teams.microsoft.com/l/chat/0/0?users=EMAIL); location_url - a link to the place; links - everything else (agenda, documents, recordings), each with a short label. Never invent a link you did not see, except the Teams chat link built from an email.',
   '- Guests (attendees): everyone the event lists except me and the organizer, with email when shown.',
 ]

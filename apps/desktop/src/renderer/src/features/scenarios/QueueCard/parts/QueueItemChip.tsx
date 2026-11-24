@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
 import clsx from 'clsx'
-import { CheckCheck, OctagonPause } from 'lucide-react'
+import { Play, CheckCheck, OctagonPause } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@agentic-workstation/ui/Button'
@@ -12,7 +12,7 @@ import { useOpenRun } from '../QueueCard.hooks'
 import styles from '../QueueCard.module.scss'
 import type { QueueItemChipProps } from '../QueueCard.types'
 import { answerChips } from '../../scenarios-forms.utils'
-import { waitingItems } from '../../scenarios-queues.utils'
+import { waitingItems, canCarryOnFromRow } from '../../scenarios-queues.utils'
 import { useScenarioActions } from '../../scenarios.actions'
 import { ScenarioAlert } from '../../ScenarioAlert/ScenarioAlert'
 import { ScenarioFormsAnswers } from '../../ScenarioFormsAnswers/ScenarioFormsAnswers'
@@ -24,7 +24,9 @@ import { QueueItemRunsOn } from './QueueItemRunsOn'
  * Один сценарий очереди строкой во всю ширину: место, имя, состояние, на какой модели и с каким
  * усилием идёт, метка «встанет после него», ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
  * носит меню у правого края: сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
- * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Отказ старта - под
+ * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Последний из них,
+ * если полоса остановки не зовёт к тому же, - ещё и «Continue»: прогон, оборванный
+ * перезапуском IDE, продолжается с места прямо со строки. Отказ старта - под
  * именем, если его не сказала полоса остановки. Пометка - карточка трекера без сценария - бледная,
  * с «Skipped» сразу: очередь пройдёт мимо неё.
  */
@@ -44,6 +46,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         })
       : ''
   const canMarkDone = item.state === 'failed' || item.state === 'stopped'
+  const canCarryOn = canCarryOnFromRow(queue, item)
   const condition = item.placeholder
     ? t('scenarios.queues.items.placeholder')
     : item.doneByHand
@@ -54,6 +57,8 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
   const handleOpen = () => openRun(item.runId)
 
   const handleMarkDone = () => void actions.queue(queue.id, { kind: 'markDone', itemId: item.id })
+
+  const handleCarryOn = () => void actions.carryOn(item.runId)
 
   const handleAreaClick = (event: MouseEvent<HTMLLIElement>) => {
     if (isAreaPress(event)) handleOpen()
@@ -108,6 +113,13 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
         )}
         {canMarkDone && (
           <span className={styles.itemEnd}>
+            {canCarryOn && (
+              <Tooltip label={t('scenarios.run.carryOnHint')}>
+                <Button size="sm" variant="primary" icon={Play} onClick={handleCarryOn}>
+                  {t('scenarios.queues.items.carryOn')}
+                </Button>
+              </Tooltip>
+            )}
             <Tooltip label={t('scenarios.queues.items.markDoneHint')}>
               <Button size="sm" variant="ghost" icon={CheckCheck} onClick={handleMarkDone}>
                 {t('scenarios.queues.items.markDone')}

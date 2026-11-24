@@ -80,8 +80,18 @@ const [PROVIDER = 'claude', MODEL = 'sonnet'] = (
 /** Пояс страницы - не пояс машины: IDE должна пересчитать время страницы, а не машины. */
 const PAGE_ZONE = 'Europe/Madrid'
 
-/** call - у встречи есть звонок, гость и повестка: видны, только если открыть её кликом, как в OWA. */
-type PageEvent = { title: string; start: string; end: string; note?: string; call?: boolean }
+/**
+ * call - у встречи есть звонок, гость и повестка: видны, только если открыть её кликом, как в OWA.
+ * place - место личной встречи, видно прямо в виде недели.
+ */
+type PageEvent = {
+  title: string
+  start: string
+  end: string
+  note?: string
+  call?: boolean
+  place?: string
+}
 
 /** Ссылка на звонок и организатор, которых в виде недели нет - только в подробностях встречи. */
 const DETAILS_JOIN = 'https://teams.microsoft.com/l/meetup-join/e2e-client-call'
@@ -116,7 +126,7 @@ const EVENTS_BY_WEEKDAY: Record<number, PageEvent[]> = {
     },
   ],
   3: [{ title: 'Team offsite', start: 'all day', end: '' }],
-  4: [{ title: 'Planning', start: '15:00', end: '16:00' }],
+  4: [{ title: 'Planning', start: '15:00', end: '16:00', place: 'Room 4.2, Calle Mayor 5' }],
   5: [{ title: 'Retro', start: '12:00', end: '12:45' }],
 }
 
@@ -153,7 +163,7 @@ ${days
         ? events
             .map(
               (event) =>
-                `<li><button onclick="this.nextElementSibling?.removeAttribute('hidden')">${event.start === 'all day' ? 'All day' : `${event.start} - ${event.end}`}: ${event.title}</button>${detailsOf(event)}${event.note ? `<p>${event.note}</p>` : ''}</li>`,
+                `<li><button onclick="this.nextElementSibling?.removeAttribute('hidden')">${event.start === 'all day' ? 'All day' : `${event.start} - ${event.end}`}: ${event.title}${event.place ? ` (${event.place})` : ''}</button>${detailsOf(event)}${event.note ? `<p>${event.note}</p>` : ''}</li>`,
             )
             .join('')
         : '<li>No events</li>'
@@ -167,7 +177,12 @@ const LOGIN = `<!doctype html><title>Sign in to your account</title>
 
 /** Чего ждать в окне чтения: события учебного календаря, переведённые в UTC. */
 const expectedIn = (window: { from: number; to: number }) => {
-  const expected: { title: string; start: number | null; allDay: string | null }[] = []
+  const expected: {
+    title: string
+    start: number | null
+    allDay: string | null
+    inPerson: boolean
+  }[] = []
 
   for (let day = window.from; day < window.to; day = addLocalDays(day, 1)) {
     const date = new Date(day)
@@ -175,11 +190,12 @@ const expectedIn = (window: { from: number; to: number }) => {
     for (const event of EVENTS_BY_WEEKDAY[date.getDay()] ?? []) {
       expected.push(
         event.start === 'all day'
-          ? { title: event.title, start: null, allDay: dateOf(date) }
+          ? { title: event.title, start: null, allDay: dateOf(date), inPerson: false }
           : {
               title: event.title,
               start: wallTimeToUtc(`${dateOf(date)}T${event.start}`, PAGE_ZONE),
               allDay: null,
+              inPerson: Boolean(event.place),
             },
       )
     }
@@ -383,6 +399,8 @@ describe.skipIf(!ready)(`чтение календаря ИИ (${PROVIDER}:${MOD
           found,
           `${want.title} ${want.allDay ?? new Date(want.start ?? 0).toISOString()}`,
         ).toBeDefined()
+      // Место в виде недели - личная встреча, а не звонок.
+      if (inCovered && want.inPerson) expect(found?.format, want.title).toBe('in-person')
     }
 
     expect(result.covered.from).toBeLessThanOrEqual(localMidnight(Date.now()) + 7 * 60 * MINUTE_MS)
@@ -411,6 +429,7 @@ describe.skipIf(!ready)(`чтение календаря ИИ (${PROVIDER}:${MOD
     const steps = called.map((one) => `${one.name} ${JSON.stringify(one.args).slice(0, 80)}`)
 
     expect(call?.joinUrl, steps.join('\n')).toBe(DETAILS_JOIN)
+    expect(call?.format).toBe('call')
     expect(call?.organizer?.email).toBe(DETAILS_ORGANIZER)
     expect(call?.attendees.map((person) => person.email)).toContain('bo.lee@example.com')
     expect(call?.links.map((link) => link.url)).toContain('https://docs.example.com/agenda')

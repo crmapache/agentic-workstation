@@ -156,6 +156,7 @@ describe('ICS parsing', () => {
       joinUrl: 'https://teams.microsoft.com/l/meetup-join/abc',
       location: 'Microsoft Teams Meeting',
       locationUrl: null,
+      format: 'call',
       links: [
         { label: 'Agenda.pdf', url: 'https://files.example.com/agenda.pdf' },
         { label: 'example.com/doc', url: 'https://example.com/doc' },

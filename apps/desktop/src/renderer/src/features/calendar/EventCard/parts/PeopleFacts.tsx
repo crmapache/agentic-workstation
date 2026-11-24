@@ -8,7 +8,8 @@ import { FactRow } from './FactRow'
 import { LinkText } from './LinkText'
 
 /**
- * Люди и ссылки встречи: организатор (я - «you»), гости по именам с «и ещё N», прочие ссылки.
+ * Люди и ссылки встречи: организатор (я - «you», звонок звонком, остальное - встречей: личная
+ * встреча не звонок), гости по именам с «и ещё N», прочие ссылки.
  * Имя со ссылкой (профиль, чат) открывается в браузере, почта - рядом, чтобы скопировать.
  */
 export const PeopleFacts = ({ event }: EventFactProps) => {
@@ -25,7 +26,13 @@ export const PeopleFacts = ({ event }: EventFactProps) => {
       {organizer && (
         <FactRow icon={UserRound} label={t('calendar.event.organizer')}>
           {event.response === 'organizer' ? (
-            <span>{t('calendar.event.youOrganize')}</span>
+            <span>
+              {t(
+                event.format === 'call'
+                  ? 'calendar.event.youOrganizeCall'
+                  : 'calendar.event.youOrganizeMeeting',
+              )}
+            </span>
           ) : (
             <>
               <LinkText text={organizer.name} url={organizer.url} />

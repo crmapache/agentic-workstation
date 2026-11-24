@@ -39,6 +39,7 @@ describe('AI calendar answer', () => {
       response: 'accepted',
       busy: 'busy',
       joinUrl: 'https://teams.microsoft.com/l/meetup-join/x',
+      format: 'call',
       sourceId: 'work',
     })
     // 23 ноября 00:00 в Коста-Рике - 06:00 UTC; конец - полночь после 27-го.
@@ -46,6 +47,30 @@ describe('AI calendar answer', () => {
       from: Date.UTC(2026, 10, 23, 6),
       to: Date.UTC(2026, 10, 28, 6),
     })
+  })
+
+  it('call or in person: a join link wins, then what AI saw, then the place', () => {
+    const formats = (events: Record<string, unknown>[]) => {
+      const result = parseCalendarAnswer(answer({ events }), 'work', ASKED)
+
+      return result.ok ? result.events.map((one) => [one.title, one.format]) : []
+    }
+
+    expect(
+      formats([
+        event({ title: 'Hybrid', format: 'in_person', location: 'Room 4' }),
+        event({ title: 'Office', join_url: null, format: 'in_person' }),
+        event({ title: 'Phone', join_url: null, format: 'call' }),
+        event({ title: 'Lobby', join_url: null, format: 'unknown', location: 'Main lobby' }),
+        event({ title: 'Lunch', join_url: null, format: 'nonsense' }),
+      ]),
+    ).toEqual([
+      ['Hybrid', 'call'],
+      ['Office', 'in-person'],
+      ['Phone', 'call'],
+      ['Lobby', 'in-person'],
+      ['Lunch', 'unknown'],
+    ])
   })
 
   it('takes people and links, drops non-https ones and keeps an event with broken extras', () => {

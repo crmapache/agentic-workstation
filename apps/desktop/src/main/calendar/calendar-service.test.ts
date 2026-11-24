@@ -39,6 +39,7 @@ const event = (sourceId: string, key: string, start: number, end: number): Calen
   joinUrl: null,
   location: null,
   locationUrl: null,
+  format: 'unknown',
   organizer: null,
   attendees: [],
   link: null,

@@ -36,6 +36,7 @@ const event = (sourceId: string, title: string, start: number, end: number): Cal
   joinUrl: null,
   location: null,
   locationUrl: null,
+  format: 'unknown',
   organizer: { name: 'Ana', email: 'ana@example.com', url: null },
   attendees: [],
   link: null,

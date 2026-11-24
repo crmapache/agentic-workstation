@@ -24,6 +24,7 @@ const event = (key: string, start: number, end: number): CalendarEvent => ({
   joinUrl: null,
   location: null,
   locationUrl: null,
+  format: 'unknown',
   organizer: null,
   attendees: [],
   link: null,

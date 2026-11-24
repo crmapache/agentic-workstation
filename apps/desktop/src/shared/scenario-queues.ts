@@ -218,3 +218,24 @@ export const QUEUE_IDLE_CLOSE_MS = 14 * DAY_MS
 
 export const isItemOver = (state: QueueItemState): boolean =>
   state === 'done' || state === 'failed' || state === 'stopped' || state === 'skipped'
+
+/**
+ * Последний прошедший сценарий очереди - тот, чей исход решает, можно ли начинать следующий.
+ * Пропущенная пометка - не сценарий: её исход ничего не решает, и после неё «последним»
+ * остаётся сценарий перед ней.
+ */
+export const lastOverItem = (queue: ScenarioQueue): QueueItem | null =>
+  queue.items.filter((item) => isItemOver(item.state) && !item.placeholder).at(-1) ?? null
+
+/**
+ * Элемент, чей прогон можно продолжить с места (упал, остановлен, оборван выходом IDE): только
+ * последний прошедший и несделанный, пока очередь открыта и ничего не идёт, - иначе папка уже
+ * ушла вперёд. Одно правило на главный процесс (`reopenItem`) и кнопку Continue в окне.
+ */
+export const carryOnItemOf = (queue: ScenarioQueue): QueueItem | null => {
+  if (queue.closedAt > 0 || queue.items.some((item) => item.state === 'running')) return null
+
+  const last = lastOverItem(queue)
+
+  return last && last.state !== 'done' ? last : null
+}

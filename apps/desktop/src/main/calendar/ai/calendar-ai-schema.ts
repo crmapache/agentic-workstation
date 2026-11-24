@@ -37,6 +37,7 @@ const EVENT_SCHEMA = {
     'join_url',
     'location',
     'location_url',
+    'format',
     'organizer',
     'organizer_email',
     'organizer_url',
@@ -67,6 +68,12 @@ const EVENT_SCHEMA = {
     join_url: { ...nullableText, description: 'Teams, Zoom or Meet link shown on the event' },
     location: nullableText,
     location_url: { ...nullableText, description: 'Link to the place: map, room, venue page' },
+    format: {
+      type: 'string',
+      enum: ['call', 'in_person', 'unknown'],
+      description:
+        'call: online or by phone (join link, Teams, Zoom, Meet, dial-in); in_person: at a physical place (address, room, venue); unknown: the event does not say',
+    },
     organizer: { ...nullableText, description: 'Organizer name' },
     organizer_email: nullableText,
     organizer_url: { ...nullableText, description: 'Link to the organizer: profile or chat' },

@@ -1256,6 +1256,7 @@
         "open": "Open this run",
         "stopMark": "The queue stops after this one",
         "refused": "Would not start: {{why}}",
+        "carryOn": "Continue",
         "markDone": "Mark done",
         "markDoneHint": "You finished this work yourself. The queue counts it as done and does not start the next one on its own.",
         "doneByHand": "marked done by hand",
@@ -3036,7 +3037,6 @@
       "logoutFailed": "Couldn't sign out: Claude Code is still signed in. Try again.",
       "designNoAccount": "The account in use could not be resolved, so nothing was opened.",
       "designAuthorize": "Authorize Claude Design",
-      "refusedUntil": "Limit refused · until {{clock}}",
       "unavailable": {
         "ignored": "This Claude Code cannot keep two sign-ins apart. Update it and open this screen again.",
         "notSignedIn": "Sign in to Claude Code first, then add a second account here.",
@@ -4087,6 +4087,7 @@
       "cancel": "Cancel"
     },
     "toast": {
+      "gotIt": "Got it",
       "more": "Open notifications"
     },
     "dates": {
@@ -4932,7 +4933,8 @@
       "location": "Where",
       "organizer": "Organizer",
       "organizerTag": "organizer",
-      "youOrganize": "You organize this call",
+      "youOrganizeCall": "You organize this call",
+      "youOrganizeMeeting": "You organize this meeting",
       "calendars": "Calendars",
       "shownFree": "Shown as free",
       "guests_one": "{{count}} guest",
@@ -4946,6 +4948,10 @@
         "tentative": "Tentative",
         "declined": "Declined",
         "cancelled": "Cancelled"
+      },
+      "formats": {
+        "call": "Call",
+        "in-person": "In person"
       },
       "join": "Join",
       "open": "Open in calendar"

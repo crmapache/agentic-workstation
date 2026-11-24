@@ -19,6 +19,7 @@ const event = (patch: Partial<CalendarEvent> & { key: string }): CalendarEvent =
   joinUrl: null,
   location: null,
   locationUrl: null,
+  format: 'unknown',
   organizer: null,
   attendees: [],
   link: null,

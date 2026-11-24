@@ -30,6 +30,7 @@ const event = (
   joinUrl: null,
   location: null,
   locationUrl: null,
+  format: 'unknown',
   organizer: null,
   attendees: [],
   link: null,

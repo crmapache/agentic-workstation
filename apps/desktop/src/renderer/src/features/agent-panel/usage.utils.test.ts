@@ -76,6 +76,18 @@ describe('лимиты на экране', () => {
     expect(availableAgainAt(usage([window({ percent: 50 })]), NOW)).toBeNull()
   })
 
+  it('отказ лимита от CLI - в силе и при отставших цифрах, и при доплате; прошедший не в счёт', () => {
+    const half = usage([window({ percent: 50, resetsAt: NOW + HOUR_MS })])
+    const full = usage([window({ percent: 100, resetsAt: NOW + 5 * HOUR_MS })])
+
+    expect(availableAgainAt(half, NOW, NOW + 2 * HOUR_MS)).toBe(NOW + 2 * HOUR_MS)
+    expect(availableAgainAt({ ...half, extra: { percent: 3 } }, NOW, NOW + HOUR_MS)).toBe(
+      NOW + HOUR_MS,
+    )
+    expect(availableAgainAt(full, NOW, NOW + 2 * HOUR_MS)).toBe(NOW + 5 * HOUR_MS)
+    expect(availableAgainAt(half, NOW, NOW - MINUTE_MS)).toBeNull()
+  })
+
   it('кольца - на каждое окно в порядке сервера, темп - только у недель', () => {
     const rings = usageRings(
       usage([
