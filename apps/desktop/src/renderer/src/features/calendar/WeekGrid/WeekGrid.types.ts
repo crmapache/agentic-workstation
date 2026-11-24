@@ -24,12 +24,16 @@ export type DayColumnProps = {
   work: { from: number; to: number } | null
   /** Минута «сейчас», если день - сегодня; иначе null. */
   nowMinute: number | null
+  /** Сейчас, мс: прошедшие встречи тише. */
+  now: number
   colorOf: (sourceId: string) => number
   onOpen: (opened: OpenedMeeting) => void
 }
 
 export type EventBlockProps = {
   block: DayBlock
+  /** Встреча уже кончилась: блок тише. */
+  past: boolean
   colorOf: (sourceId: string) => number
   onOpen: (opened: OpenedMeeting) => void
 }
@@ -37,6 +41,7 @@ export type EventBlockProps = {
 export type AllDayRowProps = {
   days: readonly number[]
   meetings: readonly CalendarMeeting[]
+  now: number
   colorOf: (sourceId: string) => number
   isDayOff: (day: number) => boolean
   onOpen: (opened: OpenedMeeting) => void

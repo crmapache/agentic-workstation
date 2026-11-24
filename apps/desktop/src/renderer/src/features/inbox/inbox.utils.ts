@@ -19,10 +19,13 @@ export const itemsOf = (state: InboxState | undefined, tab: InboxTab): InboxItem
 
 /**
  * Через сколько карточка уходит из угла сама: отчёт и сообщение - через TOAST_HIDE_MS, всё есть на
- * виде уведомлений. Вопрос прогона и «нужно внимание» стоят, пока их не закроют (undefined).
+ * виде уведомлений. Вопрос прогона, «нужно внимание» и напоминание (о звонке из календаря, от ИИ
+ * на время) стоят, пока их не закроют (undefined): человек мог отойти, а напоминание - про срок.
  */
 export const toastCloseMs = (item: InboxItem): number | undefined =>
-  isInboxAsking(item) || item.tone === 'attention' ? undefined : TOAST_HIDE_MS
+  isInboxAsking(item) || item.tone === 'attention' || item.kind === 'reminder'
+    ? undefined
+    : TOAST_HIDE_MS
 
 export const tabCounts = (state: InboxState | undefined): Record<InboxTab, number> => ({
   open: itemsOf(state, 'open').length,

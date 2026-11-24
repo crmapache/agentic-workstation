@@ -79,6 +79,13 @@ export const allDayOn = (meetings: readonly CalendarMeeting[], midnight: number)
   )
 }
 
+/**
+ * Прошла ли встреча: со временем - кончилась (идущая ещё нет), на весь день - её последний день
+ * раньше сегодняшнего. Прошедшие на сетке тише: сразу видно, что их время позади.
+ */
+export const isPastMeeting = ({ event }: CalendarMeeting, now: number): boolean =>
+  event.allDay ? event.allDay.to <= localDateOf(startOfDay(now)) : event.end <= now
+
 type Fragment = { meeting: CalendarMeeting; startMinute: number; endMinute: number }
 
 const minuteOf = (ms: number, midnight: number) => Math.round((ms - midnight) / MINUTE_MS)

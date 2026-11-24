@@ -28,7 +28,8 @@ export const CalendarToolbar = ({ period, now, overlaps, upcoming }: CalendarToo
   const anchor = useCalendarStore((store) => store.anchor)
   const setMode = useCalendarStore((store) => store.setMode)
   const setAnchor = useCalendarStore((store) => store.setAnchor)
-  const sourcesOpen = useCalendarStore((store) => store.sourcesOpen)
+  // Панель видна: рядом с сеткой или, в узком виде, поверх неё.
+  const sidebarShown = useCalendarStore((store) => (store.narrow ? store.peek : store.sourcesOpen))
   const toggleSources = useCalendarStore((store) => store.toggleSources)
   const popover = usePopover()
   const today = startOfDay(now)
@@ -52,9 +53,9 @@ export const CalendarToolbar = ({ period, now, overlaps, upcoming }: CalendarToo
     <div className={styles.toolbar}>
       <IconButton
         icon={PanelLeft}
-        label={t(sourcesOpen ? 'calendar.sources.hide' : 'calendar.sources.showPanel')}
+        label={t(sidebarShown ? 'calendar.sources.hide' : 'calendar.sources.showPanel')}
         size="sm"
-        active={sourcesOpen}
+        active={sidebarShown}
         onClick={toggleSources}
       />
       <div className={styles.navigator}>

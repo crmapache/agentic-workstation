@@ -54,6 +54,7 @@ export const WeekGrid = ({
       <AllDayRow
         days={period.days}
         meetings={meetings}
+        now={now}
         colorOf={colorOf}
         isDayOff={isDayOff}
         onOpen={onOpen}
@@ -73,6 +74,7 @@ export const WeekGrid = ({
               blocks={blocksOn(meetings, overlaps, day)}
               work={isDayOff(day) ? null : settings.workHours}
               nowMinute={day === today ? Math.floor((now - day) / 60_000) : null}
+              now={now}
               colorOf={colorOf}
               onOpen={onOpen}
             />

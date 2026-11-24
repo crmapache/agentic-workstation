@@ -18,7 +18,8 @@ import type { ViewDescriptor } from './views.types'
  * Виды середины окна (зона 6) в порядке иконок полосы слева от неё. Файл - то, что
  * открыли из левой панели; трекер задач (ADR 0101), сценарии, задания по расписанию, статистика, коннекторы (ADR 0029) и
  * уведомления (ADR 0069), расширения (ADR 0091) - возможности всей IDE, а не одного провайдера LLM. Новый вид: id в MainViewId и MAIN_VIEW_IDS, компонент в своей
- * фиче, запись здесь.
+ * фиче, запись здесь. Коннекторы, расширения и уведомления открывают реже - их кнопки прижаты к
+ * низу полосы, уведомления в самом низу.
  */
 export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
   {
@@ -86,6 +87,7 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
   },
   {
     id: 'connectors',
+    group: 'bottom',
     icon: Plug,
     labelKey: 'mainViews.connectors',
     keywords: ['integrations', 'mcp', 'gmail', 'mail', 'notion', 'slack', 'calendar'],
@@ -97,6 +99,7 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
   },
   {
     id: 'extensions',
+    group: 'bottom',
     icon: Puzzle,
     labelKey: 'mainViews.extensions',
     keywords: ['plugins', 'addons', 'store', 'marketplace', 'mods', 'customize'],
@@ -108,6 +111,7 @@ export const MAIN_VIEWS: readonly ViewDescriptor<MainViewId>[] = [
   },
   {
     id: 'inbox',
+    group: 'bottom',
     icon: Bell,
     labelKey: 'mainViews.inbox',
     keywords: ['inbox', 'reminders', 'remind', 'alerts', 'questions'],

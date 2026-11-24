@@ -10,6 +10,21 @@
   border-right: var(--border-width) solid var(--color-border);
 }
 
+// Узкий вид: панель не теснит сетку, а лежит поверх неё у левого края во всю высоту вида -
+// всплывающим слоем, со своей подложкой и тенью. Закрывается нажатием по календарю рядом.
+.floating {
+  @include glass-overlay;
+
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  z-index: var(--z-overlay);
+  width: var(--sidebar-width, var(--size-calendar-sources));
+  max-width: 100%;
+  border-block: none;
+  border-left: none;
+}
+
 // Полоса вкладок - ростом с полосу шапки вида справа (PageHeader): линии под ними идут вровень.
 .head {
   display: flex;

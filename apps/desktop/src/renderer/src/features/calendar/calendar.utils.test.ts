@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 import type { CalendarEvent } from '@shared/calendar'
 import { meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
 
-import { allDayOn, blocksOn, periodOf, steppedAnchor } from './calendar.utils'
+import { allDayOn, blocksOn, periodOf, isPastMeeting, steppedAnchor } from './calendar.utils'
 
 /** Местное время: 23 ноября 2026 - понедельник. */
 const at = (day: number, hour: number, minute = 0) =>
@@ -102,5 +102,22 @@ describe('calendar day layout', () => {
     expect(b?.zones).toEqual([{ top: 0, height: 1 / 3, soft: false }])
     expect(allDayOn(meetings, at(25, 0)).map(({ key }) => key)).toEqual(['trip'])
     expect(allDayOn(meetings, at(26, 0))).toEqual([])
+  })
+})
+
+describe('past meetings', () => {
+  it('dims a meeting once it ends, an all-day one once its last day is behind', () => {
+    const meeting = (one: CalendarEvent) => ({
+      key: one.key,
+      event: one,
+      sourceIds: [one.sourceId],
+    })
+    const call = meeting(event({ key: 'call', start: at(24, 10), end: at(24, 11) }))
+    const trip = meeting(event({ key: 'trip', allDay: { from: '2026-11-23', to: '2026-11-25' } }))
+
+    expect(isPastMeeting(call, at(24, 10, 30))).toBe(false)
+    expect(isPastMeeting(call, at(24, 11))).toBe(true)
+    expect(isPastMeeting(trip, at(24, 23, 59))).toBe(false)
+    expect(isPastMeeting(trip, at(25, 0))).toBe(true)
   })
 })

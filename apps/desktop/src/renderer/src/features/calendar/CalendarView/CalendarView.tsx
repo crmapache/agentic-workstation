@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { clsx } from 'clsx'
 import { Plus, CalendarDays } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +16,7 @@ import { Sidebar } from '../Sidebar/Sidebar'
 import { SourceModal } from '../SourceModal/SourceModal'
 import { useNow } from '../../../lib/now.hooks'
 import { useCalendar, useCalendarEvents } from '../../../state/calendar.queries'
+import { useNarrowCalendar } from './CalendarView.hooks'
 import styles from './CalendarView.module.scss'
 import { sidebarStyle } from './CalendarView.utils'
 import { CalendarBody } from './parts/CalendarBody'
@@ -24,7 +26,9 @@ import { SyncButton } from './parts/SyncButton'
 /**
  * Календарь звонков (ADR 0114, 0116) - вид середины окна, общий на IDE: звонки всех источников
  * на одной сетке, накладки видны сразу. Слева во всю высоту - панель источников и накладок (её
- * тянут за край), справа - шапка с синком и листанием и неделя, день или месяц.
+ * тянут за край), справа - шапка с синком и листанием и неделя, день или месяц. Сетка не
+ * сжимается уже своей наименьшей ширины: в узком виде панель уходит сама и открывается поверх
+ * сетки, а уже и без неё сетка прокручивается вбок.
  */
 export const CalendarView = () => {
   const { t } = useTranslation()
@@ -35,6 +39,10 @@ export const CalendarView = () => {
   const edit = useCalendarStore((store) => store.edit)
   const sourcesOpen = useCalendarStore((store) => store.sourcesOpen)
   const sidebarWidth = useCalendarStore((store) => store.sidebarWidth)
+  const narrow = useCalendarStore((store) => store.narrow)
+  const peek = useCalendarStore((store) => store.peek)
+  const closePeek = useCalendarStore((store) => store.closePeek)
+  const view = useRef<HTMLDivElement>(null)
   const now = useNow(true, CALENDAR_TICK_MS)
   const period = periodOf(mode, anchor ?? now)
   const { data: events } = useCalendarEvents(period.from, period.to)
@@ -42,16 +50,21 @@ export const CalendarView = () => {
   const seen = state?.seenOverlaps ?? []
   const { meetings, overlaps, active } = useMeetings(events ?? [], sources, seen)
   const hasSources = sources.length > 0
+  const docked = hasSources && sourcesOpen && !narrow
+  const floating = hasSources && narrow && peek
 
   useCalendarViewed()
+  useNarrowCalendar(view, sidebarWidth)
 
   return (
     <div
-      className={clsx(styles.view, hasSources && sourcesOpen && styles.withSidebar)}
+      ref={view}
+      className={clsx(styles.view, docked && styles.withSidebar)}
       // eslint-disable-next-line no-restricted-syntax -- ширину панели тянут ручкой на лету
       style={sidebarStyle(sidebarWidth)}>
-      {hasSources && sourcesOpen && state && <Sidebar state={state} />}
-      <div className={styles.main}>
+      {(docked || floating) && state && <Sidebar state={state} floating={floating} />}
+      {/* Панель поверх сетки закрывает и свою кнопку: её убирает нажатие по календарю рядом. */}
+      <div className={styles.main} onPointerDown={floating ? closePeek : undefined}>
         <PageHeader
           icon={CalendarDays}
           title={t('calendar.title')}

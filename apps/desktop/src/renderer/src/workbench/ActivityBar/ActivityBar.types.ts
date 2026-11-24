@@ -58,7 +58,7 @@ export type BarButtonModel = {
   onClick: () => void
 }
 
-/** Кнопки полосы по группам: виды сверху и действия, прижатые к низу. */
+/** Кнопки полосы по группам: частые виды сверху, редкие виды и действия - прижатые к низу. */
 export type BarButtonGroups = Record<BarGroup, BarButtonModel[]>
 
 export type ActivityBarProps<ViewId extends string> = {
@@ -71,7 +71,7 @@ export type ActivityBarProps<ViewId extends string> = {
   /** С какой стороны от своей области стоит полоса: подсказка встаёт в сторону области. */
   edge: 'start' | 'end'
   label: string
-  /** Кнопки у нижнего края полосы, отдельно от видов: терминал под панелью. */
+  /** Кнопки у нижнего края полосы, под видами группы bottom: терминал под панелью. */
   footer?: readonly BarAction[] | undefined
   /**
    * Число на иконке вида - то, что ждёт человека (прогоны сценариев с вопросом). Ноль и

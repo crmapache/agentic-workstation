@@ -5,11 +5,12 @@ import styles from '../MonthGrid.module.scss'
 import type { MonthCellProps } from '../MonthGrid.types'
 import { MONTH_CELL_EVENTS } from '../../calendar.constants'
 import { useCalendarStore } from '../../calendar.store'
+import { isPastMeeting } from '../../calendar.utils'
 import { clockLabel, fullDayLabel } from '../../../../lib/dates.utils'
 
 /**
- * День месяца: число (открывает день целиком), встречи временем и названием, «ещё N» за
- * пределом клетки. Встреча открывает свою карточку, как на неделе.
+ * День месяца: число (открывает день целиком), встречи временем и названием (прошедшие тише),
+ * «ещё N» за пределом клетки. Встреча открывает свою карточку, как на неделе.
  */
 export const MonthCell = ({
   day,
@@ -18,6 +19,7 @@ export const MonthCell = ({
   isToday,
   isOtherMonth,
   isDayOff,
+  now,
   colorOf,
   onOpen,
 }: MonthCellProps) => {
@@ -49,6 +51,7 @@ export const MonthCell = ({
             styles.chip,
             styles[`tone${colorOf(meeting.sourceIds[0] ?? '')}`],
             meeting.event.allDay && styles.allDay,
+            isPastMeeting(meeting, now) && styles.past,
             clashing.has(meeting.key) &&
               (clashing.get(meeting.key) === true ? styles.softClash : styles.clash),
           )}

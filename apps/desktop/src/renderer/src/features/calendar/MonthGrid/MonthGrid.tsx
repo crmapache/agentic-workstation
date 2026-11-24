@@ -49,6 +49,7 @@ export const MonthGrid = ({
             isToday={day === today}
             isOtherMonth={new Date(day).getMonth() !== month}
             isDayOff={!isWorkDay(settings, day)}
+            now={now}
             colorOf={colorOf}
             onOpen={onOpen}
           />

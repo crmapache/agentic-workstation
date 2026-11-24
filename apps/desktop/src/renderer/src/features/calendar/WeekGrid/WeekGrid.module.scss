@@ -10,7 +10,7 @@
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: var(--size-calendar-min);
   min-height: 0;
 }
 
@@ -104,6 +104,11 @@
   font-size: var(--font-size-xs);
   text-align: left;
   cursor: pointer;
+}
+
+// Прошедшее «весь день» - тише: плашка лежит на пустой клетке, сквозь неё нечему проступать.
+.pastChip {
+  opacity: var(--opacity-muted);
 }
 
 .scroller {
@@ -217,14 +222,33 @@
   }
 }
 
+// Прошедшая встреча - тише: рамка и текст отступают к фону, а плашка остаётся непрозрачной -
+// линии часов сквозь название не проступают, как проступили бы через opacity. Накладка ниже
+// перекрашивает рамку и у прошедшей.
+.past {
+  border-color: color-mix(
+    in srgb,
+    var(--tone, var(--color-calendar-0)) var(--tint-soft),
+    transparent
+  );
+
+  .blockTitle {
+    color: var(--color-fg-muted);
+  }
+
+  .blockTime,
+  .tagIcon {
+    color: var(--color-fg-subtle);
+  }
+}
+
+// Накладка - цветом рамки, а толщина та же, что у всех встреч: двойная рамка кричала с сетки.
 .clash {
   border-color: var(--color-danger);
-  outline: var(--border-width) solid var(--color-danger);
 }
 
 .softClash {
   border-color: var(--color-warning);
-  outline: var(--border-width) solid var(--color-warning);
 }
 
 .faded {

@@ -12,12 +12,31 @@ export const useResizeDrag = (axis: 'x' | 'y', onResize: (delta: number) => void
   const position = (event: PointerEvent) => (axis === 'x' ? event.clientX : event.clientY)
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    // Тянут левой кнопкой: правая открывает меню, и её отпускание жест бы не закончило.
+    if (event.button !== 0) return
+
     event.currentTarget.setPointerCapture(event.pointerId)
     last.current = position(event)
   }
 
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    last.current = null
+  }
+
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (last.current === null) return
+
+    // Отпускание за краем окна или над областью перетаскивания окна macOS странице не
+    // отдаёт, и pointerup не приходит. Кнопка уже не нажата - жест кончен, а не панель
+    // продолжает ехать за мышью.
+    if ((event.buttons & 1) === 0) {
+      handlePointerUp(event)
+
+      return
+    }
 
     const delta = position(event) - last.current
 
@@ -25,8 +44,8 @@ export const useResizeDrag = (axis: 'x' | 'y', onResize: (delta: number) => void
     if (delta !== 0) onResize(delta)
   }
 
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    event.currentTarget.releasePointerCapture(event.pointerId)
+  // Захват отняли (окно потеряло фокус, ручка ушла из разметки) - жест кончен тоже.
+  const handleLostPointerCapture = () => {
     last.current = null
   }
 
@@ -35,5 +54,11 @@ export const useResizeDrag = (axis: 'x' | 'y', onResize: (delta: number) => void
     if (event.key === AXIS_KEYS[axis].forward) onResize(KEYBOARD_STEP)
   }
 
-  return { handlePointerDown, handlePointerMove, handlePointerUp, handleKeyDown }
+  return {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleLostPointerCapture,
+    handleKeyDown,
+  }
 }

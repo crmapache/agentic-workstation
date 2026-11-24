@@ -5,6 +5,7 @@ import { ACTIVITY_BAR_IDS } from '@shared/window'
 import type { BarMenuEntry, ActivityBarId } from '@shared/window'
 
 import type { BarAction } from '../ActivityBar/ActivityBar.types'
+import { viewsOfGroup } from '../views/view-group'
 import { viewLabel } from '../views/view-label'
 import type { ViewDescriptor } from '../views/views.types'
 import { invoke } from '../../lib/ipc'
@@ -13,7 +14,7 @@ import { DEFAULT_BAR_ARRANGEMENT } from '../../state/bar-buttons.constants'
 import { useBarButtonsStore } from '../../state/bar-buttons.store'
 import { menuGroups } from '../../state/bar-buttons.utils'
 
-/** Кнопки одной полосы, как их получает ActivityBar: виды сверху и действия низа. */
+/** Кнопки одной полосы, как их получает ActivityBar: виды (со своей группой) и действия низа. */
 type BarContents = { views: readonly ViewDescriptor<string>[]; footer: readonly BarAction[] }
 
 /**
@@ -28,9 +29,13 @@ export const useBarMenu = (bars: Record<ActivityBarId, BarContents>) => {
   const reset = useBarButtonsStore((state) => state.reset)
   const entries: BarMenuEntry[] = ACTIVITY_BAR_IDS.map((bar) => {
     const { views, footer } = bars[bar]
+    const named = (view: ViewDescriptor<string>) => ({ id: view.id, name: viewLabel(view, t) })
     const groups = {
-      top: views.map((view) => ({ id: view.id, name: viewLabel(view, t) })),
-      bottom: footer.map(({ id, name }) => ({ id, name })),
+      top: viewsOfGroup(views, 'top').map(named),
+      bottom: [
+        ...viewsOfGroup(views, 'bottom').map(named),
+        ...footer.map(({ id, name }) => ({ id, name })),
+      ],
     }
 
     return {

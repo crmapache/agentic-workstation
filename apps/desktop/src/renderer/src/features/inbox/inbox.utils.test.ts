@@ -100,8 +100,9 @@ describe('уходит ли карточка из угла сама', () => {
     expect(toastCloseMs(item({ kind: 'report' }))).toBe(TOAST_HIDE_MS)
   })
 
-  it('вопрос без ответа и «нужно внимание» стоят, пока их не закроют', () => {
+  it('вопрос без ответа, «нужно внимание» и напоминание стоят, пока их не закроют', () => {
     expect(toastCloseMs(item({ kind: 'question' }))).toBeUndefined()
     expect(toastCloseMs(item({ kind: 'message', tone: 'attention' }))).toBeUndefined()
+    expect(toastCloseMs(item({ kind: 'reminder', tone: 'info' }))).toBeUndefined()
   })
 })

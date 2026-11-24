@@ -12,9 +12,9 @@ import { clockLabel } from '../../../../lib/dates.utils'
  * Встреча на сетке: цвет главного источника, точки остальных (дубль из второго календаря),
  * название и время. Накладка - красной обводкой (мягкая - жёлтой) и зоной общего времени
  * внутри блока. Под вопросом - пунктиром со знаком вопроса и словом, отменённая и отклонённая -
- * тише и тоже со словом: одна рамка без подписи ничего не объясняет.
+ * тише и тоже со словом: одна рамка без подписи ничего не объясняет. Прошедшая - приглушена.
  */
-export const EventBlock = ({ block, colorOf, onOpen }: EventBlockProps) => {
+export const EventBlock = ({ block, past, colorOf, onOpen }: EventBlockProps) => {
   const { t } = useTranslation()
   const { event, sourceIds } = block.meeting
   const title = event.title || t('calendar.event.noTitle')
@@ -28,6 +28,7 @@ export const EventBlock = ({ block, colorOf, onOpen }: EventBlockProps) => {
       className={clsx(
         styles.block,
         styles[`tone${colorOf(sourceIds[0] ?? '')}`],
+        past && styles.past,
         block.clashing && (block.soft ? styles.softClash : styles.clash),
         (tag === 'cancelled' || tag === 'declined') && styles.faded,
         tag === 'tentative' && styles.doubtful,

@@ -14,6 +14,8 @@ export type MonthCellProps = {
   isToday: boolean
   isOtherMonth: boolean
   isDayOff: boolean
+  /** Сейчас, мс: прошедшие встречи тише. */
+  now: number
   colorOf: (sourceId: string) => number
   onOpen: (opened: OpenedMeeting) => void
 }

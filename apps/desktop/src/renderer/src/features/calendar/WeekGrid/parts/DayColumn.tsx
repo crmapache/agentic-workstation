@@ -4,13 +4,14 @@ import { HOURS } from '../WeekGrid.constants'
 import styles from '../WeekGrid.module.scss'
 import type { DayColumnProps } from '../WeekGrid.types'
 import { nowStyle, workStyle } from '../WeekGrid.utils'
+import { isPastMeeting } from '../../calendar.utils'
 import { EventBlock } from './EventBlock'
 
 /**
  * Колонка дня: линии часов, рабочее время подложкой светлее (у выходного вся колонка темнее),
- * встречи и линия «сейчас».
+ * встречи (прошедшие тише) и линия «сейчас».
  */
-export const DayColumn = ({ blocks, work, nowMinute, colorOf, onOpen }: DayColumnProps) => (
+export const DayColumn = ({ blocks, work, nowMinute, now, colorOf, onOpen }: DayColumnProps) => (
   <div className={clsx(styles.day, !work && styles.dayOff)}>
     {HOURS.map((hour) => (
       <span key={hour} className={styles.line} />
@@ -23,7 +24,13 @@ export const DayColumn = ({ blocks, work, nowMinute, colorOf, onOpen }: DayColum
       />
     )}
     {blocks.map((block) => (
-      <EventBlock key={block.meeting.key} block={block} colorOf={colorOf} onOpen={onOpen} />
+      <EventBlock
+        key={block.meeting.key}
+        block={block}
+        past={isPastMeeting(block.meeting, now)}
+        colorOf={colorOf}
+        onOpen={onOpen}
+      />
     ))}
     {nowMinute !== null && (
       <span

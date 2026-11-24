@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 
 import styles from '../WeekGrid.module.scss'
 import type { AllDayRowProps } from '../WeekGrid.types'
-import { allDayOn } from '../../calendar.utils'
+import { allDayOn, isPastMeeting } from '../../calendar.utils'
 
-/** Полоса «весь день» над часами: отпуск, праздник, поездка - плашками по дням. */
-export const AllDayRow = ({ days, meetings, colorOf, isDayOff, onOpen }: AllDayRowProps) => {
+/** Полоса «весь день» над часами: отпуск, праздник, поездка - плашками по дням, прошедшие тише. */
+export const AllDayRow = ({ days, meetings, now, colorOf, isDayOff, onOpen }: AllDayRowProps) => {
   const { t } = useTranslation()
   const perDay = days.map((day) => allDayOn(meetings, day))
 
@@ -21,7 +21,11 @@ export const AllDayRow = ({ days, meetings, colorOf, isDayOff, onOpen }: AllDayR
             <button
               key={meeting.key}
               type="button"
-              className={clsx(styles.chip, styles[`tone${colorOf(meeting.sourceIds[0] ?? '')}`])}
+              className={clsx(
+                styles.chip,
+                styles[`tone${colorOf(meeting.sourceIds[0] ?? '')}`],
+                isPastMeeting(meeting, now) && styles.pastChip,
+              )}
               onClick={(click) => onOpen({ meeting, anchor: click.currentTarget })}>
               {meeting.event.title || t('calendar.event.noTitle')}
             </button>

@@ -13,10 +13,13 @@ import type { ResizeHandleProps } from './ResizeHandle.types'
  */
 export const ResizeHandle = ({ edge, inGap = false, label, onResize }: ResizeHandleProps) => {
   const axis = EDGE_AXIS[edge]
-  const { handlePointerDown, handlePointerMove, handlePointerUp, handleKeyDown } = useResizeDrag(
-    axis,
-    onResize,
-  )
+  const {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleLostPointerCapture,
+    handleKeyDown,
+  } = useResizeDrag(axis, onResize)
 
   return (
     <div
@@ -31,6 +34,7 @@ export const ResizeHandle = ({ edge, inGap = false, label, onResize }: ResizeHan
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onLostPointerCapture={handleLostPointerCapture}
       onKeyDown={handleKeyDown}
     />
   )

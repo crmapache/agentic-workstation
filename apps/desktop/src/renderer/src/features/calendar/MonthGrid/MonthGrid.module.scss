@@ -7,7 +7,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-width: 0;
+  min-width: var(--size-calendar-min);
   min-height: 0;
 }
 
@@ -122,6 +122,11 @@
       transparent
     );
   }
+}
+
+// Прошедшая встреча - тише: время позади видно с первого взгляда на месяц.
+.past {
+  opacity: var(--opacity-muted);
 }
 
 .clash,
