@@ -12,6 +12,7 @@ import { RevealContext } from '../reveal.context'
 import { FindingsCard } from '../FindingsCard/FindingsCard'
 import { readReview } from '../FindingsCard/FindingsCard.utils'
 import { Markdown } from '../Markdown/Markdown'
+import { clipboardText } from '../Markdown/Markdown.utils'
 import { MessageMenu } from '../MessageMenu/MessageMenu'
 import { PinButton } from '../PinButton/PinButton'
 import { PinItem } from '../PinItem/PinItem'
@@ -22,7 +23,6 @@ import { REVEAL_LIMIT } from './AssistantMessage.constants'
 import { useRevealOptions } from './AssistantMessage.hooks'
 import styles from './AssistantMessage.module.scss'
 import type { AssistantMessageProps } from './AssistantMessage.types'
-import { replyClipboard } from './AssistantMessage.utils'
 
 /**
  * Ответ модели - карточка с рамкой (как в ACC): видно, где кончились шаги и начался
@@ -49,7 +49,7 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
     [item.streaming, item.text],
   )
 
-  const handleCopy = () => copy(replyClipboard(item.text))
+  const handleCopy = () => copy(clipboardText(item.text))
 
   return (
     <div

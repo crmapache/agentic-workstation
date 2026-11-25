@@ -15,6 +15,8 @@ import { SlashSuggest } from './parts/SlashSuggest'
  * даёт экран (Stop хода), и «отправить». Скрепка открывает выбор самой системы: фото, камера,
  * файлы. Над полем - цитаты из ленты и вложения, а по «/» - подсказка команд (slash). Enter на
  * телефоне переносит строку, отправка - кнопкой. Пока ход идёт, сообщение встаёт в очередь IDE.
+ * Пока выбранное ужимается или сообщение уходит (фото через релей - не мгновенно), «отправить»
+ * крутится и не нажимается: видно, что нажатие принято и работа идёт.
  */
 export const Composer = ({
   draftKey,
@@ -28,17 +30,19 @@ export const Composer = ({
 }: ComposerProps) => {
   const { t } = useTranslation()
   const composer = useComposer({ draftKey, onSend })
-  const { text, setText, images, files, isBusy, fieldRef, fileRef } = composer
+  const { text, setText, images, files, preparing, isBusy, fieldRef, fileRef } = composer
   const suggest = useSlashSuggest(text, setText, fieldRef, disabled ? undefined : slash)
-  const canSend = !disabled && !isBusy && !composer.isEmpty
+  const isWorking = isBusy || preparing > 0
+  const canSend = !disabled && !isWorking && !composer.isEmpty
 
   return (
     <div className={styles.composer}>
       {composer.quotes.length > 0 && <QuoteList draftKey={draftKey} quotes={composer.quotes} />}
-      {(images.length > 0 || files.length > 0) && (
+      {(images.length > 0 || files.length > 0 || preparing > 0) && (
         <AttachmentStrip
           images={images}
           files={files}
+          preparing={preparing}
           onRemoveImage={composer.removeImage}
           onRemoveFile={composer.removeFile}
         />
@@ -68,7 +72,7 @@ export const Composer = ({
               icon={Paperclip}
               size="touch"
               label={t('composer.attach')}
-              disabled={disabled}
+              disabled={disabled || preparing > 0}
               onClick={() => fileRef.current?.click()}
             />
             {/* Без accept: система сама предлагает фото, камеру и файлы. */}
@@ -90,6 +94,7 @@ export const Composer = ({
           size="touch"
           variant="primary"
           label={sendLabel}
+          busy={isWorking}
           disabled={!canSend}
           onClick={() => void composer.send()}
         />

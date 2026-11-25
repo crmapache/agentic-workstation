@@ -10,6 +10,7 @@ import { CodeBlock } from '../../CodeBlock/CodeBlock'
 import { Formula } from '../../Formula/Formula'
 import { MarkdownInline } from './MarkdownInline'
 import { MarkdownList } from './MarkdownList'
+import { MarkdownQuote } from './MarkdownQuote'
 import { MarkdownTable } from './MarkdownTable'
 
 /** Один блок разметки: абзац, заголовок, код, формула, список, цитата, таблица. */
@@ -44,11 +45,7 @@ const Block = ({ token }: MarkdownTokenProps) => {
     case 'math':
       return <Formula latex={(token as MathToken).text} display />
     case 'blockquote':
-      return (
-        <blockquote className={styles.quote}>
-          <MarkdownBlocks tokens={(token as Tokens.Blockquote).tokens} />
-        </blockquote>
-      )
+      return <MarkdownQuote quote={token as Tokens.Blockquote} />
     case 'list':
       return <MarkdownList list={token as Tokens.List} />
     case 'table':

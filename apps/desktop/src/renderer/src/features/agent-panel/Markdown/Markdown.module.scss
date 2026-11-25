@@ -157,11 +157,51 @@
   margin-top: var(--space-0-5);
 }
 
+// Цитата - свой блок раскладки (flow-root): плавающая кнопка копии не вылезает из неё в
+// следующий блок. Поэтому поля крайних блоков внутри больше не уходят наружу - они сняты.
 .quote {
+  display: flow-root;
   margin: 0 0 var(--space-2);
   padding-left: var(--space-3);
   border-left: var(--border-width) solid var(--color-border-strong);
   color: var(--color-fg-muted);
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Копия цитаты, как у блока кода: видна по наведению на цитату и с клавиатуры, после нажатия -
+// пока стоит галочка. Справа вверху, центром на середине строчных первой строки: текст первых
+// строк её обтекает, дальше цитата идёт во всю ширину.
+.quoteCopy {
+  --line: calc(var(--font-size-md) * var(--line-height-normal));
+
+  display: flex;
+  float: right;
+  margin: round(calc((var(--line) - var(--size-control-sm)) / 2 + var(--offset-lowercase)), 1px) 0 0
+    var(--space-1);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--easing-standard);
+  user-select: none;
+
+  &:focus-within {
+    opacity: 1;
+  }
+
+  @media (hover: hover) {
+    .quote:hover > & {
+      opacity: 1;
+    }
+  }
+
+  + * {
+    margin-top: 0;
+  }
+}
+
+.quoteCopied {
+  opacity: 1;
 }
 
 .rule {

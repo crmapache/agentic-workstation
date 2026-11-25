@@ -372,8 +372,13 @@
       "resets": "{{label}} resets {{when}}"
     }
   },
+  "markdown": {
+    "copy": "Copy this block",
+    "copied": "Copied"
+  },
   "composer": {
     "attach": "Attach photos or files",
+    "preparing": "Preparing the attachment",
     "removePhoto": "Remove photo {{number}}",
     "removeFile": "Remove {{name}}",
     "quotes": "Quotes",

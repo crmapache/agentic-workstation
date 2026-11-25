@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 
 import { lexMarkdown } from '../markdown-lexer'
 import { BULLET } from './Markdown.constants'
-import { codeLanguage, listItemMarker } from './Markdown.utils'
+import { codeLanguage, clipboardText, listItemMarker } from './Markdown.utils'
 
 /** Маркеры пунктов первого списка в тексте. */
 const markers = (text: string) => {
@@ -32,5 +32,23 @@ describe('codeLanguage', () => {
     expect(codeLanguage('markdown ultracode')).toBe('markdown')
     expect(codeLanguage('')).toBe('')
     expect(codeLanguage(undefined)).toBe('')
+  })
+})
+
+describe('clipboardText', () => {
+  it('выделение внутри строки уходит, блоки остаются', () => {
+    expect(clipboardText('**Done**: run `pnpm check`\n\n- one\n- two\n> note')).toBe(
+      'Done: run pnpm check\n\n- one\n- two\n> note',
+    )
+  })
+
+  it('внутри блока кода не трогается ничего', () => {
+    const code = '```ts\nconst a = `x` ** 2\n```\n**after**'
+
+    expect(clipboardText(code)).toBe('```ts\nconst a = `x` ** 2\n```\nafter')
+  })
+
+  it('забор закрывает только такой же или длиннее', () => {
+    expect(clipboardText('````\n```\n`in`\n````\n`out`')).toBe('````\n```\n`in`\n````\nout')
   })
 })

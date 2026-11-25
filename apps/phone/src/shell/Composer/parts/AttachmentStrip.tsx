@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { FileIcon } from '@agentic-workstation/ui/FileIcon'
+import { Spinner } from '@agentic-workstation/ui/Spinner'
 
 import { REMOVE_ICON_SIZE } from '../Composer.constants'
 import styles from '../Composer.module.scss'
@@ -10,16 +11,19 @@ import type { PreparedImage } from '../../../lib/images'
 
 /**
  * Вложения над полем: фото превью, файл - иконкой типа и именем. Плитка нажимается вся и
- * убирает вложение - крестик в углу только говорит об этом.
+ * убирает вложение - крестик в углу только говорит об этом. Выбранное, которое ещё ужимается
+ * (preparing), - плитками с крутилкой в конце ряда: выбор принят, оно вот-вот встанет.
  */
 export const AttachmentStrip = ({
   images,
   files,
+  preparing,
   onRemoveImage,
   onRemoveFile,
 }: {
   images: PreparedImage[]
   files: PreparedFile[]
+  preparing: number
   onRemoveImage: (id: string) => void
   onRemoveFile: (id: string) => void
 }) => {
@@ -54,6 +58,11 @@ export const AttachmentStrip = ({
           <span className={styles.fileName}>{file.name}</span>
           {mark}
         </button>
+      ))}
+      {Array.from({ length: preparing }, (_, index) => (
+        <span key={`preparing-${index}`} className={styles.preparingTile}>
+          <Spinner size="md" tone="neutral" label={t('composer.preparing')} />
+        </span>
       ))}
     </div>
   )

@@ -58,7 +58,9 @@ const pick = async (chosen: File[], images: number, files: number): Promise<Pick
 
 /**
  * Поле сообщения: черновик и цитаты живут в сторе (ушёл с экрана - не пропали), фото и файлы -
- * здесь, готовые к отправке. Поле растёт с текстом до своего потолка.
+ * здесь, готовые к отправке. Поле растёт с текстом до своего потолка. Выбранное ужимается не сразу
+ * (фото с камеры - секунды на штуку), и пока оно готовится (preparing - сколько плиток ждёт),
+ * отправить нельзя: сообщение ушло бы без него.
  */
 export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey' | 'onSend'>) => {
   const { t } = useTranslation()
@@ -69,6 +71,7 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
   const [images, setImages] = useState<PreparedImage[]>([])
   const [files, setFiles] = useState<PreparedFile[]>([])
   const [isBusy, setIsBusy] = useState(false)
+  const [preparing, setPreparing] = useState(0)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -90,20 +93,29 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
     // Сброс сразу: тот же файл, выбранный второй раз подряд, снова даст change.
     event.target.value = ''
 
-    const picked = await pick(chosen, images.length, files.length)
-    const nextImages = [...images, ...picked.images]
-    const nextFiles = [...files, ...picked.files]
+    if (chosen.length === 0) return
 
-    if (picked.skipped) show(t(`composer.${picked.skipped}`))
+    // Плиток ожидания - не больше, чем встанет: лишнее сверх потолков не берётся.
+    setPreparing(Math.min(chosen.length, MAX_IMAGES + MAX_FILES - images.length - files.length))
 
-    if (!attachmentsFit(nextImages, nextFiles)) {
-      for (const image of picked.images) URL.revokeObjectURL(image.preview)
+    try {
+      const picked = await pick(chosen, images.length, files.length)
 
-      return show(t('composer.tooBig'))
+      if (picked.skipped) show(t(`composer.${picked.skipped}`))
+
+      // Пока выбранное готовилось, вложение могли убрать, но не добавить (скрепка ждёт): проверка
+      // по прежнему набору - с запасом, а новые встают к тому, что осталось.
+      if (!attachmentsFit([...images, ...picked.images], [...files, ...picked.files])) {
+        for (const image of picked.images) URL.revokeObjectURL(image.preview)
+
+        return show(t('composer.tooBig'))
+      }
+
+      setImages((current) => [...current, ...picked.images])
+      setFiles((current) => [...current, ...picked.files])
+    } finally {
+      setPreparing(0)
     }
-
-    setImages(nextImages)
-    setFiles(nextFiles)
   }
 
   const removeImage = (id: string) => {
@@ -111,15 +123,15 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
 
     if (image) URL.revokeObjectURL(image.preview)
 
-    setImages(images.filter((one) => one.id !== id))
+    setImages((current) => current.filter((one) => one.id !== id))
   }
 
-  const removeFile = (id: string) => setFiles(files.filter((one) => one.id !== id))
+  const removeFile = (id: string) => setFiles((current) => current.filter((one) => one.id !== id))
 
   const isEmpty = !text.trim() && images.length === 0 && files.length === 0 && quotes.length === 0
 
   const send = async () => {
-    if (isBusy || isEmpty) return
+    if (isBusy || preparing > 0 || isEmpty) return
 
     setIsBusy(true)
 
@@ -152,6 +164,7 @@ export const useComposer = ({ draftKey, onSend }: Pick<ComposerProps, 'draftKey'
     handlePick,
     send,
     isBusy,
+    preparing,
     isEmpty,
     fieldRef,
     fileRef,

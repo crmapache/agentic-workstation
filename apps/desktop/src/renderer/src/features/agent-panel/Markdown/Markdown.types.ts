@@ -35,6 +35,10 @@ export type MarkdownListProps = {
   list: Tokens.List
 }
 
+export type MarkdownQuoteProps = {
+  quote: Tokens.Blockquote
+}
+
 export type MarkdownTableProps = {
   table: Tokens.Table
 }

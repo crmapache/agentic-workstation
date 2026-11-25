@@ -1,8 +1,9 @@
 import type { Token, Tokens } from 'marked'
 
 import styles from '../Markdown.module.scss'
-import { listMarker, codeLanguage } from '../Markdown.utils'
+import { listMarker, codeLanguage, clipboardText } from '../Markdown.utils'
 import { CodeBlock } from './CodeBlock'
+import { CopyButton } from './CopyButton'
 import { MarkdownInline } from './MarkdownInline'
 
 const Heading = ({ token }: { token: Tokens.Heading }) => {
@@ -86,12 +87,19 @@ const Block = ({ token }: { token: Token }) => {
 
       return <CodeBlock code={code.text} language={codeLanguage(code.lang)} />
     }
-    case 'blockquote':
+    case 'blockquote': {
+      const quote = token as Tokens.Blockquote
+
+      // Цитатой модель отдаёт текст, который несут дальше (письмо, сообщение) - у неё копия.
       return (
         <blockquote className={styles.quote}>
-          <MarkdownBlocks tokens={(token as Tokens.Blockquote).tokens} />
+          <span className={styles.quoteCopy}>
+            <CopyButton text={clipboardText(quote.text)} />
+          </span>
+          <MarkdownBlocks tokens={quote.tokens} />
         </blockquote>
       )
+    }
     case 'list':
       return <List token={token as Tokens.List} />
     case 'table':

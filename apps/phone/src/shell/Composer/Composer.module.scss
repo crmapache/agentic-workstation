@@ -129,6 +129,19 @@
   border-radius: var(--radius-md);
 }
 
+// Выбранное, которое ещё ужимается: плитка размером фото, крутилка посередине.
+.preparingTile {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-image-tile);
+  height: var(--size-image-tile);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+}
+
 .preview {
   width: 100%;
   height: 100%;

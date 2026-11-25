@@ -18,3 +18,37 @@ export const listItemMarker = (list: Tokens.List, item: Tokens.ListItem, index: 
 
   return `${written === undefined ? start + index : Number(written)}.`
 }
+
+/** Строка, открывающая или закрывающая забор кода: «```ts», «~~~~». */
+const FENCE = /^ {0,3}(`{3,}|~{3,})/
+
+/**
+ * Текст ответа или его блока (цитата) в буфер: блоки (списки, цитаты, код, таблицы)
+ * остаются как написаны, а выделение внутри строки уходит - звёздочки жирного и обратные
+ * кавычки кода в скопированном тексте ничего не выделяют и торчат мусором (ACC). Внутри
+ * блоков кода не трогается ничего.
+ */
+export const clipboardText = (markdown: string): string => {
+  let fence: string | null = null
+
+  return markdown
+    .split('\n')
+    .map((line) => {
+      const opened = FENCE.exec(line)?.[1]
+
+      if (fence) {
+        if (opened && opened[0] === fence[0] && opened.length >= fence.length) fence = null
+
+        return line
+      }
+
+      if (opened) {
+        fence = opened
+
+        return line
+      }
+
+      return line.replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, '$1').replace(/`([^`\n]+)`/g, '$1')
+    })
+    .join('\n')
+}
