@@ -27,7 +27,12 @@ import { QuestionAnswer } from './parts/QuestionAnswer'
  * На виде уведомлений свёрнута до шапки, кроме ждущей ответа (collapsible). Та же карточка стоит в окне прогона задания
  * (через InboxCardContext).
  */
-export const InboxCard = ({ item, highlighted = false, collapsible = false }: InboxCardProps) => {
+export const InboxCard = ({
+  item,
+  highlighted = false,
+  collapsible = false,
+  inRun = false,
+}: InboxCardProps) => {
   const { t } = useTranslation()
   const actions = useInboxActions()
   const chosen = useInboxStore((state) => state.expanded[item.id])
@@ -97,7 +102,7 @@ export const InboxCard = ({ item, highlighted = false, collapsible = false }: In
               onChange={setFeedback}
             />
           )}
-          {isOpen && <ItemButtons item={item} text={feedback} actions={buttonsOf(item)} />}
+          {isOpen && <ItemButtons item={item} text={feedback} actions={buttonsOf(item, inRun)} />}
           {!isOpen && (
             <div className={styles.outcome}>
               {t('inbox.meta.outcome', { outcome: outcomeText })}

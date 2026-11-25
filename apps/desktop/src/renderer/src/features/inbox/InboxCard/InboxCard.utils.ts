@@ -31,5 +31,9 @@ export const subjectOf = (item: InboxItem): string =>
  */
 export const expandedByDefault = (item: InboxItem): boolean => isInboxAsking(item)
 
-/** Кнопки под содержимым: ответ на вопросы рисует свою часть. */
-export const buttonsOf = (item: InboxItem) => item.actions.filter((one) => one.kind !== 'answer')
+/**
+ * Кнопки под содержимым: ответ на вопросы рисует свою часть. В окне прогона нет «открыть
+ * прогон» - он уже открыт, кнопка только закрыла бы карточку как прочитанную.
+ */
+export const buttonsOf = (item: InboxItem, inRun = false) =>
+  item.actions.filter((one) => one.kind !== 'answer' && !(inRun && one.kind === 'showRun'))

@@ -4,7 +4,15 @@ import type { DraftToken } from '@shared/message-draft'
 
 import { headText, chipBesideCaret, scrollCaretIntoView } from './field-caret'
 import { removeChip, ChipRegistry, relabelImages, relabelQuotes } from './field-chips'
-import { rebuildDom, extractTokens, placeCaretBefore, placeCaretBeside } from './field-dom'
+import {
+  rebuildDom,
+  restoreCaret,
+  takeKeyboard,
+  extractTokens,
+  placeCaretBefore,
+  placeCaretBeside,
+} from './field-dom'
+import { dragSelection, caretAboveFirstLine } from './field-pointer'
 import { MODIFIER_KEYS, UNDO_COALESCE_MS } from './field.constants'
 import type { Field, FieldOptions } from './field.types'
 import { captureCommand } from './slash-capture.utils'
@@ -265,10 +273,45 @@ export const useField = (options: FieldOptions): Field => {
     return true
   }
 
+  /**
+   * Нажатие в поле: подсвеченный чип гаснет, а нажатие выше первой строки поле ставит само -
+   * на первую строку под курсором, а не в начало текста (field-pointer).
+   */
+  const handleMouseDown = (event: MouseEvent) => {
+    const root = fieldRef.current
+
+    clearChipSelection()
+
+    if (!root || event.target !== root || event.button !== 0) return
+    if (event.ctrlKey || event.metaKey || event.altKey) return
+
+    const caret = caretAboveFirstLine(root, event.clientX, event.clientY, registry.chipOf)
+    const selection = window.getSelection()
+
+    if (!caret || !selection) return
+
+    event.preventDefault()
+    // Сначала фокус: возврат каретки при фокусе (restoreCaret) иначе перебил бы место нажатия.
+    root.focus({ preventScroll: true })
+
+    // Shift тянет выделение от прежней каретки, как у браузера.
+    if (event.shiftKey && selection.anchorNode && root.contains(selection.anchorNode)) {
+      selection.extend(caret.startContainer, caret.startOffset)
+    } else {
+      selection.removeAllRanges()
+      selection.addRange(caret)
+    }
+
+    dragSelection(root, registry.chipOf)
+  }
+
   return {
     fieldRef,
     registry,
     lastCaret,
+    takeKeyboard: () => {
+      if (fieldRef.current) takeKeyboard(fieldRef.current, lastCaret.current)
+    },
     applyTokens,
     commit: (boundary = true) => report(readTokens(), boundary),
     refresh: () => {
@@ -285,5 +328,9 @@ export const useField = (options: FieldOptions): Field => {
     handleChipKey,
     handleInput: (event) => applyEdit(isComposing(event)),
     handleCompositionEnd: () => applyEdit(false),
+    handleMouseDown,
+    handleFocus: () => {
+      if (fieldRef.current) restoreCaret(fieldRef.current, lastCaret.current)
+    },
   }
 }

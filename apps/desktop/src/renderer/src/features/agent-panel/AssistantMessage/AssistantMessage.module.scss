@@ -1,11 +1,11 @@
 // Ответ модели - карточка с рамкой, без заливки: тише плашки, но видно, где кончились
-// шаги хода и начался ответ (как в ACC). Справа - место под кнопки в углу: копия и три
-// точки, у закреплённого ещё и булавка, с голосом - «прочитать вслух». Отступы от соседних
+// шаги хода и начался ответ (как в ACC). Справа - место под кнопки в углу: три точки, у
+// закреплённого ещё и булавка, у читаемого вслух - «стоп» (ADR 0122). Отступы от соседних
 // строк - у ленты (Feed), не здесь.
 .assistantMessage {
   position: relative;
   min-width: 0;
-  padding: var(--space-2) calc(var(--space-2) + var(--size-control-sm) * 2) var(--space-2)
+  padding: var(--space-2) calc(var(--space-2) + var(--size-control-sm)) var(--space-2)
     var(--space-3);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -13,12 +13,12 @@
 }
 
 .pinned,
-.reads {
-  padding-right: calc(var(--space-2) + var(--size-control-sm) * 3);
+.reading {
+  padding-right: calc(var(--space-2) + var(--size-control-sm) * 2);
 }
 
-.pinned.reads {
-  padding-right: calc(var(--space-2) + var(--size-control-sm) * 4);
+.pinned.reading {
+  padding-right: calc(var(--space-2) + var(--size-control-sm) * 3);
 }
 
 // Кнопки - всегда видны, в правом верхнем углу, центром на середине строчных первой строки

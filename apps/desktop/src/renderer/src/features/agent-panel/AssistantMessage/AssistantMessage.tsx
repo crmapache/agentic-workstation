@@ -1,10 +1,10 @@
 import { memo, useMemo, useState } from 'react'
 import clsx from 'clsx'
-import { Copy, Check } from 'lucide-react'
+import { Copy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSmoothText, RevealProvider } from 'smooth-stream-text/react'
 
-import { IconButton } from '@agentic-workstation/ui/IconButton'
+import { MenuItem } from '@agentic-workstation/ui/MenuItem'
 
 import { useFeedScope } from '../feed-scope.context'
 import { usePin } from '../pins.store'
@@ -17,8 +17,8 @@ import { MessageMenu } from '../MessageMenu/MessageMenu'
 import { PinButton } from '../PinButton/PinButton'
 import { PinItem } from '../PinItem/PinItem'
 import { ReadAloudButton } from '../ReadAloudButton/ReadAloudButton'
-import { useReadAloudAvailable } from '../ReadAloudButton/ReadAloudButton.hooks'
-import { useCopy } from '../../../lib/clipboard.hooks'
+import { useReadAloudPhase, useReadAloudAvailable } from '../ReadAloudButton/ReadAloudButton.hooks'
+import { ReadAloudItem } from '../ReadAloudItem/ReadAloudItem'
 import { REVEAL_LIMIT } from './AssistantMessage.constants'
 import { useRevealOptions } from './AssistantMessage.hooks'
 import styles from './AssistantMessage.module.scss'
@@ -26,18 +26,19 @@ import type { AssistantMessageProps } from './AssistantMessage.types'
 
 /**
  * Ответ модели - карточка с рамкой (как в ACC): видно, где кончились шаги и начался
- * ответ. В углу, как у своего сообщения, - копия всего ответа, «прочитать вслух» (ADR 0106) и
- * три точки с булавкой, у закреплённого булавка горит и снаружи. CLI шлёт текст рывками -
+ * ответ. В углу - три точки: копия всего ответа, «прочитать вслух» (ADR 0106) и булавка
+ * (ADR 0122). Снаружи горит только идущее: булавка закреплённого и «стоп» читаемого вслух.
+ * Копия блока кода - в углу самого блока (CodeBlock). CLI шлёт текст рывками -
  * smooth-stream-text выравнивает темп, а символы проступают волной; готовый ответ
  * (история, транскрипт) и очень длинный встают сразу.
  */
 export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
   const { t } = useTranslation()
   const { conversationId, readOnly } = useFeedScope()
-  const { isCopied, copy } = useCopy()
   const { isPinned } = usePin(conversationId, item.id)
   // Пока ответ пишется, читать нечего: текст ещё не тот, что останется.
   const canRead = useReadAloudAvailable() && !item.streaming
+  const isReading = useReadAloudPhase(item.id) !== null
   // Волна - только у ответа, который печатается на глазах: готовому из истории нечего проявлять.
   const [isLive] = useState(item.streaming)
   const { text } = useSmoothText(item.text, { done: !item.streaming })
@@ -49,26 +50,24 @@ export const AssistantMessage = memo(({ item }: AssistantMessageProps) => {
     [item.streaming, item.text],
   )
 
-  const handleCopy = () => copy(clipboardText(item.text))
+  const handleCopy = () => void navigator.clipboard.writeText(clipboardText(item.text))
 
   return (
     <div
-      className={clsx(styles.assistantMessage, isPinned && styles.pinned, canRead && styles.reads)}>
+      className={clsx(
+        styles.assistantMessage,
+        isPinned && styles.pinned,
+        isReading && styles.reading,
+      )}>
       <div className={styles.actions}>
         {/* В журнале чужого разговора закреплять некуда: полки закреплённых там нет. */}
         {!readOnly && <PinButton conversationId={conversationId} itemId={item.id} />}
-        <IconButton
-          icon={isCopied ? Check : Copy}
-          size="sm"
-          label={isCopied ? t('agentPanel.message.copied') : t('agentPanel.message.copyReply')}
-          onClick={handleCopy}
-        />
-        {canRead && <ReadAloudButton itemId={item.id} text={item.text} />}
-        {!readOnly && (
-          <MessageMenu>
-            <PinItem conversationId={conversationId} itemId={item.id} />
-          </MessageMenu>
-        )}
+        <ReadAloudButton itemId={item.id} text={item.text} />
+        <MessageMenu>
+          <MenuItem icon={Copy} label={t('agentPanel.message.copyReply')} onSelect={handleCopy} />
+          {canRead && <ReadAloudItem itemId={item.id} text={item.text} />}
+          {!readOnly && <PinItem conversationId={conversationId} itemId={item.id} />}
+        </MessageMenu>
       </div>
       {review ? (
         <>

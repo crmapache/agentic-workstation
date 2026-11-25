@@ -1,3 +1,4 @@
+import type { PermissionMode } from '@shared/conversation'
 import { DEFAULT_GOAL } from '@shared/goals'
 import { TASK_KINDS, TASK_MODES, TASK_REPEATS } from '@shared/tasks'
 import type { Task, TaskMode, TaskDraft, TaskSchedule } from '@shared/tasks'
@@ -96,8 +97,21 @@ const scheduleArg = (args: Record<string, unknown>, base: TaskSchedule): TaskSch
   }
 }
 
-/** Режимы задания, которые агент ставит сам: каждый шаг спрашивает человека или ничего не пишет. */
-export const AGENT_MODES: readonly TaskMode[] = ['default', 'readOnly']
+/**
+ * Режимы задания по свободе: только чтение, каждый шаг у человека, правки сами, классификатор,
+ * всё без вопросов. Агент ставит любой не выше режима новых вкладок человека (ADR 0121).
+ */
+const MODE_FREEDOM: Record<TaskMode, number> = {
+  readOnly: 0,
+  default: 1,
+  acceptEdits: 2,
+  auto: 3,
+  bypassPermissions: 4,
+}
+
+/** Режим вкладки как режим задания: плана у задания нет (никто не одобрит), он - «спрашивать». */
+const asTaskMode = (mode: PermissionMode | undefined): TaskMode =>
+  TASK_MODES.find((one) => one === mode) ?? 'default'
 
 /** Строка поля: нет поля - undefined (оставить прежнее), пустая строка - сброс к умолчанию. */
 const textArg = (args: Record<string, unknown>, key: string): string | undefined =>
@@ -105,18 +119,25 @@ const textArg = (args: Record<string, unknown>, key: string): string | undefined
 
 /**
  * Модель, усилие и режим задания. Смена провайдера - как в форме окна (`switchedTo`): модель и
- * усилие - его по умолчанию (имена моделей у провайдеров свои), режим - прежний, если он у нового
- * есть, иначе «спрашивать». Названный режим, которого у провайдера нет, - отказ.
+ * усилие - его по умолчанию (имена моделей у провайдеров свои). Режим нового задания - режим новых
+ * вкладок человека у провайдера в этом проекте (ADR 0121): человек его уже выбрал для работы
+ * агента, и задание от агента не стоит потом на каждом клике. Он же потолок: выше агент не
+ * поднимает, ниже - сколько угодно. Правка режим не трогает; при смене провайдера чужой режим -
+ * к режиму новых вкладок нового. Названный режим, которого у провайдера нет, - отказ.
  */
-const runnerOf = (args: Record<string, unknown>, base: TaskDraft, ports: WorkstationPorts) => {
+const runnerOf = async (
+  args: Record<string, unknown>,
+  base: TaskDraft,
+  fresh: boolean,
+  ports: WorkstationPorts,
+) => {
   const provider = unattendedProviderArg(args) ?? base.provider
   const switched = provider !== base.provider
-  const modes =
-    ports
-      .panels()
-      .find((port) => port.provider === provider)
-      ?.info()?.modes ?? null
+  const port = ports.panels().find((one) => one.provider === provider)
+  const modes = port?.info()?.modes ?? null
   const fits = (mode: TaskMode) => !modes || mode === 'default' || modes.some((one) => one === mode)
+  const human = asTaskMode(await port?.newTabMode?.(base.projectPath))
+  const ceiling = fits(human) ? human : 'default'
   const named =
     args['permission_mode'] === undefined ? null : oneOfArg(args, 'permission_mode', TASK_MODES)
 
@@ -124,28 +145,33 @@ const runnerOf = (args: Record<string, unknown>, base: TaskDraft, ports: Worksta
     throw new ArgumentError(`${provider} has no permission mode ${named}.`)
   }
 
-  // Режим без вопросов (правки сами, классификатор, bypass) ставит только человек в окне: иначе
-  // агент заводил бы себе исполнителя без вопросов. Свой прежний режим задания - не повышение.
-  if (named && !AGENT_MODES.includes(named) && named !== base.permissionMode) {
+  // Свой прежний режим задания - не повышение: его уже поставил человек или потолок того дня.
+  if (named && named !== base.permissionMode && MODE_FREEDOM[named] > MODE_FREEDOM[ceiling]) {
+    const allowed = TASK_MODES.filter(
+      (mode) => fits(mode) && MODE_FREEDOM[mode] <= MODE_FREEDOM[ceiling],
+    )
+
     throw new ArgumentError(
-      `Only the person sets permission mode ${named}, in the task window. You can set default or readOnly.`,
+      `Only the person sets permission mode ${named}, in the task window: the person's mode for new chats is ${ceiling}. You can set ${allowed.join(', ')}.`,
     )
   }
+
+  const kept = fresh || !fits(base.permissionMode) ? ceiling : base.permissionMode
 
   return {
     provider,
     model: textArg(args, 'model') ?? (switched ? '' : base.model),
     effort: textArg(args, 'effort') ?? (switched ? '' : base.effort),
-    permissionMode: named ?? (fits(base.permissionMode) ? base.permissionMode : 'default'),
+    permissionMode: named ?? kept,
   }
 }
 
 /** Задание из аргументов: правка - поверх прежнего, новое - поверх пустого формы. */
-export const draftOf = (
+export const draftOf = async (
   args: Record<string, unknown>,
   ports: WorkstationPorts,
   ownProject: () => string,
-): TaskDraft => {
+): Promise<TaskDraft> => {
   const taskId = stringArg(args, 'task_id')
   const previous = taskId ? ports.tasks.task(taskId) : undefined
 
@@ -155,17 +181,18 @@ export const draftOf = (
   const pick = <T>(value: T | undefined, fallback: T): T => value ?? fallback
   // Перенос в другой проект - только названным проектом: пустое поле - не «сюда».
   const moved = typeof args['project'] === 'string' && args['project'].trim() !== ''
+  const projectPath = moved ? ownProject() : base.projectPath
 
   return {
     ...base,
     kind: args['kind'] === undefined ? base.kind : oneOfArg(args, 'kind', TASK_KINDS),
     name: pick(stringArg(args, 'name'), base.name),
-    projectPath: moved ? ownProject() : base.projectPath,
+    projectPath,
     prompt: pick(stringArg(args, 'prompt'), base.prompt),
     schedule: scheduleArg(args, base.schedule),
     enabled: booleanArg(args, 'enabled', base.enabled),
     catchUp: booleanArg(args, 'catch_up', base.catchUp),
     report: booleanArg(args, 'report', base.report),
-    ...runnerOf(args, base, ports),
+    ...(await runnerOf(args, { ...base, projectPath }, !previous, ports)),
   }
 }

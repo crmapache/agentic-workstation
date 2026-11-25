@@ -9,6 +9,8 @@ export type InboxCardProps = {
    * ответа - раскрыта. В окне прогона - нет: там карточка и есть то, на что отвечают.
    */
   collapsible?: boolean | undefined
+  /** Стоит в окне своего прогона: кнопки «открыть прогон» нет. */
+  inRun?: boolean | undefined
 }
 
 export type ItemPartProps = { item: InboxItem }

@@ -30,6 +30,7 @@ export const panelPort = (provider: ProviderId, panel: AgentPanel): Conversation
   respond: (id, requestId, response) => panel.actions.respond(id, requestId, response),
   interrupt: (id) => panel.actions.interrupt(id),
   newConversation: (projectPath, options) => panel.openConversation(projectPath, options),
+  newTabMode: (projectPath) => panel.newTabMode(projectPath),
   close: (id) => panel.tabs.close(id, false),
   setOptions: (id, options) => panel.actions.setOptions(id, options),
   rename: (id, title) => panel.tabs.rename(id, title),

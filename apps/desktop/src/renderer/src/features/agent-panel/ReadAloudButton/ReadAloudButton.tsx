@@ -7,19 +7,21 @@ import { useReadAloud } from './ReadAloudButton.hooks'
 import type { ReadAloudButtonProps } from './ReadAloudButton.types'
 
 /**
- * «Прочитать вслух» в углу ответа модели (ADR 0106): пока звук готовится - крутилка, пока
- * звучит - «стоп». Голосом и скоростью из Settings → Voice, голос - по языку ответа. Ставит её
- * ответ, когда useReadAloudAvailable: голос выключен или нет ключа - кнопки нет.
+ * Идущее чтение вслух в углу ответа модели (ADR 0106), как горящая булавка: видна, только пока
+ * этот ответ читается, - пока звук готовится, крутилка, пока звучит, «стоп». Начать чтение -
+ * пункт меню карточки (ReadAloudItem).
  */
 export const ReadAloudButton = ({ itemId, text }: ReadAloudButtonProps) => {
   const { t } = useTranslation()
   const { phase, handleToggle } = useReadAloud(itemId, text)
 
+  if (phase === null) return null
+
   return (
     <IconButton
       icon={phase === 'playing' ? Square : Volume2}
       busy={phase === 'loading'}
-      label={phase === null ? t('voice.read.start') : t('voice.read.stop')}
+      label={t('voice.read.stop')}
       size="sm"
       onClick={handleToggle}
     />

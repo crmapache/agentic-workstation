@@ -133,15 +133,15 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
 
   // Новая вкладка или просьба о фокусе - клавиатура полю, каретка где была или в конце.
   useEffect(() => {
-    if (field.fieldRef.current) takeKeyboard(field.fieldRef.current)
-  }, [conversation?.id, focusRequest, field.fieldRef])
+    if (field.fieldRef.current) takeKeyboard(field.fieldRef.current, field.lastCaret.current)
+  }, [conversation?.id, focusRequest, field.fieldRef, field.lastCaret])
 
   const handleAttach = async () => {
     const picked = await invoke('claude:pickAttachments', { projectId: project.id }).catch(() => [])
 
     for (const item of picked) insert.insertChip(chipOfPath(item))
 
-    field.fieldRef.current?.focus()
+    field.takeKeyboard()
   }
 
   return {
@@ -166,10 +166,13 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
       handleAttach: () => void handleAttach(),
       handleSlash: () => {
         insert.insertText('/')
-        field.fieldRef.current?.focus()
+        field.takeKeyboard()
       },
       handleStop: () => conversation && void actions.interrupt(conversation.id),
-      handleFocus: () => setIsFocused(true),
+      handleFocus: () => {
+        field.handleFocus()
+        setIsFocused(true)
+      },
       handleBlur: () => {
         setIsFocused(false)
         field.clearChipSelection()

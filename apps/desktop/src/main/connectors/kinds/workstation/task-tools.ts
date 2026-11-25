@@ -1,9 +1,9 @@
-import { TASK_KINDS, TASK_REPEATS } from '@shared/tasks'
+import { TASK_KINDS, TASK_MODES, TASK_REPEATS } from '@shared/tasks'
 
 import { stringArg } from '../native-tools'
 import type { NativeTool } from '../native-tools'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
-import { draftOf, taskView, AGENT_MODES } from './task-drafts'
+import { draftOf, taskView } from './task-drafts'
 import { timeOf, oneOfArg, projectOf, listScopeOf, PROJECT_ARG } from './workstation-args'
 import { taskError } from './workstation-words'
 
@@ -80,7 +80,7 @@ export const TASK_TOOLS: NativeTool<WorkstationPorts>[] = [
       'Create a task, or change one (task_id: give only what changes).',
       'schedule.repeat: manual (only by hand), once (date YYYY-MM-DD at), hourly (at minute of the hour), daily, weekly (days 1 Monday...7 Sunday), monthly (month_day). at is HH:MM local time.',
       'kind goal: a goal pursued until done, the prompt says what result is wanted; no schedule.',
-      'permission_mode: default sends every permission question to the notifications and waits for the person, readOnly lets it only read (Codex, open models). Modes that act without asking only the person sets, in the task window.',
+      "permission_mode: leave it out - a new task gets the person's mode for new chats of that provider. You may set a narrower one (default sends every permission question to the notifications and waits for the person, readOnly lets it only read: Codex, open models), never a freer one.",
     ].join(' '),
     access: 'write',
     inputSchema: {
@@ -113,11 +113,11 @@ export const TASK_TOOLS: NativeTool<WorkstationPorts>[] = [
         },
         model: { type: 'string', description: 'Empty - the default of a new tab.' },
         effort: { type: 'string' },
-        permission_mode: { type: 'string', enum: [...AGENT_MODES] },
+        permission_mode: { type: 'string', enum: [...TASK_MODES] },
       },
     },
     run: async (args, ports, call) => {
-      const draft = draftOf(args, ports, () => projectOf(args, call, ports.projects))
+      const draft = await draftOf(args, ports, () => projectOf(args, call, ports.projects))
       const saved = await ports.tasks.save(draft)
 
       if (!saved.ok) throw taskError(saved.code)

@@ -23,6 +23,8 @@ export type Field = {
   registry: ChipRegistry
   /** Где каретка стояла в поле последний раз: вставка без фокуса в поле встаёт туда. */
   lastCaret: RefObject<Range | null>
+  /** Клавиатура полю (кнопка, подсказка, открытое поле): каретка где оставили, иначе в конце. */
+  takeKeyboard: () => void
   /** Заменить содержимое целиком - шагом истории отмен. */
   applyTokens: (next: DraftToken[]) => void
   /** Прочитать поле (с перенумерацией картинок) и сообщить правку. */
@@ -39,6 +41,10 @@ export type Field = {
   handleChipKey: (event: KeyboardEvent) => boolean
   handleInput: (event: Event) => void
   handleCompositionEnd: () => void
+  /** Нажатие мыши: гасит подсвеченный чип, нажатие выше первой строки ставит на неё. */
+  handleMouseDown: (event: MouseEvent) => void
+  /** Фокус пришёл без каретки (окно вернуло фокус, focus() кодом) - вернуть её на место. */
+  handleFocus: () => void
 }
 
 /**

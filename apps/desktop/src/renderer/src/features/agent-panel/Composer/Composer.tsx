@@ -38,7 +38,7 @@ export const Composer = (props: ComposerProps) => {
   const canSearch = usePanelCapabilities().search
   const composer = useComposer(props)
   const { field, suggest, handlers } = composer
-  const { fieldRef, registry, handleInput, handleCompositionEnd, clearChipSelection } = field
+  const { fieldRef, registry, handleInput, handleCompositionEnd, handleMouseDown } = field
   const editorFit = useEditorFit(draftKey, composer.editor)
   const steps = useMemo(() => fitSteps(editorFit, ROW_SQUARES), [editorFit])
   const rowContent = `${conversation?.status ?? ''}|${composer.isShell}|${composer.isAside}`
@@ -106,7 +106,7 @@ export const Composer = (props: ComposerProps) => {
           onCopy={composer.clipboard.handleCopy}
           onCut={composer.clipboard.handleCut}
           onDragStart={composer.clipboard.handleDragStart}
-          onMouseDown={clearChipSelection}
+          onMouseDown={(event) => handleMouseDown(event.nativeEvent)}
           onFocus={handlers.handleFocus}
           onBlur={handlers.handleBlur}
         />

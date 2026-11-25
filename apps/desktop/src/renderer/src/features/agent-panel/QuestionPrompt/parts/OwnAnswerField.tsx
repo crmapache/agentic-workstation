@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useOwnAnswerField } from '../QuestionPrompt.hooks'
 import styles from '../QuestionPrompt.module.scss'
 import type { OwnAnswerFieldProps } from '../QuestionPrompt.types'
+import { takeKeyboard } from '../../field-dom'
 import { FieldChips } from '../../FieldChips/FieldChips'
 
 /**
@@ -21,12 +22,17 @@ export const OwnAnswerField = ({
     props,
     styles.chip ?? '',
   )
-  const { fieldRef } = field
+  const { fieldRef, lastCaret } = field
 
   // Поле открыли нажатием «Other» - печатать сразу, как у прежнего поля с autoFocus.
   useEffect(() => {
-    if (autoFocus) fieldRef.current?.focus()
-  }, [autoFocus, fieldRef])
+    if (autoFocus && fieldRef.current) takeKeyboard(fieldRef.current, lastCaret.current)
+  }, [autoFocus, fieldRef, lastCaret])
+
+  const handleFocus = () => {
+    field.handleFocus()
+    onFocus()
+  }
 
   return (
     <>
@@ -49,8 +55,8 @@ export const OwnAnswerField = ({
         onDragStart={clipboard.handleDragStart}
         onDragOver={handleDragOver}
         onDrop={clipboard.handleDrop}
-        onMouseDown={field.clearChipSelection}
-        onFocus={onFocus}
+        onMouseDown={(event) => field.handleMouseDown(event.nativeEvent)}
+        onFocus={handleFocus}
       />
       <FieldChips registry={field.registry} fieldRef={fieldRef} />
     </>

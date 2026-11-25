@@ -1,7 +1,13 @@
 // @vitest-environment happy-dom
-import { it, expect, describe } from 'vitest'
+import { it, expect, describe, afterEach } from 'vitest'
 
-import { charAfter, charBefore, needsLeadingSpace, needsTrailingSpace } from './field-dom'
+import {
+  charAfter,
+  charBefore,
+  restoreCaret,
+  needsLeadingSpace,
+  needsTrailingSpace,
+} from './field-dom'
 
 /** Поле из узлов: строки - текстом, null - чипом (элемент, не текст). */
 const fieldOf = (...parts: (string | null)[]): HTMLElement => {
@@ -57,5 +63,122 @@ describe('пробелы вокруг вложения - как в ACC', () => {
     expect(charAfter(caretAt(root, 1))).toBe('')
     expect(charAfter(caretAt(root, 2))).toBe(' ')
     expect(charAfter(caretAt(root, 3))).toBe('')
+  })
+})
+
+describe('фокус без каретки - каретка на место, а не в начало поля', () => {
+  /** Поле на странице: выделение работает только в документе. */
+  const mounted = (...parts: (string | null)[]) => {
+    const root = fieldOf(...parts)
+
+    document.body.append(root)
+
+    return root
+  }
+
+  const select = (range: Range) => {
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+  }
+
+  /** Где каретка: узел и смещение. */
+  const caret = () => {
+    const range = window.getSelection()?.getRangeAt(0)
+
+    return { node: range?.startContainer, offset: range?.startOffset, collapsed: range?.collapsed }
+  }
+
+  afterEach(() => {
+    window.getSelection()?.removeAllRanges()
+    document.body.replaceChildren()
+  })
+
+  it('каретка ушла из поля - туда, где её оставили', () => {
+    const root = mounted('Давай еще раз')
+    const outside = mounted('лента')
+    const text = root.firstChild
+
+    if (!text || !outside.firstChild) throw new Error('no text nodes')
+
+    const kept = caretAt(text, 5)
+
+    select(caretAt(outside.firstChild, 2))
+    restoreCaret(root, kept)
+
+    expect(caret()).toEqual({ node: text, offset: 5, collapsed: true })
+  })
+
+  it('оставленное выделение - сворачивается к концу, набор его не сотрёт', () => {
+    const root = mounted('Давай еще раз')
+    const text = root.firstChild
+
+    if (!text) throw new Error('no text node')
+
+    const kept = caretAt(text, 2)
+
+    kept.setEnd(text, 9)
+    window.getSelection()?.removeAllRanges()
+    restoreCaret(root, kept)
+
+    expect(caret()).toEqual({ node: text, offset: 9, collapsed: true })
+  })
+
+  it('каретку не оставляли или её узла уже нет - в конец набранного', () => {
+    const root = mounted('abc', null, 'def')
+    const gone = document.createTextNode('old')
+
+    window.getSelection()?.removeAllRanges()
+    restoreCaret(root, null)
+
+    expect(caret()).toEqual({ node: root, offset: 3, collapsed: true })
+
+    window.getSelection()?.removeAllRanges()
+    restoreCaret(root, caretAt(gone, 1))
+
+    expect(caret()).toEqual({ node: root, offset: 3, collapsed: true })
+  })
+
+  it('Chromium поставил каретку в начало при фокусе - туда, где её оставили', () => {
+    const root = mounted('abcdef')
+    const text = root.firstChild
+
+    if (!text) throw new Error('no text node')
+
+    select(caretAt(root, 0))
+    restoreCaret(root, caretAt(text, 4))
+
+    expect(caret()).toEqual({ node: text, offset: 4, collapsed: true })
+  })
+
+  it('в начале её и оставили или там выделение - не трогается', () => {
+    const root = mounted('abcdef')
+    const text = root.firstChild
+
+    if (!text) throw new Error('no text node')
+
+    select(caretAt(text, 0))
+    restoreCaret(root, caretAt(root, 0))
+
+    expect(caret()).toEqual({ node: text, offset: 0, collapsed: true })
+
+    const picked = caretAt(text, 0)
+
+    picked.setEnd(text, 3)
+    select(picked)
+    restoreCaret(root, caretAt(text, 5))
+
+    expect(caret()).toEqual({ node: text, offset: 0, collapsed: false })
+  })
+
+  it('каретка уже в поле - не трогается', () => {
+    const root = mounted('abcdef')
+    const text = root.firstChild
+
+    if (!text) throw new Error('no text node')
+
+    select(caretAt(text, 1))
+    restoreCaret(root, caretAt(text, 4))
+
+    expect(caret()).toEqual({ node: text, offset: 1, collapsed: true })
   })
 })

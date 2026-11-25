@@ -21,7 +21,7 @@ export const RunAsking = ({ run }: RunPartProps) => {
   return (
     <div className={styles.asking}>
       {items.map((item) => (
-        <Card key={item.id} item={item} />
+        <Card key={item.id} item={item} inRun />
       ))}
     </div>
   )

@@ -221,6 +221,17 @@ export abstract class AgentPanel {
     return id
   }
 
+  /**
+   * Режим новых вкладок человека в проекте: закреплённый в Settings → New chats (с поправкой на
+   * проект), иначе по настройкам провайдера. Без соседней вкладки: так его берёт задание, которое
+   * завёл агент (ADR 0121), - оно ни рядом с какой вкладкой не стоит.
+   */
+  async newTabMode(projectPath: string): Promise<PermissionMode> {
+    const { newTabMode } = await this.driver.newTabPrefs(projectPath)
+
+    return newTabMode ?? (await this.driver.defaultMode(projectPath))
+  }
+
   activateConversation(conversationId: string): AgentPanelState {
     this.setActive(this.runtime(conversationId).meta.projectPath, conversationId)
 

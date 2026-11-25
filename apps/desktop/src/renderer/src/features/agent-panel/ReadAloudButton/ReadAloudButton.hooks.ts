@@ -8,16 +8,18 @@ import { useVoice } from '../../../state/voice.queries'
 /** Есть ли «Прочитать вслух» у ответов: голос включён и ключ Deepgram есть (ADR 0106). */
 export const useReadAloudAvailable = (): boolean => useVoice()?.capability.available === true
 
+/** В какой фазе чтение этого ответа; ответ не читается - null. */
+export const useReadAloudPhase = (itemId: string): ReadAloudPhase | null =>
+  useReadAloudStore((state) => (state.current?.itemId === itemId ? state.current.phase : null))
+
 /**
- * Кнопка «Прочитать вслух» у ответа (ADR 0106): в какой фазе чтение этого ответа и нажатие -
- * начать или остановить; отказ - строкой в углу окна.
+ * «Прочитать вслух» у ответа (ADR 0106) - пункт меню и кнопка в углу на время чтения: в какой
+ * фазе чтение этого ответа и нажатие - начать или остановить; отказ - строкой в углу окна.
  */
 export const useReadAloud = (itemId: string, text: string) => {
   const { t } = useTranslation()
   const showNotice = useActionNoticeStore((state) => state.show)
-  const phase = useReadAloudStore((state): ReadAloudPhase | null =>
-    state.current?.itemId === itemId ? state.current.phase : null,
-  )
+  const phase = useReadAloudPhase(itemId)
   const toggle = useReadAloudStore((state) => state.toggle)
 
   const handleToggle = () =>

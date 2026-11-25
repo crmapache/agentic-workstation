@@ -3,6 +3,7 @@ import type { SearchAnswer, AiSearchOutcome } from '@shared/claude-search'
 import type { Connector } from '@shared/connectors'
 import type {
   HistoryEntry,
+  PermissionMode,
   AgentPanelState,
   ImageAttachment,
   RequestResponse,
@@ -92,6 +93,11 @@ export type ConversationsPort = {
    * по чему окно гасит bypass в меню MODE. Нет - слоёв настроек у провайдера нет.
    */
   bypassDisabled?: ((projectPath: string) => Promise<boolean>) | undefined
+  /**
+   * Режим новых вкладок человека в проекте (AgentPanel.newTabMode): его получает задание, которое
+   * завёл агент (ADR 0121). Нет - режим неизвестен, задание агента спрашивает каждый шаг.
+   */
+  newTabMode?: ((projectPath: string) => Promise<PermissionMode>) | undefined
   rename: (conversationId: string, title: string) => Promise<unknown>
   /**
    * Команды и скиллы проекта и пользователя на диске (claude:listCommands) - для каталога «/».

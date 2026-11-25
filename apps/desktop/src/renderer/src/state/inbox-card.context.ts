@@ -3,8 +3,11 @@ import { useContext, createContext } from 'react'
 
 import type { InboxItem } from '@shared/inbox'
 
-/** Карточка уведомления с кнопками ответа - та же, что на виде уведомлений. */
-export type InboxCardSlot = ComponentType<{ item: InboxItem }>
+/**
+ * Карточка уведомления с кнопками ответа - та же, что на виде уведомлений. inRun - стоит в окне
+ * своего прогона: кнопки «открыть прогон» там нет.
+ */
+export type InboxCardSlot = ComponentType<{ item: InboxItem; inRun?: boolean }>
 
 /**
  * Окно прогона задания показывает вопрос, на котором прогон стоит, той же карточкой, что вид

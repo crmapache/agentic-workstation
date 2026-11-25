@@ -93,18 +93,6 @@ export const fieldEnd = (root: HTMLElement): Range => padTrailingBreak(root) ?? 
 
 export const placeCaretAtEnd = (root: HTMLElement): void => select(fieldEnd(root))
 
-/**
- * Клавиатура полю извне (смена вкладки, приветствие): каретка там, где её оставили, или в
- * конце черновика. Голый focus() при выделении где-то ещё ставит её в начало поля.
- */
-export const takeKeyboard = (root: HTMLElement): void => {
-  const caret = window.getSelection()?.anchorNode
-
-  if (!caret || !root.contains(caret)) placeCaretAtEnd(root)
-
-  root.focus()
-}
-
 /** Каретка рядом с чипом - с той стороны, куда шла стрелка. */
 export const placeCaretBeside = (node: Node, side: 'before' | 'after'): void => {
   const range = document.createRange()
@@ -124,6 +112,17 @@ export const placeCaretBefore = (root: HTMLElement, index: number): void => {
   else placeCaretAtEnd(root)
 }
 
+/** Оставленная каретка, если её узел ещё в поле; выделение - свёрнутое к концу. */
+const keptCaret = (root: HTMLElement, kept: Range | null): Range | null => {
+  if (!kept?.startContainer.isConnected || !root.contains(kept.startContainer)) return null
+
+  const caret = kept.cloneRange()
+
+  caret.collapse(false)
+
+  return caret
+}
+
 /**
  * Каретка в поле. Выделение ушло из поля (выделяли текст в ленте, жали кнопку) - место, где
  * каретку оставили (kept), свёрнутое к концу: прежнее выделение вставка не стирает. Не
@@ -135,15 +134,46 @@ export const currentRange = (root: HTMLElement, kept: Range | null = null): Rang
 
   if (range && root.contains(range.startContainer)) return range
 
-  if (kept?.startContainer.isConnected && root.contains(kept.startContainer)) {
-    const caret = kept.cloneRange()
+  return keptCaret(root, kept) ?? fieldEnd(root)
+}
 
-    caret.collapse(false)
+/** Перед местом ни буквы, ни чипа, ни переноса - самое начало поля. */
+const atFieldStart = (root: HTMLElement, range: Range): boolean => {
+  const head = document.createRange()
 
-    return caret
+  head.setStart(root, 0)
+  head.setEnd(range.startContainer, range.startOffset)
+
+  const before = head.cloneContents()
+
+  return before.textContent === '' && before.querySelector('*') === null
+}
+
+/**
+ * Фокус пришёл без каретки - она туда, где её оставили (kept), иначе в конец набранного.
+ * Chromium даёт полю такой фокус, когда его зовут focus() при выделении где-то ещё, переходят
+ * в него Tab или закрытое окно (настройки) возвращает фокус: каретка остаётся снаружи или
+ * встаёт в самое начало поля - и раньше, чем поле узнаёт о фокусе. Первая буква или вставка
+ * уходили в начало черновика. Каретку в начале при оставленной в другом месте ставит только он:
+ * нажатие мышью ставит свою позже, а код поля - туда, где её оставили.
+ */
+export const restoreCaret = (root: HTMLElement, kept: Range | null): void => {
+  const selection = window.getSelection()
+  const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+
+  if (!range || !root.contains(range.startContainer)) return select(currentRange(root, kept))
+
+  const caret = keptCaret(root, kept)
+
+  if (range.collapsed && caret && atFieldStart(root, range) && !atFieldStart(root, caret)) {
+    select(caret)
   }
+}
 
-  return fieldEnd(root)
+/** Клавиатура полю извне (смена вкладки, приветствие, ⌘Esc): каретка - как у restoreCaret. */
+export const takeKeyboard = (root: HTMLElement, kept: Range | null): void => {
+  restoreCaret(root, kept)
+  root.focus()
 }
 
 /** Текст узла рядом с местом вставки; не текст (чип, <br>) или нет узла - пусто. */

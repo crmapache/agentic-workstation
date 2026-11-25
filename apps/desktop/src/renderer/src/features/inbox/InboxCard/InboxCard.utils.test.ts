@@ -1,8 +1,8 @@
 import { it, expect, describe } from 'vitest'
 
-import type { InboxItem } from '@shared/inbox'
+import type { InboxItem, InboxAction } from '@shared/inbox'
 
-import { subjectOf, expandedByDefault } from './InboxCard.utils'
+import { buttonsOf, subjectOf, expandedByDefault } from './InboxCard.utils'
 
 const item = (patch: Partial<InboxItem>): InboxItem => ({
   id: 'i',
@@ -46,5 +46,21 @@ describe('карточка уведомления на виде', () => {
     expect(subjectOf(item({ kind: 'question', title: 'Nightly', source: 'Nightly' }))).toBe('')
     expect(subjectOf(item({ kind: 'report' }))).toBe('')
     expect(subjectOf(item({ kind: 'failure' }))).toBe('')
+  })
+
+  it('в окне своего прогона нет «открыть прогон», на виде и в баннере - есть', () => {
+    const asking = item({
+      kind: 'permission',
+      actions: (['allow', 'deny', 'showRun'] as const).map((kind): InboxAction => ({
+        id: kind,
+        kind,
+        label: '',
+        value: '',
+        primary: false,
+      })),
+    })
+
+    expect(buttonsOf(asking).map((one) => one.kind)).toEqual(['allow', 'deny', 'showRun'])
+    expect(buttonsOf(asking, true).map((one) => one.kind)).toEqual(['allow', 'deny'])
   })
 })

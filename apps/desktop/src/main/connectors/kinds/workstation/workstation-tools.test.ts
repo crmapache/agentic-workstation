@@ -1,6 +1,6 @@
 import { it, vi, expect, describe } from 'vitest'
 
-import type { Conversation } from '@shared/conversation'
+import type { Conversation, PermissionMode } from '@shared/conversation'
 import type { Scenario } from '@shared/scenarios'
 import type { Task } from '@shared/tasks'
 import type { WorkspaceState } from '@shared/workspace'
@@ -65,6 +65,8 @@ type Fakes = {
   workspace?: WorkspaceState
   /** Проекты, где человек оставил коннектор; нет - все. */
   allowed?: (path: string) => boolean
+  /** Режим новых вкладок Claude Code у человека; нет - панель его не называет. */
+  newTabMode?: PermissionMode
 }
 
 /** IDE из подделок: только то, что зовёт тест; остальное упало бы. */
@@ -74,6 +76,7 @@ const ideOf = ({
   conversations = [],
   workspace = WORKSPACE,
   allowed,
+  newTabMode,
 }: Fakes) => {
   const panel = {
     provider: 'claude',
@@ -88,7 +91,8 @@ const ideOf = ({
       return Promise.resolve('new-tab')
     }),
     openHistory: vi.fn(() => Promise.resolve(null)),
-    info: () => ({ modes: ['default', 'acceptEdits', 'plan', 'bypassPermissions'] }),
+    info: () => ({ modes: ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'] }),
+    newTabMode: newTabMode && vi.fn(() => Promise.resolve(newTabMode)),
   }
   const codex = {
     provider: 'codex',
@@ -507,7 +511,7 @@ describe('инструменты самой IDE', () => {
     expect(ports.projects.open).not.toHaveBeenCalled()
   })
 
-  it('режим без вопросов агент не ставит ни заданию, ни сценарию; уже поставленный человеком - остаётся', async () => {
+  it('режим без вопросов агент не ставит сценарию, а заданию - сверх режима новых вкладок; поставленный человеком - остаётся', async () => {
     const save = vi.fn(() =>
       Promise.resolve({ ok: true as const, state: null as never, taskId: 't1' }),
     )
@@ -559,6 +563,56 @@ describe('инструменты самой IDE', () => {
         .error,
     ).toBe(false)
     expect(saveScenario).toHaveBeenCalledTimes(1)
+  })
+
+  it('новое задание агента берёт режим новых вкладок человека; выше агент не поднимает, ниже - можно', async () => {
+    const stored = new Map<string, Task>()
+    const save = vi.fn((draft: Task) => {
+      const task = {
+        ...draft,
+        id: draft.id ?? 't1',
+        createdAt: 1,
+        updatedAt: 1,
+        nextAt: 0,
+        skipAt: 0,
+      }
+
+      stored.set(task.id, task)
+
+      return Promise.resolve({ ok: true as const, state: null as never, taskId: task.id })
+    })
+    const tasks = { save, task: (id: string) => stored.get(id) }
+    const free = ideOf({ scenarios: {}, tasks, newTabMode: 'bypassPermissions' })
+
+    await free.call('save_task', { name: 'Amazon', prompt: 'Check the order' }, IN_WEB)
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: null, permissionMode: 'bypassPermissions' }),
+    )
+    await free.call('save_task', { name: 'Calm', prompt: 'Look', permission_mode: 'auto' }, IN_WEB)
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ permissionMode: 'auto' }))
+
+    // Правка без режима его не трогает, даже если человек потом сузил задание у себя.
+    stored.set('t1', { ...stored.get('t1')!, permissionMode: 'default' })
+    await free.call('save_task', { task_id: 't1', name: 'Renamed' }, IN_WEB)
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: 't1', name: 'Renamed', permissionMode: 'default' }),
+    )
+
+    const careful = ideOf({ scenarios: {}, tasks, newTabMode: 'acceptEdits' })
+
+    expect(
+      (await careful.call('save_task', { name: 'x', prompt: 'y', permission_mode: 'auto' }, IN_WEB))
+        .text,
+    ).toBe(
+      "Only the person sets permission mode auto, in the task window: the person's mode for new chats is acceptEdits. You can set default, acceptEdits.",
+    )
+
+    // План у задания некому одобрить: такой режим новых вкладок - «спрашивать».
+    const planning = ideOf({ scenarios: {}, tasks, newTabMode: 'plan' })
+
+    await planning.call('save_task', { name: 'Plan', prompt: 'Think' }, IN_WEB)
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ permissionMode: 'default' }))
+    expect(save).toHaveBeenCalledTimes(4)
   })
 
   it('коннектор сужен до проекта: чужие проекты, очереди и разговоры разговору не видны, снаружи - видны', async () => {
