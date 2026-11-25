@@ -101,7 +101,7 @@ export const createAgentHandlers = (
       panels.get(provider).listHistory(root(projectId)),
     'agent:openHistory': ({ provider, projectId, sessionId }) =>
       panels.get(provider).openHistory(root(projectId), assertAgentSessionId(sessionId)),
-    'agent:recheckCli': ({ provider }) => panels.get(provider).recheckCli(),
+    'agent:recheckCli': ({ provider }) => panels.get(provider).recheckCli(true),
     'agent:refreshUsage': ({ provider, accountIds }) =>
       panels.get(provider).refreshUsage(assertAccountIds(accountIds)),
     'agent:signIn': ({ provider, accountId }) =>

@@ -19,17 +19,19 @@ const AGY: AcpCliSpec = {
   minimum: '1.5.10',
 }
 
-/** Машина на словах: файлы с их ответом на `--version`, окружение и ответ оболочки. */
+/** Машина на словах: файлы с их ответом на `--version`, окружение, ответ оболочки и текст обёрток .cmd. */
 const machine = (
   windows: boolean,
   env: Environment,
   files: Record<string, string>,
   shell: string | null = null,
+  shims: Record<string, string> = {},
 ): LocatorDeps => ({
   windows,
   env,
   home: '/Users/me',
   isFile: (path) => Promise.resolve(path in files),
+  readText: (path) => Promise.resolve(shims[path] ?? ''),
   run: (file, args) => Promise.resolve(args[0] === '--version' ? (files[file] ?? '') : ''),
   askShell: vi.fn(() => Promise.resolve(shell)),
 })
@@ -167,6 +169,21 @@ describe('поиск CLI на Windows', () => {
       `${local}\\Microsoft\\WinGet\\Links\\kimi.exe`,
     )
     expect(await at(`${roaming}\\npm\\kimi.cmd`)).toBe(`${roaming}\\npm\\kimi.cmd`)
+  })
+
+  it('обёртка npm над программой - сама программа, без cmd.exe; над скриптом - обёртка', async () => {
+    const shim = `${roaming}\\npm\\agy.cmd`
+    const program = `${roaming}\\npm\\node_modules\\agy-cli\\bin\\agy.exe`
+    const env = { APPDATA: roaming }
+    const viaProgram = machine(true, env, { [shim]: '', [program]: 'agy 1.5.12' }, null, {
+      [shim]: '"%dp0%\\node_modules\\agy-cli\\bin\\agy.exe"   %*\r\n',
+    })
+    const viaScript = machine(true, env, { [shim]: 'agy 1.5.12' }, null, {
+      [shim]: '"%_prog%"  "%dp0%\\node_modules\\agy-cli\\bin\\agy.js" %*\r\n',
+    })
+
+    expect((await searchAcpCli(AGY, viaProgram)).cli?.binary).toBe(program)
+    expect((await searchAcpCli(AGY, viaScript)).cli?.binary).toBe(shim)
   })
 
   it('папка из PATH и папка установщика - один кандидат, регистр не важен', () => {

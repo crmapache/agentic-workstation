@@ -73,7 +73,10 @@ paths:
 - **Человек пишет в чат, пока висит вопрос** - сначала сообщение, потом отказ: в
   обратном порядке модель переспрашивает. Текст при плане - замечание «доработай».
 - **Без `USER` в окружении** CLI не находит запись в Keychain и «не вошёл».
-  Окружение берётся из login shell (`main/process/shell-env.ts`).
+  Окружение берётся из login shell (`main/process/shell-env.ts`), на Windows - PATH из реестра.
+- **CLI на Windows** (ADR 0125): ищется в PATH и папках установщиков (родной, winget, npm, Scoop -
+  `process/cli-search.ts`), обёртку npm `claude.cmd` заменяет её `claude.exe`. Claude запускается
+  только самой программой, через cmd.exe - никогда; путь руками на `.cmd` тоже превращается в exe.
 - **`--safe-mode` гасит и серверы из `--mcp-config`** (2.1.293: init с пустым `mcp_servers`).
   Разовому вопросу с коннекторами изоляция - `--setting-sources ''`, `--disable-slash-commands` и
   окружение без CLAUDE.md и памяти (`structured-ask.ts`, ADR 0114). Проверка - `mcp_servers` в

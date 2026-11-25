@@ -16,6 +16,7 @@ import type { AgentHost } from '../conversation/agent-parts'
 import { ConversationRuntime } from '../conversation/conversation-runtime'
 import type { PanelHooks } from '../hooks/conversation-hooks'
 import { ProcessGroup } from '../../process/process-group'
+import { forgetLoginShellEnv } from '../../process/shell-env'
 import type { JsonFile } from '../../storage/json-file'
 import type { HistoryName } from './new-tab'
 import { newTabConversation } from './new-tab'
@@ -304,8 +305,14 @@ export abstract class AgentPanel {
     return this.getState()
   }
 
-  /** Поискать CLI заново: человек поставил его, пока IDE была открыта. */
-  async recheckCli(): Promise<AgentPanelState> {
+  /**
+   * Поискать CLI заново: человек поставил его, пока IDE была открыта. byHand - он сам нажал
+   * «искать заново»: окружение терминала (на Windows - PATH из реестра) читается заново,
+   * установщик мог дописать туда свою папку.
+   */
+  async recheckCli(byHand = false): Promise<AgentPanelState> {
+    if (byHand) forgetLoginShellEnv()
+
     if (await this.driver.recheckCli()) {
       await Promise.all(
         [...this.runtimes.values()].map((runtime) => runtime.resolveError('cli-not-found')),

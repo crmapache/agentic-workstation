@@ -1,11 +1,10 @@
-import { IS_WINDOWS } from '../../platform'
-
 /**
- * Имя исполняемого файла Claude Code. На Windows - только claude.exe родного установщика:
- * обёртку npm (claude.cmd) без оболочки не запустить, а через cmd.exe слова человека в
- * аргументах ломались бы на кавычках и процентах (ADR 0048).
+ * Команда Claude Code. На Windows запускается всегда сама программа claude.exe, а не через
+ * cmd.exe: там слова в аргументах ломались бы на кавычках и процентах (ADR 0048). Поэтому
+ * обёртку npm (`claude.cmd`) поиск заменяет её claude.exe - пакет npm несёт ту же родную
+ * программу (`bin/claude.exe`), что и установщик (`process/cli-search.ts`).
  */
-export const CLAUDE_BINARY = IS_WINDOWS ? 'claude.exe' : 'claude'
+export const CLAUDE_COMMAND = 'claude'
 
 /** Сколько ждать `command -v` и `--help` у CLI. */
 export const CLI_PROBE_TIMEOUT_MS = 5_000

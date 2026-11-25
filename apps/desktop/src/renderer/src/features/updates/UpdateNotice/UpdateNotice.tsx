@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@agentic-workstation/ui/Button'
 import { Toast } from '@agentic-workstation/ui/Toast'
 
+import { useToastMore } from '../../../lib/toast-more.hooks'
 import { useUpdateStatus, useUpdateActions } from '../../../state/updates.queries'
 import { RETRYABLE_FAILURES } from './UpdateNotice.constants'
 
@@ -15,6 +16,7 @@ export const UpdateNotice = () => {
   const { t } = useTranslation()
   const { data: status } = useUpdateStatus()
   const { install, dismiss, openReleasePage } = useUpdateActions()
+  const more = useToastMore()
 
   if (!status || status.kind === 'idle') return null
 
@@ -31,6 +33,7 @@ export const UpdateNotice = () => {
       <Toast
         title={t('updates.availableTitle', { version: status.version })}
         description={description}
+        more={more}
         close={laterClose}
         actions={
           <Button
@@ -50,6 +53,7 @@ export const UpdateNotice = () => {
       <Toast
         title={t('updates.downloadingTitle', { version: status.version })}
         description={t('updates.downloadingText', { percent: Math.round(status.progress * 100) })}
+        more={more}
         progress={status.progress}
       />
     )
@@ -60,6 +64,7 @@ export const UpdateNotice = () => {
       <Toast
         title={t('updates.installingTitle', { version: status.version })}
         description={t('updates.installingText')}
+        more={more}
       />
     )
   }
@@ -69,6 +74,7 @@ export const UpdateNotice = () => {
       tone="danger"
       title={t('updates.failedTitle', { version: status.version })}
       description={t(`updates.failureReason.${status.reason}`)}
+      more={more}
       close={laterClose}
       actions={
         <>

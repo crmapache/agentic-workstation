@@ -10,13 +10,16 @@ import { findAppBundle, getManualUpdateReason, readDesignatedRequirement } from 
 import { downloadAsset, fetchUpdateManifest } from './update-download'
 import { UpdateError } from './update-error'
 import { scheduleSwap, unpackUpdate, verifyUpdate, removeBundleDir } from './update-installer'
+import { appendUpdateLog } from './update-log'
 import type { UpdateAsset, UpdateManifest } from './update-manifest'
 import {
   STAGING_DIR_NAME,
   UPDATE_ASSET_KEY,
   CHECK_INTERVAL_MS,
+  INSTALLER_WAIT_MS,
   FIRST_CHECK_DELAY_MS,
 } from './update.constants'
+import { browserHostKeys } from './win-install-watch'
 import { watchInstaller, verifyInstaller } from './win-update'
 
 export type UpdateServiceOptions = {
@@ -27,10 +30,17 @@ export type UpdateServiceOptions = {
   downloadsDir: string
   logPath: string
   /**
-   * Переменная окружения NAME=value для новой версии после перезапуска (профиль,
-   * в котором шло обновление). Пусто - перезапуск как обычно.
+   * Переменные окружения NAME=value для новой версии после перезапуска: профиль, в котором шло
+   * обновление, и окно сбоку у копии агента. Пусто - перезапуск как обычно.
    */
-  relaunchEnv: string
+  relaunchEnv: readonly string[]
+  /** Открыть новую версию в фоне, не поверх окон человека: копия агента (WINDOW_ASIDE_ENV). */
+  relaunchInBackground: boolean
+  /**
+   * Имя native host браузера этой IDE (ADR 0040). На Windows его регистрация снимается на время
+   * установки: иначе Chrome поднимает host - exe IDE из папки установки - снова и снова (ADR 0124).
+   */
+  browserHostName: string
   onStatus: (status: UpdateStatus) => void
   /** Выйти из приложения, чтобы подмена могла начаться. */
   quit: () => void
@@ -142,6 +152,7 @@ export class UpdateService {
         stagingDir,
         logPath: this.options.logPath,
         relaunchEnv: this.options.relaunchEnv,
+        relaunchInBackground: this.options.relaunchInBackground,
       })
       this.options.quit()
     } catch (error) {
@@ -157,25 +168,43 @@ export class UpdateService {
   }
 
   /**
-   * Windows (ADR 0048): подпись ключа выпуска - до загрузки (без неё качать незачем), установщик
-   * целиком, сторож, который запустит его после выхода IDE, и выход. Остальное - установщик:
-   * поставит новую версию поверх и запустит её.
+   * Windows (ADR 0048, 0124): подпись ключа выпуска - до загрузки (без неё качать незачем),
+   * установщик целиком, сторож, который запустит его после выхода IDE, и выход. Остальное -
+   * установщик: поставит новую версию поверх и запустит её. Каждый шаг - в update.log: консоли у
+   * собранной IDE на Windows нет, и другого следа сбоя не останется.
    */
   private async installOnWindows({ manifest, asset }: Offer): Promise<void> {
     const { version } = manifest
-    const installer = join(this.options.downloadsDir, `agentic-workstation-${version}-setup.exe`)
+    const { downloadsDir, logPath, executablePath, browserHostName } = this.options
+    const installer = join(downloadsDir, `agentic-workstation-${version}-setup.exe`)
+    const log = (text: string) => appendUpdateLog(logPath, `${version}: ${text}`)
 
     try {
       this.lastProgressPercent = -1
       this.setStatus({ kind: 'downloading', version, progress: 0 })
       verifyInstaller(asset, version)
+      await log(`downloading the installer to ${installer}`)
       await downloadAsset(asset, installer, (fraction) => this.reportProgress(version, fraction))
-      await watchInstaller(installer, process.pid)
+      await log(`downloaded and checked (${asset.size} bytes), starting the install watcher`)
+
+      const watcher = await watchInstaller({
+        version,
+        installerPath: installer,
+        appExe: executablePath,
+        pid: process.pid,
+        waitMs: INSTALLER_WAIT_MS,
+        logPath,
+        workDir: downloadsDir,
+        hostKeys: browserHostKeys(browserHostName),
+      })
+
+      await log(`install watcher started (pid ${watcher ?? '?'}), the IDE quits`)
       this.setStatus({ kind: 'installing', version })
       this.options.quit()
     } catch (error) {
       await rm(installer, { force: true }).catch(() => undefined)
       console.warn(`[updates] ${version} не встала:`, describeError(error))
+      await log(`not installed: ${describeError(error)}`)
       this.setStatus({
         kind: 'failed',
         version,

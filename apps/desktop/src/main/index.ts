@@ -10,12 +10,15 @@ import type { ProviderId } from '@shared/providers'
 import type { SoundPrefs } from '@shared/sounds'
 import type { WorkspaceState } from '@shared/workspace'
 
-import { applyAppProfile, PROFILE_DIR_ENV } from './app-profile'
+import { HOST_NAMES } from '@agentic-workstation/browser-protocol/protocol'
+
+import { isWindowAside, relaunchEnvOf, applyAppProfile } from './app-profile'
 import { featureServices } from './feature-services'
 import { startIdeFeatures } from './ide-features'
 import { installApplicationMenu } from './menu'
 import { IS_MAC, IS_WINDOWS, WINDOWS_APP_ID } from './platform'
 import { attachGateway, connectorLinks, startProviderPanels } from './provider-panels'
+import { hostChannel } from './browser/browser-places'
 import { startConnectors } from './connectors/connectors-setup'
 import { extensionsFolderPath } from './extensions/extensions-folder'
 import { OutsideWatchers } from './fs/outside-watchers'
@@ -111,7 +114,9 @@ const bootstrap = async () => {
     executablePath: app.getPath('exe'),
     downloadsDir: app.getPath('temp'),
     logPath: join(app.getPath('logs'), 'update.log'),
-    relaunchEnv: PROFILE_DIR ? `${PROFILE_DIR_ENV}=${PROFILE_DIR}` : '',
+    relaunchEnv: relaunchEnvOf(PROFILE_DIR),
+    relaunchInBackground: isWindowAside(),
+    browserHostName: HOST_NAMES[hostChannel(app.isPackaged, PROFILE_DIR)],
     onStatus: (status) => broadcast('updates:status', status),
     quit: () => app.quit(),
   })

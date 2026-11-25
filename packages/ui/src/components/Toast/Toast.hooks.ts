@@ -1,7 +1,14 @@
-import { useRef, useState, useEffect, useEffectEvent, useSyncExternalStore } from 'react'
+import {
+  useRef,
+  useState,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useSyncExternalStore,
+} from 'react'
 import type { FocusEvent } from 'react'
 
-import { COUNTDOWN_LENGTH } from './Toast.constants'
+import { FOLD_SLACK_PX, COUNTDOWN_LENGTH } from './Toast.constants'
 
 const subscribeToWindowFocus = (onChange: () => void) => {
   window.addEventListener('focus', onChange)
@@ -78,4 +85,44 @@ export const useCountdown = (ms: number | undefined, onDone: () => void) => {
       onBlur: handleBlur,
     },
   }
+}
+
+/**
+ * Свёрнутое длинное пояснение карточки (ToastProps.more). Обрезано ли оно, видно только у
+ * свёрнутого: у раскрытого нет потолка строк, и пока карточка раскрыта, ответ держится прежним.
+ * Мерит ResizeObserver: его первый ответ приходит после раскладки, до отрисовки, так что стрелка
+ * встаёт в том же кадре. Наблюдение заводится заново на каждый новый текст: у обрезанного блока
+ * высота не меняется, когда текста становится ещё больше, а ширину и размер текста он ловит сам.
+ */
+export const useFold = (text: string | undefined, isEnabled: boolean) => {
+  const textRef = useRef<HTMLDivElement>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isCut, setIsCut] = useState(false)
+  const canFold = isEnabled && Boolean(text) && isCut
+  // Пояснение пропало или сворачивать его больше не просят - и раскрытого больше нет.
+  const isExpanded = isOpen && canFold
+
+  useLayoutEffect(() => {
+    const node = textRef.current
+
+    if (!node || !isEnabled || isExpanded) return
+
+    const observer = new ResizeObserver(() =>
+      setIsCut(node.scrollHeight - node.clientHeight > FOLD_SLACK_PX),
+    )
+
+    observer.observe(node)
+
+    return () => observer.disconnect()
+  }, [text, isEnabled, isExpanded])
+
+  const toggle = () => {
+    // Свёрнутое показывает первые строки: прокрутка раскрытого иначе осталась бы в обрезанном
+    // блоке, и под многоточием стояла бы середина текста.
+    if (isExpanded && textRef.current) textRef.current.scrollTop = 0
+
+    setIsOpen(!isExpanded)
+  }
+
+  return { textRef, isExpanded, canFold, toggle }
 }

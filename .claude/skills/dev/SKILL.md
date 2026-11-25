@@ -77,10 +77,17 @@ swift apps/desktop/scripts/real-mouse.swift drag 800,20 900,20     # печат�
 
 Скриншот через CDP - это содержимое окна: «светофора» macOS на нём нет.
 
-Копия обычно стоит за окнами человека. Закрытое окно Chromium не рисует, и
-`requestAnimationFrame` в нём молчит. Поэтому `agent-window.sh` запускает её с
-`--disable-backgrounding-occluded-windows`: покадровые замеры и показ того, что ждёт
-кадра, идут и в фоне. Проверить: `eval "document.visibilityState"` - `visible`.
+Окно копии встаёт сбоку: на мониторе, где сейчас нет курсора человека (первым - встроенный
+экран ноутбука), и без фокуса (`AGENTIC_WORKSTATION_WINDOW_ASIDE`, ставит `agent-window.sh`).
+Проверки агента не должны выскакивать поверх работы человека - его просьба. Не поднимай копию
+вперёд и не переноси её на его монитор сам; исключение - `real-mouse.swift` выше, на пару
+секунд и с предупреждением.
+
+Монитор один - копия стоит за окнами человека. Закрытое окно Chromium не рисует, и
+`requestAnimationFrame` и `ResizeObserver` в нём молчат, страница скрыта
+(`eval "document.visibilityState"` - `hidden`). Флаг `--disable-backgrounding-occluded-windows`
+помогает не всегда, а снимок экрана через CDP рисует кадр сам: перед замером того, что ждёт
+кадра, сними `screenshot`.
 
 ### Окно целиком и эталон - Shotter
 

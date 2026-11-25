@@ -8,6 +8,7 @@ import { ProcessGroup } from '../../process/process-group'
 import type { RpcId, RpcLine } from '../../process/rpc-lines'
 import { requestLine, parseRpcLine, responseLine, notificationLine } from '../../process/rpc-lines'
 import type { Environment } from '../../process/shell-env'
+import { launchTarget } from '../../windows/cmd-launch'
 import {
   METHOD_NOT_FOUND,
   STDERR_TAIL_CHARS,
@@ -68,11 +69,15 @@ export class AppServerProcess {
   private exited = false
 
   constructor(spawnSpec: AppServerSpawn, events: AppServerEvents) {
-    this.child = spawn(spawnSpec.binary, ['app-server', ...spawnSpec.args], {
+    // Codex из npm на Windows - обёртка codex.cmd: её - через cmd.exe.
+    const target = launchTarget(spawnSpec.binary, ['app-server', ...spawnSpec.args])
+
+    this.child = spawn(target.file, target.args, {
       cwd: spawnSpec.cwd,
       env: spawnSpec.env,
       detached: SPAWN_DETACHED,
       stdio: ['pipe', 'pipe', 'pipe'],
+      windowsVerbatimArguments: target.verbatim,
     })
     this.group = new ProcessGroup(this.child)
 

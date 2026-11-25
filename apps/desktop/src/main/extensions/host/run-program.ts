@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 
-import { findBinaryInPath } from '../../process/binary-locator'
+import { findCommand } from '../../process/binary-locator'
 import { loginShellEnv } from '../../process/shell-env'
 import { HostArgError } from './host-args'
 
@@ -18,7 +18,8 @@ export const runProgram = async (
   options: { cwd: string; timeoutMs: number; input: string | null },
 ): Promise<{ code: number | null; stdout: string; stderr: string }> => {
   const env = await loginShellEnv()
-  const file = await findBinaryInPath(env['PATH'] ?? process.env['PATH'] ?? '', command)
+  // На Windows - с PATHEXT (`git` - это git.exe); обёртка .cmd годится, только если за ней программа.
+  const file = await findCommand(command, env)
 
   if (!file) throw new HostArgError(`"${command}" is not found in PATH.`)
 

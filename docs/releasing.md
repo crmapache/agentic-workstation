@@ -33,7 +33,7 @@
 | ----------------------------------- | ------------------------------------------------------------------------------------- |
 | `agentic-workstation-mac-arm64.dmg` | человек на маке, первая установка                                                     |
 | `agentic-workstation-mac-arm64.zip` | установленная IDE на маке, самообновление                                             |
-| `agentic-workstation-win-x64.exe`   | Windows: и первая установка, и самообновление (тихий запуск)                          |
+| `agentic-workstation-win-x64.exe`   | Windows: и первая установка, и самообновление (с окном установки, ADR 0124)           |
 | `latest.json`                       | установленная IDE: какая версия последняя, где её сборка, подпись установщика Windows |
 
 Приложение читает `https://github.com/<repo>/releases/latest/download/latest.json` -

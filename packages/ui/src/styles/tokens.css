@@ -564,6 +564,11 @@
   --size-code-max: calc(420px * var(--font-scale));
   --size-code-compact-max: calc(260px * var(--font-scale));
 
+  /* Потолок раскрытого пояснения уведомления в углу окна (Toast more): около двадцати строк,
+     дальше прокрутка внутри карточки. Ниже блока кода: карточка лежит поверх редактора, и
+     раскрытая не должна закрывать его во всю высоту. */
+  --size-toast-text-max: calc(360px * var(--font-scale));
+
   /* Колонки диффа: номер строки (до пяти цифр) и знак +/-. */
   --size-diff-gutter: calc(48px * var(--font-scale));
   --size-diff-sign: calc(16px * var(--font-scale));

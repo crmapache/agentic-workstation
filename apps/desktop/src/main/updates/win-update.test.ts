@@ -3,7 +3,7 @@ import { sign, generateKeyPairSync } from 'node:crypto'
 import { it, expect, describe } from 'vitest'
 
 import { parseUpdateManifest } from './update-manifest'
-import { signedText, installerWatch, isSignedInstaller } from './win-update'
+import { signedText, isSignedInstaller } from './win-update'
 
 const keys = generateKeyPairSync('ed25519')
 const publicKey = keys.publicKey.export({ type: 'spki', format: 'pem' }).toString()
@@ -51,15 +51,5 @@ describe('установщик обновления Windows (ADR 0048)', () => {
 
     expect(manifest.assets['win-x64']?.signature).toBe('c2ln')
     expect(manifest.assets['mac-arm64']).not.toHaveProperty('signature')
-  })
-
-  it('сторож ждёт выхода IDE и только потом тихо запускает установщик', () => {
-    const script = installerWatch("C:\\Users\\O'Neil\\Temp\\setup.exe", 4242, 60_000)
-
-    expect(script).toContain('Get-Process -Id 4242')
-    expect(script).toContain('WaitForExit(60000)')
-    expect(script).toContain("-LiteralPath 'C:\\Users\\O''Neil\\Temp\\setup.exe'")
-    expect(script).toContain("-ArgumentList '/S','--updated','--force-run'")
-    expect(script.indexOf('WaitForExit')).toBeLessThan(script.indexOf('Start-Process'))
   })
 })

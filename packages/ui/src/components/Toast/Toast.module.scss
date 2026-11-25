@@ -81,6 +81,30 @@ $dot-lane: calc(var(--size-status-dot) + var(--space-2));
   white-space: pre-line;
 }
 
+// Свёрнутое длинное пояснение: первые строки и многоточие на обрезе - видно, что дальше ещё
+// есть, а сообщение коммита или ответ git не встают простынёй на весь редактор. Шесть строк -
+// тема коммита в пару строк и начало тела, или ответ git без хвоста.
+.folded {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+// Раскрытое - целиком, но не выше потолка: дальше прокрутка внутри, и прокрутка не уходит
+// редактору под карточкой. Когда стопке уведомлений не хватает высоты окна, ужимается именно оно
+// (min-height: 0 у него и у карточки) - свёрнутые соседи держат свой рост.
+.unfolded {
+  min-height: 0;
+  max-height: var(--size-toast-text-max);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.expanded {
+  min-height: 0;
+}
+
 .progress {
   margin-top: var(--space-1-5);
 }

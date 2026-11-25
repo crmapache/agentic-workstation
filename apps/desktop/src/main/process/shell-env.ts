@@ -3,6 +3,7 @@ import { homedir, userInfo } from 'node:os'
 import { join, delimiter } from 'node:path'
 
 import { IS_MAC, IS_WINDOWS } from '../platform'
+import { readRegistryPath } from '../windows/registry-path'
 import {
   EXTRA_BIN_DIRS,
   SYSTEM_BIN_DIRS,
@@ -63,10 +64,18 @@ export const withSinglePath = (environment: Environment): Environment => {
 }
 
 /**
- * Окружение оболочки входа. На Windows его спрашивать не у кого и незачем: программа из меню
- * «Пуск» получает тот же PATH, что терминал.
+ * Окружение оболочки входа. На Windows оболочки входа нет, а PATH процесса IDE - того, кто её
+ * запустил: установщика из браузера, открытого до установки CLI, или прошлой IDE после
+ * самообновления. CLI, который человек поставил позже (winget, npm), в нём не видно, хотя новый
+ * терминал его находит. Поэтому на Windows - PATH из реестра, тот же, что у нового терминала.
  */
-const readLoginShellEnv = () => (IS_WINDOWS ? Promise.resolve<Environment>({}) : readUnixShellEnv())
+const readLoginShellEnv = () => (IS_WINDOWS ? readWindowsEnv() : readUnixShellEnv())
+
+const readWindowsEnv = async (): Promise<Environment> => {
+  const path = await readRegistryPath()
+
+  return path ? { PATH: path } : {}
+}
 
 const readUnixShellEnv = () =>
   new Promise<Environment>((resolve) => {
@@ -116,4 +125,13 @@ export const loginShellEnv = (): Promise<Environment> => {
   })
 
   return shellEnv
+}
+
+/**
+ * Забыть прочитанное окружение: следующий вопрос спросит оболочку (на Windows - реестр) заново.
+ * Только по нажатию человека «искать заново»: он поставил CLI, пока IDE открыта, и установщик
+ * мог дописать PATH; на каждый поиск оболочку не зовём - это до секунды.
+ */
+export const forgetLoginShellEnv = (): void => {
+  shellEnv = null
 }

@@ -1,15 +1,19 @@
-import { IS_WINDOWS } from '../../platform'
 import {
   runQuiet,
   askShellFor,
-  findBinaryInPath,
+  findCommand,
+  launchablePath,
   isExecutableFile,
 } from '../../process/binary-locator'
 import type { Environment } from '../../process/shell-env'
 import { loginShellEnv } from '../../process/shell-env'
 
-/** Имя исполняемого файла Codex CLI. */
-export const CODEX_BINARY = IS_WINDOWS ? 'codex.exe' : 'codex'
+/**
+ * Команда Codex CLI. На Windows из npm (так его ставить велит экран «не найден») это обёртка
+ * `codex.cmd` над скриптом `codex.js`: она запускается через cmd.exe, как на маке скрипт - через
+ * node, - аргументы у Codex задаёт IDE (`launchTarget`).
+ */
+const CODEX_COMMAND = 'codex'
 
 /** Codex на машине: путь, окружение login shell и версия (пусто - не назвал). */
 export type CodexCli = { binary: string; env: Environment; version: string }
@@ -35,17 +39,20 @@ export const isAtLeast = (version: string, minimum: string): boolean => {
 }
 
 /**
- * Найти Codex: путь, названный руками (если он исполняемый), иначе PATH login shell, иначе
- * спросить саму оболочку. Ищется заново на каждый вопрос: его могли поставить, пока IDE
- * открыта. null - Codex на машине нет.
+ * Найти Codex: путь, названный руками (если он исполняемый), иначе PATH login shell (на Windows -
+ * ещё папки winget, npm, Scoop), иначе спросить саму оболочку. Ищется заново на каждый вопрос:
+ * его могли поставить, пока IDE открыта. null - Codex на машине нет.
  */
 export const locateCodexCli = async (configured = ''): Promise<CodexCli | null> => {
   const env = await loginShellEnv()
-  const named = configured && (await isExecutableFile(configured)) ? configured : null
+  const named =
+    configured && (await isExecutableFile(configured))
+      ? await launchablePath(configured, env, 'program-or-batch')
+      : null
   const binary =
     named ??
-    (await findBinaryInPath(env['PATH'] ?? '', CODEX_BINARY)) ??
-    (await askShellFor(CODEX_BINARY, env))
+    (await findCommand(CODEX_COMMAND, env, 'program-or-batch')) ??
+    (await askShellFor(CODEX_COMMAND, env))
 
   if (!binary) return null
 

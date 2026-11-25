@@ -1,13 +1,13 @@
 import { homedir } from 'node:os'
-import { posix, win32 } from 'node:path'
+import { posix } from 'node:path'
 
 import type { CliNeed } from '@shared/conversation'
 
-import { IS_WINDOWS } from '../platform'
-import { runQuiet, askShellFor, isExecutableFile } from '../process/binary-locator'
-import type { Environment } from '../process/shell-env'
+import { runQuiet, askShellFor, machineSearch } from '../process/binary-locator'
+import type { WindowsDir, CliSearchDeps } from '../process/cli-search'
+import { pathDirs, commandDirs, candidatesIn, launchableOf } from '../process/cli-search'
 import { loginShellEnv } from '../process/shell-env'
-import { envValue, findGitBash } from '../windows/git-bash'
+import { findGitBash } from '../windows/git-bash'
 import type { AcpCli, AcpAgent } from './acp-agent'
 
 /** Первая версия вида `1.2.3` в выводе `--version`; нет - пусто. */
@@ -30,9 +30,6 @@ export const atLeast = (version: string, minimum: string): boolean => {
   return true
 }
 
-/** Папка на Windows: переменная окружения (LOCALAPPDATA, USERPROFILE) и путь от неё. */
-export type WindowsDir = readonly [variable: string, path: string]
-
 /** Где искать CLI агента и что ему нужно, кроме него самого. */
 export type AcpCliSpec = {
   /** Имя команды без расширения: `agy`, `kimi`. */
@@ -48,23 +45,11 @@ export type AcpCliSpec = {
 }
 
 /**
- * Папки Windows, где оказывается любой CLI, даже когда PATH процесса IDE их ещё не знает: IDE
- * открыта до установки, а установщик дописал PATH только в реестр. Ярлыки winget (portable-пакеты
- * ставятся так) для человека и для машины, глобальные пакеты npm и pnpm.
+ * Чем поиск смотрит на машину: подменяется в тестах (платформа, окружение, файлы, процессы).
+ * Общие папки CLI на Windows (winget, npm, pnpm, Scoop) - `WINDOWS_CLI_DIRS`.
  */
-const WINDOWS_COMMON_DIRS: readonly WindowsDir[] = [
-  ['LOCALAPPDATA', 'Microsoft\\WinGet\\Links'],
-  ['ProgramFiles', 'WinGet\\Links'],
-  ['APPDATA', 'npm'],
-  ['LOCALAPPDATA', 'pnpm'],
-]
-
-/** Чем поиск смотрит на машину: подменяется в тестах (платформа, окружение, файлы, процессы). */
-export type LocatorDeps = {
-  windows: boolean
-  env: Environment
+export type LocatorDeps = CliSearchDeps & {
   home: string
-  isFile: (path: string) => Promise<boolean>
   /** Вывод команды или пусто. */
   run: (file: string, args: string[]) => Promise<string>
   /** Путь от `command -v` оболочки входа; на Windows не зовётся. */
@@ -74,55 +59,31 @@ export type LocatorDeps = {
 /** Итог поиска: CLI (или null) и чего ему не хватает, чтобы работать. */
 export type AcpCliSearch = { cli: AcpCli | null; need: CliNeed | null }
 
-/**
- * Имена файла CLI: на Windows сперва `.exe` (родной установщик, winget), потом обёртка `.cmd` из
- * npm или pnpm - в том же порядке Windows ищет сама (PATHEXT).
- */
-const fileNames = (name: string, windows: boolean): string[] =>
-  windows ? [`${name}.exe`, `${name}.cmd`] : [name]
-
 /** Папки по порядку: PATH, папки установщика агента, на Windows - ещё общие папки CLI. */
-const searchDirs = (spec: AcpCliSpec, deps: LocatorDeps): string[] => {
-  const path = deps.windows ? win32 : posix
-  const fromPath = (envValue(deps.env, 'PATH') ?? '')
-    .split(deps.windows ? ';' : ':')
-    .map((dir) => dir.trim())
-    .filter((dir) => dir && path.isAbsolute(dir))
-  const installers = deps.windows
-    ? [...spec.windowsDirs, ...WINDOWS_COMMON_DIRS].flatMap(([variable, dir]) => {
-        const base = envValue(deps.env, variable)?.trim()
+const searchDirs = (spec: AcpCliSpec, deps: LocatorDeps): string[] =>
+  deps.windows
+    ? commandDirs(deps.env, true, spec.windowsDirs)
+    : [...pathDirs(deps.env, false), ...spec.macDirs.map((dir) => posix.join(deps.home, dir))]
 
-        return base ? [win32.join(base, dir)] : []
-      })
-    : spec.macDirs.map((dir) => posix.join(deps.home, dir))
-
-  return [...fromPath, ...installers]
-}
-
-/** Кандидаты по порядку, без повторов (на Windows регистр букв пути не важен). */
-export const candidatesOf = (spec: AcpCliSpec, deps: LocatorDeps): string[] => {
-  const path = deps.windows ? win32 : posix
-  const unique = new Map<string, string>()
-
-  for (const dir of searchDirs(spec, deps)) {
-    for (const name of fileNames(spec.name, deps.windows)) {
-      const file = path.join(dir, name)
-      const key = deps.windows ? file.toLowerCase() : file
-
-      if (!unique.has(key)) unique.set(key, file)
-    }
-  }
-
-  return [...unique.values()]
-}
+/**
+ * Кандидаты по порядку, без повторов (на Windows регистр букв пути не важен): на Windows сперва
+ * `.exe` (родной установщик, winget), потом обёртка `.cmd` из npm или pnpm - как PATHEXT.
+ */
+export const candidatesOf = (spec: AcpCliSpec, deps: LocatorDeps): string[] =>
+  candidatesIn(searchDirs(spec, deps), spec.name, deps.windows)
 
 /** Годный CLI по пути: файл есть и версия не ниже порога. */
 const usable = async (
-  binary: string,
+  file: string,
   spec: AcpCliSpec,
   deps: LocatorDeps,
 ): Promise<AcpCli | null> => {
-  if (!(await deps.isFile(binary))) return null
+  if (!(await deps.isFile(file))) return null
+
+  // Обёртка npm над программой - сама программа, без лишнего cmd.exe между IDE и агентом.
+  const binary = await launchableOf(file, deps, 'program-or-batch')
+
+  if (!binary) return null
 
   const version = versionIn(await deps.run(binary, ['--version']))
 
@@ -164,10 +125,8 @@ const machine = async (): Promise<LocatorDeps> => {
   const env = await loginShellEnv()
 
   return {
-    windows: IS_WINDOWS,
-    env,
+    ...machineSearch(env),
     home: homedir(),
-    isFile: isExecutableFile,
     run: (file, args) => runQuiet(file, args, env),
     askShell: (name) => askShellFor(name, env),
   }

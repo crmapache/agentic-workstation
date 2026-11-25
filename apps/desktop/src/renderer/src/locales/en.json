@@ -2,6 +2,8 @@
   "common": {
     "close": "Close",
     "cancel": "Cancel",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "notInstalled": "Not installed on this computer",
     "notBuiltYet": "not built yet",
     "chatOnly": "Only in its own chat"

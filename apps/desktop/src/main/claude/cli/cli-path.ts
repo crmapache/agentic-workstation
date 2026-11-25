@@ -1,26 +1,20 @@
 import { execFile } from 'node:child_process'
-import { constants } from 'node:fs'
-import { stat, access } from 'node:fs/promises'
-import { join, delimiter, isAbsolute } from 'node:path'
+import { isAbsolute } from 'node:path'
 
 import type { CliPathRefusal } from '@shared/panel-extras'
 
 import { IS_WINDOWS } from '../../platform'
+import { launchablePath, isExecutableFile } from '../../process/binary-locator'
+import { commandDirs, candidatesIn } from '../../process/cli-search'
 import type { Environment } from '../../process/shell-env'
-import { CLAUDE_BINARY, CLI_PROBE_TIMEOUT_MS } from './cli.constants'
+import { CLAUDE_COMMAND, CLI_PROBE_TIMEOUT_MS } from './cli.constants'
 
 /** Как CLI называет себя в `--version`: «2.1.293 (Claude Code)». */
 const CLAUDE_VERSION = /\(Claude Code\)/
 
-const isExecutableFile = async (file: string) => {
-  try {
-    await access(file, constants.X_OK)
-
-    return (await stat(file)).isFile()
-  } catch {
-    return false
-  }
-}
+/** Путь, названный руками: программа для запуска или почему он не годится. */
+export type CliPathCheck =
+  { binary: string; refusal: null } | { binary: null; refusal: CliPathRefusal }
 
 const versionOf = (file: string, env: Environment) =>
   new Promise<string>((resolve) => {
@@ -34,23 +28,34 @@ const versionOf = (file: string, env: Environment) =>
 
 /**
  * Путь к CLI, названный руками: файла нет (или он не исполняемый) - missing; отвечает не
- * как Claude Code - not-claude; годный - null. Окну не верим: путь мог прийти из настроек.
+ * как Claude Code - not-claude; годный - программа для запуска. На Windows человек чаще всего
+ * берёт путь из `where claude` - обёртку npm `claude.cmd`: её заменяет её claude.exe, а
+ * обёртка над скриптом (старый пакет npm) - не Claude Code, который IDE может запустить.
+ * Окну не верим: путь мог прийти из настроек.
  */
-export const checkCliPath = async (
-  path: string,
-  env: Environment,
-): Promise<CliPathRefusal | null> => {
-  if (!isAbsolute(path) || !(await isExecutableFile(path))) return 'missing'
+export const checkCliPath = async (path: string, env: Environment): Promise<CliPathCheck> => {
+  if (!isAbsolute(path) || !(await isExecutableFile(path))) {
+    return { binary: null, refusal: 'missing' }
+  }
 
-  return CLAUDE_VERSION.test(await versionOf(path, env)) ? null : 'not-claude'
+  const binary = await launchablePath(path, env)
+
+  return binary && CLAUDE_VERSION.test(await versionOf(binary, env))
+    ? { binary, refusal: null }
+    : { binary: null, refusal: 'not-claude' }
 }
 
 /**
  * Где панель искала CLI - для экрана «Claude Code not found»: путь, названный руками,
- * каждая папка PATH терминала и сама оболочка входа (`command -v`).
+ * каждый кандидат в папках PATH терминала (на Windows - ещё в папках установщиков) и сама
+ * оболочка входа (`command -v`).
  */
-export const searchedPlaces = (path: string, configured: string): string[] => [
+export const searchedPlaces = (
+  env: Environment,
+  configured: string,
+  windows = IS_WINDOWS,
+): string[] => [
   ...(configured ? [configured] : []),
-  ...[...new Set(path.split(delimiter).filter(Boolean))].map((dir) => join(dir, CLAUDE_BINARY)),
-  ...(IS_WINDOWS ? [] : [`command -v ${CLAUDE_BINARY}`]),
+  ...candidatesIn(commandDirs(env, windows), CLAUDE_COMMAND, windows),
+  ...(windows ? [] : [`command -v ${CLAUDE_COMMAND}`]),
 ]

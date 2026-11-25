@@ -64,10 +64,14 @@ start() {
     require("node:fs").writeFileSync(file, JSON.stringify({ projects, activeProjectId: projects[0]?.id ?? null }))
   ' "$WORK_DIR/profile/user-data/workspace.json" "$@"
 
-  # Копия живёт за окнами человека, а закрытое окно Chromium не рисует: кадры стоят, страница
-  # считает себя скрытой, и всё, что ждёт кадра (показ разницы, покадровые замеры), молчит.
+  # Окно копии встаёт сбоку (AGENTIC_WORKSTATION_WINDOW_ASIDE): на мониторе, где нет курсора
+  # человека, сначала на встроенном экране ноутбука, и без фокуса - проверки агента не
+  # выскакивают поверх его работы. Там оно видно, и кадры идут. Монитор один - копия встаёт за
+  # окнами человека, а закрытое окно Chromium не рисует: кадры стоят, страница считает себя
+  # скрытой, и всё, что ждёт кадра (показ разницы, покадровые замеры), молчит. Против этого -
+  # флаг ниже, а снимок экрана через CDP рисует кадр сам.
   AGENTIC_WORKSTATION_PROFILE_DIR="$WORK_DIR/profile" AGENTIC_WORKSTATION_CDP_PORT="$CDP_PORT" \
-    AGENTIC_WORKSTATION_OUTSIDE_PORT="$OUTSIDE_PORT" \
+    AGENTIC_WORKSTATION_OUTSIDE_PORT="$OUTSIDE_PORT" AGENTIC_WORKSTATION_WINDOW_ASIDE=1 \
     nohup ./node_modules/electron/dist/Electron.app/Contents/MacOS/Electron "$WORK_DIR/out" \
     --disable-backgrounding-occluded-windows ${AGENTIC_WORKSTATION_AGENT_ARGS:-} >"$WORK_DIR/app.log" 2>&1 &
 

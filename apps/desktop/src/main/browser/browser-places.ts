@@ -56,6 +56,13 @@ const windowsPipe = (tag: string, home: string): string =>
 export const isWindowsPipe = (path: string): boolean => path.startsWith('\\\\.\\pipe\\')
 
 /**
+ * Канал моста этой IDE: установленная - installed, dev и отдельный профиль - dev. От него имя
+ * host, а его регистрацию на время установки обновления снимает сторож (ADR 0124).
+ */
+export const hostChannel = (isPackaged: boolean, profileDir: string | undefined): HostChannel =>
+  isPackaged && !profileDir ? 'installed' : 'dev'
+
+/**
  * Места этой IDE. Установленная - канал installed, dev - dev: обе могут быть запущены разом,
  * у каждой свой сокет и своё имя host. Отдельный профиль (AGENTIC_WORKSTATION_PROFILE_DIR -
  * копия окна агента, проверка обновления) получает свои сокет, host и папку расширения с
@@ -77,7 +84,7 @@ export const browserPlaces = ({
   isPackaged: boolean
   profileDir: string | undefined
 }): BrowserPlaces => {
-  const channel: HostChannel = isPackaged && !profileDir ? 'installed' : 'dev'
+  const channel = hostChannel(isPackaged, profileDir)
   const base = join(home, BASE_DIR_NAME)
   const tag = profileDir
     ? `${channel}-${createHash('sha256').update(profileDir).digest('hex').slice(0, 8)}`

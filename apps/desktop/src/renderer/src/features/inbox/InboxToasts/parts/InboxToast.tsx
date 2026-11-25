@@ -11,6 +11,7 @@ import { useInboxActions } from '../../inbox.actions'
 import { previewOf, toastCloseMs, answersAtOnce } from '../../inbox.utils'
 import { buttonsOf } from '../../InboxCard/InboxCard.utils'
 import { ItemButton } from '../../InboxCard/parts/ItemButton'
+import { useToastMore } from '../../../../lib/toast-more.hooks'
 import { useInboxUiStore } from '../../../../state/inbox-ui.store'
 import { useLayoutStore } from '../../../../state/layout.store'
 import { QuickOptions } from './QuickOptions'
@@ -28,6 +29,7 @@ export const InboxToast = ({ item }: InboxToastProps) => {
   const dropToast = useInboxUiStore((state) => state.dropToast)
   const reveal = useInboxUiStore((state) => state.reveal)
   const inbox = useInboxActions()
+  const more = useToastMore()
 
   const quick = item.kind === 'question' && answersAtOnce(item.questions)
   // Вопрос отвечают вариантами выше; «доработать план» просит замечания - это на виде.
@@ -57,6 +59,7 @@ export const InboxToast = ({ item }: InboxToastProps) => {
       eyebrow={eyebrow}
       title={item.title}
       description={previewOf(item) || undefined}
+      more={more}
       expand={answersElsewhere ? undefined : { label: t('inbox.toast.more'), onExpand: handleOpen }}
       close={{
         label: t('common.close'),

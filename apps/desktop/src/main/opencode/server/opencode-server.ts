@@ -7,6 +7,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { SPAWN_DETACHED } from '../../platform'
 import { ProcessGroup } from '../../process/process-group'
 import type { Environment } from '../../process/shell-env'
+import { launchTarget } from '../../windows/cmd-launch'
 import {
   SERVER_USER,
   EVENTS_RETRY_MS,
@@ -82,7 +83,10 @@ export class OpenCodeServer {
   private exited = false
 
   constructor(spec: OpenCodeSpawn, handlers: OpenCodeServerEvents) {
-    this.child = spawn(spec.binary, ['serve', '--stdio'], {
+    // OpenCode за обёрткой .cmd над скриптом (Windows) - через cmd.exe.
+    const target = launchTarget(spec.binary, ['serve', '--stdio'])
+
+    this.child = spawn(target.file, target.args, {
       cwd: spec.cwd,
       env: {
         ...spec.env,
@@ -98,6 +102,7 @@ export class OpenCodeServer {
       },
       detached: SPAWN_DETACHED,
       stdio: ['pipe', 'pipe', 'pipe'],
+      windowsVerbatimArguments: target.verbatim,
     })
     // OpenCode запускает команды агента каждую в своей группе: их гасит группа сама (spawnsGroups).
     this.group = new ProcessGroup(this.child, true)

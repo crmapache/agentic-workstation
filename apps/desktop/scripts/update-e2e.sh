@@ -133,8 +133,10 @@ publish() {
     --base-url "http://127.0.0.1:$FEED_PORT" >/dev/null
 }
 
+# Окно проверки - сбоку (AGENTIC_WORKSTATION_WINDOW_ASIDE): на мониторе без курсора человека и без
+# фокуса, и новая версия после подмены открывается так же, в фоне.
 launch() {
-  AGENTIC_WORKSTATION_PROFILE_DIR="$PROFILE_DIR" \
+  AGENTIC_WORKSTATION_PROFILE_DIR="$PROFILE_DIR" AGENTIC_WORKSTATION_WINDOW_ASIDE=1 \
     AGENTIC_WORKSTATION_UPDATE_FEED="http://127.0.0.1:$FEED_PORT/latest.json" \
     "$WORK_DIR/install/$APP/$EXECUTABLE" --remote-debugging-port=$CDP_PORT \
     >>"$WORK_DIR/app.log" 2>&1 &

@@ -75,7 +75,8 @@ type SwapPlan = {
   stagedBundle: string
   stagingDir: string
   logPath: string
-  relaunchEnv: string
+  relaunchEnv: readonly string[]
+  relaunchInBackground: boolean
 }
 
 /**
@@ -88,6 +89,7 @@ export const scheduleSwap = ({
   stagingDir,
   logPath,
   relaunchEnv,
+  relaunchInBackground,
 }: SwapPlan) => {
   const child = spawn(
     '/bin/sh',
@@ -101,7 +103,8 @@ export const scheduleSwap = ({
       join(stagingDir, BACKUP_BUNDLE_NAME),
       logPath,
       String(SWAP_WAIT_TICKS),
-      relaunchEnv,
+      relaunchInBackground ? 'background' : '',
+      ...relaunchEnv,
     ],
     { detached: true, stdio: 'ignore' },
   )

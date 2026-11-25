@@ -70,8 +70,8 @@ export class CliAccess {
 
     this.search = {
       path: configured,
-      searched: cli ? [] : searchedPlaces(env['PATH'] ?? '', configured),
-      rejected: configured ? await checkCliPath(configured, env) : null,
+      searched: cli ? [] : searchedPlaces(env, configured),
+      rejected: configured ? (await checkCliPath(configured, env)).refusal : null,
     }
 
     return cli

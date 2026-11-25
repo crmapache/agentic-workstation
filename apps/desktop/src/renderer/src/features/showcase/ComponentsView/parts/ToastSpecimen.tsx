@@ -10,15 +10,20 @@ import { Specimen } from '../../Specimen/Specimen'
 
 /**
  * Уведомления: с действием и крестиком «позже», с «от кого», значком «открыть целиком» и рядом
- * кнопок (напоминание о звонке), ошибка с крестиком, итог с кольцом отсчёта и скачивание без
- * крестика. Отсчёт живой: мышь над карточкой держит его, а ушедшая карточка сразу встаёт снова -
- * кольцо видно с начала.
+ * кнопок (напоминание о звонке), ошибка с крестиком, итог с кольцом отсчёта, длинное сообщение
+ * коммита, свёрнутое до шести строк, и скачивание без крестика. Отсчёт живой: мышь над карточкой
+ * держит его, раскрытая карточка не уходит вовсе, а ушедшая сразу встаёт снова - кольцо видно с
+ * начала.
  */
 export const ToastSpecimen = () => {
   const { t } = useTranslation('showcase')
   const [round, setRound] = useState(0)
+  // Свой счёт у длинного: соседний образец с отсчётом встаёт заново каждые шесть секунд и иначе
+  // сворачивал бы раскрытое вместе с собой.
+  const [longRound, setLongRound] = useState(0)
 
   const handleAgain = () => setRound((current) => current + 1)
+  const handleLongAgain = () => setLongRound((current) => current + 1)
 
   return (
     <Specimen label={t('specimens.toast')} layout="column">
@@ -72,6 +77,17 @@ export const ToastSpecimen = () => {
               {t('samples.toastCountdownAction')}
             </Button>
           }
+        />
+        <Toast
+          key={longRound}
+          title={t('samples.toastLongTitle')}
+          description={t('samples.toastLongText')}
+          more={{ showLabel: t('samples.toastShowMore'), hideLabel: t('samples.toastShowLess') }}
+          close={{
+            label: t('samples.close'),
+            onClose: handleLongAgain,
+            autoCloseMs: TOAST_SAMPLE_CLOSE_MS,
+          }}
         />
         <Toast
           title={t('samples.toastProgressTitle')}

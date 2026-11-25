@@ -1,15 +1,11 @@
 import { spawn } from 'node:child_process'
 import { verify } from 'node:crypto'
 
-import { psQuote } from '../windows/powershell'
 import { UpdateError } from './update-error'
 import type { UpdateAsset } from './update-manifest'
-import {
-  INSTALLER_WAIT_MS,
-  WINDOWS_ASSET_KEY,
-  WINDOWS_INSTALLER_ARGS,
-  WINDOWS_UPDATE_PUBLIC_KEY,
-} from './update.constants'
+import { WINDOWS_ASSET_KEY, WINDOWS_UPDATE_PUBLIC_KEY } from './update.constants'
+import { installWatchScript } from './win-install-watch'
+import type { InstallWatchPlan } from './win-install-watch'
 
 /**
  * Что подписывает ключ выпуска: назначение, сборка, версия, sha512 и размер - строками. Версия
@@ -53,37 +49,17 @@ export const verifyInstaller = (asset: UpdateAsset, version: string): void => {
 }
 
 /**
- * Сторож установки: ждёт, пока IDE выйдет целиком (сохранит файлы, погасит Claude и сценарии),
- * и только тогда запускает установщик тихо - он ставит новую версию поверх и открывает её.
- * Запусти установщик сразу, он убил бы IDE посреди выхода. IDE так и не вышла за отведённое
- * время (выход отменили - несохранённое в редакторе) - сторож убирает установщик и уходит, как
- * подмена на маке.
+ * Поднимает сторожа установки (win-install-watch.ts) отдельным процессом, который переживёт выход
+ * IDE. Рабочая папка - временная: унаследуй он папку IDE (ярлык открывает её в папке установки),
+ * он держал бы её занятой всё время установки. Сбывается номером процесса, когда сторож запущен;
+ * не запустился - ошибка, и IDE не выходит впустую.
  */
-export const installerWatch = (installerPath: string, pid: number, waitMs: number): string =>
-  [
-    `$ide = Get-Process -Id ${pid} -ErrorAction SilentlyContinue`,
-    `if ($ide -and -not $ide.WaitForExit(${waitMs})) {`,
-    `  Remove-Item -LiteralPath ${psQuote(installerPath)} -Force -ErrorAction SilentlyContinue`,
-    '  exit 1',
-    '}',
-    `Start-Process -FilePath ${psQuote(installerPath)} -ArgumentList ${WINDOWS_INSTALLER_ARGS.map(psQuote).join(',')}`,
-  ].join('\n')
-
-/**
- * Поднимает сторожа отдельным процессом, который переживёт выход IDE. Сбывается, когда он
- * запущен; не запустился - ошибка, и IDE не выходит впустую.
- */
-export const watchInstaller = (installerPath: string, pid: number): Promise<void> =>
+export const watchInstaller = (plan: InstallWatchPlan): Promise<number | undefined> =>
   new Promise((resolve, reject) => {
     const child = spawn(
       'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        installerWatch(installerPath, pid, INSTALLER_WAIT_MS),
-      ],
-      { detached: true, stdio: 'ignore' },
+      ['-NoProfile', '-NonInteractive', '-Command', installWatchScript(plan)],
+      { detached: true, stdio: 'ignore', cwd: plan.workDir },
     )
 
     child.once('error', () =>
@@ -91,6 +67,6 @@ export const watchInstaller = (installerPath: string, pid: number): Promise<void
     )
     child.once('spawn', () => {
       child.unref()
-      resolve()
+      resolve(child.pid)
     })
   })
