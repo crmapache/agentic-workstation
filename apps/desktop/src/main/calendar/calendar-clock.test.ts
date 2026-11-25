@@ -64,7 +64,8 @@ describe('call reminders', () => {
     const [due] = dueReminders(meetings, [10], {}, at(9, 50)).due
     const card = due && reminderCard(due, [])
 
-    expect(card?.title).toBe('In 10 min: Sync')
+    expect(card?.title).toBe('Sync')
+    expect(card?.body).toBe('In 10 min · **10:00 - 10:30**')
     expect(card?.actions.map((one) => [one.kind, one.value])).toEqual([
       ['open', 'https://meet.google.com/a-b-c'],
       ['showCalendar', ''],
@@ -74,6 +75,16 @@ describe('call reminders', () => {
       '2 h',
       '2 d',
     ])
+  })
+
+  it('keeps the meeting name as the title and puts the place on its own line', () => {
+    const [meeting] = meetingsOf([event('Demo', at(10), { location: 'Microsoft Teams Meeting' })])
+    const support = { id: 'work', name: 'Support', kind: 'ics' } as CalendarSource
+    const card = meeting && reminderCard({ meeting, minutesLeft: 0 }, [support])
+
+    expect(card?.title).toBe('Demo')
+    expect(card?.source).toBe('Calendar')
+    expect(card?.body).toBe('Starting now · **10:00 - 10:30** · Support  \nMicrosoft Teams Meeting')
   })
 })
 

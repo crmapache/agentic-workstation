@@ -1,5 +1,9 @@
 @use '../../styles/mixins' as *;
 
+// Полоса слева под точку тона: точка висит у первой строки, а заголовок, пояснение, полоса
+// прогресса и кнопки стоят по одной линии - перенос заголовка не уезжает под точку.
+$dot-lane: calc(var(--size-status-dot) + var(--space-2));
+
 .toast {
   @include glass-overlay;
   @include enter-transition;
@@ -8,33 +12,29 @@
   flex-direction: column;
   gap: var(--space-1);
   width: var(--size-toast);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + #{$dot-lane});
   border-radius: var(--radius-lg);
+
+  // Длинная ссылка или путь без пробелов переносится, а не вылезает за край карточки.
+  overflow-wrap: anywhere;
 }
 
-// Заголовок и крестик в одну строку. Крестик прижат к первой строке заголовка (длинный
-// переносится) и не раздувает её: лишняя высота кнопки уходит в поле карточки.
+// Первая строка и кнопки справа. Кнопки прижаты к ней и не раздувают её: лишняя высота уходит в
+// поле карточки. Кегль первой строки ставит сама шапка (eyebrow или title) - от него 1lh, а значит
+// и середина строки для точки и кнопок.
 .header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  line-height: var(--line-height-tight);
-}
 
-// Точка тона перед заголовком, как отметки в журнале событий: оранжевая у
-// обычного уведомления, красная у ошибки.
-.title {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  color: var(--color-fg-strong);
-  font-weight: var(--font-weight-medium);
-
+  // Точка тона, как отметки в журнале событий: оранжевая у обычного уведомления, красная у ошибки.
+  // Стоит по середине строчных букв, а не строки: глаз центрирует по ним.
   &::before {
     content: '';
-    flex-shrink: 0;
+    position: absolute;
+    top: calc((1lh - var(--size-status-dot)) / 2 + var(--offset-lowercase));
+    right: calc(100% + var(--space-2));
     width: var(--size-status-dot);
     height: var(--size-status-dot);
     border-radius: var(--radius-full);
@@ -42,10 +42,33 @@
   }
 }
 
+.lead {
+  flex: 1;
+  min-width: 0;
+}
+
+// «От кого» - тихой строкой в одну линию: длинное имя обрезается, заголовок под ним - нет.
+.eyebrow {
+  color: var(--color-fg-subtle);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+
+  .lead {
+    @include truncate;
+  }
+}
+
+.title {
+  color: var(--color-fg-strong);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  text-wrap: pretty;
+}
+
 .danger {
   border-color: var(--color-danger-soft);
 
-  .title::before {
+  .header::before {
     background-color: var(--color-danger-strong);
   }
 }
@@ -64,15 +87,24 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
+}
+
+// Значки по первой строке - тоже по середине строчных, как кнопки в углу ответа.
+.tools {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--space-0-5);
+  margin-block: calc((1lh - var(--size-control-sm)) / 2 + var(--offset-lowercase))
+    calc((1lh - var(--size-control-sm)) / 2 - var(--offset-lowercase));
 }
 
 .close {
   position: relative;
   display: inline-flex;
-  flex-shrink: 0;
-  margin-block: calc((1lh - var(--size-control-sm)) / 2);
 }
 
 // Кольцо отсчёта поверх крестика: нажатия идут сквозь него в кнопку. Дуга начинается сверху,

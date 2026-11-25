@@ -22,4 +22,12 @@ export type ItemButtonsProps = {
   size?: 'sm' | 'md' | undefined
 }
 
+export type ItemButtonProps = {
+  item: InboxItem
+  action: InboxAction
+  /** Свои слова к кнопке: замечание к плану. */
+  text: string
+  size?: 'sm' | 'md' | undefined
+}
+
 export type PlanFeedbackProps = { value: string; onChange: (value: string) => void }

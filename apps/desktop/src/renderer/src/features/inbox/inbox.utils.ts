@@ -2,7 +2,7 @@ import type { Question, QuestionAnswers } from '@shared/conversation'
 import type { InboxItem, InboxState } from '@shared/inbox'
 import { isInboxOpen, isInboxAsking, isInboxScheduled } from '@shared/inbox'
 
-import { PREVIEW_MAX, TOAST_HIDE_MS } from './inbox.constants'
+import { PREVIEW_MAX, PREVIEW_LINES, TOAST_HIDE_MS } from './inbox.constants'
 import type { InboxTab } from './inbox.types'
 
 /** Уведомления вкладки: входящие и закрытые - новые первыми, запланированные - ближние первыми. */
@@ -64,7 +64,10 @@ export const togglePick = (current: readonly string[], label: string, multi: boo
   return current.includes(label) ? current.filter((one) => one !== label) : [...current, label]
 }
 
-/** Суть уведомления одной строкой - для карточки в углу окна. */
+/**
+ * Суть уведомления для карточки в углу окна: первые строки без разметки. Строки остаются
+ * строками - время звонка и место, пункты списка не слипаются в одну фразу.
+ */
 export const previewOf = (item: InboxItem): string => {
   const said =
     item.kind === 'question'
@@ -73,22 +76,26 @@ export const previewOf = (item: InboxItem): string => {
         ? [item.tool, item.detail].filter(Boolean).join(': ')
         : item.body
   // Разметку Markdown - прочь, но «#12» в тексте - не заголовок: решётка уходит только в начале строки.
-  const line = said
-    .replace(/^\s*#+\s*/gm, '')
-    .replace(/[`*_>]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const lines = said
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .replace(/^\s*#+\s*/, '')
+        .replace(/[`*_>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+  const shown = lines.slice(0, PREVIEW_LINES).join('\n')
 
-  return line.length > PREVIEW_MAX ? `${line.slice(0, PREVIEW_MAX - 1)}…` : line
+  if (shown.length > PREVIEW_MAX) return `${shown.slice(0, PREVIEW_MAX - 1).trimEnd()}…`
+
+  return lines.length > PREVIEW_LINES ? `${shown}…` : shown
 }
 
 /** Ответить можно сразу нажатием варианта: один вопрос, один ответ. */
 export const answersAtOnce = (questions: readonly Question[]): boolean =>
   questions.length === 1 && questions[0]?.multiSelect === false
-
-/** Заголовок карточки угла: от кого и о чём («Invoice: Ready to send»), без повтора. */
-export const toastTitleOf = (item: Pick<InboxItem, 'source' | 'title'>): string =>
-  item.source && item.source !== item.title ? `${item.source}: ${item.title}` : item.title
 
 /** Прочитанные открытые без вопроса - их закрывает «Dismiss read» разом. */
 export const readOf = (items: readonly InboxItem[]): string[] =>

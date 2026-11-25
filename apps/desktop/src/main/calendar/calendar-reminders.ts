@@ -66,26 +66,29 @@ const clock = new Intl.DateTimeFormat('en-US', {
 })
 
 /**
- * Напоминание о звонке карточкой в уведомлениях IDE: когда, из какого календаря и где; Join -
- * первой кнопкой, если у звонка есть ссылка. Названия - из календарей человека, это его лента.
+ * Напоминание о звонке карточкой в уведомлениях IDE. Заголовок - название встречи, как оно стоит
+ * в календаре; строкой ниже - сколько осталось, время и из какого календаря, ещё строкой - где.
+ * Join - первой кнопкой, если у звонка есть ссылка. Названия - из календарей человека, это его
+ * лента.
  */
 export const reminderCard = (
   { meeting, minutesLeft }: DueReminder,
   sources: readonly CalendarSource[],
 ): InboxItem => {
   const { event } = meeting
-  const title = event.title || '(No title)'
   const calendar = sources.find((source) => source.id === meeting.sourceIds[0])?.name ?? ''
+  const left = minutesLeft === 0 ? 'Starting now' : `In ${leftLabel(minutesLeft)}`
   const when = `**${clock.format(event.start)} - ${clock.format(event.end)}**`
 
   return blankItem({
     kind: 'reminder',
     tone: 'info',
-    title: minutesLeft === 0 ? `Now: ${title}` : `In ${leftLabel(minutesLeft)}: ${title}`,
-    body: [
-      [when, calendar].filter(Boolean).join(' · '),
-      ...(event.location ? [`Where: ${event.location}`] : []),
-    ].join('\n'),
+    title: event.title || '(No title)',
+    // Жёсткий перенос Markdown (два пробела в конце строки): место встаёт своей строкой и в
+    // карточке, а не приклеивается к имени календаря.
+    body: [[left, when, calendar].filter(Boolean).join(' · '), event.location]
+      .filter(Boolean)
+      .join('  \n'),
     source: 'Calendar',
     actions: [
       ...(event.joinUrl

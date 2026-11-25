@@ -86,11 +86,20 @@ describe('answersOf', () => {
 })
 
 describe('previewOf', () => {
-  it('says the gist in one plain line', () => {
+  it('says the gist in plain lines', () => {
     expect(previewOf(item({ kind: 'permission', tool: 'Bash', detail: 'ls -la' }))).toBe(
       'Bash: ls -la',
     )
-    expect(previewOf(item({ body: '**Invoice** #12\nready' }))).toBe('Invoice #12 ready')
+    expect(previewOf(item({ body: '**Invoice** #12\nready' }))).toBe('Invoice #12\nready')
+    // Жёсткий перенос Markdown (два пробела в конце) и пустые строки не оставляют следа.
+    expect(previewOf(item({ body: '## Call  \n\n  **10:00**   sharp  ' }))).toBe(
+      'Call\n10:00 sharp',
+    )
+  })
+
+  it('keeps the first lines and marks the rest as cut', () => {
+    expect(previewOf(item({ body: 'one\ntwo\nthree\nfour' }))).toBe('one\ntwo\nthree…')
+    expect(previewOf(item({ body: 'word '.repeat(60) }))).toMatch(/^(word ){31}word…$/)
   })
 })
 

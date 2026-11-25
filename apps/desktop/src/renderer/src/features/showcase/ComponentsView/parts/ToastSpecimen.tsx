@@ -9,9 +9,10 @@ import styles from '../ComponentsView.module.scss'
 import { Specimen } from '../../Specimen/Specimen'
 
 /**
- * Уведомления: с действием и крестиком «позже», ошибка с крестиком, итог с кольцом отсчёта и
- * скачивание без крестика. Отсчёт живой: мышь над карточкой держит его, а ушедшая карточка
- * сразу встаёт снова - кольцо видно с начала.
+ * Уведомления: с действием и крестиком «позже», с «от кого», значком «открыть целиком» и рядом
+ * кнопок (напоминание о звонке), ошибка с крестиком, итог с кольцом отсчёта и скачивание без
+ * крестика. Отсчёт живой: мышь над карточкой держит его, а ушедшая карточка сразу встаёт снова -
+ * кольцо видно с начала.
  */
 export const ToastSpecimen = () => {
   const { t } = useTranslation('showcase')
@@ -30,6 +31,26 @@ export const ToastSpecimen = () => {
             <Button variant="primary" size="sm">
               {t('samples.update')}
             </Button>
+          }
+        />
+        <Toast
+          eyebrow={t('samples.toastEyebrow')}
+          title={t('samples.toastCallTitle')}
+          description={t('samples.toastCallText')}
+          expand={{ label: t('samples.toastOpenAll'), onExpand: () => undefined }}
+          close={{ label: t('samples.close'), onClose: () => undefined }}
+          actions={
+            <>
+              <Button variant="primary" size="sm">
+                {t('samples.toastJoin')}
+              </Button>
+              <Button variant="secondary" size="sm">
+                {t('samples.toastShowCalendar')}
+              </Button>
+              <Button variant="ghost" size="sm">
+                {t('samples.toastGotIt')}
+              </Button>
+            </>
           }
         />
         <Toast

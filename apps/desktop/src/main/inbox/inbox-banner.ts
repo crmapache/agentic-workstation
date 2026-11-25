@@ -20,13 +20,22 @@ const FAILURES: Record<string, string> = {
 
 const BANNER_MAX = 180
 
-/** Разметку Markdown - прочь; «#12» в тексте - не заголовок, решётка уходит только в начале строки. */
+/**
+ * Разметку Markdown - прочь; «#12» в тексте - не заголовок, решётка уходит только в начале строки.
+ * Строки остаются строками: время звонка и место не слипаются в одну фразу.
+ */
 const plain = (text: string) =>
   text
-    .replace(/^\s*#+\s*/gm, '')
-    .replace(/[`*_>[\]]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .replace(/^\s*#+\s*/, '')
+        .replace(/[`*_>[\]]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join('\n')
 
 const short = (text: string) =>
   text.length > BANNER_MAX ? `${text.slice(0, BANNER_MAX - 1)}…` : text
