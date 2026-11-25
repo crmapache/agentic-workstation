@@ -212,6 +212,16 @@ export const connectorNames = (
   }
 }
 
+/**
+ * Плитки вида: встроенный Extensions - только когда расширения дали ИИ инструменты (ADR 0091).
+ * Пустой он ничего не умеет, а «Connected» без инструментов читается как непонятное расширение.
+ * Сам коннектор остаётся у шлюза: первый инструмент расширения покажет плитку без перезапусков.
+ */
+export const shownConnectors = <T extends Pick<Connector, 'kind' | 'tools'>>(
+  connectors: readonly T[],
+): T[] =>
+  connectors.filter((connector) => connector.kind !== 'extensions' || connector.tools.length > 0)
+
 /** Сколько подключений у своего типа. */
 export const connectionsOf = (state: Pick<ConnectorsState, 'connectors'>, typeId: string): number =>
   state.connectors.filter((connector) => connector.typeId === typeId).length

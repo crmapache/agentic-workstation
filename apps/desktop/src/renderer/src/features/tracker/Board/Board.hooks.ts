@@ -55,6 +55,23 @@ const rowAt = (under: Element): DropHit | null => {
   }
 }
 
+/**
+ * Карточка под рукой. Пустое место ряда задачи (под низкой карточкой рядом с высоким
+ * продолжением, правее короткой цепочки) - карточка ряда, над которой стоит рука, или последняя
+ * левее неё: иначе бросок в середину группы уходил бы в её конец.
+ */
+const cardAt = (under: Element, x: number): HTMLElement | null => {
+  const card = under.closest<HTMLElement>('[data-card]')
+
+  if (card) return card
+
+  const cards = [
+    ...(under.closest('[data-task-row]')?.querySelectorAll<HTMLElement>('[data-card]') ?? []),
+  ]
+
+  return cards.findLast((one) => one.getBoundingClientRect().left <= x) ?? cards[0] ?? null
+}
+
 /** Что под рукой: ближайший размеченный узел доски (data-атрибуты карточек, колонок, потоков). */
 const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null => {
   const under = document.elementFromPoint(x, y)
@@ -76,10 +93,10 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
 
   if (kind === 'group') return rowAt(under)
 
-  const card = under.closest<HTMLElement>('[data-card]')
+  const card = cardAt(under, x)
   const column = under.closest<HTMLElement>('[data-group-column]')
-  // Карточки стоят столбиками в теле колонки (GroupLanes): зазор между задачами - зазор их
-  // столбика, между карточками цепочки - зазор между столбиками тела.
+  // Ряды задач стоят в теле колонки (GroupBody): зазор между задачами - зазор тела, между
+  // карточками цепочки - зазор их ряда.
   const body = column?.querySelector('[data-group-body]') ?? null
 
   if (card?.dataset.card && card.dataset.group !== undefined)
@@ -89,8 +106,8 @@ const hitAt = (x: number, y: number, kind: DragSource['kind']): DropHit | null =
       groupId: card.dataset.group,
       followUp: card.dataset.followUp === 'true',
       rect: rectOf(card),
-      gap: gapOf(card.parentElement, 'row'),
-      chainGap: gapOf(body, 'column'),
+      gap: gapOf(body, 'row'),
+      chainGap: gapOf(card.parentElement, 'column'),
     }
 
   if (column?.dataset.groupColumn) {

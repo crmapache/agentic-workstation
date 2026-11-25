@@ -11,6 +11,7 @@ import {
   connectorTitle,
   profileChoices,
   connectorDetail,
+  shownConnectors,
   shortDescription,
   forgottenProjects,
   signsInWithBrowser,
@@ -170,6 +171,17 @@ describe('connectionsOf', () => {
     const connectors = [{ typeId: 't' }, { typeId: 't' }, { typeId: null }] as never[]
 
     expect(connectionsOf({ connectors }, 't')).toBe(2)
+  })
+})
+
+describe('shownConnectors', () => {
+  it('Extensions - только с инструментами расширений, остальные - всегда, даже пустые', () => {
+    const gmail = { kind: 'gmail' as const, tools: [] }
+    const empty = { kind: 'extensions' as const, tools: [] }
+    const filled = { kind: 'extensions' as const, tools: [tool('lint', 'read')] }
+
+    expect(shownConnectors([gmail, empty])).toEqual([gmail])
+    expect(shownConnectors([gmail, filled])).toEqual([gmail, filled])
   })
 })
 

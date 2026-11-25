@@ -6,7 +6,7 @@ import { PageHeader } from '@agentic-workstation/ui/PageHeader'
 import { useConnectors } from '../../../state/connectors.queries'
 import { useWorkspace } from '../../../state/workspace.queries'
 import styles from './ConnectorsView.module.scss'
-import { knownProjects, forgottenProjects } from './ConnectorsView.utils'
+import { knownProjects, shownConnectors, forgottenProjects } from './ConnectorsView.utils'
 import { AddCatalog } from './parts/AddCatalog'
 import { AiJobs } from './parts/AiJobs'
 import { ConnectorGrid } from './parts/ConnectorGrid'
@@ -41,7 +41,7 @@ export const ConnectorsView = () => {
           {!data.vault && <p className={styles.warning}>{t('connectors.vaultMissing')}</p>}
           {data.vaultReset && <p className={styles.warning}>{t('connectors.vaultReset')}</p>}
           <AiJobs jobs={data.aiJobs} />
-          <ConnectorGrid connectors={data.connectors} projects={projects} />
+          <ConnectorGrid connectors={shownConnectors(data.connectors)} projects={projects} />
           <AddCatalog types={data.types} />
           {forgotten.length > 0 && (
             <ForgottenProjects

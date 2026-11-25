@@ -10,11 +10,11 @@ import type { ActionItem } from '../ActionsMenu/ActionsMenu.types'
 import { useBoard } from '../Board/Board.context'
 import styles from './GroupColumn.module.scss'
 import type { GroupColumnProps } from './GroupColumn.types'
-import { GroupLanes } from './parts/GroupLanes'
+import { GroupBody } from './parts/GroupBody'
 
 /**
- * Группа задач - колонка в порядке работы: шапка (тянется за неё же), под ней задачи сверху вниз
- * и справа столбики их продолжений (GroupLanes). Шапка - первая строка общей сетки ряда: у
+ * Группа задач - колонка в порядке работы: шапка (тянется за неё же), под ней ряды задач с их
+ * продолжениями справа (GroupBody). Шапка - первая строка общей сетки ряда: у
  * колонок одного потока она одной высоты, и первые задачи стоят на одной линии. Всю группу в
  * очередь шлёт пункт её меню, как и карточку.
  */
@@ -78,7 +78,7 @@ export const GroupColumn = ({ group, flowId }: GroupColumnProps) => {
         </button>
         <ActionsMenu label={t('tracker.group.menu')} items={items} />
       </header>
-      <GroupLanes group={group} />
+      <GroupBody group={group} />
     </section>
   )
 }

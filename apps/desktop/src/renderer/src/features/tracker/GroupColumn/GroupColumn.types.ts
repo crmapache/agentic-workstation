@@ -1,10 +1,7 @@
-import type { TrackerCard, TrackerGroup } from '@shared/tracker'
+import type { TrackerTask, TrackerGroup } from '@shared/tracker'
 
 export type GroupColumnProps = { group: TrackerGroup; flowId: string }
 
-export type GroupLanesProps = { group: TrackerGroup }
+export type GroupBodyProps = { group: TrackerGroup }
 
-/** Место в столбике продолжений: карточка цепочки задачи или поле её нового продолжения. */
-export type LaneSlot =
-  | { kind: 'card'; card: TrackerCard; taskId: string; last: boolean }
-  | { kind: 'add'; taskId: string }
+export type TaskRowProps = { task: TrackerTask; groupId: string }
