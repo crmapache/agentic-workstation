@@ -26,6 +26,7 @@ import styles from '../ComponentsView.module.scss'
 import { ShowcaseSection } from '../../ShowcaseSection/ShowcaseSection'
 import { Specimen } from '../../Specimen/Specimen'
 import { CallLightSpecimen } from './CallLightSpecimen'
+import { TintedButtonsSpecimen } from './TintedButtonsSpecimen'
 import { TooltipSpecimens } from './TooltipSpecimens'
 import { TouchSpecimens } from './TouchSpecimens'
 
@@ -77,6 +78,8 @@ export const ActionsSection = () => {
           {t('samples.disabled')}
         </Button>
       </Specimen>
+
+      <TintedButtonsSpecimen />
 
       <TouchSpecimens />
 

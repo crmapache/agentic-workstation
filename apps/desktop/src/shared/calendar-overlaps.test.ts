@@ -1,7 +1,7 @@
 import { it, expect, describe } from 'vitest'
 
 import type { CalendarEvent } from './calendar'
-import { meetingsOf, overlapKey, overlapsOf } from './calendar-overlaps'
+import { isAhead, meetingsOf, overlapKey, overlapsOf } from './calendar-overlaps'
 
 /** 24 ноября 2026, время UTC: правилам накладок пояс не нужен. */
 const at = (hour: number, minute = 0) => Date.UTC(2026, 10, 24, hour, minute)
@@ -139,5 +139,21 @@ describe('calendar overlaps', () => {
     const [first, second] = before
 
     expect(first && second && overlapKey(first, second)).toBe(keyOf(before))
+  })
+})
+
+describe('overlaps ahead', () => {
+  const [overlap] = overlapsOf(
+    meetingsOf([event({ key: 'a' }), event({ key: 'b', start: at(10, 30), end: at(12) })]),
+  )
+
+  it('keeps an overlap that has not started or is going on now', () => {
+    expect(overlap && isAhead(overlap, at(9))).toBe(true)
+    expect(overlap && isAhead(overlap, at(10, 45))).toBe(true)
+  })
+
+  it('drops an overlap once its shared span is over', () => {
+    expect(overlap && isAhead(overlap, at(11))).toBe(false)
+    expect(overlap && isAhead(overlap, at(15))).toBe(false)
   })
 })

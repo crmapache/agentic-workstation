@@ -6,7 +6,7 @@ import type { CalendarPeriod } from '../calendar.types'
 export type CalendarToolbarProps = {
   period: CalendarPeriod
   now: number
-  /** Непросмотренных накладок на сетке периода. */
+  /** Непросмотренных накладок периода впереди - тех, что горят на сетке. */
   overlaps: number
   /** Начала накладок впереди - «следующая» листает к ближайшей после периода. */
   upcoming: readonly number[]
@@ -19,7 +19,7 @@ export type SyncButtonProps = {
 export type CalendarBodyProps = {
   period: CalendarPeriod
   meetings: readonly CalendarMeeting[]
-  /** Все накладки периода - карточке встречи, с просмотренными. */
+  /** Накладки периода впереди и идущие - карточке встречи, с просмотренными. */
   overlaps: readonly CalendarOverlap[]
   /** Непросмотренные - горят на сетке. */
   active: readonly CalendarOverlap[]

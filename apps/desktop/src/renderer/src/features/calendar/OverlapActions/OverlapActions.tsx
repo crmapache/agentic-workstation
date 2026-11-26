@@ -15,7 +15,8 @@ import type { OverlapActionsProps } from './OverlapActions.types'
 
 /**
  * Кнопки накладки: «видел» (или «снова подсвечивать») и «Ask AI» с выбором чата. compact -
- * значками в строке списка, иначе - кнопками с подписью в карточке встречи.
+ * значками в строке списка, иначе - кнопками с подписью в плашке накладки карточки встречи:
+ * «Ask AI» там в тоне плашки (красной, жёлтой или спокойной), а не серым пятном.
  */
 export const OverlapActions = ({ overlapKey, seen, compact = false }: OverlapActionsProps) => {
   const { t } = useTranslation()
@@ -50,7 +51,7 @@ export const OverlapActions = ({ overlapKey, seen, compact = false }: OverlapAct
             onClick={() => mark(!seen)}>
             {markLabel}
           </Button>
-          <Button {...popover.triggerProps} variant="secondary" size="sm" icon={Sparkles} menu>
+          <Button {...popover.triggerProps} variant="tinted" size="sm" icon={Sparkles} menu>
             {askLabel}
           </Button>
         </>

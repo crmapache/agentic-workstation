@@ -48,7 +48,7 @@ export const CalendarView = () => {
   const { data: events } = useCalendarEvents(period.from, period.to)
   const sources = state?.sources ?? []
   const seen = state?.seenOverlaps ?? []
-  const { meetings, overlaps, active } = useMeetings(events ?? [], sources, seen)
+  const { meetings, overlaps, active } = useMeetings(events ?? [], sources, seen, now)
   const hasSources = sources.length > 0
   const docked = hasSources && sourcesOpen && !narrow
   const floating = hasSources && narrow && peek

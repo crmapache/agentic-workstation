@@ -10,7 +10,7 @@ import type {
 } from '@shared/calendar'
 import { IDLE_SYNC, isAiSourceKind } from '@shared/calendar'
 import type { CalendarMeeting, CalendarOverlap } from '@shared/calendar-overlaps'
-import { meetingsOf, overlapsOf, normalTitle } from '@shared/calendar-overlaps'
+import { isAhead, meetingsOf, overlapsOf, normalTitle } from '@shared/calendar-overlaps'
 import { parseCalendarSettings } from '@shared/calendar-parse'
 import type { OverlapView, OverlapBriefOutcome } from '@shared/calendar-review'
 import type { CalendarSettings } from '@shared/calendar-settings'
@@ -144,7 +144,7 @@ export class CalendarService {
       const a = byKey.get(overlap.a)
       const b = byKey.get(overlap.b)
 
-      return overlap.end > now && a && b
+      return isAhead(overlap, now) && a && b
         ? [{ ...overlap, a, b, seen: overlap.key in this.calendar.seen }]
         : []
     })

@@ -83,6 +83,18 @@
   @include tinted-plaque(var(--color-danger));
 }
 
+// Действие внутри цветной плашки (накладка, предупреждение): рамка и подложка - цветом её
+// текста, как у самой плашки, на любом её тоне. Серая secondary встала бы на красном серым
+// пятном, а danger сказала бы «удалить».
+.tinted {
+  @include tinted-plaque(currentcolor);
+}
+
+// Стрелка меню - тише подписи, но в том же тоне, а не серая.
+.tinted .chevron {
+  color: color-mix(in srgb, currentcolor var(--tint-mark), transparent);
+}
+
 // Приглашение добавить (этап, карточку): рамка пунктиром без подложки, как у Tile dashed, -
 // место, где встанет новое, не путается с действием над тем, что уже есть.
 .dashed {
@@ -111,6 +123,12 @@
     background-color: var(--color-bg-hover);
     color: var(--color-fg);
   }
+
+  // Тон плашки остаётся, свет поверх - тот же, что у остальных кнопок.
+  .tinted:not(:disabled):hover {
+    border-color: color-mix(in srgb, currentcolor var(--tint-mark), transparent);
+    background-color: color-mix(in srgb, currentcolor var(--tint-soft), var(--color-bg-hover));
+  }
 }
 
 .primary:not(:disabled):active {
@@ -125,10 +143,20 @@
   transition-duration: var(--duration-fast);
 }
 
+.tinted:not(:disabled):active {
+  background-color: color-mix(in srgb, currentcolor var(--tint-soft), var(--color-bg-active));
+  transition-duration: var(--duration-fast);
+}
+
 // Меню кнопки открыто - она стоит нажатой, как IconButton со своей панелью. Стоит после
 // hover той же силы: курсор на кнопке сразу после нажатия не гасит нажатое.
 .secondary[aria-expanded='true']:not(:disabled),
 .ghost[aria-expanded='true']:not(:disabled) {
   background-color: var(--color-bg-selected);
   color: var(--color-fg-strong);
+}
+
+.tinted[aria-expanded='true']:not(:disabled) {
+  border-color: color-mix(in srgb, currentcolor var(--tint-mark), transparent);
+  background-color: color-mix(in srgb, currentcolor var(--tint-soft), var(--color-bg-selected));
 }

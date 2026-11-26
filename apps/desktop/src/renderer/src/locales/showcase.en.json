@@ -118,13 +118,16 @@
     "shareBar": "Share bar with legend",
     "shareBarRanked": "Share bar as a ranking row, and empty",
     "chartTip": "Chart tip",
-    "callLight": "Call light: a view or tab that called the person - tone of the reason, stills when nobody is around"
+    "callLight": "Call light: a view or tab that called the person - tone of the reason, stills when nobody is around",
+    "buttonsTinted": "Tinted buttons inside a colored plaque take its tone: danger, warning, calm; menu open"
   },
   "samples": {
     "choiceHint": "What this option means",
     "primary": "Primary",
     "secondary": "Secondary",
     "ghost": "Ghost",
+    "markSeen": "Mark as seen",
+    "askAi": "Ask AI",
     "disabled": "Disabled",
     "run": "Run",
     "commit": "Commit",

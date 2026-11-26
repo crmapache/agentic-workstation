@@ -252,3 +252,28 @@
   display: block;
   padding: var(--space-3) var(--space-8) var(--space-8) var(--space-3);
 }
+
+// Цветная плашка с действиями, как накладка в карточке встречи: кнопки tinted берут её тон.
+.tonePlaque {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.plaqueDanger {
+  @include tinted-plaque(var(--color-danger));
+}
+
+.plaqueWarning {
+  @include tinted-plaque(var(--color-warning));
+}
+
+// Просмотренная накладка: рамка без подложки, тон приглушённого текста.
+.plaqueCalm {
+  border-color: var(--color-border);
+  background-color: transparent;
+  color: var(--color-fg-muted);
+}

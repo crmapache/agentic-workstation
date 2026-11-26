@@ -9,7 +9,7 @@ import type { OpenedMeeting } from '../WeekGrid/WeekGrid.types'
 export type EventCardProps = {
   opened: OpenedMeeting
   meetings: readonly CalendarMeeting[]
-  /** Все накладки периода, и просмотренные. */
+  /** Накладки периода впереди и идущие, и просмотренные: у прошедшей встречи плашки нет. */
   overlaps: readonly CalendarOverlap[]
   /** Ключи накладок, отмеченных «видел». */
   seen: readonly string[]

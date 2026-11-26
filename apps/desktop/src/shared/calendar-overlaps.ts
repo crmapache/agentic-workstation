@@ -112,6 +112,13 @@ export const overlapKey = (a: CalendarMeeting, b: CalendarMeeting): string =>
   [identity(a), identity(b)].sort().join(' & ')
 
 /**
+ * Накладка ещё впереди или идёт сейчас. Прошедшую уже не разруливают: она не горит на сетке,
+ * не считается и не предлагает «видел» и разбор ИИ.
+ */
+export const isAhead = (overlap: Pick<CalendarOverlap, 'end'>, now: number): boolean =>
+  overlap.end > now
+
+/**
  * Накладки встреч: пары, у которых общего времени не меньше минуты. counts - учитывает ли
  * источник накладки (галочка у источника); встреча участвует, если её учитывает хоть один из
  * её источников.

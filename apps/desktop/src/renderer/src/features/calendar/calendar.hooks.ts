@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from 'react'
 
 import type { CalendarEvent, CalendarSourceView } from '@shared/calendar'
-import { meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
+import { isAhead, meetingsOf, overlapsOf } from '@shared/calendar-overlaps'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { invoke } from '../../lib/ipc'
@@ -23,20 +23,28 @@ export const useCalendarViewed = () => {
 
 /**
  * Встречи периода (дубли слиты) и их накладки - теми же правилами, что у главного процесса.
- * active - накладки, которые человек ещё не отметил «видел»: только они горят на сетке.
+ * overlaps - только впереди и идущие (прошедшие уже не разруливают), вместе с просмотренными;
+ * active - те из них, что человек ещё не отметил «видел»: только они горят на сетке.
  */
 export const useMeetings = (
   events: readonly CalendarEvent[],
   sources: readonly CalendarSourceView[],
   seen: readonly string[],
-) =>
-  useMemo(() => {
-    const meetings = meetingsOf(
+  now: number,
+) => {
+  const { meetings, all } = useMemo(() => {
+    const found = meetingsOf(
       events,
       sources.map((source) => source.id),
     )
     const counts = (id: string) => sources.find((source) => source.id === id)?.inOverlaps === true
-    const overlaps = overlapsOf(meetings, counts)
+
+    return { meetings: found, all: overlapsOf(found, counts) }
+  }, [events, sources])
+
+  return useMemo(() => {
+    const overlaps = all.filter((overlap) => isAhead(overlap, now))
 
     return { meetings, overlaps, active: overlaps.filter((one) => !seen.includes(one.key)) }
-  }, [events, sources, seen])
+  }, [meetings, all, seen, now])
+}
