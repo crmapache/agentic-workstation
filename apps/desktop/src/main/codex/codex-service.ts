@@ -11,7 +11,6 @@ import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
 import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
-import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
 import type { StoredPanel } from '../agents/panel/panel-state'
 import { applyPrefsPatch } from '../claude/settings/panel-prefs'
@@ -50,7 +49,7 @@ const NO_REFUSALS = { bypass: false, autoModels: [] }
 /**
  * Панель Codex (ADR 0083, docs/plan-providers/30-codex.md): разговоры Codex во всех проектах
  * на общем ядре панели. Своё - каталог (модели, кто вошёл, лимиты, история через процесс
- * app-server), доверие к папкам, состояние в `codex.json`.
+ * app-server), состояние в `codex.json`.
  */
 export class CodexService extends AgentPanel {
   readonly catalog: CodexCatalog
@@ -60,7 +59,6 @@ export class CodexService extends AgentPanel {
   private models: ModelInfo[] = []
   private usageAskedAt = 0
   private prefs: PanelPrefs
-  private readonly trust: FolderTrust
   private readonly desk: CodexAccountDesk
   private usageTimer: NodeJS.Timeout | null = null
 
@@ -73,7 +71,6 @@ export class CodexService extends AgentPanel {
   ) {
     super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.prefs = stored.prefs
-    this.trust = new FolderTrust(stored.trustedProjects, () => this.persist.changed())
     // Каталог аккаунта в работе: окружение входа берётся на каждом подъёме процесса.
     this.catalog = new CodexCatalog({
       cli: () => this.locate(),
@@ -261,8 +258,8 @@ export class CodexService extends AgentPanel {
     })
   }
 
-  protected storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'> {
-    return { trustedProjects: this.trust.list, prefs: this.prefs }
+  protected storedExtras(): Pick<StoredPanel, 'prefs'> {
+    return { prefs: this.prefs }
   }
 
   /**
@@ -315,7 +312,6 @@ export class CodexService extends AgentPanel {
     onUsageChanged: () => this.usageChanged(),
     connectors: (projectPath) => this.connectors.configFor(projectPath),
     userMcpServers: () => this.userMcpServers(),
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
     onChange: () => this.persist.changed(),
     onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
     thumbnail: makeThumbnail,
@@ -351,8 +347,6 @@ export class CodexService extends AgentPanel {
     newTabPrefs: () => Promise.resolve(this.prefs),
     // Вкладку открыли: навыки проекта - в подсказку «/», не дожидаясь первого хода.
     feedLoaded: (runtime) => void this.learnSkills(runtime.meta.projectPath),
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
-    trust: (projectPath) => this.trust.trust(projectPath),
     recheckCli: async () => {
       await this.refresh()
 

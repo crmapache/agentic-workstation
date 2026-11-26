@@ -64,7 +64,7 @@ export const TRACKER_PLACEHOLDERS = ['card', 'title', 'subtitle', 'description']
 
 /**
  * Карточка в очереди сценариев на этом компьютере: состояние элемента очереди; refused - очередь
- * отказалась его запускать и ждёт человека (папке не доверились, нет CLI), gone - элемент убрали
+ * отказалась его запускать и ждёт человека (нет CLI), gone - элемент убрали
  * из очереди или очередь закрыли.
  */
 export type TrackerRunState = QueueItemState | 'refused' | 'gone'

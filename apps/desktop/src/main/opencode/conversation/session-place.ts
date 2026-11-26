@@ -6,7 +6,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 /**
  * Сессия OpenCode этой папки проекта. OpenCode ведёт запросы по id сессии в её собственной
  * папке (`location.directory`), поэтому чужая сессия, открытая в проекте, работала бы в
- * другой папке, мимо доверия и коннекторов этого проекта.
+ * другой папке, мимо коннекторов этого проекта.
  */
 export const isSessionOf = (session: unknown, projectPath: string): boolean => {
   const location = isRecord(session) && isRecord(session['location']) ? session['location'] : {}

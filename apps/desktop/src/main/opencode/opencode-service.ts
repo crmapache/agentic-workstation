@@ -14,7 +14,6 @@ import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
 import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
-import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
 import type { StoredPanel } from '../agents/panel/panel-state'
 import { applyPrefsPatch } from '../claude/settings/panel-prefs'
@@ -66,7 +65,7 @@ const NO_ACCOUNTS: AccountsState = {
 /**
  * Панель открытых моделей (ADR 0083, 0084, docs/plan-providers/40-open-models.md): разговоры
  * OpenCode во всех проектах на общем ядре панели. Своё - подключения моделей (меню MODEL из
- * них), доверие к папкам, свои папки OpenCode у IDE, состояние в `opencode.json`. Подключения
+ * них), свои папки OpenCode у IDE, состояние в `opencode.json`. Подключения
  * поменялись - живые процессы перезапускаются, как освободятся: модели едут им конфигом.
  */
 export class OpenModelsService extends AgentPanel {
@@ -87,7 +86,6 @@ export class OpenModelsService extends AgentPanel {
   })
   private cliStatus: CliStatus = 'unknown'
   private prefs: PanelPrefs
-  private readonly trust: FolderTrust
   /** Раздел `providers` последнего конфига: поменялся - процессы перезапускаются. */
   private providersKey = ''
 
@@ -100,7 +98,6 @@ export class OpenModelsService extends AgentPanel {
   ) {
     super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.prefs = stored.prefs
-    this.trust = new FolderTrust(stored.trustedProjects, () => this.persist.changed())
     this.restore(stored)
   }
 
@@ -212,8 +209,8 @@ export class OpenModelsService extends AgentPanel {
     await this.models.refresh()
   }
 
-  protected storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'> {
-    return { trustedProjects: this.trust.list, prefs: this.prefs }
+  protected storedExtras(): Pick<StoredPanel, 'prefs'> {
+    return { prefs: this.prefs }
   }
 
   /**
@@ -322,7 +319,6 @@ export class OpenModelsService extends AgentPanel {
     defaultModel: () => this.defaultModel(),
     contextWindow: (model) => this.windowOf(model),
     efforts: (model) => this.menuModels().find((option) => option.value === model)?.efforts ?? [],
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
     onChange: () => this.persist.changed(),
     onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
     thumbnail: makeThumbnail,
@@ -334,7 +330,7 @@ export class OpenModelsService extends AgentPanel {
   protected readonly driver: PanelDriver = {
     newSessionId: () => '',
     hasJournal: (_projectPath, sessionId) => Promise.resolve(sessionId !== ''),
-    // Сессия чужой папки - «журнала нет»: доверие и коннекторы проверены у этого проекта.
+    // Сессия чужой папки - «журнала нет»: коннекторы даны этому проекту.
     journalName: async (projectPath, sessionId) => {
       const session = await this.catalog.session(sessionId)
       const title = typeof session?.['title'] === 'string' ? session['title'] : ''
@@ -362,8 +358,6 @@ export class OpenModelsService extends AgentPanel {
     defaultMode: () => Promise.resolve('acceptEdits'),
     newTabPrefs: () => Promise.resolve(this.prefs),
     feedLoaded: () => undefined,
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
-    trust: (projectPath) => this.trust.trust(projectPath),
     recheckCli: async () => {
       await this.refresh()
 

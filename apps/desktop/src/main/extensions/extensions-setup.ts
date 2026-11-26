@@ -135,7 +135,6 @@ export const startExtensions = async (setup: {
     converse: async (provider, dir, message) => {
       const panel = setup.panels.get(provider)
 
-      await panel.trustProject(dir)
       await workstation.call('open_project', { project: dir })
 
       const id = await panel.openConversation(dir, {})

@@ -34,7 +34,8 @@ import { tickHours, scheduleHour, unscheduleHour } from './scenario-hours'
 import { ScenarioShelves } from './scenario-shelves'
 import { StepLogs } from './step-logs'
 import { QueueBook } from './queues/queue-book'
-import { runningItem, recoverQueue } from './queues/queue-rules'
+import { folderLines, recoverWithTurn } from './queues/queue-folder'
+import { runningItem } from './queues/queue-rules'
 import { ACC_HOME } from './store/acc-runs'
 
 /** Раз в полминуты: часы расписания и шаг очередей - страховка, двигаются они и сами. */
@@ -166,16 +167,17 @@ export class ScenarioService {
   }
 
   queuesView(): ScenarioQueuesView {
+    const all = this.book.all()
+
     return {
       // Закрытая очередь с живым worktree остаётся на виду: открыть или удалить его можно только
       // с её карточки (решение владельца - worktree живёт, пока человек его не удалит).
-      queues: this.book
-        .all()
-        .filter(
-          (queue) =>
-            queue.closedAt === 0 || (queue.workdir.kind === 'worktree' && !queue.workdir.removed),
-        ),
+      queues: all.filter(
+        (queue) =>
+          queue.closedAt === 0 || (queue.workdir.kind === 'worktree' && !queue.workdir.removed),
+      ),
       live: [...this.desks.values()].flatMap((desk) => desk.liveRuns()),
+      folders: folderLines(all, Date.now()),
     }
   }
 
@@ -377,7 +379,11 @@ export class ScenarioService {
     return code
   }
 
-  /** IDE поднялась: элементы, чьи прогоны оборвались вместе с ней, получают исход. */
+  /**
+   * IDE поднялась: элементы, чьи прогоны оборвались вместе с ней, получают исход, а место у папки
+   * проекта, которое после этого не правда, снимается (ADR 0128): иначе Resume в первые секунды,
+   * до шага, пустил бы очередь мимо ждущих по старой записи.
+   */
   private async recover(): Promise<void> {
     for (const queue of this.book.all()) {
       const running = runningItem(queue)
@@ -390,7 +396,7 @@ export class ScenarioService {
 
       const record = running.runId ? await desk.runs.read(running.runId) : null
 
-      this.book.put(recoverQueue(queue, () => record?.state ?? null, Date.now()))
+      this.book.put(recoverWithTurn(queue, () => record?.state ?? null, Date.now()))
     }
   }
 

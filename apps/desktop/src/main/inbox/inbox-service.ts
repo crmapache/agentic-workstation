@@ -24,12 +24,10 @@ export type StoredInbox = { items: InboxItem[] }
 /** Разговор панели, приславший уведомление: куда вернуть нажатие кнопки. */
 export type ChatOrigin = { provider: ProviderId; conversationId: string; sessionId: string }
 
-/** Куда уходят нажатия: прогоны заданий, разговоры панели, доверие папке, открыть файл. */
+/** Куда уходят нажатия: прогоны заданий, разговоры панели, открыть файл или адрес. */
 export type InboxRoutes = {
   tasks: Pick<TaskService, 'answer' | 'tell' | 'resume' | 'again' | 'openChat'>
   sendToChat: (origin: ChatOrigin, projectPath: string, text: string) => Promise<boolean>
-  /** Довериться папке прогона - у провайдера этого прогона. */
-  trust: (projectPath: string, runId: string) => Promise<unknown>
   openPath: (path: string) => Promise<boolean>
   openUrl: (url: string) => boolean
 }
@@ -286,10 +284,6 @@ export class InboxService implements TaskInboxPort {
         return done(await routes.tasks.again(runId))
       case 'resume':
         return done(await routes.tasks.resume(runId))
-      case 'trust':
-        await routes.trust(item.projectPath, runId)
-
-        return done(await routes.tasks.again(runId))
     }
   }
 

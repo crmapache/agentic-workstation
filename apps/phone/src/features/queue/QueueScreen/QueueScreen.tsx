@@ -16,10 +16,12 @@ import { holdCarriesOn } from './QueueScreen.utils'
 import { CurrentRun } from './parts/CurrentRun'
 import { QueueItems } from './parts/QueueItems'
 import { QueueRest } from './parts/QueueRest'
+import { QueueTurn } from './parts/QueueTurn'
 
 /**
  * Очередь сценариев: идущий прогон (пауза, продолжить, стоп, остановиться после него), элементы
- * по порядку, ждущие - переставить, убрать, остановиться после них; спит ли она вне рабочих часов.
+ * по порядку, ждущие - переставить, убрать, остановиться после них; спит ли она вне рабочих часов
+ * и ждёт ли своей очереди к папке проекта.
  * Закрыть очередь, удалить её worktree и поменять рабочие часы с телефона нельзя.
  */
 export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
@@ -71,6 +73,7 @@ export const QueueScreen = ({ route }: { route: RouteOf<'queue'> }) => {
         </Card>
       )}
       {queue.nap && <QueueRest nap={queue.nap} queue={queue} offset={screen.offset} />}
+      {queue.wait && <QueueTurn wait={queue.wait} screen={screen} />}
       {run && <CurrentRun route={route} queue={queue} run={run} screen={screen} />}
       <QueueItems route={route} queue={queue} screen={screen} />
       <TextDialog

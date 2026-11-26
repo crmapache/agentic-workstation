@@ -1182,7 +1182,7 @@
     "help": {
       "label": "About scenarios",
       "title": "Scenarios",
-      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. The next one starts only when the one before it is done: if a run fails or is stopped, nothing after it starts until you continue that run from where it stopped or mark it done. Queues run side by side, so start a new one for unrelated work. The newest queue is on top. A queue where nothing has happened for two weeks closes by itself, unless a run is still going in it.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so parallel queues do not touch each other or your files. The worktree stays after the queue ends, until you remove it.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
+      "text": "A scenario is a round of work written once: stages with cards that an AI agent goes through, while a main thread reads each result and decides what comes next.\n\nYou run scenarios in queues. A queue is a line of work with its own name: scenarios in it run one after another, and each one sees what the previous ones did. The next one starts only when the one before it is done: if a run fails or is stopped, nothing after it starts until you continue that run from where it stopped or mark it done. Start a new queue for unrelated work. The newest queue is on top. A queue where nothing has happened for two weeks closes by itself, unless a run is still going in it.\n\nA queue can work in the project folder or in its own git worktree - a separate copy of the repository on its own branch, so it does not touch other queues or your files. The worktree stays after the queue ends, until you remove it. Queues in worktrees run side by side. Queues in the project folder take turns: a new one waits while another works there and starts by itself when the folder is free, in the order they came. A queue that stopped on an unfinished run keeps the folder until you continue it, mark it done or close it. Run alongside now starts a waiting queue at once, beside the others.\n\nPause stops the running scenario at once and keeps everything in memory. Stop after current lets it finish and starts nothing after it. Stop after a chosen scenario lets the queue run up to it."
     },
     "actions": {
       "new": "New scenario",
@@ -1217,7 +1217,6 @@
       "providerMissing": "This AI provider is not available.",
       "noCli": "The AI provider of this run is not installed or not found.",
       "noClaude": "Claude Code is not installed or not found.",
-      "untrusted": "Trust this project folder in the panel of the AI that runs it first.",
       "runBusy": "This run is still going.",
       "runGone": "This run is gone.",
       "runNotResumable": "This run cannot be continued from where it stopped.",
@@ -1246,6 +1245,7 @@
           "interrupted": "Stopped: IDE closed"
         },
         "closed": "Closed, worktree kept",
+        "inLine": "Waiting its turn",
         "resting": "Outside working hours"
       },
       "workdir": {
@@ -1300,6 +1300,20 @@
         "dismiss": "Dismiss",
         "openRun": "Open run"
       },
+      "turn": {
+        "working": "Waiting for the project folder: {{names}} works in it. This queue starts on its own when the folder is free.",
+        "unfinished": "Waiting for the project folder: {{name}} in {{queue}} did not finish. This queue starts when that run is continued and done, marked done, or {{queue}} is closed.",
+        "after": "Waiting for the project folder after {{names}}.",
+        "ahead_one": "1 more queue is ahead of it.",
+        "ahead_other": "{{count}} more queues are ahead of it.",
+        "openRun": "Open its run",
+        "alongside": "Run alongside now",
+        "dialog": {
+          "title": "Run {{name}} alongside now?",
+          "text": "It starts at once in the project folder, beside {{names}}: both queues would change the same files. The queues waiting in line keep their places.",
+          "confirm": "Run alongside"
+        }
+      },
       "controls": {
         "label": "Queue controls",
         "pause": "Pause",
@@ -1351,7 +1365,7 @@
         "rest": {
           "paused": "Outside working hours: {{name}} is paused. It resumes on its own: {{when}}.",
           "waiting": "Outside working hours: nothing new starts. Next start: {{when}}.",
-          "folder": "Working hours have begun. The queue goes on in a moment, once the project folder is free."
+          "due": "Working hours have begun. The queue goes on in a moment."
         },
         "change": "Change hours",
         "form": {
@@ -1437,6 +1451,11 @@
       "uncommitted_one": "1 uncommitted file stays in the project folder: the worktree will not have it.",
       "uncommitted_other": "{{count}} uncommitted files stay in the project folder: the worktree will not have them.",
       "sharedFolder": "{{name}} already works in the project folder: both queues would change the same files.",
+      "waitsTurn": "{{name}} works in the project folder: this queue waits its turn and starts on its own when the folder is free.",
+      "queueWaitsTurn": "{{name}} works in the project folder: this queue waits its turn and starts the scenario on its own when the folder is free.",
+      "waitsUnfinished": "{{name}} stopped on an unfinished run in the project folder: this waits until that run is continued and done, marked done, or {{name}} is closed.",
+      "alongside": "Run alongside now",
+      "alongsideNote": "Start at once instead of waiting for the project folder.",
       "queueFacts": "{{place}} · {{state}}",
       "run": "Run",
       "add": "Add to queue"
@@ -1797,7 +1816,6 @@
       "errors": {
         "noClaude": "Claude Code is not installed or could not be found.",
         "noCli": "The AI that writes drafts (Settings → AI) is not installed or could not be found.",
-        "untrusted": "Trust this folder in a chat first: AI reads the project to write the scenario.",
         "outdated": "This Claude Code is too old to write a scenario. Update it and try again.",
         "timeout": "No answer in ten minutes. Try a shorter description, or build it yourself.",
         "empty": "Say what the work is first.",
@@ -2813,10 +2831,6 @@
       }
     },
     "blocked": {
-      "trustTitle": "Trust this folder?",
-      "trustText": "Claude Code will load this project's settings, hooks and CLAUDE.md. Hooks can run any command on your computer, so trust only folders you know.",
-      "trust": "Trust and send",
-      "trustOnly": "Trust folder",
       "missingTitle": "Project folder not found",
       "missingText": "It was moved or deleted while the project was open. Put it back, then try again. Your message is waiting in the queue.",
       "retry": "Try again",
@@ -2997,7 +3011,6 @@
     },
     "tools": {
       "failures": {
-        "untrusted": "Claude Code doesn't work in this folder until you trust it.",
         "cliNotFound": "Claude Code is not installed.",
         "projectMissing": "The project folder is gone.",
         "processExited": "Claude Code stopped before answering. Try again.",
@@ -3778,7 +3791,6 @@
     "failures": {
       "noClaude": "Claude Code is not installed or not found.",
       "noCli": "The AI provider of this task is not installed or not found.",
-      "untrusted": "The project folder is not trusted yet. Trust it to let tasks run there.",
       "folderMissing": "The project folder is gone.",
       "startFailed": "The AI did not start.",
       "crashed": "The AI stopped unexpectedly.",
@@ -3805,7 +3817,6 @@
       "noTranscript": "The conversation of this run is not on disk.",
       "noClaude": "Claude Code is not installed or not found.",
       "noCli": "The AI provider of this task is not installed or not found.",
-      "untrusted": "The project folder is not trusted yet.",
       "folderMissing": "The project folder is gone.",
       "startFailed": "The AI did not start.",
       "crashed": "The AI stopped unexpectedly.",
@@ -4021,7 +4032,6 @@
       "openChat": "Open in chat",
       "runAgain": "Run again",
       "resume": "Continue",
-      "trust": "Trust folder and run",
       "dismissRead": "Dismiss read",
       "expand": "Expand",
       "collapse": "Collapse"
@@ -4657,6 +4667,11 @@
       "existing": "{{name}}",
       "worktree": "Run in its own worktree",
       "worktreeHint": "A separate git checkout, so the queue does not touch your working copy.",
+      "waitsTurn": "{{name}} works in the project folder: the new queue waits its turn and starts on its own when the folder is free.",
+      "waitsUnfinished": "{{name}} stopped on an unfinished run in the project folder: the new queue waits until that run is continued and done, marked done, or {{name}} is closed.",
+      "alongside": "Run alongside now",
+      "alongsideNote": "Start at once instead of waiting for the project folder.",
+      "sharedFolder": "{{name}} already works in the project folder: both queues would change the same files.",
       "send_one": "Send {{count}} card",
       "send_other": "Send {{count}} cards",
       "cancel": "Cancel"

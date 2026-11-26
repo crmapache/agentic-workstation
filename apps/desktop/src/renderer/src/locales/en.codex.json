@@ -20,9 +20,6 @@
         "bypassPermissions": "No sandbox, no questions, network on. Only where mistakes are cheap"
       }
     },
-    "blocked": {
-      "trustText": "Codex will read, edit and run commands in this folder. Trust only folders you know."
-    },
     "settings": {
       "rows": {
         "meters": {

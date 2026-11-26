@@ -1,9 +1,9 @@
 import { isProviderId, worksUnattended } from '@shared/providers'
 import type { ProviderId } from '@shared/providers'
-import type { QueueHours } from '@shared/scenario-queues'
+import type { QueueHours, QueueTarget } from '@shared/scenario-queues'
 import type { ProjectRef } from '@shared/workspace'
 
-import { stringArg, ArgumentError } from '../native-tools'
+import { stringArg, booleanArg, ArgumentError } from '../native-tools'
 import type { NativeCall } from '../native-tools'
 import type { ProjectsPort } from '../../../workstation/workstation-link'
 
@@ -12,6 +12,27 @@ export const PROJECT_ARG = {
   type: 'string',
   description:
     'Project folder path or name, as list_projects shows it. Default: the project of this conversation.',
+}
+
+/**
+ * «Запустить рядом сразу» (ADR 0128): новая очередь без worktree не ждёт папку проекта. Это выбор
+ * человека - модель ставит его, только когда человек так и попросил.
+ */
+export const ALONGSIDE_ARG = {
+  type: 'boolean',
+  description:
+    'New queue without a worktree only: start at once beside the queues that hold the project folder instead of waiting its turn. Both would change the same files - only when the user asked for it. Default false.',
+}
+
+/** Новая очередь по словам модели: свой worktree или папка проекта, ждать ли её. */
+export const newQueueTarget = (args: Record<string, unknown>): QueueTarget => {
+  const worktree = booleanArg(args, 'worktree', false)
+
+  return {
+    kind: 'new',
+    worktree,
+    ...(!worktree && booleanArg(args, 'alongside', false) && { alongside: true }),
+  }
 }
 
 /** Схема рабочих часов очереди: окно по дням недели в местном времени машины. */

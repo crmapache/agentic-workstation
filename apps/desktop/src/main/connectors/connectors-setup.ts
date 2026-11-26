@@ -37,8 +37,6 @@ export type ProviderLinks = {
   shellEnv: () => Promise<Record<string, string>>
   /** Открытые проекты: импорт предлагает и их MCP-серверы. */
   projectPaths: () => string[]
-  /** Доверился ли человек папке проекта (как для разговоров Claude Code). */
-  isTrusted: (projectPath: string) => Promise<boolean>
   /** Разговор с ИИ о новом коннекторе (ADR 0050). */
   chats: OpenAiChat
   /** Откуда грузить страницы IDE (в dev - Vite): капсула Computer - своя страница. */
@@ -80,7 +78,6 @@ export const startConnectors = async (links: ProviderLinks): Promise<ConnectorsS
       mcpConfigDir: join(userData, MCP_CONFIG_DIR),
       shellEnv: links.shellEnv,
       projectPaths: links.projectPaths,
-      isTrusted: links.isTrusted,
       chats: links.chats,
       aiJobsFile: new JsonFile<StoredAiJobs>(join(userData, AI_JOBS_FILE), { mode: 0o600 }),
       version: app.getVersion(),

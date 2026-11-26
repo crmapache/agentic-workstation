@@ -20,12 +20,11 @@ export const freshDraftId = (): string =>
 
 /** Отказ писателя сценариев словом, на которое у окна есть текст; всё прочее - слова самого CLI. */
 export type DraftErrorCode =
-  'noClaude' | 'noCli' | 'untrusted' | 'outdated' | 'timeout' | 'empty' | 'unreadable' | 'failed'
+  'noClaude' | 'noCli' | 'outdated' | 'timeout' | 'empty' | 'unreadable' | 'failed'
 
 const DRAFT_ERROR_CODES: Record<DraftErrorCode, true> = {
   noClaude: true,
   noCli: true,
-  untrusted: true,
   outdated: true,
   timeout: true,
   empty: true,

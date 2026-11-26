@@ -39,7 +39,7 @@ const hasWaiting = (queue: ScenarioQueue): boolean =>
  * не продолжат с места или не пометят выполненным. Следующий работает в той же папке - начать
  * после недоделанного значит начать поверх чужой незаконченной работы.
  */
-const stuckItem = (queue: ScenarioQueue): QueueItem | null => {
+export const stuckItem = (queue: ScenarioQueue): QueueItem | null => {
   const last = lastOverItem(queue)
 
   return last && last.state !== 'done' ? last : null

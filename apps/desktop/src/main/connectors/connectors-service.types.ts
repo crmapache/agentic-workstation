@@ -21,8 +21,6 @@ export type ConnectorsPlaces = {
   shellEnv: () => Promise<Record<string, string>>
   /** Открытые проекты: импорт предлагает и их серверы. */
   projectPaths: () => string[]
-  /** Доверился ли человек папке проекта: .mcp.json недоверенной импорт не читает. */
-  isTrusted: (projectPath: string) => Promise<boolean>
   /** Разговор с ИИ о новом коннекторе (ADR 0050): его ведёт провайдер. */
   chats: OpenAiChat
   /** Работы ИИ на диске: готовое и начатое переживает перезапуск IDE. */

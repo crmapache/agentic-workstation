@@ -31,7 +31,7 @@ import { TabStrip } from './tab-strip'
 
 /**
  * Своё провайдера у панели (ADR 0083): журналы разговоров, форк, умолчания новой вкладки,
- * доверие к папке, поиск CLI. Разговор внутри - через AgentDriver (agent-parts.ts).
+ * поиск CLI. Разговор внутри - через AgentDriver (agent-parts.ts).
  */
 export type PanelDriver = {
   /**
@@ -62,8 +62,6 @@ export type PanelDriver = {
   newTabPrefs: (projectPath: string) => Promise<PanelPrefs>
   /** Лента прочитана из журнала: то, что журнал знает о вкладке (модель, оборванный вопрос). */
   feedLoaded: (runtime: ConversationRuntime) => void
-  isTrusted: (projectPath: string) => Promise<boolean>
-  trust: (projectPath: string) => void
   /** Поискать CLI заново: человек поставил его, пока IDE была открыта. true - нашёлся. */
   recheckCli: () => Promise<boolean>
 }
@@ -95,7 +93,7 @@ export abstract class AgentPanel {
   protected readonly persist: PanelPersistence
   protected activeByProject: Record<string, string>
 
-  /** Хост разговоров: доверие, рассылка, зов, драйвер разговора провайдера. */
+  /** Хост разговоров: рассылка, зов, драйвер разговора провайдера. */
   protected abstract readonly host: AgentHost
   private readonly hooks: PanelHooks | undefined
   protected abstract readonly driver: PanelDriver
@@ -159,8 +157,8 @@ export abstract class AgentPanel {
     return Promise.resolve(this.getState())
   }
 
-  /** Что о панели хранится на диске сверх вкладок: доверие, настройки. */
-  protected abstract storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'>
+  /** Что о панели хранится на диске сверх вкладок: настройки. */
+  protected abstract storedExtras(): Pick<StoredPanel, 'prefs'>
 
   /**
    * Вкладки с диска - зовёт наследник, когда его хост собран: разговорам он нужен с
@@ -245,23 +243,6 @@ export abstract class AgentPanel {
 
     this.activeByProject = conversationId ? { ...rest, [projectPath]: conversationId } : rest
     this.persist.changed()
-  }
-
-  /** Доверена ли папка: сессия CLI для недоверенной не поднимается ни в каком обходе. */
-  isTrusted(projectPath: string): Promise<boolean> {
-    return this.driver.isTrusted(projectPath)
-  }
-
-  /** Человек доверился папке: разговоры, которые на этом стояли, отправляют ждавшее. */
-  async trustProject(projectPath: string): Promise<AgentPanelState> {
-    this.driver.trust(projectPath)
-    await Promise.all(
-      [...this.runtimes.values()]
-        .filter((runtime) => runtime.meta.projectPath === projectPath)
-        .map((runtime) => runtime.resolveError('untrusted')),
-    )
-
-    return this.getState()
   }
 
   listHistory(projectPath: string): Promise<HistoryEntry[]> {

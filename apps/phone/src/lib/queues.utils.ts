@@ -16,8 +16,8 @@ export const waitingCount = (queue: QueueWire): number =>
   queue.items.filter((item) => item.state === 'waiting' && !item.placeholder).length
 
 /**
- * Строка очереди под её именем: папка, идущий прогон с долей шагов, сколько ждёт и спит ли она
- * вне рабочих часов.
+ * Строка очереди под её именем: папка, идущий прогон с долей шагов, сколько ждёт, спит ли она
+ * вне рабочих часов и ждёт ли своей очереди к папке проекта.
  */
 export const queueFacts = (
   t: TFunction,
@@ -29,6 +29,7 @@ export const queueFacts = (
     run ? `${run.scenarioName} ${run.done}/${run.total}` : null,
     t('project.waitingItems', { count: waitingCount(queue) }),
     queue.nap ? t('queue.restFact') : null,
+    queue.wait ? t('queue.turnFact') : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -70,7 +71,10 @@ export const boardGroups = (
   )
 }
 
-/** Сводка доски: что идёт (и стоит на паузе) и что ждёт человека (вопрос или очередь встала). */
+/**
+ * Сводка доски: что идёт (и стоит на паузе) и что ждёт человека - вопрос, очередь встала или ждёт
+ * папку проекта за недоделанным, которое сам держатель не отпустит.
+ */
 export const boardCounts = (
   queues: QueueWire[],
   live: RunSummaryWire[],
@@ -80,6 +84,11 @@ export const boardCounts = (
 
   return {
     running: open.filter((queue) => runOf(queue) && !runOf(queue)?.asking).length,
-    waiting: open.filter((queue) => Boolean(runOf(queue)?.asking) || queue.hold !== null).length,
+    waiting: open.filter(
+      (queue) =>
+        Boolean(runOf(queue)?.asking) ||
+        queue.hold !== null ||
+        Boolean(queue.wait?.holders.some((holder) => holder.unfinished)),
+    ).length,
   }
 }

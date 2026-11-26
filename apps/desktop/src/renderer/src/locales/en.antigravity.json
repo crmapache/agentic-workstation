@@ -23,9 +23,6 @@
         "bypassPermissions": "Nothing asks except denylisted commands. Only where mistakes are cheap"
       }
     },
-    "blocked": {
-      "trustText": "Antigravity will read, edit and run commands in this folder, with this project's Antigravity rules, skills and MCP servers. Trust only folders you know."
-    },
     "loginGate": {
       "text": "Sign in with your Google account. Antigravity opens the sign-in page; paste the code it shows here. The same sign-in serves agy in your terminal.",
       "openAgain": "Start again",

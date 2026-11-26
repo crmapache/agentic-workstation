@@ -31,8 +31,8 @@ export type StepFeed = {
  */
 export type ScenarioProvider = {
   readonly id: ProviderId
-  /** Можно ли сейчас вести прогон в проекте: CLI на месте, папке доверяют. null - можно. */
-  prepare: (projectPath: string) => Promise<ScenarioCode | null>
+  /** Можно ли сейчас вести прогон: CLI на месте. null - можно. */
+  prepare: () => Promise<ScenarioCode | null>
   /**
    * Процесс головы или карточки в папке cwd (проект или worktree очереди). Коннекторы IDE -
    * по исходному проекту projectPath. null - процесс не поднять (CLI пропал, аккаунта нет).

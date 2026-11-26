@@ -12,6 +12,6 @@ export const done = (data?: unknown): Outcome =>
 export const fail = (code: RemoteErrorCode, detail?: string): Outcome =>
   detail === undefined ? { ok: false, code } : { ok: false, code, detail }
 
-/** Отказ сценариев - их кодом (queueBusy, untrusted, runOver…): у телефона есть на него слова. */
+/** Отказ сценариев - их кодом (queueBusy, noCli, runOver…): у телефона есть на него слова. */
 export const scenarioOutcome = (code: ScenarioCode | null): Outcome =>
   code ? fail('refused', code) : done()

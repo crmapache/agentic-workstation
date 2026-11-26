@@ -121,10 +121,9 @@ export type AgentDriver = {
   setOptions: (runtime: ConversationRuntime, options: ConversationOptions) => void
 }
 
-/** Что разговору нужно от сервиса панели: доверие, рассылка, зов, коннекторы, драйвер. */
+/** Что разговору нужно от сервиса панели: рассылка, зов, коннекторы, драйвер. */
 export type AgentHost = {
   readonly driver: AgentDriver
-  isTrusted: (projectPath: string) => Promise<boolean>
   onChange: () => void
   onCommands: (projectPath: string, commands: SlashCommand[]) => void
   /** Миниатюра картинки сообщения для ленты (data URL) - делает Electron. */

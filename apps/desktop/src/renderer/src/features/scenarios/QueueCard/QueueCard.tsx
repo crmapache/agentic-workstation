@@ -12,17 +12,18 @@ import { QueueHold } from './parts/QueueHold'
 import { QueueItems } from './parts/QueueItems'
 import { QueueRest } from './parts/QueueRest'
 import { QueueRunning } from './parts/QueueRunning'
+import { QueueTurn } from './parts/QueueTurn'
 
 /**
  * Очередь сценариев полосой: имя, где работает, что делает (пока элемент идёт, это говорит метка
  * его строки - второй такой же в шапке нет); элементы по порядку, идущий - с дорогой карточек
- * и часами; почему встала и как её пустить, почему спит вне рабочих часов и когда пойдёт сама;
- * пауза, остановка после текущего, добавить.
+ * и часами; почему встала и как её пустить, почему спит вне рабочих часов и когда пойдёт сама,
+ * кого ждёт в папке проекта (ADR 0128); пауза, остановка после текущего, добавить.
  * Ждущий человека прогон красит карточку акцентом: это единственное, что ждёт ответа.
  */
-export const QueueCard = ({ queue, live }: QueueCardProps) => {
+export const QueueCard = ({ queue, live, wait = null }: QueueCardProps) => {
   const [isRenaming, setIsRenaming] = useState(false)
-  const status = queueStatus(queue, live)
+  const status = queueStatus(queue, live, wait !== null)
   const isGoing = runningItemOf(queue) !== null
   // Закрытая очередь на виду только ради своего worktree: запускать в неё больше нечего.
   const isClosed = queue.closedAt > 0
@@ -39,6 +40,7 @@ export const QueueCard = ({ queue, live }: QueueCardProps) => {
         />
         {queue.hold && <QueueHold queue={queue} hold={queue.hold} />}
         {rest && <QueueRest queueId={queue.id} why={rest} />}
+        {wait && <QueueTurn queue={queue} wait={wait} />}
         <QueueItems queue={queue} live={live} />
         {isGoing && live && <QueueRunning queue={queue} live={live} />}
         {!isClosed && <QueueControls queue={queue} live={live} />}

@@ -3,7 +3,7 @@ import { it, expect, describe } from 'vitest'
 import type { TrackerCard, TrackerProject } from '@shared/tracker'
 
 import { neighboursOf } from '../tracker.utils'
-import { opOf, stepPlace, isSamePlace } from './Board.utils'
+import { opOf, cardOf, stepPlace, isSamePlace } from './Board.utils'
 
 const card = (id: string): TrackerCard => ({
   id,
@@ -101,5 +101,15 @@ describe('шаг клавишами и меню', () => {
       projectId: 'p',
       beforeId: 'f1',
     })
+  })
+})
+
+describe('карточка для чата', () => {
+  it('задача и продолжение - карточки, группа, поток и чужой id - нет', () => {
+    expect(cardOf(PROJECT, 'b')?.id).toBe('b')
+    expect(cardOf(PROJECT, 'a2')?.id).toBe('a2')
+    expect(cardOf(PROJECT, 'g1')).toBeNull()
+    expect(cardOf(PROJECT, 'f1')).toBeNull()
+    expect(cardOf(PROJECT, 'gone')).toBeNull()
   })
 })

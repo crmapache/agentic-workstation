@@ -60,7 +60,16 @@ export const parseProvider = (value: unknown): ProviderId =>
 export const parseTarget = (value: unknown): QueueTarget => {
   const record = asRecord(value, 'target')
 
-  if (record.kind === 'new') return { kind: 'new', worktree: record.worktree === true }
+  // Рядом сразу - только в папке проекта: у очереди в worktree своя папка, ждать ей некого.
+  if (record.kind === 'new') {
+    const worktree = record.worktree === true
+
+    return {
+      kind: 'new',
+      worktree,
+      ...(!worktree && record.alongside === true && { alongside: true }),
+    }
+  }
 
   return { kind: 'queue', queueId: assertId(record.queueId, 'queueId') }
 }
@@ -95,6 +104,7 @@ export const parseQueueAction = (value: unknown): QueueAction => {
       'rename',
       'clear',
       'hours',
+      'alongside',
       'close',
     ] as const,
     'kind',
@@ -120,6 +130,7 @@ export const parseQueueAction = (value: unknown): QueueAction => {
       return { kind, hours: parseHours(record.hours) }
     case 'resume':
     case 'clear':
+    case 'alongside':
     case 'close':
       return { kind }
   }

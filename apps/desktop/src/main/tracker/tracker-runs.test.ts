@@ -94,6 +94,27 @@ describe('отправка в очередь', () => {
     expect(plain.placeholders).toEqual([])
   })
 
+  it('«рядом сразу» новой очереди доходит и до сценариев за пометкой, открывшей её', async () => {
+    const kit = await setup([scenario('fix', ['task'])])
+
+    await kit.card('О колонке', null)
+    await kit.card('A', {})
+    await kit.card('B', {})
+
+    await kit.runs.send(PLACE, {
+      source: { kind: 'group', groupId: kit.groupId },
+      target: { kind: 'new', worktree: false, alongside: true },
+    })
+
+    const queueId = kit.queues[0]?.id
+
+    expect(kit.placeholders[0]?.target).toEqual({ kind: 'new', worktree: false, alongside: true })
+    expect(kit.started.map((request) => request.target)).toEqual([
+      { kind: 'queue', queueId, alongside: true },
+      { kind: 'queue', queueId, alongside: true },
+    ])
+  })
+
   it('пометка в ту же очередь второй раз не встаёт, в новую - встаёт; сделанной её не отметить', async () => {
     const kit = await setup([scenario('fix', ['task'])])
 

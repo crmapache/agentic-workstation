@@ -38,12 +38,12 @@ export const useHoursWords = () => {
       : t(`scenarios.queues.hours.now.${note.kind}`, { when: moment(note.until, at) })
 
   /**
-   * Почему спящая очередь стоит. Срок прошёл, а она спит - ждёт, пока в папке проекта доработает
-   * сценарий другой очереди (или ближайшего удара часов).
+   * Почему спящая очередь стоит. Срок прошёл, а она ещё спит - проснётся на ближайшем ударе часов;
+   * папку проекта часы не ждут: занятая, она скажет это своей строкой (ADR 0128).
    */
   const rest = (why: QueueRest, at: number): string =>
     why.until <= at
-      ? t('scenarios.queues.hours.rest.folder')
+      ? t('scenarios.queues.hours.rest.due')
       : t(`scenarios.queues.hours.rest.${why.kind}`, {
           name: why.kind === 'paused' ? why.name : '',
           when: moment(why.until, at),

@@ -84,6 +84,7 @@ export const QUEUE: ScenarioQueue = {
   hold: null,
   hours: null,
   nap: null,
+  turn: null,
 }
 
 export const RUN: ScenarioRun = {

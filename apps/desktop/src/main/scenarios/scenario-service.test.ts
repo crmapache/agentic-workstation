@@ -6,7 +6,7 @@ import { join } from 'node:path'
 
 import { it, expect, describe, afterEach, beforeEach } from 'vitest'
 
-import type { ScenarioQueue } from '@shared/scenario-queues'
+import type { QueueTarget, ScenarioQueue } from '@shared/scenario-queues'
 import type { Scenario } from '@shared/scenarios'
 
 import type { ScenarioProvider } from '../providers/scenario-provider'
@@ -56,7 +56,7 @@ const scenario = (id: string): Scenario => ({
         {
           id: 'c',
           title: 'Card',
-          prompt: 'Do it.',
+          prompt: `Do the work of ${id}.`,
           slots: [],
           dod: 'done',
           after: '',
@@ -127,10 +127,7 @@ let fakes: FakeCli[] = []
 let titles: string[] = []
 let notes: string[] = []
 
-const start = (
-  scenarioId: string,
-  target: { kind: 'new'; worktree: boolean } | { kind: 'queue'; queueId: string },
-) =>
+const start = (scenarioId: string, target: QueueTarget) =>
   (service as ScenarioService).start({
     projectPath: project,
     scenarioId,
@@ -160,7 +157,12 @@ beforeEach(async () => {
     await writeFile(join(shelf, `${id}.json`), JSON.stringify(scenario(id)))
   }
 
-  service = await ScenarioService.load({
+  service = await loadService()
+})
+
+/** Сервис на папке данных теста: второй вызов - та же IDE после перезапуска. */
+const loadService = () =>
+  ScenarioService.load({
     dataDir: join(dir, 'data'),
     worktreesRoot: join(dir, 'worktrees'),
     claudeHome: () => Promise.resolve(join(dir, 'home')),
@@ -174,7 +176,25 @@ beforeEach(async () => {
       openProject: () => undefined,
     },
   })
-})
+
+/** git-репозиторий из папки проекта теста: worktree делается от его коммита. */
+const gitInit = () => {
+  const git = (...args: string[]) =>
+    execFileSync('git', args, {
+      cwd: project,
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 't',
+        GIT_AUTHOR_EMAIL: 't@t',
+        GIT_COMMITTER_NAME: 't',
+        GIT_COMMITTER_EMAIL: 't@t',
+      },
+    })
+
+  git('init', '-q', '-b', 'main')
+  git('add', '.')
+  git('commit', '-q', '-m', 'init')
+}
 
 afterEach(async () => {
   await service?.shutdown()
@@ -397,21 +417,7 @@ describe('scenario service', () => {
   })
 
   it('runs a new queue in its own git worktree and drops it when the empty queue closes', async () => {
-    const git = (...args: string[]) =>
-      execFileSync('git', args, {
-        cwd: project,
-        env: {
-          ...process.env,
-          GIT_AUTHOR_NAME: 't',
-          GIT_AUTHOR_EMAIL: 't@t',
-          GIT_COMMITTER_NAME: 't',
-          GIT_COMMITTER_EMAIL: 't@t',
-        },
-      })
-
-    git('init', '-q', '-b', 'main')
-    git('add', '.')
-    git('commit', '-q', '-m', 'init')
+    gitInit()
 
     const started = await start('a', { kind: 'new', worktree: true })
 
@@ -435,5 +441,301 @@ describe('scenario service', () => {
     expect(run?.cwd).toBe(workdir.projectDir)
     expect(await (service as ScenarioService).act(started.queueId, { kind: 'close' })).toBeNull()
     await until(() => !existsSync(workdir.path))
+  })
+})
+
+/** Ворота карточек сценария: пока не открыты, его карточка «работает». */
+type Gate = { promise: Promise<void>; open: () => void }
+
+describe('queues without a worktree share the project folder', () => {
+  /** Чьи карточки работали, по порядку - сценарий по слову в промпте карточки. */
+  let order: string[] = []
+  let gates = new Map<string, Gate>()
+
+  const gate = (id: string): Gate => {
+    let release = () => undefined as void
+    const promise = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const made = { promise, open: () => release() }
+
+    gates.set(id, made)
+
+    return made
+  }
+
+  const opened = async (
+    scenarioId: string,
+    target: QueueTarget = { kind: 'new', worktree: false },
+  ) => {
+    const started = await start(scenarioId, target)
+
+    if (!started.ok) throw new Error(`did not start: ${started.code}`)
+
+    return started.queueId
+  }
+
+  const scenarios = () => service as ScenarioService
+
+  const folders = () => scenarios().queuesView().folders
+
+  beforeEach(() => {
+    order = []
+    gates = new Map()
+    cards = (said) => {
+      const id = ['a', 'b', 'c'].find((one) => said.includes(`work of ${one}.`)) ?? '?'
+      const held = gates.get(id)
+
+      if (order.at(-1) !== id) order.push(id)
+
+      return held
+        ? { kind: 'after', work: () => held.promise, text: 'Done the work.' }
+        : { kind: 'say', text: 'Done the work.' }
+    }
+  })
+
+  it('the second queue waits its turn and starts after the last item of the first, even one added meanwhile', async () => {
+    const first = gate('a')
+    const one = await opened('a')
+    const two = await opened('b')
+
+    expect(queue(one).items[0]?.state).toBe('running')
+    expect(queue(two).turn?.kind).toBe('waiting')
+    expect(queue(two).items[0]?.state).toBe('waiting')
+    expect(folders()).toEqual([{ projectPath: project, holders: [one], line: [two] }])
+
+    await opened('c', { kind: 'queue', queueId: one })
+    first.open()
+    await until(() => queue(two).items[0]?.state === 'done')
+
+    expect(order).toEqual(['a', 'c', 'b'])
+    expect(queue(one).items.map((item) => item.state)).toEqual(['done', 'done'])
+    expect(folders()).toEqual([])
+  })
+
+  it('a queue added to after it let go of the folder waits behind the one already waiting', async () => {
+    const one = await opened('a')
+
+    await until(() => queue(one).items[0]?.state === 'done')
+
+    const busy = gate('b')
+    const holder = await opened('b')
+    const two = await opened('c')
+
+    await opened('a', { kind: 'queue', queueId: one })
+
+    expect(queue(one).turn?.kind).toBe('waiting')
+    expect(folders()).toEqual([{ projectPath: project, holders: [holder], line: [two, one] }])
+
+    busy.open()
+    await until(() => queue(one).items[1]?.state === 'done')
+
+    expect(order).toEqual(['a', 'b', 'c', 'a'])
+  })
+
+  it('a stopped holder keeps the folder; continued and done, it lets the next queue go', async () => {
+    let isHolding = true
+
+    cards = () => (isHolding ? { kind: 'silent' } : { kind: 'say', text: 'Done the work.' })
+
+    const one = await opened('a')
+    const two = await opened('b')
+    const runId = queue(one).items[0]?.runId ?? ''
+
+    await until(() =>
+      scenarios()
+        .queuesView()
+        .live.some((run) => run.state === 'running'),
+    )
+    scenarios().control(project, runId, 'stop')
+    await until(() => queue(one).items[0]?.state === 'stopped')
+    await scenarios().runner.beat()
+
+    expect(queue(two).items[0]?.state).toBe('waiting')
+    expect(folders()).toEqual([{ projectPath: project, holders: [one], line: [two] }])
+
+    isHolding = false
+    expect(await scenarios().carryOn(runId)).toBeNull()
+    await until(() => queue(two).items[0]?.state === 'done')
+
+    expect(queue(one).items[0]).toMatchObject({ state: 'done', runId })
+  })
+
+  it('closing a holder that stands on an unfinished item lets the queue behind go', async () => {
+    cards = (said) =>
+      said.includes('work of a.') ? { kind: 'silent' } : { kind: 'say', text: 'Done the work.' }
+
+    const one = await opened('a')
+    const two = await opened('b')
+
+    await until(() =>
+      scenarios()
+        .queuesView()
+        .live.some((run) => run.state === 'running'),
+    )
+    scenarios().control(project, queue(one).items[0]?.runId ?? '', 'stop')
+    await until(() => queue(one).items[0]?.state === 'stopped')
+
+    expect(queue(two).items[0]?.state).toBe('waiting')
+    expect(await scenarios().act(one, { kind: 'close' })).toBeNull()
+    await until(() => queue(two).items[0]?.state === 'done')
+  })
+
+  it('run alongside starts at once beside the holder and leaves the line as it was', async () => {
+    const first = gate('a')
+    const one = await opened('a')
+    const two = await opened('b')
+    const three = await opened('c')
+
+    expect(folders()[0]?.line).toEqual([two, three])
+    expect(await scenarios().act(three, { kind: 'alongside' })).toBeNull()
+    await until(() => queue(three).items[0]?.state === 'done')
+
+    expect(queue(two).items[0]?.state).toBe('waiting')
+    expect(folders()).toEqual([{ projectPath: project, holders: [one], line: [two] }])
+
+    first.open()
+    await until(() => queue(two).items[0]?.state === 'done')
+
+    expect(order).toEqual(['a', 'c', 'b'])
+  })
+
+  it('a new queue made to run alongside does not wait', async () => {
+    gate('a')
+
+    const one = await opened('a')
+    const beside = await opened('b', { kind: 'new', worktree: false, alongside: true })
+
+    await until(() => queue(beside).items[0]?.state === 'done')
+
+    expect(queue(one).items[0]?.state).toBe('running')
+  })
+
+  it('a group opened by a placeholder keeps run alongside for the scenarios behind it', async () => {
+    gate('a')
+
+    const one = await opened('a')
+    const opened2 = await scenarios().startPlaceholder({
+      projectPath: project,
+      title: 'About the column',
+      provider: 'claude',
+      target: { kind: 'new', worktree: false, alongside: true },
+    })
+
+    if (!opened2.ok) throw new Error('did not open')
+
+    await opened('b', { kind: 'queue', queueId: opened2.queueId, alongside: true })
+    await until(() => queue(opened2.queueId).items[1]?.state === 'done')
+
+    expect(queue(one).items[0]?.state).toBe('running')
+  })
+
+  it('a queue waiting for the folder does not close itself after two idle weeks', async () => {
+    gate('a')
+
+    const one = await opened('a')
+    const two = await opened('b')
+
+    await scenarios().runner.closeIdle(Date.now() + 15 * 24 * 60 * 60 * 1000)
+
+    expect(queue(two).closedAt).toBe(0)
+    expect(queue(two).turn?.kind).toBe('waiting')
+    expect(queue(one).closedAt).toBe(0)
+  })
+
+  it('a queue in its own worktree runs beside a held folder and waits for nobody', async () => {
+    gitInit()
+
+    const first = gate('a')
+    const one = await opened('a')
+    const apart = await opened('b', { kind: 'new', worktree: true })
+
+    await until(() => queue(apart).items[0]?.state === 'done')
+
+    expect(queue(apart).turn).toBeNull()
+    expect(folders()).toEqual([{ projectPath: project, holders: [one], line: [] }])
+
+    first.open()
+    await until(() => queue(one).items[0]?.state === 'done')
+  })
+
+  it('after an IDE restart mid-run the queue behind does not start on top; the holder goes on first', async () => {
+    cards = () => ({ kind: 'silent' })
+
+    const one = await opened('a')
+    const two = await opened('b')
+    const runId = queue(one).items[0]?.runId ?? ''
+
+    await until(() =>
+      scenarios()
+        .queuesView()
+        .live.some((run) => run.state === 'running'),
+    )
+    await scenarios().shutdown()
+    service = await loadService()
+    await scenarios().runner.beat()
+
+    expect(queue(one).items[0]?.state).toBe('stopped')
+    expect(queue(two).items[0]?.state).toBe('waiting')
+    expect(scenarios().queuesView().live).toEqual([])
+
+    cards = card
+    expect(await scenarios().carryOn(runId)).toBeNull()
+    await until(() => queue(two).items[0]?.state === 'done')
+  })
+
+  it('queues an old release left asleep without hours wait in the order they fell asleep', async () => {
+    const legacy = (id: string, scenarioId: string, createdAt: number, sleptAt: number) => ({
+      id,
+      projectPath: project,
+      name: id,
+      createdAt,
+      activeAt: Date.now(),
+      closedAt: 0,
+      workdir: { kind: 'project' },
+      items: [
+        {
+          id: `${id}-1`,
+          scenarioId,
+          scope: 'project',
+          scenarioName: scenarioId,
+          inputs: {},
+          provider: 'claude',
+          addedAt: sleptAt,
+          runId: '',
+          state: 'waiting',
+          refusal: null,
+        },
+      ],
+      stopAfterItemId: '',
+      hold: null,
+      hours: null,
+      nap: { at: sleptAt, until: sleptAt, runId: '' },
+    })
+
+    await scenarios().shutdown()
+    await mkdir(join(dir, 'data'), { recursive: true })
+    await writeFile(
+      join(dir, 'data', 'scenario-queues.json'),
+      // Позже уснувшая создана позже: беглый шаг всех очередей берёт её первой.
+      JSON.stringify({
+        version: 1,
+        queues: [legacy('late', 'b', 2, 20), legacy('early', 'a', 1, 10)],
+      }),
+    )
+
+    const held = gate('a')
+
+    service = await loadService()
+    await scenarios().runner.beat()
+
+    expect(queue('early').items[0]?.state).toBe('running')
+    expect(queue('late').turn).toEqual({ kind: 'waiting', at: 20 })
+    expect(queue('late').nap).toBeNull()
+
+    held.open()
+    await until(() => queue('late').items[0]?.state === 'done')
+
+    expect(order).toEqual(['a', 'b'])
   })
 })

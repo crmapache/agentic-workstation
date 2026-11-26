@@ -5,6 +5,7 @@ import { worksUnattended } from '@shared/providers'
 import { cleanHours } from '@shared/queue-hours'
 import type {
   QueueItem,
+  QueueTarget,
   ScenarioQueue,
   ScenarioStartRequest,
   QueuePlaceholderRequest,
@@ -16,6 +17,7 @@ import type { ScenarioProvider } from '../providers/scenario-provider'
 import type { RunnerHost } from './queue-runner'
 import { queueWorktree } from './queue-worktree'
 import { runsOnOf } from './runs-on'
+import { runAlongside } from './queues/queue-folder'
 import { addItem, fallbackName } from './queues/queue-rules'
 import { scopeOf } from './store/scenario-parse'
 
@@ -72,8 +74,8 @@ export const placeItem = async (
   }
   const placed =
     request.target.kind === 'new'
-      ? await openQueue(host, request, item, request.target.worktree, provider)
-      : joinQueue(host, request.target.queueId, request.projectPath, item)
+      ? await openQueue(host, request, item, request.target, provider)
+      : joinQueue(host, request.target, request.projectPath, item)
 
   return 'code' in placed ? placed : { queueId: placed.queueId, itemId: item.id }
 }
@@ -106,23 +108,27 @@ export const placePlaceholder = async (
   }
   const placed =
     request.target.kind === 'new'
-      ? await openQueue(host, request, item, request.target.worktree, provider)
-      : joinQueue(host, request.target.queueId, request.projectPath, item)
+      ? await openQueue(host, request, item, request.target, provider)
+      : joinQueue(host, request.target, request.projectPath, item)
 
   return 'code' in placed ? placed : { queueId: placed.queueId, itemId: item.id }
 }
 
+/**
+ * Новая очередь. Без worktree она встанет в ожидание папки проекта, если папку держат или ждут
+ * другие (решит её первый шаг, ADR 0128); alongside - выбор человека не ждать: папка её сразу.
+ */
 const openQueue = async (
   host: RunnerHost,
   { projectPath, hours }: { projectPath: string; hours?: ScenarioStartRequest['hours'] },
   item: QueueItem,
-  worktree: boolean,
+  { worktree, alongside }: Extract<QueueTarget, { kind: 'new' }>,
   provider: ScenarioProvider,
 ): Promise<{ queueId: string } | { code: ScenarioCode; detail?: string }> => {
   const id = shortId()
-  // Нет CLI или доверия - отказ до git: иначе каждый такой запуск (и каждый час расписания)
-  // оставлял бы новый пустой worktree с веткой.
-  const unready = worktree ? await provider.prepare(projectPath) : null
+  // Нет CLI - отказ до git: иначе каждый такой запуск (и каждый час расписания) оставлял бы
+  // новый пустой worktree с веткой.
+  const unready = worktree ? await provider.prepare() : null
 
   if (unready) return { code: unready }
 
@@ -148,6 +154,7 @@ const openQueue = async (
     // Часы - до первого шага: вне них очередь уснёт, не подняв первый сценарий.
     hours: hours ? cleanHours(hours) : null,
     nap: null,
+    turn: alongside === true && !worktree ? { kind: 'holding', at: now } : null,
   }
 
   host.book.put(queue)
@@ -155,9 +162,13 @@ const openQueue = async (
   return { queueId: id }
 }
 
+/**
+ * В конец открытой очереди. alongside - не ждать папку проекта: очередь, которая её не держит,
+ * берёт её сразу (ADR 0128).
+ */
 const joinQueue = (
   host: RunnerHost,
-  queueId: string,
+  { queueId, alongside }: Extract<QueueTarget, { kind: 'queue' }>,
   projectPath: string,
   item: QueueItem,
 ): { queueId: string } | { code: ScenarioCode } => {
@@ -168,7 +179,9 @@ const joinQueue = (
   // Worktree очереди удаляется - новый сценарий там не начнётся.
   if (host.removing.has(queueId)) return { code: 'queueBusy' }
 
-  host.book.put(addItem(queue, item))
+  const joined = addItem(queue, item)
+
+  host.book.put(alongside === true ? runAlongside(joined, Date.now()) : joined)
 
   return { queueId }
 }

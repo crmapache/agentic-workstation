@@ -98,10 +98,10 @@ describe('findServers', () => {
     expect(all['project:local']?.pending).toBe(false)
   })
 
-  it('.mcp.json недоверенной папки не читается (null)', () => {
-    const untrusted = findServers({}, [app({ mcpJson: null })], new Set())
+  it('без .mcp.json (null) - только свои серверы человека', () => {
+    const local = findServers({}, [app({ mcpJson: null })], new Set())
 
-    expect(untrusted.map(({ candidate }) => candidate.scope)).toEqual(['local'])
+    expect(local.map(({ candidate }) => candidate.scope)).toEqual(['local'])
   })
 })
 

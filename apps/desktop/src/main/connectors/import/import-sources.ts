@@ -40,13 +40,12 @@ const approvalsOf = (records: readonly unknown[]): McpJsonApprovals => {
 export type ImportSources = { userConfig: unknown; projects: ProjectServers[] }
 
 /**
- * Прочитать конфиг Claude Code и серверы открытых проектов. .mcp.json - только у папки,
- * которой человек доверился: иначе его не открывает и сам Claude Code.
+ * Прочитать конфиг Claude Code и серверы открытых проектов: .mcp.json и настройки каждого.
+ * Папкам проектов IDE доверяет всегда (ADR 0126), так что и проектные серверы видны все.
  */
 export const readImportSources = async (
   env: ShellVariables,
   projectPaths: readonly string[],
-  isTrusted: (projectPath: string) => Promise<boolean>,
 ): Promise<ImportSources> => {
   const configDir = configDirOf(env)
   const userConfig = await readJson(join(configDir ?? homedir(), '.claude.json'))
@@ -58,14 +57,11 @@ export const readImportSources = async (
   const projects = await Promise.all(
     projectPaths.map(async (path): Promise<ProjectServers> => {
       const entry = entries[path]
-      const trusted = await isTrusted(path)
-      const [mcpJson, local, shared] = trusted
-        ? await Promise.all([
-            readJson(join(path, '.mcp.json')),
-            readJson(join(path, '.claude', 'settings.local.json')),
-            readJson(join(path, '.claude', 'settings.json')),
-          ])
-        : [null, null, null]
+      const [mcpJson, local, shared] = await Promise.all([
+        readJson(join(path, '.mcp.json')),
+        readJson(join(path, '.claude', 'settings.local.json')),
+        readJson(join(path, '.claude', 'settings.json')),
+      ])
 
       return {
         path,

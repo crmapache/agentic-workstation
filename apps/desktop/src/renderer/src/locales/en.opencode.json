@@ -20,9 +20,6 @@
         "bypassPermissions": "No questions at all. Only where mistakes are cheap"
       }
     },
-    "blocked": {
-      "trustText": "OpenCode will read, edit and run commands in this folder, with this project's OpenCode settings. Trust only folders you know."
-    },
     "permission": {
       "allowAlways": "Allow for this chat"
     },

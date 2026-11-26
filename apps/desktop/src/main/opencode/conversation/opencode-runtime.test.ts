@@ -184,7 +184,6 @@ const makeRuntime = (
     contextWindow: windowOf,
     efforts: () => [],
     messages: () => Promise.resolve({ messages: [], cursor: null }),
-    isTrusted: () => Promise.resolve(true),
     onChange: () => undefined,
     onCommands: () => undefined,
     thumbnail: () => '',

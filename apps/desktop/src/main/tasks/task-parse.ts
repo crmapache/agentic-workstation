@@ -105,7 +105,6 @@ const TRIGGERS = ['schedule', 'catchUp', 'manual', 'reply'] as const
 const FAILURES = [
   'noClaude',
   'noCli',
-  'untrusted',
   'folderMissing',
   'startFailed',
   'crashed',

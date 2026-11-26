@@ -106,7 +106,6 @@ describe('finishItem', () => {
     const kinds = (patch: Partial<TaskRun>) =>
       finishItem(run({ state: 'failed', ...patch }), undefined)?.actions.map((one) => one.kind)
 
-    expect(kinds({ failure: 'untrusted' })).toEqual(['trust', 'showRun'])
     expect(kinds({ failure: 'crashed' })).toEqual(['resume', 'runAgain', 'showRun'])
     expect(kinds({ failure: 'noClaude' })).toEqual(['runAgain', 'showRun'])
     expect(

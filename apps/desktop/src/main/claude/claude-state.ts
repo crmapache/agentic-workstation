@@ -133,16 +133,10 @@ export const parseStoredClaude = (
     ),
   )
 
-  const trusted = record['trustedProjects']
-  const trustedProjects = Array.isArray(trusted)
-    ? trusted.filter((path): path is string => typeof path === 'string' && isAbsolute(path))
-    : []
-
   return {
     conversations,
     closed: parseClosed(record['closed'], (item) => parseConversation(item, rules)),
     activeByProject,
-    trustedProjects,
     prefs: parsePanelPrefs(record['prefs'], rules),
     commandsByProject: parseCommandNames(record['commandsByProject']),
   }

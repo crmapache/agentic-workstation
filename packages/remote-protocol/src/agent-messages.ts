@@ -148,7 +148,7 @@ export type RemoteErrorCode =
 
 /**
  * Ответ на команду по её id. Отказ - кодом; refused с detail - отказ самой IDE её словом
- * (у сценариев: queueBusy, untrusted, runOver…; у режима разговора - modeUnavailable, а у
+ * (у сценариев: queueBusy, noCli, runOver…; у режима разговора - modeUnavailable, а у
  * нового разговора ещё permissionMode).
  */
 export type ResultMessage = Versioned & { k: 'result'; id: string } & (

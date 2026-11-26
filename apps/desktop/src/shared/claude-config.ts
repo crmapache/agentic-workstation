@@ -29,11 +29,8 @@ export type ClaudeConfigSetting = {
   projectOnly: boolean
 }
 
-/**
- * Почему списка нет: папке проекта не доверились (CLI в ней не запускается), CLI не
- * нашёлся, CLI ответил тем, что экран не разбирает.
- */
-export type ClaudeConfigFailure = 'untrusted' | 'cli-not-found' | 'unreadable'
+/** Почему списка нет: CLI не нашёлся или ответил тем, что экран не разбирает. */
+export type ClaudeConfigFailure = 'cli-not-found' | 'unreadable'
 
 /**
  * Как прошла правка - по перечитанному файлу, а не по фразе CLI. message - слова CLI

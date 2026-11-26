@@ -42,6 +42,7 @@ const scopedScenarios = (
     return {
       queues: all.queues.filter((queue) => allowed(queue.projectPath)),
       live: all.live.filter((run) => allowed(run.projectPath)),
+      folders: all.folders.filter((line) => allowed(line.projectPath)),
     }
   }
   const queueOf = (queueId: string) => {

@@ -29,17 +29,15 @@ const emptyCatalog = (result: ToolsResult): PluginCatalog => ({
 
 /**
  * Плагины Claude Code - разовыми командами CLI. Всё, что читает или меняет проект
- * (каталог, плагины областей project и local), идёт в его папке и только если ей
- * доверились: CLI там читает её настройки. Своё для всех проектов (область user,
- * маркетплейсы) - из домашней папки. Живые процессы перечитывают плагины сами
- * (reload_plugins); каждое действие отвечает и каталогом после него.
+ * (каталог, плагины областей project и local), идёт в его папке: CLI там читает её
+ * настройки. Своё для всех проектов (область user, маркетплейсы) - из домашней папки.
+ * Живые процессы перечитывают плагины сами (reload_plugins); каждое действие отвечает и
+ * каталогом после него.
  */
 export class PluginTools {
   constructor(private readonly host: ToolsHost) {}
 
   async catalog(projectPath: string): Promise<PluginCatalog> {
-    if (!(await this.host.isTrusted(projectPath))) return emptyCatalog(failed('untrusted'))
-
     const cli = await this.host.cli()
 
     if (!cli) return emptyCatalog(failed('cli-not-found'))
@@ -114,8 +112,6 @@ export class PluginTools {
     args: string[],
     timeoutMs?: number,
   ): Promise<ToolsResult> {
-    if (inProject && !(await this.host.isTrusted(projectPath))) return failed('untrusted')
-
     const cli = await this.host.cli()
 
     if (!cli) return failed('cli-not-found')

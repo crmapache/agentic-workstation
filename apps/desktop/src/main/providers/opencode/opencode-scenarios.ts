@@ -41,18 +41,12 @@ export const openCodeScenarioProvider = (
   const author = new ProviderAuthor({
     provider: 'opencode',
     ask: (question) => askOpenCodeOnce(host, question),
-    isTrusted: (path) => openModels.isTrusted(path),
     defaults: () => ({ ...defaults(), model: serviceModel() || defaults().model }),
   })
 
   return {
     id: 'opencode',
-    prepare: async (projectPath) => {
-      if (!(await host.cli())) return 'noCli'
-      if (!(await openModels.isTrusted(projectPath))) return 'untrusted'
-
-      return null
-    },
+    prepare: async () => ((await host.cli()) ? null : 'noCli'),
     spawn: (spec, place, wires) => new OpenCodeRunProcess(host, spec, place, wires),
     transcriptDirs: () => Promise.resolve([journalDir]),
     chatIdOf: async (sessionId) => (await RunJournal.open(journalDir, sessionId)).native,

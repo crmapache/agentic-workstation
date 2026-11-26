@@ -80,8 +80,6 @@ export const createAgentHandlers = (
       panels.get(provider).actions.removeQueued(id(conversationId), queued(queuedId)),
     'agent:sendQueued': ({ provider, conversationId, queuedId }) =>
       panels.get(provider).actions.sendQueued(id(conversationId), queued(queuedId)),
-    'agent:trustProject': ({ provider, projectId }) =>
-      panels.get(provider).trustProject(root(projectId)),
     'agent:interrupt': ({ provider, conversationId }) =>
       panels.get(provider).actions.interrupt(id(conversationId)),
     'agent:forceStop': ({ provider, conversationId }) =>

@@ -64,12 +64,11 @@ export type ProviderPanels = {
 /**
  * Панели провайдеров ИИ (ADR 0083): Claude Code, Codex и открытые модели (OpenCode, ADR 0084),
  * у каждой свой файл состояния, свои вкладки, настройки и лимиты; события окну - с провайдером. Зов окну - только не выключенный
- * в Settings → Sounds; дом (папку IDE) обе считают доверенной (ADR 0059).
+ * в Settings → Sounds.
  */
 export const startProviderPanels = async (options: {
   userData: string
   version: string
-  homeFolder: string
   sounds: SoundsService
   observers: PanelObservers
 }): Promise<ProviderPanels> => {
@@ -205,13 +204,6 @@ export const startProviderPanels = async (options: {
   registry.add('opencode', openModels)
   // Вопрос сбоку (/btw): цепочка вкладки - окну событием, ответы приходят сами.
   claude.panel.aside.onChange = (view) => broadcast('claudePanel:aside', view)
-  // Дом - папка, которую создала сама IDE, чужих хуков и настроек в ней нет: вопроса о
-  // доверии на первом сообщении дома не будет (ADR 0059).
-  void claude.trustProject(options.homeFolder)
-  void codex.trustProject(options.homeFolder)
-  void antigravity.trustProject(options.homeFolder)
-  void kimi.trustProject(options.homeFolder)
-  void openModels.trustProject(options.homeFolder)
 
   return { claude, codex, antigravity, kimi, openModels, registry }
 }

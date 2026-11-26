@@ -15,8 +15,6 @@ export type HoursHost = {
   carryOn: (runId: string) => Promise<ScenarioCode | null>
   /** Шаг очереди: пришло время её часов. */
   step: (queueId: string) => Promise<void>
-  /** В папке проекта работает сценарий другой очереди - проснувшись, туда не входить. */
-  folderTaken: (queue: ScenarioQueue) => boolean
 }
 
 /** Таймер границы окна срабатывает чуть позже неё: на миг раньше очередь ещё не уснула бы. */
@@ -43,27 +41,22 @@ export class QueueHoursKeeper {
   constructor(private readonly host: HoursHost) {}
 
   /**
-   * Привести очередь в согласие с её часами: уснуть, проснуться или ничего. Очередь без worktree
-   * не просыпается, пока в папке проекта работает другая очередь (её поднял, например, час
-   * расписания): сама, без человека, второго агента в те же файлы она не пускает. Ждёт удара
-   * часов или конца того прогона, а не таймера - иначе он бил бы каждую секунду.
+   * Привести очередь в согласие с её часами: уснуть, проснуться или ничего. Просыпается очередь
+   * всегда в срок: её прогон на паузе - её же работа в папке, которую она держит, а следующий
+   * элемент в занятой папке проекта подождёт своей очереди к ней по общему правилу (ADR 0128) -
+   * часы о папке ничего не решают.
    */
   async keep(queueId: string, now = Date.now()): Promise<void> {
     const queue = this.host.book.get(queueId)
     const move = queue ? nap.napMove(queue, now) : null
-    const waits =
-      queue !== null &&
-      move?.kind === 'wake' &&
-      queue.closedAt === 0 &&
-      this.host.folderTaken(queue)
 
     if (queue && move?.kind === 'sleep') this.sleep(queue, now, move.until)
-    if (queue && move?.kind === 'wake' && !waits) await this.wake(queue, now)
+    if (queue && move?.kind === 'wake') await this.wake(queue, now)
     if (queue && move?.kind === 'retime') this.put(nap.retimeNap(queue, move.until), true)
 
     const latest = this.host.book.get(queueId)
 
-    this.plan(queueId, latest && !waits ? nap.nextHoursMove(latest, now) : 0)
+    this.plan(queueId, latest ? nap.nextHoursMove(latest, now) : 0)
   }
 
   /** Человек сам поставил или снял паузу прогона: проснувшись, очередь его не тронет. */

@@ -110,7 +110,7 @@ export const fakeIde = () => {
     tasks: [],
     hasEarlier: false,
   }
-  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [LIVE] }
+  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [LIVE], folders: [] }
   const earlier: FeedItem[] = []
   const images = new Map<string, string>()
   const schedules: ScenarioSchedule[] = []

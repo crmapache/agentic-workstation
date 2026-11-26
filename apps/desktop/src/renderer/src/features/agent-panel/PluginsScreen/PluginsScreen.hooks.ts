@@ -73,8 +73,6 @@ export const usePluginsScreen = (projectId: string) => {
     busy: action.busy,
     notice: action.notice,
     consentFor,
-    refresh: () =>
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.pluginCatalog(projectId) }),
     act: (action: PluginAction, pluginId: string, scope: PluginScope | '', consent = false) =>
       void run({ kind: 'act', request: { action, pluginId, scope, consent } }),
     addMarketplace: (source: string) => void run({ kind: 'addMarketplace', source }),

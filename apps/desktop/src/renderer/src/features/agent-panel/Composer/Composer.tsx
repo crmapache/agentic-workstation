@@ -77,7 +77,8 @@ export const Composer = (props: ComposerProps) => {
       <div
         ref={boxRef}
         className={styles.box}
-        data-dropping={isDropping || undefined}
+        {...composer.chatDrop.attributes}
+        data-dropping={isDropping || composer.chatDrop.isOver || undefined}
         data-shell={composer.isShell || undefined}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

@@ -49,6 +49,7 @@ const queueOf = (patch: Partial<ScenarioQueue>, ...items: QueueItem[]): Scenario
   hold: null,
   hours: HOURS,
   nap: null,
+  turn: null,
   ...patch,
 })
 

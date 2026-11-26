@@ -26,8 +26,6 @@ export type ImportHost = {
   add: (prepared: NewConnector) => Promise<AddConnectorError | null>
   /** Открытые проекты: их свои и проектные серверы тоже предлагаются. */
   projectPaths: () => string[]
-  /** Доверился ли человек папке: .mcp.json недоверенной не читается. */
-  isTrusted: (projectPath: string) => Promise<boolean>
   shellEnv: () => Promise<Record<string, string>>
   /**
    * Порт входа в IDE снаружи (ADR 0090): сервер на нём - сама эта IDE, вписанная человеком в
@@ -70,11 +68,7 @@ export class ImportDesk {
 
   async candidates(): Promise<ImportCandidate[]> {
     const env = await this.host.shellEnv()
-    const { userConfig, projects } = await readImportSources(
-      env,
-      this.host.projectPaths(),
-      this.host.isTrusted,
-    )
+    const { userConfig, projects } = await readImportSources(env, this.host.projectPaths())
 
     this.found = findServers(userConfig, projects, this.host.serverNames()).filter(
       (found) => !isOwnOutside(found, this.host.outsidePort),

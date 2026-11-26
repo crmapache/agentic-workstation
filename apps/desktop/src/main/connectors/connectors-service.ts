@@ -114,7 +114,6 @@ export class ConnectorsService {
       serverNames: () => registry.serverNames(),
       add: this.addQuietly,
       projectPaths: places.projectPaths,
-      isTrusted: places.isTrusted,
       shellEnv: places.shellEnv,
       outsidePort: places.outsidePort,
     })

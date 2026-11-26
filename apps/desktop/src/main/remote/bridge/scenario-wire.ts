@@ -1,4 +1,5 @@
 import type { ScenarioQueue, ScenarioQueuesView } from '@shared/scenario-queues'
+import { carryOnItemOf } from '@shared/scenario-queues'
 import { isRunWorking } from '@shared/scenario-runs'
 import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
 import type { Scenario } from '@shared/scenarios'
@@ -7,6 +8,7 @@ import type {
   RunWire,
   QueueWire,
   QueuesSummary,
+  QueueWaitWire,
   RunSummaryWire,
   ShelfScenarioWire,
 } from '@agentic-workstation/remote-protocol/wire-types'
@@ -18,8 +20,38 @@ import type {
 
 type KeyOf = (rootPath: string) => string
 
-/** Очередь телефону; nameOf - имя проекта для доски всех очередей (ProjectKeys.nameOf). */
-export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): QueueWire => ({
+/**
+ * Ожидание папки проекта телефону (ADR 0128): кто держит папку - именем и недоделанным, на котором
+ * стоит, - и сколько очередей впереди. null - очередь папку не ждёт.
+ */
+export const queueWait = (queue: ScenarioQueue, view: ScenarioQueuesView): QueueWaitWire | null => {
+  const folder = view.folders.find((one) => one.projectPath === queue.projectPath)
+  const place = folder?.line.indexOf(queue.id) ?? -1
+
+  if (!folder || place < 0) return null
+
+  return {
+    holders: folder.holders.flatMap((queueId) => {
+      const holder = view.queues.find((one) => one.id === queueId)
+
+      return holder
+        ? [{ queueId, name: holder.name, unfinished: carryOnItemOf(holder)?.scenarioName ?? '' }]
+        : []
+    }),
+    ahead: place,
+  }
+}
+
+/**
+ * Очередь телефону; nameOf - имя проекта для доски всех очередей (ProjectKeys.nameOf), view -
+ * снимок очередей, по которому видно ожидание папки.
+ */
+export const queueWire = (
+  queue: ScenarioQueue,
+  keyOf: KeyOf,
+  nameOf: KeyOf,
+  view: ScenarioQueuesView,
+): QueueWire => ({
   id: queue.id,
   projectKey: keyOf(queue.projectPath),
   projectName: nameOf(queue.projectPath),
@@ -47,6 +79,7 @@ export const queueWire = (queue: ScenarioQueue, keyOf: KeyOf, nameOf: KeyOf): Qu
   hold: queue.hold,
   hours: queue.hours,
   nap: queue.nap && { until: queue.nap.until, runId: queue.nap.runId },
+  wait: queueWait(queue, view),
 })
 
 export const runSummaryWire = (run: RunSummary, keyOf: KeyOf): RunSummaryWire => ({

@@ -51,14 +51,14 @@ const folderExists = (path: string) =>
   )
 
 /**
- * Идущие прогоны заданий: подъём (папка, CLI, доверие), продолжение разговора, ответы на
+ * Идущие прогоны заданий: подъём (папка, CLI), продолжение разговора, ответы на
  * вопросы, остановка и потолок работы. Один живой прогон на запись: продолжение законченного
  * поднимает его разговор заново (`--resume`), а не второй прогон.
  */
 export class TaskDesk {
   private readonly live = new Map<string, LiveRun>()
   /**
-   * Задания и прогоны, которые поднимаются прямо сейчас (папка, CLI, доверие - секунды): место
+   * Задания и прогоны, которые поднимаются прямо сейчас (папка, CLI - секунды): место
    * занимается до первого ожидания, иначе двойной клик или такт посреди подъёма подняли бы второй.
    */
   private readonly raising = new Set<string>()
@@ -289,16 +289,16 @@ export class TaskDesk {
     return live.run
   }
 
-  /** Почему прогон не поднять: папки нет, CLI провайдера нет, папке не доверились. */
+  /** Почему прогон не поднять: папки нет, CLI провайдера нет. */
   private async refusal(
     projectPath: string,
     provider: ScenarioProvider,
   ): Promise<TaskFailure | null> {
     if (!(await folderExists(projectPath))) return 'folderMissing'
 
-    const code = await provider.prepare(projectPath)
+    const code = await provider.prepare()
 
-    if (code === 'noClaude' || code === 'noCli' || code === 'untrusted') return code
+    if (code === 'noClaude' || code === 'noCli') return code
 
     return code ? 'noCli' : null
   }

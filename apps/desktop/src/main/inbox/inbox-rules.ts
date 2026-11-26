@@ -45,7 +45,6 @@ const ACTION_KINDS: readonly InboxActionKind[] = [
   'openChat',
   'runAgain',
   'resume',
-  'trust',
   'showCalendar',
   'syncCalendar',
 ]

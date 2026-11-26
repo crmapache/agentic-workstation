@@ -48,7 +48,6 @@ export const acpScenarioProvider = (
   const author = new ProviderAuthor({
     provider,
     ask,
-    isTrusted: (path) => panel.isTrusted(path),
     defaults: () => ({ ...defaults(), model: serviceModel() || defaults().model }),
   })
   const nativeOf = async (sessionId: string) =>
@@ -56,12 +55,7 @@ export const acpScenarioProvider = (
 
   return {
     id: provider,
-    prepare: async (projectPath) => {
-      if (!(await host.cli())) return 'noCli'
-      if (!(await panel.isTrusted(projectPath))) return 'untrusted'
-
-      return null
-    },
+    prepare: async () => ((await host.cli()) ? null : 'noCli'),
     spawn: (spec, place, wires) => new AcpRunProcess(host, spec, place, wires),
     transcriptDirs: () => Promise.resolve([journalDir]),
     chatIdOf: nativeOf,

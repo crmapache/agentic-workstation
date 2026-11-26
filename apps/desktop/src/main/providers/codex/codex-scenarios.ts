@@ -44,18 +44,12 @@ export const codexScenarioProvider = (
   const author = new ProviderAuthor({
     provider: 'codex',
     ask,
-    isTrusted: (path) => codex.isTrusted(path),
     defaults: () => ({ ...defaults(), model: serviceModel() || defaults().model }),
   })
 
   return {
     id: 'codex',
-    prepare: async (projectPath) => {
-      if (!(await host.cli(facts.desk.accounts.current))) return 'noCli'
-      if (!(await codex.isTrusted(projectPath))) return 'untrusted'
-
-      return null
-    },
+    prepare: async () => ((await host.cli(facts.desk.accounts.current)) ? null : 'noCli'),
     spawn: (spec, place, wires) => new CodexRunProcess(host, spec, place, wires),
     // Тем же выбором, что и прогон; каталога ещё нет - как в сценарии: решать будет сам Codex.
     fitRunsOn: (choice) => {

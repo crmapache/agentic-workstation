@@ -71,20 +71,24 @@ const fakeProcess = () => {
 
 type FakeProcess = ReturnType<typeof fakeProcess>
 
-const makeRuntime = (trusted: { value: boolean }) => {
+/** installed - стоит ли CLI: без него разговор не начинается (причина cli-not-found). */
+const makeRuntime = (installed: { value: boolean }) => {
   const host: ClaudeHost = {
     driver: claudeDriver(() => host),
     cli: () =>
-      Promise.resolve({
-        binary: 'claude',
-        env: {},
-        features: {
-          manualMode: true,
-          allowSkipPermissions: true,
-          safeMode: true,
-        },
-      }),
-    isTrusted: () => Promise.resolve(trusted.value),
+      Promise.resolve(
+        installed.value
+          ? {
+              binary: 'claude',
+              env: {},
+              features: {
+                manualMode: true,
+                allowSkipPermissions: true,
+                safeMode: true,
+              },
+            }
+          : null,
+      ),
     onChange: () => undefined,
     onFeedPatch: () => undefined,
     onCommands: () => undefined,
@@ -242,7 +246,7 @@ describe('разговор, который не может начаться', ()
     await runtime.send(msg('first'))
     await runtime.send(msg('second'))
 
-    expect(runtime.meta.error).toBe('untrusted')
+    expect(runtime.meta.error).toBe('cli-not-found')
     expect(runtime.meta.status).toBe('idle')
     expect(queueTexts(runtime)).toEqual(['first', 'second'])
   })
@@ -252,20 +256,20 @@ describe('разговор, который не может начаться', ()
 
     await runtime.send(msg('first'))
     await runtime.send(msg('second'))
-    await runtime.resolveError('untrusted')
+    await runtime.resolveError('cli-not-found')
 
-    expect(runtime.meta.error).toBe('untrusted')
+    expect(runtime.meta.error).toBe('cli-not-found')
     expect(queueTexts(runtime)).toEqual(['first', 'second'])
   })
 
   it('причину сняли в обход панели - ждавшее уходит первым, новое за ним, по разу', async () => {
-    const trusted = { value: false }
-    const runtime = makeRuntime(trusted)
+    const installed = { value: false }
+    const runtime = makeRuntime(installed)
     const fake = fakeProcess()
 
     nextProcess(fake)
     await runtime.send(msg('A'))
-    trusted.value = true
+    installed.value = true
     await runtime.send(msg('B'))
 
     expect(fake.texts).toEqual(['A'])
@@ -280,9 +284,9 @@ describe('разговор, который не может начаться', ()
     const runtime = makeRuntime({ value: false })
 
     await runtime.send(msg('hello'))
-    await runtime.resolveError('cli-not-found')
+    await runtime.resolveError('project-missing')
 
-    expect(runtime.meta.error).toBe('untrusted')
+    expect(runtime.meta.error).toBe('cli-not-found')
   })
 })
 

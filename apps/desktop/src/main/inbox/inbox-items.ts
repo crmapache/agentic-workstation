@@ -133,9 +133,8 @@ export const askItem = (run: TaskRun, ask: CardAsk): InboxItem => {
 /** Пределы поручения: продолжить можно, когда человек поднял предел или решил, что пора. */
 const GOAL_LIMITS: readonly (TaskFailure | null)[] = ['overBudget', 'wakeLimit', 'expired']
 
-/** Кнопки сбоя по причине: довериться папке, продолжить оборванное, запустить заново. */
+/** Кнопки сбоя по причине: продолжить оборванное, запустить заново. */
 const failureActions = (failure: TaskFailure | null): InboxAction[] => {
-  if (failure === 'untrusted') return [action('trust', { primary: true }), SHOW_RUN]
   if (failure === 'ideClosed' || GOAL_LIMITS.includes(failure)) {
     return [action('resume', { primary: true }), SHOW_RUN]
   }

@@ -31,7 +31,6 @@ describe.skipIf(process.env['AGENTIC_WORKSTATION_CODEX_LIVE'] !== '1')(
         onUsageChanged: () => undefined,
         connectors: () => null,
         userMcpServers: () => Promise.resolve([]),
-        isTrusted: () => Promise.resolve(true),
         onChange: () => undefined,
         onCommands: () => undefined,
         thumbnail: () => '',

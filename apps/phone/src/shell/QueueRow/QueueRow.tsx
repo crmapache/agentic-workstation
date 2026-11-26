@@ -9,7 +9,7 @@ import { RUN_TONES } from '../../lib/status.constants'
 
 /**
  * Очередь сценариев строкой: имя, папка, идущий прогон и сколько ждёт; справа - что с ней:
- * ждёт человека, идёт, встала. Одна и та же на экране проекта и на доске всех очередей.
+ * ждёт человека, идёт, встала, ждёт своей очереди к папке проекта. Одна и та же на экране проекта и на доске всех очередей.
  */
 export const QueueRow = ({
   queue,
@@ -35,6 +35,8 @@ export const QueueRow = ({
           <Badge tone={RUN_TONES[run.state] ?? 'neutral'}>{t(`runState.${run.state}`)}</Badge>
         ) : queue.hold ? (
           <Badge tone="warning">{t('queue.held')}</Badge>
+        ) : queue.wait ? (
+          <Badge tone="neutral">{t('queue.inLine')}</Badge>
         ) : undefined
       }
       onClick={onOpen}

@@ -197,14 +197,14 @@ describe('TaskService', () => {
 
   it('leaves no conversation to a run that could not start', async () => {
     const { tasks } = await start(() => ({ kind: 'say', text: 'ok' }), {
-      prepare: () => Promise.resolve('untrusted'),
+      prepare: () => Promise.resolve('noClaude'),
     })
 
     const started = await tasks.runNow(await saved(tasks))
     const run = started.ok ? tasks.run(started.runId) : null
 
-    expect(run).toMatchObject({ state: 'failed', failure: 'untrusted', sessionId: '' })
-    expect(arrived.map((item) => item.reason)).toEqual(['untrusted'])
+    expect(run).toMatchObject({ state: 'failed', failure: 'noClaude', sessionId: '' })
+    expect(arrived.map((item) => item.reason)).toEqual(['noClaude'])
   })
 
   it('starts a due task on the tick and moves its due time on', async () => {

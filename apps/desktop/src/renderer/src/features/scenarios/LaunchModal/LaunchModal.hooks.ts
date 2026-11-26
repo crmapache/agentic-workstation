@@ -1,17 +1,18 @@
 import { useState } from 'react'
 
 import type { ProviderId } from '@shared/providers'
+import type { ScenarioQueue } from '@shared/scenario-queues'
 import { answersOf, isRunnable, missingInputs } from '@shared/scenario-rules'
 import type { Scenario } from '@shared/scenarios'
 import { useMutation } from '@tanstack/react-query'
 
-import { folderNeighbours } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import type { ScenariosProject } from '../ScenariosView/ScenariosView.types'
 import { invoke } from '../../../lib/ipc'
 import { takesIdeWork } from '../../../lib/provider-choices'
 import { useGitChanges } from '../../../state/git-changes.queries'
 import { useProviders, effectiveProvider } from '../../../state/providers.queries'
+import { folderWaitOf } from '../../../state/queue-folder.utils'
 import { useScenarioQueues, useScenarioShelves } from '../../../state/scenarios.queries'
 import type { StartRequest, LaunchRequest } from './LaunchModal.types'
 import {
@@ -19,6 +20,7 @@ import {
   currentWhere,
   findScenario,
   initialWhere,
+  folderWaitFor,
   launchFailure,
   uncommittedCount,
 } from './LaunchModal.utils'
@@ -41,6 +43,7 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
   const [providerId, setProviderId] = useState<ProviderId | null>(null)
   const [where, setWhere] = useState(() => initialWhere(request))
   const [isWorktree, setIsWorktree] = useState(false)
+  const [isAlongside, setIsAlongside] = useState(false)
   const start = useMutation({
     mutationFn: (next: StartRequest) => invoke('scenarios:start', next),
     onSuccess: (outcome) => {
@@ -61,10 +64,10 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
   const isNotGit = changes?.kind === 'notGit'
   // Папка не в git - worktree не из чего делать: галочка гаснет, а не обещает невозможное.
   const worktree = isWorktree && !isNotGit
-  const neighbour =
-    target.kind === 'new' && !worktree
-      ? (folderNeighbours(view?.queues ?? [], project.rootPath)[0] ?? null)
-      : null
+  // Папку проекта держат или ждут другие очереди: сценарий подождёт своей очереди к ней (ADR 0128).
+  const waitsFor = folderWaitFor(view, project.rootPath, target, worktree)
+  // Не ждать - выбор только для новой очереди: стоящую человек пускает кнопкой на её карточке.
+  const alongside = isAlongside && target.kind === 'new' && waitsFor.length > 0
   const isMissing = scenario !== null && missingInputs(scenario, values).length > 0
   // Провайдер, которого нет на машине или который только для чата (ADR 0094), прогон не возьмёт.
   const canRun =
@@ -94,7 +97,8 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
       scope: scenario.scope,
       inputs: answersOf(scenario, values),
       provider: provider.id,
-      target: target.kind === 'new' ? { kind: 'new', worktree } : target,
+      target:
+        target.kind === 'new' ? { kind: 'new', worktree, ...(alongside && { alongside }) } : target,
     })
   }
 
@@ -112,7 +116,9 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
     worktree,
     isNotGit,
     uncommitted: uncommittedCount(changes),
-    neighbour,
+    waitsFor,
+    alongside,
+    isInLine: (queue: ScenarioQueue) => folderWaitOf(view, queue) !== null,
     canRun,
     failure: launchFailure(start.data, start.isError),
     choose,
@@ -120,6 +126,7 @@ export const useLaunchForm = (project: ScenariosProject, request: LaunchRequest)
     setProviderId,
     setWhere,
     setIsWorktree,
+    setIsAlongside,
     submit,
     close,
   }

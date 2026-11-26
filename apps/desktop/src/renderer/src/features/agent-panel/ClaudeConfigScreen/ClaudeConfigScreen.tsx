@@ -48,14 +48,7 @@ export const ClaudeConfigScreen = ({ project }: MenuScreenProps) => {
       {view?.failure === 'unreadable' && (
         <div className={styles.empty}>{t('agentPanel.claudeConfig.unreadable')}</div>
       )}
-      {(view?.failure === 'untrusted' || view?.failure === 'cli-not-found') && (
-        <ScreenFailure
-          failure={view.failure}
-          detail=""
-          projectId={project.id}
-          onTrusted={() => void config.refetch()}
-        />
-      )}
+      {view?.failure === 'cli-not-found' && <ScreenFailure failure={view.failure} detail="" />}
       {CONFIG_GROUPS.map((group) => {
         const settings = view?.settings.filter((setting) => setting.group === group) ?? []
 

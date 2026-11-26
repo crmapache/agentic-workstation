@@ -94,7 +94,6 @@ const makeRuntime = (permissionMode: PermissionMode = 'default') => {
     onUsageChanged: () => undefined,
     connectors: () => null,
     userMcpServers: () => Promise.resolve([]),
-    isTrusted: () => Promise.resolve(true),
     onChange: () => undefined,
     onCommands: () => undefined,
     thumbnail: () => '',

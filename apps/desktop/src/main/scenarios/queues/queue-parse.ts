@@ -5,6 +5,7 @@ import type {
   QueueNap,
   QueueHold,
   QueueItem,
+  QueueTurn,
   QueueHours,
   QueueWorkdir,
   ScenarioQueue,
@@ -27,6 +28,7 @@ const STATES: readonly QueueItemState[] = [
   'skipped',
 ]
 const HOLDS = ['stopAfter', 'failed', 'refused', 'interrupted'] as const
+const TURNS = ['holding', 'waiting'] as const
 const NAME_SOURCES = ['fallback', 'ai', 'user'] as const
 
 type Raw = Record<string, unknown>
@@ -118,6 +120,32 @@ const parseNap = (value: unknown): QueueNap | null =>
     ? { at: count(value.at), until: count(value.until), runId: text(value.runId) }
     : null
 
+const parseTurn = (value: unknown): QueueTurn | null =>
+  isRaw(value) && TURNS.some((kind) => kind === value.kind)
+    ? { kind: oneOf(value.kind, TURNS, 'waiting'), at: count(value.at) }
+    : null
+
+/**
+ * Выпуск до ADR 0128 места у папки не знал. Его открытая очередь без worktree, которая спит без
+ * прогона на паузе, хотя будить её пора (часов нет - обход через часы - или срок пробуждения
+ * прошёл), - это ожидание папки: будить её не давала занятая папка (folderTaken). Теперь это место
+ * в ожидании - с того мига, как она уснула, чтобы такие очереди пошли в том порядке, в каком
+ * уснули. Остальным место назначит их первый шаг.
+ */
+const legacyWait = (
+  workdir: QueueWorkdir,
+  closedAt: number,
+  hours: QueueHours | null,
+  nap: QueueNap | null,
+): QueueTurn | null =>
+  workdir.kind === 'project' &&
+  closedAt === 0 &&
+  nap &&
+  !nap.runId &&
+  (!hours || nap.until <= Date.now())
+    ? { kind: 'waiting', at: nap.at }
+    : null
+
 /**
  * Последнее дело очереди, которую записал выпуск без activeAt: самое позднее, что она о себе
  * помнит, - создание, постановка сценария, остановка.
@@ -133,6 +161,12 @@ export const parseQueue = (value: unknown): ScenarioQueue | null => {
     : []
   const createdAt = count(value.createdAt)
   const hold = parseHold(value.hold)
+  const closedAt = count(value.closedAt)
+  const workdir = parseWorkdir(value.workdir)
+  // Очередь старого выпуска часов не знала: работает в любое время.
+  const hours = parseHours(value.hours)
+  const nap = parseNap(value.nap)
+  const legacy = value.turn === undefined ? legacyWait(workdir, closedAt, hours, nap) : null
 
   return {
     id: text(value.id),
@@ -141,14 +175,15 @@ export const parseQueue = (value: unknown): ScenarioQueue | null => {
     nameSource: oneOf(value.nameSource, NAME_SOURCES, 'fallback'),
     createdAt,
     activeAt: count(value.activeAt) || lastKnownDeed(createdAt, items, hold),
-    closedAt: count(value.closedAt),
-    workdir: parseWorkdir(value.workdir),
+    closedAt,
+    workdir,
     items,
     stopAfterItemId: text(value.stopAfterItemId),
     hold,
-    // Очередь старого выпуска часов не знала: работает в любое время.
-    hours: parseHours(value.hours),
-    nap: parseNap(value.nap),
+    hours,
+    // Сон обхода закончен: он стал местом в ожидании папки.
+    nap: legacy ? null : nap,
+    turn: legacy ?? (workdir.kind === 'project' ? parseTurn(value.turn) : null),
   }
 }
 

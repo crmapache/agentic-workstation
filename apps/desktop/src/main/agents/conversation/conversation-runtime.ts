@@ -378,17 +378,11 @@ export class ConversationRuntime {
   }
 
   /**
-   * Папка доверена, лента прочитана, сессия поднята - или null и причина во вкладке.
+   * Лента прочитана, сессия поднята - или null и причина во вкладке.
    * Гасимая сессия сначала доживает: её выход ещё должен снять ход и вопросы. Живая,
    * но ждущая перезапуска, - сменяется, если разговор свободен.
    */
   async prepareSession(): Promise<AgentSession | null> {
-    if (!(await this.host.isTrusted(this.meta.projectPath))) {
-      this.update({ error: 'untrusted' })
-
-      return null
-    }
-
     await this.loadFeed()
     await this.settleStopping()
     this.recycle.clearIdleTimer()

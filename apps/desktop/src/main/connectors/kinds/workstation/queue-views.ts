@@ -1,4 +1,5 @@
-import type { ScenarioQueue } from '@shared/scenario-queues'
+import type { ScenarioQueue, ScenarioQueuesView } from '@shared/scenario-queues'
+import { carryOnItemOf } from '@shared/scenario-queues'
 import type { RunSummary, ScenarioRun } from '@shared/scenario-runs'
 
 import type { NativeCall } from '../native-tools'
@@ -23,9 +24,36 @@ const liveView = (run: RunSummary) => ({
   ...(run.limit && { waitsForLimitUntil: timeOf(run.limit.until) }),
 })
 
-/** Очередь для модели: элементы по порядку, остановки, часы и идущий прогон. */
-export const queueView = (queue: ScenarioQueue, live: readonly RunSummary[]) => {
-  const running = live.find((run) => run.queueId === queue.id)
+/**
+ * Папка проекта для модели (ADR 0128): очередь держит её или ждёт своей очереди к ней - кого ждёт
+ * и что держатель оставил недоделанным (тогда он сам не уйдёт: его продолжают, помечают
+ * выполненным или закрывают). null - папка ей сейчас не нужна или у неё свой worktree.
+ */
+const folderView = (queue: ScenarioQueue, view: ScenarioQueuesView) => {
+  const folder = view.folders.find((one) => one.projectPath === queue.projectPath)
+  const place = folder?.line.indexOf(queue.id) ?? -1
+
+  if (folder?.holders.includes(queue.id)) return { holds: true }
+  if (!folder || place < 0) return null
+
+  return {
+    waitingFor: folder.holders.map((queueId) => {
+      const holder = view.queues.find((one) => one.id === queueId)
+      const unfinished = holder ? carryOnItemOf(holder) : null
+
+      return {
+        queueId,
+        name: holder?.name ?? '',
+        ...(unfinished && { unfinishedItemId: unfinished.id, unfinished: unfinished.scenarioName }),
+      }
+    }),
+    queuesAhead: folder.line.slice(0, place),
+  }
+}
+
+/** Очередь для модели: элементы по порядку, остановки, часы, папка проекта и идущий прогон. */
+export const queueView = (queue: ScenarioQueue, view: ScenarioQueuesView) => {
+  const running = view.live.find((run) => run.queueId === queue.id)
 
   return {
     id: queue.id,
@@ -48,6 +76,7 @@ export const queueView = (queue: ScenarioQueue, live: readonly RunSummary[]) => 
     },
     hours: hoursView(queue.hours),
     sleepingUntil: queue.nap ? timeOf(queue.nap.until) : null,
+    projectFolder: folderView(queue, view),
     items: queue.items.map((item) => ({
       id: item.id,
       scenario: item.scenarioName,

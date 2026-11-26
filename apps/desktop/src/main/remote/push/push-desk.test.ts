@@ -34,7 +34,7 @@ const setup = (
   const subscribers = new Set([PHONE])
   const sent: { deviceId: string; notice: PushNotice }[] = []
   const state = { conversations }
-  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [] }
+  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [], folders: [] }
   const desk = new PushDesk({
     conversations: () => state.conversations.map((conversation) => ({ provider, conversation })),
     queues: () => queues,

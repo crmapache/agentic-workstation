@@ -17,9 +17,9 @@ describe('элемент очереди строкой', () => {
   })
 
   it('ответы и отказ - через « · », без ответов и отказа - пусто', () => {
-    const item = { inputs: { what: 'src' }, refusal: 'untrusted' } as unknown as QueueItemWire
+    const item = { inputs: { what: 'src' }, refusal: 'noCli' } as unknown as QueueItemWire
 
-    expect(itemFacts(t, item)).toBe('what: src · queue.refused:untrusted')
+    expect(itemFacts(t, item)).toBe('what: src · queue.refused:noCli')
     expect(itemFacts(t, { inputs: {}, refusal: null } as unknown as QueueItemWire)).toBe('')
   })
 })

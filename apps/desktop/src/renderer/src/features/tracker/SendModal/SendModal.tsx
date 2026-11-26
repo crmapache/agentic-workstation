@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Send, Workflow } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { carryOnItemOf } from '@shared/scenario-queues'
+
 import { Button } from '@agentic-workstation/ui/Button'
 import { Menu } from '@agentic-workstation/ui/Menu'
 import { MenuItem } from '@agentic-workstation/ui/MenuItem'
@@ -13,16 +15,20 @@ import { Switch } from '@agentic-workstation/ui/Switch'
 
 import { useTrackerActions } from '../tracker.actions'
 import { useTrackerStore } from '../tracker.store'
+import { queueNames, folderTakers } from '../../../state/queue-folder.utils'
 import { useScenarioQueues } from '../../../state/scenarios.queries'
 import { useActiveProject } from '../../../state/workspace.queries'
 import styles from './SendModal.module.scss'
 import type { SendModalProps } from './SendModal.types'
 import { sendingOf } from './SendModal.utils'
 import { CardList } from './parts/CardList'
+import { FolderTurn } from './parts/FolderTurn'
 
 /**
  * Отправка в очередь сценариев: какие карточки уйдут (по порядку доски, без сценария - бледными
  * пометками) и куда - новая очередь (по желанию в своём worktree) или открытая очередь проекта.
+ * Новая без worktree в занятой папке проекта ждёт своей очереди к ней или, по выбору человека,
+ * начинает сразу рядом (ADR 0128).
  */
 export const SendModal = ({ sending, board }: SendModalProps) => {
   const { t } = useTranslation()
@@ -33,6 +39,7 @@ export const SendModal = ({ sending, board }: SendModalProps) => {
   const popover = usePopover()
   const [queueId, setQueueId] = useState<string | null>(null)
   const [worktree, setWorktree] = useState(false)
+  const [isAlongside, setIsAlongside] = useState(false)
   const [busy, setBusy] = useState(false)
   const queues = (data?.queues ?? []).filter(
     (queue) => queue.projectPath === project?.rootPath && queue.closedAt === 0,
@@ -41,6 +48,8 @@ export const SendModal = ({ sending, board }: SendModalProps) => {
   const { cards, title } = sendingOf(board, sending, chosen?.id ?? null)
   // Пометки (карточки без сценария) встают в очередь, но запускать в них нечего - в счёт не идут.
   const runs = cards.filter((card) => card.scenario).length
+  const takers = !chosen && !worktree ? folderTakers(data, project?.rootPath ?? '') : []
+  const alongside = isAlongside && takers.length > 0
 
   const handleClose = () => openSend(null)
   const handleSend = async () => {
@@ -51,7 +60,9 @@ export const SendModal = ({ sending, board }: SendModalProps) => {
         sending.kind === 'group'
           ? { kind: 'group', groupId: sending.groupId }
           : { kind: 'card', cardId: sending.cardId },
-      target: chosen ? { kind: 'queue', queueId: chosen.id } : { kind: 'new', worktree },
+      target: chosen
+        ? { kind: 'queue', queueId: chosen.id }
+        : { kind: 'new', worktree, ...(alongside && { alongside }) },
     })
 
     setBusy(false)
@@ -119,6 +130,14 @@ export const SendModal = ({ sending, board }: SendModalProps) => {
             description={t('tracker.send.worktreeHint')}
             checked={worktree}
             onChange={setWorktree}
+          />
+        )}
+        {takers.length > 0 && (
+          <FolderTurn
+            names={queueNames(takers)}
+            unfinished={takers.find((queue) => carryOnItemOf(queue) !== null)?.name ?? null}
+            alongside={alongside}
+            onAlongside={setIsAlongside}
           />
         )}
       </div>

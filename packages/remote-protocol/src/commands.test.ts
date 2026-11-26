@@ -147,6 +147,7 @@ describe('команды телефона уровня ACC', () => {
     expect(ok('scenarios.schedule', { ...hour, repeat: 'hourly' })).toBe(false)
     expect(ok('scenarios.schedule', { ...hour, weekday: 0 })).toBe(false)
     expect(ok('scenarios.queue', { queueId: 'q1', action: { kind: 'clear' } })).toBe(true)
+    expect(ok('scenarios.queue', { queueId: 'q1', action: { kind: 'alongside' } })).toBe(true)
     expect(ok('scenarios.queue', { queueId: 'q1', action: { kind: 'close' } })).toBe(false)
     expect(ok('scenarios.log', { projectKey: PROJECT, runId: 'r1', key: 'head' })).toBe(true)
     expect(

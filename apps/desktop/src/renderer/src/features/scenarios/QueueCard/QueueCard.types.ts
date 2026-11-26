@@ -4,11 +4,14 @@ import type { RunSummary } from '@shared/scenario-runs'
 
 import type { QueueRest } from '../scenarios-queue-hours.utils'
 import type { QueueStatus } from '../scenarios-queues.utils'
+import type { FolderWait } from '../../../state/queue-folder.utils'
 
 export type QueueCardProps = {
   queue: ScenarioQueue
   /** Сводка идущего прогона очереди (liveOf); нет - ничего не идёт или сводка ещё не пришла. */
   live?: RunSummary | undefined
+  /** Ждёт своей очереди к папке проекта (folderWaitOf); нет - не ждёт. */
+  wait?: FolderWait | null | undefined
 }
 
 export type QueueHeaderProps = {
@@ -61,6 +64,10 @@ export type RunReadingsProps = { live: RunSummary }
 export type QueueHoldProps = { queue: ScenarioQueue; hold: QueueHold }
 
 export type QueueRestProps = { queueId: string; why: QueueRest }
+
+export type QueueTurnProps = { queue: ScenarioQueue; wait: FolderWait }
+
+export type AlongsideDialogProps = { queue: ScenarioQueue; wait: FolderWait; onClose: () => void }
 
 export type QueueControlsProps = { queue: ScenarioQueue; live: RunSummary | undefined }
 

@@ -104,7 +104,10 @@ const ideOf = ({
       state: () => workspace,
       open: vi.fn(() => Promise.resolve(workspace)),
     },
-    scenarios: { queuesView: () => ({ queues: [], live: [] }), ...scenarios } as ScenariosPort,
+    scenarios: {
+      queuesView: () => ({ queues: [], live: [], folders: [] }),
+      ...scenarios,
+    } as ScenariosPort,
     tasks: tasks as TasksPort,
     // Трекер проверяет tracker-tools.test.ts на настоящем сервисе.
     tracker: {} as TrackerPort,
@@ -230,6 +233,64 @@ describe('инструменты самой IDE', () => {
         provider: 'claude',
       }),
     )
+  })
+
+  it('рядом сразу - только явным словом и только без worktree; ожидание папки видно в списке', async () => {
+    const start = vi.fn(() => Promise.resolve({ ok: true as const, queueId: 'q2', itemId: 'i2' }))
+    const act = vi.fn(() => Promise.resolve(null))
+    const queue = (id: string, name: string, items: unknown[] = []) => ({
+      id,
+      name,
+      projectPath: WEB,
+      closedAt: 0,
+      items,
+      workdir: { kind: 'project' },
+      hold: null,
+      hours: null,
+      nap: null,
+    })
+    const stuck = { id: 'i1', scenarioName: 'Task to Prod', state: 'failed', runId: 'r1' }
+    const { call } = ideOf({
+      scenarios: {
+        fetch: () => Promise.resolve(scenario()),
+        start,
+        act,
+        queuesView: () =>
+          ({
+            queues: [queue('q1', 'Deploy', [stuck]), queue('q2', 'Next')],
+            live: [],
+            folders: [{ projectPath: WEB, holders: ['q1'], line: ['q2'] }],
+          }) as never,
+      },
+    })
+
+    await call('start_scenario', { scenario_id: 'plan' }, IN_WEB)
+    await call('start_scenario', { scenario_id: 'plan', alongside: true }, IN_WEB)
+    await call('start_scenario', { scenario_id: 'plan', alongside: true, worktree: true }, IN_WEB)
+    expect(
+      start.mock.calls.map((args) => (args as unknown as [{ target: unknown }])[0].target),
+    ).toEqual([
+      { kind: 'new', worktree: false },
+      { kind: 'new', worktree: false, alongside: true },
+      { kind: 'new', worktree: true },
+    ])
+
+    await call('update_queue', { queue_id: 'q2', action: 'run_alongside' })
+    expect(act).toHaveBeenCalledWith('q2', { kind: 'alongside' })
+
+    const listed = (await call('list_queues', {}, IN_WEB)).json as {
+      queues: { id: string; projectFolder: unknown }[]
+    }
+
+    expect(listed.queues.map((one) => one.projectFolder)).toEqual([
+      { holds: true },
+      {
+        waitingFor: [
+          { queueId: 'q1', name: 'Deploy', unfinishedItemId: 'i1', unfinished: 'Task to Prod' },
+        ],
+        queuesAhead: [],
+      },
+    ])
   })
 
   it('правка очереди - те же действия, что у карточки; кривое время - отказ', async () => {
@@ -383,7 +444,8 @@ describe('инструменты самой IDE', () => {
     })
     const { call } = ideOf({
       scenarios: {
-        queuesView: () => ({ queues: [queue('q1', WEB), queue('q2', API)], live: [] }) as never,
+        queuesView: () =>
+          ({ queues: [queue('q1', WEB), queue('q2', API)], live: [], folders: [] }) as never,
       },
     })
     const listed = (await call('list_queues', {}, OUTSIDE)).json as { queues: { id: string }[] }
@@ -627,7 +689,8 @@ describe('инструменты самой IDE', () => {
     const { call, panel } = ideOf({
       scenarios: {
         act,
-        queuesView: () => ({ queues: [queue('q1', WEB), queue('q2', API)], live: [] }) as never,
+        queuesView: () =>
+          ({ queues: [queue('q1', WEB), queue('q2', API)], live: [], folders: [] }) as never,
       },
       conversations: [conversation('near', 'idle'), away],
       allowed: (path) => path === WEB,

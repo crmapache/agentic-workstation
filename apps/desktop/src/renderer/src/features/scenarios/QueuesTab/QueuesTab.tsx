@@ -8,6 +8,7 @@ import { liveOf, projectQueues } from '../scenarios-queues.utils'
 import { useScenariosStore } from '../scenarios.store'
 import { QueueCard } from '../QueueCard/QueueCard'
 import type { ScenariosTabProps } from '../ScenariosView/ScenariosView.types'
+import { folderWaitOf } from '../../../state/queue-folder.utils'
 import { useScenarioQueues } from '../../../state/scenarios.queries'
 import styles from './QueuesTab.module.scss'
 
@@ -32,7 +33,11 @@ export const QueuesTab = ({ project }: ScenariosTabProps) => {
     <div className={styles.list} role="list" aria-label={t('scenarios.queues.listLabel')}>
       {mine.map((queue) => (
         <div key={queue.id} role="listitem">
-          <QueueCard queue={queue} live={liveOf(queue, data.live)} />
+          <QueueCard
+            queue={queue}
+            live={liveOf(queue, data.live)}
+            wait={folderWaitOf(data, queue)}
+          />
         </div>
       ))}
     </div>

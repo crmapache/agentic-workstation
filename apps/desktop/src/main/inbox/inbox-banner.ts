@@ -9,7 +9,6 @@ import type { InboxItem } from '@shared/inbox'
 const FAILURES: Record<string, string> = {
   noClaude: 'Claude Code is not installed.',
   noCli: 'The AI provider of this task is not installed.',
-  untrusted: 'The project folder is not trusted yet.',
   folderMissing: 'The project folder is gone.',
   startFailed: 'The AI provider did not start.',
   crashed: 'The AI provider stopped unexpectedly.',

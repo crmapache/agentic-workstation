@@ -70,8 +70,6 @@ export const useConversationActions = () => {
         run(invoke('agent:removeQueued', { provider, conversationId, queuedId })),
       sendQueued: (conversationId: string, queuedId: string) =>
         run(invoke('agent:sendQueued', { provider, conversationId, queuedId })),
-      trustProject: (projectId: string) =>
-        run(invoke('agent:trustProject', { provider, projectId })),
       interrupt: (conversationId: string) =>
         run(invoke('agent:interrupt', { provider, conversationId })),
       forceStop: (conversationId: string) =>

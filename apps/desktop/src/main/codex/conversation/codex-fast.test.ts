@@ -95,7 +95,6 @@ const makeRuntime = (env: { CONFIG_TIER?: string; FAST_OK: '0' | '1' }) => {
     onUsageChanged: () => undefined,
     connectors: () => null,
     userMcpServers: () => Promise.resolve([]),
-    isTrusted: () => Promise.resolve(true),
     onChange: () => undefined,
     onCommands: () => undefined,
     thumbnail: () => '',

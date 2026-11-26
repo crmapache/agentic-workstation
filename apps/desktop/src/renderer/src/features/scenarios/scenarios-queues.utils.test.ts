@@ -13,7 +13,6 @@ import {
   isUnfinished,
   waitingItems,
   projectQueues,
-  folderNeighbours,
   canCarryOnFromRow,
 } from './scenarios-queues.utils'
 
@@ -45,6 +44,7 @@ const queue = (id: string, patch: Partial<ScenarioQueue> = {}): ScenarioQueue =>
   hold: null,
   hours: null,
   nap: null,
+  turn: null,
   ...patch,
 })
 
@@ -113,6 +113,12 @@ describe('состояние очереди', () => {
 
     expect(queueStatus(held, undefined)).toEqual({ kind: 'held', reason: 'failed' })
     expect(queueStatus(queue('q'), undefined)).toEqual({ kind: 'idle' })
+    expect(
+      queueStatus(queue('q', { items: [item('a', { state: 'stopped' })] }), undefined),
+    ).toEqual({ kind: 'held', reason: 'failed' })
+    expect(queueStatus(queue('q', { items: [item('w')] }), undefined, true)).toEqual({
+      kind: 'inLine',
+    })
   })
 
   it('тон: провал и отказ красные, остановка рукой серая', () => {
@@ -216,27 +222,5 @@ describe('очереди проекта', () => {
     expect(projectQueues(view, '/work/site').map((one) => one.id)).toEqual(['a', 'c'])
     expect(projectQueues(view, '/work/other')).toEqual([])
     expect(projectQueues(undefined, '/work/site')).toEqual([])
-  })
-})
-
-describe('соседи в папке проекта', () => {
-  it('только очереди без worktree, которым ещё есть что делать', () => {
-    const worktree = {
-      kind: 'worktree' as const,
-      path: '/wt',
-      projectDir: '/wt',
-      gitBranch: 'scenarios/x',
-      baseCommit: 'abc',
-      removed: false,
-    }
-    const queues = [
-      queue('a', { items: [item('1', { state: 'running' })] }),
-      queue('b', { items: [item('2', { state: 'done' })] }),
-      queue('c', { items: [item('3')], workdir: worktree }),
-      queue('d', { items: [item('4')], projectPath: '/work/site' }),
-      queue('e', { items: [item('5', { state: 'done' }), item('6')] }),
-    ]
-
-    expect(folderNeighbours(queues, '/work/app').map((one) => one.id)).toEqual(['a', 'e'])
   })
 })

@@ -95,11 +95,6 @@ export type AgentInvokeContract = {
     request: PanelRequest & ConversationRequest & { queuedId: string }
     response: AgentPanelState
   }
-  /**
-   * Довериться папке проекта: Claude Code прочитает её настройки, хуки и CLAUDE.md. В
-   * режиме потока CLI сам об этом не спрашивает - спрашивает панель.
-   */
-  'agent:trustProject': { request: PanelRequest & ProjectRequest; response: AgentPanelState }
   /** Остановить ход: CLI закончит его сам. */
   'agent:interrupt': { request: PanelRequest & ConversationRequest; response: AgentPanelState }
   /** CLI не ответил на остановку - погасить его процесс. */
@@ -277,7 +272,6 @@ export const AGENT_CHANNELS = {
   'agent:enqueue': true,
   'agent:removeQueued': true,
   'agent:sendQueued': true,
-  'agent:trustProject': true,
   'agent:interrupt': true,
   'agent:forceStop': true,
   'agent:respond': true,

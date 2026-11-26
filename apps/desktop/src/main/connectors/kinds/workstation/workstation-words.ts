@@ -29,8 +29,6 @@ const SCENARIO_WORDS: Record<ScenarioCode, string> = {
     'antigravity works only in its own chat, typed by the person: Google does not allow it to run unattended.',
   noClaude: 'Claude Code CLI is not found on this computer.',
   noCli: 'The CLI of that provider is not found on this computer.',
-  untrusted:
-    'The person has not trusted this project folder yet: they trust it in the IDE before anything runs there.',
   runBusy: 'The run is busy.',
   runGone: 'There is no such run.',
   runNotResumable:
@@ -55,7 +53,6 @@ const TASK_WORDS: Record<TaskCode, string> = {
   noTranscript: 'The conversation of the run is gone.',
   noClaude: 'Claude Code CLI is not found on this computer.',
   noCli: 'The CLI of the task provider is not found on this computer.',
-  untrusted: 'The person has not trusted the project folder yet.',
   folderMissing: 'The project folder is gone.',
   startFailed: 'The run did not start.',
   crashed: 'The run crashed.',

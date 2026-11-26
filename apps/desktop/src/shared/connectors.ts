@@ -466,7 +466,7 @@ export type ImportCandidate = {
   blocked: ImportBlock | null
   /**
    * Сервер из .mcp.json, который человек ещё не одобрил в Claude Code. Отклонённые не
-   * предлагаются вовсе, а .mcp.json недоверенной папки не читается.
+   * предлагаются вовсе.
    */
   pending: boolean
 }

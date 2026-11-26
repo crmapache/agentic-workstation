@@ -261,10 +261,15 @@ export class TrackerRuns {
     // Первая карточка со сценарием: её исполнитель готовит worktree очереди, если открывает её
     // пометка, - и её же называет отказ исполнителя или папки.
     const lead = prepared.find((item) => item.request) ?? null
+    // «Рядом сразу» для новой очереди - и для карточек за первой: группа, начатая пометкой, иначе
+    // отпустила бы папку, пройдя её, и первый сценарий встал бы ждать (ADR 0128).
+    const alongside = request.target.kind === 'new' && request.target.alongside === true
     let queueId: string | null = null
 
     for (const item of prepared) {
-      const target: QueueTarget = queueId ? { kind: 'queue', queueId } : request.target
+      const target: QueueTarget = queueId
+        ? { kind: 'queue', queueId, ...(alongside && { alongside }) }
+        : request.target
       const hours: { hours?: QueueHours | null } =
         queueId === null && request.target.kind === 'new' ? { hours: request.hours ?? null } : {}
       const outcome: ScenarioStartOutcome = item.request

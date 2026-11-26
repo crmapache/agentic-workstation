@@ -45,6 +45,7 @@ const queueOf = (patch: Partial<ScenarioQueue>, ...items: QueueItem[]): Scenario
   hold: null,
   hours: { from: 10 * 60, to: 19 * 60, days: [1, 2, 3, 4, 5] },
   nap: null,
+  turn: null,
   ...patch,
 })
 
@@ -70,7 +71,6 @@ const keeperOf = async (
     live = [] as string[],
     pauses = true,
     carryOn = (): Promise<ScenarioCode | null> => Promise.resolve(null),
-    folderTaken = false,
   } = {},
 ) => {
   const book = await QueueBook.load(new JsonFile<StoredQueues>(join(dir, 'queues.json')))
@@ -86,7 +86,6 @@ const keeperOf = async (
     notify: vi.fn(),
     carryOn: vi.fn(carryOn),
     step: vi.fn(() => Promise.resolve()),
-    folderTaken: vi.fn(() => folderTaken),
   }
 
   book.put(queue)
@@ -180,18 +179,24 @@ describe('queue hours keeper', () => {
     keeper.stop()
   })
 
-  it('stays asleep while another queue works in the project folder', async () => {
+  it('wakes on time even while another queue works in the project folder', async () => {
+    // Прогон на паузе - работа самой очереди в папке, которую она держит: проснувшись, она его
+    // продолжает. Кто начнёт следующий элемент, решает ожидание папки (ADR 0128), а не часы.
     const running = item('a', { runId: 'r1', state: 'running' })
     const nap = { at: at(16, 19), until: at(17, 10), runId: 'r1' }
+    const other = queueOf(
+      { id: 'other', hours: null },
+      item('x', { runId: 'r2', state: 'running' }),
+    )
     const { book, desk, keeper } = await keeperOf(queueOf({ nap }, running, item('b')), {
       live: ['r1'],
-      folderTaken: true,
     })
 
+    book.put(other)
     await keeper.keep('q', at(17, 10))
 
-    expect(desk.control).not.toHaveBeenCalled()
-    expect(book.get('q')?.nap).toEqual(nap)
+    expect(desk.control).toHaveBeenCalledWith('r1', 'resume')
+    expect(book.get('q')?.nap).toBeNull()
     keeper.stop()
   })
 

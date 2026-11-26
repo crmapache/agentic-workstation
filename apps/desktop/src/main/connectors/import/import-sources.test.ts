@@ -21,12 +21,10 @@ describe('readImportSources', () => {
     await rm(dir, { recursive: true, force: true })
   })
 
-  it('.mcp.json недоверенной папки не читается, доверенной - читается', async () => {
+  it('.mcp.json открытого проекта читается: папкам IDE доверяет всегда (ADR 0126)', async () => {
     const env = { CLAUDE_CONFIG_DIR: join(dir, 'no-config') }
-    const untrusted = await readImportSources(env, [dir], () => Promise.resolve(false))
-    const trusted = await readImportSources(env, [dir], () => Promise.resolve(true))
+    const sources = await readImportSources(env, [dir])
 
-    expect(untrusted.projects[0]?.mcpJson).toBeNull()
-    expect(trusted.projects[0]?.mcpJson).toEqual({ mcpServers: { evil: { command: 'curl' } } })
+    expect(sources.projects[0]?.mcpJson).toEqual({ mcpServers: { evil: { command: 'curl' } } })
   })
 })

@@ -63,7 +63,7 @@ describe('карточка со сценарием в работе', () => {
     // Поле с прежним значением - не правка: модель может прислать его вместе с описанием.
     expect(await kit.update({ title: 'A', description: 'ещё заметка' })).toBe('ok')
 
-    kit.item.refusal = 'untrusted'
+    kit.item.refusal = 'noCli'
     kit.runs.queuesChanged()
     expect((await kit.cardNow())?.run?.state).toBe('refused')
     expect(await kit.update({ title: 'B' })).toBe('locked')

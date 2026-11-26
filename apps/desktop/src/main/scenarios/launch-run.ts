@@ -27,7 +27,7 @@ const prepared = async (
   provider: ScenarioProvider,
   cwd: string,
 ): Promise<{ code: ScenarioCode } | { dirs: string[] }> => {
-  const code = await provider.prepare(desk.host.projectPath)
+  const code = await provider.prepare()
 
   return code ? { code } : { dirs: await provider.transcriptDirs(cwd) }
 }
@@ -47,7 +47,7 @@ const failedToBegin = async (desk: RunDesk, engine: ScenarioEngine, record: Scen
 
 /**
  * Поднять прогон - одним кодом для очереди и расписания (launch в ACC). Запуск отклоняется
- * до подъёма процесса: сломанный сценарий, пустой обязательный ответ, нет CLI, нет доверия.
+ * до подъёма процесса: сломанный сценарий, пустой обязательный ответ, нет CLI.
  * Поднятый отдаёт снимок сценария, с которым пошёл: по нему очередь говорит, на чём он идёт.
  */
 export const launchRun = async (

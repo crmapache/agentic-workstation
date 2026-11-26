@@ -16,8 +16,10 @@ import {
 /**
  * Действие над очередью. clear - убрать все ждущие элементы разом («drop what is left»): идущий
  * прогон и прошедшие остаются, сама очередь не закрывается. resume перед ждущими недоделанного
- * продолжает его прогон с места, а не пропускает его (ADR 0082). Закрыть очередь и удалить её
- * worktree с телефона нельзя.
+ * продолжает его прогон с места, а не пропускает его (ADR 0082). alongside - очередь, что ждёт
+ * папку проекта, начинает сразу рядом с теми, кто её держит (ADR 0128 IDE); телефон шлёт его,
+ * только когда IDE прислала ожидание (`QueueWire.wait`): IDE постарше такого действия не знает.
+ * Закрыть очередь и удалить её worktree с телефона нельзя.
  */
 const QUEUE_ACTION = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('remove'), itemId: ID }),
@@ -26,6 +28,7 @@ const QUEUE_ACTION = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('resume') }),
   z.object({ kind: z.literal('rename'), name: z.string().trim().min(1).max(80) }),
   z.object({ kind: z.literal('clear') }),
+  z.object({ kind: z.literal('alongside') }),
 ])
 
 /** Вопрос прогона, который видел телефон: ответ ложится только на него (RunQuestionWire). */

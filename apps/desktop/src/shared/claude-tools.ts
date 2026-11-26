@@ -4,12 +4,11 @@
  */
 
 /**
- * Почему список или действие не вышли - кодом, слова у окна. untrusted, cli-not-found,
+ * Почему список или действие не вышли - кодом, слова у окна. cli-not-found,
  * project-missing - причины разговора; process-exited - процесс CLI закрылся, не
  * ответив; refused - CLI отказал (его текст - в detail); failed - прочее.
  */
 export const TOOLS_FAILURES = [
-  'untrusted',
   'cli-not-found',
   'project-missing',
   'process-exited',

@@ -73,11 +73,12 @@ export const tickHours = async (desk: RunDesk, runner: QueueRunner): Promise<boo
 
     moved = true
 
-    // Тот же час ещё идёт - пропуск. Час без worktree, а в папке проекта уже работает очередь, -
-    // тоже пропуск: два агента без присмотра правили бы одно рабочее дерево.
+    // Тот же час ещё идёт - пропуск. Час без worktree, а папку проекта держит или ждёт другая
+    // очередь, - тоже пропуск, а не ожидание (ADR 0128): пропущенный час не наверстывается, и
+    // ежедневный будильник не копит очередей за долгой работой и не стартует днём невпопад.
     const busy =
       [...desk.live.values()].some((holder) => holder.engine.run.runFrom === hour.id) ||
-      (!hour.worktree && runner.folderBusy(desk.host.projectPath))
+      (!hour.worktree && !runner.folderFree(desk.host.projectPath))
     const started =
       ripe && !busy
         ? await runner.start(
@@ -94,7 +95,7 @@ export const tickHours = async (desk: RunDesk, runner: QueueRunner): Promise<boo
         : null
     const refused = started?.ok ? runner.refusalOf(started.queueId, started.itemId) : null
 
-    // Сценарий не стартовал (нет CLI, нет доверия) - час не сработал, а его пустая очередь и
+    // Сценарий не стартовал (нет CLI) - час не сработал, а его пустая очередь и
     // worktree не копятся по одной на каждое утро.
     if (started?.ok && refused) await runner.act(started.queueId, { kind: 'close' })
 

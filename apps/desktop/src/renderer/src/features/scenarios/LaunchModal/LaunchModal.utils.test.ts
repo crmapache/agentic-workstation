@@ -10,6 +10,7 @@ import {
   currentWhere,
   findScenario,
   initialWhere,
+  folderWaitFor,
   launchFailure,
   uncommittedCount,
 } from './LaunchModal.utils'
@@ -49,6 +50,7 @@ const queue = (id: string): ScenarioQueue => ({
   hold: null,
   hours: null,
   nap: null,
+  turn: null,
 })
 
 describe('выбор сценария', () => {
@@ -121,12 +123,35 @@ describe('незакоммиченное и отказ', () => {
       code: 'notARepo',
       detail: 'git said no',
     })
-    expect(launchFailure({ ok: false, code: 'untrusted' }, false)).toEqual({
-      code: 'untrusted',
+    expect(launchFailure({ ok: false, code: 'noCli' }, false)).toEqual({
+      code: 'noCli',
       detail: '',
     })
     expect(launchFailure(undefined, true)).toEqual({ code: 'unknown', detail: '' })
     expect(launchFailure({ ok: true, queueId: 'q', itemId: 'i' }, false)).toBeNull()
     expect(launchFailure(undefined, false)).toBeNull()
+  })
+})
+
+describe('папка проекта занята', () => {
+  const view = {
+    queues: [queue('holder'), queue('waiting'), queue('idle')],
+    folders: [{ projectPath: '/work/app', holders: ['holder'], line: ['waiting'] }],
+  }
+  const ids = (queues: ScenarioQueue[]) => queues.map((one) => one.id)
+
+  it('новая очередь без worktree ждёт держателей, в своём worktree - никого', () => {
+    expect(ids(folderWaitFor(view, '/work/app', { kind: 'new' }, false))).toEqual(['holder'])
+    expect(folderWaitFor(view, '/work/app', { kind: 'new' }, true)).toEqual([])
+    expect(folderWaitFor(view, '/work/site', { kind: 'new' }, false)).toEqual([])
+  })
+
+  it('в держателя сценарий идёт за своими, в простаивающую - ждёт папку', () => {
+    const into = (queueId: string) =>
+      ids(folderWaitFor(view, '/work/app', { kind: 'queue', queueId }, false))
+
+    expect(into('holder')).toEqual([])
+    expect(into('idle')).toEqual(['holder'])
+    expect(into('waiting')).toEqual(['holder'])
   })
 })

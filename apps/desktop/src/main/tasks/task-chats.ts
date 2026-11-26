@@ -122,9 +122,5 @@ export const taskChats = (host: TaskChatsHost) => {
 
       return { origin: { kind: 'none' }, source: basename(projectPath) }
     },
-
-    /** Довериться папке прогона - у провайдера этого прогона. */
-    trust: (projectPath: string, run: Pick<TaskRun, 'provider'> | null) =>
-      panels.find(run?.provider ?? 'claude')?.trustProject(projectPath) ?? Promise.resolve(null),
   }
 }

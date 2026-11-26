@@ -1,7 +1,12 @@
 import type { GitChanges } from '@shared/git'
-import type { ScenarioQueue, ScenarioStartOutcome } from '@shared/scenario-queues'
+import type {
+  ScenarioQueue,
+  ScenarioQueuesView,
+  ScenarioStartOutcome,
+} from '@shared/scenario-queues'
 import type { Scenario, ScenarioInput } from '@shared/scenarios'
 
+import { folderTakers } from '../../../state/queue-folder.utils'
 import type { LaunchWhere, ScenarioPick, LaunchFailure, LaunchRequest } from './LaunchModal.types'
 
 /**
@@ -61,4 +66,25 @@ export const launchFailure = (
   if (outcome && !outcome.ok) return { code: outcome.code, detail: outcome.detail ?? '' }
 
   return isError ? { code: 'unknown', detail: '' } : null
+}
+
+/**
+ * Кого сценарий будет ждать, прежде чем начать (ADR 0128): новая очередь без worktree - держателей
+ * папки проекта или тех, кто её уже ждёт; открытая очередь без worktree, которая папку сейчас не
+ * держит, - их же, кроме неё самой. Пусто - начнёт, как только дойдёт его черёд в своей очереди.
+ */
+export const folderWaitFor = (
+  view: Pick<ScenarioQueuesView, 'queues' | 'folders'> | undefined,
+  projectPath: string,
+  where: LaunchWhere,
+  worktree: boolean,
+): ScenarioQueue[] => {
+  if (where.kind === 'new') return worktree ? [] : folderTakers(view, projectPath)
+
+  const queue = view?.queues.find((one) => one.id === where.queueId)
+  const folder = view?.folders.find((one) => one.projectPath === projectPath)
+
+  if (!queue || queue.workdir.kind !== 'project' || folder?.holders.includes(queue.id)) return []
+
+  return folderTakers(view, projectPath).filter((one) => one.id !== queue.id)
 }

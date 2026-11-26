@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { X } from 'lucide-react'
 
 import {
@@ -19,7 +20,7 @@ export const ToastCloseButton = ({ close, arcRef }: ToastCloseButtonProps) => {
   const hasCountdown = close.autoCloseMs !== undefined
 
   return (
-    <span className={styles.close}>
+    <span className={clsx(styles.close, hasCountdown && styles.ringed)}>
       <IconButton
         icon={X}
         size="sm"

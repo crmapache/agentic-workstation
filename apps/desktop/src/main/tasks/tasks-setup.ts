@@ -181,7 +181,6 @@ export const startTasks = async (setup: TasksSetup): Promise<Tasks> => {
   inbox.routes = {
     tasks,
     sendToChat: chats.sendToOrigin,
-    trust: (projectPath, runId) => chats.trust(projectPath, tasks.run(runId)),
     openPath: (path) => openOutside(path, false),
     openUrl: openExternalWeb,
   }

@@ -49,8 +49,6 @@ export type StoredPanel = {
   /** Закрытые человеком вкладки всех проектов: вернуть их можно и после перезапуска. */
   closed: ClosedTab[]
   activeByProject: Record<string, string>
-  /** Папки, которым человек доверился в панели (WorkspaceTrust). */
-  trustedProjects: string[]
   /** Настройки панели (экран Settings). */
   prefs: PanelPrefs
   /** Имена команд, которые CLI назвал последними, - по папке проекта (cli/project-commands.ts). */

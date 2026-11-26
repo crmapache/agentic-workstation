@@ -16,7 +16,6 @@ import type { JsonFile } from '../storage/json-file'
 import { makeThumbnail } from '../agents/images/thumbnail'
 import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
-import { FolderTrust } from '../agents/panel/folder-trust'
 import type { ConversationOps } from '../agents/panel/panel-actions'
 import type { StoredPanel } from '../agents/panel/panel-state'
 import { applyPrefsPatch } from '../claude/settings/panel-prefs'
@@ -68,7 +67,6 @@ export class AcpPanel extends AgentPanel {
   /** Чего не хватает найденному CLI (Git Bash у Kimi на Windows) - экрану «не найден». */
   private cliNeed: CliNeed | null = null
   private prefs: PanelPrefs
-  private readonly trust: FolderTrust
   /** Настройки сессии агента: модели, уровни размышления, режимы. */
   private config: readonly AcpConfigOption[] = []
   readonly account: AcpAccount
@@ -82,7 +80,6 @@ export class AcpPanel extends AgentPanel {
   ) {
     super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.prefs = stored.prefs
-    this.trust = new FolderTrust(stored.trustedProjects, () => this.persist.changed())
     this.catalog = new AcpCatalog({
       agent: options.agent,
       cli: () => this.cli(),
@@ -122,7 +119,6 @@ export class AcpPanel extends AgentPanel {
       onAgentCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
       instructions: () => this.options.agent.briefing,
       version: this.options.version,
-      isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
       onChange: () => this.persist.changed(),
       onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
       thumbnail: makeThumbnail,
@@ -274,8 +270,8 @@ export class AcpPanel extends AgentPanel {
     return super.shutdown(this.catalog.dispose())
   }
 
-  protected storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'> {
-    return { trustedProjects: this.trust.list, prefs: this.prefs }
+  protected storedExtras(): Pick<StoredPanel, 'prefs'> {
+    return { prefs: this.prefs }
   }
 
   private cli(): Promise<AcpCli | null> {
@@ -336,8 +332,6 @@ export class AcpPanel extends AgentPanel {
     defaultMode: () => Promise.resolve('default'),
     newTabPrefs: () => Promise.resolve(this.prefs),
     feedLoaded: () => undefined,
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
-    trust: (projectPath) => this.trust.trust(projectPath),
     recheckCli: async () => {
       await this.refresh()
 

@@ -2,7 +2,6 @@ import { stat } from 'node:fs/promises'
 
 import type { ClaudeConfigView, ClaudeConfigFailure } from '@shared/claude-config'
 
-import type { ClaudeCli } from '../cli/cli-locator'
 import { runCli } from '../tools/cli-run'
 import { maskText } from '../tools/secret-mask'
 import type { ToolsHost } from '../tools/tools-host'
@@ -45,9 +44,9 @@ export class ClaudeConfigDesk {
   async set(projectPath: string, key: string, value: string): Promise<ClaudeConfigView> {
     const entries = this.catalog?.entries ?? []
     const command = configCommand(entries, key, value)
-    const cli = await this.trustedCli(projectPath)
+    const cli = await this.host.cli()
 
-    if (!command || typeof cli === 'string' || this.changing) {
+    if (!command || !cli || this.changing) {
       return { ...(await this.list(projectPath)), outcome: { key, ok: false, message: '' } }
     }
 
@@ -79,17 +78,10 @@ export class ClaudeConfigDesk {
     }
   }
 
-  /** CLI для запуска в папке проекта - только после доверия, как и всё остальное. */
-  private async trustedCli(projectPath: string): Promise<ClaudeCli | ClaudeConfigFailure> {
-    if (!(await this.host.isTrusted(projectPath))) return 'untrusted'
-
-    return (await this.host.cli()) ?? 'cli-not-found'
-  }
-
   private async entries(projectPath: string): Promise<ConfigEntry[] | ClaudeConfigFailure> {
-    const cli = await this.trustedCli(projectPath)
+    const cli = await this.host.cli()
 
-    if (typeof cli === 'string') return cli
+    if (!cli) return 'cli-not-found'
 
     const info = await stat(cli.binary).catch(() => null)
     const identity = `${cli.binary}:${info?.mtimeMs ?? 0}`

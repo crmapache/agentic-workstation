@@ -126,7 +126,6 @@ export class TaskHarness {
     inbox.routes = {
       tasks,
       sendToChat: () => Promise.resolve(false),
-      trust: () => Promise.resolve(),
       openPath: () => Promise.resolve(true),
       openUrl: () => true,
     }

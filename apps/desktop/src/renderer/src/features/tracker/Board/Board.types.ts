@@ -11,6 +11,12 @@ export type DropPlace =
   | { kind: 'group'; flowId: string; beforeId: string | null }
   | { kind: 'flow'; beforeId: string | null }
 
+/**
+ * Куда бросили: место на доске или поле чата ИИ (только карточку - чипом в поле, ADR 0127;
+ * zone - id поля из chat-drop.store).
+ */
+export type BoardDrop = { kind: 'place'; place: DropPlace } | { kind: 'chat'; zone: string }
+
 /** Линия места под рукой: горизонтальная (h) или вертикальная (v), в координатах окна. */
 export type DropMark = { axis: 'h' | 'v'; x: number; y: number; length: number }
 
@@ -46,7 +52,10 @@ export type DropHit =
     }
   | { kind: 'flow'; id: string; rect: Rect; gap: number }
 
-/** Картина жеста: что несут, где рука, размер и захват призрака, место. */
+/**
+ * Картина жеста: что несут, где рука, размер и захват призрака, место. chat - поле чата под
+ * рукой: над ним места на доске нет.
+ */
 export type BoardDrag = {
   source: DragSource
   x: number
@@ -54,6 +63,7 @@ export type BoardDrag = {
   grab: { dx: number; dy: number; width: number; height: number }
   place: DropPlace | null
   mark: DropMark | null
+  chat: string | null
 }
 
 export type BoardDragApi = {

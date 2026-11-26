@@ -20,6 +20,7 @@ import { usePanelStore } from '../panel.store'
 import { useCommandCatalog } from '../slash.hooks'
 import { useSuggestions } from '../suggestions.hooks'
 import { invoke } from '../../../lib/ipc'
+import { useChatDropZone } from '../../../state/chat-drop.hooks'
 import { useEditorSelection } from '../../../state/editor-selection.store'
 import { useIdePrefs } from '../../../state/ide-prefs.queries'
 import { useSelectedFile } from '../../../state/selection.store'
@@ -70,6 +71,11 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
     chipClassName: styles.chip ?? '',
   })
   const insert = useFieldInsert(field)
+  // Брошенное жестом IDE (карточка с доски трекера) - в конец набранного, как брошенный файл.
+  const chatDrop = useChatDropZone((chip) => {
+    insert.insertChip(chip, 'end')
+    field.takeKeyboard()
+  })
   const clipboard = useFieldClipboard({
     field,
     insert,
@@ -149,6 +155,7 @@ export const useComposer = ({ project, conversation, draftKey }: ComposerProps) 
     draft,
     suggest,
     clipboard,
+    chatDrop,
     editor,
     isShell,
     // В поле вопрос сбоку (/btw): Send - «Ask aside», Queue нет (как в ACC). Без вопроса сбоку

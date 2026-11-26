@@ -84,4 +84,18 @@ describe('очереди на телефоне', () => {
       boardCounts([queue('a'), queue('b'), held, queue('c')], [run('a'), run('b', 'Delete?')]),
     ).toEqual({ running: 1, waiting: 2 })
   })
+
+  it('очередь, что ждёт папку проекта: так и сказано; за недоделанным держателем - ждёт человека', () => {
+    const t = ((key: string) => key) as unknown as TFunction
+    const working = queue('w', {
+      wait: { holders: [{ queueId: 'h', name: 'H', unfinished: '' }], ahead: 0 },
+    })
+    const stuck = queue('s', {
+      wait: { holders: [{ queueId: 'h', name: 'H', unfinished: 'Ship' }], ahead: 1 },
+    })
+
+    expect(queueFacts(t, working, undefined)).toContain('queue.turnFact')
+    expect(boardCounts([working], [])).toEqual({ running: 0, waiting: 0 })
+    expect(boardCounts([working, stuck], [])).toEqual({ running: 0, waiting: 1 })
+  })
 })

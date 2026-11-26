@@ -52,7 +52,6 @@ export const claudeScenarioProvider = (
       return located && { ...located, env: claude.accounts.envFor(located.env) }
     },
     home: claudeHome,
-    isTrusted: (path) => claude.isTrusted(path),
     defaults: () => ({ ...defaults(), model: serviceModel() || defaults().model }),
   })
 

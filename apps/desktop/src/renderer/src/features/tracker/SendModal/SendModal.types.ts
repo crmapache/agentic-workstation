@@ -17,3 +17,12 @@ export type CardListProps = {
 }
 
 export type CardRowProps = { card: TrackerCard; index: number }
+
+export type FolderTurnProps = {
+  /** Кого новая очередь будет ждать - именами одной строкой. */
+  names: string
+  /** Очередь, что держит папку на недоделанном (сама она папку не отпустит); null - таких нет. */
+  unfinished: string | null
+  alongside: boolean
+  onAlongside: (alongside: boolean) => void
+}

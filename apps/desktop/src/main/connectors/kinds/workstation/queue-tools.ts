@@ -1,7 +1,7 @@
 import type { QueueAction, QueueTarget } from '@shared/scenario-queues'
 import { missingInputs } from '@shared/scenario-rules'
 
-import { numberArg, stringArg, booleanArg, ArgumentError } from '../native-tools'
+import { numberArg, stringArg, ArgumentError } from '../native-tools'
 import type { NativeTool } from '../native-tools'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
 import { scopeOf } from '../../../scenarios/store/scenario-parse'
@@ -14,6 +14,8 @@ import {
   projectOf,
   listScopeOf,
   PROJECT_ARG,
+  ALONGSIDE_ARG,
+  newQueueTarget,
   unattendedProviderArg,
 } from './workstation-args'
 import { checkScenario, scenarioError } from './workstation-words'
@@ -29,6 +31,7 @@ const QUEUE_ACTIONS = [
   'clear_waiting',
   'set_hours',
   'clear_hours',
+  'run_alongside',
   'close',
 ] as const
 
@@ -68,6 +71,8 @@ const queueActionOf = (args: Record<string, unknown>): QueueAction => {
     }
     case 'clear_hours':
       return { kind: 'hours', hours: null }
+    case 'run_alongside':
+      return { kind: 'alongside' }
     case 'close':
       return { kind: 'close' }
   }
@@ -77,8 +82,10 @@ const queueActionOf = (args: Record<string, unknown>): QueueAction => {
 export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
   {
     name: 'list_queues',
-    description:
-      'Scenario queues: their items in order (waiting, running, done, failed, stopped, skipped), where they stop, their working hours and the run going now. Open queues of a project, or of every project. A placeholder item is a tracker card without a scenario sent with its group: it runs nothing, the queue passes it (skipped) when it gets there.',
+    description: [
+      'Scenario queues: their items in order (waiting, running, done, failed, stopped, skipped), where they stop, their working hours, the project folder and the run going now. Open queues of a project, or of every project. A placeholder item is a tracker card without a scenario sent with its group: it runs nothing, the queue passes it (skipped) when it gets there.',
+      'Queues without a worktree share the project folder and work in it one at a time: projectFolder says a queue holds it, or waits its turn - for which queues (an unfinished item there keeps the folder until it is continued, marked done or its queue closed) and which queues are ahead in line.',
+    ].join(' '),
     access: 'read',
     inputSchema: {
       type: 'object',
@@ -92,14 +99,14 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
       const path = listScopeOf(args, call, ports.projects)
       const queues = view.queues.filter((queue) => !path || queue.projectPath === path)
 
-      return Promise.resolve({ queues: queues.map((queue) => queueView(queue, view.live)) })
+      return Promise.resolve({ queues: queues.map((queue) => queueView(queue, view)) })
     },
   },
   {
     name: 'start_scenario',
     description: [
-      'Put a scenario into a queue: a new queue (it starts at once unless hours say otherwise) or the end of an existing one (queue_id). Inside a queue scenarios go one at a time, each after the one before is done.',
-      'To build a queue that waits, start the first scenario with hours in a new queue - outside them the queue sleeps and starts by itself when they begin - then add the rest with queue_id.',
+      'Put a scenario into a queue: a new queue or the end of an existing one (queue_id). Inside a queue scenarios go one at a time, each after the one before is done.',
+      'A new queue without a worktree starts at once if the project folder is free; if another queue works there, it waits its turn and starts by itself when the folder is free, after the queues that waited before it. Outside its working hours (hours) it sleeps instead.',
     ].join(' '),
     access: 'write',
     inputSchema: {
@@ -121,6 +128,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
             'New queue only: work in its own git worktree. Default false (the project folder).',
         },
         hours: { ...HOURS_ARG, description: `New queue only. ${HOURS_ARG.description}` },
+        alongside: ALONGSIDE_ARG,
       },
       required: ['scenario_id'],
     },
@@ -141,9 +149,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
       if (missing.length) throw new ArgumentError(`Answer the inputs: ${missing.join(', ')}.`)
 
       const queueId = stringArg(args, 'queue_id')
-      const target: QueueTarget = queueId
-        ? { kind: 'queue', queueId }
-        : { kind: 'new', worktree: booleanArg(args, 'worktree', false) }
+      const target: QueueTarget = queueId ? { kind: 'queue', queueId } : newQueueTarget(args)
       const started = await ports.scenarios.start({
         projectPath: path,
         scenarioId: scenario.id,
@@ -162,7 +168,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
       return {
         queueId: started.queueId,
         itemId: started.itemId,
-        queue: queue ? queueView(queue, view.live) : null,
+        queue: queue ? queueView(queue, view) : null,
       }
     },
   },
@@ -170,7 +176,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
     name: 'update_queue',
     description: [
       'Change a queue like its card does: stop_after (item_id; the queue stops after that item; not a placeholder - the queue passes those), clear_stop_after, resume (lift a stop; an unfinished item continues its run), remove_item, move_item (by: -1 up, 1 down), mark_done (a failed or stopped item the person finished by hand),',
-      'rename (name), clear_waiting (drop every waiting item), set_hours (hours), clear_hours (work any time), close (the queue goes to history).',
+      'rename (name), clear_waiting (drop every waiting item), set_hours (hours), clear_hours (work any time), run_alongside (a queue waiting for the project folder starts now beside the queues that hold it; both change the same files - only when the user asked), close (the queue goes to history).',
     ].join(' '),
     access: 'write',
     inputSchema: {
@@ -208,7 +214,7 @@ export const QUEUE_TOOLS: NativeTool<WorkstationPorts>[] = [
       const view = ports.scenarios.queuesView()
       const queue = view.queues.find((one) => one.id === queueId)
 
-      return { queue: queue ? queueView(queue, view.live) : null }
+      return { queue: queue ? queueView(queue, view) : null }
     },
   },
 ]

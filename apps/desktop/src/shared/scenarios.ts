@@ -155,7 +155,6 @@ export type ScenarioCode =
   | 'chatOnly'
   | 'noClaude'
   | 'noCli'
-  | 'untrusted'
   | 'runBusy'
   | 'runGone'
   | 'runNotResumable'

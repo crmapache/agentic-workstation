@@ -55,6 +55,7 @@ const queueOf = (...items: QueueItem[]): ScenarioQueue => ({
   hold: null,
   hours: null,
   nap: null,
+  turn: null,
 })
 
 /** Время проверок, где часы очереди не участвуют: у очереди их нет. */

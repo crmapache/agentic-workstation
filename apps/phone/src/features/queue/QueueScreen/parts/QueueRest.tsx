@@ -36,7 +36,7 @@ export const QueueRest = ({
         ? t('queue.restCut', { name: napping.scenarioName })
         : t('queue.restWaiting')
 
-  // Срок прошёл, а очередь спит: она ждёт, пока освободится папка проекта.
+  // Срок прошёл, а очередь ещё спит: часы IDE будят её в пределах полуминуты.
   return (
     <Card
       title={t('queue.restTitle')}

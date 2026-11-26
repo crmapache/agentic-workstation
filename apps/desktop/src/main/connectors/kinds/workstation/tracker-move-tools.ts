@@ -1,14 +1,22 @@
 import type { TrackerOp, TrackerBoard, TrackerSendCode, TrackerSendRequest } from '@shared/tracker'
 import { TRACKER_ARCHIVE_DAYS } from '@shared/tracker'
 
-import { stringArg, booleanArg, ArgumentError } from '../native-tools'
+import { stringArg, ArgumentError } from '../native-tools'
 import type { NativeTool } from '../native-tools'
 import type { TrackerPlace } from '../../../tracker/tracker-spaces'
 import type { WorkstationPorts } from '../../../workstation/workstation-link'
 import { applied, checkBefore, trackerPlaceOf } from './tracker-args'
 import type { Slot } from './tracker-views'
 import { locate, cardsOf, slotOrder } from './tracker-views'
-import { timeOf, hoursArg, oneOfArg, HOURS_ARG, PROJECT_ARG } from './workstation-args'
+import {
+  timeOf,
+  hoursArg,
+  oneOfArg,
+  HOURS_ARG,
+  PROJECT_ARG,
+  ALONGSIDE_ARG,
+  newQueueTarget,
+} from './workstation-args'
 import { trackerSendError } from './workstation-words'
 
 const KINDS = ['project', 'flow', 'group', 'card'] as const
@@ -227,7 +235,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
     description: [
       'Send cards to a scenario queue: a whole group (group_id: its tasks top-down, each followed by its follow-ups; a card without a scenario goes in as a placeholder at its place, which the queue passes without running; cards done or already waiting or running in a queue stay out; a group with no card to run is refused) or one card (card_id, it needs a scenario).',
       'Each card runs its scenario with the card text; a card whose queue item is done gets marked done (a repeating card moves to its next due instead).',
-      'Into a new queue named after the group (worktree and working hours optional) or the end of an existing one (queue_id from list_queues). All cards are checked before the first one goes.',
+      'Into a new queue named after the group (worktree and working hours optional) or the end of an existing one (queue_id from list_queues). A new queue without a worktree waits its turn while another queue works in the project folder and starts by itself when the folder is free. All cards are checked before the first one goes.',
     ].join(' '),
     access: 'write',
     inputSchema: {
@@ -242,6 +250,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
           description: 'New queue only: work in its own git worktree. Default false.',
         },
         hours: { ...HOURS_ARG, description: `New queue only. ${HOURS_ARG.description}` },
+        alongside: ALONGSIDE_ARG,
       },
     },
     run: async (args, ports, call) => {
@@ -255,9 +264,7 @@ export const TRACKER_MOVE_TOOLS: NativeTool<WorkstationPorts>[] = [
         source: groupId
           ? { kind: 'group', groupId }
           : { kind: 'card', cardId: stringArg(args, 'card_id', true) },
-        target: queueId
-          ? { kind: 'queue', queueId }
-          : { kind: 'new', worktree: booleanArg(args, 'worktree', false) },
+        target: queueId ? { kind: 'queue', queueId } : newQueueTarget(args),
         hours: queueId ? null : hoursArg(args, 'hours'),
       }
       const place = trackerPlaceOf(args, call, ports)

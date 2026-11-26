@@ -10,7 +10,8 @@ import {
   AUTO_SCROLL_MAX_STEP_PX,
 } from '../../../lib/drag-gesture.constants'
 import { autoScrollStep } from '../../../lib/drag-gesture.utils'
-import type { Rect, DropHit, BoardDrag, DropPlace, DragSource, BoardDragApi } from './Board.types'
+import { chatDropAt, useChatDropStore } from '../../../state/chat-drop.store'
+import type { Rect, DropHit, BoardDrag, BoardDrop, DragSource, BoardDragApi } from './Board.types'
 import { isSamePlace } from './Board.utils'
 
 const rectOf = (node: Element): Rect => {
@@ -159,12 +160,13 @@ const autoScroll = (scroller: HTMLElement | null, x: number, y: number) => {
 /**
  * Перетаскивание по доске: карточки (в группах и цепочках), группы (между потоками), потоки.
  * Порог 4 пикселя, под рукой - призрак того, что несут, место показывает линия. У края ряда и
- * страницы - прокрутка сама. Esc - отмена; своё же место не предлагается вовсе.
+ * страницы - прокрутка сама. Esc - отмена; своё же место не предлагается вовсе. Карточку можно
+ * вынести с доски в поле чата ИИ - оно подсвечивается и примет её чипом (ADR 0127).
  */
 export const useBoardDrag = (
   neighbours: BoardNeighbours,
   scroller: RefObject<HTMLElement | null>,
-  onDrop: (source: DragSource, place: DropPlace) => void,
+  onDrop: (source: DragSource, drop: BoardDrop) => void,
 ): BoardDragApi => {
   const [drag, setDrag] = useState<BoardDrag | null>(null)
   const latest = useRef({ neighbours, onDrop })
@@ -201,23 +203,27 @@ export const useBoardDrag = (
         if (!current) return
 
         const { neighbours } = latest.current
-        const hit = hitAt(pointer.x, pointer.y, source.kind)
+        const chat = source.kind === 'card' ? chatDropAt(pointer.x, pointer.y) : null
+        const hit = chat ? null : hitAt(pointer.x, pointer.y, source.kind)
         const found = hit ? placeOf(hit, pointer.x, pointer.y, source, neighbours) : null
         // Место, где несомое и так стоит, не показывается: бросок туда ничего не меняет.
         const placed = found && !isSamePlace(source, found.place, neighbours) ? found : null
         const view = scroller.current ? rectOf(scroller.current) : null
 
+        useChatDropStore.getState().setOver(chat)
         current = {
           ...current,
           x: pointer.x,
           y: pointer.y,
           place: placed?.place ?? null,
           mark: placed && view ? clipMark(placed.mark, view) : (placed?.mark ?? null),
+          chat,
         }
         setDrag(current)
       }
       const tick = () => {
-        autoScroll(scroller.current, pointer.x, pointer.y)
+        // Над полем чата доска не листается: рука ушла с неё бросать, а не искать место.
+        if (!current?.chat) autoScroll(scroller.current, pointer.x, pointer.y)
         update()
         frame.current = requestAnimationFrame(tick)
       }
@@ -232,10 +238,12 @@ export const useBoardDrag = (
         if (!current) return
 
         swallowEndingClick()
+        useChatDropStore.getState().setOver(null)
 
-        const { place } = current
+        const { place, chat } = current
 
-        if (drop && place) latest.current.onDrop(source, place)
+        if (drop && chat) latest.current.onDrop(source, { kind: 'chat', zone: chat })
+        else if (drop && place) latest.current.onDrop(source, { kind: 'place', place })
 
         current = null
         setDrag(null)
@@ -246,7 +254,15 @@ export const useBoardDrag = (
         if (!current) {
           if (Math.hypot(pointer.x - startX, pointer.y - startY) < DRAG_THRESHOLD_PX) return
 
-          current = { source, x: pointer.x, y: pointer.y, grab, place: null, mark: null }
+          current = {
+            source,
+            x: pointer.x,
+            y: pointer.y,
+            grab,
+            place: null,
+            mark: null,
+            chat: null,
+          }
           frame.current = requestAnimationFrame(tick)
         }
 

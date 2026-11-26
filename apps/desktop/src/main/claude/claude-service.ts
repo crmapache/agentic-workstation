@@ -33,7 +33,6 @@ import { readTranscriptImage } from './images/transcript-images'
 import { PanelDesk } from './panel/panel-desk'
 import { defaultPermissionMode } from './settings/default-mode'
 import { PanelSettings } from './settings/panel-settings'
-import { WorkspaceTrust } from './settings/workspace-trust'
 import { writeOwnTitle } from './tabs/tab-rename'
 import { PluginTools } from './tools/plugin-tools'
 import type { ToolsHost } from './tools/tools-host'
@@ -78,7 +77,6 @@ export class ClaudeService extends AgentPanel {
   readonly settings = new PanelSettings(this.toolsHost(), () => this.persist.changed())
   /** Счётчик «tok» у поля: токены за сегодня по всем проектам машины. */
   readonly todayTokens = new TodayTokens(async () => join(await claudeHome(), 'projects'))
-  private readonly trust: WorkspaceTrust
 
   private constructor(
     stored: StoredPanel,
@@ -89,7 +87,6 @@ export class ClaudeService extends AgentPanel {
   ) {
     super(stored, file, { onState: events.onState, onCall: events.onCall, hooks: events.hooks })
     this.settings.prefs = stored.prefs
-    this.trust = new WorkspaceTrust(stored.trustedProjects, () => this.persist.changed())
     this.restore(stored)
   }
 
@@ -210,8 +207,8 @@ export class ClaudeService extends AgentPanel {
     return super.shutdown(this.accounts.dispose())
   }
 
-  protected storedExtras(): Pick<StoredPanel, 'trustedProjects' | 'prefs'> {
-    return { trustedProjects: this.trust.list, prefs: this.settings.prefs }
+  protected storedExtras(): Pick<StoredPanel, 'prefs'> {
+    return { prefs: this.settings.prefs }
   }
 
   /** Своё Claude у действий над разговором: транскрипт, копии файлов CLI, его управляющие запросы. */
@@ -277,8 +274,6 @@ export class ClaudeService extends AgentPanel {
       newTabMode: await this.settings.pinnedMode(projectPath),
     }),
     feedLoaded: (runtime) => applyReplayFacts(runtime),
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
-    trust: (projectPath) => this.trust.trust(projectPath),
     recheckCli: async () => (await this.cli.recheck()) !== null,
   }
 
@@ -290,7 +285,6 @@ export class ClaudeService extends AgentPanel {
       // Разговоры идут на выбранном аккаунте: его хранилище входа - в окружении CLI.
       return cli && { ...cli, env: this.accounts.envFor(cli.env) }
     },
-    isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
     onChange: () => this.persist.changed(),
     onFeedPatch: (patch) => this.events.onFeed(patch),
     onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
@@ -318,13 +312,12 @@ export class ClaudeService extends AgentPanel {
     return runtime ? claudeOf(runtime).process : null
   }
 
-  /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры, доверие. */
+  /** Что нужно экранам плагинов и /config: CLI выбранного аккаунта, разговоры. */
   private toolsHost(): ToolsHost {
     return {
       runtime: (conversationId) => this.runtime(conversationId),
       runtimes: () => [...this.runtimes.values()],
       cli: () => this.host.cli(),
-      isTrusted: (projectPath) => this.trust.isTrusted(projectPath),
       onCommands: (projectPath, commands) => this.host.onCommands(projectPath, commands),
     }
   }

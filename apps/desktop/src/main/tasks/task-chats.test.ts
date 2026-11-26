@@ -25,7 +25,6 @@ const panelWith = (conversation: { id: string; sessionId: string; title: string 
 
       return Promise.resolve({} as AgentPanelState)
     },
-    trustProject: () => Promise.resolve({} as AgentPanelState),
   }
 
   return { panel, sent, opened }

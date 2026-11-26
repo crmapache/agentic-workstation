@@ -37,7 +37,6 @@ export const ROW_ICON_STROKE = 1.75
 
 /** Почему экран плагинов или /config не смог - словами. */
 export const TOOLS_FAILURE_KEYS: Record<ToolsFailure, ParseKeys> = {
-  untrusted: 'agentPanel.tools.failures.untrusted',
   'cli-not-found': 'agentPanel.tools.failures.cliNotFound',
   'project-missing': 'agentPanel.tools.failures.projectMissing',
   'process-exited': 'agentPanel.tools.failures.processExited',

@@ -76,7 +76,7 @@ export class OpenCodeSession implements AgentSession {
    */
   async begin(): Promise<void> {
     const { meta } = this.runtime
-    // Чужой папки сессия не продолжается: OpenCode вёл бы её в той папке, мимо доверия этой.
+    // Чужой папки сессия не продолжается: OpenCode вёл бы её в той папке, мимо коннекторов этой.
     const known = meta.sessionId
       ? await this.server
           .request('GET', `/api/session/${meta.sessionId}`)

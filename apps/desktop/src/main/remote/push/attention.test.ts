@@ -32,7 +32,7 @@ const claude = (conversation: Conversation): OwnedConversation => ({
 const inputOf = (over: Partial<AttentionInput> = {}): AttentionInput => {
   const ide = fakeIde()
   const workspace = ide.workspace
-  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [] }
+  const queues: ScenarioQueuesView = { queues: [QUEUE], live: [], folders: [] }
 
   return {
     conversations: [claude(conversationOf())],
@@ -143,7 +143,7 @@ describe('поводы пуша из состояния IDE', () => {
       inputOf({
         conversations: [],
         runs: new Map([[run.id, run]]),
-        queues: { queues: [QUEUE], live: [summary] },
+        queues: { queues: [QUEUE], live: [summary], folders: [] },
       }),
     )
 
@@ -169,6 +169,7 @@ describe('поводы пуша из состояния IDE', () => {
           queues: {
             queues: [{ ...QUEUE, closedAt, hold: { reason, itemId: 'i1', at: 70 } }],
             live: [],
+            folders: [],
           },
         }),
       )

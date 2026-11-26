@@ -53,7 +53,9 @@ export const WherePicker = ({ form }: LaunchPartProps) => {
                     label={queue.name}
                     description={t('scenarios.launch.queueFacts', {
                       place: workdirWord(queue.workdir),
-                      state: statusWord(queueStatus(queue, liveOf(queue, form.live))),
+                      state: statusWord(
+                        queueStatus(queue, liveOf(queue, form.live), form.isInLine(queue)),
+                      ),
                     })}
                     selection="single"
                     checked={chosen?.id === queue.id}

@@ -133,7 +133,6 @@ const bootstrap = async () => {
   const providerPanels = await startProviderPanels({
     userData: app.getPath('userData'),
     version: app.getVersion(),
-    homeFolder: homeFolderPath(PROFILE_DIR),
     sounds,
     observers: {
       state: (provider, state) => observeState(provider, state),
@@ -160,7 +159,6 @@ const bootstrap = async () => {
     getWindow: () => mainWindow,
     shellEnv: loginShellEnv,
     projectPaths: () => workspace.getState().projects.map((project) => project.rootPath),
-    isTrusted: (projectPath) => claude.isTrusted(projectPath),
     // Коннектор от ИИ собирает провайдер, выбранный при создании (ADR 0050).
     chats: connectorChatsOf(claude, runners, app.getPath('userData')),
     inbox: inboxLink,

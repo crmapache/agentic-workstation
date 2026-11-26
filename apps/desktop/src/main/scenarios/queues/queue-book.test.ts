@@ -25,6 +25,7 @@ const queueOf = (id: string, patch: Partial<ScenarioQueue> = {}): ScenarioQueue 
   hold: null,
   hours: null,
   nap: null,
+  turn: null,
   ...patch,
 })
 

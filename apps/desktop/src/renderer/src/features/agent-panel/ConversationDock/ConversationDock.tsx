@@ -60,7 +60,7 @@ export const ConversationDock = ({
       {isAsideOpen && <SideQuestion conversation={conversation} />}
       {showQueue && <QueueList conversation={conversation} />}
       {hasQuotes && <ComposerQuotes draftKey={conversation.id} />}
-      {error && <ConversationBlocked project={project} conversation={conversation} error={error} />}
+      {error && <ConversationBlocked conversation={conversation} error={error} />}
     </div>
   )
 }

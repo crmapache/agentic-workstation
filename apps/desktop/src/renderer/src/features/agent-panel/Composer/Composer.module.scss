@@ -25,7 +25,7 @@
   flex-direction: column;
   border-radius: var(--radius-lg);
 
-  // Файл несут над полем - рамка зовёт бросить его сюда.
+  // Файл или карточку трекера несут над полем - рамка зовёт бросить сюда.
   &[data-dropping] {
     border-color: var(--color-accent);
   }

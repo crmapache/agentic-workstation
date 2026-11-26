@@ -213,7 +213,7 @@ export type ConversationWire = ConversationSummary & {
   turnStartedAt: number | null
   workStartedAt: number | null
   workPausedMs: number
-  /** Почему разговор не идёт - код провайдера (cli-not-found, untrusted…); null - идёт. */
+  /** Почему разговор не идёт - код провайдера (cli-not-found, start-failed…); null - идёт. */
   error: string | null
   context: { tokens: number; window: number }
   /** Человек нажал Stop (мс), а ход ещё идёт: телефон предлагает погасить процесс. */
@@ -328,7 +328,20 @@ export type QueueWire = {
   hours?: { from: number; to: number; days: number[] } | null | undefined
   /** Спит вне рабочих часов и проснётся в until (часы IDE); null или нет поля - не спит. */
   nap?: { until: number; runId: string } | null | undefined
+  /**
+   * Ждёт своей очереди к папке проекта (ADR 0128 IDE): кто её держит и сколько очередей впереди.
+   * null - не ждёт; нет поля - IDE старше ожидания папки (её очереди в папке не ждут друг друга).
+   */
+  wait?: QueueWaitWire | null | undefined
 }
+
+/**
+ * Очередь, что держит папку проекта: её имя и, если она стоит на недоделанном, - его сценарий
+ * (пусто - её работа идёт). Имя, а не только id: держатель мог не попасть в снимок телефона.
+ */
+export type QueueHolderWire = { queueId: string; name: string; unfinished: string }
+
+export type QueueWaitWire = { holders: QueueHolderWire[]; ahead: number }
 
 export type RoadmapStopWire = { state: string; stage: number; pass: number; title: string }
 

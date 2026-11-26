@@ -8,7 +8,5 @@ export type ToolsHost = {
   runtime: (conversationId: string) => ConversationRuntime
   runtimes: () => ConversationRuntime[]
   cli: () => Promise<ClaudeCli | null>
-  /** Доверился ли человек папке: без этого CLI в ней не запускается ни в каком обходе. */
-  isTrusted: (projectPath: string) => Promise<boolean>
   onCommands: (projectPath: string, commands: SlashCommand[]) => void
 }

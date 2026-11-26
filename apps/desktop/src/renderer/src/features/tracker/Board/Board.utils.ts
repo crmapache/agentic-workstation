@@ -1,4 +1,4 @@
-import type { TrackerOp, TrackerProject } from '@shared/tracker'
+import type { TrackerOp, TrackerCard, TrackerProject } from '@shared/tracker'
 
 import type { BoardNeighbours } from '../tracker.utils'
 import { findNode } from '../tracker.utils'
@@ -124,4 +124,11 @@ export const titleOf = (project: TrackerProject, source: DragSource): string => 
     default:
       return ''
   }
+}
+
+/** Карточка доски по id - задача или продолжение; не карточка (группа, поток) - null. */
+export const cardOf = (project: TrackerProject, id: string): TrackerCard | null => {
+  const node = findNode([project], id)
+
+  return node?.kind === 'task' || node?.kind === 'followUp' ? node.card : null
 }

@@ -51,6 +51,7 @@ describe('сохранённые разговоры', () => {
       JSON.stringify({
         conversations: [toStored(conversation)],
         activeByProject: { '/p': 'c1' },
+        // Файл до ADR 0126: список доверенных папок читается мимо, а не ломает разбор.
         trustedProjects: ['/p', 'relative'],
       }),
     ) as { conversations: { queue: unknown[] }[] }
@@ -72,7 +73,7 @@ describe('сохранённые разговоры', () => {
       ],
       fork: { sourceSessionId: 's0', sourceTitle: 'Origin', at: 'a1' },
     })
-    expect(parsed.trustedProjects).toEqual(['/p'])
+    expect(parsed).not.toHaveProperty('trustedProjects')
   })
 
   it('форк, который несёт разговор целиком вместо разреза, помнит это после перезапуска', () => {

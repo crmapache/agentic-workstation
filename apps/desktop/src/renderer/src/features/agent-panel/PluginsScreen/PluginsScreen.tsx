@@ -31,14 +31,7 @@ export const PluginsScreen = ({ project }: MenuScreenProps) => {
         onChange={screen.setTab}
       />
       {isPending && <div className={styles.empty}>{t('agentPanel.plugins.loading')}</div>}
-      {data?.failure && (
-        <ScreenFailure
-          failure={data.failure}
-          detail={data.detail}
-          projectId={project.id}
-          onTrusted={screen.refresh}
-        />
-      )}
+      {data?.failure && <ScreenFailure failure={data.failure} detail={data.detail} />}
       {data && screen.tab === 'installed' && (
         <InstalledList plugins={data.installed} busy={screen.busy} onAction={screen.act} />
       )}

@@ -9,12 +9,11 @@ import type { AskOnce, AskOnceResult } from './ask-once'
 /** Модель читает проект и пишет сценарий: столько же, сколько у Claude Code. */
 const AUTHOR_MS = 600_000
 
-/** Что автору нужно от провайдера: разовый вопрос, доверие папке и выбор новой вкладки. */
+/** Что автору нужно от провайдера: разовый вопрос и выбор новой вкладки. */
 export type AuthorAsk = {
   /** Чей автор: сценарий пишется для этого провайдера. */
   provider: ProviderId
   ask: (ask: AskOnce) => Promise<AskOnceResult>
-  isTrusted: (projectPath: string) => Promise<boolean>
   defaults: () => { model: string; effort: string }
 }
 
@@ -41,9 +40,6 @@ export class ProviderAuthor {
     scope: ScenarioScope,
   ): Promise<ScenarioDraftOutcome> {
     if (!description.trim()) return { ok: false, error: 'empty', cancelled: false }
-    if (!(await this.host.isTrusted(projectPath))) {
-      return { ok: false, error: 'untrusted', cancelled: false }
-    }
 
     const controller = new AbortController()
     const { model, effort } = this.host.defaults()

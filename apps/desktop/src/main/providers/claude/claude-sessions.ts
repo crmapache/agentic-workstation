@@ -17,8 +17,8 @@ import { DeferredProcess } from './deferred-process'
 export type SessionPlace = { cwd: string; projectPath: string }
 
 export type ClaudeSessions = {
-  /** CLI на месте и папке доверились; null - можно поднимать процессы. */
-  prepare: (projectPath: string) => Promise<ScenarioCode | null>
+  /** CLI на месте; null - можно поднимать процессы. */
+  prepare: () => Promise<ScenarioCode | null>
   spawn: (spec: SessionSpec, place: SessionPlace, wires: SessionWires) => SessionProcess | null
 }
 
@@ -32,13 +32,10 @@ export const claudeSessions = (claude: ClaudeService): ClaudeSessions => {
   let cli: ClaudeCli | null = null
 
   return {
-    prepare: async (projectPath) => {
+    prepare: async () => {
       cli = await claude.cli.locate()
 
-      if (!cli) return 'noClaude'
-      if (!(await claude.isTrusted(projectPath))) return 'untrusted'
-
-      return null
+      return cli ? null : 'noClaude'
     },
     spawn: (spec, place, wires) => {
       const located = cli

@@ -131,7 +131,6 @@ export type TaskFailure =
   | 'noCli'
   /** Провайдер работает только в своём чате (Antigravity, ADR 0094): задание без человека - нет. */
   | 'chatOnly'
-  | 'untrusted'
   | 'folderMissing'
   | 'startFailed'
   | 'crashed'

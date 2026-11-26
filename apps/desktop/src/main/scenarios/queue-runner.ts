@@ -21,6 +21,7 @@ import { queueWorktree } from './queue-worktree'
 import type { RunDesk } from './run-desk'
 import { runsOnOf } from './runs-on'
 import type { QueueBook } from './queues/queue-book'
+import * as folder from './queues/queue-folder'
 import { setHours, forgetNapRun } from './queues/queue-nap'
 import * as rules from './queues/queue-rules'
 
@@ -58,9 +59,10 @@ const HOLD_WORDS: Record<string, string> = {
 }
 
 /**
- * Исполнитель очередей: ставит сценарии, поднимает следующий, когда очередь свободна, решает,
- * что делать по концу прогона, и исполняет правки человека. Сами решения - чистые правила
- * (`queues/queue-rules.ts`), здесь - только их исполнение: процессы, диск, git, уведомления.
+ * Исполнитель очередей: ставит сценарии, поднимает следующий, когда очередь свободна и папка
+ * проекта её, решает, что делать по концу прогона, и исполняет правки человека. Сами решения -
+ * чистые правила (`queues/queue-rules.ts`, папка - `queues/queue-folder.ts`), здесь - только их
+ * исполнение: процессы, диск, git, уведомления.
  */
 export class QueueRunner {
   /** Очереди, которые сейчас делают шаг: второй шаг той же очереди подождёт первого. */
@@ -76,7 +78,6 @@ export class QueueRunner {
       ...host,
       carryOn: (runId) => this.carryOn(runId),
       step: (queueId) => this.step(queueId),
-      folderTaken: (queue) => this.folderTaken(queue),
     })
   }
 
@@ -116,37 +117,9 @@ export class QueueRunner {
     return { ok: true, queueId: placed.queueId, itemId: placed.itemId }
   }
 
-  /** Идёт ли в папке самого проекта (без worktree) какой-нибудь сценарий. */
-  folderBusy(projectPath: string): boolean {
-    return this.host.book
-      .all()
-      .some(
-        (queue) =>
-          queue.projectPath === projectPath &&
-          queue.closedAt === 0 &&
-          queue.workdir.kind === 'project' &&
-          rules.runningItem(queue) !== null,
-      )
-  }
-
-  /**
-   * В папке проекта идёт сценарий другой открытой очереди. Прогон, который спит по рабочим часам,
-   * папку не занимает: иначе две спящие очереди в одной папке ждали бы друг друга вечно.
-   */
-  private folderTaken(queue: ScenarioQueue): boolean {
-    if (queue.workdir.kind !== 'project') return false
-
-    return this.host.book.all().some((other) => {
-      const running =
-        other.id !== queue.id &&
-        other.projectPath === queue.projectPath &&
-        other.closedAt === 0 &&
-        other.workdir.kind === 'project'
-          ? rules.runningItem(other)
-          : null
-
-      return running !== null && other.nap?.runId !== running.runId
-    })
+  /** Свободна ли папка проекта: никто её не держит и не ждёт - новая очередь без worktree начнёт сразу. */
+  folderFree(projectPath: string): boolean {
+    return folder.isFolderFree(this.host.book.all(), projectPath, Date.now())
   }
 
   /** Почему элемент не стартовал; null - стартовал или ещё ждёт своей очереди. */
@@ -190,9 +163,11 @@ export class QueueRunner {
 
     const outcome: rules.ItemOutcome =
       run.state === 'done' || run.state === 'failed' ? run.state : 'stopped'
+    // Шёл - значит держал папку: следующий элемент этой же очереди возьмёт её первым.
+    const holding = folder.takeTurn(found.queue, this.host.book.all(), Date.now())
     // Кончился - будить нечего: проснувшись, очередь возьмёт следующий, а не этот.
     const settled = forgetNapRun(
-      rules.settleItem(found.queue, found.itemId, outcome, Date.now()),
+      rules.settleItem(holding, found.itemId, outcome, Date.now()),
       run.id,
     )
 
@@ -200,13 +175,7 @@ export class QueueRunner {
     this.host.onQueues()
     this.sayHold(found.queue, settled)
     await this.step(settled.id)
-
-    // Папка проекта освободилась - проснуться может спящая очередь, которая её ждала.
-    for (const other of this.host.book.all()) {
-      if (other.nap && other.id !== settled.id && other.projectPath === settled.projectPath) {
-        void this.step(other.id)
-      }
-    }
+    this.passFolder(settled)
   }
 
   /** Правка очереди руками. */
@@ -229,6 +198,7 @@ export class QueueRunner {
     this.host.onQueues()
 
     if (action.kind === 'close') {
+      this.passFolder(changed)
       await queueWorktree.dropIfEmpty(changed, this.host)
 
       return null
@@ -239,6 +209,9 @@ export class QueueRunner {
     // Правка могла снять остановку (убран отказавший элемент, помечен выполненным) или поменять
     // часы (уснуть, проснуться) - шаг сразу, а не по таймеру.
     await this.step(queueId)
+    // Правка могла и отпустить папку (помечен выполненным, убраны ждущие) или увести очередь из
+    // ожидания - следующая в ожидании не ждёт удара часов.
+    this.passFolder(changed)
 
     return null
   }
@@ -246,11 +219,14 @@ export class QueueRunner {
   /**
    * Закрыть открытые очереди, в которых две недели ничего не происходит (rules.isIdleTooLong), -
    * тем же путём, что кнопка Close: пустой worktree уходит вместе с ней. Очередь посреди шага не
-   * трогается: шаг мог как раз поднимать её сценарий.
+   * трогается: шаг мог как раз поднимать её сценарий. Очередь в ожидании папки проекта тоже: она
+   * не брошена, а ждёт держателя (ADR 0128), а давно стоящий держатель закроется сам и её пустит.
    */
   async closeIdle(now = Date.now()): Promise<void> {
     for (const queue of this.host.book.all()) {
-      if (rules.isIdleTooLong(queue, now) && !this.stepping.has(queue.id)) {
+      const isIdle = rules.isIdleTooLong(queue, now) && !folder.inLine(queue, now)
+
+      if (isIdle && !this.stepping.has(queue.id)) {
         await this.act(queue.id, { kind: 'close' })
       }
     }
@@ -306,29 +282,57 @@ export class QueueRunner {
     return this.naming.name(queueId)
   }
 
+  /**
+   * Шаг и папка проекта: очередь, которая держала папку (или взяла её в этом шаге) и отпустила -
+   * сделала своё, встала, уснула, не стартовала, - отдаёт её следующей в ожидании сразу.
+   */
   private async stepNow(queueId: string, from: string): Promise<void> {
-    if (!this.host.book.get(queueId) || this.host.isClosing()) return
+    const before = this.host.book.get(queueId)
 
+    if (!before || this.host.isClosing()) return
+
+    const held = folder.holdsFolder(before, Date.now())
+    const took = await this.advance(queueId, from)
+    const after = this.host.book.get(queueId)
+
+    if ((held || took) && !(after && folder.holdsFolder(after, Date.now()))) this.passFolder(before)
+  }
+
+  /** Сам шаг; true - очередь взяла папку проекта в этом шаге. */
+  private async advance(queueId: string, from: string): Promise<boolean> {
     // Сначала часы: вне окна идущий встаёт на паузу, в начале окна - снимается с неё.
     await this.hours.keep(queueId)
 
     const found = this.host.book.get(queueId)
 
-    if (!found) return
+    if (!found) return false
 
-    const queue = rules.holdBeforeFailure(found, Date.now())
-
+    const now = Date.now()
     // Следующий ждёт успеха, а перед ним неуспех - очередь встаёт и говорит почему.
-    if (queue !== found) {
-      this.host.book.put(queue)
-      this.host.onQueues()
-      this.sayHold(found, queue)
+    const held = rules.holdBeforeFailure(found, now)
+    // Папка проекта: держит, встаёт в ожидание, получает свою очередь или отпускает.
+    const queue = folder.takeTurn(held, this.host.book.all(), now)
 
-      return
+    if (queue !== found) {
+      // Только место у папки - не дело очереди: оно не держит открытой ту, где ничего не идёт.
+      this.host.book.put(queue, { quiet: held === found })
+      this.host.onQueues()
     }
 
-    // Дошла до пометок (карточек без сценария) - проходит мимо них к сценарию за ними.
-    const passed = rules.passPlaceholders(queue, Date.now())
+    if (held !== found) {
+      this.sayHold(found, held)
+
+      return false
+    }
+
+    const took = queue.turn?.kind === 'holding' && found.turn?.kind !== 'holding'
+
+    // Папку держит другая очередь - ждать своей очереди: её позовут, когда папка освободится.
+    if (!folder.hasTurn(queue)) return false
+
+    // Дошла до пометок (карточек без сценария) - проходит мимо них к сценарию за ними; ничего
+    // за ними нет - папка ей больше не нужна.
+    const passed = folder.takeTurn(rules.passPlaceholders(queue, now), this.host.book.all(), now)
 
     if (passed !== queue) {
       this.host.book.put(passed)
@@ -338,7 +342,7 @@ export class QueueRunner {
     const item = rules.nextToStart(passed, Date.now())
 
     // Worktree удаляется прямо сейчас - в его папке ничего не начинать.
-    if (!item || this.host.removing.has(queueId)) return
+    if (!item || this.host.removing.has(queueId)) return took
 
     const provider = this.host.provider(item.provider)
     const runId = shortId()
@@ -358,15 +362,42 @@ export class QueueRunner {
           })
         : { code: 'providerMissing' as const }
     const latest = this.host.book.get(queueId) ?? passed
+    // Не стартовал - очередь встала и папку отпускает: продолженная потом Resume, она встанет в
+    // ожидание, а не пройдёт мимо тех, кто ждал.
     const next =
       'code' in launched
-        ? rules.markRefused(latest, item.id, launched.code, Date.now())
+        ? folder.takeTurn(
+            rules.markRefused(latest, item.id, launched.code, Date.now()),
+            this.host.book.all(),
+            Date.now(),
+          )
         : rules.markStarted(latest, item.id, runId, runsOnOf(launched.snapshot, provider))
 
     this.host.book.put(next)
     this.host.onQueues()
 
     if ('code' in launched) this.sayHold(latest, next)
+
+    return took
+  }
+
+  /**
+   * Папка проекта, возможно, освободилась - шаг каждой очереди в ожидании, по порядку: начнёт
+   * первая, остальные останутся ждать. Папку ещё кто-то держит - звать некого: ждущих позовут,
+   * когда отпустит и он.
+   */
+  private passFolder(queue: ScenarioQueue): void {
+    if (queue.workdir.kind !== 'project') return
+
+    const all = this.host.book.all()
+    const now = Date.now()
+    const isHeld = all.some(
+      (one) => one.projectPath === queue.projectPath && folder.holdsFolder(one, now),
+    )
+
+    if (isHeld) return
+
+    for (const waiting of folder.folderLine(all, queue.projectPath, now)) void this.step(waiting.id)
   }
 
   private applied(queue: ScenarioQueue, action: QueueAction): ScenarioQueue | null {
@@ -387,6 +418,8 @@ export class QueueRunner {
         return rules.clearWaiting(queue)
       case 'hours':
         return setHours(queue, action.hours)
+      case 'alongside':
+        return folder.runAlongside(queue, Date.now())
       case 'close':
         return rules.closeQueue(queue, Date.now())
     }

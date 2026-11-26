@@ -21,7 +21,6 @@ export type AuthorHost = {
   /** CLI на выбранном аккаунте: писать сценарий оплачивает тот, на ком он пойдёт. */
   cli: () => Promise<ClaudeCli | null>
   home: () => Promise<string>
-  isTrusted: (projectPath: string) => Promise<boolean>
   /** Модель и усилие новой вкладки - выбор человека уважается вверх от пола. */
   defaults: () => { model: string; effort: string }
 }
@@ -69,8 +68,6 @@ export class ScenarioAuthor {
     const cli = await this.host.cli()
 
     if (!cli) return { ok: false, error: 'noClaude', cancelled: false }
-    if (!(await this.host.isTrusted(projectPath)))
-      return { ok: false, error: 'untrusted', cancelled: false }
 
     const help = await cliHelp(cli)
 

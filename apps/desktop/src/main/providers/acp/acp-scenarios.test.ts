@@ -36,7 +36,6 @@ const panelOf = (replayed: FeedItem[] | null) => {
     agent: host.agent,
     runHost: (journalDir: string) => ({ ...host, journalDir }),
     getState: () => ({ prefs: { newTabModel: 'k3', newTabEffort: 'high' } }),
-    isTrusted: () => Promise.resolve(true),
     catalog: {
       replay: (sessionId: string) => {
         seen.replays.push(sessionId)
