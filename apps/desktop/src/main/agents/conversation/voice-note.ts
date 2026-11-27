@@ -1,4 +1,4 @@
-import type { VoiceMark, VoiceLanguage } from '@shared/voice'
+import type { VoiceMark, VoiceLanguage, VoiceOutgoing } from '@shared/voice'
 import { isVoiceLanguage } from '@shared/voice'
 
 /**
@@ -30,14 +30,18 @@ const HEARD_MAX = 400
 
 /**
  * Текст пометки. heard - что человек успел услышать из прошлого ответа, когда перебил его:
- * без этого модель считала бы, что он слышал всё.
+ * без этого модель считала бы, что он слышал всё. walkthrough - реплика показа на экране
+ * (ADR 0134): говорить там приходится больше, чем 1-3 фразы, а как показывать - в пояснении
+ * сервера Walkthrough.
  */
-export const voiceNote = (lang: VoiceLanguage, heard?: string | null): string => {
+export const voiceNote = ({ lang, heard, walkthrough }: VoiceOutgoing): string => {
   const name = LANGUAGE_NAMES[lang]
   const lines = [
     `${OPENING} the user said this out loud (language: ${lang}) and hears your reply read aloud.`,
     `- Reply in ${name}, whatever language the rest of this chat is in.`,
-    '- Keep it short: 1-3 sentences of plain spoken language, no Markdown.',
+    walkthrough
+      ? "- Walkthrough: you are showing things on the user's screen. Follow the rules of the walkthrough server: mark with its tools, look and act with Computer Use, speak in short plain sentences, no Markdown."
+      : '- Keep it short: 1-3 sentences of plain spoken language, no Markdown.',
     '- Do not read out code, file paths, tables or links: put them in the chat and say that the details are in the chat.',
     '- Before long work, say in one short sentence what you are about to do.',
     '- If the words look like a speech recognition mistake, ask again instead of guessing.',

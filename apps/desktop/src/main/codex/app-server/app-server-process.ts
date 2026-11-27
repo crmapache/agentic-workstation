@@ -229,6 +229,31 @@ export class AppServerProcess {
   }
 }
 
-/** Ответ «такого запроса не знаю» - для запросов сервера, которых клиент не умеет. */
-export const refuseUnknown = (server: AppServerProcess, id: RpcId, method: string): void =>
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/** Вид запроса для журнала: режим формы и пометка Codex, без аргументов и текста. */
+const shapeOf = (params: unknown): string[] => {
+  if (!isRecord(params)) return []
+
+  const meta = isRecord(params['_meta']) ? params['_meta'] : {}
+
+  return [params['mode'], meta['codex_approval_kind']].filter(
+    (part): part is string => typeof part === 'string',
+  )
+}
+
+/**
+ * Ответ «такого запроса не знаю» - для запросов сервера, которых клиент не умеет. Отказ
+ * пишется в журнал: модели Codex передаёт его как отказ человека («user rejected»), и без
+ * записи новый вид вопроса молча ломал бы работу, а человек не видел бы никакого вопроса.
+ */
+export const refuseUnknown = (
+  server: AppServerProcess,
+  id: RpcId,
+  method: string,
+  params?: unknown,
+): void => {
+  console.warn('[codex] запрос сервера без поддержки, отказ:', method, ...shapeOf(params))
   server.respondError(id, METHOD_NOT_FOUND, `Unsupported request: ${method}`)
+}

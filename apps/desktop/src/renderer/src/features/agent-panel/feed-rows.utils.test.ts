@@ -4,7 +4,7 @@ import { it, expect, describe } from 'vitest'
 import type { FeedItem, ToolAction, ToolFeedItem } from '@shared/conversation-feed'
 
 import { diffStats, rowsFromPatch } from './diff.utils'
-import { sameRow, buildFeedRows } from './feed-rows.utils'
+import { sameRow, rowIdOfItem, buildFeedRows } from './feed-rows.utils'
 import { formatTokens, relativePath, touchesFiles, formatDuration } from './panel.utils'
 
 /** Вид действия по имени - как его поставил бы драйвер Claude. */
@@ -96,6 +96,23 @@ describe('строки ленты', () => {
 
     expect(rows.map((row) => row.kind)).toEqual(['agent', 'assistant'])
     expect(rows[0]?.kind === 'agent' && rows[0].children.map((item) => item.id)).toEqual(['x'])
+  })
+
+  it('строка элемента: своя, группа, мысли, карточка субагента; нет в ленте - нет строки', () => {
+    const rows = buildFeedRows([
+      thought('t1', 'look'),
+      tool('a', 'Read'),
+      tool('b', 'Grep'),
+      text('t'),
+      tool('agent', 'Task'),
+      tool('x', 'Read', 'agent'),
+    ])
+
+    expect(rowIdOfItem(rows, 't')).toBe('t')
+    expect(rowIdOfItem(rows, 't1')).toBe('think:t1')
+    expect(rowIdOfItem(rows, 'b')).toBe('group:a')
+    expect(rowIdOfItem(rows, 'x')).toBe('agent')
+    expect(rowIdOfItem(rows, 'gone')).toBeUndefined()
   })
 })
 

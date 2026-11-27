@@ -9,6 +9,7 @@ import { Vault } from '../storage/vault'
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
 import { VoiceSamples } from './voice-samples'
 import { VoiceService } from './voice-service'
+import type { WalkthroughHooks } from './voice-service'
 import { VoiceStore } from './voice-store'
 
 const memoryFile = <T>(value: T | null) => {
@@ -46,7 +47,11 @@ const port = (conversations: Conversation[] = []) => {
   } as unknown as ConversationsPort & { newConversation: ReturnType<typeof vi.fn> }
 }
 
-const setup = async (settings: Partial<VoiceSettings>, key: string | null) => {
+const setup = async (
+  settings: Partial<VoiceSettings>,
+  key: string | null,
+  walkthrough?: WalkthroughHooks,
+) => {
   const vault = await Vault.load('/nowhere/voice.vault', plainCipher)
   const store = await VoiceStore.load(memoryFile({ ...DEFAULT_VOICE_SETTINGS, ...settings }), vault)
 
@@ -63,6 +68,7 @@ const setup = async (settings: Partial<VoiceSettings>, key: string | null) => {
     samples: new VoiceSamples('/nowhere/voice-samples'),
     checkKey: () => Promise.resolve('ok'),
     onView: () => undefined,
+    walkthrough,
   })
 
   return { service, store, panel }
@@ -151,6 +157,63 @@ describe('VoiceService', () => {
 
     expect(service.view().key).toEqual({ saved: true, hint: '1234' })
     expect(JSON.stringify(service.view())).not.toContain('abcdefgh')
+  })
+})
+
+describe('VoiceService: walkthrough (ADR 0134)', () => {
+  const hooks = (isReady = true) => ({
+    isReady: vi.fn(() => isReady),
+    intercept: vi.fn(() => false),
+    ended: vi.fn(),
+  })
+  const request = { provider: 'claude' as const, projectPath: '/work/app', conversationId: null }
+
+  it('refuses a walkthrough the project is not ready for', async () => {
+    const { service, panel } = await setup({ enabled: true }, 'k', hooks(false))
+
+    expect(await service.startWalkthrough(endpoint, request)).toEqual({
+      ok: false,
+      reason: 'walkthroughOff',
+    })
+    expect(panel.newConversation).not.toHaveBeenCalled()
+  })
+
+  it('calls into the chosen conversation, and into a new one of the project without it', async () => {
+    const walkthrough = hooks()
+    const { service, panel } = await setup({ enabled: true }, 'k', walkthrough)
+    const fresh = await service.startWalkthrough(endpoint, request)
+
+    expect(panel.newConversation).toHaveBeenCalledWith('/work/app', {})
+    expect(fresh).toMatchObject({ ok: true, call: { conversationId: 'c1', mode: 'walkthrough' } })
+    expect(service.walkthroughIn('c1')).not.toBeNull()
+
+    service.walkthroughIn('c1')?.end('hangup')
+    expect(walkthrough.ended).toHaveBeenCalledWith('c1')
+    expect(service.walkthroughIn('c1')).toBeNull()
+
+    const again = await service.startWalkthrough(endpoint, { ...request, conversationId: 'c1' })
+
+    expect(panel.newConversation).toHaveBeenCalledTimes(1)
+    expect(again).toMatchObject({ ok: true, call: { conversationId: 'c1' } })
+  })
+
+  it('does not call into a conversation that is gone', async () => {
+    const { service } = await setup({ enabled: true }, 'k', hooks())
+
+    expect(
+      await service.startWalkthrough(endpoint, { ...request, conversationId: 'gone' }),
+    ).toEqual({
+      ok: false,
+      reason: 'failed',
+    })
+  })
+
+  it('keeps a plain call out of the walkthrough', async () => {
+    const { service } = await setup({ enabled: true }, 'k', hooks())
+
+    await service.start(endpoint)
+
+    expect(service.walkthroughIn('c1')).toBeNull()
   })
 })
 

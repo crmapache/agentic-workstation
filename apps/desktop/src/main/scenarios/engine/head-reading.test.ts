@@ -20,6 +20,18 @@ describe('head reply', () => {
     })
   })
 
+  it('keeps the words of every ending, the object from the last one that has it', () => {
+    // Как 26.11.2026: ответ человеку, потом Stop-хук стиля и вторая концовка с тем же объектом.
+    const reply = readEndings([
+      'Here is what went wrong.\n```json\n{"done": true, "reason": "first"}\n```',
+      'The style pass fixed two comments.\n```json\n{"done": true, "reason": "second"}\n```',
+      'The style pass fixed two comments.',
+    ])
+
+    expect(reply.said).toEqual(['Here is what went wrong.', 'The style pass fixed two comments.'])
+    expect(reply.body).toEqual({ done: true, reason: 'second' })
+  })
+
   it('reads an object whose value quotes a name with plain double quotes', () => {
     // Дословная форма ответа, на котором 17.11.2026 упал прогон: имя карточки в прямых кавычках.
     const reply = readReply(

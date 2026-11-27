@@ -1,11 +1,11 @@
 import type { FeedItem, UserFeedItem } from '@shared/conversation-feed'
-import type { DraftToken, MessageDraft } from '@shared/message-draft'
+import type { DraftChip, DraftToken, MessageDraft } from '@shared/message-draft'
 
 import type { FilePlace } from '../../state/selection.store'
 import { chipLabel, pasteLineCount } from './chips.utils'
 import { clipboardTextOf } from './draft-clipboard.utils'
 import { isPastedImage } from './draft.utils'
-import { kindOfPath, replayedDraft } from './message-replay.utils'
+import { normalise, kindOfPath, replayedDraft } from './message-replay.utils'
 import { RANGE_LABEL, PASTE_OPEN_CHARS, PASTE_BLOCK_CHARS } from './message.constants'
 
 /**
@@ -34,13 +34,38 @@ const withImageChips = (draft: MessageDraft, imageCount: number): MessageDraft =
 export const messageDraft = (item: UserFeedItem, answered: readonly string[] = []): MessageDraft =>
   withImageChips(item.draft ?? replayedDraft(item.text, answered), item.images.length)
 
-/** Ответы агента выше сообщения: по ним кавычки в тексте узнаются цитатой ответа. */
-export const answersBefore = (items: readonly FeedItem[], itemId: string): string[] => {
+/** Элементы ленты выше сообщения; сообщения в ней нет - вся лента. */
+const itemsBefore = (items: readonly FeedItem[], itemId: string): readonly FeedItem[] => {
   const end = items.findIndex((item) => item.id === itemId)
 
-  return items
-    .slice(0, end < 0 ? items.length : end)
-    .flatMap((item) => (item.kind === 'assistant' ? [item.text] : []))
+  return items.slice(0, end < 0 ? items.length : end)
+}
+
+/** Ответы агента выше сообщения: по ним кавычки в тексте узнаются цитатой ответа. */
+export const answersBefore = (items: readonly FeedItem[], itemId: string): string[] =>
+  itemsBefore(items, itemId).flatMap((item) => (item.kind === 'assistant' ? [item.text] : []))
+
+/**
+ * Куда в ленте ведёт чип цитаты сообщения messageId. Записанное при цитировании место
+ * (source) - если оно загружено. Иначе - ближайший выше ответ со словами цитаты: так
+ * узнаётся цитата сообщения из транскрипта, мест которого никто не записывал, тем же
+ * правилом, что реплей. Не нашлось - снова source: его ленте дотягивать страницами.
+ */
+export const quoteSource = (
+  items: readonly FeedItem[],
+  messageId: string,
+  chip: DraftChip,
+): string | null => {
+  if (chip.source && items.some((item) => item.id === chip.source)) return chip.source
+
+  const needle = normalise(chip.text ?? '')
+  const answer = needle
+    ? itemsBefore(items, messageId).findLast(
+        (item) => item.kind === 'assistant' && normalise(item.text).includes(needle),
+      )
+    : undefined
+
+  return answer?.id ?? chip.source ?? null
 }
 
 /**

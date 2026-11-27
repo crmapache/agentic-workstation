@@ -1,3 +1,4 @@
+import { isProviderId } from '@shared/providers'
 import { isVoiceLanguage } from '@shared/voice'
 import { VOICE_CATALOG } from '@shared/voice-catalog'
 import { isReadingId } from '@shared/voice-reading'
@@ -30,6 +31,8 @@ export const createVoiceHandlers = (
   voice: VoiceService,
   /** Звонок из панели начался: окно - к проекту Home, где его разговор. */
   showHome: () => Promise<unknown>,
+  /** Открыт ли проект с этой папкой: показ (ADR 0134) идёт только в проекте вкладкой. */
+  isOpenProject: (path: string) => boolean,
 ): Pick<InvokeHandlers, VoiceChannels> => ({
   'voice:get': () => voice.view(),
   'voice:setSettings': ({ settings }) => voice.setSettings(settings),
@@ -62,6 +65,24 @@ export const createVoiceHandlers = (
     const outcome = await voice.start(desktopEndpoint)
 
     if (outcome.ok) await showHome()
+
+    return { outcome, view: voice.view() }
+  },
+  'voice:startWalkthrough': async ({ provider, projectPath, conversationId }) => {
+    if (!isProviderId(provider)) throw new Error('Недопустимый провайдер')
+    assertString(projectPath, 'projectPath')
+    if (conversationId !== null) assertString(conversationId, 'conversationId')
+    if (!isOpenProject(projectPath)) throw new Error('Проект не открыт')
+
+    if (!(await microphoneAllowed())) {
+      return { outcome: { ok: false, reason: 'microphone' }, view: voice.view() }
+    }
+
+    const outcome = await voice.startWalkthrough(desktopEndpoint, {
+      provider,
+      projectPath,
+      conversationId,
+    })
 
     return { outcome, view: voice.view() }
   },

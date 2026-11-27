@@ -2,6 +2,7 @@ import type {
   VoiceView,
   VoiceKeyCheck,
   VoiceSettings,
+  WalkthroughStart,
   VoiceStartOutcome,
   VoiceSetKeyOutcome,
 } from '@shared/voice'
@@ -69,6 +70,24 @@ export const useStartVoiceCall = () => {
 
   return {
     start: async (): Promise<VoiceStartOutcome> => (await start.mutateAsync()).outcome,
+    isStarting: start.isPending,
+  }
+}
+
+/**
+ * Начать показ Walkthrough из панели (ADR 0134): звонок в выбранном разговоре проекта; ответ -
+ * звонок или причина отказа, состояние - в кэш.
+ */
+export const useStartWalkthrough = () => {
+  const queryClient = useQueryClient()
+  const start = useMutation({
+    mutationFn: (request: WalkthroughStart) => invoke('voice:startWalkthrough', request),
+    onSuccess: ({ view }) => queryClient.setQueryData(QUERY_KEYS.voice, view),
+  })
+
+  return {
+    start: async (request: WalkthroughStart): Promise<VoiceStartOutcome> =>
+      (await start.mutateAsync(request)).outcome,
     isStarting: start.isPending,
   }
 }

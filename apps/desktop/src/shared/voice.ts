@@ -28,7 +28,11 @@ export type VoiceMark = { lang: VoiceLanguage }
  * Голосовая реплика в отправку: язык и что человек успел услышать из ответа, который перебил, -
  * модели в скрытую пометку (agents/conversation/voice-note.ts).
  */
-export type VoiceOutgoing = VoiceMark & { heard?: string | null | undefined }
+export type VoiceOutgoing = VoiceMark & {
+  heard?: string | null | undefined
+  /** Реплика показа Walkthrough (ADR 0134): пометка говорит модели, что она показывает на экране. */
+  walkthrough?: boolean | undefined
+}
 
 /** Мультиязык - язык ответа по последней реплике; язык - всегда он, что бы ни сказал человек. */
 export type VoiceLanguageMode = 'multi' | VoiceLanguage
@@ -164,7 +168,14 @@ export type VoiceView = {
  * Почему звонок не начался: голос недоступен, уже идёт другой звонок, нет провайдера из
  * настроек, macOS не дала микрофон, разговор не открылся.
  */
-export type VoiceStartRefusal = VoiceUnavailable | 'busy' | 'noProvider' | 'microphone' | 'failed'
+export type VoiceStartRefusal =
+  | VoiceUnavailable
+  | 'busy'
+  | 'noProvider'
+  | 'microphone'
+  | 'failed'
+  /** Показ Walkthrough (ADR 0134) не готов в проекте: нет коннектора, Computer Use или Browser. */
+  | 'walkthroughOff'
 
 export type VoiceStartOutcome =
   { ok: true; call: VoiceCallView } | { ok: false; reason: VoiceStartRefusal }
@@ -199,6 +210,22 @@ export type VoiceCallState =
 export type VoiceOrigin = 'desktop' | 'phone'
 
 /**
+ * Что за звонок: разговор голосом (новый чат в Home, ADR 0104) или показ Walkthrough на экране в
+ * выбранном чате панели (ADR 0134).
+ */
+export type VoiceCallMode = 'call' | 'walkthrough'
+
+/**
+ * Начать показ Walkthrough из панели провайдера: в выбранном разговоре проекта, а нет его - в
+ * новом разговоре этого проекта.
+ */
+export type WalkthroughStart = {
+  provider: ProviderId
+  projectPath: string
+  conversationId: string | null
+}
+
+/**
  * Чем кончился звонок: положили трубку, потеряли связь дольше тайм-аута, долгая тишина, ключ
  * отвергнут, Deepgram не отвечает, разговор закрыли, IDE закрывается.
  */
@@ -210,6 +237,7 @@ export type VoiceCallView = {
   conversationId: string
   provider: ProviderId
   origin: VoiceOrigin
+  mode: VoiceCallMode
   state: VoiceCallState
   /** Имя инструмента, пока агент работает (state working); иначе null. */
   tool: string | null

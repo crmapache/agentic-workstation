@@ -49,6 +49,7 @@ export const COLOR_GROUPS: readonly ColorGroup[] = [
       '--color-info',
       '--color-agent',
       '--color-computer-cursor',
+      '--color-walkthrough-ink',
     ],
   },
   {

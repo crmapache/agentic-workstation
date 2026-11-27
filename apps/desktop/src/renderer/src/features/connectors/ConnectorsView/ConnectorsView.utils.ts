@@ -52,7 +52,7 @@ export const addRequest = (kind: FormKind, fields: AddFormFields): AddConnectorR
   if (kind === 'todoist') return { kind, label: fields.label, token: fields.token }
 
   // Браузер для ИИ один на IDE: подпись и имя сервера ставит главный процесс.
-  if (kind === 'browser' || kind === 'computer') return { kind }
+  if (kind === 'browser' || kind === 'computer' || kind === 'walkthrough') return { kind }
 
   if (kind === 'playwright') {
     const { label, profile, profileDir, headless, version } = fields
@@ -96,7 +96,11 @@ export const availabilitySummary = (
 
 /** Вход этого коннектора будет в браузере: кнопка «добавить и войти», а не просто «добавить». */
 export const signsInWithBrowser = (kind: ConnectorKind, fields: AddFormFields): boolean => {
-  if (['command', 'playwright', 'todoist', 'http', 'browser', 'computer'].includes(kind))
+  if (
+    ['command', 'playwright', 'todoist', 'http', 'browser', 'computer', 'walkthrough'].includes(
+      kind,
+    )
+  )
     return false
 
   return kind !== 'mcp' || fields.auth === 'oauth'

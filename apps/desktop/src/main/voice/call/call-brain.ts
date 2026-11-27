@@ -25,6 +25,8 @@ export type CallBrainOptions = {
   /** Язык ответа сейчас: последней реплики или выбранный. */
   language: () => VoiceLanguage
   onWork: (work: AgentWork) => void
+  /** Звонок - показ Walkthrough (ADR 0134): реплики уходят с его пометкой. */
+  walkthrough?: boolean | undefined
 }
 
 /** Что звонок скажет о вопросе к человеку; нечего - null. */
@@ -58,6 +60,8 @@ export class CallBrain {
   /** Звонок на паузе: ответы и вопросы копятся и звучат после возврата, а не в пустоту. */
   private holding = false
   private readonly held = new Map<string, { text: string; streaming: boolean }>()
+  /** Кто ждёт, пока лента покажет идущий инструмент (toolStarted). */
+  private toolWaiters: (() => void)[] = []
 
   constructor(private readonly options: CallBrainOptions) {}
 
@@ -101,7 +105,29 @@ export class CallBrain {
       }
     }
 
+    if (this.tool) this.wakeToolWaiters()
     this.report()
+  }
+
+  /**
+   * Лента показала идущий инструмент - значит, текст модели перед ним уже дошёл до рта (ADR 0134):
+   * вызов инструмента приходит в IDE своим путём (шлюз коннекторов) и может обогнать ленту. Ждать
+   * не дольше limitMs: у провайдера, который показывает вызов только законченным, ждать нечего.
+   */
+  toolStarted(limitMs: number, timer: (run: () => void, ms: number) => () => void): Promise<void> {
+    if (this.tool) return Promise.resolve()
+
+    return new Promise((resolve) => {
+      let cancel = (): void => undefined
+      const done = () => {
+        cancel()
+        this.toolWaiters = this.toolWaiters.filter((waiter) => waiter !== done)
+        resolve()
+      }
+
+      this.toolWaiters.push(done)
+      cancel = timer(done, limitMs)
+    })
   }
 
   state(conversation: Conversation): void {
@@ -177,6 +203,14 @@ export class CallBrain {
     else this.options.mouth().answer(id, text, streaming, this.options.language())
   }
 
+  private wakeToolWaiters(): void {
+    const waiters = this.toolWaiters
+
+    this.toolWaiters = []
+
+    for (const waiter of waiters) waiter()
+  }
+
   private sendWaiting(): void {
     if (this.waiting.length === 0) return
 
@@ -195,7 +229,13 @@ export class CallBrain {
     const heard = this.heard
 
     this.heard = null
-    await this.options.agent.send(text, { lang: last.language, heard }).catch((error: unknown) => {
+    const voice = {
+      lang: last.language,
+      heard,
+      ...(this.options.walkthrough ? { walkthrough: true } : {}),
+    }
+
+    await this.options.agent.send(text, voice).catch((error: unknown) => {
       console.warn('Voice: the line did not reach the conversation', error)
     })
   }

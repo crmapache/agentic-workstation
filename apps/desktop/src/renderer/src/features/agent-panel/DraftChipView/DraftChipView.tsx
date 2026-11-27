@@ -25,12 +25,13 @@ export const DraftChipView = ({
   chip,
   picture,
   opens = false,
+  hint,
   contained = false,
   onRemove,
   onExpand,
 }: DraftChipViewProps) => {
   const { t } = useTranslation()
-  const title = chipTitle(chip)
+  const title = [chipTitle(chip), hint].filter(Boolean).join('\n\n')
   const label = chipLabel(chip)
   const body = (
     <span className={styles.body}>

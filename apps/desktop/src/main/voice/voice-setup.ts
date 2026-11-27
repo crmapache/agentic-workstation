@@ -10,6 +10,7 @@ import type { WorkspaceService } from '../workspace/workspace-service'
 import type { ConversationsPort } from '../remote/bridge/bridge-ports'
 import { VoiceSamples } from './voice-samples'
 import { realTimer, VoiceService } from './voice-service'
+import type { WalkthroughHooks } from './voice-service'
 import { VoiceStore } from './voice-store'
 import { dialDeepgram, checkDeepgramKey } from './deepgram/deepgram-link'
 
@@ -29,6 +30,8 @@ export const startVoice = async (setup: {
   dataDir: string
   workspace: WorkspaceService
   panels: () => readonly ConversationsPort[]
+  /** Показ Walkthrough (ADR 0134): готовность в проекте, ожидание шага человека, конец. */
+  walkthrough: WalkthroughHooks
 }): Promise<VoiceRuntime> => {
   const store = await VoiceStore.load(
     new JsonFile<VoiceSettings>(join(setup.dataDir, 'voice.json')),
@@ -45,6 +48,7 @@ export const startVoice = async (setup: {
     now: () => Date.now(),
     samples,
     checkKey: (key, region) => checkDeepgramKey(key, region),
+    walkthrough: setup.walkthrough,
     onView: (view) => {
       broadcast('voice:changed', view)
       runtime.changed()

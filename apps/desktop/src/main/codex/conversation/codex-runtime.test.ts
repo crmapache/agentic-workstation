@@ -17,8 +17,9 @@ import { rewindCodex } from './codex-rewind'
 /**
  * Поддельный `codex app-server`: поток t1, настройки с моделью gpt-cfg; параметры хода -
  * в turn.json рядом. На «approve» в тексте ход спрашивает разрешение на команду и ждёт
- * ответа; на «make a plan» предлагает план и кончает ход; иначе сразу отвечает и выполняет
- * команду.
+ * ответа; на «call mcp» начинает вызов MCP и спрашивает его одобрение формой, как Codex 0.163
+ * (ответ - в mcp-answer.json рядом); на «make a plan» предлагает план и кончает ход; иначе
+ * сразу отвечает и выполняет команду.
  */
 const FAKE_SERVER = `#!/usr/bin/env node
 const readline = require('node:readline')
@@ -49,9 +50,18 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     if (message.params.input[0].text.includes('approve')) {
       return out({ id: 'ask-1', method: 'item/commandExecution/requestApproval', params: { threadId: 't1', turnId: 'turn-1', itemId: 'c1', command: 'ls' } })
     }
+    if (message.params.input[0].text.includes('call mcp')) {
+      out({ method: 'item/started', params: { threadId: 't1', turnId: 'turn-1', item: { type: 'mcpToolCall', id: 'exec-1', server: 'chatkepr-ide', tool: 'list_chats', arguments: { query: 'x', limit: 5 }, status: 'inProgress' } } })
+      return out({ id: 'ask-mcp', method: 'mcpServer/elicitation/request', params: { threadId: 't1', turnId: 'turn-1', serverName: 'chatkepr-ide', mode: 'form', message: 'Allow the chatkepr-ide MCP server to run tool "list_chats"?', requestedSchema: { type: 'object', properties: {} }, _meta: { codex_approval_kind: 'mcp_tool_call', persist: ['session', 'always'], tool_params: { limit: 5, query: 'x' } } } })
+    }
     return finish()
   }
   if (message.id === 'ask-1') return finish()
+  if (message.id === 'ask-mcp') {
+    require('node:fs').writeFileSync(__dirname + '/mcp-answer.json', JSON.stringify(message.result ?? message.error))
+    out({ method: 'item/completed', params: { threadId: 't1', turnId: 'turn-1', item: { type: 'mcpToolCall', id: 'exec-1', server: 'chatkepr-ide', tool: 'list_chats', arguments: { query: 'x', limit: 5 }, status: 'completed', result: { content: [{ type: 'text', text: 'chat' }] } } } })
+    return out({ method: 'turn/completed', params: { threadId: 't1', turn: turn('completed') } })
+  }
   // Прочие запросы (навыки, ...) - пустым ответом, как Codex без навыков.
   if (message.method && message.id !== undefined) return out({ id: message.id, result: {} })
 }).on('close', () => process.exit(0))
@@ -158,6 +168,44 @@ describe('разговор Codex на ядре', () => {
     })
     await expect.poll(() => runtime.meta.outcome).toBe('done')
     expect(runtime.meta.status).toBe('idle')
+    await runtime.dispose()
+  })
+
+  it('одобрение вызова MCP - разрешением у строки вызова; «и дальше» - до конца сессии', async () => {
+    const runtime = makeRuntime()
+
+    await runtime.send({ text: 'call mcp', images: [] })
+    await expect.poll(() => runtime.meta.status).toBe('waiting')
+    expect(runtime.meta.pending).toMatchObject({
+      kind: 'permission',
+      toolUseId: 'exec-1',
+      toolName: 'mcp__chatkepr-ide__list_chats',
+      action: { kind: 'mcp', server: 'chatkepr-ide', tool: 'list_chats' },
+      alwaysKind: 'rule',
+    })
+
+    runtime.respond(runtime.meta.pending?.requestId ?? '', {
+      kind: 'permission',
+      decision: { behavior: 'allowAlways' },
+    })
+    await expect.poll(() => runtime.meta.outcome).toBe('done')
+    expect(JSON.parse(await readFile(join(dir, 'mcp-answer.json'), 'utf8'))).toEqual({
+      action: 'accept',
+      content: {},
+      _meta: { persist: 'session' },
+    })
+    await runtime.dispose()
+  })
+
+  it('«без вопросов»: одобрение вызова MCP принимается сразу, без карточки', async () => {
+    const runtime = makeRuntime('bypassPermissions')
+
+    await runtime.send({ text: 'call mcp', images: [] })
+    await expect.poll(() => runtime.meta.outcome).toBe('done')
+    expect(runtime.meta.pending).toBeNull()
+    expect(JSON.parse(await readFile(join(dir, 'mcp-answer.json'), 'utf8'))).toMatchObject({
+      action: 'accept',
+    })
     await runtime.dispose()
   })
 

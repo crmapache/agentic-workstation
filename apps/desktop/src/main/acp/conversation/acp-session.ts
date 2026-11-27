@@ -296,7 +296,7 @@ export class AcpSession implements AgentSession {
       frame,
       shell,
       message.text,
-      voice ? voiceNote(voice.lang, voice.heard) : '',
+      voice ? voiceNote(voice) : '',
       editor ? editorNote(editor) : '',
     ]
       .filter(Boolean)

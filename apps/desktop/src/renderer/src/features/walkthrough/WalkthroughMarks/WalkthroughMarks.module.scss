@@ -1,0 +1,72 @@
+// Окно меток - во весь дисплей и прозрачное: видны только сами метки.
+.stage {
+  position: fixed;
+  inset: 0;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+// Петля маркером: штрих проявляется от начала к концу, как ведёт рука. Длина пути - 1
+// (pathLength), поэтому длина штриха и сдвиг - единицы, а не точки.
+.circle {
+  fill: none;
+  stroke: var(--color-walkthrough-ink);
+  stroke-dasharray: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--glow-walkthrough-ink);
+  animation: walkthrough-draw var(--duration-walkthrough-draw) var(--easing-out) both;
+}
+
+.arrow {
+  fill: var(--color-walkthrough-ink);
+  filter: var(--glow-walkthrough-ink);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: walkthrough-appear var(--duration-slow) var(--easing-out) both;
+}
+
+// Наконечник обводится тем же цветом со скруглением - острые углы дротика смягчаются (Shotter).
+.head {
+  fill: none;
+  stroke: var(--color-walkthrough-ink);
+  stroke-linejoin: round;
+}
+
+.spotlight {
+  fill: var(--color-backdrop);
+  animation: walkthrough-fade var(--duration-slow) var(--easing-standard) both;
+}
+
+@keyframes walkthrough-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes walkthrough-appear {
+  from {
+    opacity: 0;
+    scale: 0.85;
+  }
+
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes walkthrough-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

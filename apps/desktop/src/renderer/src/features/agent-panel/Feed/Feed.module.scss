@@ -1,6 +1,13 @@
 @use '@agentic-workstation/ui/mixins' as *;
 @include shimmer-keyframes;
 
+// Слова цитаты, к которым прыгнули с её чипа (feed-text flashQuote), на миг подсвечены -
+// тем же тоном, что найденные слова поиска: «вот оно» в ленте выглядит одинаково.
+::highlight(feed-quote) {
+  background-color: var(--color-accent-soft-hover);
+  color: var(--color-fg-strong);
+}
+
 .feed {
   display: flex;
   flex: 1;

@@ -12,10 +12,17 @@ import { isToolEnabled } from './tool-access'
 export type ProbeResult = { text: string } | { error: string }
 
 /**
- * Кого сторожить нельзя: Browser и Computer действуют на экране человека, Playwright поднимает
- * браузер, уведомления - лента самого человека. Сторож дёргает инструмент раз в несколько минут.
+ * Кого сторожить нельзя: Browser, Computer и Walkthrough действуют на экране человека, Playwright
+ * поднимает браузер, уведомления - лента самого человека. Сторож дёргает инструмент раз в
+ * несколько минут.
  */
-const UNWATCHABLE: readonly ConnectorKind[] = ['browser', 'computer', 'playwright', 'notifications']
+const UNWATCHABLE: readonly ConnectorKind[] = [
+  'browser',
+  'computer',
+  'walkthrough',
+  'playwright',
+  'notifications',
+]
 
 const textOf = (result: CallToolResult): string =>
   result.content.map((part) => (part.type === 'text' ? part.text : `[${part.type}]`)).join('\n')

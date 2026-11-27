@@ -11,6 +11,7 @@ import {
   JUMP_TOP_SHARE,
   PIN_THRESHOLD_PX,
 } from './Feed.constants'
+import type { RowSpot } from './Feed.types'
 import { rowAtEdge } from './Feed.utils'
 
 type Kept = { row: Element; top: number }
@@ -131,22 +132,24 @@ export const useFeedScroll = (
   }, [setStick])
 
   /**
-   * Прыжок к строке (булавка на полке, находка поиска): строка - в верхнюю треть, на миг
-   * подсвечена. Там она и держится HOLD_MS: строки над ней, только что пришедшие страницей,
-   * раскладываются своей настоящей высотой уже после прыжка и увели бы её под полку.
+   * Прыжок к строке (булавка на полке, находка поиска, цитата): строка - в верхнюю треть, на
+   * миг подсвечена; со spot в верхнюю треть встаёт место внутри неё. Там строка и держится
+   * HOLD_MS: строки над ней, только что пришедшие страницей, раскладываются своей настоящей
+   * высотой уже после прыжка и увели бы её под полку.
    */
   const goToRow = useCallback(
-    (rowId: string) => {
+    (rowId: string, spot?: RowSpot) => {
       const scroller = scrollerRef.current
       const row = scroller?.querySelector(`[${ROW_ATTRIBUTE}="${CSS.escape(rowId)}"]`)
 
       if (!scroller || !row) return
 
+      const place = spot?.(row)?.getBoundingClientRect()
+      const top = place?.height ? place.top : row.getBoundingClientRect().top
+
       setStick(false)
       scroller.scrollTop +=
-        row.getBoundingClientRect().top -
-        scroller.getBoundingClientRect().top -
-        scroller.clientHeight * JUMP_TOP_SHARE
+        top - scroller.getBoundingClientRect().top - scroller.clientHeight * JUMP_TOP_SHARE
       held.current = {
         row,
         top: row.getBoundingClientRect().top,

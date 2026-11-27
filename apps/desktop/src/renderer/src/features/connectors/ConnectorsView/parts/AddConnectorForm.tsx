@@ -1,6 +1,8 @@
 import { Plus, LogIn } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { walkthroughMissing } from '@shared/walkthrough'
+
 import { Button } from '@agentic-workstation/ui/Button'
 import { TextField } from '@agentic-workstation/ui/TextField'
 
@@ -8,6 +10,7 @@ import { useAddConnectorForm } from '../ConnectorsView.hooks'
 import styles from '../ConnectorsView.module.scss'
 import type { AddConnectorFormProps } from '../ConnectorsView.types'
 import { signsInWithBrowser } from '../ConnectorsView.utils'
+import { useConnectors } from '../../../../state/connectors.queries'
 import { AddCommandFields } from './AddCommandFields'
 import { AddMcpFields } from './AddMcpFields'
 import { AddPlaywrightFields } from './AddPlaywrightFields'
@@ -30,7 +33,11 @@ export const AddConnectorForm = ({
 }: AddConnectorFormProps) => {
   const { t } = useTranslation()
   const form = useAddConnectorForm(kind, onAdded, initial)
+  const connectors = useConnectors().data?.connectors ?? []
   const needsGoogle = (kind === 'gmail' || kind === 'calendar') && !googleReady
+  // Показ стоит на Computer Use и Browser (ADR 0134): без них его нечем вести.
+  const isWalkthroughBlocked =
+    kind === 'walkthrough' && walkthroughMissing(connectors, null).length > 0
   const viaBrowser = signsInWithBrowser(kind, form.fields)
   const isCustom = kind === 'mcp' || kind === 'command'
 
@@ -44,7 +51,7 @@ export const AddConnectorForm = ({
           onKeyDown={form.handleKeyDown}
         />
       )}
-      {!isCustom && kind !== 'browser' && kind !== 'computer' && (
+      {!isCustom && kind !== 'browser' && kind !== 'computer' && kind !== 'walkthrough' && (
         <TextField
           label={`${t(`connectors.kinds.${kind}.name`)} · ${t('connectors.add.label')}`}
           placeholder={t('connectors.add.labelPlaceholder')}
@@ -69,6 +76,9 @@ export const AddConnectorForm = ({
         />
       )}
       {needsGoogle && <p className={styles.warning}>{t('connectors.add.googleFirst')}</p>}
+      {isWalkthroughBlocked && (
+        <p className={styles.warning}>{t('connectors.add.walkthroughFirst')}</p>
+      )}
       {form.error && <p className={styles.failure}>{t(`connectors.add.errors.${form.error}`)}</p>}
       <div className={styles.formActions}>
         {onCancel && (
@@ -80,7 +90,7 @@ export const AddConnectorForm = ({
           size="sm"
           variant="primary"
           icon={viaBrowser ? LogIn : Plus}
-          disabled={needsGoogle || form.isBusy}
+          disabled={needsGoogle || isWalkthroughBlocked || form.isBusy}
           onClick={() => void form.submit()}>
           {t(viaBrowser ? 'connectors.add.submit' : 'connectors.add.submitPlain')}
         </Button>

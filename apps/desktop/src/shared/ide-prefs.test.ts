@@ -32,6 +32,14 @@ describe('общие настройки IDE', () => {
     expect(parseIdePrefs({ commitAi: [] }).commitAi).toEqual(DEFAULT_IDE_PREFS.commitAi)
   })
 
+  it('возврат к чату после Computer Use включён, пока человек его не выключил', () => {
+    expect(DEFAULT_IDE_PREFS.returnAfterComputer).toBe(true)
+    expect(parseIdePrefs({ returnAfterComputer: false }).returnAfterComputer).toBe(false)
+    expect(parseIdePrefs({ returnAfterComputer: 'no' }).returnAfterComputer).toBe(true)
+    // Файл настроек от прежней версии IDE поля не знает - возврат включён.
+    expect(parseIdePrefs({ pasteCollapse: 4 }).returnAfterComputer).toBe(true)
+  })
+
   it('сворачивание вставки переезжает из настроек панели Claude Code', () => {
     expect(legacyIdePrefs({ prefs: { pasteCollapse: 12 } })).toEqual({ pasteCollapse: 12 })
     expect(legacyIdePrefs({ prefs: {} })).toBeNull()

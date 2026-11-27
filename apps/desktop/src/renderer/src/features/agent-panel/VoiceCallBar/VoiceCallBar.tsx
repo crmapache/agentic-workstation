@@ -27,7 +27,9 @@ export const VoiceCallBar = ({ call }: { call: VoiceCallView }) => {
   return (
     <div className={styles.callBar}>
       <Badge tone={call.state === 'reconnecting' ? 'warning' : 'accent'}>
-        {callStateText(t, call)}
+        {call.mode === 'walkthrough'
+          ? t('walkthrough.barState', { state: callStateText(t, call) })
+          : callStateText(t, call)}
       </Badge>
       <span className={styles.heard}>{call.heard}</span>
       {call.origin === 'desktop' && (

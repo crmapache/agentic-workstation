@@ -1,6 +1,6 @@
 # 0057. Computer Use - настоящие мышь и клавиатура мака по снимкам экрана, капсула внизу экрана
 
-- **Статус:** Частично заменено [0058](0058-computer-use-windows.md) (Windows), [0060](0060-capsule-activity-line.md) (строка капсулы), [0065](0065-agent-marks-only-while-working.md) (капсула уходит с концом работы)
+- **Статус:** Частично заменено [0058](0058-computer-use-windows.md) (Windows), [0060](0060-capsule-activity-line.md) (строка капсулы), [0065](0065-agent-marks-only-while-working.md) (капсула уходит с концом работы), [0129](0129-computer-use-looks-before-it-acts.md) (снимок сверяется с экраном перед действием)
 - **Дата:** 2026-11-13
 
 ## Контекст

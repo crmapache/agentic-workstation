@@ -9,8 +9,8 @@ import styles from '../UserMessage.module.scss'
 import type { PastedTextProps } from '../UserMessage.types'
 import { pasteLineCount } from '../../chips.utils'
 import { pasteBody, pasteBlockPreview } from '../../message.utils'
+import { DraftChipView } from '../../DraftChipView/DraftChipView'
 import { useCopy } from '../../../../lib/clipboard.hooks'
-import { SentChip } from './SentChip'
 
 /**
  * Свёрнутая вставка в сообщении - единственное вложение, которое больше негде
@@ -42,14 +42,14 @@ export const PastedText = memo(({ chip, isBlock }: PastedTextProps) => {
       </div>
     ) : (
       <button type="button" className={styles.pasteChip} aria-label={count} onClick={handleToggle}>
-        <SentChip chip={chip} />
+        <DraftChipView chip={chip} />
       </button>
     )
   }
 
   return (
     <>
-      {!isBlock && <SentChip chip={chip} />}
+      {!isBlock && <DraftChipView chip={chip} />}
       <div className={styles.pasteBlock}>
         <div className={styles.pasteHead}>
           <Disclosure

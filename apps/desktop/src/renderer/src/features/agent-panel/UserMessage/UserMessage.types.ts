@@ -36,6 +36,8 @@ export type EditorLineProps = {
 
 export type SentChipProps = {
   chip: DraftChip
+  /** id сообщения: цитата без записанного места ищется в ответах выше него. */
+  messageId: string
   /** Картинка за чипом - превью под курсором; нет - чип не картинка или её не достать. */
   picture?: PictureSource | null | undefined
   /** Картинка открывается крупно. Не задано - чип картинки просто плашка с превью. */

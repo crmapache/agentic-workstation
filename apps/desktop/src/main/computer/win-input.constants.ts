@@ -71,3 +71,18 @@ export const IMAGE_CURSOR = 2
 
 /** SystemParametersInfoW: перечитать курсоры человека из реестра - вернуть его схему. */
 export const SPI_SETCURSORS = 0x0057
+
+/**
+ * Окна для сверки экрана (ADR 0129): расширенный стиль окна (GetWindowLongPtrW), его биты «поверх
+ * всех» и «клики насквозь» (прозрачное слоёное окно - стрелка ИИ, оверлеи), DWM «окно скрыто»
+ * (приложение Магазина на другом рабочем столе формально видимо) и «окно не закрыто от захвата».
+ */
+export const GWL_EXSTYLE = -20
+export const WS_EX_TOPMOST = 0x0008
+export const WS_EX_TRANSPARENT = 0x0020
+export const WS_EX_LAYERED = 0x0008_0000
+export const DWMWA_CLOAKED = 14
+export const WDA_NONE = 0
+
+/** LASTINPUTINFO: размер структуры, который Windows сверяет в cbSize. */
+export const LAST_INPUT_INFO_SIZE = 8

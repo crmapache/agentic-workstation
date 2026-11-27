@@ -28,6 +28,23 @@ describe('куски сообщения', () => {
     expect(parseMessageDraft('text')).toBeNull()
   })
 
+  it('цитата помнит, откуда её взяли; слишком длинный id - выбрасывается, чип остаётся', () => {
+    const quote = (source: unknown) =>
+      parseMessageDraft({
+        tokens: [{ kind: 'chip', chip: { kind: 'quote', value: 'ref1', text: 'hi', source } }],
+        quotes: [],
+      })?.tokens[0]
+
+    expect(quote('msg_1:0')).toEqual({
+      kind: 'chip',
+      chip: { kind: 'quote', value: 'ref1', text: 'hi', source: 'msg_1:0' },
+    })
+    expect(quote('x'.repeat(201))).toEqual({
+      kind: 'chip',
+      chip: { kind: 'quote', value: 'ref1', text: 'hi' },
+    })
+  })
+
   it('вынутое из очереди получает байты обратно по порядку, без байтов - файлом', () => {
     const draft = {
       tokens: [

@@ -1,9 +1,11 @@
-import { it, expect, describe, afterEach } from 'vitest'
+import { it, vi, expect, describe, afterEach } from 'vitest'
 
 import type { ScenarioRun } from '@shared/scenario-runs'
 import type { Scenario, ScenarioStage } from '@shared/scenarios'
 
 import type { EngineHost } from './engine-core'
+import { TICK_MS } from './engine-core'
+import { TAKE_OVER_BRIEFING } from './head-talk'
 import { ScenarioEngine } from './scenario-engine'
 import type { FakeScript } from './__fixtures__/fake-cli'
 import { settle, FakeCli } from './__fixtures__/fake-cli'
@@ -360,5 +362,101 @@ describe('ScenarioEngine', () => {
 
     expect(again.ended[0]?.state).toBe('done')
     expect(again.ended[0]?.steps.map((step) => step.state)).toEqual(['done', 'done'])
+  })
+})
+
+describe('ScenarioEngine, a head finishing a card itself', () => {
+  const MINUTE = 60 * 1000
+  const HOUR = 60 * MINUTE
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** Карточка молчит до своих трёх часов, голова забирает её и работает, пока тест не отпустит. */
+  const takenOver = async () => {
+    vi.useFakeTimers({
+      toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date'],
+    })
+
+    let finish = () => undefined as void
+    const work = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const finishingHead: FakeScript = (said, spec) =>
+      said.includes('# You are finishing this card yourself')
+        ? {
+            kind: 'after',
+            work: () => work,
+            text: 'Finished it. {"done": true, "reason": "ok", "handoff": "x"}',
+          }
+        : agreeableHead(said, spec)
+
+    current = harness(
+      scenarioOf([stage('s1', [card('a', 'Do it')])], { onGiveUp: 'head' }),
+      finishingHead,
+      () => ({ kind: 'silent' }),
+    )
+    current.engine.begin()
+    await settle(60)
+    await vi.advanceTimersByTimeAsync(3 * HOUR + TICK_MS)
+    await settle(60)
+
+    const head = current.fakes.findLast((fake) => fake.spec.briefing === TAKE_OVER_BRIEFING)
+
+    expect(current.engine.run.steps[0]?.takeOver).toContain('3 hours')
+
+    return { head, finish, harnessed: current }
+  }
+
+  /** Голова работает: строка каждые десять минут, пока прогон идёт или не прошло minutes. */
+  const working = async (head: FakeCli | undefined, run: Harness, minutes: number) => {
+    let passed = 0
+
+    while (passed < minutes && run.ended.length === 0) {
+      head?.pulse()
+      await vi.advanceTimersByTimeAsync(10 * MINUTE)
+      passed += 10
+    }
+
+    return passed
+  }
+
+  it('does not stop a head that keeps working past three hours, and takes its verdict', async () => {
+    const { head, finish, harnessed } = await takenOver()
+
+    await working(head, harnessed, 4 * 60)
+
+    expect(harnessed.ended).toHaveLength(0)
+
+    finish()
+    await settle(80)
+
+    expect(harnessed.ended[0]?.state).toBe('done')
+    expect(harnessed.ended[0]?.steps[0]?.verdict).toBe('done')
+  })
+
+  it('ends the run once the head’s process is silent for half an hour', async () => {
+    const { head, harnessed } = await takenOver()
+
+    await working(head, harnessed, 60)
+    head?.pulse()
+    await vi.advanceTimersByTimeAsync(29 * MINUTE)
+
+    expect(harnessed.ended).toHaveLength(0)
+
+    await vi.advanceTimersByTimeAsync(2 * MINUTE)
+
+    expect(harnessed.ended[0]?.failure).toBe('headSilent')
+    expect(harnessed.ended[0]?.error).toContain('went silent')
+  })
+
+  it('ends a head that talks on and never finishes after six hours', async () => {
+    const { head, harnessed } = await takenOver()
+    const passed = await working(head, harnessed, 8 * 60)
+
+    expect(passed).toBeGreaterThanOrEqual(6 * 60)
+    expect(passed).toBeLessThanOrEqual(6 * 60 + 10)
+    expect(harnessed.ended[0]?.failure).toBe('tooLong')
   })
 })

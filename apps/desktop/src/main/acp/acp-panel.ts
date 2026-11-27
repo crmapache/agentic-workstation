@@ -13,6 +13,7 @@ import type { PanelPrefs, ConversationCall } from '@shared/panel-prefs'
 
 import { parseStoredClaude } from '../claude/claude-state'
 import type { JsonFile } from '../storage/json-file'
+import { withLocalTime } from '../agents/conversation/local-time-briefing'
 import { makeThumbnail } from '../agents/images/thumbnail'
 import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
 import { AgentPanel } from '../agents/panel/agent-panel'
@@ -117,7 +118,8 @@ export class AcpPanel extends AgentPanel {
       },
       onSignedOut: () => this.account.noteSignedOut(),
       onAgentCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
-      instructions: () => this.options.agent.briefing,
+      // Пояс человека - заново на каждую сессию: смещение берётся на её начало.
+      instructions: () => withLocalTime(this.options.agent.briefing),
       version: this.options.version,
       onChange: () => this.persist.changed(),
       onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),

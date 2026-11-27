@@ -15,7 +15,7 @@ import { runModeOf } from '../run-stream/run-modes'
 import { CODEX_CLIENT } from '../../codex/codex.constants'
 import type { RpcId } from '../../process/rpc-lines'
 import type { CodexAccountDesk } from '../../codex/account/codex-account-desk'
-import { AppServerProcess } from '../../codex/app-server/app-server-process'
+import { refuseUnknown, AppServerProcess } from '../../codex/app-server/app-server-process'
 import type { CodexCli } from '../../codex/cli/codex-locator'
 import type { UserServer } from '../../codex/conversation/codex-connectors'
 import { connectorArgs, GATEWAY_TOKEN_ENV } from '../../codex/conversation/codex-connectors'
@@ -23,8 +23,6 @@ import type { CodexHistory } from '../../codex/conversation/codex-feed'
 import { policyFor, workspaceFromConfig } from '../../codex/conversation/codex-modes'
 import type { CodexHeld } from '../../codex/conversation/codex-requests'
 import { answerFor, holdServerRequest } from '../../codex/conversation/codex-requests'
-import type { CodexItem } from '../../codex/feed/codex-tools'
-import { toolItemsOf } from '../../codex/feed/codex-tools'
 import type { GatewayLaunch } from '../../connectors/gateway/launches'
 import type {
   SessionSpec,
@@ -32,6 +30,7 @@ import type {
   SessionProcess,
 } from '../../scenarios/engine/scenario-session'
 import { noBuiltInToolsArgs } from './codex-restrictions'
+import { CodexRunCalls } from './codex-run-calls'
 import { CodexTurnTranslator } from './codex-run-turns'
 
 /** Что переводчику Codex нужно от панели Codex (codex-service.ts). */
@@ -94,7 +93,7 @@ export class CodexRunProcess implements SessionProcess {
   private dead = false
   private pending: EnginePrompt[] = []
   private readonly questions = new Map<string, CodexHeld>()
-  private readonly items = new Map<string, CodexItem>()
+  private readonly calls = new CodexRunCalls()
   private readonly turns: CodexTurnTranslator
   private policy = policyFor('default')
   private choice: { model: string | null; effort: string | null } = { model: null, effort: null }
@@ -177,7 +176,9 @@ export class CodexRunProcess implements SessionProcess {
       {
         binary: cli.binary,
         args: [
-          ...connectorArgs(connectors?.servers ?? [], (await host.userMcpServers()) ?? []),
+          ...connectorArgs(connectors?.servers ?? [], (await host.userMcpServers()) ?? [], {
+            allowed: connectors?.allowed,
+          }),
           // Разговор о коннекторе: веб-поиск Codex и больше ничего - ни команд, ни файлов.
           ...(spec.web ? ['-c', 'web_search="live"', ...noBuiltInToolsArgs()] : []),
         ],
@@ -309,13 +310,7 @@ export class CodexRunProcess implements SessionProcess {
 
     const body = isRecord(params) ? params : {}
 
-    if (method === 'item/started' && isRecord(body['item'])) {
-      const item = body['item']
-
-      if (typeof item['id'] === 'string' && typeof item['type'] === 'string') {
-        this.items.set(item['id'], item as CodexItem)
-      }
-    }
+    this.calls.notify(method, body)
 
     if (method === 'serverRequest/resolved') return this.withdrawn(body['requestId'])
 
@@ -331,18 +326,11 @@ export class CodexRunProcess implements SessionProcess {
       params,
       requestId,
       runModeOf(this.spec.permissionMode),
-      (itemId) => {
-        const item = this.items.get(itemId)
-        const [tool] = item ? toolItemsOf(item, { parent: null, startedAt: 0, endedAt: 0 }) : []
-
-        return tool
-          ? { name: tool.name, input: tool.input, action: tool.action }
-          : { name: 'apply_patch', input: {}, action: { kind: 'other', target: '', path: '' } }
-      },
+      this.calls.lookup,
     )
 
     if (!held) {
-      this.server?.respondError(rpcId, -32601, `Unsupported request: ${method}`)
+      if (this.server) refuseUnknown(this.server, rpcId, method, params)
 
       return
     }

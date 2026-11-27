@@ -234,7 +234,7 @@ export const heardBack = (e: EngineCore): void => {
   const words = reply.body ? replyText(reply.body, 'toCard').trim() : ''
   const passed = words ? passOn(e, words) : ''
 
-  if (reply.words.trim() || passed) e.note(reply.words, boardKey(e), passed)
+  e.noteTurn(reply.said, boardKey(e), passed)
 
   e.run = { ...e.run, answering: false }
 

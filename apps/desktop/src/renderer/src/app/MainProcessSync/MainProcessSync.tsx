@@ -1,4 +1,5 @@
 import { useCalendarSync } from '../../state/calendar.queries'
+import { useComputerReturnSync } from '../../state/computer-return.hooks'
 import { useConnectorsSync } from '../../state/connectors.queries'
 import { useExtensionsSync } from '../../state/extensions.queries'
 import { useGitChangesSync } from '../../state/git-changes.queries'
@@ -62,6 +63,7 @@ export const MainProcessSync = () => {
   useCalendarSync()
   useConnectionsSync()
   useExtensionsSync()
+  useComputerReturnSync()
 
   return null
 }

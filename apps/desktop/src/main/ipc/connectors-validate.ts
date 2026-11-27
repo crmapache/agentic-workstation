@@ -155,8 +155,8 @@ export const assertAddRequest = (value: unknown): AddConnectorRequest => {
     throw new Error('Встроенный коннектор не добавляется')
   }
 
-  // Браузеру для ИИ и Computer Use подпись не нужна: они одни, имя сервера постоянное.
-  if (kind === 'browser' || kind === 'computer') return { kind }
+  // Браузеру для ИИ, Computer Use и Walkthrough подпись не нужна: они одни, имя сервера постоянное.
+  if (kind === 'browser' || kind === 'computer' || kind === 'walkthrough') return { kind }
 
   const label = field(request['label'], 'label')
 

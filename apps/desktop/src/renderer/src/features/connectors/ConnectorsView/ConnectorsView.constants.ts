@@ -9,6 +9,7 @@ import {
   AppWindow,
   CalendarDays,
   NotebookText,
+  Presentation,
   SquareKanban,
   WandSparkles,
   MessagesSquare,
@@ -26,6 +27,7 @@ import type {
   ConnectorInProject,
 } from '@shared/connectors'
 import { MCP_AUTHS } from '@shared/connectors'
+import { WALKTHROUGH_NEEDS } from '@shared/walkthrough'
 
 import type { BadgeTone } from '@agentic-workstation/ui/Badge.types'
 
@@ -42,6 +44,7 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
   playwright: Drama,
   browser: Globe,
   computer: MousePointerClick,
+  walkthrough: Presentation,
   notifications: Bell,
   workstation: AppWindow,
   extensions: Puzzle,
@@ -52,7 +55,8 @@ export const KIND_ICONS: Record<ConnectorKind, LucideIcon> = {
 
 /**
  * Коннекторы к известным приложениям: имя сервиса - имя типа, его видно заголовком плитки.
- * Computer Use - на обеих системах IDE, мак и Windows (ADR 0057, 0058).
+ * Computer Use - на обеих системах IDE, мак и Windows (ADR 0057, 0058); Walkthrough - вслед за
+ * ним: показ стоит на Computer Use и Browser (ADR 0134).
  */
 export const APP_KINDS: readonly AddKind[] = [
   'gmail',
@@ -64,6 +68,7 @@ export const APP_KINDS: readonly AddKind[] = [
   'playwright',
   'browser',
   'computer',
+  'walkthrough',
 ]
 
 /**
@@ -82,6 +87,7 @@ export const NOTHING_SAID: ConnectorInProject = { instructions: '', browserProfi
 export const NO_CONNECTION_KINDS: readonly ConnectorKind[] = [
   'browser',
   'computer',
+  'walkthrough',
   'notifications',
   'workstation',
 ]
@@ -97,6 +103,7 @@ export const KIND_TONES: Record<ConnectorKind, BadgeTone> = {
   playwright: 'success',
   browser: 'accent',
   computer: 'info',
+  walkthrough: 'accent',
   notifications: 'accent',
   workstation: 'accent',
   extensions: 'accent',
@@ -180,3 +187,9 @@ export const CODE_FACTS: ReadonlySet<string> = new Set(['address', 'command'])
 
 /** Иконка папки в плашке проекта - в гнезде значка проекта. */
 export const FOLDER_ICON_SIZE = 14
+
+/**
+ * Без чего показа Walkthrough нет (ADR 0134): строки окна коннектора - Computer Use и Browser Use,
+ * как их проверяет главный процесс, и голос - показ идёт звонком.
+ */
+export const WALKTHROUGH_NEEDS_SHOWN = [...WALKTHROUGH_NEEDS, 'voice'] as const

@@ -5,6 +5,7 @@ import type { EffortLevel, PermissionMode } from '@shared/conversation'
 import type { AcpAgent } from '../acp/acp-agent'
 import { sharedBriefing } from '../acp/acp-briefing'
 import { acpCli } from '../acp/acp-locator'
+import { withLocalTime } from '../agents/conversation/local-time-briefing'
 import { writeKimiProfile } from './kimi-profile'
 import { kimiLens } from './kimi-tools'
 
@@ -92,6 +93,7 @@ export const kimiAgent = (root: string): AcpAgent => {
     briefing: BRIEFING,
     instructions: null,
     // Папку делят панель и исполнитель сценариев: указания - общие для обоих (acp-briefing.ts).
-    prepare: () => writeKimiProfile(home, BRIEFING),
+    // Пояс человека - на запуск IDE: профиль пишется раз, сессий у него много.
+    prepare: () => writeKimiProfile(home, withLocalTime(BRIEFING)),
   }
 }

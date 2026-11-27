@@ -1,13 +1,15 @@
 import { it, expect, describe } from 'vitest'
 
 import { policyFor } from './codex-modes'
-import { answerFor, holdServerRequest } from './codex-requests'
+import { answerFor, declineFor, holdServerRequest } from './codex-requests'
 
 const facts = () => ({
   name: 'apply_patch',
   input: { path: '/p/a.ts' },
   action: { kind: 'edit' as const, path: '/p/a.ts', preview: [] },
 })
+
+const calls = { facts, mcpCall: () => null }
 
 describe('режимы Codex', () => {
   it('спрашивать, правки, план, без вопросов - политика и песочница', () => {
@@ -40,7 +42,7 @@ describe('вопросы сервера Codex', () => {
       { itemId: 'c1', command: 'rm -rf build', reason: 'cleanup' },
       'codex-1-7',
       'default',
-      facts,
+      calls,
     )
 
     expect(held?.pending).toMatchObject({
@@ -71,7 +73,7 @@ describe('вопросы сервера Codex', () => {
       { itemId: 'f1' },
       'codex-1-8',
       'default',
-      facts,
+      calls,
     )
 
     expect(held?.pending).toMatchObject({
@@ -97,7 +99,7 @@ describe('вопросы сервера Codex', () => {
       },
       'codex-1-9',
       'default',
-      facts,
+      calls,
     )
 
     expect(held?.pending).toMatchObject({
@@ -139,7 +141,7 @@ describe('вопросы сервера Codex', () => {
       },
       'codex-1-10',
       'default',
-      facts,
+      calls,
     )
 
     expect(held?.pending).toMatchObject({
@@ -155,7 +157,53 @@ describe('вопросы сервера Codex', () => {
     ).toEqual({ answers: { key: { answers: ['a, b'] }, env: { answers: ['prod'] } } })
   })
 
+  it('одобрение вызова MCP без строки в ленте - вызов из вопроса; без сессии - без «и дальше»', () => {
+    const held = holdServerRequest(
+      11,
+      'mcpServer/elicitation/request',
+      {
+        serverName: 'notifications',
+        mode: 'form',
+        message: 'Allow the notifications MCP server to run tool "notify"?',
+        _meta: { codex_approval_kind: 'mcp_tool_call', tool_params: { title: 'Hi' } },
+      },
+      'codex-1-11',
+      'acceptEdits',
+      calls,
+    )
+
+    expect(held?.pending).toMatchObject({
+      kind: 'permission',
+      toolUseId: 'codex-1-11',
+      toolName: 'mcp__notifications__notify',
+      input: { title: 'Hi' },
+      action: { kind: 'mcp', server: 'notifications', tool: 'notify', target: 'Hi' },
+      description: 'Allow the notifications MCP server to run tool "notify"?',
+      alwaysKind: null,
+    })
+    if (!held) throw new Error('not held')
+    expect(answerFor(held, { kind: 'permission', decision: { behavior: 'allowAlways' } })).toEqual({
+      action: 'accept',
+      content: {},
+      _meta: null,
+    })
+    expect(declineFor(held)).toEqual({ action: 'decline', content: null, _meta: null })
+  })
+
+  it('форма MCP без пометки одобрения - незнакомый вопрос', () => {
+    expect(
+      holdServerRequest(
+        12,
+        'mcpServer/elicitation/request',
+        { serverName: 's', mode: 'form', message: 'Your name?', _meta: null },
+        'codex-1-12',
+        'default',
+        calls,
+      ),
+    ).toBeNull()
+  })
+
   it('незнакомый вопрос - null: Codex получит отказ сразу', () => {
-    expect(holdServerRequest(1, 'item/tool/call', {}, 'x', 'default', facts)).toBeNull()
+    expect(holdServerRequest(1, 'item/tool/call', {}, 'x', 'default', calls)).toBeNull()
   })
 })

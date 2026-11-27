@@ -52,6 +52,8 @@ export type QueueItemRunsOnProps = { provider: ProviderId; runsOn: readonly Runs
 export type QueueItemMenuProps = {
   queue: ScenarioQueue
   item: QueueItem
+  /** Прогон идущего элемента; null - элемент ждёт или сводка прогона ещё не пришла. */
+  runId: string | null
   /** Первый и последний среди ждущих: выше и ниже двигать некуда. */
   isFirst: boolean
   isLast: boolean

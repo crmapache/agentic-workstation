@@ -18,6 +18,12 @@ export type FeedRowViewProps = {
  */
 export type RowRhythm = 'line' | 'block'
 
+/**
+ * Место внутри строки, к которому прыжок (слова цитаты в длинном ответе), - по самой строке
+ * в DOM. Нашлось - в кадр встаёт оно, а не верх строки; null - верх строки.
+ */
+export type RowSpot = (row: Element) => Range | null
+
 /** Строка статуса: слова и цифры рядом с ними (пусто - цифр нет). */
 export type StatusParts = { label: string; detail: string }
 

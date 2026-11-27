@@ -166,8 +166,8 @@ describe('VoiceReader', () => {
     const out = h.sink()
 
     h.reader.read({ id: 'r1', owner: 'desktop', text, sink: out.sink })
-    await settle()
-    await settle()
+    // Звук читается с диска: ждать конца чтения, а не угадывать число тактов.
+    await until(() => Promise.resolve(out.ends.length > 0 ? out.ends : null))
 
     expect(h.sockets).toEqual([])
     expect(out.ends).toEqual(['done'])
@@ -235,7 +235,8 @@ describe('VoiceReader', () => {
     const h = await harness({ speed: 1.2 })
 
     h.reader.read({ id: 'r', owner: 'd', text: 'The build is green.', sink: h.sink().sink })
-    await settle()
+    // Сначала запас на диске (его нет), потом соединение с Deepgram: ждать соединения.
+    await until(() => Promise.resolve(h.sockets[0] ?? null))
 
     expect(h.sockets[0]?.url).toContain('model=flux-paige-en')
     expect(h.sockets[0]?.url).toContain('speed=1.20')

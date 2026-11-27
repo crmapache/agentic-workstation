@@ -32,6 +32,12 @@ export const STILL_MS = 700
 export const STILL_POLL_MS = 100
 export const STILL_WAIT_MAX_MS = 20_000
 
+/**
+ * Время последнего ввода (ADR 0129) - разность «сейчас» и «сколько назад», дважды: у Windows
+ * счётчик тиков грубый, до 16 мс. Сдвиг меньше этого - тот же самый последний ввод.
+ */
+export const INPUT_JITTER_MS = 50
+
 /** Модификатор нажат чуть раньше клавиши сочетания - как у руки, и приложение успевает его увидеть. */
 export const MODIFIER_LEAD_MS = 30
 

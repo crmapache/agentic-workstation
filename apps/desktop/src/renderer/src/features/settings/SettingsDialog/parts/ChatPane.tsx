@@ -17,13 +17,14 @@ import { TextField } from '@agentic-workstation/ui/TextField'
 import styles from '../SettingsDialog.module.scss'
 import { clampPasteCollapse } from '../SettingsDialog.utils'
 import { useIdePrefs, useSetIdePrefs } from '../../../../state/ide-prefs.queries'
+import { ReturnCard } from './ReturnCard'
 import { SettingRow } from './SettingRow'
 
 /**
- * Раздел «Chat»: поле сообщения у всех провайдеров разом - с какого числа строк вставка
- * сворачивается в чип (как в ACC). Выключено - со своим исключением на виду: огромная вставка
- * сворачивается всё равно. Число набирается, а не выбирается из лесенки; выключенное поле
- * остаётся видно - по нему понятно, к чему вернётся сворачивание.
+ * Раздел «Chat»: чаты всех провайдеров разом. Вставка - с какого числа строк она сворачивается
+ * в чип (как в ACC); выключено - со своим исключением на виду: огромная вставка сворачивается
+ * всё равно. Число набирается, а не выбирается из лесенки; выключенное поле остаётся видно - по
+ * нему понятно, к чему вернётся сворачивание. Вторая карточка - возврат к чату после Computer Use.
  */
 export const ChatPane = () => {
   const { t } = useTranslation()
@@ -56,18 +57,17 @@ export const ChatPane = () => {
     void save({ pasteCollapse: on ? clampPasteCollapse(draft ?? '', fallback) : 0 })
 
   return (
-    <Section
-      title={t('settings.sections.chat')}
-      description={t('settings.chat.description')}
-      help={
-        <HelpButton
-          label={t('settings.chat.helpLabel')}
-          title={t('settings.chat.fold')}
-          text={t('settings.chat.help')}
-          closeLabel={t('common.close')}
-        />
-      }>
-      <Card>
+    <Section title={t('settings.sections.chat')} description={t('settings.chat.description')}>
+      <Card
+        title={t('settings.chat.pasteTitle')}
+        help={
+          <HelpButton
+            label={t('settings.chat.helpLabel')}
+            title={t('settings.chat.fold')}
+            text={t('settings.chat.help')}
+            closeLabel={t('common.close')}
+          />
+        }>
         <div className={styles.rows}>
           <SettingRow
             label={t('settings.chat.fold')}
@@ -103,6 +103,7 @@ export const ChatPane = () => {
           </SettingRow>
         </div>
       </Card>
+      <ReturnCard />
     </Section>
   )
 }

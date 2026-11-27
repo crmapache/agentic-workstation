@@ -81,7 +81,7 @@ const liveCall = () => {
   const call = new VoiceCall({
     id: 'live',
     conversationId: 'c1',
-    view: { provider: 'claude', origin: 'desktop', startedAt: Date.now() },
+    view: { provider: 'claude', origin: 'desktop', mode: 'call', startedAt: Date.now() },
     settings: { ...DEFAULT_VOICE_SETTINGS, enabled: true },
     key: KEY,
     // Концы ходов Flux считаются, чтобы видеть, что фразу он правда разрезал.

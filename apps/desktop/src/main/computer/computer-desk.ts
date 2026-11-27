@@ -74,6 +74,11 @@ export class ComputerDesk {
   private said: string | null = null
   /** Сколько раз ставили паузу: снимок, сделанный до паузы, - уже не правда об экране. */
   private pauseCount = 0
+  /**
+   * Сколько раз стол отпускал компьютер (минута простоя, конец хода, Stop, конец разговора): после
+   * этого человек мог работать сам, и снимок, сделанный раньше, - тоже не правда об экране.
+   */
+  private letGoCount = 0
   private action: AbortController | null = null
   private tickets = new Map<AbortController, string>()
   private waiters = new Set<() => void>()
@@ -120,6 +125,11 @@ export class ComputerDesk {
   /** Сколько раз человек ставил паузу - по нему агент узнаёт снимки, сделанные до неё. */
   get pauses(): number {
     return this.pauseCount
+  }
+
+  /** Сколько раз стол отпускал компьютер - по нему агент узнаёт снимки, сделанные до перерыва. */
+  get letGos(): number {
+    return this.letGoCount
   }
 
   /**
@@ -313,6 +323,8 @@ export class ComputerDesk {
   }
 
   private free(): void {
+    if (this.holder) this.letGoCount += 1
+
     this.holder = null
     this.isPaused = false
     this.step = null

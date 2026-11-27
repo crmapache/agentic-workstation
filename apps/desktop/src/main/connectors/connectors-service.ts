@@ -12,6 +12,7 @@ import type {
   AddConnectorOutcome,
   AddConnectorRequest,
 } from '@shared/connectors'
+import { walkthroughMissing } from '@shared/walkthrough'
 
 import type { ComputerRuntime } from '../computer/computer-runtime'
 import type { WorkstationLink } from '../workstation/workstation-link'
@@ -223,6 +224,15 @@ export class ConnectorsService {
   }
 
   async add(request: AddConnectorRequest): Promise<AddConnectorOutcome> {
+    // Walkthrough смотрит и действует Computer Use, страницу читает Browser (ADR 0134): без них
+    // показу нечем работать.
+    if (
+      request.kind === 'walkthrough' &&
+      walkthroughMissing(this.registry.connectors, null).length
+    ) {
+      return this.addOutcome('walkthrough-needs')
+    }
+
     // Команда раскрывает ~ и $NAME, как в терминале: нужно окружение оболочки.
     const env = runsCommand(request.kind) ? await this.places.shellEnv() : {}
     const taken = { servers: this.registry.serverNames(), bases: this.registry.serverBases() }

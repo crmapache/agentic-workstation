@@ -274,6 +274,32 @@ describe('computer desk', () => {
     await expect(desk.run(call('b'), () => Promise.resolve(2))).resolves.toBe(2)
   })
 
+  it('counts every time it lets the computer go: a screenshot from before is not trusted', async () => {
+    const { desk, fireAll } = setup()
+
+    expect(desk.letGos).toBe(0)
+
+    // Минута без вызовов.
+    await desk.run(call('a'), () => Promise.resolve(1))
+    fireAll()
+    expect(desk.letGos).toBe(1)
+
+    // Ход разговора кончился.
+    await desk.run(call('a'), () => Promise.resolve(1))
+    desk.idle('a')
+    expect(desk.letGos).toBe(2)
+
+    // Stop человека.
+    await desk.run(call('a'), () => Promise.resolve(1))
+    desk.stop()
+    expect(desk.letGos).toBe(3)
+
+    // Свободный компьютер отпускать нечего: счёт не растёт.
+    desk.idle('a')
+    desk.dispose()
+    expect(desk.letGos).toBe(3)
+  })
+
   it('lets the computer go when its conversation ends', async () => {
     const { desk } = setup()
 

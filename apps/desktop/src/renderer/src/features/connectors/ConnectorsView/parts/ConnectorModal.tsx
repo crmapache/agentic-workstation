@@ -29,6 +29,7 @@ import { CustomTypeSettings } from './CustomTypeSettings'
 import { ProjectInstructions } from './ProjectInstructions'
 import { ProjectsPicker } from './ProjectsPicker'
 import { RemoveConnector } from './RemoveConnector'
+import { WalkthroughSetup } from './WalkthroughSetup'
 
 /**
  * Подробности коннектора окном по центру: в шапке - имя, как на плитке, состояние и
@@ -110,6 +111,7 @@ export const ConnectorModal = ({
             )}
             {kind === 'browser' && <BrowserSetup browser={browser} />}
             {kind === 'computer' && <ComputerSetup computer={computer} />}
+            {kind === 'walkthrough' && <WalkthroughSetup />}
             {kind === 'workstation' && <WorkstationOutside outside={outside} />}
             {!NO_CONNECTION_KINDS.includes(kind) && (
               <ConnectorConnection connector={connector} google={google} />

@@ -2,8 +2,15 @@ import { modelRefOf } from '../connections/opencode-config'
 import type { OpenCodeServer } from '../server/opencode-server'
 import { dataOf } from '../server/opencode-server'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { localTimeBriefing } from '../../agents/conversation/local-time-briefing'
 import { openCodeOf } from './opencode-conversation'
 import { agentFor, rulesFor } from './opencode-modes'
+
+/**
+ * Ключ указаний сессии с поясом человека. Свой, не ключ брифа прогона (BRIEFING_KEY): бриф
+ * снимается, когда прогон открывают чатом, а пояс должен остаться.
+ */
+const LOCAL_TIME_KEY = 'agentic-workstation-local-time'
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -88,6 +95,22 @@ export class OpenCodeSessionSettings {
     }
 
     return modelChanged
+  }
+
+  /**
+   * Пояс человека - указаниями сессии, на каждый подъём процесса: смещение берётся на сейчас.
+   * Старый OpenCode их не знает - разговор идёт без них, это не повод его ронять.
+   */
+  async brief(sessionId: string): Promise<void> {
+    await this.server
+      .request(
+        'PUT',
+        `/api/experimental/session/${sessionId}/instructions/entries/${LOCAL_TIME_KEY}`,
+        {
+          body: { value: localTimeBriefing() },
+        },
+      )
+      .catch((error: unknown) => console.warn('[opencode] пояс человека не передан:', error))
   }
 
   /**

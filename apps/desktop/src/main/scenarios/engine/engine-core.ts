@@ -42,8 +42,19 @@ export const CARD_PHASES: ReadonlySet<Phase> = new Set(['card', 'question', 'blo
 /** Фазы, в которых от головы ничего не ждут: слова человека могут быть отдельным ходом. */
 export const WAITING_PHASES: ReadonlySet<Phase> = new Set(['card', 'blocked', 'paused'])
 
-/** Работа карточки (и головы на её месте) - не дольше трёх часов. */
+/** Работа карточки - не дольше трёх часов, дальше её доделывает голова. */
 export const CARD_CEILING_MS = 3 * 60 * 60 * 1000
+
+/**
+ * Голова на месте карточки встала, если её процесс молчит полчаса: самый долгий вызов
+ * команды - десять минут, а живые помощники пишут в поток сами. По часам с начала её не
+ * снимают - 26.11.2026 так убили голову, которая каждые десять минут докладывала о калибровке
+ * и не дотянула до конца 36 минут.
+ */
+export const TAKEOVER_SILENCE_MS = 30 * 60 * 1000
+
+/** Потолок от петли: голова, которая всё говорит, но не кончает, - вдвое дольше карточки. */
+export const TAKEOVER_CEILING_MS = 2 * CARD_CEILING_MS
 
 /** Ответ головы - полчаса: её работа - фраза и маленький объект. */
 export const HEAD_CEILING_MS = 30 * 60 * 1000
@@ -168,6 +179,8 @@ export class EngineCore {
   started = false
   followedChoice: string
   cardStartedAt = 0
+  /** Последняя строка процесса головы: пока она доделывает карточку, это и есть признак жизни. */
+  headHeardAt = 0
   pausedAt = 0
   pausedFor = 0
   /** Ответы процессам - подключает фасад до первого процесса. */
@@ -237,6 +250,16 @@ export class EngineCore {
     }
   }
 
+  /**
+   * Слова хода головы - по заметке на концовку, по порядку: ответ и доработка после Stop-хука
+   * читаются отдельно и не режут друг друга лимитом заметки. Переданное карточке - под последней.
+   */
+  noteTurn(said: readonly string[], stepKey: string, relayed = ''): void {
+    if (said.length === 0 && relayed) return this.note('', stepKey, relayed)
+
+    said.forEach((words, at) => this.note(words, stepKey, at === said.length - 1 ? relayed : ''))
+  }
+
   changed(): void {
     try {
       this.host.onChange(this.run)
@@ -256,7 +279,7 @@ export class EngineCore {
     this.pausedAt = 0
   }
 
-  /** Часы карточки с начала: новый ход, новые три часа. */
+  /** Часы работы на доске с начала: новый ход - новый отсчёт потолка и тишины головы. */
   windCardClock(): void {
     this.cardStartedAt = Date.now()
     this.pausedFor = 0

@@ -23,6 +23,7 @@ const VIEW: VoiceCallView = {
   conversationId: 'c1',
   provider: 'claude',
   origin: 'phone',
+  mode: 'call',
   state: 'listening',
   tool: null,
   heard: '',

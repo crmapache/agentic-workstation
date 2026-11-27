@@ -27,7 +27,7 @@ const tokens: DraftToken[] = [
   { kind: 'text', value: ' ' },
   { kind: 'chip', chip: { kind: 'ref', value: 'b.ts', range: 'L2-L4' } },
   { kind: 'chip', chip: { kind: 'paste', value: 'pasted', text: 'line 1\nline 2' } },
-  { kind: 'chip', chip: { kind: 'quote', value: 'ref1', text: 'said' } },
+  { kind: 'chip', chip: { kind: 'quote', value: 'ref1', text: 'said', source: 'a1:0' } },
 ]
 
 describe('черновик для модели', () => {

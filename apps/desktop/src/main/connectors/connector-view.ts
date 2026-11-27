@@ -17,6 +17,7 @@ import { BROWSER_GUIDE, BROWSER_COMPUTER_NOTE } from './kinds/browser/browser-gu
 import { COMPUTER_GUIDE } from './kinds/computer/computer-guide'
 import { EXTENSIONS_GUIDE } from './kinds/extensions/extensions-source'
 import { NOTIFICATIONS_GUIDE } from './kinds/notifications/notifications-guide'
+import { WALKTHROUGH_GUIDE } from './kinds/walkthrough/walkthrough-guide'
 import { WORKSTATION_GUIDE } from './kinds/workstation/workstation-guide'
 
 /** Что о коннекторе знает только живая IDE: идёт ли вход и чем кончилась последняя попытка. */
@@ -107,6 +108,7 @@ export const SERVICE_NAME: Record<StoredConnector['kind'], string> = {
   playwright: 'Playwright browser',
   browser: "the user's Chrome",
   computer: "the user's computer (real mouse, keyboard and screen)",
+  walkthrough: 'voice walkthroughs on the screen of the user',
   notifications: "the user's Agentic Workstation notifications",
   workstation: 'Agentic Workstation itself, the IDE you run in',
   extensions: 'tools of Agentic Workstation extensions',
@@ -162,6 +164,7 @@ const stateFor = (
 const KIND_GUIDE: Partial<Record<StoredConnector['kind'], string>> = {
   browser: BROWSER_GUIDE,
   computer: COMPUTER_GUIDE,
+  walkthrough: WALKTHROUGH_GUIDE,
   notifications: NOTIFICATIONS_GUIDE,
   workstation: WORKSTATION_GUIDE,
   extensions: EXTENSIONS_GUIDE,

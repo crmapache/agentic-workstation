@@ -149,11 +149,15 @@ export const createInvokeHandlers = (services: Services): InvokeHandlers => {
     ...createSoundsHandlers(services.sounds),
     ...createMemorySaverHandlers(services.memorySaver),
     ...createServiceAiHandlers(services.serviceAi),
-    ...createVoiceHandlers(services.voice.service, () => {
-      const home = services.workspace.getState().projects.find((project) => project.home)
+    ...createVoiceHandlers(
+      services.voice.service,
+      () => {
+        const home = services.workspace.getState().projects.find((project) => project.home)
 
-      return home ? services.workspace.activateProject(home.id) : Promise.resolve()
-    }),
+        return home ? services.workspace.activateProject(home.id) : Promise.resolve()
+      },
+      (path) => services.workspace.getState().projects.some((project) => project.rootPath === path),
+    ),
     ...createIdePrefsHandlers(services.idePrefs),
     ...createCommitPushHandlers(workspace, services.commitPush),
     ...createTasksHandlers(workspace, services.tasks, services.taskAuthor),

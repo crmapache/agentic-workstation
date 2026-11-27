@@ -8,11 +8,14 @@ import type {
   VoiceOrigin,
   VoiceRegion,
   VoiceCallEnd,
+  VoiceCallMode,
   VoiceCallView,
   VoiceKeyCheck,
   VoiceLanguage,
   VoiceCapability,
+  WalkthroughStart,
   VoiceStartOutcome,
+  VoiceStartRefusal,
   VoiceSetKeyOutcome,
 } from '@shared/voice'
 import type { VoiceReadRefusal } from '@shared/voice-reading'
@@ -21,13 +24,23 @@ import type { ConversationsPort } from '../remote/bridge/bridge-ports'
 import { previewVoice } from './voice-preview'
 import type { VoiceSamples } from './voice-samples'
 import type { VoiceStore } from './voice-store'
-import type { Timer } from './call/utterances'
+import type { Timer, Utterance } from './call/utterances'
 import { VoiceCall } from './call/voice-call'
 import type { VoiceEndpoint } from './call/voice-endpoint'
 import { sampleOf } from './call/voice-phrases'
 import type { DeepgramDial } from './deepgram/deepgram-link'
 import type { ReadRequest } from './reading/voice-reader'
 import { VoiceReader } from './reading/voice-reader'
+
+/**
+ * Показ Walkthrough (ADR 0134) для звонка: готов ли он в проекте (коннектор, Computer Use и
+ * Browser), забрать ли реплику человека в ответ ожиданию агента и конец показа - убрать метки.
+ */
+export type WalkthroughHooks = {
+  isReady: (projectPath: string) => boolean
+  intercept: (conversationId: string, utterance: Utterance) => boolean
+  ended: (conversationId: string) => void
+}
 
 export type VoiceServiceDeps = {
   store: VoiceStore
@@ -44,6 +57,8 @@ export type VoiceServiceDeps = {
   onView: (view: VoiceView) => void
   /** Звонок кончился: телефону - пуш, когда агент доделает (ADR 0104). */
   onEnded?: ((call: VoiceCallView, reason: VoiceCallEnd) => void) | undefined
+  /** Показ на экране (ADR 0134); нет - кнопка показа отвечает «не готов». */
+  walkthrough?: WalkthroughHooks | undefined
 }
 
 /** Таймер на setTimeout: отмена - функцией. */
@@ -151,15 +166,9 @@ export class VoiceService {
   /** Начать звонок с этой конечной точкой: новый разговор в Home, Deepgram, «слушаю». */
   async start(endpoint: VoiceEndpoint): Promise<VoiceStartOutcome> {
     const { store, panels, homePath } = this.deps
-    const capability = store.capability
-    const key = store.key
+    const ready = this.readyToCall()
 
-    if (!capability.available) return { ok: false, reason: capability.reason }
-    if (!key) return { ok: false, reason: 'noKey' }
-    if (this.active || this.starting) return { ok: false, reason: 'busy' }
-
-    // Звонок заговорит сам: чтение вслух в тот же динамик его уши приняли бы за человека.
-    this.reader.stopAll()
+    if (!ready.ok) return ready
 
     const { settings } = store
     const port = panels().find((candidate) => candidate.provider === settings.provider)
@@ -168,36 +177,95 @@ export class VoiceService {
     if (!port?.info()) return { ok: false, reason: 'noProvider' }
     if (!home) return { ok: false, reason: 'failed' }
 
+    const conversation = () =>
+      port.newConversation(home, { permissionMode: settings.permissionMode })
+
+    return this.dial(conversation, { endpoint, port, key: ready.key, mode: 'call' })
+  }
+
+  /**
+   * Показ Walkthrough (ADR 0134) с этой конечной точкой: звонок в выбранном разговоре панели, а
+   * нет его - в новом разговоре проекта в режиме новых вкладок человека. Показ не готов в проекте
+   * (нет коннектора, Computer Use или Browser) - отказ.
+   */
+  async startWalkthrough(
+    endpoint: VoiceEndpoint,
+    request: WalkthroughStart,
+  ): Promise<VoiceStartOutcome> {
+    const ready = this.readyToCall()
+
+    if (!ready.ok) return ready
+
+    const { projectPath, conversationId } = request
+
+    if (!this.deps.walkthrough?.isReady(projectPath)) return { ok: false, reason: 'walkthroughOff' }
+
+    const port = this.deps.panels().find((candidate) => candidate.provider === request.provider)
+
+    if (!port?.info()) return { ok: false, reason: 'noProvider' }
+
+    // Разговор закрыли, пока человек тянулся к кнопке, - звонить некуда.
+    if (conversationId && !conversationOf(port.getState(), conversationId)) return FAILED
+
+    const conversation = async () => {
+      if (conversationId) return conversationId
+
+      const permissionMode = await port.newTabMode?.(projectPath)
+
+      return port.newConversation(projectPath, permissionMode ? { permissionMode } : {})
+    }
+
+    return this.dial(conversation, { endpoint, port, key: ready.key, mode: 'walkthrough' })
+  }
+
+  /** Звонок показа Walkthrough в этом разговоре; нет его - null. */
+  walkthroughIn(conversationId: string): VoiceCall | null {
+    const call = this.active?.call
+
+    return call?.mode === 'walkthrough' && call.conversationId === conversationId ? call : null
+  }
+
+  /** Можно ли звонить сейчас: голос доступен, ключ есть, другого звонка нет. */
+  private readyToCall(): { ok: true; key: string } | { ok: false; reason: VoiceStartRefusal } {
+    const { capability, key } = this.deps.store
+
+    if (!capability.available) return { ok: false, reason: capability.reason }
+    if (!key) return { ok: false, reason: 'noKey' }
+    if (this.active || this.starting) return { ok: false, reason: 'busy' }
+
+    return { ok: true, key }
+  }
+
+  /**
+   * Поднять звонок: бронь - до первого ожидания и до конца подъёма (два старта в одну секунду
+   * открыли бы два звонка), чтение вслух молчит - звонок заговорит сам, а чтение в тот же динамик
+   * его уши приняли бы за человека.
+   */
+  private async dial(
+    conversation: () => Promise<string>,
+    line: CallLine,
+  ): Promise<VoiceStartOutcome> {
     this.starting = true
+    this.reader.stopAll()
 
     try {
-      return await this.open(endpoint, port, home, key)
+      return await this.open(line, await conversation())
+    } catch (error) {
+      console.warn('Voice: the call conversation did not open', error)
+
+      return FAILED
     } finally {
       this.starting = false
     }
   }
 
-  private async open(
-    endpoint: VoiceEndpoint,
-    port: ConversationsPort,
-    home: string,
-    key: string,
-  ): Promise<VoiceStartOutcome> {
+  private async open(line: CallLine, conversationId: string): Promise<VoiceStartOutcome> {
+    const { endpoint, port, key, mode } = line
     const { settings } = this.deps.store
-    const conversationId = await port
-      .newConversation(home, { permissionMode: settings.permissionMode })
-      .catch((error: unknown) => {
-        console.warn('Voice: the call conversation did not open', error)
-
-        return null
-      })
-
-    if (!conversationId) return { ok: false, reason: 'failed' }
-
     const call = new VoiceCall({
       id: randomUUID(),
       conversationId,
-      view: { provider: port.provider, origin: endpoint.origin, startedAt: this.deps.now() },
+      view: { provider: port.provider, origin: endpoint.origin, startedAt: this.deps.now(), mode },
       settings,
       key,
       dial: this.deps.dial,
@@ -213,6 +281,10 @@ export class VoiceService {
       onView: () => this.changed(),
       onEnded: (reason) => this.ended(call, reason),
       onSpoken: (spoken) => this.reader.keep(spoken),
+      intercept:
+        mode === 'walkthrough'
+          ? (utterance) => this.deps.walkthrough?.intercept(conversationId, utterance) ?? false
+          : undefined,
     })
 
     const feed = await port.getFeed(conversationId).catch(() => null)
@@ -227,7 +299,7 @@ export class VoiceService {
       console.warn('Voice: the call did not start', error)
       call.end('deepgram')
 
-      return { ok: false, reason: 'failed' }
+      return FAILED
     }
 
     this.changed()
@@ -270,6 +342,7 @@ export class VoiceService {
     if (this.active?.call !== call) return
 
     this.active = null
+    if (call.mode === 'walkthrough') this.deps.walkthrough?.ended(call.conversationId)
     this.deps.onEnded?.(call.view, reason)
     this.changed()
   }
@@ -281,6 +354,16 @@ export class VoiceService {
 
     return view
   }
+}
+
+const FAILED: VoiceStartOutcome = { ok: false, reason: 'failed' }
+
+/** С кем и как звонить: конечная точка, панель провайдера, ключ Deepgram, разговор или показ. */
+type CallLine = {
+  endpoint: VoiceEndpoint
+  port: ConversationsPort
+  key: string
+  mode: VoiceCallMode
 }
 
 const conversationOf = (state: AgentPanelState, id: string) =>

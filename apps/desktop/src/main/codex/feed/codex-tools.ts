@@ -126,7 +126,8 @@ const mcpText = (result: unknown): string =>
         .join('\n')
     : ''
 
-const mcpTool = (item: CodexItem, base: Base): ToolFeedItem => {
+/** Вызов инструмента MCP; он же - вызов из вопроса Codex об одобрении (codex-requests.ts). */
+export const mcpTool = (item: CodexItem, base: Base): ToolFeedItem => {
   const server = text(item, 'server')
   const name = text(item, 'tool')
   const args = isRecord(item['arguments']) ? item['arguments'] : {}

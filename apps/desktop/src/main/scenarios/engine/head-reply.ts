@@ -132,12 +132,24 @@ export const readReply = (text: string): HeadReply => {
     : { words: tidy(text), body: null }
 }
 
+/** Ответ хода: слова каждой концовки по порядку и объект для движка. */
+export type TurnReply = { said: string[]; body: ReplyBody | null }
+
 /**
  * Ответ хода, который кончался не раз: объект - из последней концовки, где он есть (хук стиля
- * после ответа оставляет концовку без объекта, и переспрос потратил бы разрешение зря).
+ * после ответа оставляет концовку без объекта, и переспрос потратил бы разрешение зря). Слова -
+ * всех концовок: человек читает таймлайн, а Stop-хук, давший голове доработку, не делает её
+ * первый ответ лишним. 26.11.2026 голова ответила человеку, хук стиля дал ей ещё ход, и в
+ * таймлайн легла только фраза про стиль - ответ пропал.
  */
-export const readEndings = (endings: readonly string[]): HeadReply =>
-  endings.map(readReply).findLast((reply) => reply.body !== null) ?? readReply(endings.join('\n\n'))
+export const readEndings = (endings: readonly string[]): TurnReply => {
+  const replies = endings.map(readReply)
+  const said = replies
+    .map((reply) => reply.words.trim())
+    .filter((words, at, all) => words && all.indexOf(words) === at)
+
+  return { said, body: replies.findLast((reply) => reply.body !== null)?.body ?? null }
+}
 
 /** Строковое поле ответа; другой формы - пусто. */
 export const replyText = (body: ReplyBody, name: string): string => {

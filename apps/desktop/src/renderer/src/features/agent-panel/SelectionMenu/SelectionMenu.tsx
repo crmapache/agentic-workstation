@@ -15,7 +15,7 @@ import { MENU_GAP_PX } from './SelectionMenu.constants'
 import { useFeedSelection } from './SelectionMenu.hooks'
 import styles from './SelectionMenu.module.scss'
 import type { SelectionMenuProps } from './SelectionMenu.types'
-import { menuPlace, forkPointAfter } from './SelectionMenu.utils'
+import { menuPlace, itemIdOfRow, forkPointAfter } from './SelectionMenu.utils'
 
 /** Нажатие до потери выделения: на mousedown, и выделение не снимается. */
 const keepSelection = (event: MouseEvent) => event.preventDefault()
@@ -60,7 +60,14 @@ export const SelectionMenu = ({ areaRef, conversation, items }: SelectionMenuPro
     // Сначала снять выделение в ленте: вставка ставит каретку в поле, и снятое после
     // выделение увело бы её в конец.
     window.getSelection()?.removeAllRanges()
-    insertChip(conversation.id, { kind: 'quote', value: `ref${number}`, text: selection.text })
+    // Откуда цитата - id элемента, а не строки: строка группы меняет id, когда выше
+    // приходит страница истории, а элемент - нет.
+    insertChip(conversation.id, {
+      kind: 'quote',
+      value: `ref${number}`,
+      text: selection.text,
+      source: itemIdOfRow(selection.rowId) || undefined,
+    })
     clear()
   }
 

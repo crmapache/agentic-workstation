@@ -1,4 +1,4 @@
-import { open, stat, readdir, readFile } from 'node:fs/promises'
+import { open, stat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { HistoryEntry } from '@shared/conversation'
@@ -14,6 +14,7 @@ import {
   TAIL_MIN_LINES,
   TAIL_CHUNK_BYTES,
 } from './history.constants'
+import { forEachLine } from './transcript-lines'
 import { transcriptDirs } from './transcript-paths'
 import { dropRewound } from './transcript-rewinds'
 import type { TranscriptSummary } from './transcript-summary'
@@ -163,9 +164,20 @@ export const transcriptName = async (file: string): Promise<TranscriptSummary> =
   return summarize(file, info.size, `${info.size}:${info.mtimeMs}`)
 }
 
-/** Весь транскрипт строками, без отрезанного откатами: для действий человека (форк). */
-export const readTranscriptLines = async (file: string): Promise<string[]> =>
-  dropRewound((await readFile(file, 'utf8')).split('\n').filter(Boolean))
+/**
+ * Весь транскрипт строками, без отрезанного откатами: страницы ленты выше, закреплённые,
+ * откат хода. Построчным чтением, а не одной строкой: транскрипт с картинками дорастает до
+ * гигабайта, а строка V8 - не длиннее полугигабайта.
+ */
+export const readTranscriptLines = async (file: string): Promise<string[]> => {
+  const lines: string[] = []
+
+  await forEachLine(file, (line) => {
+    if (line) lines.push(line)
+  })
+
+  return dropRewound(lines)
+}
 
 /**
  * Строки источника до строки at включительно - всё, что несёт форк, который ещё не

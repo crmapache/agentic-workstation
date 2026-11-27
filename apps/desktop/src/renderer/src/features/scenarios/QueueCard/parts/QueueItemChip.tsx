@@ -23,7 +23,8 @@ import { QueueItemRunsOn } from './QueueItemRunsOn'
 /**
  * Один сценарий очереди строкой во всю ширину: место, имя, состояние, на какой модели и с каким
  * усилием идёт, метка «встанет после него», ответы. С прогоном строка нажимается вся и открывает его (клавиатуре - кнопка имени). Ждущий
- * носит меню у правого края: сдвинуть, остановить после, убрать. Упавший или остановленный носит там же «Mark done»: работу
+ * носит меню у правого края: сдвинуть, остановить после, убрать; идущий - там же остановить после
+ * или оборвать сейчас. Упавший или остановленный носит там же «Mark done»: работу
  * доделали руками (в разговоре головы), и очередь должна считать её сделанной. Последний из них,
  * если полоса остановки не зовёт к тому же, - ещё и «Continue»: прогон, оборванный
  * перезапуском IDE, продолжается с места прямо со строки. Отказ старта - под
@@ -37,6 +38,7 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
   const waiting = waitingItems(queue)
   const place = waiting.findIndex((one) => one.id === item.id)
   const isWaiting = item.state === 'waiting'
+  const isRunning = item.state === 'running'
   const isMarked = queue.stopAfterItemId === item.id
   const isHeldOnIt = queue.hold?.reason === 'refused' && queue.hold.itemId === item.id
   const refusal =
@@ -127,11 +129,12 @@ export const QueueItemChip = ({ queue, item, number, live }: QueueItemChipProps)
             </Tooltip>
           </span>
         )}
-        {isWaiting && (
+        {(isWaiting || isRunning) && (
           <span className={styles.itemEnd}>
             <QueueItemMenu
               queue={queue}
               item={item}
+              runId={isRunning ? (live?.id ?? null) : null}
               isFirst={place === 0}
               isLast={place === waiting.length - 1}
             />

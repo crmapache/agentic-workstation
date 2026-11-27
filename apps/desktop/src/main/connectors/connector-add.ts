@@ -3,6 +3,7 @@ import { isAbsolute } from 'node:path'
 import { COMPUTER_SERVER_NAME } from '@shared/computer'
 import { BROWSER_SERVER_NAME } from '@shared/connectors'
 import type { AddToTypeRequest, AddConnectorError, AddConnectorRequest } from '@shared/connectors'
+import { WALKTHROUGH_SERVER_NAME } from '@shared/walkthrough'
 
 import { IS_WINDOWS } from '../platform'
 import { parseEnvLine, splitCommandLine } from './command-line'
@@ -76,6 +77,21 @@ export const newConnector = (
         kind: 'computer',
         label: IS_WINDOWS ? 'Windows' : 'Mac',
         serverName: COMPUTER_SERVER_NAME,
+      }),
+      secrets: {},
+    }
+  }
+
+  // Walkthrough (ADR 0134): показ один на IDE - на экране один человек и одна мышь.
+  if (request.kind === 'walkthrough') {
+    if (taken.servers.has(WALKTHROUGH_SERVER_NAME)) return 'name-taken'
+
+    return {
+      connector: blankConnector({
+        id: ids.connector,
+        kind: 'walkthrough',
+        label: 'Voice',
+        serverName: WALKTHROUGH_SERVER_NAME,
       }),
       secrets: {},
     }

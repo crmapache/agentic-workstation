@@ -46,6 +46,7 @@ export default defineConfig({
           index: resolve(__dirname, 'src/renderer/index.html'),
           capsule: resolve(__dirname, 'src/renderer/capsule.html'),
           pointer: resolve(__dirname, 'src/renderer/pointer.html'),
+          walkthrough: resolve(__dirname, 'src/renderer/walkthrough.html'),
         },
       },
     },

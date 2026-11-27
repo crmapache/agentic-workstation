@@ -10,6 +10,8 @@ type Phrases = {
   plan: string
   stillThere: string
   trouble: string
+  /** Начало показа Walkthrough (ADR 0134): что человек хочет увидеть. */
+  walkthroughHello: string
 }
 
 const PHRASES: Record<VoiceLanguage, Phrases> = {
@@ -19,6 +21,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'The plan is ready. Approve it on the screen.',
     stillThere: 'Are you still there?',
     trouble: 'Something went wrong, the details are in the chat.',
+    walkthroughHello: 'What should I show or explain?',
   },
   ru: {
     permission: (what) => `Нужно разрешение: ${what}. Подтверди на экране.`,
@@ -26,6 +29,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'План готов. Одобри его на экране.',
     stillThere: 'Ты ещё тут?',
     trouble: 'Что-то пошло не так, подробности в чате.',
+    walkthroughHello: 'Что показать или объяснить?',
   },
   es: {
     permission: (what) => `Necesito tu permiso: ${what}. Confírmalo en la pantalla.`,
@@ -33,6 +37,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'El plan está listo. Apruébalo en la pantalla.',
     stillThere: '¿Sigues ahí?',
     trouble: 'Algo salió mal, los detalles están en el chat.',
+    walkthroughHello: '¿Qué te muestro o te explico?',
   },
   pt: {
     permission: (what) => `Preciso da sua permissão: ${what}. Confirme na tela.`,
@@ -40,6 +45,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'O plano está pronto. Aprove na tela.',
     stillThere: 'Você ainda está aí?',
     trouble: 'Algo deu errado, os detalhes estão no chat.',
+    walkthroughHello: 'O que eu mostro ou explico?',
   },
   fr: {
     permission: (what) => `J'ai besoin de ton autorisation : ${what}. Confirme à l'écran.`,
@@ -47,6 +53,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: "Le plan est prêt. Approuve-le à l'écran.",
     stillThere: 'Tu es toujours là ?',
     trouble: 'Quelque chose a mal tourné, les détails sont dans le chat.',
+    walkthroughHello: "Qu'est-ce que je te montre ou t'explique ?",
   },
   de: {
     permission: (what) => `Ich brauche deine Erlaubnis: ${what}. Bestätige es auf dem Bildschirm.`,
@@ -54,6 +61,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'Der Plan ist fertig. Bestätige ihn auf dem Bildschirm.',
     stillThere: 'Bist du noch da?',
     trouble: 'Etwas ist schiefgelaufen, die Details stehen im Chat.',
+    walkthroughHello: 'Was soll ich zeigen oder erklären?',
   },
   it: {
     permission: (what) => `Mi serve il tuo permesso: ${what}. Confermalo sullo schermo.`,
@@ -61,6 +69,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'Il piano è pronto. Approvalo sullo schermo.',
     stillThere: 'Ci sei ancora?',
     trouble: 'Qualcosa è andato storto, i dettagli sono nella chat.',
+    walkthroughHello: 'Cosa ti mostro o ti spiego?',
   },
   nl: {
     permission: (what) => `Ik heb je toestemming nodig: ${what}. Bevestig het op het scherm.`,
@@ -68,6 +77,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'Het plan is klaar. Keur het goed op het scherm.',
     stillThere: 'Ben je er nog?',
     trouble: 'Er ging iets mis, de details staan in de chat.',
+    walkthroughHello: 'Wat zal ik laten zien of uitleggen?',
   },
   hi: {
     permission: (what) => `मुझे आपकी अनुमति चाहिए: ${what}. स्क्रीन पर पुष्टि करें।`,
@@ -75,6 +85,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: 'योजना तैयार है। स्क्रीन पर उसे मंज़ूर करें।',
     stillThere: 'क्या आप अभी भी हैं?',
     trouble: 'कुछ गड़बड़ हो गई, विवरण चैट में है।',
+    walkthroughHello: 'मैं क्या दिखाऊँ या समझाऊँ?',
   },
   ja: {
     permission: (what) => `許可が必要です: ${what}。画面で確認してください。`,
@@ -82,6 +93,7 @@ const PHRASES: Record<VoiceLanguage, Phrases> = {
     plan: '計画ができました。画面で承認してください。',
     stillThere: 'まだいますか？',
     trouble: '問題が起きました。詳しくはチャットを見てください。',
+    walkthroughHello: '何をお見せしましょうか、それとも説明しましょうか？',
   },
 }
 

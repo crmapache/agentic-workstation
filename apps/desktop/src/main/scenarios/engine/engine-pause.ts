@@ -1,6 +1,13 @@
 import { askAgain } from './engine-asking'
 import type { EngineCore } from './engine-core'
-import { CARD_PHASES, HEAD_PHASES, CARD_CEILING_MS, HEAD_CEILING_MS } from './engine-core'
+import {
+  CARD_PHASES,
+  HEAD_PHASES,
+  CARD_CEILING_MS,
+  HEAD_CEILING_MS,
+  TAKEOVER_CEILING_MS,
+  TAKEOVER_SILENCE_MS,
+} from './engine-core'
 import { deliverTold } from './engine-mail'
 import { putQuestion } from './engine-questions'
 import { takeOver, canTakeOver } from './engine-takeover'
@@ -100,19 +107,19 @@ export const carryOnFromPause = (e: EngineCore): void => {
   deliverTold(e)
 }
 
-/** Всё работает, пока не прошла работа карточки (или головы на её месте) - три часа. */
-const pastTheCeiling = (e: EngineCore): boolean => {
+/** Прошла ли работа на доске (карточки или головы на её месте) свой потолок, стоянки не в счёт. */
+const pastTheCeiling = (e: EngineCore, ceiling: number): boolean => {
   if (e.cardStartedAt === 0) return false
 
   const parked = e.pausedFor + (e.pausedAt > 0 ? Date.now() - e.pausedAt : 0)
 
-  return Date.now() - e.cardStartedAt - parked >= CARD_CEILING_MS
+  return Date.now() - e.cardStartedAt - parked >= ceiling
 }
 
 /** Карточка ждёт помощников, а ждать некого; или перебежала потолок. */
 const watchTheCard = (e: EngineCore) => {
   if (e.cardWaits && !e.helpers?.busy()) return judgeTheCard(e, e.helpers?.overdue() ?? false)
-  if (!pastTheCeiling(e)) return
+  if (!pastTheCeiling(e, CARD_CEILING_MS)) return
 
   const step = e.step
 
@@ -123,7 +130,32 @@ const watchTheCard = (e: EngineCore) => {
   }
 
   e.editStep(step.key, (one) => ({ ...one, failure: 'tooLong' }))
-  e.end('failed', 'tooLong', `${step.title}: it ran past its time`)
+  e.end('failed', 'tooLong', `${step.title}: it ran past its time (3 hours)`)
+}
+
+/**
+ * Голова на месте карточки: снимают её молчание, а не часы. Отсчёт - от последней строки её
+ * процесса или от начала работы (подъём после паузы и переезда заводит часы заново).
+ */
+const watchTheHeadAtWork = (e: EngineCore, now: number) => {
+  const title = e.step?.title ?? ''
+
+  if (now - Math.max(e.headHeardAt, e.cardStartedAt) >= TAKEOVER_SILENCE_MS) {
+    e.editHere((one) => ({ ...one, failure: 'headSilent' }))
+
+    return e.end('failed', 'headSilent', `${title}: the main thread went silent finishing it`)
+  }
+
+  if (!pastTheCeiling(e, TAKEOVER_CEILING_MS)) return
+
+  const hours = TAKEOVER_CEILING_MS / (60 * 60 * 1000)
+
+  e.editHere((one) => ({ ...one, failure: 'tooLong' }))
+  e.end(
+    'failed',
+    'tooLong',
+    `${title}: the main thread worked on it for ${hours} hours without finishing`,
+  )
 }
 
 /** Удар часов: то, что может стоять вечно, - карточка, голова на её месте, молчащая голова. */
@@ -135,16 +167,7 @@ export const tick = (e: EngineCore): void => {
   }
 
   if (e.phase === 'card') return watchTheCard(e)
-
-  if (e.phase === 'takeover' && pastTheCeiling(e)) {
-    e.editHere((one) => ({ ...one, failure: 'tooLong' }))
-
-    return e.end(
-      'failed',
-      'tooLong',
-      `${e.step?.title ?? ''}: the main thread ran past its time finishing it`,
-    )
-  }
+  if (e.phase === 'takeover') return watchTheHeadAtWork(e, now)
 
   if (e.headAskedAt > 0 && HEAD_PHASES.has(e.phase) && now - e.headAskedAt >= HEAD_CEILING_MS) {
     e.editHere((one) => ({ ...one, failure: 'headSilent' }))

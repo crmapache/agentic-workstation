@@ -1,17 +1,18 @@
 import type { ForkOrigin, Conversation } from '@shared/conversation'
 
-import type { ForkAnchor } from './history/fork-anchor'
-import { forkLeaf, forkAnchor } from './history/fork-anchor'
-import { readTranscriptUpTo, readTranscriptLines } from './history/transcript-files'
+import type { ForkLine, ForkAnchor } from './history/fork-anchor'
+import { forkLeaf, forkChain, forkAnchor, forkLineOf } from './history/fork-anchor'
+import { forEachLine } from './history/transcript-lines'
 import { findTranscript } from './history/transcript-paths'
 
 /**
  * Откуда читать форк: свой транскрипт источника и, если источник сам форк, - файл его
- * источника до точки, на которой он ответвлён. null - файла нет.
+ * источника до точки, на которой он ответвлён. Строки - без отрезанного откатом (forkChain).
+ * null - файла нет.
  */
 export type ForkTranscripts = {
-  own: () => Promise<readonly string[] | null>
-  inherited: () => Promise<readonly string[] | null>
+  own: () => Promise<readonly ForkLine[] | null>
+  inherited: () => Promise<readonly ForkLine[] | null>
 }
 
 type Source = { sessionId: string; title: string }
@@ -24,7 +25,7 @@ const originAt = ({ sessionId, title }: Source, at: string, whole = false): Fork
 })
 
 /** Форк источника целиком: до последней строки, а без строк - нести нечего. */
-const wholeOf = (source: Source, lines: readonly string[], whole: boolean): ForkOrigin | null => {
+const wholeOf = (source: Source, lines: readonly ForkLine[], whole: boolean): ForkOrigin | null => {
   const at = forkLeaf(lines)
 
   return at ? originAt(source, at, whole) : null
@@ -89,18 +90,32 @@ export const resolveForkOrigin = async (
   return inheritedAt(parent, anchor) ?? originAt(from, parent.at, true)
 }
 
+/**
+ * Сведения о строках файла построчным чтением: транскрипт целиком в память не берётся -
+ * с картинками он бывает в гигабайт, и чтение одной строкой падало, а кнопка форка молчала.
+ */
+const forkLinesIn = async (file: string): Promise<ForkLine[]> => {
+  const lines: ForkLine[] = []
+
+  await forEachLine(file, (line) => {
+    if (line) lines.push(forkLineOf(line))
+  })
+
+  return lines
+}
+
 /** Транскрипты разговора на диске: свой и унаследованный до точки ответвления. */
 const diskTranscripts = (source: Conversation): ForkTranscripts => ({
   own: async () => {
     const file = await findTranscript(source.projectPath, source.sessionId)
 
-    return file ? readTranscriptLines(file) : null
+    return file ? forkChain(await forkLinesIn(file)) : null
   },
   inherited: async () => {
     const { fork } = source
     const file = fork ? await findTranscript(source.projectPath, fork.sourceSessionId) : null
 
-    return file && fork ? readTranscriptUpTo(file, fork.at) : null
+    return file && fork ? forkChain(await forkLinesIn(file), fork.at) : null
   },
 })
 

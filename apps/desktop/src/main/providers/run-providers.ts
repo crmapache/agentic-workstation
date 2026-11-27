@@ -7,11 +7,23 @@ import type { AcpPanel } from '../acp/acp-panel'
 import type { ClaudeService } from '../claude/claude-service'
 import type { CodexService } from '../codex/codex-service'
 import type { OpenModelsService } from '../opencode/opencode-service'
+import { withLocalTime } from '../agents/conversation/local-time-briefing'
 import type { ScenarioProvider } from './scenario-provider'
 import { acpRunsDir, acpScenarioProvider } from './acp/acp-scenarios'
 import { claudeScenarioProvider } from './claude/claude-scenarios'
 import { CODEX_RUNS_DIR, codexScenarioProvider } from './codex/codex-scenarios'
 import { OPENCODE_RUNS_DIR, openCodeScenarioProvider } from './opencode/opencode-scenarios'
+
+/**
+ * Каждой сессии без вкладки - пояс человека в конце брифа (agents/conversation/local-time-briefing.ts):
+ * отчёты прогонов, заданий и разговоров о коннекторах он читает так же, как панель. Здесь, а не у
+ * каждого исполнителя: мимо этой точки сессию не поднять, а бриф у провайдеров едет по-разному.
+ */
+const withPersonTime = (provider: ScenarioProvider): ScenarioProvider => ({
+  ...provider,
+  spawn: (spec, place, wires) =>
+    provider.spawn({ ...spec, briefing: withLocalTime(spec.briefing) }, place, wires),
+})
 
 /**
  * Исполнители провайдеров для работы без вкладки (docs/plan-providers/50-ide.md): сценарии и
@@ -37,7 +49,7 @@ export const runProviders = (panels: {
       codexScenarioProvider(panels.codex, panels.dataDir, serviceModel('codex')),
       acpScenarioProvider(panels.kimi, panels.dataDir, serviceModel('kimi')),
       openCodeScenarioProvider(panels.openModels, panels.dataDir, serviceModel('opencode')),
-    ].map((provider) => [provider.id, provider]),
+    ].map((provider) => [provider.id, withPersonTime(provider)]),
   )
 }
 

@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 
+import { useItemJump, useQuoteJump } from '../feed-jump.hooks'
 import { buildFeedRows } from '../feed-rows.utils'
-import { PendingContext, FeedScopeContext } from '../feed-scope.context'
+import { PendingContext, FeedScopeContext, QuoteJumpContext } from '../feed-scope.context'
 import { useLoadEarlier } from '../feed.queries'
 import { useConversationFeed, usePanelCapabilities } from '../panel.queries'
-import { usePinJump } from '../pins.hooks'
 import { useSearchJump, useSearchPaint } from '../search-feed.hooks'
 import { useSelectedStream } from '../streams.hooks'
 import { AgentStreamView } from '../AgentStreamView/AgentStreamView'
@@ -55,7 +55,9 @@ export const Feed = ({ conversation, items }: FeedProps) => {
     handlePointerDown,
   } = useFeedScroll(conversation.id, lastUserId, pages, pinsHeight)
   const unread = useUnread(rows, isAway)
-  const jumpToPin = usePinJump(items, goToRow, loadThrough)
+  // Закреп с полки и чип цитаты прыгают одним путём: к строке элемента, дотягивая ленту.
+  const jumpToItem = useItemJump(items, rows, goToRow, loadThrough)
+  const jumpToQuote = useQuoteJump(items, jumpToItem)
 
   // Поиск по разговорам: прыжок к выбранной находке и подсветка найденных слов.
   useSearchJump({
@@ -83,7 +85,7 @@ export const Feed = ({ conversation, items }: FeedProps) => {
               <PinnedBar
                 conversationId={conversation.id}
                 items={items}
-                onJump={jumpToPin}
+                onJump={jumpToItem}
                 onHeight={setPinsHeight}
               />
             )}
@@ -101,16 +103,18 @@ export const Feed = ({ conversation, items }: FeedProps) => {
                 onPointerDownCapture={handlePointerDown}
                 onClickCapture={handleClick}>
                 {hasEarlier && <EarlierMarker onLoad={handleLoadEarlier} />}
-                {rows.map((row) => (
-                  <div
-                    key={row.id}
-                    {...{ [ROW_ATTRIBUTE]: row.id }}
-                    data-rhythm={ROW_RHYTHM[row.kind]}
-                    data-lit={lit === row.id || undefined}
-                    className={styles.row}>
-                    <FeedRowView row={row} />
-                  </div>
-                ))}
+                <QuoteJumpContext value={jumpToQuote}>
+                  {rows.map((row) => (
+                    <div
+                      key={row.id}
+                      {...{ [ROW_ATTRIBUTE]: row.id }}
+                      data-rhythm={ROW_RHYTHM[row.kind]}
+                      data-lit={lit === row.id || undefined}
+                      className={styles.row}>
+                      <FeedRowView row={row} />
+                    </div>
+                  ))}
+                </QuoteJumpContext>
                 <WorkingLine conversation={conversation} items={items} />
                 <CarryOnRow conversation={conversation} />
               </div>

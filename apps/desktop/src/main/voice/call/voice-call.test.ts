@@ -2,18 +2,19 @@ import { it, vi, expect, describe } from 'vitest'
 
 import type { Conversation } from '@shared/conversation'
 import type { FeedPatch } from '@shared/conversation-feed'
-import type { VoiceCue, VoiceCallEnd, VoiceOutgoing } from '@shared/voice'
+import type { VoiceCue, VoiceCallEnd, VoiceCallMode, VoiceOutgoing } from '@shared/voice'
 import { DEFAULT_VOICE_SETTINGS } from '@shared/voice'
 
 import type { DeepgramDial, DeepgramHandlers } from '../deepgram/deepgram-link'
 import { PLAY_BYTES_PER_MS } from '../deepgram/flux-speak'
 import type { SpokenAnswer } from './call-mouth'
 import { PAUSE_MS } from './utterances'
+import type { Utterance } from './utterances'
 import { VoiceCall } from './voice-call'
 
 type Socket = { url: string; handlers: DeepgramHandlers; sent: Array<string | Uint8Array> }
 
-const harness = () => {
+const harness = (mode: VoiceCallMode = 'call', intercept?: (utterance: Utterance) => boolean) => {
   const sockets: Socket[] = []
   const dial: DeepgramDial = (url, _key, handlers) => {
     const socket: Socket = { url, handlers, sent: [] }
@@ -35,7 +36,7 @@ const harness = () => {
   const call = new VoiceCall({
     id: 'call',
     conversationId: 'c1',
-    view: { provider: 'claude', origin: 'desktop', startedAt: 0 },
+    view: { provider: 'claude', origin: 'desktop', mode, startedAt: 0 },
     settings: { ...DEFAULT_VOICE_SETTINGS, enabled: true },
     key: 'k',
     dial,
@@ -65,6 +66,7 @@ const harness = () => {
     onView: () => undefined,
     onEnded: (reason) => ended.push(reason),
     onSpoken: (answer) => spoken.push(answer),
+    intercept,
   })
 
   const listen = () => sockets.filter((socket) => socket.url.includes('/v2/listen')).at(-1)
@@ -461,5 +463,119 @@ describe('VoiceCall: Stop and the kept answer', () => {
     h.speak()?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
 
     expect(h.spoken).toHaveLength(1)
+  })
+})
+
+describe('VoiceCall in a walkthrough (ADR 0134)', () => {
+  const tool = (status: 'running' | 'done', id = 't1'): FeedPatch => ({
+    conversationId: 'c1',
+    upserts: [
+      {
+        kind: 'tool',
+        id,
+        parentToolUseId: null,
+        name: 'mcp__walkthrough__circle',
+        status,
+      } as FeedPatch['upserts'][number],
+    ],
+  })
+
+  it('asks what to show first and sends lines marked as a walkthrough', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+
+    expect(h.speak()?.url).toContain('model=flux-olga-ru')
+    expect(h.says(h.speak())).toContainEqual({
+      type: 'Speak',
+      text: 'Что показать или объяснить? ',
+    })
+
+    h.turn('EndOfTurn', 'Покажи, что ты сделал')
+    h.pause()
+    expect(h.sent).toEqual([
+      { text: 'Покажи, что ты сделал', voice: { lang: 'ru', heard: null, walkthrough: true } },
+    ])
+  })
+
+  it('answers when the words said before a tool call have been heard, not the ones after', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Это кнопка Deploy. ', false, 'a1'))
+    h.call.feed(tool('running'))
+
+    const { spoken } = await h.call.speechSoFar()
+    let heard: boolean | null = null
+
+    void spoken.then((value) => {
+      heard = value
+    })
+
+    // Модель уже пишет следующую фразу - её такт этой метки не ждёт.
+    h.call.feed(h.answer('Она публикует проект. ', true, 'a2'))
+    const [greeting] = h.speakers()
+
+    greeting?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    greeting?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 300))
+    greeting?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+    greeting?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    greeting?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 400))
+    greeting?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+    await settle()
+    expect(heard).toBeNull()
+
+    h.call.played(0, 700)
+    await settle()
+    expect(heard).toBe(true)
+  })
+
+  it('reports cut words when the person talks over them', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.call.feed(h.answer('Сейчас нажму Settings. ', false, 'a1'))
+    h.call.feed(tool('running'))
+
+    const { spoken } = await h.call.speechSoFar()
+
+    h.call.stop()
+
+    await expect(spoken).resolves.toBe(false)
+  })
+
+  it('does not wait for the feed forever when the tool call is not shown in it', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+
+    const pending = h.call.speechSoFar()
+
+    h.timers.find((timer) => timer.ms === 400)?.run()
+
+    await expect(pending).resolves.toHaveProperty('spoken')
+  })
+
+  it('gives a line to a walkthrough that waits for the person instead of the chat', async () => {
+    const taken: string[] = []
+    const h = harness('walkthrough', (utterance) => {
+      taken.push(utterance.text)
+
+      return true
+    })
+
+    h.call.start([])
+    await settle()
+    h.turn('EndOfTurn', 'Готово, нажал')
+    h.pause()
+
+    expect(taken).toEqual(['Готово, нажал'])
+    expect(h.sent).toEqual([])
   })
 })

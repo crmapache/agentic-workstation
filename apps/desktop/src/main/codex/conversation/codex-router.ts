@@ -6,9 +6,10 @@ import type { RpcId } from '../../process/rpc-lines'
 import { outranks } from '../../agents/tabs/tab-names'
 import { codexOf } from './codex-conversation'
 import { tierOf } from './codex-fast'
+import { pickMcpCall, mcpCandidateOf } from './codex-mcp-approval'
 import { policyFor } from './codex-modes'
 import { holdPlan } from './codex-plan'
-import type { ToolFacts } from './codex-requests'
+import type { CallLookup } from './codex-requests'
 import { holdServerRequest } from './codex-requests'
 import type { CodexSession } from './codex-session'
 
@@ -203,19 +204,33 @@ const withdraw = (session: CodexSession, rpcId: unknown) => {
   runtime.syncStatus()
 }
 
-/** Вызов, о котором спрашивают, - из ленты по id элемента (у правки - первый файл). */
-const factsOf =
-  (session: CodexSession) =>
-  (itemId: string): ToolFacts => {
-    const items = codexOf(session.runtime).feed.builder.items
-    const tool = items.find(
-      (item) => item.kind === 'tool' && (item.id === itemId || item.id.startsWith(`${itemId}#`)),
-    )
+/**
+ * Вызов, о котором спрашивают, - из ленты: по id элемента (у правки - первый файл) или идущий
+ * вызов MCP, который ждёт одобрения.
+ */
+const callsOf = (session: CodexSession): CallLookup => {
+  const tools = () =>
+    codexOf(session.runtime).feed.builder.items.filter((item) => item.kind === 'tool')
 
-    return tool?.kind === 'tool'
-      ? { name: tool.name, input: tool.input, action: tool.action }
-      : { name: 'apply_patch', input: {}, action: { kind: 'other', target: '', path: '' } }
+  return {
+    facts: (itemId) => {
+      const tool = tools().find((item) => item.id === itemId || item.id.startsWith(`${itemId}#`))
+
+      return tool
+        ? { name: tool.name, input: tool.input, action: tool.action }
+        : { name: 'apply_patch', input: {}, action: { kind: 'other', target: '', path: '' } }
+    },
+    mcpCall: (ask) =>
+      pickMcpCall(
+        tools().flatMap((tool) => {
+          const candidate = tool.status === 'running' ? mcpCandidateOf(tool) : null
+
+          return candidate ? [candidate] : []
+        }),
+        ask,
+      ),
   }
+}
 
 /**
  * Вопрос сервера к человеку: держится в разговоре без таймера и зовёт человека. В режиме
@@ -235,10 +250,10 @@ export const takeServerRequest = (
     params,
     requestId,
     runtime.meta.permissionMode,
-    factsOf(session),
+    callsOf(session),
   )
 
-  if (!held) return refuseUnknown(session.server, id, method)
+  if (!held) return refuseUnknown(session.server, id, method, params)
 
   if (runtime.meta.permissionMode === 'bypassPermissions' && held.pending.kind === 'permission') {
     return session.answer(held, { kind: 'permission', decision: { behavior: 'allow' } })

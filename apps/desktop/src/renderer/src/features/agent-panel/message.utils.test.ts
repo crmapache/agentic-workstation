@@ -8,6 +8,7 @@ import {
   lostImages,
   rangePlace,
   messageLine,
+  quoteSource,
   messageDraft,
   answersBefore,
   pastedOrdinals,
@@ -117,6 +118,30 @@ describe('отправленное сообщение', () => {
     ] as const
 
     expect(answersBefore(items, 'u1')).toEqual(['first'])
+  })
+
+  it('цитата ведёт к записанному месту, без него - к ближайшему ответу выше с её словами', () => {
+    const answer = (id: string, text: string) =>
+      ({ id, kind: 'assistant', parentToolUseId: null, text, streaming: false }) as const
+    const items = [
+      answer('a0', 'Run **the cache** line first'),
+      answer('a1', 'Then the cache line again'),
+      item({ id: 'u1' }),
+      answer('a2', 'the cache line, once more'),
+    ]
+    const quote = (source?: string) => ({
+      kind: 'quote' as const,
+      value: 'ref1',
+      text: 'the cache line',
+      source,
+    })
+
+    expect(quoteSource(items, 'u1', quote('a0'))).toBe('a0')
+    expect(quoteSource(items, 'u1', quote())).toBe('a1')
+    // Записанное место выше загруженного - ленте его дотягивать, если слов нет среди загруженного.
+    expect(quoteSource(items, 'u1', quote('older'))).toBe('a1')
+    expect(quoteSource(items, 'u1', { ...quote('older'), text: 'never said' })).toBe('older')
+    expect(quoteSource(items, 'u1', { ...quote(), text: 'never said' })).toBeNull()
   })
 
   it('номера вставленных картинок по чипам', () => {

@@ -100,6 +100,7 @@ export class OpenCodeSession implements AgentSession {
     await this.server.request('PUT', `/api/session/${this.sessionId}/environment`, {
       body: { variables: this.env },
     })
+    await this.settings.brief(this.sessionId)
 
     this.contextWindow = this.settings.contextWindow()
   }
@@ -149,13 +150,7 @@ export class OpenCodeSession implements AgentSession {
     // Прогон IDE, открытый чатом: рамка о снятой роли - перед первым словом человека.
     const frame = isSlashCommand(text) ? '' : takeReleasedFrame(this.sessionId)
     const body = {
-      text: [
-        frame,
-        shell,
-        text,
-        voice ? voiceNote(voice.lang, voice.heard) : '',
-        editor ? editorNote(editor) : '',
-      ]
+      text: [frame, shell, text, voice ? voiceNote(voice) : '', editor ? editorNote(editor) : '']
         .filter(Boolean)
         .join('\n\n'),
       files: message.images.map((image, index) => ({

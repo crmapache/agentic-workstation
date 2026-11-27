@@ -1,10 +1,12 @@
-import { stat, readFile } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { TitleSource } from '@shared/conversation'
 
-import { stringField, parseCliLine } from '../cli/cli-messages'
-import { dropRewound } from '../history/transcript-rewinds'
+import { parseCliLine } from '../cli/cli-messages'
+import { forEachLine, readLinesFrom } from '../history/transcript-lines'
+import type { ChainInfo } from '../history/transcript-rewinds'
+import { chainInfoOf, rewoundIndices } from '../history/transcript-rewinds'
 import { shortenTitle } from '../history/transcript-summary'
 import type { Seen, ManifestEntry } from './search-copy'
 import {
@@ -20,7 +22,6 @@ import { writeCorpus } from './search-corpus'
 import { CORPUS_DIR, REFRESH_INTERVAL_MS } from './search.constants'
 import type { Found, SearchOptions, IndexedMessage } from './search.types'
 import { TextIndex } from './text-index'
-import { readLinesFrom } from './transcript-reader'
 import type { BlockCounts } from './transcript-text'
 import { readTranscriptLine } from './transcript-text'
 
@@ -59,19 +60,18 @@ const fresh = (id: string): Conversation => ({
   revision: 0,
 })
 
-/** Имена строк, которые откат отрезал: CLI их не стирает, а дописывает метку. */
+/**
+ * Имена строк, которые откат отрезал: CLI их не стирает, а дописывает метку. Построчно и
+ * только сведения о цепочке: транскрипт бывает в гигабайт.
+ */
 const cutUuids = async (file: string): Promise<Set<string>> => {
-  const lines = (await readFile(file, 'utf8')).split('\n').filter(Boolean)
-  const kept = new Set(dropRewound(lines))
-  const cut = new Set<string>()
+  const infos: ChainInfo[] = []
 
-  for (const line of lines) {
-    const uuid = kept.has(line) ? '' : stringField(parseCliLine(line) ?? { type: '' }, 'uuid')
+  await forEachLine(file, (line) => {
+    if (line) infos.push(chainInfoOf(parseCliLine(line)))
+  })
 
-    if (uuid) cut.add(uuid)
-  }
-
-  return cut
+  return new Set([...rewoundIndices(infos)].flatMap((index) => infos[index]?.uuid ?? []))
 }
 
 const titleOf = (conversation: Conversation) =>

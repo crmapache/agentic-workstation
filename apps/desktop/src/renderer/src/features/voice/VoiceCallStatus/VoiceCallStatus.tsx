@@ -25,7 +25,10 @@ export const VoiceCallStatus = () => {
     <span className={styles.status}>
       <Badge tone="accent">
         {t('voice.statusLine', {
-          origin: t(`voice.origin.${call.origin}`),
+          origin:
+            call.mode === 'walkthrough'
+              ? t('walkthrough.statusName')
+              : t(`voice.origin.${call.origin}`),
           state: callStateText(t, call),
         })}
       </Badge>

@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path'
 
 import type { ClaudeService } from '../claude-service'
 import { CliProcess } from '../cli/cli-process'
+import { localTimeBriefing } from '../../agents/conversation/local-time-briefing'
 import { makeThumbnail } from '../../agents/images/thumbnail'
 import type { OpenAiChat } from '../../connectors/ai/ai-chat'
 import { DeferredProcess } from '../../providers/claude/deferred-process'
@@ -35,7 +36,10 @@ export const connectorChats =
             }
 
             await mkdir(dirname(instructionsFile), { recursive: true })
-            await writeFile(instructionsFile, options.instructions, { mode: 0o600 })
+            // Пояс человека - в конце правил, на каждый подъём: смещение берётся на сейчас.
+            await writeFile(instructionsFile, `${options.instructions}\n\n${localTimeBriefing()}`, {
+              mode: 0o600,
+            })
 
             if (!wanted()) return null
 

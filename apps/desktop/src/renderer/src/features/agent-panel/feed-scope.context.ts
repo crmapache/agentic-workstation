@@ -1,6 +1,7 @@
 import { use, createContext } from 'react'
 
 import type { PendingRequest } from '@shared/conversation'
+import type { DraftChip } from '@shared/message-draft'
 
 /**
  * Чья это лента: разговор (для действий) и папка проекта (пути от корня, открытие файлов).
@@ -22,6 +23,18 @@ type FeedScope = {
 export const FeedScopeContext = createContext<FeedScope>({ conversationId: '', projectPath: '' })
 
 export const useFeedScope = () => use(FeedScopeContext)
+
+/** Лента прыгает к месту, откуда взята цитата сообщения messageId. */
+export type QuoteJump = (messageId: string, chip: DraftChip) => void
+
+/**
+ * Прыжок к месту цитаты - для чипа цитаты в сообщении. null - у ленты нет своей прокрутки
+ * (журнал шага сценария): чип там просто плашка. Отдельно от FeedScope: прыжок стабилен,
+ * а смена контекста перерисовывала бы все строки.
+ */
+export const QuoteJumpContext = createContext<QuoteJump | null>(null)
+
+export const useJumpToQuote = () => use(QuoteJumpContext)
 
 /**
  * Вопрос, на котором стоит ход (разрешение, план); null - никто не ждёт. Отдельно от

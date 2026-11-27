@@ -73,3 +73,20 @@ export const CURSOR_IN_BACKGROUND = 'SetsCursorInBackground'
 
 /** kCFStringEncodingUTF8. */
 export const CF_STRING_UTF8 = 0x08000100
+
+/**
+ * Список окон (CGWindow.h, ADR 0129): только те, что сейчас на экране, без значков рабочего
+ * стола, от самого верхнего; kCGNullWindowID - начиная не от окна, а со всех.
+ */
+export const WINDOW_LIST_ON_SCREEN = 1
+export const WINDOW_LIST_NO_DESKTOP = 16
+export const NULL_WINDOW = 0
+
+/** kCGWindowSharingNone: окно закрыто от захвата экрана (капсула и стрелка ИИ). */
+export const WINDOW_SHARING_NONE = 0
+
+/** kCGAnyInputEventType: последний ввод любого вида - мышь, колесо, клавиши, модификаторы. */
+export const ANY_INPUT_EVENT = 0xffffffff
+
+/** kCFNumberDoubleType: числа словаря окна читаются в double - номера и координаты в нём точны. */
+export const CF_NUMBER_DOUBLE = 13

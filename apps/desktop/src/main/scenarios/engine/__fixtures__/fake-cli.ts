@@ -88,6 +88,17 @@ export class FakeCli implements SessionProcess {
     return Promise.resolve()
   }
 
+  /** Строка посреди хода - вызов инструмента: процесс работает, ход ещё не кончен. */
+  pulse(): void {
+    this.emit({
+      type: 'assistant',
+      message: {
+        id: `work-${this.turns}`,
+        content: [{ type: 'tool_use', name: 'Bash', input: {} }],
+      },
+    })
+  }
+
   /** Процесс умер сам. */
   crash(): void {
     this.isAlive = false

@@ -11,6 +11,7 @@ import type { HeldRequest, AgentSession } from '../../agents/conversation/agent-
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
 import { draftTitle, isSlashCommand } from '../../agents/conversation/conversation.utils'
 import { editorNote } from '../../agents/conversation/editor-note'
+import { withLocalTime } from '../../agents/conversation/local-time-briefing'
 import type { Outgoing } from '../../agents/conversation/outbox'
 import { voiceNote } from '../../agents/conversation/voice-note'
 import { releasedBriefing, takeReleasedFrame } from '../../agents/history/released-runs'
@@ -70,7 +71,7 @@ const inputOf = (
     type: 'image',
     url: `data:${image.mediaType};base64,${image.data}`,
   })),
-  ...(voice ? [textItem(voiceNote(voice.lang, voice.heard))] : []),
+  ...(voice ? [textItem(voiceNote(voice))] : []),
   ...(editor ? [textItem(editorNote(editor))] : []),
 ]
 
@@ -131,6 +132,9 @@ export class CodexSession implements AgentSession {
       approvalPolicy: policy.approvalPolicy,
       sandbox: policy.sandbox,
       ...tierField(meta.fastMode),
+      // Пояс человека; у потока прогона IDE, открытого чатом, указания его роли заменяются ещё и
+      // снятием роли.
+      developerInstructions: withLocalTime(releasedBriefing(meta.sessionId)),
     }
     const { fork } = meta
     const reply = meta.sessionId
@@ -138,10 +142,6 @@ export class CodexSession implements AgentSession {
           threadId: meta.sessionId,
           ...common,
           excludeTurns: true,
-          // Поток прогона IDE, открытый чатом: указания его роли заменяются снятием роли.
-          ...(releasedBriefing(meta.sessionId) && {
-            developerInstructions: releasedBriefing(meta.sessionId),
-          }),
         })
       : fork?.at
         ? await this.server.request('thread/fork', {

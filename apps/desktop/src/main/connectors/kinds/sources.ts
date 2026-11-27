@@ -23,6 +23,7 @@ import { GMAIL_TOOLS } from './google/gmail-tools'
 import { GoogleSession, GoogleApiError } from './google/google-session'
 import { HttpSpecSource } from './http/http-source'
 import { createNotificationsSource } from './notifications/notifications-tools'
+import { createWalkthroughSource } from './walkthrough/walkthrough-tools'
 import { createWorkstationSource } from './workstation/workstation-tools'
 
 export type SourceDeps = {
@@ -102,6 +103,15 @@ export const createSource = (
       : new NativeSource([], null, [])
   }
 
+  // Показ Walkthrough (ADR 0134): метки и такт - поверх того же Computer Use.
+  if (connector.kind === 'walkthrough') {
+    const { computer } = deps
+
+    return computer
+      ? createWalkthroughSource({ desk: computer.walkthrough, computer: computer.agent })
+      : new NativeSource([], null, [])
+  }
+
   // Уведомления IDE (ADR 0069): свои инструменты поверх ленты уведомлений.
   if (connector.kind === 'notifications') {
     return deps.inbox ? createNotificationsSource(deps.inbox) : new NativeSource([], null, [])
@@ -154,6 +164,7 @@ export const createSource = (
 const IDE_OWN_KINDS: readonly ConnectorKind[] = [
   'browser',
   'computer',
+  'walkthrough',
   'notifications',
   'workstation',
   'extensions',

@@ -62,7 +62,9 @@ export const codexDriver = (host: () => CodexHost): AgentDriver => ({
     const server = new AppServerProcess(
       {
         binary: cli.binary,
-        args: connectorArgs(connectors?.servers ?? [], userServers),
+        args: connectorArgs(connectors?.servers ?? [], userServers, {
+          allowed: connectors?.allowed,
+        }),
         cwd: runtime.meta.projectPath,
         env: connectors ? { ...cli.env, [GATEWAY_TOKEN_ENV]: connectors.token } : cli.env,
         client: { ...CODEX_CLIENT, version: codex.host.version() },

@@ -99,7 +99,7 @@ export const closeHeadTurn = (e: EngineCore): void => {
 
   const reply = readEndings(e.headTurn.last)
 
-  if (reply.words.trim()) e.note(reply.words, aboutWhat(e))
+  e.noteTurn(reply.said, aboutWhat(e))
 
   const { body } = reply
 

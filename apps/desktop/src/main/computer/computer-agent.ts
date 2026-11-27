@@ -5,22 +5,39 @@ import { assertComputerAccess } from './computer-access'
 import { openApp } from './computer-apps'
 import type { DeskCall, ComputerDesk } from './computer-desk'
 import { ComputerError } from './computer-error'
-import { toShot, regionOf, toScreen, displayAt, isSameDisplay } from './computer-geometry'
+import { toShot, regionOf, toScreen, displayAt } from './computer-geometry'
 import type { Display, ShotFrame } from './computer-geometry'
 import { LIVE_MOTION } from './computer-hand'
 import type { ComputerHand } from './computer-hand'
 import type { KeyChord } from './computer-keys'
 import { shootRegion, listDisplays, shootDisplay } from './computer-screen'
 import type { Picture } from './computer-screen'
+import {
+  glance,
+  outdated,
+  LOOK_AGAIN,
+  SHOOT_AGAIN,
+  changedSince,
+  isTouchedSince,
+  windowsChangedAt,
+} from './computer-seen'
+import type { Seen, Glance } from './computer-seen'
 import { SETTLE_AFTER_OPEN_MS, SETTLE_AFTER_ACTION_MS } from './computer.constants'
 import type { Point, MouseButton } from './computer.types'
 import { clickedText } from './screen-element'
+import type { ScreenWitness } from './screen-scene'
 
 /**
  * Ответ инструмента: картинка экрана и что про неё знать. isRefusal - действие не сделано
  * проверкой (ADR 0119): модель получает и снимок, и отказ.
  */
 export type ComputerAnswer = { picture: Picture; text: string; isRefusal?: boolean }
+
+/**
+ * Куда ложится метка показа Walkthrough (ADR 0134): дисплей последнего снимка и перевод его
+ * пикселей в точки экрана, а снимок не годится - почему (refusal), словами для модели.
+ */
+export type Aim = { display: Display; toScreen: (pixel: Point) => Point } | { refusal: string }
 
 /** Что агенту нужно от IDE: стол, рука, разрешения, капсула (пропускать клики сквозь себя). */
 export type ComputerPort = {
@@ -36,26 +53,24 @@ export type ComputerPort = {
   covers: (point: Point) => boolean
   /** Снять экран так, чтобы капсулы на снимке не было (старый Windows 10 её не исключает). */
   hiddenFromShot: <T>(shoot: () => Promise<T>) => Promise<T>
+  /** Окна экрана и время последнего ввода: сверка экрана перед действием (ADR 0129). */
+  witness: ScreenWitness
+  /**
+   * Разговор кончил работу, в которой брал компьютер, и человек после последнего снимка ИИ
+   * компьютер не трогал: IDE возвращает его к чату (ADR 0130).
+   */
+  finished: (key: string) => void
+  /**
+   * Перед каждым действием (ADR 0134): показ Walkthrough ждёт, пока прозвучат слова модели перед
+   * действием, и стирает метки - экран сейчас поменяется. Нет - действие идёт сразу.
+   */
+  beforeAct?: ((key: string, signal: AbortSignal) => Promise<void>) | undefined
 }
-
-const NO_SHOT =
-  'Take a screenshot first: the coordinates of every action are pixels of your latest screenshot.'
-
-const PAUSED_SINCE =
-  'The user paused you after your latest screenshot, so this action did not run: the screen ' +
-  'may have changed. Take a new screenshot and decide again.'
-
-const LAYOUT_CHANGED =
-  'The displays changed since your latest screenshot (one was connected, removed or resized), ' +
-  'so this action did not run. Take a new screenshot.'
 
 const MISMATCH_NEXT = 'Look at this screenshot before you click again.'
 
-/** Клавиатуре точка не нужна: под капсулой она не бьёт никогда. */
+/** Клавиатуре точка не нужна: под капсулой она не бьёт никогда, а сверяются окна перед ней. */
 const NOWHERE = (): Point[] => []
-
-/** Снимок разговора и номер паузы, при которой он сделан. */
-type Seen = { frame: ShotFrame; pauses: number }
 
 /**
  * Вызов простоял на паузе человека - модель узнаёт, сколько: пока она ждала, человек мог
@@ -76,12 +91,14 @@ const ordered = (): Display[] =>
 /**
  * Computer Use (ADR 0057): снимки экрана и действия настоящими мышью и клавиатурой от имени
  * разговора. Координаты модели - пиксели её последнего снимка; после каждого действия она
- * получает новый снимок того же дисплея. Всё идёт через стол: один разговор за раз, пауза и
- * остановка человеком.
+ * получает новый снимок того же дисплея, а снимок, который уже не правда об экране, действие не
+ * пускает (ADR 0129). Всё идёт через стол: один разговор за раз, пауза и остановка человеком.
  */
 export class ComputerAgent {
-  /** Последний снимок каждого разговора: в его пикселях модель называет точки. */
+  /** Последний снимок каждого разговора: в его пикселях модель называет точки, с ним сверяется экран. */
   private frames = new Map<string, Seen>()
+  /** Разговоры, бравшие компьютер в нынешней работе: её конец возвращает человека к чату. */
+  private used = new Set<string>()
 
   constructor(private readonly port: ComputerPort) {}
 
@@ -208,6 +225,7 @@ export class ComputerAgent {
   openApp(call: DeskCall, name: string): Promise<ComputerAnswer> {
     return this.port.desk.run(call, async (signal) => {
       this.need(['screen'])
+      await this.port.beforeAct?.(call.key, signal)
 
       const opened = await openApp(name, signal)
 
@@ -217,19 +235,74 @@ export class ComputerAgent {
     })
   }
 
+  /**
+   * Точки метки показа Walkthrough (ADR 0134) по последнему снимку разговора (key) - в точках
+   * экрана. Снимок не годится для действия (нет его, пауза, перерыв, другой дисплей) или окна в
+   * точках метки поменялись - отказ словами: метка поверх другого окна обманула бы человека. Ввод
+   * человека не помеха: слушая показ, он двигает мышь.
+   */
+  aim(key: string, pixels: readonly Point[]): Aim {
+    const seen = this.frames.get(key)
+    const reason = this.outdatedOf(seen)
+
+    if (reason || !seen) return { refusal: reason ?? SHOOT_AGAIN }
+
+    const { frame } = seen
+    const onScreen = (pixel: Point) => toScreen(frame, pixel.x, pixel.y)
+    const changed = windowsChangedAt(seen, this.glance(), pixels.map(onScreen))
+
+    return changed ? { refusal: changed } : { display: frame.display, toScreen: onScreen }
+  }
+
+  /** Что сейчас на экране помимо картинки: окна и время ввода - сверять метки с ним потом. */
+  glance(): Glance {
+    return glance(this.port.witness, LIVE_MOTION.now())
+  }
+
+  /** Сколько мс назад был последний ввод мыши и клавиатуры (и руки ИИ); не знаем - null. */
+  quietMs(): number | null {
+    const { inputAt } = this.glance()
+
+    return inputAt === null ? null : LIVE_MOTION.now() - inputAt
+  }
+
+  /**
+   * Отдать компьютер человеку (ADR 0134): показ просит его сделать шаг самому. Капсула и стрелка ИИ
+   * уходят сразу; следующее действие ИИ - только по свежему снимку (стол считает перерыв).
+   */
+  handOver(key: string): void {
+    this.port.desk.idle(key)
+  }
+
   /** Разговор закрыт: его снимок больше не нужен, компьютер - свободен. */
   endConversation(key: string): void {
     this.frames.delete(key)
+    this.used.delete(key)
     this.port.desk.endConversation(key)
   }
 
+  /** Процесс разговора кончился: возвращать к чату, которого нет, нечего. */
   release(key: string): void {
+    this.used.delete(key)
     this.port.desk.release(key)
   }
 
-  /** Работа разговора встала: капсула уходит сразу (ComputerDesk.idle). */
+  /**
+   * Работа разговора встала: капсула уходит сразу (ComputerDesk.idle). Брал он в этой работе
+   * компьютер - человека возвращают к его чату (ADR 0130), но только если тот после последнего
+   * снимка ИИ не трогал мышь и клавиатуру: иначе он уже работает сам (нажал Stop, пишет в другом
+   * окне), и фокус, вырванный из-под рук, унёс бы его набор в поле чата.
+   */
   idle(key: string): void {
     this.port.desk.idle(key)
+
+    if (!this.used.delete(key)) return
+
+    const seen = this.frames.get(key)
+
+    if (seen && isTouchedSince(seen, this.glance())) return
+
+    this.port.finished(key)
   }
 
   private need(permissions: ComputerPermission[]): void {
@@ -237,42 +310,60 @@ export class ComputerAgent {
   }
 
   /**
-   * Снимок, по которому модель называет точки, - только если он ещё правда: после него не было
-   * паузы (человек мог всё поменять) и дисплей тот же.
+   * Почему последний снимок разговора уже не правда об экране, не глядя на экран: его нет, после
+   * него была пауза или перерыв, дисплей не тот (ADR 0129). Правда - null.
    */
+  private outdatedOf(seen: Seen | undefined): string | null {
+    const display = seen && listDisplays().find((one) => one.id === seen.frame.display.id)
+
+    return outdated(seen, this.port.desk, display, Date.now())
+  }
+
+  /** Снимок для zoom: его область - пиксели последнего снимка, и он должен быть ещё правдой. */
   private frameOf(call: DeskCall): ShotFrame {
     const seen = this.frames.get(call.key)
+    const reason = this.outdatedOf(seen)
 
-    if (!seen) throw new ComputerError('no-shot', NO_SHOT)
-
-    if (seen.pauses !== this.port.desk.pauses) throw new ComputerError('no-shot', PAUSED_SINCE)
-
-    const now = listDisplays().find((display) => display.id === seen.frame.display.id)
-
-    if (!isSameDisplay(seen.frame.display, now)) throw new ComputerError('no-shot', LAYOUT_CHANGED)
+    if (reason || !seen) throw new ComputerError('no-shot', `${reason ?? ''} ${SHOOT_AGAIN}`.trim())
 
     return seen.frame
   }
 
   /**
-   * Действие руки: человек не трогает мышь - рука действует, приложение перерисовывается - и
-   * модель получает новый снимок того же дисплея. Капсула пропускает клики сквозь себя, только
-   * если рука бьёт в точку под ней (targets): иначе нажатие человека на Stop посреди действия
-   * проваливалось бы в приложение под капсулой.
+   * Сначала экран, потом действие (ADR 0129): снимок, по которому модель называет точки, должен
+   * быть правдой. Его нет, после него была пауза или перерыв, человек трогал мышь или клавиатуру,
+   * окна в точках действия (у клавиатуры - перед ней) открылись, закрылись или сдвинулись -
+   * действие не идёт, модель получает свежий снимок и решает заново. Иначе рука действует,
+   * приложение перерисовывается - и модель получает новый снимок того же дисплея. Капсула
+   * пропускает клики сквозь себя, только если рука бьёт в точку под ней (targets): иначе нажатие
+   * человека на Stop посреди действия проваливалось бы в приложение под капсулой.
    */
   private act(
     call: DeskCall,
     targets: (frame: ShotFrame) => Point[],
     work: (frame: ShotFrame, signal: AbortSignal) => Promise<string>,
   ): Promise<ComputerAnswer> {
-    return this.port.desk.run(call, async (signal, pausedMs) => {
+    return this.port.desk.run(call, async (signal) => {
       this.need(['accessibility', 'screen'])
+      // Показ: сначала договорить то, что модель сказала перед действием, - потом сверка экрана.
+      await this.port.beforeAct?.(call.key, signal)
 
-      const frame = this.frameOf(call)
+      const seen = this.frames.get(call.key)
+      const reason = this.outdatedOf(seen)
 
+      if (reason || !seen) return this.refuse(call, reason ?? '')
+
+      const { frame } = seen
+
+      // Человек двигает мышь - дождаться, пока отпустит, и уже тогда сверять экран.
       await this.port.hand.waitForStill(signal)
 
-      const isUnder = targets(frame).some((point) => this.port.covers(point))
+      const points = targets(frame)
+      const changed = changedSince(seen, this.glance(), points)
+
+      if (changed) return this.refuse(call, changed)
+
+      const isUnder = points.some((point) => this.port.covers(point))
 
       if (isUnder) this.port.passThrough(true)
 
@@ -293,11 +384,20 @@ export class ComputerAgent {
 
       await LIVE_MOTION.sleep(SETTLE_AFTER_ACTION_MS, signal)
 
-      const text = [pausedNote(pausedMs), said].filter(Boolean).join(' ')
-      const answer = await this.shoot(call, frame.display, text)
+      const answer = await this.shoot(call, frame.display, said)
 
       return isRefusal ? { ...answer, isRefusal } : answer
     })
+  }
+
+  /**
+   * Действие не сделано: экран уже не тот, что на снимке модели. Ответ - свежий снимок дисплея
+   * прошлого снимка (нет его - где мышь) и причина: модель смотрит заново, а не жмёт вслепую.
+   */
+  private async refuse(call: DeskCall, reason: string): Promise<ComputerAnswer> {
+    const answer = await this.shoot(call, this.pick(call, null), `${reason} ${LOOK_AGAIN}`)
+
+    return { ...answer, isRefusal: true }
   }
 
   /** Какой дисплей снимать: названный, иначе прошлый, иначе тот, где сейчас мышь. */
@@ -340,16 +440,24 @@ export class ComputerAgent {
     }
   }
 
+  /**
+   * Снимок для модели - и запомнить его как то, что она видела. Счётчики стола, окна и время
+   * ввода читаются до снимка: пауза или перемена посреди съёмки считается бывшей после него, в
+   * пользу отказа.
+   */
   private async shoot(call: DeskCall, display: Display, said: string): Promise<ComputerAnswer> {
     const displays = ordered()
     // Дисплей мог поменять размер или пропасть - берём его нынешний вид.
     const now = displays.find((one) => one.id === display.id) ?? displays[0] ?? display
+    const { pauses, letGos } = this.port.desk
+    const look = this.glance()
     const shot = await this.port.hiddenFromShot(() => shootDisplay(now))
     const at = this.pointer()
     const pointer = at ? toShot(shot.frame, at) : null
     const number = displays.indexOf(now) + 1
 
-    this.frames.set(call.key, { frame: shot.frame, pauses: this.port.desk.pauses })
+    this.frames.set(call.key, { ...look, frame: shot.frame, at: Date.now(), pauses, letGos })
+    this.used.add(call.key)
 
     return {
       picture: shot,

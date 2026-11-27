@@ -63,7 +63,7 @@ describe('коннекторы IDE в Codex', () => {
           { name: 'slack', url: 'http://127.0.0.1:5000/mcp/slack' },
         ],
         [{ name: 'gmail', transport: 'url="https://other"' }],
-        new Map([['gmail', ['search', 'read']]]),
+        { onlyTools: new Map([['gmail', ['search', 'read']]]) },
       ),
     ).toEqual([
       '-c',
@@ -78,12 +78,44 @@ describe('коннекторы IDE в Codex', () => {
       connectorArgs(
         [{ name: 'browser-chrome', url: 'http://127.0.0.1:5000/mcp/browser-chrome' }],
         [],
-        new Map([['browser-chrome', ['open', 'snapshot']]]),
-        true,
+        { onlyTools: new Map([['browser-chrome', ['open', 'snapshot']]]), approved: true },
       ),
     ).toEqual([
       '-c',
       'mcp_servers.browser-chrome={url="http://127.0.0.1:5000/mcp/browser-chrome", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN", enabled_tools=["open","snapshot"], default_tools_approval_mode="approve"}',
+    ])
+  })
+
+  it('разрешено всегда, как у Claude: весь сервер или поимённо, по имени в шлюзе', () => {
+    expect(
+      connectorArgs(
+        [
+          { name: 'notifications', url: 'http://127.0.0.1:5000/mcp/notifications' },
+          { name: 'workstation', url: 'http://127.0.0.1:5000/mcp/workstation' },
+          { name: 'workstation__x', url: 'http://127.0.0.1:5000/mcp/workstation__x' },
+          { name: 'gmail', url: 'http://127.0.0.1:5000/mcp/gmail' },
+        ],
+        [{ name: 'notifications', transport: 'command="x"' }],
+        {
+          allowed: [
+            'mcp__notifications',
+            'mcp__workstation__list_projects',
+            'mcp__workstation__get_task',
+            'mcp__workstation__x__run',
+          ],
+        },
+      ),
+    ).toEqual([
+      '-c',
+      'mcp_servers.notifications-ide={url="http://127.0.0.1:5000/mcp/notifications", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN", default_tools_approval_mode="approve"}',
+      '-c',
+      'mcp_servers.workstation={url="http://127.0.0.1:5000/mcp/workstation", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN", tools={"list_projects"={approval_mode="approve"}, "get_task"={approval_mode="approve"}}}',
+      '-c',
+      'mcp_servers.workstation__x={url="http://127.0.0.1:5000/mcp/workstation__x", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN", tools={"run"={approval_mode="approve"}}}',
+      '-c',
+      'mcp_servers.gmail={url="http://127.0.0.1:5000/mcp/gmail", bearer_token_env_var="AGENTIC_WORKSTATION_GATEWAY_TOKEN"}',
+      '-c',
+      'mcp_servers.notifications={command="x", enabled=false}',
     ])
   })
 

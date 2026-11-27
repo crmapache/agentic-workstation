@@ -12,15 +12,17 @@ import type {
 import type { DeepgramDial } from '../deepgram/deepgram-link'
 import type { ListenTrouble } from '../deepgram/flux-listen'
 import { DUCK_LEVEL } from './barge-in'
+import { CallAlarms } from './call-alarms'
 import type { AgentWork, CallAgent } from './call-brain'
 import { CallBrain } from './call-brain'
 import type { BargeIn } from './call-ears'
 import { CallEars } from './call-ears'
 import type { SpokenAnswer } from './call-mouth'
 import { CallMouth } from './call-mouth'
-import type { Timer } from './utterances'
+import type { Timer, Utterance } from './utterances'
 import type { VoiceEndpoint } from './voice-endpoint'
 import { phrasesOf } from './voice-phrases'
+import { isStopOnly } from './voice-words'
 
 /** После стольких минут тишины звонок спрашивает «ты ещё тут?» (spec, «Долго никто не говорит»). */
 export const SILENCE_MS = 10 * 60_000
@@ -30,11 +32,16 @@ const GOODBYE_MS = 60_000
 const STILL_HERE_MS = 15_000
 /** Связь с телефоном потеряна - сессия ждёт его столько (spec: 60 с). */
 export const LINE_LOST_MS = 60_000
+/**
+ * Сколько такт показа ждёт, пока лента покажет идущий инструмент (ADR 0134): вызов через шлюз
+ * может обогнать ленту, но не на столько.
+ */
+const TOOL_IN_FEED_MS = 400
 
 export type VoiceCallOptions = {
   id: string
   conversationId: string
-  view: Pick<VoiceCallView, 'provider' | 'origin' | 'startedAt'>
+  view: Pick<VoiceCallView, 'provider' | 'origin' | 'startedAt' | 'mode'>
   settings: VoiceSettings
   key: string
   dial: DeepgramDial
@@ -47,6 +54,11 @@ export type VoiceCallOptions = {
   onEnded: (reason: VoiceCallEnd) => void
   /** Ответ прозвучал целиком: его звук - в запас «Прочитать вслух» (ADR 0106). */
   onSpoken?: ((spoken: SpokenAnswer) => void) | undefined
+  /**
+   * Реплика человека, которую забирает показ (ADR 0134): агент ждёт его действия (wait_for_user),
+   * и сказанное - ответ этого ожидания, а не новое сообщение в чат. Забрал - true.
+   */
+  intercept?: ((utterance: Utterance) => boolean) | undefined
 }
 
 /**
@@ -68,12 +80,13 @@ export class VoiceCall {
   private language: VoiceLanguage | null
   /** Настройки звонка: скорость и перебивание меняются на лету, остальное - с ним же до конца. */
   private settings: VoiceSettings
-  private readonly cancels = new Map<'silence' | 'goodbye' | 'tone' | 'line', () => void>()
+  private readonly alarms: CallAlarms
 
   constructor(private readonly options: VoiceCallOptions) {
     const { languageMode } = options.settings
 
     this.settings = options.settings
+    this.alarms = new CallAlarms(options.timer)
     this.language = languageMode === 'multi' ? null : languageMode
     this.mouth = this.newMouth()
     this.ears = this.newEars()
@@ -85,6 +98,7 @@ export class VoiceCall {
         this.work = work
         this.changed()
       },
+      walkthrough: options.view.mode === 'walkthrough',
     })
   }
 
@@ -108,13 +122,38 @@ export class VoiceCall {
     return this.options.conversationId
   }
 
+  get mode(): VoiceCallView['mode'] {
+    return this.options.view.mode
+  }
+
   start(items: readonly FeedItem[]): void {
     this.options.agent.notice('voice-started', this.options.view.origin)
     this.brain.seed(items)
     this.ears.start()
-    this.mouth.warm(this.replyLanguage)
+
+    const language = this.replyLanguage
+
+    // Показ начинает IDE сама: человек нажал кнопку и ещё не сказал, что показать.
+    if (this.mode === 'walkthrough') {
+      this.mouth.say('walkthrough-hello', phrasesOf(language).walkthroughHello, language)
+    } else {
+      this.mouth.warm(language)
+    }
+
     this.watchSilence()
     this.changed()
+  }
+
+  /**
+   * Такт показа (ADR 0134): прозвучит ли всё, что модель сказала до этой минуты. Сначала лента
+   * должна показать идущий инструмент - тогда текст перед ним уже во рту, - потом рот запоминает,
+   * что держит, и spoken сбывается, когда это дослушано (true) или оборвано (false). Обёртка, а не
+   * голое обещание: вызывающий ждёт только снятия мерки, а не самого голоса.
+   */
+  async speechSoFar(): Promise<{ spoken: Promise<boolean> }> {
+    if (!this.ended) await this.brain.toolStarted(TOOL_IN_FEED_MS, this.options.timer)
+
+    return { spoken: this.ended ? Promise.resolve(false) : this.mouth.drained() }
   }
 
   mic(pcm: Uint8Array): void {
@@ -191,11 +230,11 @@ export class VoiceCall {
 
   /** Связь с конечной точкой пропала: ждать её 60 с, потом положить трубку. */
   lineLost(): void {
-    this.arm('line', () => this.end('lostLine'), LINE_LOST_MS)
+    this.alarms.arm('line', () => this.end('lostLine'), LINE_LOST_MS)
   }
 
   lineBack(): void {
-    this.disarm('line')
+    this.alarms.disarm('line')
   }
 
   end(reason: VoiceCallEnd): void {
@@ -216,9 +255,7 @@ export class VoiceCall {
       this.ears.stop()
       this.mouth.stop()
 
-      for (const cancel of this.cancels.values()) cancel()
-
-      this.cancels.clear()
+      this.alarms.clear()
       this.options.endpoint.cue({ kind: 'ended', reason, conversationId: this.conversationId })
       this.options.onEnded(reason)
     }
@@ -279,6 +316,8 @@ export class VoiceCall {
       },
       onUtterance: (utterance) => {
         this.language = utterance.language
+        // «Стоп» и сейчас останавливает работу; остальное может быть ответом ожидания показа.
+        if (!isStopOnly(utterance.text) && this.options.intercept?.(utterance)) return
         this.brain.utterance(utterance)
       },
       onBargeIn: (action) => this.bargeIn(action),
@@ -307,8 +346,8 @@ export class VoiceCall {
 
   /** Тишина: агент свободен и человек молчит 10 минут - спросить, потом положить трубку. */
   private watchSilence(): void {
-    this.disarm('goodbye')
-    this.arm(
+    this.alarms.disarm('goodbye')
+    this.alarms.arm(
       'silence',
       () => {
         if (this.work.state !== 'idle' || this.paused) return this.watchSilence()
@@ -316,7 +355,7 @@ export class VoiceCall {
         const language = this.replyLanguage
 
         this.mouth.say(`still-there:${Date.now()}`, phrasesOf(language).stillThere, language)
-        this.arm('goodbye', () => this.end('silence'), GOODBYE_MS)
+        this.alarms.arm('goodbye', () => this.end('silence'), GOODBYE_MS)
       },
       SILENCE_MS,
     )
@@ -327,32 +366,21 @@ export class VoiceCall {
     const silentWork = this.state === 'working' || this.state === 'thinking'
 
     if (!silentWork || !this.settings.stillHere) {
-      this.disarm('tone')
+      this.alarms.disarm('tone')
 
       return
     }
 
-    if (this.cancels.has('tone')) return
+    if (this.alarms.has('tone')) return
 
-    this.arm(
+    this.alarms.arm(
       'tone',
       () => {
-        this.cancels.delete('tone')
         this.options.endpoint.cue({ kind: 'tone' })
         this.watchWork()
       },
       STILL_HERE_MS,
     )
-  }
-
-  private arm(name: 'silence' | 'goodbye' | 'tone' | 'line', run: () => void, ms: number): void {
-    this.disarm(name)
-    this.cancels.set(name, this.options.timer(run, ms))
-  }
-
-  private disarm(name: 'silence' | 'goodbye' | 'tone' | 'line'): void {
-    this.cancels.get(name)?.()
-    this.cancels.delete(name)
   }
 
   private changed(): void {

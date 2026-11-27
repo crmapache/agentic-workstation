@@ -19,7 +19,8 @@ import type { ComputerState } from './computer'
  * Тип коннектора. atlassian - Jira и Confluence в облаке Atlassian, todoist - Todoist по
  * личному токену, оба через официальные MCP (ADR 0036); playwright - браузер Playwright MCP
  * на этой машине (ADR 0035); browser - Chrome человека через расширение IDE (ADR 0040); computer -
- * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); notifications -
+ * мак человека настоящими мышью и клавиатурой по снимкам экрана (ADR 0057); walkthrough - голосовой
+ * показ на экране поверх Computer Use и Browser (ADR 0134); notifications -
  * уведомления и напоминания IDE самому человеку (ADR 0069, встроенный); workstation - сама IDE:
  * проекты, сценарии и очереди, задания, разговоры панелей (ADR 0090, встроенный); extensions -
  * инструменты расширений IDE (ADR 0091, встроенный); mcp - любой
@@ -36,6 +37,7 @@ export type ConnectorKind =
   | 'playwright'
   | 'browser'
   | 'computer'
+  | 'walkthrough'
   | 'notifications'
   | 'workstation'
   | 'extensions'
@@ -53,6 +55,7 @@ export const CONNECTOR_KINDS: readonly ConnectorKind[] = [
   'playwright',
   'browser',
   'computer',
+  'walkthrough',
   'notifications',
   'workstation',
   'extensions',
@@ -365,6 +368,11 @@ export type AddConnectorRequest =
   | { kind: 'browser' }
   /** Computer Use (ADR 0057): мышь у машины одна - и коннектор один, имя сервера постоянное. */
   | { kind: 'computer' }
+  /**
+   * Walkthrough (ADR 0134): показ один на IDE, как Computer Use, и добавляется только поверх
+   * включённых Computer Use и Browser.
+   */
+  | { kind: 'walkthrough' }
   /** Личный токен API Todoist: с ним официальный MCP Todoist пускает без входа в браузере. */
   | { kind: 'todoist'; label: string; token: string }
   | { kind: 'slack'; label: string; clientId: string; clientSecret: string }
@@ -414,6 +422,8 @@ export type AddConnectorError =
   | 'missing-secret'
   | 'vault-unavailable'
   | 'google-app-missing'
+  /** Walkthrough без включённых Computer Use и Browser (ADR 0134). */
+  | 'walkthrough-needs'
   | 'failed'
 
 export type AddConnectorOutcome = {

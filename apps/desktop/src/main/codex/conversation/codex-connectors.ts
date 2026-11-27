@@ -87,21 +87,73 @@ export const codexServerNames = (
   return names
 }
 
+/** Что процессу Codex можно без вопроса и что видно у серверов шлюза. */
+export type ConnectorOptions = {
+  /** Только эти инструменты сервера шлюза (`enabled_tools`); сервер без своих не идёт вовсе. */
+  onlyTools?: ReadonlyMap<string, readonly string[]> | undefined
+  /**
+   * Разовый вопрос без человека: выданное (допуск шлюза, ADR 0114, или чтение проекта) Codex
+   * не спрашивает (`default_tools_approval_mode`). Без этого в never с песочницей только
+   * чтения он отказал бы всему без пометки «только чтение» (ADR 0131).
+   */
+  approved?: boolean | undefined
+  /**
+   * Правила «разрешено всегда» шлюза (`GatewayLaunch.allowed`, у Claude - `--allowedTools`):
+   * `mcp__<сервер>` - весь сервер, `mcp__<сервер>__<инструмент>` - один инструмент. Уведомления
+   * себе и свои серверы IDE Codex, как и Claude, не спрашивает.
+   */
+  allowed?: readonly string[] | undefined
+}
+
+/**
+ * Одобрение без вопроса у сервера шлюза по правилам: весь сервер или инструменты. Правило
+ * принадлежит серверу с самым длинным подходящим именем: `mcp__a__b__x` - инструмент `x`
+ * сервера `a__b`, а не `b__x` сервера `a`.
+ */
+const approvalsOf = (
+  name: string,
+  servers: readonly GatewayEntry[],
+  allowed: readonly string[],
+) => {
+  const longer = servers
+    .map((server) => server.name)
+    .filter((other) => other.length > name.length && other.startsWith(`${name}__`))
+  const tools = allowed.flatMap((rule) => {
+    const prefix = `mcp__${name}__`
+
+    if (!rule.startsWith(prefix)) return []
+    if (longer.some((other) => rule === `mcp__${other}` || rule.startsWith(`mcp__${other}__`))) {
+      return []
+    }
+
+    return [rule.slice(prefix.length)]
+  })
+
+  return { all: allowed.includes(`mcp__${name}`), tools }
+}
+
+/** Хвост таблицы сервера про одобрение: весь сервер или поимённо (`tools.<имя>.approval_mode`). */
+const approvalFields = (all: boolean, tools: readonly string[]): string => {
+  if (all) return ', default_tools_approval_mode="approve"'
+  if (tools.length === 0) return ''
+
+  const table = tools.map((tool) => `${JSON.stringify(tool)}={approval_mode="approve"}`).join(', ')
+
+  return `, tools={${table}}`
+}
+
 /**
  * Флаги `-c` процесса Codex (ADR 0029: MCP у провайдера - только коннекторы IDE): серверы
  * шлюза проекта с ключом из окружения - под именами `codexServerNames` - и выключенные серверы
  * человека из его конфига Codex, все до одного: конфиг не правится, выключение действует
  * только на процессы IDE. Сервер - целиком одной встроенной таблицей с транспортом: таблицу
- * без него Codex отвергал («invalid transport»). С `onlyTools` у сервера шлюза - только эти
- * инструменты (`enabled_tools`), сервер без своих в нём не идёт вовсе. approved - инструменты
- * выданы допуском шлюза (ADR 0114): Codex не спрашивает одобрения (`approve`), а без вопроса
- * в разовом прогоне он отказал бы всему, что не только читает.
+ * без него Codex отвергал («invalid transport»). Об остальном Codex спрашивает одобрения
+ * вопросом (codex-mcp-approval.ts).
  */
 export const connectorArgs = (
   servers: readonly GatewayEntry[],
   userServers: readonly UserServer[],
-  onlyTools?: ReadonlyMap<string, readonly string[]>,
-  approved = false,
+  { onlyTools, approved = false, allowed = [] }: ConnectorOptions = {},
 ): string[] => {
   const names = codexServerNames(servers, userServers)
 
@@ -113,7 +165,8 @@ export const connectorArgs = (
       if ((onlyTools && !tools) || !named(name)) return []
 
       const only = tools ? `, enabled_tools=${JSON.stringify(tools)}` : ''
-      const approve = approved ? ', default_tools_approval_mode="approve"' : ''
+      const rules = approvalsOf(server.name, servers, allowed)
+      const approve = approvalFields(approved || rules.all, rules.tools)
 
       return [
         '-c',

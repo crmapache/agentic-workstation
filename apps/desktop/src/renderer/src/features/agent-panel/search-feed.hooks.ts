@@ -5,40 +5,13 @@ import type { PaintedTerm } from '@shared/claude-search'
 import { matchSpans } from '@shared/claude-search-words'
 import type { FeedItem } from '@shared/conversation-feed'
 
+import { textNodes, highlights } from './feed-text'
 import { formulasVersion, subscribeFormulas } from './formulas'
-import {
-  HIGHLIGHT_NAME,
-  JUMP_PAGE_LIMIT,
-  PAINT_INTERVAL_MS,
-  PAINT_SKIP_SELECTOR,
-} from './search.constants'
+import { HIGHLIGHT_NAME, JUMP_PAGE_LIMIT, PAINT_INTERVAL_MS } from './search.constants'
 import { useSearchStore } from './search.store'
 import { rowForHit } from './search.utils'
 
 const NO_TERMS: readonly PaintedTerm[] = []
-
-/** Реестр подсветок браузера (CSS Custom Highlight API); нет его - не красить. */
-const highlights = (): HighlightRegistry | undefined =>
-  typeof CSS !== 'undefined' && 'highlights' in CSS ? CSS.highlights : undefined
-
-/** Текстовые узлы ленты, кроме нарисованных формул и скрытого исходника для копирования. */
-const textNodes = (root: Element): Text[] => {
-  const nodes: Text[] = []
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) =>
-      node instanceof Element
-        ? node.matches(PAINT_SKIP_SELECTOR)
-          ? NodeFilter.FILTER_REJECT
-          : NodeFilter.FILTER_SKIP
-        : NodeFilter.FILTER_ACCEPT,
-  })
-
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (node instanceof Text && node.data.trim()) nodes.push(node)
-  }
-
-  return nodes
-}
 
 /**
  * Найденные слова - подсветкой по всей ленте, пока над этим разговором стоит капсула.

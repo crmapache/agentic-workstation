@@ -28,8 +28,9 @@ export type LaunchOptions = {
    */
   allowedTools?: readonly string[] | undefined
   /**
-   * Добавка к пояснению панели: у головы прогона сценария, открытой чатом, - что роль
-   * главного потока снята (history/released-heads.ts). Пусто - ничего.
+   * Добавка к пояснению панели: пояс человека (agents/conversation/local-time-briefing.ts), а у
+   * головы прогона сценария, открытой чатом, ещё и что роль главного потока снята
+   * (agents/history/released-runs.ts). Пусто - ничего.
    */
   extraBriefing?: string
 }

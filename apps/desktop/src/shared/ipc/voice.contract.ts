@@ -4,6 +4,7 @@ import type {
   VoiceKeyCheck,
   VoiceLanguage,
   VoiceSettings,
+  WalkthroughStart,
   VoiceStartOutcome,
   VoiceSetKeyOutcome,
 } from '../voice'
@@ -34,6 +35,14 @@ export type VoiceInvokeContract = {
   }
   /** Звонок из панели: новый разговор в Home; ответ - итог и состояние голоса после него. */
   'voice:start': { request: void; response: { outcome: VoiceStartOutcome; view: VoiceView } }
+  /**
+   * Показ Walkthrough из панели (ADR 0134): звонок в выбранном разговоре проекта, а нет его - в
+   * новом; ответ - итог и состояние голоса после него.
+   */
+  'voice:startWalkthrough': {
+    request: WalkthroughStart
+    response: { outcome: VoiceStartOutcome; view: VoiceView }
+  }
   'voice:end': { request: CallRequest; response: VoiceView }
   /** Кнопка «Стоп»: агент замолкает и останавливает работу. */
   'voice:stop': { request: CallRequest; response: VoiceView }
@@ -70,6 +79,7 @@ export const VOICE_CHANNELS = {
   'voice:checkKey': true,
   'voice:preview': true,
   'voice:start': true,
+  'voice:startWalkthrough': true,
   'voice:end': true,
   'voice:stop': true,
   'voice:mute': true,

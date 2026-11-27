@@ -60,9 +60,15 @@ settings:{model, reasoning_effort, developer_instructions}}`. Модель на 
 `item/fileChange/requestApproval` → `{decision: accept|acceptForSession|decline}`;
 `item/tool/requestUserInput` (`questions[]`) → `{answers:{<qid>:{answers:[...]}}}`;
 `item/permissions/requestApproval` (`permissions.network`, `permissions.fileSystem`) →
-`{permissions, scope: turn|session}`; `mcpServer/elicitation/request` (только `mode:url`) →
-`{action: accept|decline, content:null, _meta:null}`. Без таймаутов. id вопроса в окне -
-`codex-<эпоха>-<rpc id>`: id запросов RPC начинаются заново в каждом процессе.
+`{permissions, scope: turn|session}`; `mcpServer/elicitation/request` с `mode:url` (вход в
+сервер по ссылке) → `{action: accept|decline, content:null, _meta:null}`; он же с `mode:form` и
+`_meta.codex_approval_kind: "mcp_tool_call"` - одобрение вызова инструмента MCP без пометки
+«только чтение» (Codex 0.163, ADR 0131) → разрешением у строки вызова, ответ
+`{action:"accept", content:{}, _meta:null | {persist:"session"}}` или
+`{action:"decline", content:null, _meta:null}`. Без таймаутов. id вопроса в окне -
+`codex-<эпоха>-<rpc id>`: id запросов RPC начинаются заново в каждом процессе. Незнакомый
+запрос - ошибкой «Unsupported request» и строкой в журнале: Codex отдаёт её модели как отказ
+человека («user rejected MCP tool call»).
 
 **Режимы.** manual - `untrusted` + `workspace-write`; acceptEdits - `on-request` +
 `workspace-write`; readOnly - `on-request` + `read-only`; plan - `on-request` + `read-only` +

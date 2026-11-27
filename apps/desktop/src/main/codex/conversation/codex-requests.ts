@@ -6,12 +6,16 @@ import type {
 } from '@shared/conversation'
 import type { ToolAction } from '@shared/conversation-feed'
 
+import { mcpTool } from '../feed/codex-tools'
 import type { RpcId } from '../../process/rpc-lines'
 import type { HeldRequest } from '../../agents/conversation/agent-parts'
+import type { McpAsk } from './codex-mcp-approval'
+import { mcpAskOf, mcpApprovalAnswer } from './codex-mcp-approval'
 
 /**
  * Вопросы сервера Codex к человеку (docs/plan-providers/30-codex.md): разрешение на команду,
- * правку, права, вопрос с вариантами, MCP по ссылке - в общие вопросы панели и ответы обратно.
+ * правку, права, вызов инструмента MCP (codex-mcp-approval.ts), вопрос с вариантами, MCP по
+ * ссылке - в общие вопросы панели и ответы обратно.
  */
 
 /** Вопрос Codex, который держит разговор: общий вид и то, что нужно для ответа. */
@@ -20,6 +24,8 @@ export type CodexHeld = HeldRequest & {
   method: string
   /** id вопросов `requestUserInput` по их тексту: панель отвечает по тексту. */
   questionIds: Record<string, string>
+  /** Одобрение вызова инструмента MCP - о каком вызове; null - другой вопрос. */
+  approval: McpAsk | null
 }
 
 export const isCodexHeld = (held: HeldRequest): held is CodexHeld =>
@@ -37,6 +43,14 @@ const text = (record: Record<string, unknown>, key: string): string => {
 /** Что вызов сделает - по нему карточка решает заголовок и показ. */
 export type ToolFacts = { name: string; input: Record<string, unknown>; action: ToolAction }
 
+/** Вызовы ленты для вопроса: по id элемента и идущий вызов MCP, о котором спрашивают. */
+export type CallLookup = {
+  facts: (itemId: string) => ToolFacts
+  /** id вызова ленты, который ждёт одобрения; null - его в ленте нет. */
+  mcpCall: (ask: McpAsk) => string | null
+}
+
+/** Разрешение панели. alwaysKind null - Codex не умеет «и дальше» для этого вопроса. */
 const permission = (
   requestId: string,
   toolUseId: string,
@@ -44,6 +58,8 @@ const permission = (
   description: string,
   reason: string,
   mode: PermissionMode,
+  // «Разрешить и дальше» у Codex - на всю сессию (acceptForSession).
+  alwaysKind: 'rule' | null = 'rule',
 ): PendingRequest => ({
   kind: 'permission',
   requestId,
@@ -53,8 +69,7 @@ const permission = (
   action: facts.action,
   description,
   reason,
-  // «Разрешить и дальше» у Codex - на всю сессию (acceptForSession).
-  alwaysKind: 'rule',
+  alwaysKind,
   mode,
 })
 
@@ -83,9 +98,52 @@ const questionsOf = (params: Record<string, unknown>) => {
 }
 
 /**
+ * Одобрение вызова MCP - разрешением у его строки в ленте. Строки нет (вызов не дошёл до
+ * ленты) - разрешением с вызовом, собранным из вопроса. «Разрешить и дальше» - только если
+ * Codex умеет помнить одобрение до конца сессии.
+ */
+const holdMcpApproval = (
+  base: Omit<CodexHeld, 'pending' | 'approval'>,
+  ask: McpAsk,
+  message: string,
+  requestId: string,
+  mode: PermissionMode,
+  calls: CallLookup,
+): CodexHeld => {
+  const itemId = calls.mcpCall(ask)
+  const facts: ToolFacts = itemId
+    ? calls.facts(itemId)
+    : mcpTool(
+        {
+          type: 'mcpToolCall',
+          id: requestId,
+          server: ask.server,
+          tool: ask.tool,
+          arguments: ask.params,
+          status: 'inProgress',
+        },
+        { parent: null, startedAt: 0, endedAt: 0 },
+      )
+
+  return {
+    ...base,
+    approval: ask,
+    pending: permission(
+      requestId,
+      itemId ?? requestId,
+      facts,
+      message,
+      '',
+      mode,
+      ask.session ? 'rule' : null,
+    ),
+  }
+}
+
+/**
  * Вопрос сервера - в вопрос панели. requestId - id в окне (`codex-<эпоха>-<rpc id>`: id
- * запросов начинаются заново в каждом процессе). facts - вызов, о котором спрашивают (по
- * itemId из ленты); null - незнакомый вопрос: Codex получит отказ сразу.
+ * запросов начинаются заново в каждом процессе). calls - вызов, о котором спрашивают (по
+ * itemId из ленты или идущий вызов MCP); null - незнакомый вопрос: Codex получит отказ сразу.
  */
 export const holdServerRequest = (
   rpcId: RpcId,
@@ -93,12 +151,12 @@ export const holdServerRequest = (
   params: unknown,
   requestId: string,
   mode: PermissionMode,
-  factsOf: (itemId: string) => ToolFacts,
+  calls: CallLookup,
 ): CodexHeld | null => {
   const body = isRecord(params) ? params : {}
   const itemId = text(body, 'itemId')
   const reason = text(body, 'reason')
-  const base = { rpcId, method, questionIds: {} }
+  const base = { rpcId, method, questionIds: {}, approval: null }
 
   switch (method) {
     case 'item/commandExecution/requestApproval': {
@@ -112,7 +170,7 @@ export const holdServerRequest = (
       return { ...base, pending: permission(requestId, itemId, facts, command, reason, mode) }
     }
     case 'item/fileChange/requestApproval': {
-      const facts = factsOf(itemId)
+      const facts = calls.facts(itemId)
 
       return { ...base, pending: permission(requestId, itemId, facts, facts.name, reason, mode) }
     }
@@ -126,6 +184,10 @@ export const holdServerRequest = (
       return { ...base, pending: permission(requestId, itemId, facts, reason, reason, mode) }
     }
     case 'mcpServer/elicitation/request': {
+      const ask = mcpAskOf(body)
+
+      if (ask) return holdMcpApproval(base, ask, text(body, 'message'), requestId, mode, calls)
+
       const url = text(body, 'url')
       const facts: ToolFacts = {
         name: 'mcp_login',
@@ -185,7 +247,9 @@ export const answerFor = (held: CodexHeld, response: RequestResponse): unknown =
   const always = response.kind === 'permission' && response.decision.behavior === 'allowAlways'
 
   if (held.method === 'mcpServer/elicitation/request') {
-    return { action: allowed ? 'accept' : 'decline', content: null, _meta: null }
+    return held.approval
+      ? mcpApprovalAnswer(allowed, always, held.approval.session)
+      : { action: allowed ? 'accept' : 'decline', content: null, _meta: null }
   }
 
   if (held.method === 'item/permissions/requestApproval') {

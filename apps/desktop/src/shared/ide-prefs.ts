@@ -6,7 +6,7 @@ import { isUnattendedProviderId } from './providers'
 
 /**
  * Настройки всей IDE без своей службы (Settings): то, что действует одинаково для всех
- * провайдеров и проектов. Владелец - главный процесс (`ide-prefs.json`), окну - событием.
+ * провайдеров и проектов (вставка в поле, сообщение коммита, возврат к чату после Computer Use). Владелец - главный процесс (`ide-prefs.json`), окну - событием.
  */
 
 /** С какого числа строк вставка сворачивается в чип; 0 - никогда. */
@@ -45,6 +45,11 @@ export type IdePrefs = {
    * (лимит, нет CLI, ошибка) - спрашивается следующий. Всегда хотя бы один.
    */
   commitAi: AiChoice[]
+  /**
+   * Работа ИИ на компьютере кончилась - IDE выходит вперёд с её чатом (ADR 0130). Выключено -
+   * окно остаётся, где было.
+   */
+  returnAfterComputer: boolean
 }
 
 export type IdePrefsPatch = Partial<IdePrefs>
@@ -52,6 +57,7 @@ export type IdePrefsPatch = Partial<IdePrefs>
 export const DEFAULT_IDE_PREFS: IdePrefs = {
   pasteCollapse: DEFAULT_PASTE_COLLAPSE,
   commitAi: [{ provider: 'claude', model: '', effort: '' }],
+  returnAfterComputer: true,
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -98,6 +104,10 @@ export const parseIdePrefs = (value: unknown, base: IdePrefs = DEFAULT_IDE_PREFS
   return {
     pasteCollapse: lines(input['pasteCollapse']) ?? base.pasteCollapse,
     commitAi: parseAiChain(input['commitAi']) ?? base.commitAi,
+    returnAfterComputer:
+      typeof input['returnAfterComputer'] === 'boolean'
+        ? input['returnAfterComputer']
+        : base.returnAfterComputer,
   }
 }
 

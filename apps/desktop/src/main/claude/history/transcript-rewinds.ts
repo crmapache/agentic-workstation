@@ -1,13 +1,22 @@
+import type { CliMessage } from '../cli/cli-messages'
 import { stringField, parseCliLine } from '../cli/cli-messages'
 
 /** Строки самой цепочки разговора: их откат и отрезает. Имена, очередь, копии - нет. */
 const CHAIN_TYPES = new Set(['user', 'assistant', 'attachment', 'system', 'progress'])
 
-type LineInfo = { uuid: string; parentUuid: string; isChain: boolean; rewoundLeaf: string | null }
+/**
+ * Что откату нужно знать о строке - без её содержимого: так отрезанное считается и по
+ * транскрипту в гигабайт, не держа его в памяти (форк, поиск).
+ */
+export type ChainInfo = {
+  uuid: string
+  parentUuid: string
+  isChain: boolean
+  rewoundLeaf: string | null
+}
 
-const infoOf = (line: string): LineInfo => {
-  const message = parseCliLine(line)
-
+/** Сведения о разобранной строке; не разобралась - строка вне цепочки. */
+export const chainInfoOf = (message: CliMessage | null): ChainInfo => {
   if (!message) return { uuid: '', parentUuid: '', isChain: false, rewoundLeaf: null }
 
   const isMarker = message.type === 'last-prompt' && message['rewound'] === true
@@ -21,19 +30,16 @@ const infoOf = (line: string): LineInfo => {
 }
 
 /**
- * Строки транскрипта без того, что отрезал откат. CLI файл не переписывает: после
- * отката он дописывает `last-prompt` с `rewound: true`, а следующее сообщение цепляет к
- * строке перед отрезанным. Отрезанное - строки цепочки между этой строкой (точкой, с
- * которой разговор продолжился) и меткой. Читать файл по цепочке, как CLI, нельзя:
- * параллельные вызовы отвечают ветками, и законные строки оказались бы вне неё.
- * Точки нет в прочитанном куске (хвост длинного файла) - уходит всё до метки. Пустая
- * точка - откат к первому сообщению: отрезана вся цепочка до метки (строки без имени -
- * снимки файлов, заголовок - точкой не считаются).
+ * Номера строк, которые отрезал откат. CLI файл не переписывает: после отката он
+ * дописывает `last-prompt` с `rewound: true`, а следующее сообщение цепляет к строке перед
+ * отрезанным. Отрезанное - строки цепочки между этой строкой (точкой, с которой разговор
+ * продолжился) и меткой. Читать файл по цепочке, как CLI, нельзя: параллельные вызовы
+ * отвечают ветками, и законные строки оказались бы вне неё. Точки нет в прочитанном куске
+ * (хвост длинного файла) - уходит всё до метки. Пустая точка - откат к первому сообщению:
+ * отрезана вся цепочка до метки (строки без имени - снимки файлов, заголовок - точкой не
+ * считаются).
  */
-export const dropRewound = (lines: readonly string[]): string[] => {
-  if (!lines.some((line) => line.includes('"rewound":true'))) return [...lines]
-
-  const infos = lines.map(infoOf)
+export const rewoundIndices = (infos: readonly ChainInfo[]): Set<number> => {
   const dropped = new Set<number>()
 
   for (const [markerIndex, marker] of infos.entries()) {
@@ -49,6 +55,15 @@ export const dropRewound = (lines: readonly string[]): string[] => {
       if (infos[index]?.isChain) dropped.add(index)
     }
   }
+
+  return dropped
+}
+
+/** Строки транскрипта без того, что отрезал откат (как - rewoundIndices). */
+export const dropRewound = (lines: readonly string[]): string[] => {
+  if (!lines.some((line) => line.includes('"rewound":true'))) return [...lines]
+
+  const dropped = rewoundIndices(lines.map((line) => chainInfoOf(parseCliLine(line))))
 
   return lines.filter((_line, index) => !dropped.has(index))
 }

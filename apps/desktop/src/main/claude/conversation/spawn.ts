@@ -10,6 +10,7 @@ import { fastModeRequest } from '../panel/fast-mode'
 import { repositoryOverrides } from '../settings/account-override'
 import type { Environment } from '../../process/shell-env'
 import type { ConversationRuntime } from '../../agents/conversation/conversation-runtime'
+import { withLocalTime } from '../../agents/conversation/local-time-briefing'
 import { releasedBriefing } from '../../agents/history/released-runs'
 import { claudeOf } from './claude-conversation'
 import { ClaudeSession } from './claude-session'
@@ -92,7 +93,7 @@ export const openClaudeSession = async (
         fork: meta.fork,
         mcpConfig: connectors?.path ?? null,
         allowedTools: connectors?.allowed,
-        extraBriefing: releasedBriefing(meta.sessionId),
+        extraBriefing: withLocalTime(releasedBriefing(meta.sessionId)),
       },
       cli.features,
     )

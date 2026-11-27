@@ -66,7 +66,7 @@ const voice = {
     call = new VoiceCall({
       id: 'call1',
       conversationId: CONVERSATION_ID,
-      view: { provider: 'claude', origin: 'phone', startedAt: Date.now() },
+      view: { provider: 'claude', origin: 'phone', mode: 'call', startedAt: Date.now() },
       settings: { ...DEFAULT_VOICE_SETTINGS, enabled: true },
       key: 'k',
       dial: deepgram.dial,

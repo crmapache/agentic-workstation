@@ -105,6 +105,21 @@ export const buildFeedRows = (items: readonly FeedItem[]): FeedRow[] => {
   return rows
 }
 
+/**
+ * Строка ленты, в которой стоит элемент: своя, группа вызовов, карточка мыслей или
+ * карточка субагента. По элементу, а не по id строки: id группы - её первый вызов, и он
+ * меняется, когда выше приходит страница истории.
+ */
+export const rowIdOfItem = (rows: readonly FeedRow[], itemId: string): string | undefined =>
+  rows.find((row) => {
+    if (row.id === itemId) return true
+    if (row.kind === 'tools' || row.kind === 'think') {
+      return row.items.some((item) => item.id === itemId)
+    }
+
+    return row.kind === 'agent' && row.children.some((item) => item.id === itemId)
+  })?.id
+
 const sameItems = (left: readonly FeedItem[], right: readonly FeedItem[]) =>
   left.length === right.length && left.every((item, index) => item === right[index])
 

@@ -1,4 +1,5 @@
 import { isAvailableIn } from '@shared/connector-availability'
+import { walkthroughMissing } from '@shared/walkthrough'
 
 import type { LiveConnector } from './connector-live'
 import type { ConnectorRegistry } from './connector-registry'
@@ -162,8 +163,12 @@ export class GatewayHost {
     })
     const entries = this.registry.connectors.flatMap((connector) => {
       const url = this.gateway.urlOf(connector.serverName)
+      // Показ без Computer Use и Browser в проекте нечем вести (ADR 0134): сервера нет вовсе.
+      const isShown =
+        connector.kind !== 'walkthrough' ||
+        walkthroughMissing(this.registry.connectors, projectPath).length === 0
 
-      return url && isAvailableIn(connector.availability, projectPath)
+      return url && isShown && isAvailableIn(connector.availability, projectPath)
         ? [{ name: connector.serverName, url }]
         : []
     })
@@ -177,7 +182,11 @@ export class GatewayHost {
           connector.enabled && entries.some((entry) => entry.name === connector.serverName),
       )
       .flatMap((connector) => {
-        if (connector.kind === 'notifications') return [`mcp__${connector.serverName}`]
+        // Показ (ADR 0134) рисует поверх экрана и ждёт человека в звонке, который тот начал сам.
+        if (connector.kind === 'notifications' || connector.kind === 'walkthrough') {
+          return [`mcp__${connector.serverName}`]
+        }
+
         if (connector.kind !== 'workstation') return []
 
         return WORKSTATION_READ_TOOLS.map((tool) => `mcp__${connector.serverName}__${tool}`)

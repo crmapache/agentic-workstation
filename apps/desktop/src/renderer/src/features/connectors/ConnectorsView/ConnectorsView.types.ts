@@ -203,6 +203,7 @@ export type ConnectorsHelpProps = {
     | 'google'
     | 'browser'
     | 'computer'
+    | 'walkthrough'
     | 'inProject'
     | 'aiJobs'
     | 'outside'

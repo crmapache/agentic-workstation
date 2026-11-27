@@ -129,6 +129,38 @@ describe('GatewayHost', () => {
     )
   })
 
+  it('Walkthrough - только там, где видны и включены Computer Use и Browser, и без вопроса', async () => {
+    const names = async (path: string) =>
+      Object.keys(await serversIn((await host.open(path))!.path))
+
+    await registry.add(
+      blankConnector({ id: 'wt', kind: 'walkthrough', label: 'Voice', serverName: 'walkthrough' }),
+    )
+    await registry.add(
+      blankConnector({ id: 'cu', kind: 'computer', label: 'Mac', serverName: 'computer' }),
+    )
+    expect(await names('/p/a')).not.toContain('walkthrough')
+
+    await registry.add({
+      ...blankConnector({
+        id: 'br',
+        kind: 'browser',
+        label: 'Chrome',
+        serverName: 'browser-chrome',
+      }),
+      availability: { mode: 'only', projects: ['/p/a'] },
+    })
+
+    const a = (await host.open('/p/a'))!
+
+    expect(Object.keys(await serversIn(a.path))).toContain('walkthrough')
+    expect(a.allowed).toContain('mcp__walkthrough')
+    expect(await names('/p/b')).not.toContain('walkthrough')
+
+    await registry.update('cu', { enabled: false })
+    expect(await names('/p/a')).not.toContain('walkthrough')
+  })
+
   it('ключ у каждого процесса свой: по нему шлюз знает и проект, и сам процесс', async () => {
     const first = (await host.open('/p/a'))!
     const second = (await host.open('/p/a'))!

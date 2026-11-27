@@ -232,6 +232,21 @@ describe('instructionsFor', () => {
     expect(text).toContain(description)
   })
 
+  it('пояснение Walkthrough с описанием предельной длины укладывается в 2048 знаков', () => {
+    const description = 'x'.repeat(CONNECTOR_DESCRIPTION_MAX)
+    const text = instructionsFor(
+      { ...connector, kind: 'walkthrough', label: 'Voice', account: null, tools: [], description },
+      live,
+      null,
+    )
+
+    expect(text.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
+    // Решения владельца (ADR 0134): везде Computer Use, Browser - только прочитать; метка - до слов.
+    expect(text).toContain('Look and act with Computer Use everywhere, Chrome too')
+    expect(text).toContain('Mark first, then talk about it')
+    expect(text).toContain(description)
+  })
+
   it('описание человека - отдельной строкой, пустое не добавляет ничего', () => {
     const described = { ...connector, description: '  Client mail: invoices only  ' }
 

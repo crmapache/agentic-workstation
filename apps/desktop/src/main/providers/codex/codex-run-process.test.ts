@@ -13,7 +13,8 @@ import { CodexRunProcess } from './codex-run-process'
 /**
  * Поддельный `codex app-server`: поток t1 (продолжение - тот же поток), запросы - в calls.json.
  * Ход отвечает «Do» кусками и «Done.» целиком; со словом «approve» сначала спрашивает
- * разрешение на команду `ls` и ждёт ответа; «limit» - ход падает на лимите аккаунта.
+ * разрешение на команду `ls` и ждёт ответа; «call mcp» - начинает вызов MCP и спрашивает его
+ * одобрение формой, как Codex 0.163; «limit» - ход падает на лимите аккаунта.
  */
 const FAKE_SERVER = `#!/usr/bin/env node
 const fs = require('node:fs')
@@ -46,9 +47,13 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
     if (said.includes('approve')) {
       return out({ id: 'ask-1', method: 'item/commandExecution/requestApproval', params: { threadId: 't1', turnId: 'turn-1', itemId: 'c1', command: "/bin/zsh -lc 'ls -la'" } })
     }
+    if (said.includes('call mcp')) {
+      out({ method: 'item/started', params: { threadId: 't1', turnId: 'turn-1', item: { type: 'mcpToolCall', id: 'exec-1', server: 'chatkepr', tool: 'list_chats', arguments: { query: 'x' }, status: 'inProgress' } } })
+      return out({ id: 'ask-mcp', method: 'mcpServer/elicitation/request', params: { threadId: 't1', turnId: 'turn-1', serverName: 'chatkepr', mode: 'form', message: 'Allow the chatkepr MCP server to run tool "list_chats"?', requestedSchema: { type: 'object', properties: {} }, _meta: { codex_approval_kind: 'mcp_tool_call', persist: ['session', 'always'], tool_params: { query: 'x' } } } })
+    }
     return finish()
   }
-  if (message.id === 'ask-1') return finish()
+  if (message.id === 'ask-1' || message.id === 'ask-mcp') return finish()
   if (message.method && message.id !== undefined) return out({ id: message.id, result: {} })
 }).on('close', () => process.exit(0))
 `
@@ -179,6 +184,26 @@ describe('прогон на Codex через переводчик', () => {
     await expect.poll(() => run.ended.length).toBe(1)
     expect((await calls()).find((call) => call.id === 'ask-1')?.result).toEqual({
       decision: 'accept',
+    })
+    run.engine.stop()
+  })
+
+  it('одобрение вызова MCP - вопрос о вызове для головы; «да» - accept у Codex', async () => {
+    const run = session(SESSION)
+
+    run.engine.sendPrompt('call mcp')
+    await expect.poll(() => run.asks.length).toBe(1)
+    expect(run.asks[0]).toMatchObject({
+      toolName: 'mcp__chatkepr__list_chats',
+      input: { query: 'x' },
+    })
+
+    run.engine.answer(run.asks[0]?.requestId ?? '', true, '', run.asks[0]?.input ?? {})
+    await expect.poll(() => run.ended.length).toBe(1)
+    expect((await calls()).find((call) => call.id === 'ask-mcp')?.result).toEqual({
+      action: 'accept',
+      content: {},
+      _meta: null,
     })
     run.engine.stop()
   })

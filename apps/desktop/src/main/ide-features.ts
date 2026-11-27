@@ -4,12 +4,13 @@ import type { AgentPanelState } from '@shared/conversation'
 import type { FeedPatch } from '@shared/conversation-feed'
 import type { ConversationCall } from '@shared/panel-prefs'
 import type { ProviderId } from '@shared/providers'
-import { PROVIDER_IDS } from '@shared/providers'
 import { SECOND_MS } from '@shared/time-units'
+import { isWalkthroughReady } from '@shared/walkthrough'
 
 import type { CalendarRuntime } from './calendar/calendar-setup'
 import { startCalendar } from './calendar/calendar-setup'
 import type { ClaudeService } from './claude/claude-service'
+import { wireComputerChats } from './computer/computer-chats'
 import type { ConnectorsService } from './connectors/connectors-service'
 import type { DefinitionService } from './definitions/definition-service'
 import { createEditorServices } from './definitions/definition-setup'
@@ -132,11 +133,31 @@ export const startIdeFeatures = async (setup: {
   const { runners } = setup
   // Общие настройки IDE и Commit and push: сообщение коммита пишет цепочка из Settings → Git.
   const idePrefs = await IdePrefsService.open(setup.dataDir)
+  const { walkthrough } = setup.connectors.computer
   const voice = await startVoice({
     dataDir: setup.dataDir,
     workspace,
     panels: () => panelsPort(claude, setup.panels).list(),
+    walkthrough: {
+      isReady: (path) => isWalkthroughReady(setup.connectors.getState().connectors, path),
+      intercept: (conversationId, utterance) =>
+        walkthrough.intercept(conversationId, utterance.text),
+      ended: (conversationId) => walkthrough.ended(conversationId),
+    },
   })
+
+  // Показ Walkthrough (ADR 0134): метки и действия Computer Use - в такт голосу его звонка.
+  walkthrough.call = (conversationId) => {
+    const call = voice.service.walkthroughIn(conversationId)
+
+    return (
+      call && {
+        id: call.view.id,
+        speechSoFar: () => call.speechSoFar(),
+        end: () => call.end('hangup'),
+      }
+    )
+  }
   const commitPush = new CommitPushDesk({
     ask: askProviderOf(claude, runners),
     chain: () => idePrefs.value.commitAi,
@@ -184,17 +205,14 @@ export const startIdeFeatures = async (setup: {
   // Модели провайдера окно читает из его описания: новый каталог или своя модель - событием.
   const providers = new ProviderWatch((list) => broadcast('providers:changed', list), setup.panels)
 
-  // Stop в капсуле Computer останавливает и ход разговора панели, который держал компьютер, - как
-  // Stop в чате (ADR 0060). Процесс без разговора панели (сценарий) узнаёт об остановке отказом шага.
-  setup.connectors.computer.stopped = (key) => {
-    for (const provider of PROVIDER_IDS) {
-      const panel = setup.panels.find(provider)
-
-      if (panel?.getState().conversations.some((conversation) => conversation.id === key)) {
-        panel.actions.interrupt(key)
-      }
-    }
-  }
+  // Stop в капсуле и конец работы на компьютере - к чату панели, где она шла (ADR 0060, 0130).
+  wireComputerChats(setup.connectors.computer, {
+    panels: setup.panels,
+    workspace,
+    getWindow: setup.getWindow,
+    isReturnOn: () => idePrefs.value.returnAfterComputer,
+    isShowing: (key) => walkthrough.isShowing(key),
+  })
   // Календарь - после Stop капсулы: его чтение по экрану гаснет тем же Stop.
   const calendar = await startCalendar({ ...setup, inbox: automation.inbox })
   // Коннектор самой IDE оживает, когда поднялось всё, чем он управляет; расширения - вслед за

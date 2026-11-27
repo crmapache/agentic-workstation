@@ -51,7 +51,7 @@ describe('служба общих настроек IDE', () => {
     })
 
     expect(next).toEqual({
-      pasteCollapse: DEFAULT_IDE_PREFS.pasteCollapse,
+      ...DEFAULT_IDE_PREFS,
       commitAi: [{ provider: 'codex', model: '', effort: 'low' }],
     })
     expect(seen).toEqual([next])

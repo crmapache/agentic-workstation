@@ -47,8 +47,13 @@ export const askCodexOnce = async (
     {
       binary: cli.binary,
       args: [
-        // Серверы шлюза - только с разрешёнными поимённо инструментами: чтение или допуск.
-        ...connectorArgs(launch?.servers ?? [], userServers, readable, Boolean(ask.gateway)),
+        // Серверы шлюза - только с разрешёнными поимённо инструментами: чтение или допуск. Они
+        // же одобрены: спросить некого, а в never с песочницей только чтения Codex отказал бы
+        // всему без пометки «только чтение», и чтению из коннектора без пометок тоже (ADR 0131).
+        ...connectorArgs(launch?.servers ?? [], userServers, {
+          onlyTools: readable,
+          approved: true,
+        }),
         // Автору сценария - чтение проекта командной строкой; остальным - ни команд, ни файлов.
         ...(ask.readProject ? [] : noBuiltInToolsArgs()),
         ...(ask.tools?.web ? ['-c', 'web_search="live"'] : []),

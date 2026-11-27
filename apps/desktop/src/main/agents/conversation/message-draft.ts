@@ -20,6 +20,8 @@ const MAX_TOKENS = 2_000
 const MAX_QUOTES = 50
 const MAX_FIELD_CHARS = 200_000
 const MAX_PATH_CHARS = 4_096
+/** id элемента ленты, откуда цитата, - не длиннее id, который принимает agent:loadThrough. */
+const MAX_SOURCE_CHARS = 200
 
 /** Подпись вставленной картинки - та же «Image #N», что видит модель в тексте. */
 const PASTED_CAPTION = /^Image #\d+$/
@@ -41,10 +43,12 @@ const chipOf = (raw: unknown): DraftChip | null => {
   const range = text(record['range'], 40)
   const path = text(record['path'], MAX_PATH_CHARS)
   const body = text(record['text'])
+  const source = text(record['source'], MAX_SOURCE_CHARS)
 
   if (range !== undefined) chip.range = range
   if (path !== undefined) chip.path = path
   if (body !== undefined) chip.text = body
+  if (source !== undefined) chip.source = source
 
   return chip
 }

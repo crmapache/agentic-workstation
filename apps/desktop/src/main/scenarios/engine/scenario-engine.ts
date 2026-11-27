@@ -301,6 +301,9 @@ export class ScenarioEngine {
 
     if ((isHead ? e.head : e.card) !== session) return
 
+    // Любая строка, и строки её помощников тоже: голова, ждущая агента, жива.
+    if (isHead) e.headHeardAt = Date.now()
+
     noticeLimit(e, session, message)
 
     if (isHead) headLine(e, message)

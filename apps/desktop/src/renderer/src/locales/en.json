@@ -127,14 +127,21 @@
       "muteAllHint": "Chats still glow and mark the project tab, just quietly. Same as the speaker in the status bar."
     },
     "chat": {
-      "description": "The message box of every provider",
+      "description": "Chats of every provider",
+      "pasteTitle": "Pasted text",
       "fold": "Fold long pastes",
       "foldOn": "A long paste turns into a chip you can open",
       "foldOff": "Everything stays in the field, except a paste over {{thousands}},000 characters",
       "lines": "From how many lines",
       "linesHint": "{{min}} to {{max}}",
       "helpLabel": "About pasted text",
-      "help": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it. The setting is the same for Claude Code, Codex, Kimi Code, Antigravity and open models."
+      "help": "A long paste folds into a chip so that a wall of text does not fill the field. Lines are counted as they would fall in the field itself, so text pasted as one endless line folds too. Nothing is lost - a folded paste holds the text whole and unfolds back by the pencil on it. The setting is the same for Claude Code, Codex, Kimi Code, Antigravity and open models.",
+      "computerTitle": "Computer Use",
+      "return": "Bring me back to the chat",
+      "returnOn": "When AI finishes work on your computer, the IDE comes to the front with that chat",
+      "returnOff": "The IDE stays behind when AI finishes work on your computer",
+      "returnHelpLabel": "About coming back to the chat",
+      "returnHelp": "AI works in other apps through Computer Use, and the IDE goes behind them. When that work ends, the IDE opens the project and the tab of its chat and comes to the front. It stays behind if you used the mouse or keyboard after the last step of AI, or pressed Pause or Stop: you are working yourself then, and the IDE does not take your keyboard. Scenarios and scheduled tasks never bring the window up."
     },
     "git": {
       "description": "The Commit and push button next to the line counts in the header",
@@ -245,6 +252,11 @@
         "hint": "Your computer for the AI: the real mouse and keyboard, for apps and what Browser Use can't reach",
         "short": "Computer Use"
       },
+      "walkthrough": {
+        "name": "Walkthrough",
+        "hint": "The AI shows and explains things on your screen by voice: it clicks, circles what to look at and checks you got it",
+        "short": "Walkthrough"
+      },
       "mcp": {
         "name": "MCP server by URL",
         "hint": "Any remote MCP server: Linear, Sentry, your own",
@@ -354,7 +366,8 @@
         "bad-command": "Check the command and variables: an unclosed quote, a variable without \"=\", or a $NAME that your shell doesn't set.",
         "bad-profile": "Enter the profile folder: a full path or one from ~.",
         "bad-version": "Use latest or a version number like 0.0.78.",
-        "bad-spec": "The connector description didn't pass the check. Generate it again."
+        "bad-spec": "The connector description didn't pass the check. Generate it again.",
+        "walkthrough-needs": "Add Computer Use and Browser Use and turn them on first: the walkthrough looks and acts through them."
       },
       "slack": {
         "steps": {
@@ -402,7 +415,8 @@
         "token": "API token"
       },
       "sheetTitle": "Add {{name}}",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "walkthroughFirst": "Walkthrough needs Computer Use and Browser Use. Add them and turn them on first."
     },
     "types": {
       "badge": "Custom",
@@ -662,7 +676,8 @@
         "http": "Describe a service, and the AI finds how to connect it: first among your MCP servers from Claude Code (that's how your own products connect), then the service's official MCP server, then its REST API with a personal key, described as a list of HTTP requests, not code.\n\nThe work goes on by itself in Building with AI on this page, so this window closes right away. Open the item there to watch the AI and to write to it.\n\nA ready connector that needs no key moves to Your connectors by itself. One with a key waits for you to check it and enter the key. Keys are stored encrypted in the IDE; the AI never sees them.",
         "import": "Your MCP servers from Claude Code settings become connectors with the same names. Keys move into the IDE vault; Claude Code settings stay as they are.",
         "browser": "The AI works in your real Chrome, with your sign-ins: it opens tabs in its own orange tab group in the background, or takes a tab you share with Copy tab reference for AI (right-click on a page). While it works you see an orange frame and its cursor; your current tab and focus stay yours.\n\nAdd the connector, then install the extension in Chrome once - the steps are in the connector window. Each Chrome profile with the extension connects on its own.",
-        "computer": "The AI works on your computer with the real mouse and keyboard, looking at screenshots: other apps, system settings, and the parts of Chrome the extension can't reach. While it acts, the mouse is its; a capsule at the bottom of the screen shows that and lets you pause or stop it.\n\nAdd the connector. On a Mac, then allow Accessibility and Screen Recording for Agentic Workstation - the buttons are in the connector window. Windows asks for nothing."
+        "computer": "The AI works on your computer with the real mouse and keyboard, looking at screenshots: other apps, system settings, and the parts of Chrome the extension can't reach. While it acts, the mouse is its; a capsule at the bottom of the screen shows that and lets you pause or stop it.\n\nAdd the connector. On a Mac, then allow Accessibility and Screen Recording for Agentic Workstation - the buttons are in the connector window. Windows asks for nothing.",
+        "walkthrough": "Walkthrough works on top of Computer Use and Browser Use, so add those first. It also needs voice mode with a Deepgram key (Settings → Voice): a walkthrough is a voice call.\n\nOnce it's on in a project, the chat header there gets a Walkthrough button next to the microphone."
       },
       "type": {
         "title": "Custom connector",
@@ -679,6 +694,10 @@
       "computer": {
         "title": "Computer Use",
         "text": "On a Mac, Accessibility lets the IDE move the mouse and type in other apps, and Screen Recording lets it take screenshots for the AI. macOS asks for both once, in System Settings → Privacy & Security, and may ask you to reopen the IDE after Screen Recording. Windows asks for nothing, but it keeps everyone's mouse and keyboard out of apps running as administrator, the AI's too. There the AI pastes text through the clipboard and puts back what you had copied right after.\n\nOne conversation uses the computer at a time. While it works, a capsule at the bottom center of the screen shows its project. Pause stops the current action and holds the next one until you resume; Stop ends computer use, and the AI asks you before it takes the computer again. Moving the mouse yourself also stops the current action.\n\nWeb pages stay with Browser Use: it works in the background and doesn't take your mouse. Turn the connector off or limit it to some projects to keep the AI off your computer."
+      },
+      "walkthrough": {
+        "title": "Walkthrough",
+        "text": "Press Walkthrough in the chat header and say what to show or explain: work the AI just did, an app you are learning, a page or a dashboard. The walkthrough runs in that chat, so the AI knows what it did there.\n\nThe AI talks while it works with the real mouse and keyboard, like Computer Use, in every app and in Chrome too. It circles what to look at with a marker; an arrow or a dimmed screen only when a circle isn't enough. A mark shows up when the AI starts talking about it, and a click waits for its words.\n\nAfter each part it asks if you got it. Interrupt any time with a question: it stops, answers, and offers to go on. It can also ask you to do a step yourself and check it on the screen.\n\nAt the end it hangs up and writes a short recap in the chat. You can hang up yourself any time in the call bar."
       },
       "outside": {
         "title": "Control from outside",
@@ -744,6 +763,23 @@
       "unsupported": "Computer Use works on macOS and Windows only.",
       "windowsTitle": "Windows",
       "windows": "Windows asks for no permissions. It doesn't let the AI's mouse and keyboard into apps running as administrator: those steps stay yours, or run the app normally. Text goes in like a paste, through the clipboard: what you copied is back right after, and the AI's text stays out of clipboard history."
+    },
+    "walkthrough": {
+      "title": "What it needs",
+      "computer": {
+        "name": "Computer Use",
+        "why": "The AI looks at the screen and acts with the mouse and keyboard"
+      },
+      "browser": {
+        "name": "Browser Use",
+        "why": "The AI reads web pages to find things on them"
+      },
+      "voice": {
+        "name": "Voice",
+        "why": "A Deepgram key in Settings → Voice: a walkthrough is a voice call"
+      },
+      "ready": "Ready",
+      "missing": "Missing"
     },
     "outside": {
       "title": "Control from outside",
@@ -1274,6 +1310,7 @@
         "moveDown": "Move down",
         "stopAfter": "Stop after this",
         "keepGoing": "Don't stop after this",
+        "stop": "Stop now…",
         "remove": "Remove from queue"
       },
       "running": {
@@ -1566,7 +1603,7 @@
       "failures": {
         "noHead": "The main thread could not start: {{error}}",
         "noStart": "A card's session could not start: {{error}}",
-        "tooLong": "A card ran past its time (3 hours).",
+        "tooLong": "A card ran past its time.",
         "headSilent": "The main thread stopped answering.",
         "crashed": "A process went away.",
         "refused": "The main thread's turn failed: {{error}}",
@@ -1925,7 +1962,7 @@
       "failures": {
         "noHead": "The main thread could not start.",
         "noStart": "A card's session could not start.",
-        "tooLong": "A card ran past its time (3 hours).",
+        "tooLong": "A card ran past its time.",
         "headSilent": "The main thread stopped answering.",
         "crashed": "A process went away.",
         "refused": "The main thread's turn failed.",
@@ -3348,7 +3385,9 @@
     },
     "chips": {
       "expand": "Insert as plain text",
-      "remove": "Remove {{name}}"
+      "remove": "Remove {{name}}",
+      "showQuote": "Show where {{name}} was quoted",
+      "showsQuote": "click to show it in the chat"
     },
     "picture": {
       "size": "{{width}} × {{height}}",
@@ -4780,7 +4819,8 @@
       "busy": "A voice call is already going",
       "noProvider": "The provider for voice calls is not available",
       "microphone": "No microphone access. Allow it in System Settings → Privacy & Security → Microphone.",
-      "failed": "The voice call did not start"
+      "failed": "The voice call did not start",
+      "walkthroughOff": "Walkthrough isn't ready in this project: turn on the Walkthrough, Computer Use and Browser Use connectors here"
     },
     "state": {
       "connecting": "Connecting",
@@ -4820,6 +4860,11 @@
         "failed": "Reading aloud did not start"
       }
     }
+  },
+  "walkthrough": {
+    "startTitle": "Walkthrough - the AI shows and explains on your screen by voice",
+    "statusName": "Walkthrough",
+    "barState": "Walkthrough · {{state}}"
   },
   "calendar": {
     "title": "Calendar",

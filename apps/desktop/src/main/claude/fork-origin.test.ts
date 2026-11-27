@@ -4,6 +4,7 @@ import type { ForkOrigin, Conversation } from '@shared/conversation'
 
 import { freshConversation } from '../agents/panel/panel-state'
 import { resolveForkOrigin } from './fork-origin'
+import { forkChain, forkLineOf } from './history/fork-anchor'
 
 const line = (value: Record<string, unknown>) => JSON.stringify(value)
 
@@ -39,9 +40,12 @@ const conversation = (fork: ForkOrigin | null): Conversation =>
     updatedAt: 0,
   })
 
+/** Строки файла так, как их отдаёт чтение с диска: сведения о строках без отрезанного откатом. */
+const chain = (lines: readonly string[] | null) => lines && forkChain(lines.map(forkLineOf))
+
 const files = (ownLines: readonly string[] | null, inheritedLines: readonly string[] | null) => ({
-  own: () => Promise.resolve(ownLines),
-  inherited: () => Promise.resolve(inheritedLines),
+  own: () => Promise.resolve(chain(ownLines)),
+  inherited: () => Promise.resolve(chain(inheritedLines)),
 })
 
 describe('откуда пойдёт форк', () => {

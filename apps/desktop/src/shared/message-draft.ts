@@ -41,6 +41,11 @@ export type DraftChip = {
   path?: string | undefined
   /** Полный текст цитаты, свёрнутой вставки, карточки трекера или разбора накладки: он и уходит модели. */
   text?: string | undefined
+  /**
+   * Цитата: id элемента ленты, где её выделили. По нему чип в отправленном сообщении ведёт
+   * ленту к месту цитаты; модели не уходит.
+   */
+  source?: string | undefined
 }
 
 export type DraftToken = { kind: 'text'; value: string } | { kind: 'chip'; chip: DraftChip }

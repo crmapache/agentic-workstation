@@ -5,14 +5,18 @@ import { BrowserWindow } from 'electron'
 import { IS_MAC } from '../platform'
 import { markOverlay } from '../window/overlay-windows'
 
-/** Страницы накладных окон Computer - входы рендерера рядом с index.html. */
-export type OverlayPage = 'capsule' | 'pointer'
+/**
+ * Страницы накладных окон Computer - входы рендерера рядом с index.html: капсула, стрелка ИИ и
+ * метки показа Walkthrough (ADR 0134).
+ */
+export type OverlayPage = 'capsule' | 'pointer' | 'walkthrough'
 
 /**
  * Накладное окно Computer поверх всех приложений (капсула ADR 0057, стрелка ИИ ADR 0079): без
  * рамки и фокуса - иначе оно забирало бы ввод у приложения, в котором работает ИИ, - на всех
  * рабочих столах и поверх полноэкранных приложений, закрыто от захвата экрана. above - на
- * сколько ступеней выше других накладных окон того же слоя: стрелка ложится поверх капсулы.
+ * сколько ступеней выше других накладных окон того же слоя: стрелка ложится поверх капсулы, метки
+ * показа (-1) - под ней.
  */
 export const createOverlayWindow = (
   rendererUrl: string | undefined,

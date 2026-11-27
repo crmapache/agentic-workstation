@@ -48,7 +48,7 @@ const isChip = (value: unknown): value is DraftChip => {
   if (typeof value !== 'object' || value === null) return false
 
   const chip = value as Record<string, unknown>
-  const fields = ['range', 'data', 'path', 'text'] as const
+  const fields = ['range', 'data', 'path', 'text', 'source'] as const
 
   if (typeof chip['value'] !== 'string') return false
   if (!CHIP_KINDS.some((kind) => kind === chip['kind'])) return false

@@ -33,7 +33,7 @@ const userContent = (
     source: { type: 'base64', media_type: image.mediaType, data: image.data },
   })),
   ...(text ? [{ type: 'text', text }] : []),
-  ...(voice ? [{ type: 'text', text: voiceNote(voice.lang, voice.heard) }] : []),
+  ...(voice ? [{ type: 'text', text: voiceNote(voice) }] : []),
   ...(editor ? [{ type: 'text', text: editorReminder(editor) }] : []),
 ]
 

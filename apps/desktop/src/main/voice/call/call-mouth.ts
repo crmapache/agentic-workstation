@@ -7,6 +7,7 @@ import { FluxSpeak, PLAY_BYTES_PER_MS } from '../deepgram/flux-speak'
 import { SentenceFeed } from '../speech/sentence-feed'
 import { speakableLines } from '../speech/speakable'
 import { readLanguage, textLanguage } from '../speech/text-language'
+import { SpokenWaiters } from './spoken-waiters'
 import type { Timer } from './utterances'
 import type { VoiceEndpoint } from './voice-endpoint'
 
@@ -93,6 +94,8 @@ export class CallMouth {
   private speed: number
   /** Рот погашен (пауза, конец): синтез больше не открывается, что бы ни пришло. */
   private stopped = false
+  /** Кто ждёт, пока прозвучат ответы, которые рот держал в момент вопроса (drained). */
+  private readonly waiters = new SpokenWaiters()
 
   constructor(private readonly options: CallMouthOptions) {
     this.speed = options.speed
@@ -121,6 +124,18 @@ export class CallMouth {
   /** Что агент сказал за последние фразы - для проверки эха. */
   get recentlySaid(): string {
     return this.recent.join(' ')
+  }
+
+  /**
+   * Прозвучит ли всё, что рот держит сейчас (такт показа Walkthrough, ADR 0134): true - последний
+   * из нынешних ответов дослушан, false - его оборвали (перебили, «Стоп», пауза, конец звонка).
+   * Ответы, начатые после вопроса, не ждутся: модель уже пишет следующую фразу. Держать нечего -
+   * сразу true.
+   */
+  drained(): Promise<boolean> {
+    if (this.stopped) return Promise.resolve(false)
+
+    return this.waiters.wait(new Set(this.answers.map((answer) => answer.itemId)))
   }
 
   /** Открыть синтез голоса заранее, чтобы первая фраза не ждала рукопожатия. */
@@ -224,6 +239,7 @@ export class CallMouth {
     this.playedMs = 0
     this.options.endpoint.cue({ kind: 'stopPlayback', epoch: this.epoch })
     this.setSpeaking(false)
+    this.wake()
   }
 
   stop(): void {
@@ -234,6 +250,7 @@ export class CallMouth {
 
     this.speakers.clear()
     this.answers = []
+    this.waiters.cancel()
   }
 
   /** Новый ответ; language - язык известен заранее (фраза звонка), иначе его решит текст. */
@@ -374,6 +391,7 @@ export class CallMouth {
     )
     this.cancelDrain?.()
     this.cancelDrain = null
+    this.wake()
 
     if (this.answers.length === 0) {
       this.setSpeaking(false)
@@ -407,6 +425,12 @@ export class CallMouth {
   private drop(answer: Answer): void {
     this.answers = this.answers.filter((known) => known !== answer)
     if (this.answers.length === 0) this.setSpeaking(false)
+    this.wake()
+  }
+
+  /** Ответы ушли из рта: тот, кто ждал их все, узнаёт, прозвучали они или их оборвали. */
+  private wake(): void {
+    this.waiters.wake(new Set(this.answers.map((answer) => answer.itemId)), this.silenced)
   }
 
   private remember(sentence: string): void {

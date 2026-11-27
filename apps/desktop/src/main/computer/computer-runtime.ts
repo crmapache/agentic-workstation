@@ -3,10 +3,14 @@ import { join } from 'node:path'
 import { app } from 'electron'
 
 import type { CapsuleView, CapsuleAction, ComputerState } from '@shared/computer'
+import type { WalkthroughMarksView } from '@shared/walkthrough'
 
 import { IS_WINDOWS } from '../platform'
+import { WalkthroughDesk } from '../walkthrough/walkthrough-desk'
+import { WalkthroughWindow } from '../walkthrough/walkthrough-window'
 import { macCursor } from './cg-cursor'
 import { macInput } from './cg-events'
+import { macWitness } from './cg-scene'
 import { readComputerState } from './computer-access'
 import { ComputerAgent } from './computer-agent'
 import { ComputerCapsule } from './computer-capsule'
@@ -23,6 +27,7 @@ import {
   recoverWindowsCursor,
 } from './win-cursor'
 import { windowsInput } from './win-input'
+import { windowsWitness } from './win-scene'
 
 /**
  * Системная стрелка этой машины. Windows: прошлый запуск мог упасть с подменёнными курсорами -
@@ -45,6 +50,13 @@ const systemCursor = (): SystemCursor => {
  */
 export class ComputerRuntime {
   readonly agent: ComputerAgent
+  /**
+   * Показ Walkthrough (ADR 0134): метки поверх экрана по снимкам этого же Computer Use и такт его
+   * действий с голосом звонка.
+   */
+  readonly walkthrough: WalkthroughDesk
+  /** Окно меток показа: накладное, как капсула и стрелка, и так же не попадает в снимок модели. */
+  private readonly marks: WalkthroughWindow
   private readonly desk: ComputerDesk
   private readonly capsule: ComputerCapsule
   private readonly pointerWindow: ComputerPointerWindow
@@ -58,6 +70,7 @@ export class ComputerRuntime {
     const input = IS_WINDOWS ? windowsInput : macInput
 
     this.capsule = new ComputerCapsule(rendererUrl)
+    this.marks = new WalkthroughWindow(rendererUrl)
     this.pointerWindow = new ComputerPointerWindow(rendererUrl)
     this.pointer = new ComputerPointer({
       cursor: () => input.cursor(),
@@ -78,7 +91,21 @@ export class ComputerRuntime {
       passThrough: (isOn) => this.capsule.passThrough(isOn),
       covers: (point) => this.capsule.covers(point),
       hiddenFromShot: (shoot) =>
-        this.capsule.hiddenFromShot(() => this.pointerWindow.hiddenFromShot(shoot)),
+        this.capsule.hiddenFromShot(() =>
+          this.pointerWindow.hiddenFromShot(() => this.marks.hiddenFromShot(shoot)),
+        ),
+      witness: IS_WINDOWS ? windowsWitness : macWitness,
+      finished: (key) => this.finished(key),
+      beforeAct: (key, signal) => this.walkthrough.beforeAct(key, signal),
+    })
+    this.walkthrough = new WalkthroughDesk({
+      computer: this.agent,
+      window: this.marks,
+      timer: (run, ms) => {
+        const handle = setTimeout(run, ms)
+
+        return () => clearTimeout(handle)
+      },
     })
 
     app.on('browser-window-focus', () => this.recheck())
@@ -109,6 +136,11 @@ export class ComputerRuntime {
     return this.capsule.view()
   }
 
+  /** Что рисует окно меток показа Walkthrough (ADR 0134) - его странице, когда она открылась. */
+  walkthroughView(): WalkthroughMarksView {
+    return this.marks.current()
+  }
+
   /**
    * Модель разговора сказала фразу: капсула покажет её, пока модель думает до следующего шага.
    * Слова приносит тот, кто знает провайдера (ide-features), - Computer о лентах не знает.
@@ -124,6 +156,12 @@ export class ComputerRuntime {
    */
   stopped: (key: string) => void = () => undefined
 
+  /**
+   * Разговор кончил работу, в которой брал компьютер, а человек его не трогал (ADR 0130): IDE
+   * выходит вперёд с этим чатом. Ставит тот, кто знает панели и окно (ide-features).
+   */
+  finished: (key: string) => void = () => undefined
+
   control(action: CapsuleAction): CapsuleView | null {
     if (action === 'pause') this.desk.pause()
     else if (action === 'resume') this.desk.resume()
@@ -137,15 +175,18 @@ export class ComputerRuntime {
     return this.desk.view()
   }
 
-  /** Коннектор выключили или удалили: всё, что шло, обрывается, капсула гаснет. */
+  /** Коннектор выключили или удалили: всё, что шло, обрывается, капсула и метки гаснут. */
   idle(): void {
     this.desk.dispose()
+    this.walkthrough.dispose()
   }
 
   stop(): void {
     this.desk.dispose()
+    this.walkthrough.dispose()
     this.pointer.dispose()
     this.pointerWindow.destroy()
+    this.marks.destroy()
     this.capsule.destroy()
   }
 }

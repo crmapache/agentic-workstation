@@ -44,7 +44,7 @@ const takeQuotedLines = (text: string): { quotes: string[]; body: string } => {
 }
 
 /** Слова без разметки, тире и маркеров списка: цитату брали с экрана, ответ - markdown. */
-const normalise = (text: string): string =>
+export const normalise = (text: string): string =>
   text
     .toLowerCase()
     .replace(/[`*_#>\-‐-―•·\s]+/g, ' ')

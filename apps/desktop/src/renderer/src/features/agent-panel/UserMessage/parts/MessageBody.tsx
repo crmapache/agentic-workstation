@@ -75,7 +75,12 @@ export const MessageBody = ({ tokens, messageId, onOpenPicture }: MessageBodyPro
             {token.chip.kind === 'paste' ? (
               <PastedText chip={token.chip} isBlock={index === tokens.length - 1} />
             ) : (
-              <SentChip chip={token.chip} picture={picture} onOpen={openPicture} />
+              <SentChip
+                chip={token.chip}
+                messageId={messageId}
+                picture={picture}
+                onOpen={openPicture}
+              />
             )}
           </span>
         )

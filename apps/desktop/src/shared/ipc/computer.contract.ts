@@ -1,9 +1,10 @@
 import type { CapsuleView, CapsuleAction, ComputerPermission } from '../computer'
+import type { ProviderId } from '../providers'
 
 /**
- * Часть контракта (contract.ts) про Computer Use (ADR 0057, 0079): капсула внизу экрана
+ * Часть контракта (contract.ts) про Computer Use (ADR 0057, 0079, 0130): капсула внизу экрана
  * спрашивает, что показать, и жмёт паузу и остановку; окно коннекторов просит разрешения macOS;
- * окно стрелки ИИ узнаёт о нажатиях руки.
+ * окно стрелки ИИ узнаёт о нажатиях руки; окно IDE - что пора показать чат, где шла работа.
  */
 export type ComputerInvokeContract = {
   /** Что показывает капсула сейчас; компьютер свободен - null. */
@@ -22,6 +23,11 @@ export type ComputerEventContract = {
   'computer:capsuleChanged': CapsuleView | null
   /** Рука ИИ нажала кнопку мыши; номер нажатия - круг от острия. Только окну стрелки ИИ. */
   'computer:pointerPressed': number
+  /**
+   * Работа на компьютере кончилась, и IDE вернула человека к чату (ADR 0130): проект и вкладку
+   * уже выбрал главный процесс, окну - открыть панель провайдера.
+   */
+  'computer:returned': { provider: ProviderId }
 }
 
 /** Каналы этой части в рантайме: их разворачивает INVOKE_CHANNELS. */
@@ -35,4 +41,5 @@ export const COMPUTER_CHANNELS = {
 export const COMPUTER_EVENTS = {
   'computer:capsuleChanged': true,
   'computer:pointerPressed': true,
+  'computer:returned': true,
 } satisfies Record<keyof ComputerEventContract, true>

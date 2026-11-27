@@ -66,6 +66,8 @@ import type { TrackerEventContract, TrackerInvokeContract } from './tracker.cont
 import { TRACKER_EVENTS, TRACKER_CHANNELS } from './tracker.contract'
 import type { VoiceEventContract, VoiceInvokeContract } from './voice.contract'
 import { VOICE_EVENTS, VOICE_CHANNELS } from './voice.contract'
+import type { WalkthroughEventContract, WalkthroughInvokeContract } from './walkthrough.contract'
+import { WALKTHROUGH_EVENTS, WALKTHROUGH_CHANNELS } from './walkthrough.contract'
 import type { WindowEventContract, WindowInvokeContract } from './window.contract'
 import { WINDOW_EVENTS, WINDOW_CHANNELS } from './window.contract'
 
@@ -95,6 +97,7 @@ export type AreaInvokeContract = AgentInvokeContract &
   RemoteInvokeContract &
   SoundsInvokeContract &
   VoiceInvokeContract &
+  WalkthroughInvokeContract &
   MemorySaverInvokeContract &
   ServiceAiInvokeContract &
   IdePrefsInvokeContract &
@@ -124,6 +127,7 @@ export type AreaEventContract = AgentEventContract &
   RemoteEventContract &
   SoundsEventContract &
   VoiceEventContract &
+  WalkthroughEventContract &
   MemorySaverEventContract &
   ServiceAiEventContract &
   IdePrefsEventContract &
@@ -157,6 +161,7 @@ export const AREA_CHANNELS = {
   ...REMOTE_CHANNELS,
   ...SOUNDS_CHANNELS,
   ...VOICE_CHANNELS,
+  ...WALKTHROUGH_CHANNELS,
   ...MEMORY_SAVER_CHANNELS,
   ...SERVICE_AI_CHANNELS,
   ...IDE_PREFS_CHANNELS,
@@ -189,6 +194,7 @@ export const AREA_EVENTS = {
   ...REMOTE_EVENTS,
   ...SOUNDS_EVENTS,
   ...VOICE_EVENTS,
+  ...WALKTHROUGH_EVENTS,
   ...MEMORY_SAVER_EVENTS,
   ...SERVICE_AI_EVENTS,
   ...IDE_PREFS_EVENTS,
