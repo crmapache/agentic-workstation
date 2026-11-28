@@ -2,93 +2,85 @@ import { it, expect, describe } from 'vitest'
 
 import {
   boxOf,
-  markIn,
-  movedBy,
-  pointsOf,
-  anchorsOf,
-  arrowTail,
-  ARROW_LENGTH,
+  isDrawn,
+  boundsOf,
+  closeUpOf,
+  boxAnchors,
+  strokeText,
+  strokeAnchors,
 } from './walkthrough-marks'
 
-const DISPLAY = { x: 0, y: 0, width: 1000, height: 800 }
+const LINE = [
+  { x: 100, y: 200 },
+  { x: 300, y: 204 },
+]
 
-describe('walkthrough marks', () => {
-  it('takes a box from two corners in any order', () => {
+describe('walkthrough geometry (ADR 0135)', () => {
+  it('makes a box of two corners in any order, and of a hand path', () => {
     expect(
       boxOf([
         { x: 60, y: 30 },
         { x: 10, y: 10 },
       ]),
     ).toEqual({ x: 10, y: 10, width: 50, height: 20 })
-  })
-
-  it('moves every point of a request from screenshot pixels to the screen', () => {
-    const arrow = { kind: 'arrow' as const, to: { x: 1, y: 2 }, from: { x: 3, y: 4 } }
-    const doubled = movedBy(arrow, (point) => ({ x: point.x * 2, y: point.y * 2 }))
-
-    expect(doubled).toEqual({ kind: 'arrow', to: { x: 2, y: 4 }, from: { x: 6, y: 8 } })
-    expect(pointsOf(doubled)).toEqual([
-      { x: 2, y: 4 },
-      { x: 6, y: 8 },
-    ])
-    expect(pointsOf({ kind: 'arrow', to: { x: 1, y: 2 }, from: null })).toEqual([{ x: 1, y: 2 }])
-  })
-
-  it('starts an arrow without a tail towards the middle of the display, inside it', () => {
-    const tail = arrowTail({ x: 900, y: 700 }, DISPLAY)
-
-    expect(tail.x).toBeLessThan(900)
-    expect(tail.y).toBeLessThan(700)
-    expect(Math.hypot(900 - tail.x, 700 - tail.y)).toBeCloseTo(ARROW_LENGTH, 0)
-
-    const corner = arrowTail({ x: 5, y: 5 }, DISPLAY)
-
-    expect(corner.x).toBeGreaterThanOrEqual(24)
-    expect(corner.y).toBeGreaterThanOrEqual(24)
-  })
-
-  it('puts marks into points of the marks window', () => {
-    const origin = { x: 1000, y: 25 }
-    const display = { x: 1000, y: 0, width: 1500, height: 900 }
-
     expect(
-      markIn(
-        {
-          kind: 'circle',
-          corners: [
-            { x: 1100, y: 125 },
-            { x: 1200, y: 175 },
-          ],
-        },
-        4,
-        display,
-        origin,
-      ),
-    ).toEqual({ kind: 'circle', id: 4, box: { x: 100, y: 100, width: 100, height: 50 } })
-    expect(
-      markIn(
-        { kind: 'arrow', to: { x: 1100, y: 125 }, from: { x: 1300, y: 325 } },
-        5,
-        display,
-        origin,
-      ),
-    ).toEqual({ kind: 'arrow', id: 5, from: { x: 300, y: 300 }, to: { x: 100, y: 100 } })
+      boundsOf([
+        { x: 5, y: 9 },
+        { x: 1, y: 20 },
+        { x: 8, y: 2 },
+      ]),
+    ).toEqual({
+      x: 1,
+      y: 2,
+      width: 7,
+      height: 18,
+    })
+    expect(boundsOf([])).toEqual({ x: 0, y: 0, width: 0, height: 0 })
   })
 
-  it('watches the middle and the corners of an area and the tip of an arrow', () => {
-    expect(
-      anchorsOf({
-        kind: 'spotlight',
-        corners: [
-          { x: 0, y: 0 },
-          { x: 10, y: 20 },
-        ],
-      }),
-    ).toEqual([
+  it('checks a highlight by its middle and corners, an arrow by its tip', () => {
+    expect(boxAnchors({ x: 0, y: 0, width: 10, height: 20 })).toEqual([
       { x: 5, y: 10 },
       { x: 0, y: 0 },
       { x: 10, y: 20 },
     ])
-    expect(anchorsOf({ kind: 'arrow', to: { x: 3, y: 4 }, from: null })).toEqual([{ x: 3, y: 4 }])
+    expect(strokeAnchors('arrow', LINE)).toEqual([{ x: 300, y: 204 }])
+    expect(strokeAnchors('underline', LINE)).toEqual([{ x: 200, y: 202 }])
+  })
+
+  it('looks closely at the text above an underline and around an arrow tip', () => {
+    const underline = closeUpOf('underline', LINE)
+    const outline = closeUpOf('outline', LINE)
+
+    expect(underline.y).toBeLessThan(outline.y)
+    expect(underline.y + underline.height).toBe(outline.y + outline.height)
+
+    const arrow = closeUpOf('arrow', LINE)
+
+    expect(arrow.x + arrow.width / 2).toBe(300)
+    expect(arrow.y + arrow.height / 2).toBe(204)
+  })
+
+  it('tells the model each mark in words', () => {
+    expect(strokeText('arrow', LINE)).toBe('drew an arrow from (100, 200) pointing at (300, 204)')
+    expect(strokeText('underline', LINE)).toBe('underlined from (100, 200) to (300, 204)')
+    expect(
+      strokeText('outline', [
+        { x: 10, y: 10 },
+        { x: 50, y: 5 },
+        { x: 30, y: 40 },
+      ]),
+    ).toBe('circled the area (10, 5)-(50, 40)')
+  })
+
+  it('does not keep a click as a mark', () => {
+    expect(isDrawn([{ x: 1, y: 1 }])).toBe(false)
+    expect(
+      isDrawn([
+        { x: 1, y: 1 },
+        { x: 4, y: 3 },
+      ]),
+    ).toBe(false)
+    expect(isDrawn(LINE)).toBe(true)
   })
 })

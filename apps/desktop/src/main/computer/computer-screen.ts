@@ -30,6 +30,20 @@ export const listDisplays = (): Display[] => {
   }))
 }
 
+/** Дисплеи по порядку для модели: главный - 1, остальные - слева направо. */
+export const orderedDisplays = (): Display[] =>
+  listDisplays().sort(
+    (a, b) =>
+      Number(b.isMain) - Number(a.isMain) || a.bounds.x - b.bounds.x || a.bounds.y - b.bounds.y,
+  )
+
+/** Номер дисплея для модели (главный - 1) по его id; такого нет - null. */
+export const displayNumberOf = (displayId: number): number | null => {
+  const at = orderedDisplays().findIndex((display) => display.id === displayId)
+
+  return at < 0 ? null : at + 1
+}
+
 /**
  * Снимок дисплея нужного размера. desktopCapturer снимает все дисплеи разом - берём свой по
  * id; без разрешения «Запись экрана» macOS отдаёт пустые картинки.

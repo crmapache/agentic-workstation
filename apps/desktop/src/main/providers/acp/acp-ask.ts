@@ -13,6 +13,7 @@ import {
 } from '../../acp/client/acp.constants'
 import { applyChoice } from '../../acp/conversation/acp-options'
 import { replyOf, holdPermission } from '../../acp/conversation/acp-requests'
+import { hiddenFailure } from '../../acp/feed/acp-failures'
 import type {
   AcpPromptResult,
   AcpSessionSetup,
@@ -176,13 +177,17 @@ export const askAcpOnce = async (host: AcpRunHost, ask: AskOnce): Promise<AskOnc
       .join('\n\n')
 
     turns.started()
-    turns.ended(
-      (await process.request(
-        'session/prompt',
-        { sessionId, prompt: [{ type: 'text', text }] },
-        ACP_PROMPT_TIMEOUT_MS,
-      )) as AcpPromptResult,
-    )
+
+    const sentAt = Date.now()
+    const result = (await process.request(
+      'session/prompt',
+      { sessionId, prompt: [{ type: 'text', text }] },
+      ACP_PROMPT_TIMEOUT_MS,
+    )) as AcpPromptResult
+    const failure = await hiddenFailure(agent, result.stopReason, sessionId, sentAt)
+
+    if (failure === null) turns.ended(result)
+    else turns.failed(failure)
   }
 
   start().catch((error: unknown) => {

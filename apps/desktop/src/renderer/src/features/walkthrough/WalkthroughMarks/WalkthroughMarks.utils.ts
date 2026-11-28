@@ -2,36 +2,15 @@ import type { MarkBox, MarkPoint } from '@shared/walkthrough'
 
 import {
   ARROW_BEND,
+  CUTOUT_PAD,
+  POINT_STEP,
   ARROW_SAMPLES,
-  CIRCLE_SPREAD,
-  CIRCLE_WOBBLE,
-  SPOTLIGHT_PAD,
-  CIRCLE_PAD_MAX,
-  CIRCLE_PAD_MIN,
-  CIRCLE_SAMPLES,
-  CIRCLE_OVERSHOOT,
-  SPOTLIGHT_RADIUS,
-  CIRCLE_MIN_RADIUS,
-  CIRCLE_WIDE_ASPECT,
-  CIRCLE_SQUARENESS_MAX,
+  CUTOUT_RADIUS,
 } from './WalkthroughMarks.constants'
 import type { ArrowShape } from './WalkthroughMarks.types'
 
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value))
-
 /** Число с тремя знаками после точки: путь SVG короче, а глаз разницы не видит. */
 const fixed = (value: number): string => String(Math.round(value * 1000) / 1000)
-
-/**
- * Повторимая «случайность» от номера метки: одна и та же метка при перерисовке не меняет формы,
- * а соседние метки нарисованы по-разному, как рукой.
- */
-export const noise = (seed: number, salt: number): number => {
-  const value = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453
-
-  return value - Math.floor(value)
-}
 
 /**
  * Сглаженный путь через точки: кривые идут через середины соседних отрезков (как маркер в
@@ -57,47 +36,6 @@ export const smoothPath = (points: readonly MarkPoint[]): string => {
   return parts.join(' ')
 }
 
-/** Знак числа на степень его модуля: суперэллипс в параметрах. */
-const signedPower = (value: number, power: number): number =>
-  Math.sign(value) * Math.abs(value) ** power
-
-/**
- * Петля маркером вокруг области, как обводит рука на созвоне: суперэллипс с запасом (углы
- * прямоугольника внутри), чуть повёрнутый, с дрожью радиуса, начатый сверху слева и заведённый за
- * начало чуть шире - конец не попадает точно в начало. Форма зависит от номера метки (seed).
- */
-export const circlePoints = (box: MarkBox, seed: number): MarkPoint[] => {
-  const pad = clamp(Math.min(box.width, box.height) * 0.2, CIRCLE_PAD_MIN, CIRCLE_PAD_MAX)
-  const aspect = Math.max(box.width, box.height) / Math.max(1, Math.min(box.width, box.height))
-  const squareness =
-    2 + (CIRCLE_SQUARENESS_MAX - 2) * clamp((aspect - 1) / (CIRCLE_WIDE_ASPECT - 1), 0, 1)
-  // Суперэллипс степени n проходит через угол прямоугольника при радиусе 2^(1/n) от половины.
-  const reach = 2 ** (1 / squareness)
-  const rx = Math.max((box.width / 2) * reach + pad, CIRCLE_MIN_RADIUS)
-  const ry = Math.max((box.height / 2) * reach + pad, CIRCLE_MIN_RADIUS)
-  const cx = box.x + box.width / 2
-  const cy = box.y + box.height / 2
-  const tilt = (noise(seed, 1) - 0.5) * 0.06
-  const start = -2.3 + (noise(seed, 2) - 0.5) * 0.5
-  const sweep = Math.PI * 2 + CIRCLE_OVERSHOOT
-  const phase = noise(seed, 3) * Math.PI * 2
-  const power = 2 / squareness
-
-  return Array.from({ length: CIRCLE_SAMPLES + 1 }, (_, index) => {
-    const share = index / CIRCLE_SAMPLES
-    const angle = start + sweep * share
-    const wobble = 1 + CIRCLE_WOBBLE * Math.sin(angle * 3 + phase)
-    const spread = 1 - CIRCLE_SPREAD / 2 + CIRCLE_SPREAD * share
-    const x = rx * signedPower(Math.cos(angle), power) * wobble * spread
-    const y = ry * signedPower(Math.sin(angle), power) * wobble * spread
-
-    return {
-      x: cx + x * Math.cos(tilt) - y * Math.sin(tilt),
-      y: cy + x * Math.sin(tilt) + y * Math.cos(tilt),
-    }
-  })
-}
-
 /** Опорная точка кривой: кривая проходит ровно через точку изгиба поперёк середины. */
 const curveControl = (start: MarkPoint, end: MarkPoint, across: number): MarkPoint => {
   const dx = end.x - start.x
@@ -110,21 +48,6 @@ const curveControl = (start: MarkPoint, end: MarkPoint, across: number): MarkPoi
 
   return { x: 2 * middle.x - (start.x + end.x) / 2, y: 2 * middle.y - (start.y + end.y) / 2 }
 }
-
-/**
- * Петля у края экрана прижимается к нему, а не уходит за край: часы в строке меню обведены
- * сплющенной сверху петлёй, а не обрезанной. margin - половина толщины линии.
- */
-export const keepInside = (
-  points: readonly MarkPoint[],
-  width: number,
-  height: number,
-  margin: number,
-): MarkPoint[] =>
-  points.map((point) => ({
-    x: clamp(point.x, margin, Math.max(margin, width - margin)),
-    y: clamp(point.y, margin, Math.max(margin, height - margin)),
-  }))
 
 /**
  * Стрелка как в Shotter (arrow-shape.ts): квадратичная кривая через точку изгиба, древко -
@@ -227,27 +150,63 @@ export const arrowPath = (shape: ArrowShape): string => {
 export const headPath = (shape: ArrowShape): string => polygonPath(shape.head)
 
 /**
- * Затемнение всего окна с вырезом вокруг области: внешний прямоугольник и скруглённый вырез,
- * заливка по правилу evenodd.
+ * Затемнение всего окна с вырезами вокруг подсвеченных областей: внешний прямоугольник и
+ * скруглённые вырезы, заливка по правилу evenodd. У одной подсветки путь всегда одной формы -
+ * переход CSS по `d` ведёт вырез к новому месту плавно.
  */
-export const spotlightPath = (width: number, height: number, box: MarkBox): string => {
-  const x = box.x - SPOTLIGHT_PAD
-  const y = box.y - SPOTLIGHT_PAD
-  const w = box.width + SPOTLIGHT_PAD * 2
-  const h = box.height + SPOTLIGHT_PAD * 2
-  const r = Math.min(SPOTLIGHT_RADIUS, w / 2, h / 2)
-  const hole = [
-    `M${fixed(x + r)} ${fixed(y)}`,
-    `H${fixed(x + w - r)}`,
-    `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + w)} ${fixed(y + r)}`,
-    `V${fixed(y + h - r)}`,
-    `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + w - r)} ${fixed(y + h)}`,
-    `H${fixed(x + r)}`,
-    `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x)} ${fixed(y + h - r)}`,
-    `V${fixed(y + r)}`,
-    `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + r)} ${fixed(y)}`,
-    'Z',
-  ].join(' ')
+export const spotlightPath = (width: number, height: number, boxes: readonly MarkBox[]): string => {
+  const holes = boxes.map((box) => {
+    const { x, y, width: w, height: h, radius: r } = cutoutOf(box)
 
-  return `M0 0 H${fixed(width)} V${fixed(height)} H0 Z ${hole}`
+    return [
+      `M${fixed(x + r)} ${fixed(y)}`,
+      `H${fixed(x + w - r)}`,
+      `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + w)} ${fixed(y + r)}`,
+      `V${fixed(y + h - r)}`,
+      `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + w - r)} ${fixed(y + h)}`,
+      `H${fixed(x + r)}`,
+      `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x)} ${fixed(y + h - r)}`,
+      `V${fixed(y + r)}`,
+      `A${fixed(r)} ${fixed(r)} 0 0 1 ${fixed(x + r)} ${fixed(y)}`,
+      'Z',
+    ].join(' ')
+  })
+
+  return [`M0 0 H${fixed(width)} V${fixed(height)} H0 Z`, ...holes].join(' ')
+}
+
+/** Вырез вокруг области: с зазором, скругление не больше половины стороны. */
+export const cutoutOf = (box: MarkBox): MarkBox & { radius: number } => {
+  const width = box.width + CUTOUT_PAD * 2
+  const height = box.height + CUTOUT_PAD * 2
+
+  return {
+    x: box.x - CUTOUT_PAD,
+    y: box.y - CUTOUT_PAD,
+    width,
+    height,
+    radius: Math.min(CUTOUT_RADIUS, width / 2, height / 2),
+  }
+}
+
+/**
+ * Следующая точка пути руки: ближе POINT_STEP к прошлой - не нужна. У подчёркивания и стрелки
+ * (straight) путь - только начало и конец.
+ */
+export const nextPoints = (
+  points: readonly MarkPoint[],
+  point: MarkPoint,
+  straight: boolean,
+): MarkPoint[] => {
+  const [first] = points
+
+  if (!first) return [point]
+
+  if (straight) return [first, point]
+
+  const last = points.at(-1) ?? first
+
+  return Math.hypot(point.x - last.x, point.y - last.y) < POINT_STEP
+    ? [...points]
+    : [...points, point]
 }

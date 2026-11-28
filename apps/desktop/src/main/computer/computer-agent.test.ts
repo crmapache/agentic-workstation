@@ -24,6 +24,7 @@ const screen = vi.hoisted(() => ({ shots: 0 }))
 
 vi.mock('./computer-screen', () => ({
   listDisplays: () => [DISPLAY],
+  orderedDisplays: () => [DISPLAY],
   shootDisplay: (display: Display) => {
     screen.shots += 1
 

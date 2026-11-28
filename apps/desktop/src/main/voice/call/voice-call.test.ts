@@ -14,7 +14,11 @@ import { VoiceCall } from './voice-call'
 
 type Socket = { url: string; handlers: DeepgramHandlers; sent: Array<string | Uint8Array> }
 
-const harness = (mode: VoiceCallMode = 'call', intercept?: (utterance: Utterance) => boolean) => {
+const harness = (
+  mode: VoiceCallMode = 'call',
+  intercept?: (utterance: Utterance) => boolean,
+  drawn?: () => number,
+) => {
   const sockets: Socket[] = []
   const dial: DeepgramDial = (url, _key, handlers) => {
     const socket: Socket = { url, handlers, sent: [] }
@@ -66,7 +70,10 @@ const harness = (mode: VoiceCallMode = 'call', intercept?: (utterance: Utterance
     onView: () => undefined,
     onEnded: (reason) => ended.push(reason),
     onSpoken: (answer) => spoken.push(answer),
-    intercept,
+    show:
+      intercept || drawn
+        ? { intercept: intercept ?? (() => false), drawn: drawn ?? (() => 0) }
+        : undefined,
   })
 
   const listen = () => sockets.filter((socket) => socket.url.includes('/v2/listen')).at(-1)
@@ -474,7 +481,7 @@ describe('VoiceCall in a walkthrough (ADR 0134)', () => {
         kind: 'tool',
         id,
         parentToolUseId: null,
-        name: 'mcp__walkthrough__circle',
+        name: 'mcp__walkthrough__highlight',
         status,
       } as FeedPatch['upserts'][number],
     ],
@@ -508,7 +515,7 @@ describe('VoiceCall in a walkthrough (ADR 0134)', () => {
     h.call.feed(h.answer('Это кнопка Deploy. ', false, 'a1'))
     h.call.feed(tool('running'))
 
-    const { spoken } = await h.call.speechSoFar()
+    const { spoken } = await h.call.show.speechSoFar()
     let heard: boolean | null = null
 
     void spoken.then((value) => {
@@ -542,7 +549,7 @@ describe('VoiceCall in a walkthrough (ADR 0134)', () => {
     h.call.feed(h.answer('Сейчас нажму Settings. ', false, 'a1'))
     h.call.feed(tool('running'))
 
-    const { spoken } = await h.call.speechSoFar()
+    const { spoken } = await h.call.show.speechSoFar()
 
     h.call.stop()
 
@@ -555,7 +562,7 @@ describe('VoiceCall in a walkthrough (ADR 0134)', () => {
     h.call.start([])
     await settle()
 
-    const pending = h.call.speechSoFar()
+    const pending = h.call.show.speechSoFar()
 
     h.timers.find((timer) => timer.ms === 400)?.run()
 
@@ -577,5 +584,105 @@ describe('VoiceCall in a walkthrough (ADR 0134)', () => {
 
     expect(taken).toEqual(['Готово, нажал'])
     expect(h.sent).toEqual([])
+  })
+
+  // ADR 0135: человек договорил - звонок отзывается сразу, а не молчит, пока модель думает.
+  it('answers a line at once while the model thinks', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+    h.turn('EndOfTurn', 'Покажи настройки')
+    h.pause()
+
+    expect(h.says(h.speak())).toContainEqual({ type: 'Speak', text: 'Хорошо, секунду. ' })
+
+    h.turn('EndOfTurn', 'А где тёмная тема')
+    h.pause()
+
+    expect(h.says(h.speak())).toContainEqual({ type: 'Speak', text: 'Так, смотрю. ' })
+  })
+
+  it('does not answer a plain call line or a stop on its own', async () => {
+    const plain = harness()
+
+    plain.call.start([])
+    await settle()
+    plain.turn('EndOfTurn', 'Посмотри почту')
+    plain.pause()
+    expect(plain.sockets.filter((socket) => socket.url.includes('/v2/speak'))).toHaveLength(1)
+    expect(plain.says(plain.speak())).toEqual([])
+
+    const show = harness('walkthrough')
+
+    show.call.start([])
+    await settle()
+    show.turn('EndOfTurn', 'Стоп')
+    expect(show.says(show.speak()).map((message) => message.text)).not.toContain(
+      'Хорошо, секунду. ',
+    )
+  })
+
+  it('speaks a tool phrase on its own turn and says when it was heard', async () => {
+    const h = harness('walkthrough')
+
+    h.call.start([])
+    await settle()
+
+    const { spoken } = h.call.show.say('Это меню настроек.')
+    const voice = h.speak()
+
+    expect(h.says(voice)).toContainEqual({ type: 'Speak', text: 'Это меню настроек. ' })
+    voice?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    voice?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 200))
+    voice?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+    voice?.handlers.text(JSON.stringify({ type: 'SpeechStarted' }))
+    voice?.handlers.audio(Buffer.alloc(PLAY_BYTES_PER_MS * 300))
+    voice?.handlers.text(JSON.stringify({ type: 'SpeechMetadata' }))
+    h.call.played(0, 500)
+
+    await expect(spoken).resolves.toBe(true)
+  })
+
+  // Пока показ ждёт ответа, короткое «да» - ответ, а не поддакивание работающему агенту.
+  it('takes a short yes for an answer while the walkthrough listens', async () => {
+    const taken: string[] = []
+    const h = harness('walkthrough', (utterance) => {
+      taken.push(utterance.text)
+
+      return true
+    })
+
+    h.call.start([])
+    await settle()
+    h.state('running')
+    h.turn('EndOfTurn', 'Да')
+    h.pause()
+    expect(taken).toEqual([])
+
+    h.call.show.listen(true)
+    expect(h.lastState()).toMatchObject({ call: { state: 'listening' } })
+    h.turn('EndOfTurn', 'Да')
+    h.pause()
+    expect(taken).toEqual(['Да'])
+
+    h.call.show.listen(false)
+    expect(h.lastState()).toMatchObject({ call: { state: 'thinking' } })
+  })
+
+  it('tells the model how many marks the person drew with the line', async () => {
+    const h = harness('walkthrough', undefined, () => 2)
+
+    h.call.start([])
+    await settle()
+    h.turn('EndOfTurn', 'Что это такое')
+    h.pause()
+
+    expect(h.sent).toEqual([
+      {
+        text: 'Что это такое',
+        voice: { lang: 'ru', heard: null, walkthrough: true, drawn: 2 },
+      },
+    ])
   })
 })

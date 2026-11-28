@@ -23,17 +23,19 @@ import { withMacKeys } from '../../../lib/keys'
 import { LONE_MODIFIERS } from './AgentPanelView.constants'
 
 /**
- * У проекта всегда есть разговор: пустая вкладка ничего не поднимает (процесс CLI
- * стартует на первом сообщении), зато под полем сразу видны модель и режим. Кроме
- * одного случая: человек сам закрыл последнюю - тогда экран «Let's start» (NoChats).
- * Появилась вкладка (⌘T, история, вернули закрытую) - отметка снимается.
+ * У проекта, на который смотрит человек, всегда есть разговор: пустая вкладка ничего не
+ * поднимает (процесс CLI стартует на первом сообщении), зато под полем сразу видны модель и
+ * режим. Кроме одного случая: человек сам закрыл последнюю - тогда экран «Let's start»
+ * (NoChats). Появилась вкладка (⌘T, история, вернули закрытую) - отметка снимается. Пустую
+ * заводит главный процесс и только если вкладок правда нет: разговор агента мог встать раньше,
+ * чем окно о нём узнало. Она запасная и уйдёт, когда рядом встанет разговор (useDropSpareTabs).
  */
 export const useEnsureConversation = (
   project: Project | null,
   state: AgentPanelState | undefined,
   count: number,
 ) => {
-  const { newConversation } = useConversationActions()
+  const { ensureConversation } = useConversationActions()
   const emptied = usePanelStore((store) => Boolean(project && store.emptied[project.rootPath]))
   const setEmptied = usePanelStore((store) => store.setEmptied)
   const requested = useRef<string | null>(null)
@@ -54,8 +56,8 @@ export const useEnsureConversation = (
     if (requested.current === project.id) return
 
     requested.current = project.id
-    void newConversation(project.id)
-  }, [project, needsOne, newConversation])
+    void ensureConversation(project.id)
+  }, [project, needsOne, ensureConversation])
 }
 
 /**

@@ -6,10 +6,10 @@ import { IS_MAC } from '../platform'
 import { markOverlay } from '../window/overlay-windows'
 
 /**
- * Страницы накладных окон Computer - входы рендерера рядом с index.html: капсула, стрелка ИИ и
- * метки показа Walkthrough (ADR 0134).
+ * Страницы накладных окон Computer - входы рендерера рядом с index.html: капсула, стрелка ИИ,
+ * метки показа Walkthrough (ADR 0134) и панель инструментов человека в нём (ADR 0135).
  */
-export type OverlayPage = 'capsule' | 'pointer' | 'walkthrough'
+export type OverlayPage = 'capsule' | 'pointer' | 'walkthrough' | 'walkthrough-panel'
 
 /**
  * Накладное окно Computer поверх всех приложений (капсула ADR 0057, стрелка ИИ ADR 0079): без
@@ -43,6 +43,9 @@ export const createOverlayWindow = (
     maximizable: false,
     fullscreenable: false,
     focusable: false,
+    // Первое нажатие по окну без фокуса доходит до страницы, а не уходит на «сделать окно
+    // активным»: Pause и Stop капсулы, инструменты показа и рисунок пометки.
+    acceptFirstMouse: true,
     skipTaskbar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

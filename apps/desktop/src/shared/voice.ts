@@ -32,6 +32,8 @@ export type VoiceOutgoing = VoiceMark & {
   heard?: string | null | undefined
   /** Реплика показа Walkthrough (ADR 0134): пометка говорит модели, что она показывает на экране. */
   walkthrough?: boolean | undefined
+  /** Сколько пометок человек нарисовал на экране к этой реплике (ADR 0135): модели их смотреть. */
+  drawn?: number | undefined
 }
 
 /** Мультиязык - язык ответа по последней реплике; язык - всегда он, что бы ни сказал человек. */

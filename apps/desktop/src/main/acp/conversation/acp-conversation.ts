@@ -49,6 +49,8 @@ export class AcpConversation {
    * уведомления самому себе и чтение IDE (ADR 0069, 0090) - без вопроса человеку.
    */
   allowed: readonly string[] = []
+  /** Имя разговора уже спрашивается у агента (acp-title.ts): второй вопрос не нужен. */
+  titleAsking = false
 
   constructor(
     readonly runtime: ConversationRuntime,

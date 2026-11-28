@@ -5,7 +5,7 @@ import { HEADING_CLASS } from '../Markdown.constants'
 import { MarkdownLinksContext } from '../Markdown.context'
 import styles from '../Markdown.module.scss'
 import type { MathToken, MarkdownTokenProps, MarkdownTokensProps } from '../Markdown.types'
-import { codeLanguage } from '../Markdown.utils'
+import { codeLanguage, isProseBlock } from '../Markdown.utils'
 import { CodeBlock } from '../../CodeBlock/CodeBlock'
 import { Formula } from '../../Formula/Formula'
 import { MarkdownInline } from './MarkdownInline'
@@ -39,8 +39,11 @@ const Block = ({ token }: MarkdownTokenProps) => {
     }
     case 'code': {
       const code = token as Tokens.Code
+      const language = codeLanguage(code.lang)
 
-      return <CodeBlock code={code.text} language={codeLanguage(code.lang)} />
+      return (
+        <CodeBlock code={code.text} language={language} prose={isProseBlock(language, code.text)} />
+      )
     }
     case 'math':
       return <Formula latex={(token as MathToken).text} display />

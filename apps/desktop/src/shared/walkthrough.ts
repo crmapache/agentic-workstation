@@ -3,9 +3,10 @@ import { isAvailableIn } from './connector-availability'
 import type { ConnectorKind } from './connectors'
 
 /**
- * Walkthrough (ADR 0134): голосовой показ на экране. Модель говорит звонком (ADR 0104), смотрит и
- * действует Computer Use (ADR 0057), а куда смотреть - обводит маркером в прозрачном окне поверх
- * экрана. Общие типы окна IDE, окна меток и главного процесса.
+ * Walkthrough (ADR 0134, 0135): голосовой показ на экране. Модель говорит звонком (ADR 0104),
+ * смотрит и действует Computer Use (ADR 0057), а куда смотреть - подсвечивает, затемняя всё
+ * остальное в прозрачном окне поверх экрана; человек отвечает голосом и своими пометками. Общие
+ * типы окна IDE, окна меток, панели инструментов и главного процесса.
  */
 
 /** Имя сервера Walkthrough: тип в начале - правило коннекторов (ADR 0028). */
@@ -59,13 +60,43 @@ export type MarkPoint = { x: number; y: number }
 export type MarkBox = { x: number; y: number; width: number; height: number }
 
 /**
- * Метка на экране: обводка маркером (главное), стрелка к точке, затемнение всего, кроме области.
- * id растёт с каждой меткой: по нему окно заново проигрывает появление и выбирает форму обводки.
+ * Инструменты человека в показе (ADR 0135): обвести от руки, подчеркнуть, показать стрелкой. Он
+ * берёт их на панели сбоку экрана, рисует поверх и говорит, о чём это, - модель видит пометки
+ * инструментом user_marks.
  */
-export type WalkthroughMark =
-  | { kind: 'circle'; id: number; box: MarkBox }
-  | { kind: 'arrow'; id: number; from: MarkPoint; to: MarkPoint }
-  | { kind: 'spotlight'; id: number; box: MarkBox }
+export const WALKTHROUGH_PENS = ['outline', 'underline', 'arrow'] as const
 
-/** Что рисует окно меток сейчас: размер окна в точках и метки по порядку (затемнение - снизу). */
-export type WalkthroughMarksView = { width: number; height: number; marks: WalkthroughMark[] }
+export type WalkthroughPen = (typeof WALKTHROUGH_PENS)[number]
+
+export const isWalkthroughPen = (value: unknown): value is WalkthroughPen =>
+  typeof value === 'string' && (WALKTHROUGH_PENS as readonly string[]).includes(value)
+
+/**
+ * Подсветка модели (ADR 0135): вырез в затемнении экрана. slot - место выреза по порядку: новая
+ * подсветка вместо прежней встаёт в тот же слот, и вырез переезжает к ней плавно, а не мигает.
+ */
+export type WalkthroughLit = { slot: number; box: MarkBox }
+
+/**
+ * Пометка человека: у обводки - путь руки, у подчёркивания и стрелки - начало и конец (у стрелки
+ * конец - острие). id растёт с каждой пометкой.
+ */
+export type WalkthroughStroke = { id: number; pen: WalkthroughPen; points: MarkPoint[] }
+
+/**
+ * Что рисует окно меток сейчас, в точках окна: подсветки модели, пометки человека и инструмент у
+ * него в руке - тогда окно ловит мышь и рисует им, иначе мышь проходит насквозь.
+ */
+export type WalkthroughMarksView = {
+  width: number
+  height: number
+  lit: WalkthroughLit[]
+  strokes: WalkthroughStroke[]
+  pen: WalkthroughPen | null
+}
+
+/** Панель инструментов человека: что у него в руке и есть ли что стереть. */
+export type WalkthroughPanelView = { pen: WalkthroughPen | null; hasStrokes: boolean }
+
+/** Сколько точек одной пометки окно меток шлёт главному процессу, не больше. */
+export const STROKE_POINTS_MAX = 2000

@@ -1,102 +1,112 @@
-import type { MarkBox, MarkPoint, WalkthroughMark } from '@shared/walkthrough'
-
-import type { Rect } from '../computer/computer-geometry'
+import type { MarkBox, MarkPoint, WalkthroughPen } from '@shared/walkthrough'
 
 /**
- * Что модель просит нарисовать (ADR 0134): обвести область, затемнить всё, кроме неё, или показать
- * стрелкой на точку (from - откуда; нет - стрелка выберет сама). Сначала - в пикселях снимка
- * модели, после movedBy - в точках экрана.
+ * Геометрия показа (ADR 0135): подсветка модели - область по двум углам (в пикселях её снимка,
+ * потом в точках экрана), пометки человека - путь руки или начало и конец линии в точках экрана.
  */
-export type MarkRequest =
-  | { kind: 'circle' | 'spotlight'; corners: [MarkPoint, MarkPoint] }
-  | { kind: 'arrow'; to: MarkPoint; from: MarkPoint | null }
-
-/** Точки запроса: углы области или острие и начало стрелки. */
-export const pointsOf = (request: MarkRequest): MarkPoint[] =>
-  request.kind === 'arrow'
-    ? [request.to, ...(request.from ? [request.from] : [])]
-    : [...request.corners]
-
-/** Тот же запрос в других точках: пиксели снимка модели - в точки экрана. */
-export const movedBy = (
-  request: MarkRequest,
-  move: (point: MarkPoint) => MarkPoint,
-): MarkRequest =>
-  request.kind === 'arrow'
-    ? { kind: 'arrow', to: move(request.to), from: request.from ? move(request.from) : null }
-    : { kind: request.kind, corners: [move(request.corners[0]), move(request.corners[1])] }
-
-/** Длина стрелки, у которой модель не назвала начало: заметно, но не через весь экран. */
-export const ARROW_LENGTH = 150
-
-/** Стрелка не начинается вплотную к краю дисплея: хвост и тень должны поместиться. */
-const EDGE = 24
 
 /** Прямоугольник по двум углам в любом порядке. */
-export const boxOf = ([a, b]: [MarkPoint, MarkPoint]): MarkBox => ({
+export const boxOf = ([a, b]: readonly [MarkPoint, MarkPoint]): MarkBox => ({
   x: Math.min(a.x, b.x),
   y: Math.min(a.y, b.y),
   width: Math.abs(a.x - b.x),
   height: Math.abs(a.y - b.y),
 })
 
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value))
+/** Рамка точек; точек нет - пустая рамка в нуле. */
+export const boundsOf = (points: readonly MarkPoint[]): MarkBox => {
+  if (points.length === 0) return { x: 0, y: 0, width: 0, height: 0 }
+
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const x = Math.min(...xs)
+  const y = Math.min(...ys)
+
+  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y }
+}
+
+const centerOf = ({ x, y, width, height }: MarkBox): MarkPoint => ({
+  x: x + width / 2,
+  y: y + height / 2,
+})
+
+/** Точки, по которым видно, что подсветка ещё на своём месте: окна в них не поменялись. */
+export const boxAnchors = (box: MarkBox): MarkPoint[] => [
+  centerOf(box),
+  { x: box.x, y: box.y },
+  { x: box.x + box.width, y: box.y + box.height },
+]
 
 /**
- * Откуда идёт стрелка без названного начала: от точки к середине дисплея - там места больше всего,
- * - сдвинутое вверх-влево, чтобы стрелка шла наискосок, как рисует рука, а не вдоль строки. Конец
- * в самой середине - стрелка приходит слева сверху.
+ * То же для пометки человека: у обводки - середина её рамки, у подчёркивания - середина линии, у
+ * стрелки - острие (последняя точка).
  */
-export const arrowTail = (to: MarkPoint, display: Rect): MarkPoint => {
-  const center = { x: display.x + display.width / 2, y: display.y + display.height / 2 }
-  const dx = center.x - to.x
-  const dy = center.y - to.y - display.height * 0.15
-  const length = Math.hypot(dx, dy)
-  const unit =
-    length > 1 ? { x: dx / length, y: dy / length } : { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }
+export const strokeAnchors = (pen: WalkthroughPen, points: readonly MarkPoint[]): MarkPoint[] => {
+  const tip = points.at(-1)
+
+  if (pen === 'arrow') return tip ? [tip] : []
+
+  return [centerOf(boundsOf(points))]
+}
+
+/** Поля крупного плана вокруг пометки: видно, что рядом, но не весь экран. */
+const CLOSE_UP_PAD = 24
+
+/** Над подчёркиванием - строка текста, которую подчеркнули: столько точек вверх. */
+const UNDERLINED_LINE = 44
+
+/** Крупный план вокруг острия стрелки: половина ширины и высоты. */
+const TIP_HALF = { width: 110, height: 70 }
+
+/**
+ * Где на экране смотреть пометку крупно (в точках экрана): у обводки - её рамка с полями, у
+ * подчёркивания - строка над линией, у стрелки - то, на что показывает острие.
+ */
+export const closeUpOf = (pen: WalkthroughPen, points: readonly MarkPoint[]): MarkBox => {
+  const tip = points.at(-1) ?? { x: 0, y: 0 }
+
+  if (pen === 'arrow') {
+    return {
+      x: tip.x - TIP_HALF.width,
+      y: tip.y - TIP_HALF.height,
+      width: TIP_HALF.width * 2,
+      height: TIP_HALF.height * 2,
+    }
+  }
+
+  const box = boundsOf(points)
+  const above = pen === 'underline' ? UNDERLINED_LINE : 0
 
   return {
-    x: clamp(to.x + unit.x * ARROW_LENGTH, display.x + EDGE, display.x + display.width - EDGE),
-    y: clamp(to.y + unit.y * ARROW_LENGTH, display.y + EDGE, display.y + display.height - EDGE),
+    x: box.x - CLOSE_UP_PAD,
+    y: box.y - CLOSE_UP_PAD - above,
+    width: box.width + CLOSE_UP_PAD * 2,
+    height: box.height + CLOSE_UP_PAD * 2 + above,
   }
 }
 
-/**
- * Метка в точках окна меток: окно стоит на дисплее (origin - его левый верхний угол), метки
- * приходят в точках экрана.
- */
-export const markIn = (
-  request: MarkRequest,
-  id: number,
-  display: Rect,
-  origin: MarkPoint,
-): WalkthroughMark => {
-  const local = (point: MarkPoint): MarkPoint => ({ x: point.x - origin.x, y: point.y - origin.y })
+const at = (point: MarkPoint): string => `(${Math.round(point.x)}, ${Math.round(point.y)})`
 
-  if (request.kind === 'arrow') {
-    const from = request.from ?? arrowTail(request.to, display)
+/** Пометка человека словами для модели; точки - пиксели её снимка. */
+export const strokeText = (pen: WalkthroughPen, pixels: readonly MarkPoint[]): string => {
+  const first = pixels[0] ?? { x: 0, y: 0 }
+  const last = pixels.at(-1) ?? first
 
-    return { kind: 'arrow', id, from: local(from), to: local(request.to) }
-  }
+  if (pen === 'arrow') return `drew an arrow from ${at(first)} pointing at ${at(last)}`
 
-  const box = boxOf(request.corners)
+  if (pen === 'underline') return `underlined from ${at(first)} to ${at(last)}`
 
-  return { kind: request.kind, id, box: { ...box, ...local(box) } }
+  const box = boundsOf(pixels)
+
+  return `circled the area ${at(box)}-${at({ x: box.x + box.width, y: box.y + box.height })}`
 }
 
 /**
- * Точки, по которым видно, что метка ещё на своём месте: окна в них не поменялись. У области -
- * середина и углы, у стрелки - острие.
+ * Пометка, которую стоит хранить: не случайный щелчок. У обводки и подчёркивания - заметный
+ * размах, у стрелки - заметная длина.
  */
-export const anchorsOf = (request: MarkRequest): MarkPoint[] => {
-  if (request.kind === 'arrow') return [request.to]
+export const isDrawn = (points: readonly MarkPoint[]): boolean => {
+  const { width, height } = boundsOf(points)
 
-  const { x, y, width, height } = boxOf(request.corners)
-
-  return [
-    { x: x + width / 2, y: y + height / 2 },
-    { x, y },
-    { x: x + width, y: y + height },
-  ]
+  return points.length >= 2 && Math.max(width, height) >= 8
 }

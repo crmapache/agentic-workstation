@@ -1,55 +1,39 @@
-import type { MarkPoint } from '@shared/walkthrough'
+import type { MarkPoint, WalkthroughPen, WalkthroughPanelView } from '@shared/walkthrough'
 
 import type { Aim } from '../computer/computer-agent'
 import { ComputerError, asComputerError } from '../computer/computer-error'
-import type { Rect } from '../computer/computer-geometry'
 import { windowsChangedAt } from '../computer/computer-seen'
 import type { Glance } from '../computer/computer-seen'
 import type { Timer } from '../voice/call/utterances'
-import type { MarkRequest } from './walkthrough-marks'
-import { markIn, movedBy, pointsOf, anchorsOf } from './walkthrough-marks'
-import { watchForUser } from './walkthrough-wait'
-import type { UserMove } from './walkthrough-wait'
+import type { WalkthroughCall } from './walkthrough-call'
+import { boundedSpeech } from './walkthrough-call'
+import { WalkthroughListen } from './walkthrough-listen'
+import { boxOf, boxAnchors } from './walkthrough-marks'
+import { USER_HOLD_MAX_MS } from './walkthrough-stage'
+import type { WalkthroughStage } from './walkthrough-stage'
 
-/**
- * Звонок показа в разговоре: его id (по нему метка узнаёт, что звонок тот же, - обёртку каждый
- * раз дают новую), такт голоса (VoiceCall.speechSoFar) и конец.
- */
-export type WalkthroughCall = {
-  id: string
-  speechSoFar: () => Promise<{ spoken: Promise<boolean> }>
-  end: () => void
-}
-
-/** Что показу нужно от Computer Use: снимок разговора, окна экрана, мышь человеку, окно меток. */
+/** Что показу нужно от Computer Use: снимок разговора, окна экрана, ввод человека, мышь ему. */
 export type WalkthroughPorts = {
   computer: {
     aim: (key: string, pixels: readonly MarkPoint[]) => Aim
     glance: () => Glance
     quietMs: () => number | null
+    /** Человек трогал мышь или клавиатуру после последнего снимка разговора. */
+    touched: (key: string) => boolean
     handOver: (key: string) => void
   }
-  window: {
-    show: (area: Rect, mark: (origin: MarkPoint) => ReturnType<typeof markIn>[]) => void
-    hide: () => void
-  }
+  stage: WalkthroughStage
   timer: Timer
+  now: () => number
 }
 
-/** Метка на экране: что нарисовано, её номер и какие окна были, когда её ставили. */
-type Shown = { request: MarkRequest; id: number; glance: Glance }
-
-/** Ответ метки: не нарисована (почему; look - модели нужен свежий снимок) или поставлена в такт. */
+/** Ответ подсветки: не встала (почему; look - модели нужен свежий снимок) или встала в такт. */
 export type MarkOutcome = { refusal: string; look: boolean } | { note: string }
 
-/** Как часто сверять окна под метками: окно уехало - метки уходят. */
-const WATCH_MS = 500
+/** Пока человек двигает мышь, ИИ ждёт: столько тишины значит «отпустил». */
+export const USER_QUIET_MS = 1500
 
-/**
- * Дольше этого голос не ждём: синтез завис или конечная точка молчит о проигранном - метка и
- * действие идут, а не висят вечно. Самая длинная фраза показа звучит заметно меньше.
- */
-export const SPEECH_WAIT_MAX_MS = 45_000
+const HOLD_POLL_MS = 250
 
 export const NOT_RUNNING =
   'No walkthrough is running in this chat. The user starts one with the Walkthrough button in the ' +
@@ -58,31 +42,38 @@ export const NOT_RUNNING =
 const SPOKEN_OVER =
   'The user spoke over you before this action, so nothing was done. Listen to what they said.'
 
-const SKIPPED =
-  'Your previous mark was not drawn: the windows under it changed before your words were spoken. '
+const unseenMarks = (count: number) =>
+  `While you waited, the user drew ${count === 1 ? 'a mark' : `${count} marks`} and talked about it, so nothing was done. Call user_marks to see what they point at, then go on.`
 
-const WILL_SHOW = 'It appears on the screen when your words before this call have been spoken.'
+const SKIPPED =
+  'Your previous highlight was not shown: the windows under it changed before your words were spoken. '
+
+const WILL_SHOW =
+  'It appears when your earlier words have been spoken, and its say is spoken with it: do not repeat it in your text.'
 
 /**
- * Показ Walkthrough (ADR 0134) в главном процессе: метки, их такт с голосом звонка, ожидание
- * действия человека и конец. Звонок один на IDE - и показ один; метки принадлежат разговору,
- * который их поставил.
+ * Показ Walkthrough (ADR 0134, 0135) в главном процессе: подсветка в такт голосу звонка, вопросы
+ * и практика, инструменты человека и конец. Звонок один на IDE - и показ один.
  *
- * Метка не рисуется сразу: она ждёт, пока прозвучат слова модели до её вызова (иначе обгоняла бы
- * голос на секунды), и встаёт в очередь за прежними. Действие Computer Use ждёт так же и стирает
- * метки - экран сейчас поменяется. Окна под меткой поменялись - метки уходят сами.
+ * Подсветка - с фразой о том, что подсвечено: фраза встаёт во рот сразу за словами модели до
+ * вызова, подсветка появляется, когда они прозвучали, и держится, пока звучит её фраза, - потом
+ * следующая. Перебил человек - всё, что стояло в очереди до этого, не рисуется. Действие Computer
+ * Use ждёт так же, и ещё - пока человек держит мышь или инструмент: он забрал управление на время.
  */
 export class WalkthroughDesk {
-  private owner: string | null = null
-  private area: Rect | null = null
-  private shown: Shown[] = []
-  private nextId = 0
   private queue: Promise<void> = Promise.resolve()
-  private stopWatch: (() => void) | null = null
+  /** Растёт, когда человек перебил: подсветки, вставшие в очередь раньше, уже не к месту. */
+  private generation = 0
   private readonly notes = new Map<string, string>()
-  private waiting: { conversationId: string; done: (move: UserMove) => void } | null = null
+  private readonly listen: WalkthroughListen
 
-  constructor(private readonly ports: WalkthroughPorts) {}
+  constructor(private readonly ports: WalkthroughPorts) {
+    this.listen = new WalkthroughListen({
+      computer: ports.computer,
+      isDrawing: () => ports.stage.isDrawing,
+      timer: ports.timer,
+    })
+  }
 
   /**
    * Звонок показа в разговоре; не идёт - null. Ставит тот, кто знает звонки (ide-features): голос
@@ -90,53 +81,73 @@ export class WalkthroughDesk {
    */
   call: (conversationId: string) => WalkthroughCall | null = () => null
 
+  /** Показ кончился - вернуть человека к чату (ADR 0135). Ставит тот, кто знает панели и окно. */
+  backToChat: (conversationId: string) => void = () => undefined
+
   /** Идёт ли показ в разговоре: возврат к чату после Computer Use тогда молчит (ADR 0130). */
   isShowing(conversationId: string): boolean {
     return this.call(conversationId) !== null
   }
 
+  /** Звонок показа начался: панель инструментов человека - на экран. */
+  started(conversationId: string): void {
+    this.ports.stage.open(conversationId)
+  }
+
   /**
-   * Поставить метку в такт голосу: request - в пикселях последнего снимка Computer Use разговора.
-   * keep - к прежним меткам, иначе вместо них.
+   * Подсветить область (углы - в пикселях последнего снимка Computer Use разговора) и сказать о
+   * ней say. keep - рядом с прежними подсветками, иначе вместо них.
    */
-  async mark(conversationId: string, request: MarkRequest, keep: boolean): Promise<MarkOutcome> {
+  async highlight(
+    conversationId: string,
+    corners: [MarkPoint, MarkPoint],
+    say: string,
+    keep: boolean,
+  ): Promise<MarkOutcome> {
     const call = this.call(conversationId)
 
     if (!call) return { refusal: NOT_RUNNING, look: false }
 
-    const aim = this.ports.computer.aim(conversationId, pointsOf(request))
+    const aim = this.ports.computer.aim(conversationId, corners)
 
     if ('refusal' in aim) return { refusal: aim.refusal, look: true }
 
-    const onScreen = movedBy(request, aim.toScreen)
+    const box = boxOf([aim.toScreen(corners[0]), aim.toScreen(corners[1])])
     const glance = this.ports.computer.glance()
-    const { spoken } = await this.spokenSoFar(call)
+    const { spoken: prior } = await this.spokenSoFar(call)
+    const narration = call.say(say)
+    const { generation } = this
 
     this.enqueue(async () => {
-      if (!(await spoken) || this.call(conversationId)?.id !== call.id) return
+      if (generation !== this.generation || this.call(conversationId)?.id !== call.id) return
 
-      if (windowsChangedAt(glance, this.ports.computer.glance(), anchorsOf(onScreen))) {
+      if (!(await prior)) return this.spokenOver()
+
+      if (windowsChangedAt(glance, this.ports.computer.glance(), boxAnchors(box))) {
         this.notes.set(conversationId, SKIPPED)
 
         return
       }
 
-      this.draw(conversationId, aim.display.bounds, { request: onScreen, id: 0, glance }, keep)
+      this.ports.stage.light(aim.display, box, glance, keep)
+
+      // Подсветка держится, пока звучит её фраза: следующая встанет после неё.
+      if (!(await boundedSpeech(narration.spoken, this.ports.timer))) this.spokenOver()
     })
 
     return { note: `${this.takeNote(conversationId)}${WILL_SHOW}` }
   }
 
-  /** Стереть метки в такт голосу: когда прозвучат слова перед вызовом. */
+  /** Стереть подсветку и пометки в такт голосу: когда прозвучат слова перед вызовом. */
   async clear(conversationId: string): Promise<string | null> {
     const call = this.call(conversationId)
 
     if (!call) return NOT_RUNNING
 
-    const { spoken } = await this.spokenSoFar(call)
+    const { spoken: prior } = await this.spokenSoFar(call)
 
     this.enqueue(async () => {
-      if ((await spoken) && this.owner === conversationId) this.wipe()
+      if ((await prior) && this.ports.stage.conversation === conversationId) this.ports.stage.wipe()
     })
 
     return null
@@ -144,7 +155,8 @@ export class WalkthroughDesk {
 
   /**
    * Перед действием Computer Use (ComputerRuntime.beforeAct): дождаться слов модели перед ним и
-   * меток, поставленных до него, потом стереть метки. Человек перебил - действие не идёт.
+   * подсветок до него, потом - пока человек отпустит мышь и отложит инструмент, и стереть метки:
+   * экран сейчас поменяется. Человек перебил - действие не идёт.
    */
   async beforeAct(conversationId: string, signal: AbortSignal): Promise<void> {
     const call = this.call(conversationId)
@@ -158,14 +170,30 @@ export class WalkthroughDesk {
       signal,
     )
 
-    if (this.owner === conversationId) this.wipe()
-    if (!isSpoken) throw new ComputerError('interrupted', SPOKEN_OVER)
+    if (!isSpoken) {
+      this.spokenOver()
+      throw new ComputerError('interrupted', SPOKEN_OVER)
+    }
+
+    await this.whileUserHolds(conversationId, signal)
+
+    const { stage } = this.ports
+
+    if (stage.conversation !== conversationId) return
+
+    // Человек показал и сказал, о чём, пока действие ждало: оно решено без его пометок - модели
+    // сначала посмотреть их. Отказ - один: пометки считаются увиденными, следующее действие идёт.
+    const { unseen } = stage
+
+    if (unseen > 0) {
+      stage.markSeen()
+      throw new ComputerError('interrupted', unseenMarks(unseen))
+    }
+
+    stage.wipe()
   }
 
-  /**
-   * Практика «попробуй сам»: договорить просьбу, отдать мышь человеку и ждать, пока он сделает шаг
-   * и затихнет, скажет что-то или выйдет время. Ответ - что случилось, словами для модели.
-   */
+  /** Практика «попробуй сам»: договорить просьбу, отдать мышь и ждать шага человека. */
   async waitForUser(
     conversationId: string,
     limitMs: number,
@@ -177,44 +205,72 @@ export class WalkthroughDesk {
 
     if (!(await abortable((await this.spokenSoFar(call)).spoken, signal))) return SPOKEN_OVER
 
-    this.waiting?.done({ kind: 'replaced' })
-    this.ports.computer.handOver(conversationId)
-
-    const move = await new Promise<UserMove>((resolve) => {
-      const stop = watchForUser({
-        glance: () => this.ports.computer.glance(),
-        quietMs: () => this.ports.computer.quietMs(),
-        timer: this.ports.timer,
-        limitMs,
-        done: (result) => done(result),
-      })
-      const onAbort = () => done({ kind: 'ended' })
-      const done = (result: UserMove) => {
-        stop()
-        signal?.removeEventListener('abort', onAbort)
-        if (this.waiting?.done === done) this.waiting = null
-        resolve(result)
-      }
-
-      signal?.addEventListener('abort', onAbort, { once: true })
-      this.waiting = { conversationId, done }
-    })
-
-    return moveText(move, limitMs)
-  }
-
-  /** Реплика человека, пока агент ждёт его действия: она - ответ ожидания. Забрал - true. */
-  intercept(conversationId: string, text: string): boolean {
-    if (this.waiting?.conversationId !== conversationId) return false
-
-    this.waiting.done({ kind: 'said', text })
-
-    return true
+    return this.listen.forStep(conversationId, call, limitMs, signal)
   }
 
   /**
-   * Договорить и положить трубку: показ кончился, конспект модель пишет в чат уже без голоса.
-   * Человек перебил последние слова («подожди, ещё вопрос») - звонок остаётся.
+   * Вопрос человеку (ADR 0135): звучит своим ходом голоса после слов модели перед ним, молчание -
+   * согласие, у важного вопроса - повтор и конец показа. Ответ - что случилось, словами для модели.
+   */
+  async ask(
+    conversationId: string,
+    question: { text: string; critical: boolean },
+    signal?: AbortSignal,
+  ): Promise<string> {
+    const call = this.call(conversationId)
+
+    if (!call) return NOT_RUNNING
+
+    // Мерка нужна, чтобы слова модели перед вопросом успели встать во рот раньше него.
+    await abortable(call.speechSoFar(), signal)
+
+    return this.listen.forAnswer(conversationId, call, question, signal)
+  }
+
+  /** Реплика человека, пока показ его ждёт: она - ответ ожидания. Забрал - true. */
+  intercept(conversationId: string, text: string): boolean {
+    return this.listen.intercept(conversationId, text, () => this.drawn(conversationId))
+  }
+
+  /** Сколько пометок человек нарисовал к реплике: она уходит модели с этим числом. */
+  drawn(conversationId: string): number {
+    const { stage } = this.ports
+
+    return stage.conversation === conversationId ? stage.takeDrawn() : 0
+  }
+
+  /** Пометки человека на экране - инструменту user_marks; нет их или показа - null. */
+  userMarks(conversationId: string): ReturnType<WalkthroughStage['lookAt']> {
+    const { stage } = this.ports
+
+    return this.call(conversationId) && stage.conversation === conversationId
+      ? stage.lookAt()
+      : null
+  }
+
+  /** Человек взял или отложил инструмент на панели. */
+  pick(pen: WalkthroughPen | null): WalkthroughPanelView {
+    return this.ports.stage.pick(pen)
+  }
+
+  /** Человек нарисовал пометку (точки экрана). */
+  stroke(pen: WalkthroughPen, points: MarkPoint[]): void {
+    this.ports.stage.draw(pen, points)
+  }
+
+  /** Кнопка «стереть» на панели. */
+  erase(): WalkthroughPanelView {
+    return this.ports.stage.erase()
+  }
+
+  panelView(): WalkthroughPanelView {
+    return this.ports.stage.panelView()
+  }
+
+  /**
+   * Договорить и положить трубку: показ кончился, IDE возвращает человека к чату, конспект модель
+   * пишет туда уже без голоса. Человек перебил последние слова («подожди, ещё вопрос») - звонок
+   * остаётся.
    */
   async finish(conversationId: string, signal?: AbortSignal): Promise<string> {
     const call = this.call(conversationId)
@@ -227,92 +283,69 @@ export class WalkthroughDesk {
 
     call.end()
 
-    return 'The walkthrough call ended. Now write a short recap in the chat: what you showed, the user questions and what stayed unclear. It is no longer read aloud.'
-  }
-
-  /** Звонок показа кончился: метки уходят, ожидание человека - тоже. */
-  ended(conversationId: string): void {
-    if (this.owner === conversationId) this.wipe()
-    if (this.waiting?.conversationId === conversationId) this.waiting.done({ kind: 'ended' })
-
-    this.notes.delete(conversationId)
-  }
-
-  dispose(): void {
-    this.wipe()
-    this.waiting?.done({ kind: 'ended' })
-  }
-
-  private draw(conversationId: string, area: Rect, mark: Shown, keep: boolean): void {
-    const sameArea =
-      this.area !== null &&
-      this.area.x === area.x &&
-      this.area.y === area.y &&
-      this.area.width === area.width &&
-      this.area.height === area.height
-    const kept = keep && this.owner === conversationId && sameArea ? this.shown : []
-
-    this.nextId += 1
-    this.owner = conversationId
-    this.area = area
-    this.shown = [...kept, { ...mark, id: this.nextId }]
-    this.ports.window.show(area, (origin) =>
-      // Затемнение - снизу: обводка и стрелка поверх него.
-      [...this.shown]
-        .sort(
-          (a, b) => Number(b.request.kind === 'spotlight') - Number(a.request.kind === 'spotlight'),
-        )
-        .map(({ request, id }) => markIn(request, id, area, origin)),
-    )
-    this.watch()
-  }
-
-  /** Сверять окна под метками, пока они на экране: окно уехало или закрылось - стереть. */
-  private watch(): void {
-    if (this.stopWatch) return
-
-    const tick = () => {
-      const now = this.ports.computer.glance()
-      const moved = this.shown.some(
-        ({ request, glance }) => windowsChangedAt(glance, now, anchorsOf(request)) !== null,
-      )
-
-      if (moved) this.wipe()
-      else this.stopWatch = this.ports.timer(tick, WATCH_MS)
-    }
-
-    this.stopWatch = this.ports.timer(tick, WATCH_MS)
-  }
-
-  private wipe(): void {
-    this.stopWatch?.()
-    this.stopWatch = null
-    this.owner = null
-    this.area = null
-
-    if (this.shown.length === 0) return
-
-    this.shown = []
-    this.ports.window.hide()
+    return 'The walkthrough call ended, and the user comes back to this chat. Now write a short recap here: what you showed, the user questions and what stayed unclear. It is no longer read aloud.'
   }
 
   /**
-   * Прозвучит ли сказанное до этой минуты - но не дольше SPEECH_WAIT_MAX_MS: тогда «да». Обёртка,
-   * а не голое обещание: async склеил бы его, и вызывающий ждал бы сам голос, а не мерку.
+   * Звонок показа кончился - по любой причине: метки, инструмент и панель уходят, ожидание
+   * человека - тоже, и IDE выходит вперёд с этим чатом (ADR 0135). Выход IDE и закрытый разговор -
+   * возвращать некуда.
+   */
+  ended(conversationId: string, reason: string): void {
+    if (this.ports.stage.conversation === conversationId) this.ports.stage.close()
+
+    this.listen.ended(conversationId)
+    this.notes.delete(conversationId)
+
+    if (reason !== 'shutdown' && reason !== 'conversationGone') this.backToChat(conversationId)
+  }
+
+  dispose(): void {
+    this.ports.stage.close()
+    this.listen.ended(null)
+  }
+
+  /**
+   * Пока человек показывает сам (инструмент в руке, свежая пометка) или двигает мышь, ИИ ждёт -
+   * но не дольше USER_HOLD_MAX_MS.
+   */
+  private async whileUserHolds(conversationId: string, signal: AbortSignal): Promise<void> {
+    const { computer, stage, now } = this.ports
+    const started = now()
+    const holds = () =>
+      stage.isDrawing ||
+      (computer.touched(conversationId) && (computer.quietMs() ?? USER_QUIET_MS) < USER_QUIET_MS)
+
+    while (holds() && now() - started <= USER_HOLD_MAX_MS) {
+      await abortable(
+        new Promise<void>((resolve) => this.ports.timer(resolve, HOLD_POLL_MS)),
+        signal,
+      )
+    }
+
+    // Инструмент забыт в руке - отложить: окно меток ловит мышь, и клик ИИ попал бы в него.
+    if (stage.inHand) stage.pick(null)
+  }
+
+  /** Человек перебил: всё, что стояло в очереди показа до этого, - не рисовать. */
+  private spokenOver(): void {
+    this.generation += 1
+  }
+
+  /**
+   * Прозвучит ли сказанное до этой минуты - но не дольше SPEECH_WAIT_MAX_MS. Сама мерка - после
+   * того, как лента показала идущий инструмент: текст перед ним уже во рту. Обёртка, а не голое
+   * обещание: async склеил бы его, и вызывающий ждал бы сам голос, а не мерку.
    */
   private async spokenSoFar(call: WalkthroughCall): Promise<{ spoken: Promise<boolean> }> {
     const { spoken } = await call.speechSoFar()
-    let cancel = (): void => undefined
-    const late = new Promise<boolean>((resolve) => {
-      cancel = this.ports.timer(() => resolve(true), SPEECH_WAIT_MAX_MS)
-    })
 
-    return { spoken: Promise.race([spoken, late]).finally(cancel) }
+    return { spoken: boundedSpeech(spoken, this.ports.timer) }
   }
 
   private enqueue(job: () => Promise<void>): void {
     this.queue = this.queue.then(job).catch((error: unknown) => {
-      console.warn('[walkthrough] a mark failed:', error)
+      console.warn('[walkthrough] a highlight failed:', error)
     })
   }
 
@@ -336,19 +369,4 @@ const abortable = <T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
     signal.addEventListener('abort', onAbort, { once: true })
     promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort))
   })
-}
-
-const moveText = (move: UserMove, limitMs: number): string => {
-  switch (move.kind) {
-    case 'acted':
-      return 'The user did something on the screen and stopped. Take a Computer Use screenshot to check it. If the step is not done yet, give a short hint and wait again.'
-    case 'said':
-      return `The user said: "${move.text}". Answer them; take a screenshot first if it is about the screen.`
-    case 'timeout':
-      return `Nothing happened for ${Math.round(limitMs / 1000)} s. Ask whether the user needs help, or show the step yourself.`
-    case 'replaced':
-      return 'You started waiting for the user again, so this wait ended.'
-    case 'ended':
-      return 'The walkthrough ended.'
-  }
 }

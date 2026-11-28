@@ -6,8 +6,13 @@ import type { AcpAgent } from '../acp/acp-agent'
 import { sharedBriefing } from '../acp/acp-briefing'
 import { acpCli } from '../acp/acp-locator'
 import { withLocalTime } from '../agents/conversation/local-time-briefing'
+import { readKimiAccess } from './kimi-access'
+import { kimiLineup } from './kimi-lineup'
 import { writeKimiProfile } from './kimi-profile'
+import { kimiTitle } from './kimi-title'
 import { kimiLens } from './kimi-tools'
+import { kimiTurnFailure } from './kimi-turn-failure'
+import { fetchKimiUsage } from './kimi-usage'
 
 /** Порог версии: 0.x - другой протокол и формат журнала (Python и ранний TypeScript), ADR 0092. */
 const MINIMUM = '2.0.0'
@@ -87,6 +92,8 @@ export const kimiAgent = (root: string): AcpAgent => {
           (option.options ?? []).flatMap((one) => (EFFORTS[one.value] ? [EFFORTS[one.value]] : [])),
         ),
       ] as EffortLevel[],
+    // Сервер подписки дописывает новые модели в конец - меню ставит новейшее поколение первым.
+    lineup: kimiLineup,
     lens: () => kimiLens,
     // Номер до двоеточия у Kimi в живом потоке и при повторе разный (`1:call_x`, `2:call_x`).
     toolId: (id) => id.slice(id.indexOf(':') + 1),
@@ -95,5 +102,16 @@ export const kimiAgent = (root: string): AcpAgent => {
     // Папку делят панель и исполнитель сценариев: указания - общие для обоих (acp-briefing.ts).
     // Пояс человека - на запуск IDE: профиль пишется раз, сессий у него много.
     prepare: () => writeKimiProfile(home, withLocalTime(BRIEFING)),
+    // Отказ сервера посреди хода (лимит подписки) Kimi отдаёт по ACP обычным концом хода.
+    turnFailure: kimiTurnFailure(home),
+    // Лимиты подписки - с сервера Kimi его же входом, как `/usage` в окне Kimi; токен истёк -
+    // спросим, когда Kimi обновит его сам.
+    usage: async () => {
+      const access = await readKimiAccess(home)
+
+      return access ? fetchKimiUsage(access) : null
+    },
+    // Имя разговора по ACP Kimi не даёт (шлёт начало сообщения) - его инструментом имён.
+    title: kimiTitle(home),
   }
 }

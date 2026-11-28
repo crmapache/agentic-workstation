@@ -68,6 +68,8 @@ export const createAgentHandlers = (
       panels.get(provider).actions.showSessionInfo(id(conversationId)),
     'agent:newConversation': ({ provider, projectId }) =>
       panels.get(provider).newConversation(root(projectId)),
+    'agent:ensureConversation': ({ provider, projectId }) =>
+      panels.get(provider).ensureConversation(root(projectId)),
     'agent:activateConversation': ({ provider, conversationId }) =>
       panels.get(provider).activateConversation(id(conversationId)),
     'agent:send': ({ provider, conversationId, ...message }) =>

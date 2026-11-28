@@ -1,6 +1,8 @@
 import type { Token, Tokens, TokensList } from 'marked'
 import { Lexer } from 'marked'
 
+import { CODE_MARKS, LAID_OUT_LINE, PROSE_LANGUAGES, CODE_MARKS_SHARE } from './Markdown.constants'
+
 /** Разбор Markdown - только лексер marked: в HTML он не превращается никогда. */
 export const lexMarkdown = (text: string): TokensList =>
   Lexer.lex(text, { gfm: true, breaks: false })
@@ -18,6 +20,28 @@ export const safeHref = (href: string): string | null => {
 
 /** Язык блока кода - первое слово инфо-строки забора (`ts title="a.ts"` - `ts`). */
 export const codeLanguage = (info: string | undefined): string => info?.trim().split(/\s/)[0] ?? ''
+
+/**
+ * Текст в заборе кода, а не код: письмо или сообщение, которое модель дала скопировать. Такой
+ * блок переносит строки по словам и виден на узком экране целиком, а код листается вбок: перенос
+ * ломал бы его отступы и колонки. Мерка та же, что в окне IDE (`isProseBlock` панели): язык
+ * забора решает сразу (`text`, `md` - текст, язык кода - код), без языка - содержимое: ни
+ * отступов, ни колонок, ни рамок, а знаков кода (`{};=<>|$`) - единицы на сотню.
+ */
+export const isProseBlock = (language: string, text: string): boolean => {
+  const lang = language.toLowerCase()
+
+  if (lang) return PROSE_LANGUAGES.has(lang)
+
+  const lines = text.split('\n').filter((line) => line.trim() !== '')
+
+  if (lines.length === 0 || lines.some((line) => LAID_OUT_LINE.test(line))) return false
+
+  const marks = text.match(CODE_MARKS)?.length ?? 0
+  const visible = text.replace(/\s/g, '').length
+
+  return marks <= visible * CODE_MARKS_SHARE
+}
 
 /** Номер пункта, как написан в исходнике: шаги называют по номеру («сделай шаг 3»). */
 export const listMarker = (list: Tokens.List, item: Tokens.ListItem, index: number): string => {

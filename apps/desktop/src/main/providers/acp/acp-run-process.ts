@@ -11,6 +11,7 @@ import { ACP_PROMPT_TIMEOUT_MS, ACP_CLIENT_CAPABILITIES } from '../../acp/client
 import type { AcpConnectors } from '../../acp/conversation/acp-conversation'
 import type { AcpChoice, AcpSettingsTarget } from '../../acp/conversation/acp-options'
 import { optionOf, applyChoice } from '../../acp/conversation/acp-options'
+import { hiddenFailure } from '../../acp/feed/acp-failures'
 import type {
   AcpToolCall,
   AcpContentBlock,
@@ -232,15 +233,28 @@ export class AcpRunProcess implements SessionProcess {
       await applyChoice(this.target(process), this.host.agent, this.choice())
 
       // Stop пришёл, пока ставились настройки: отменять у агента было ещё нечего.
-      this.finishTurn(
-        this.interrupted
-          ? { stopReason: 'cancelled' }
-          : ((await process.request(
-              'session/prompt',
-              { sessionId: this.sessionId, prompt: this.blocksOf(briefing, prompt) },
-              ACP_PROMPT_TIMEOUT_MS,
-            )) as AcpPromptResult),
-      )
+      if (this.interrupted) {
+        this.finishTurn({ stopReason: 'cancelled' })
+      } else {
+        const sentAt = Date.now()
+        const result = (await process.request(
+          'session/prompt',
+          { sessionId: this.sessionId, prompt: this.blocksOf(briefing, prompt) },
+          ACP_PROMPT_TIMEOUT_MS,
+        )) as AcpPromptResult
+        const failure = await hiddenFailure(
+          this.host.agent,
+          result.stopReason,
+          this.sessionId,
+          sentAt,
+        )
+
+        if (failure === null) this.finishTurn(result)
+        else if (!this.dead) {
+          this.settle()
+          this.turns.failed(failure)
+        }
+      }
     } catch (error) {
       // Процесс ушёл посреди хода: движок слышит выход, итога не будет.
       if (this.dead) return

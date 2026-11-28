@@ -1,7 +1,7 @@
 import type { Token, Tokens } from 'marked'
 
 import styles from '../Markdown.module.scss'
-import { listMarker, codeLanguage, clipboardText } from '../Markdown.utils'
+import { listMarker, codeLanguage, isProseBlock, clipboardText } from '../Markdown.utils'
 import { CodeBlock } from './CodeBlock'
 import { CopyButton } from './CopyButton'
 import { MarkdownInline } from './MarkdownInline'
@@ -85,7 +85,11 @@ const Block = ({ token }: { token: Token }) => {
     case 'code': {
       const code = token as Tokens.Code
 
-      return <CodeBlock code={code.text} language={codeLanguage(code.lang)} />
+      const language = codeLanguage(code.lang)
+
+      return (
+        <CodeBlock code={code.text} language={language} prose={isProseBlock(language, code.text)} />
+      )
     }
     case 'blockquote': {
       const quote = token as Tokens.Blockquote

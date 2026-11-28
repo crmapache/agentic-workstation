@@ -12,6 +12,12 @@ describe('сбой хода ACP', () => {
   it('кончившаяся квота - своей строкой', () => {
     expect(failureCodeOf('You have exhausted your quota on this model.')).toBe('quota-exhausted')
     expect(failureCodeOf('Internal error: 429 RESOURCE_EXHAUSTED')).toBe('quota-exhausted')
+    // Kimi Code: лимит подписки на окно.
+    expect(
+      failureCodeOf(
+        "You've reached your 5-hour usage limit. Your quota will reset when the current 5-hour window ends.",
+      ),
+    ).toBe('quota-exhausted')
   })
 
   it('прочее - ошибка CLI как есть', () => {

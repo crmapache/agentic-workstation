@@ -1,5 +1,7 @@
 import type { ModelInfo } from '@shared/conversation'
 
+import { parseGeneration, compareGenerations } from '../../agents/models/model-generation'
+
 /**
  * Уровни моделей Codex - сильнейший первым, по описаниям каталога: Astra - «complex coding and
  * professional work», Sol - «near-Astra performance at a lower cost», Terra - экономная и
@@ -15,22 +17,10 @@ const tierOf = (model: string): string | undefined =>
     .find((part) => CODEX_TIERS.includes(part))
 
 /** Поколение из идентификатора: `gpt-6.1-sol` - [6, 1]; номера нет - пусто. */
-const versionOf = (model: string): number[] =>
-  model
-    .split('-')
-    .find((part) => /^\d+(\.\d+)*$/.test(part))
-    ?.split('.')
-    .map(Number) ?? []
+const versionOf = (model: string): number[] => {
+  const version = model.split('-').find((part) => /^\d+(\.\d+)*$/.test(part))
 
-/** Новее ли поколение a, чем b: «6.1» новее «6», «6» новее «5.6». */
-const isNewer = (a: readonly number[], b: readonly number[]): boolean => {
-  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
-    const step = (a[index] ?? 0) - (b[index] ?? 0)
-
-    if (step !== 0) return step > 0
-  }
-
-  return false
+  return version ? parseGeneration(version) : []
 }
 
 /**
@@ -46,7 +36,7 @@ export const lineupFirst = (models: readonly ModelInfo[]): ModelInfo[] => {
     const tier = tierOf(model.value)
     const head = tier ? heads.get(tier) : undefined
 
-    if (tier && (!head || isNewer(versionOf(model.value), versionOf(head.value)))) {
+    if (tier && (!head || compareGenerations(versionOf(model.value), versionOf(head.value)) > 0)) {
       heads.set(tier, model)
     }
   }

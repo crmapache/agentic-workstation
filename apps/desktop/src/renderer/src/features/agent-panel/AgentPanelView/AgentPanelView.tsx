@@ -6,6 +6,7 @@ import { useChatHandoff } from '../chat-handoff.hooks'
 import { useGaugeCalm } from '../panel-look.hooks'
 import { usePanelCapabilities, useProjectConversations } from '../panel.queries'
 import { usePanelStore } from '../panel.store'
+import { useDropSpareTabs } from '../spare-tabs.hooks'
 import { CliMissing } from '../CliMissing/CliMissing'
 import { ConversationPane } from '../ConversationPane/ConversationPane'
 import { ConversationTabs } from '../ConversationTabs/ConversationTabs'
@@ -41,6 +42,7 @@ export const AgentPanelView = () => {
   const capabilities = usePanelCapabilities()
 
   useEnsureConversation(project, state, conversations.length)
+  useDropSpareTabs(state)
   useChatHandoff(project, active)
   useGaugeCalm()
 

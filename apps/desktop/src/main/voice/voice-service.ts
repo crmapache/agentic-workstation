@@ -33,13 +33,16 @@ import type { ReadRequest } from './reading/voice-reader'
 import { VoiceReader } from './reading/voice-reader'
 
 /**
- * Показ Walkthrough (ADR 0134) для звонка: готов ли он в проекте (коннектор, Computer Use и
- * Browser), забрать ли реплику человека в ответ ожиданию агента и конец показа - убрать метки.
+ * Показ Walkthrough (ADR 0134, 0135) для звонка: готов ли он в проекте (коннектор, Computer Use и
+ * Browser), начало (панель инструментов человека), забрать ли реплику человека в ответ ожиданию
+ * агента, сколько пометок он нарисовал к реплике и конец показа - убрать метки, вернуть к чату.
  */
 export type WalkthroughHooks = {
   isReady: (projectPath: string) => boolean
+  started: (conversationId: string) => void
   intercept: (conversationId: string, utterance: Utterance) => boolean
-  ended: (conversationId: string) => void
+  drawn: (conversationId: string) => number
+  ended: (conversationId: string, reason: VoiceCallEnd) => void
 }
 
 export type VoiceServiceDeps = {
@@ -281,9 +284,13 @@ export class VoiceService {
       onView: () => this.changed(),
       onEnded: (reason) => this.ended(call, reason),
       onSpoken: (spoken) => this.reader.keep(spoken),
-      intercept:
+      show:
         mode === 'walkthrough'
-          ? (utterance) => this.deps.walkthrough?.intercept(conversationId, utterance) ?? false
+          ? {
+              intercept: (utterance) =>
+                this.deps.walkthrough?.intercept(conversationId, utterance) ?? false,
+              drawn: () => this.deps.walkthrough?.drawn(conversationId) ?? 0,
+            }
           : undefined,
     })
 
@@ -294,6 +301,7 @@ export class VoiceService {
     try {
       call.start(feed?.items ?? [])
       call.conversation(conversationOf(port.getState(), conversationId))
+      if (mode === 'walkthrough') this.deps.walkthrough?.started(conversationId)
     } catch (error) {
       // Звонок не поднялся (Deepgram не принял соединение) - он не должен висеть «занято».
       console.warn('Voice: the call did not start', error)
@@ -342,7 +350,7 @@ export class VoiceService {
     if (this.active?.call !== call) return
 
     this.active = null
-    if (call.mode === 'walkthrough') this.deps.walkthrough?.ended(call.conversationId)
+    if (call.mode === 'walkthrough') this.deps.walkthrough?.ended(call.conversationId, reason)
     this.deps.onEnded?.(call.view, reason)
     this.changed()
   }

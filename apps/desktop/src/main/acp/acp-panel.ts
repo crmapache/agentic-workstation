@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 
+import type { AccountUsage } from '@shared/account-usage'
 import type {
   CliNeed,
   CliStatus,
@@ -12,7 +13,7 @@ import type { PanelCapabilities } from '@shared/panel-capabilities'
 import type { PanelPrefs, ConversationCall } from '@shared/panel-prefs'
 
 import { parseStoredClaude } from '../claude/claude-state'
-import type { JsonFile } from '../storage/json-file'
+import { JsonFile } from '../storage/json-file'
 import { withLocalTime } from '../agents/conversation/local-time-briefing'
 import { makeThumbnail } from '../agents/images/thumbnail'
 import type { PanelDriver, PanelEvents } from '../agents/panel/agent-panel'
@@ -26,6 +27,7 @@ import { AcpAccount } from './acp-account'
 import type { StoredAcpAccount } from './acp-account'
 import type { AcpCli, AcpAgent } from './acp-agent'
 import { AcpConnectorsBridge } from './acp-connectors-bridge'
+import { AcpUsage } from './acp-usage'
 import { AcpCatalog } from './catalog/acp-catalog'
 import type { AcpHost } from './conversation/acp-conversation'
 import { acpOf } from './conversation/acp-conversation'
@@ -33,6 +35,7 @@ import { acpDriver } from './conversation/acp-driver'
 import { forkAcpSession } from './conversation/acp-fork'
 import { optionOf } from './conversation/acp-options'
 import { rewindAcp, previewAcpRewind } from './conversation/acp-rewind'
+import { withoutPromptTitles } from './conversation/acp-title'
 import type { AcpConfigOption } from './protocol/acp-types'
 
 export type AcpPanelEvents = Pick<PanelEvents, 'hooks'> & {
@@ -71,6 +74,8 @@ export class AcpPanel extends AgentPanel {
   /** Настройки сессии агента: модели, уровни размышления, режимы. */
   private config: readonly AcpConfigOption[] = []
   readonly account: AcpAccount
+  /** Лимиты подписки агента - кольцами под полем (у кого драйвер их знает). */
+  private readonly usage: AcpUsage
 
   private constructor(
     stored: StoredPanel,
@@ -104,6 +109,11 @@ export class AcpPanel extends AgentPanel {
         }
       },
     )
+    this.usage = new AcpUsage(
+      options.agent,
+      new JsonFile<AccountUsage | null>(join(options.root, 'usage.json')),
+      () => this.scheduleBroadcast(),
+    )
     // Описание агента нужно хозяину разговоров сразу: собирается после параметров конструктора.
     this.host = {
       agent: this.options.agent,
@@ -125,7 +135,11 @@ export class AcpPanel extends AgentPanel {
       onCommands: (projectPath, commands) => this.commands.set(projectPath, commands),
       thumbnail: makeThumbnail,
       accountId: () => '',
-      onCall: (conversationId, reason, key) => this.calls.add(conversationId, reason, key),
+      onCall: (conversationId, reason, key) => {
+        this.calls.add(conversationId, reason, key)
+        // Ход кончился (сам или отказом): расход изменился, лимит мог кончиться на нём.
+        if (reason === 'turnDone' || reason === 'error') this.usage.afterTurn()
+      },
     }
     this.restore(stored)
   }
@@ -136,7 +150,8 @@ export class AcpPanel extends AgentPanel {
     options: AcpPanelOptions,
   ): Promise<AcpPanel> {
     const rules = AcpPanel.rulesOf(options.capabilities)
-    const stored = parseStoredClaude(await file.read(), { ...rules, sessionless: true })
+    const parsed = parseStoredClaude(await file.read(), { ...rules, sessionless: true })
+    const stored = options.agent.title ? withoutPromptTitles(parsed) : parsed
 
     // Без указаний агент всё равно работает: сбой записи - в журнал, а не отказ панели.
     await options.agent.prepare?.().catch((error: unknown) => {
@@ -172,7 +187,7 @@ export class AcpPanel extends AgentPanel {
       models: this.menuModels(),
       cli: this.cliStatus,
       ...(this.cliNeed ? { cliNeed: this.cliNeed } : {}),
-      accounts: this.account.state(),
+      accounts: { ...this.account.state(), usage: this.usage.view() },
       prefs: this.prefs,
       refusedModes: NO_REFUSALS,
       capabilities: this.options.capabilities,
@@ -186,8 +201,10 @@ export class AcpPanel extends AgentPanel {
     return this.getState()
   }
 
-  refreshUsage(): Promise<AgentPanelState> {
-    return Promise.resolve(this.getState())
+  async refreshUsage(): Promise<AgentPanelState> {
+    await this.usage.refresh()
+
+    return this.getState()
   }
 
   // Вход у агента ACP один (accounts: 'acp'): войти, отменить, проверить, выйти и код со страницы.
@@ -211,6 +228,7 @@ export class AcpPanel extends AgentPanel {
 
   signOut = async (): Promise<AgentPanelState> => {
     await this.account.signOut()
+    if (this.account.isSignedOut) this.usage.forget()
 
     return this.getState()
   }
@@ -290,21 +308,23 @@ export class AcpPanel extends AgentPanel {
   }
 
   /**
-   * Меню MODEL: варианты настройки модели агента; уровни усилия - варианты настройки
-   * размышления (общие у всех моделей агента); «по умолчанию» - текущая модель агента.
+   * Меню MODEL: варианты настройки модели агента в порядке меню драйвера (`lineup`), иначе в
+   * порядке агента; уровни усилия - варианты настройки размышления (общие у всех моделей
+   * агента); «по умолчанию» - текущая модель агента.
    */
   private menuModels(): ModelInfo[] {
     const model = optionOf(this.config, 'model')
     const thought = optionOf(this.config, 'thought_level')
     const efforts: EffortLevel[] = thought ? this.options.agent.effortsOf(thought) : []
-
-    return (model?.options ?? []).map((option) => ({
+    const models = (model?.options ?? []).map((option) => ({
       value: option.value,
       displayName: option.name,
       description: option.description ?? '',
       efforts,
       isDefault: option.value === model?.currentValue,
     }))
+
+    return this.options.agent.lineup?.(models) ?? models
   }
 
   /** Своё ACP у панели: id сессии даёт агент; история и повтор - процессом-каталогом. */

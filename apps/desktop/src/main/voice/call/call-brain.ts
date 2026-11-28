@@ -27,6 +27,11 @@ export type CallBrainOptions = {
   onWork: (work: AgentWork) => void
   /** Звонок - показ Walkthrough (ADR 0134): реплики уходят с его пометкой. */
   walkthrough?: boolean | undefined
+  /**
+   * Сколько пометок человек нарисовал с прошлой реплики (ADR 0135); забирает их - следующей
+   * реплике они уже не новость.
+   */
+  drawn?: (() => number) | undefined
 }
 
 /** Что звонок скажет о вопросе к человеку; нечего - null. */
@@ -229,10 +234,12 @@ export class CallBrain {
     const heard = this.heard
 
     this.heard = null
+    const drawn = this.options.walkthrough ? (this.options.drawn?.() ?? 0) : 0
     const voice = {
       lang: last.language,
       heard,
       ...(this.options.walkthrough ? { walkthrough: true } : {}),
+      ...(drawn > 0 ? { drawn } : {}),
     }
 
     await this.options.agent.send(text, voice).catch((error: unknown) => {

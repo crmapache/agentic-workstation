@@ -1,72 +1,17 @@
 import { it, expect, describe } from 'vitest'
 
-import { ARROW_STROKE } from './WalkthroughMarks.constants'
+import { CUTOUT_PAD, POINT_STEP, ARROW_STROKE } from './WalkthroughMarks.constants'
 import {
-  noise,
+  cutoutOf,
   arrowShape,
-  keepInside,
+  nextPoints,
   smoothPath,
-  circlePoints,
   spotlightPath,
 } from './WalkthroughMarks.utils'
 
 const BOX = { x: 100, y: 200, width: 120, height: 30 }
 
-/** Лежит ли точка внутри замкнутой ломаной (луч вправо). */
-const isInside = (point: { x: number; y: number }, ring: { x: number; y: number }[]): boolean =>
-  ring.reduce((inside, a, index) => {
-    const b = ring[(index + 1) % ring.length] ?? a
-    const crosses =
-      a.y > point.y !== b.y > point.y &&
-      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
-
-    return crosses ? !inside : inside
-  }, false)
-
 describe('walkthrough marks drawing', () => {
-  it('repeats the same hand-drawn shape for the same mark and changes it for the next one', () => {
-    expect(circlePoints(BOX, 3)).toEqual(circlePoints(BOX, 3))
-    expect(circlePoints(BOX, 3)).not.toEqual(circlePoints(BOX, 4))
-    expect(noise(1, 1)).toBeGreaterThanOrEqual(0)
-    expect(noise(1, 1)).toBeLessThan(1)
-  })
-
-  it('circles the whole box, corners too, and overshoots its start', () => {
-    const loop = circlePoints(BOX, 7)
-    const corners = [
-      { x: BOX.x, y: BOX.y },
-      { x: BOX.x + BOX.width, y: BOX.y },
-      { x: BOX.x, y: BOX.y + BOX.height },
-      { x: BOX.x + BOX.width, y: BOX.y + BOX.height },
-    ]
-
-    for (const corner of corners) expect(isInside(corner, loop)).toBe(true)
-
-    const [first] = loop
-    const last = loop.at(-1)
-
-    expect(first && last && Math.hypot(first.x - last.x, first.y - last.y)).toBeGreaterThan(5)
-  })
-
-  it('makes a small icon a loop, not a dot', () => {
-    const loop = circlePoints({ x: 50, y: 50, width: 4, height: 4 }, 1)
-    const xs = loop.map((point) => point.x)
-
-    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(30)
-  })
-
-  it('presses a loop at the screen edge against it instead of cutting it off', () => {
-    const loop = keepInside(
-      circlePoints({ x: 1700, y: 2, width: 60, height: 15 }, 2),
-      1920,
-      1080,
-      5,
-    )
-
-    expect(Math.min(...loop.map((point) => point.y))).toBe(5)
-    expect(Math.max(...loop.map((point) => point.x))).toBeLessThanOrEqual(1915)
-  })
-
   it('builds a smooth path through the points', () => {
     expect(smoothPath([])).toBe('')
     expect(
@@ -89,10 +34,46 @@ describe('walkthrough marks drawing', () => {
       expect(Math.hypot(point.x - tip.x, point.y - tip.y)).toBeGreaterThan(10)
   })
 
-  it('dims the whole window but a rounded hole around the box', () => {
-    const path = spotlightPath(1000, 800, BOX)
+  it('dims the whole window but a rounded hole around each highlight', () => {
+    const one = spotlightPath(1000, 800, [BOX])
 
-    expect(path.startsWith('M0 0 H1000 V800 H0 Z')).toBe(true)
-    expect(path).toContain('M100 188')
+    expect(one.startsWith('M0 0 H1000 V800 H0 Z')).toBe(true)
+    expect(one).toContain(`M${BOX.x - CUTOUT_PAD + 10} ${BOX.y - CUTOUT_PAD}`)
+    expect(spotlightPath(1000, 800, [BOX, { ...BOX, y: 500 }]).match(/Z/g)).toHaveLength(3)
+  })
+
+  // Переход CSS по `d` ведёт вырез к новому месту, только если путь той же формы (ADR 0135).
+  it('keeps the same path shape when one highlight replaces another', () => {
+    const shape = (path: string) => path.replace(/-?[\d.]+/g, '0')
+
+    expect(shape(spotlightPath(1000, 800, [BOX]))).toBe(
+      shape(spotlightPath(1000, 800, [{ x: 600, y: 50, width: 20, height: 400 }])),
+    )
+  })
+
+  it('rounds a cutout no more than half its side', () => {
+    expect(cutoutOf({ x: 10, y: 10, width: 0, height: 0 }).radius).toBe(CUTOUT_PAD)
+    expect(cutoutOf(BOX)).toMatchObject({ x: 90, y: 190, width: 140, height: 50 })
+  })
+
+  it('keeps the hand path sparse, and only the ends of a straight mark', () => {
+    const start = [{ x: 0, y: 0 }]
+
+    expect(nextPoints(start, { x: POINT_STEP - 1, y: 0 }, false)).toEqual(start)
+    expect(nextPoints(start, { x: POINT_STEP + 1, y: 0 }, false)).toHaveLength(2)
+    expect(
+      nextPoints(
+        [
+          { x: 0, y: 0 },
+          { x: 5, y: 5 },
+        ],
+        { x: 40, y: 2 },
+        true,
+      ),
+    ).toEqual([
+      { x: 0, y: 0 },
+      { x: 40, y: 2 },
+    ])
+    expect(nextPoints([], { x: 1, y: 1 }, true)).toEqual([{ x: 1, y: 1 }])
   })
 })

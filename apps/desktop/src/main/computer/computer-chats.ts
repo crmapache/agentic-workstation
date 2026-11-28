@@ -17,6 +17,8 @@ import { returnToChat } from './return-to-chat'
  *   (ADR 0060). Процесс без вкладки узнаёт об остановке отказом шага.
  * - Работа на компьютере кончилась, а человек его не трогал - IDE выходит вперёд с этим чатом
  *   (ADR 0130).
+ * - Показ Walkthrough кончился - по любой причине - IDE выходит вперёд с его чатом (ADR 0135): в
+ *   показе человек всё время двигает мышь, так что его ввод возврат не отменяет.
  */
 export const wireComputerChats = (
   computer: ComputerRuntime,
@@ -44,10 +46,7 @@ export const wireComputerChats = (
     return null
   }
 
-  computer.stopped = (key) => chatOf(key)?.panel.actions.interrupt(key)
-  computer.finished = (key) => {
-    if (ide.isShowing(key)) return
-
+  const backToChat = (key: string) => {
     void returnToChat(key, {
       isWanted: ide.isReturnOn,
       find: (id) => {
@@ -61,4 +60,10 @@ export const wireComputerChats = (
       raise: () => raiseWindow(ide.getWindow()),
     }).catch((error: unknown) => console.warn('[computer] cannot return to the chat:', error))
   }
+
+  computer.stopped = (key) => chatOf(key)?.panel.actions.interrupt(key)
+  computer.finished = (key) => {
+    if (!ide.isShowing(key)) backToChat(key)
+  }
+  computer.walkthrough.backToChat = backToChat
 }

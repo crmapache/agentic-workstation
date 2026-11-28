@@ -1,4 +1,4 @@
-import type { MarkPoint, WalkthroughMark } from '@shared/walkthrough'
+import type { MarkPoint, WalkthroughLit, WalkthroughStroke } from '@shared/walkthrough'
 
 /**
  * Стрелка как в Shotter: древко и наконечник - многоугольники, хвост - круглый торец. Точки - в
@@ -10,5 +10,13 @@ export type ArrowShape = {
   tail: { center: MarkPoint; radius: number }
 }
 
-/** Одна метка в окне меток: её размер нужен затемнению - оно покрывает всё окно. */
-export type MarkShapeProps = { mark: WalkthroughMark; width: number; height: number }
+/** Затемнение с вырезами: размер окна и подсветки; leaving - последние, гаснут. */
+export type SpotlightProps = {
+  width: number
+  height: number
+  lit: WalkthroughLit[]
+  leaving: boolean
+}
+
+/** Пометка человека: нарисованная или та, что он ведёт сейчас (live). */
+export type StrokeShapeProps = { stroke: Pick<WalkthroughStroke, 'pen' | 'points'>; live?: boolean }

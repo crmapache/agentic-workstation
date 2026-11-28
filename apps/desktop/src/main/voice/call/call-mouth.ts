@@ -127,15 +127,17 @@ export class CallMouth {
   }
 
   /**
-   * Прозвучит ли всё, что рот держит сейчас (такт показа Walkthrough, ADR 0134): true - последний
-   * из нынешних ответов дослушан, false - его оборвали (перебили, «Стоп», пауза, конец звонка).
-   * Ответы, начатые после вопроса, не ждутся: модель уже пишет следующую фразу. Держать нечего -
-   * сразу true.
+   * Прозвучит ли всё, что рот держит сейчас (такт показа Walkthrough, ADR 0134), или один этот
+   * ответ (itemId - фраза инструмента показа, ADR 0135): true - дослушано, false - оборвано
+   * (перебили, «Стоп», пауза, конец звонка). Ответы, начатые после вопроса, не ждутся: модель уже
+   * пишет следующую фразу. Держать нечего (дослушанный ответ рот забывает) - сразу true.
    */
-  drained(): Promise<boolean> {
-    if (this.stopped) return Promise.resolve(false)
+  drained(itemId?: string): Promise<boolean> {
+    if (this.stopped || this.silenced.has(itemId ?? '')) return Promise.resolve(false)
 
-    return this.waiters.wait(new Set(this.answers.map((answer) => answer.itemId)))
+    const held = this.answers.filter((answer) => !itemId || answer.itemId === itemId)
+
+    return this.waiters.wait(new Set(held.map((answer) => answer.itemId)))
   }
 
   /** Открыть синтез голоса заранее, чтобы первая фраза не ждала рукопожатия. */

@@ -14,10 +14,11 @@ import { CodeRuns } from './parts/CodeRuns'
 /**
  * Блок кода в ответе (и команда установки CLI), как в ACC: без шапки, копия - кнопкой в
  * углу (видна по наведению). Подсветка ролями `--color-syntax-*`, язык неизвестен - код
- * ровным цветом. Пути к файлам внутри кода - ссылки, и при подсветке тоже.
+ * ровным цветом. Пути к файлам внутри кода - ссылки, и при подсветке тоже. Код листается
+ * вбок, текст для копирования (`prose`) переносится по словам.
  */
 export const CodeBlock = memo(
-  ({ code, language = '', compact = false, wrap = false }: CodeBlockProps) => {
+  ({ code, language = '', compact = false, wrap = false, prose = false }: CodeBlockProps) => {
     const { t } = useTranslation()
     const { isCopied, copy } = useCopy()
     const lines = useCodeRuns(code, language)
@@ -25,7 +26,13 @@ export const CodeBlock = memo(
     const handleCopy = () => copy(code)
 
     return (
-      <div className={clsx(styles.codeBlock, compact && styles.compact, wrap && styles.wrap)}>
+      <div
+        className={clsx(
+          styles.codeBlock,
+          compact && styles.compact,
+          wrap && styles.wrap,
+          prose && styles.prose,
+        )}>
         <pre className={styles.pre}>
           <code className={styles.code}>
             {lines.map((runs, index) => (

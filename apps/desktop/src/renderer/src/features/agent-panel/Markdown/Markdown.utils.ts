@@ -1,9 +1,37 @@
 import type { Tokens } from 'marked'
 
-import { BULLET } from './Markdown.constants'
+import {
+  BULLET,
+  CODE_MARKS,
+  LAID_OUT_LINE,
+  PROSE_LANGUAGES,
+  CODE_MARKS_SHARE,
+} from './Markdown.constants'
 
 /** Язык подсветки из инфо-строки забора: её первое слово (`ts title="a.ts"` - `ts`). */
 export const codeLanguage = (info: string | undefined) => info?.trim().split(/\s/)[0] ?? ''
+
+/**
+ * Текст в заборе кода, а не код: письмо, сообщение или абзац, который модель дала скопировать.
+ * Такой блок переносит длинные строки по словам и виден целиком, а код листается вбок: перенос
+ * ломал бы его отступы и колонки (просьба владельца). Язык забора решает сразу (`text`, `md` -
+ * текст, `ts`, `bash` - код); без языка - содержимое: ни отступов, ни колонок, ни рамок, а знаков
+ * кода (`{};=<>|$`) - единицы на сотню.
+ */
+export const isProseBlock = (language: string, text: string): boolean => {
+  const lang = language.toLowerCase()
+
+  if (lang) return PROSE_LANGUAGES.has(lang)
+
+  const lines = text.split('\n').filter((line) => line.trim() !== '')
+
+  if (lines.length === 0 || lines.some((line) => LAID_OUT_LINE.test(line))) return false
+
+  const marks = text.match(CODE_MARKS)?.length ?? 0
+  const visible = text.replace(/\s/g, '').length
+
+  return marks <= visible * CODE_MARKS_SHARE
+}
 
 /**
  * Маркер пункта, как в ACC: у маркированного - длинное тире, у нумерованного - номер,

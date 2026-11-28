@@ -22,6 +22,10 @@ const DIST = join(import.meta.dirname, '..', 'dist')
 const QUOTE_TEXT =
   'Это был второй технический раунд, **лайвкодинг** на `TypeScript`: дали документ RFI и готовый клиент языковой модели, нужно было написать функцию, которая достаёт из ответа типизированную запись.'
 
+/** Письмо, которое модель дала скопировать: забор без языка, текст длиннее экрана. */
+const PROSE_TEXT =
+  'Bill, about the prescreening. If we send only the matching sections, we can lose the links between them, like the BCBSMA list we discussed on Tuesday. How do you see it?'
+
 const REPLY = [
   'Вот коротко для Димы:',
   '',
@@ -33,6 +37,12 @@ const REPLY = [
   '',
   '```sh',
   'pnpm --filter @agentic-workstation/phone e2e',
+  '```',
+  '',
+  'И письмо Биллу:',
+  '',
+  '```',
+  PROSE_TEXT,
   '```',
 ].join('\n')
 
@@ -129,7 +139,7 @@ describe('копия блоков и «отправить» с фото на т�
     await shot('copy-02-quote-copied')
 
     // Блок кода: язык и копия - одним рядом в шапке, в буфер - код как есть.
-    const code = page.locator('figure')
+    const code = page.locator('figure').first()
     const head = await code.locator('figcaption').evaluate((caption) =>
       [...caption.children].map((child) => {
         const box = child.getBoundingClientRect()
@@ -145,6 +155,23 @@ describe('копия блоков и «отправить» с фото на т�
     await code.getByRole('button', { name: 'Copied' }).waitFor()
     expect(await clipboard()).toBe('pnpm --filter @agentic-workstation/phone e2e')
     await shot('copy-03-code-copied')
+
+    // Письмо в заборе без языка - текст: переносится по словам и влезает в экран целиком, а код
+    // по-прежнему листается вбок. В буфер - текст как есть, без переносов экрана.
+    const prose = page.locator('figure').last()
+    const widths = (block: typeof prose) =>
+      block.locator('pre').evaluate((pre) => ({
+        wrap: getComputedStyle(pre).whiteSpace,
+        overflow: pre.scrollWidth - pre.clientWidth,
+      }))
+
+    await prose.scrollIntoViewIfNeeded()
+    expect(await widths(prose)).toEqual({ wrap: 'pre-wrap', overflow: 0 })
+    expect((await widths(code)).wrap).toBe('pre')
+    await prose.getByRole('button', { name: 'Copy this block' }).tap()
+    await prose.getByRole('button', { name: 'Copied' }).waitFor()
+    expect(await clipboard()).toBe(PROSE_TEXT)
+    await shot('copy-04-prose-wrapped')
 
     // Фото ужимается (здесь - пока тест не отпустит): плитка с крутилкой, «отправить» крутится и
     // не нажимается, хотя текст уже набран, - иначе сообщение ушло бы без фото.

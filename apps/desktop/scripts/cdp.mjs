@@ -26,19 +26,26 @@ import { dirname, resolve } from 'node:path'
  */
 
 const port = process.env.AGENTIC_WORKSTATION_CDP_PORT ?? '5316'
+/** Накладная страница вместо окна: AGENTIC_WORKSTATION_CDP_PAGE=walkthrough-panel.html. */
+const overlay = process.env.AGENTIC_WORKSTATION_CDP_PAGE ?? ''
 const [command, argument] = process.argv.slice(2)
+
+/**
+ * Страниц у IDE пять: главное окно, капсула и стрелка ИИ Computer Use (ADR 0057, 0079), метки
+ * показа Walkthrough (ADR 0134) и панель инструментов человека в нём (ADR 0135). Скрипт смотрит
+ * на окно, а с AGENTIC_WORKSTATION_CDP_PAGE - на названную накладную страницу.
+ */
+const OVERLAY_PAGES = ['capsule.html', 'pointer.html', 'walkthrough.html', 'walkthrough-panel.html']
 
 const findPageSocketUrl = async () => {
   const response = await fetch(`http://127.0.0.1:${port}/json`)
   const targets = await response.json()
-  // Страниц у IDE четыре: главное окно, капсула и стрелка ИИ Computer Use (ADR 0057, 0079) и
-  // метки показа Walkthrough (ADR 0134). Скрипт смотрит на окно.
   const page = targets.find(
     (target) =>
       target.type === 'page' &&
-      !target.url.includes('capsule.html') &&
-      !target.url.includes('pointer.html') &&
-      !target.url.includes('walkthrough.html'),
+      (overlay
+        ? new URL(target.url).pathname.endsWith(`/${overlay}`)
+        : !OVERLAY_PAGES.some((name) => new URL(target.url).pathname.endsWith(`/${name}`))),
   )
 
   if (!page) throw new Error(`На порту ${port} нет страницы. Окно запущено с отладкой?`)

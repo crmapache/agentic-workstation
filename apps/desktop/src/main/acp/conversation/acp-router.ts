@@ -59,6 +59,8 @@ export const routeUpdate = (session: AcpSession, params: unknown): void => {
       runtime.update({ usage: { contextTokens: update.used, contextWindow: update.size } })
       return
     case 'session_info_update':
+      // Агент с `title` шлёт здесь начало сообщения, а не имя (Kimi): имя спрашивается отдельно.
+      if (host.agent.title) return
       if (update.title && outranks('llm', runtime.meta.titleSource)) {
         runtime.update({ title: update.title, titleSource: 'llm' })
       }

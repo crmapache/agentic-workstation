@@ -141,7 +141,7 @@
       "returnOn": "When AI finishes work on your computer, the IDE comes to the front with that chat",
       "returnOff": "The IDE stays behind when AI finishes work on your computer",
       "returnHelpLabel": "About coming back to the chat",
-      "returnHelp": "AI works in other apps through Computer Use, and the IDE goes behind them. When that work ends, the IDE opens the project and the tab of its chat and comes to the front. It stays behind if you used the mouse or keyboard after the last step of AI, or pressed Pause or Stop: you are working yourself then, and the IDE does not take your keyboard. Scenarios and scheduled tasks never bring the window up."
+      "returnHelp": "AI works in other apps through Computer Use, and the IDE goes behind them. When that work ends, the IDE opens the project and the tab of its chat and comes to the front. It stays behind if you used the mouse or keyboard after the last step of AI, or pressed Pause or Stop: you are working yourself then, and the IDE does not take your keyboard. Scenarios and scheduled tasks never bring the window up.\n\nA walkthrough brings you back to its chat whenever it ends, even though you moved the mouse during it."
     },
     "git": {
       "description": "The Commit and push button next to the line counts in the header",
@@ -254,7 +254,7 @@
       },
       "walkthrough": {
         "name": "Walkthrough",
-        "hint": "The AI shows and explains things on your screen by voice: it clicks, circles what to look at and checks you got it",
+        "hint": "The AI shows and explains things on your screen by voice: it clicks, lights up what to look at and asks if you got it",
         "short": "Walkthrough"
       },
       "mcp": {
@@ -697,7 +697,7 @@
       },
       "walkthrough": {
         "title": "Walkthrough",
-        "text": "Press Walkthrough in the chat header and say what to show or explain: work the AI just did, an app you are learning, a page or a dashboard. The walkthrough runs in that chat, so the AI knows what it did there.\n\nThe AI talks while it works with the real mouse and keyboard, like Computer Use, in every app and in Chrome too. It circles what to look at with a marker; an arrow or a dimmed screen only when a circle isn't enough. A mark shows up when the AI starts talking about it, and a click waits for its words.\n\nAfter each part it asks if you got it. Interrupt any time with a question: it stops, answers, and offers to go on. It can also ask you to do a step yourself and check it on the screen.\n\nAt the end it hangs up and writes a short recap in the chat. You can hang up yourself any time in the call bar."
+        "text": "Press Walkthrough in the chat header and say what to show or explain: work the AI just did, an app you are learning, a page or a dashboard. The walkthrough runs in that chat, so the AI knows what it did there.\n\nThe AI answers right away and talks while it works with the real mouse and keyboard, like Computer Use, in every app and in Chrome too. To show a thing, it dims the whole screen except that place and says what it is; then the light moves to the next one. A click waits for its words.\n\nInterrupt any time with a question: it stops, answers, and goes on. When it asks you something and you stay silent, it takes that as a yes and says it goes on. Before anything that can't be undone, like sending or paying, it asks twice; with no answer it ends the walkthrough.\n\nTo point at something yourself, take a pen on the panel at the right edge of the screen: circle, underline or arrow. Draw, then say what you mean - the AI sees your marks. Press the pen again or right-click to put it down. While you hold a pen or move the mouse, the AI waits and goes on when you let go. It can also ask you to do a step yourself and check it on the screen.\n\nAt the end it hangs up, the IDE comes back with this chat (unless Settings → Chat says otherwise), and a short recap is there. You can hang up yourself any time in the call bar."
       },
       "outside": {
         "title": "Control from outside",
@@ -3109,6 +3109,7 @@
       "session": "5-hour",
       "weekly": "Week",
       "weeklyModel": "Week · {{model}}",
+      "monthly": "Month",
       "percent": "{{value}}%",
       "resetsIn": "resets in {{time}}",
       "extra": "Extra usage is on: past the limits, work goes on and is billed separately.",
@@ -4864,7 +4865,14 @@
   "walkthrough": {
     "startTitle": "Walkthrough - the AI shows and explains on your screen by voice",
     "statusName": "Walkthrough",
-    "barState": "Walkthrough · {{state}}"
+    "barState": "Walkthrough · {{state}}",
+    "panel": {
+      "label": "Walkthrough pens",
+      "outline": "Circle",
+      "underline": "Underline",
+      "arrow": "Arrow",
+      "erase": "Clear"
+    }
   },
   "calendar": {
     "title": "Calendar",

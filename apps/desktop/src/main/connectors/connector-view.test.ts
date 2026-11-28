@@ -241,9 +241,12 @@ describe('instructionsFor', () => {
     )
 
     expect(text.length).toBeLessThanOrEqual(CLAUDE_INSTRUCTIONS_MAX)
-    // Решения владельца (ADR 0134): везде Computer Use, Browser - только прочитать; метка - до слов.
+    // Решения владельца (ADR 0134, 0135): везде Computer Use, Browser - только прочитать; каждая
+    // подсветка - со своим пояснением, вопрос - только ask, взятая человеком мышь - не конец.
     expect(text).toContain('Look and act with Computer Use everywhere, Chrome too')
-    expect(text).toContain('Mark first, then talk about it')
+    expect(text).toContain('Show each thing with highlight and explain it in its say')
+    expect(text).toContain('Ask only with ask, never end your turn on a question')
+    expect(text).toContain('The user may take the mouse or draw with the pens for a moment')
     expect(text).toContain(description)
   })
 

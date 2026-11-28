@@ -22,8 +22,19 @@ describe('voiceNote', () => {
     const note = voiceNote({ lang: 'ru', walkthrough: true })
 
     expect(note).toContain('Walkthrough: you are showing things')
+    // ADR 0135: вопрос - только инструментом ask, каждый ответ начинается словами, а не молчанием.
+    expect(note).toContain('ask questions only with its ask tool')
+    expect(note).toContain('Start every reply with one short sentence')
     expect(note).not.toContain('1-3 sentences')
+    expect(note).not.toContain('user_marks')
     expect(voiceFromNote(note)).toEqual({ lang: 'ru' })
+  })
+
+  it('tells the model to look at the marks the user drew', () => {
+    expect(voiceNote({ lang: 'ru', walkthrough: true, drawn: 1 })).toContain(
+      'the user drew a mark on the screen: call the walkthrough tool user_marks',
+    )
+    expect(voiceNote({ lang: 'ru', walkthrough: true, drawn: 3 })).toContain('drew 3 marks')
   })
 
   it('keeps only the tail of a long heard part', () => {

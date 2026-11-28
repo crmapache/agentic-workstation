@@ -27,6 +27,7 @@ import type { StoredPanel } from './panel-state'
 import { toStored, freshConversation } from './panel-state'
 import { SHUTDOWN_MAX_MS } from './panel.constants'
 import { ProjectCommands } from './project-commands'
+import { markSpares } from './spare-tabs'
 import { TabStrip } from './tab-strip'
 
 /**
@@ -92,6 +93,14 @@ export abstract class AgentPanel {
   protected readonly calls: ConversationCalls
   protected readonly persist: PanelPersistence
   protected activeByProject: Record<string, string>
+  /**
+   * Вкладки, которые открыла сама IDE (у проекта не было ни одной) или которые вернулись с диска:
+   * пока они пустые, они запасные (spare-tabs.ts). Всё, что открыли по просьбе (⌘T, история,
+   * форк, вернуть закрытую, агент, телефон), сюда не попадает.
+   */
+  private readonly unasked = new Set<string>()
+  /** Пустая вкладка проекта уже заводится (ensureConversation): вторая не нужна. */
+  private readonly ensuring = new Map<string, Promise<void>>()
 
   /** Хост разговоров: рассылка, зов, драйвер разговора провайдера. */
   protected abstract readonly host: AgentHost
@@ -162,7 +171,7 @@ export abstract class AgentPanel {
 
   /**
    * Вкладки с диска - зовёт наследник, когда его хост собран: разговорам он нужен с
-   * первой строки.
+   * первой строки. Пустая с диска - запасная: о ней просили в прошлом запуске, не в этом.
    */
   protected restore(stored: StoredPanel): void {
     for (const conversation of stored.conversations) {
@@ -170,6 +179,7 @@ export abstract class AgentPanel {
         conversation.id,
         new ConversationRuntime(freshConversation(conversation), this.host, this.hooks),
       )
+      this.unasked.add(conversation.id)
     }
 
     this.tabs.restore(stored.closed)
@@ -181,7 +191,10 @@ export abstract class AgentPanel {
     'conversations' | 'activeByProject' | 'closedByProject' | 'commandsByProject'
   > {
     return {
-      conversations: [...this.runtimes.values()].map((runtime) => runtime.meta),
+      conversations: markSpares(
+        [...this.runtimes.values()].map((runtime) => runtime.meta),
+        this.unasked,
+      ),
       activeByProject: this.activeByProject,
       closedByProject: this.tabs.closedByProject(),
       commandsByProject: this.commands.view,
@@ -218,6 +231,31 @@ export abstract class AgentPanel {
     this.actions.setOptions(id, options)
 
     return id
+  }
+
+  /**
+   * Пустая вкладка, пока человек смотрит на панель проекта без вкладок, - только если их правда
+   * нет. Решает главный процесс, а не окно: разговор, который открыл агент (`workstation`) или
+   * телефон, мог встать раньше, чем окно о нём узнало, и тогда пустой рядом не нужно. Такая
+   * вкладка - запасная: уходит, как только рядом встанет разговор.
+   */
+  async ensureConversation(projectPath: string): Promise<AgentPanelState> {
+    const ensuring =
+      this.ensuring.get(projectPath) ??
+      this.addSpare(projectPath).finally(() => this.ensuring.delete(projectPath))
+
+    this.ensuring.set(projectPath, ensuring)
+    await ensuring
+
+    return this.getState()
+  }
+
+  private async addSpare(projectPath: string): Promise<void> {
+    const runtimes = [...this.runtimes.values()]
+
+    if (runtimes.some((runtime) => runtime.meta.projectPath === projectPath)) return
+
+    this.unasked.add(await this.addRuntime(projectPath, this.driver.newSessionId(), null))
   }
 
   /**

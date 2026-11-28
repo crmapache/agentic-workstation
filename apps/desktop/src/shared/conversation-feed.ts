@@ -498,6 +498,18 @@ export type TaskEntry = {
   state: TaskState
 }
 
+/** Ступень задачи в списке на экране: сделанные выше идущей, идущая выше ждущих. */
+const PROGRESS_STEP: Record<TaskState, number> = { completed: 0, in_progress: 1, pending: 2 }
+
+/**
+ * Список задач для экрана - по ходу работы: сделанные, идущая, ждущие; внутри ступени - в
+ * порядке модели. Модель берётся за задачи вразнобой (начала с четвёртой), а список всё равно
+ * читается сверху вниз и не крутится посреди ждущих (просьба владельца). Ведёт список модель -
+ * порядок меняет только показ: панель IDE и телефон.
+ */
+export const tasksByProgress = (tasks: readonly TaskEntry[]): TaskEntry[] =>
+  [...tasks].sort((a, b) => PROGRESS_STEP[a.state] - PROGRESS_STEP[b.state])
+
 /** Лента целиком: ответ на запрос ленты разговора. */
 export type ConversationFeed = {
   conversationId: string

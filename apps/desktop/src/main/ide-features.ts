@@ -140,21 +140,28 @@ export const startIdeFeatures = async (setup: {
     panels: () => panelsPort(claude, setup.panels).list(),
     walkthrough: {
       isReady: (path) => isWalkthroughReady(setup.connectors.getState().connectors, path),
+      started: (conversationId) => walkthrough.started(conversationId),
       intercept: (conversationId, utterance) =>
         walkthrough.intercept(conversationId, utterance.text),
-      ended: (conversationId) => walkthrough.ended(conversationId),
+      drawn: (conversationId) => walkthrough.drawn(conversationId),
+      ended: (conversationId, reason) => walkthrough.ended(conversationId, reason),
     },
   })
 
-  // Показ Walkthrough (ADR 0134): метки и действия Computer Use - в такт голосу его звонка.
+  // Показ Walkthrough (ADR 0134, 0135): подсветка, вопросы и действия Computer Use - в такт голосу
+  // его звонка.
   walkthrough.call = (conversationId) => {
     const call = voice.service.walkthroughIn(conversationId)
 
     return (
       call && {
         id: call.view.id,
-        speechSoFar: () => call.speechSoFar(),
-        end: () => call.end('hangup'),
+        speechSoFar: () => call.show.speechSoFar(),
+        say: (text) => call.show.say(text),
+        cue: (cue) => call.show.cue(cue),
+        listen: (on) => call.show.listen(on),
+        hearing: () => call.show.hearing(),
+        end: (reason = 'hangup') => call.end(reason),
       }
     )
   }

@@ -163,7 +163,9 @@ describe('VoiceService', () => {
 describe('VoiceService: walkthrough (ADR 0134)', () => {
   const hooks = (isReady = true) => ({
     isReady: vi.fn(() => isReady),
+    started: vi.fn(),
     intercept: vi.fn(() => false),
+    drawn: vi.fn(() => 0),
     ended: vi.fn(),
   })
   const request = { provider: 'claude' as const, projectPath: '/work/app', conversationId: null }
@@ -186,9 +188,11 @@ describe('VoiceService: walkthrough (ADR 0134)', () => {
     expect(panel.newConversation).toHaveBeenCalledWith('/work/app', {})
     expect(fresh).toMatchObject({ ok: true, call: { conversationId: 'c1', mode: 'walkthrough' } })
     expect(service.walkthroughIn('c1')).not.toBeNull()
+    // Панель инструментов человека встаёт с началом показа (ADR 0135), конец знает причину.
+    expect(walkthrough.started).toHaveBeenCalledWith('c1')
 
     service.walkthroughIn('c1')?.end('hangup')
-    expect(walkthrough.ended).toHaveBeenCalledWith('c1')
+    expect(walkthrough.ended).toHaveBeenCalledWith('c1', 'hangup')
     expect(service.walkthroughIn('c1')).toBeNull()
 
     const again = await service.startWalkthrough(endpoint, { ...request, conversationId: 'c1' })

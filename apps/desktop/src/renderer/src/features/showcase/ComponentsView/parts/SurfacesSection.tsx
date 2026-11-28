@@ -156,6 +156,14 @@ export const SurfacesSection = () => {
                 onSelect={() => undefined}
               />
             </MenuSection>
+            <MenuSection title={t('samples.menuSectionFolded')} collapsible defaultCollapsed>
+              <MenuItem
+                leading={<Avatar initials="LL" tone={2} />}
+                label={t('samples.olderItem')}
+                description={t('samples.olderPath')}
+                onSelect={() => undefined}
+              />
+            </MenuSection>
           </Menu>
         </div>
       </Specimen>

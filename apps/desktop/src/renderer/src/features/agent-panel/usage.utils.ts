@@ -10,6 +10,7 @@ import { clockLabel, daysBetween, weekdayClockLabel } from '../../lib/dates.util
 import type { UsageRing } from './panel.types'
 import {
   WEEK_MS,
+  MONTH_MS,
   FIVE_HOUR_MS,
   PACE_HIGH_OVER,
   USAGE_STALE_MS,
@@ -46,17 +47,31 @@ export const usageTone = (percent: number, severity: string): 'success' | 'warni
 export const meterKey = (window: UsageWindow): string =>
   window.model ? `${window.group}:${window.model}` : window.group
 
-/** Окно всего тарифа (пять часов, неделя), а не одной модели: оно останавливает работу целиком. */
-const isPlanWide = (window: UsageWindow) =>
-  window.model === '' && (window.group === 'session' || window.group === 'weekly')
+/** Окна всего тарифа: пять часов, неделя и месяц (у Kimi Code). */
+const PLAN_WIDE_GROUPS: ReadonlySet<string> = new Set(['session', 'weekly', 'monthly'])
 
-/** Подпись окна: «5-hour», «Week», «Week · Fable». */
+/** Окно всего тарифа, а не одной модели: оно останавливает работу целиком. */
+const isPlanWide = (window: UsageWindow) =>
+  window.model === '' && PLAN_WIDE_GROUPS.has(window.group)
+
+/** Длина окна по имени: по ней считается ровный темп до сброса; незнакомое - null. */
+const spanOf = (group: string): number | null =>
+  group === 'session'
+    ? FIVE_HOUR_MS
+    : group === 'weekly'
+      ? WEEK_MS
+      : group === 'monthly'
+        ? MONTH_MS
+        : null
+
+/** Подпись окна: «5-hour», «Week», «Week · Fable», «Month». */
 export const windowLabel = (window: UsageWindow, t: TFunction): string => {
   if (window.group === 'session') return t('agentPanel.usage.session')
   if (window.group === 'weekly' && window.model) {
     return t('agentPanel.usage.weeklyModel', { model: window.model })
   }
   if (window.group === 'weekly') return t('agentPanel.usage.weekly')
+  if (window.group === 'monthly' && !window.model) return t('agentPanel.usage.monthly')
 
   return window.model ? `${window.group} · ${window.model}` : window.group
 }
@@ -244,9 +259,8 @@ const ringDetails = (
  */
 export const usageRings = (usage: AccountUsage, now: number, t: TFunction): UsageRing[] =>
   usage.windows.map((window) => {
-    const session = window.group === 'session'
     const isWeek = window.group === 'weekly'
-    const span = session ? FIVE_HOUR_MS : isWeek ? WEEK_MS : null
+    const span = spanOf(window.group)
     const value = windowPercent(window, now)
     const pace = isWeek ? weekBudget(window.resetsAt, now) : null
     const left = window.resetsAt !== null ? window.resetsAt - now : 0

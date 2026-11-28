@@ -1,4 +1,5 @@
 import type { FeedPatch, ConversationFeed } from '@shared/conversation-feed'
+import { tasksByProgress } from '@shared/conversation-feed'
 
 import type {
   AgentMessage,
@@ -214,7 +215,8 @@ export class FeedDesk {
     if (this.watches.get(deviceId)?.token !== watch.token) return
 
     const redact = this.host.redact()
-    const tasks = listThatFits(feed.tasks, TASKS_BUDGET, redact)
+    // Задачи - по ходу работы, как над полем в IDE: модель берётся за них вразнобой.
+    const tasks = listThatFits(tasksByProgress(feed.tasks), TASKS_BUDGET, redact)
     const shell: FeedSnapshotMessage = {
       p: PROTOCOL_VERSION,
       k: 'feed',
@@ -284,7 +286,9 @@ export class FeedDesk {
     const { rows, steps } = ledger.apply([...fold.upserts.values()], fold.removes)
     const extras = {
       ...(fold.removes.size > 0 && { removes: [...fold.removes] }),
-      ...(fold.tasks && { tasks: listThatFits(fold.tasks, TASKS_BUDGET, redact) }),
+      ...(fold.tasks && {
+        tasks: listThatFits(tasksByProgress(fold.tasks), TASKS_BUDGET, redact),
+      }),
       ...(Object.keys(steps).length > 0 && { steps }),
       ...(fold.hasEarlier !== undefined && { hasEarlier: fold.hasEarlier }),
     }

@@ -1,12 +1,19 @@
 import { join } from 'node:path'
 
-import { app } from 'electron'
+import { app, screen } from 'electron'
 
 import type { CapsuleView, CapsuleAction, ComputerState } from '@shared/computer'
-import type { WalkthroughMarksView } from '@shared/walkthrough'
+import type {
+  MarkPoint,
+  WalkthroughPen,
+  WalkthroughMarksView,
+  WalkthroughPanelView,
+} from '@shared/walkthrough'
 
 import { IS_WINDOWS } from '../platform'
 import { WalkthroughDesk } from '../walkthrough/walkthrough-desk'
+import { WalkthroughPanel } from '../walkthrough/walkthrough-panel'
+import { WalkthroughStage } from '../walkthrough/walkthrough-stage'
 import { WalkthroughWindow } from '../walkthrough/walkthrough-window'
 import { macCursor } from './cg-cursor'
 import { macInput } from './cg-events'
@@ -18,6 +25,7 @@ import { ComputerDesk } from './computer-desk'
 import { ComputerHand } from './computer-hand'
 import { withPointer, ComputerPointer } from './computer-pointer'
 import { ComputerPointerWindow } from './computer-pointer-window'
+import { listDisplays } from './computer-screen'
 import { CURSOR_MARK_FILE } from './computer.constants'
 import type { SystemCursor } from './computer.types'
 import {
@@ -57,6 +65,8 @@ export class ComputerRuntime {
   readonly walkthrough: WalkthroughDesk
   /** Окно меток показа: накладное, как капсула и стрелка, и так же не попадает в снимок модели. */
   private readonly marks: WalkthroughWindow
+  /** Панель инструментов человека в показе (ADR 0135): тоже накладная и вне снимков. */
+  private readonly panel: WalkthroughPanel
   private readonly desk: ComputerDesk
   private readonly capsule: ComputerCapsule
   private readonly pointerWindow: ComputerPointerWindow
@@ -71,6 +81,7 @@ export class ComputerRuntime {
 
     this.capsule = new ComputerCapsule(rendererUrl)
     this.marks = new WalkthroughWindow(rendererUrl)
+    this.panel = new WalkthroughPanel(rendererUrl)
     this.pointerWindow = new ComputerPointerWindow(rendererUrl)
     this.pointer = new ComputerPointer({
       cursor: () => input.cursor(),
@@ -92,20 +103,35 @@ export class ComputerRuntime {
       covers: (point) => this.capsule.covers(point),
       hiddenFromShot: (shoot) =>
         this.capsule.hiddenFromShot(() =>
-          this.pointerWindow.hiddenFromShot(() => this.marks.hiddenFromShot(shoot)),
+          this.pointerWindow.hiddenFromShot(() =>
+            this.marks.hiddenFromShot(() => this.panel.hiddenFromShot(shoot)),
+          ),
         ),
       witness: IS_WINDOWS ? windowsWitness : macWitness,
       finished: (key) => this.finished(key),
       beforeAct: (key, signal) => this.walkthrough.beforeAct(key, signal),
     })
+    const timer = (run: () => void, ms: number) => {
+      const handle = setTimeout(run, ms)
+
+      return () => clearTimeout(handle)
+    }
+
     this.walkthrough = new WalkthroughDesk({
       computer: this.agent,
-      window: this.marks,
-      timer: (run, ms) => {
-        const handle = setTimeout(run, ms)
+      stage: new WalkthroughStage({
+        windows: { marks: this.marks, panel: this.panel },
+        glance: () => this.agent.glance(),
+        displayAtCursor: () => {
+          const { id } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
 
-        return () => clearTimeout(handle)
-      },
+          return listDisplays().find((display) => display.id === id) ?? null
+        },
+        timer,
+        now: () => Date.now(),
+      }),
+      timer,
+      now: () => Date.now(),
     })
 
     app.on('browser-window-focus', () => this.recheck())
@@ -139,6 +165,21 @@ export class ComputerRuntime {
   /** Что рисует окно меток показа Walkthrough (ADR 0134) - его странице, когда она открылась. */
   walkthroughView(): WalkthroughMarksView {
     return this.marks.current()
+  }
+
+  /** Что показывает панель инструментов человека (ADR 0135) - её странице, когда она открылась. */
+  walkthroughPanel(): WalkthroughPanelView {
+    return this.panel.current()
+  }
+
+  /**
+   * Человек нарисовал пометку в окне меток (точки окна): в точки экрана - и показу. Окна меток не
+   * видно - рисовать было негде, пометка опоздала.
+   */
+  walkthroughStroke(pen: WalkthroughPen, points: MarkPoint[]): void {
+    const onScreen = this.marks.toScreen(points)
+
+    if (onScreen) this.walkthrough.stroke(pen, onScreen)
   }
 
   /**
@@ -187,6 +228,7 @@ export class ComputerRuntime {
     this.pointer.dispose()
     this.pointerWindow.destroy()
     this.marks.destroy()
+    this.panel.destroy()
     this.capsule.destroy()
   }
 }

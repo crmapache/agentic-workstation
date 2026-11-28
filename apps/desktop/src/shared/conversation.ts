@@ -296,7 +296,25 @@ export type Conversation = {
   carryOn?: CarryOnPlan | undefined
   /** Почему очередь стоит, хотя вкладка свободна; нет - не держат (подпись очереди). */
   queueHold?: QueueHold | undefined
+  /**
+   * Запасная: пустую вкладку открыла сама IDE (у проекта не было ни одной, а человек смотрит на
+   * панель) или она пустой вернулась с диска - человек о ней не просил. Как только рядом в
+   * проекте встаёт настоящий разговор, запасная без черновика уходит. Нет - вкладка не запасная.
+   */
+  spare?: boolean | undefined
 }
+
+/**
+ * Новый пустой разговор: ни хода, ни своего имени, ни очереди, не форк. Черновик в поле не в
+ * счёт: он лежит под id вкладки и не теряется, а вкладка с ним - всё та же «New chat».
+ */
+export const isBlankChat = (conversation: Conversation): boolean =>
+  conversation.title === '' &&
+  conversation.titleSource === 'default' &&
+  conversation.outcome === 'none' &&
+  conversation.status === 'idle' &&
+  conversation.queue.length === 0 &&
+  conversation.fork === null
 
 /**
  * Что держит очередь. paused - ход кончился остановкой или ошибкой: очередь уйдёт после

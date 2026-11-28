@@ -5,6 +5,7 @@ import type { PermissionMode, RequestResponse } from '@shared/conversation'
 import type { AcpProcess } from '../client/acp-process'
 import { errorTextOf, isAuthError } from '../client/acp-process'
 import { ACP_PROMPT_TIMEOUT_MS, ACP_SESSION_TIMEOUT_MS } from '../client/acp.constants'
+import { hiddenFailure } from '../feed/acp-failures'
 import type {
   AcpMcpServer,
   AcpContentBlock,
@@ -25,6 +26,7 @@ import { applySettings } from './acp-options'
 import type { AcpHeld } from './acp-requests'
 import { replyOf, isAcpHeld, dismissedReply } from './acp-requests'
 import { routeUpdate, routeRequest } from './acp-router'
+import { askAcpTitle } from './acp-title'
 
 let epochs = 0
 
@@ -143,6 +145,8 @@ export class AcpSession implements AgentSession {
     if (rankOf(runtime.meta.titleSource) < rankOf('heuristic') && text && !message.auto) {
       runtime.update({ title: draftTitle(text), titleSource: 'heuristic' })
     }
+    // Агент, который не называет разговор сам, называет его по просьбе (Kimi).
+    if (text && !message.auto) askAcpTitle(runtime, text)
 
     if (message.images.length > 0) {
       feed.images.set(
@@ -260,13 +264,17 @@ export class AcpSession implements AgentSession {
     try {
       await applySettings(this)
 
+      const sentAt = Date.now()
       const result = (await this.process.request(
         'session/prompt',
         { sessionId: this.sessionId, prompt: this.blocksOf(message) },
         ACP_PROMPT_TIMEOUT_MS,
       )) as AcpPromptResult
+      const failure = await hiddenFailure(kit.host.agent, result.stopReason, this.sessionId, sentAt)
 
-      this.turnEnded(result.stopReason, null)
+      if (!this.isCurrent) return
+
+      this.turnEnded(result.stopReason, failure)
     } catch (error) {
       if (!this.isCurrent || !this.process.isAlive) return
 

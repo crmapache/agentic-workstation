@@ -10,7 +10,7 @@ import type { Display, ShotFrame } from './computer-geometry'
 import { LIVE_MOTION } from './computer-hand'
 import type { ComputerHand } from './computer-hand'
 import type { KeyChord } from './computer-keys'
-import { shootRegion, listDisplays, shootDisplay } from './computer-screen'
+import { shootRegion, listDisplays, shootDisplay, orderedDisplays } from './computer-screen'
 import type { Picture } from './computer-screen'
 import {
   glance,
@@ -80,13 +80,6 @@ const pausedNote = (pausedMs: number): string =>
   pausedMs >= 1000
     ? `The user had you paused for ${Math.round(pausedMs / 1000)} s before this call ran; the screen may have changed.`
     : ''
-
-/** Дисплеи по порядку для модели: главный - 1, остальные - слева направо. */
-const ordered = (): Display[] =>
-  listDisplays().sort(
-    (a, b) =>
-      Number(b.isMain) - Number(a.isMain) || a.bounds.x - b.bounds.x || a.bounds.y - b.bounds.y,
-  )
 
 /**
  * Computer Use (ADR 0057): снимки экрана и действия настоящими мышью и клавиатурой от имени
@@ -259,6 +252,30 @@ export class ComputerAgent {
     return glance(this.port.witness, LIVE_MOTION.now())
   }
 
+  /**
+   * Человек трогал мышь или клавиатуру после последнего снимка разговора (ADR 0135): свои события
+   * рука шлёт до снимка после действия, так что ввод после него - чужой. Снимка нет - нет.
+   */
+  touched(key: string): boolean {
+    const seen = this.frames.get(key)
+
+    return seen !== undefined && isTouchedSince(seen, this.glance())
+  }
+
+  /**
+   * Точки экрана - в пиксели последнего снимка разговора (ADR 0135): пометки человека модель
+   * получает в координатах своего снимка. Снимка нет или точка на другом дисплее - null.
+   */
+  pixelsOf(key: string, points: readonly Point[]): Point[] | null {
+    const frame = this.frames.get(key)?.frame
+
+    if (!frame) return null
+
+    const pixels = points.map((point) => toShot(frame, point))
+
+    return pixels.every((pixel) => pixel !== null) ? pixels : null
+  }
+
   /** Сколько мс назад был последний ввод мыши и клавиатуры (и руки ИИ); не знаем - null. */
   quietMs(): number | null {
     const { inputAt } = this.glance()
@@ -402,7 +419,7 @@ export class ComputerAgent {
 
   /** Какой дисплей снимать: названный, иначе прошлый, иначе тот, где сейчас мышь. */
   private pick(call: DeskCall, number: number | null): Display {
-    const displays = ordered()
+    const displays = orderedDisplays()
 
     if (number !== null) {
       const chosen = displays[number - 1]
@@ -446,7 +463,7 @@ export class ComputerAgent {
    * пользу отказа.
    */
   private async shoot(call: DeskCall, display: Display, said: string): Promise<ComputerAnswer> {
-    const displays = ordered()
+    const displays = orderedDisplays()
     // Дисплей мог поменять размер или пропасть - берём его нынешний вид.
     const now = displays.find((one) => one.id === display.id) ?? displays[0] ?? display
     const { pauses, letGos } = this.port.desk

@@ -27,6 +27,9 @@ export const useConversationActions = () => {
     return {
       newConversation: (projectId: string) =>
         run(invoke('agent:newConversation', { provider, projectId })),
+      /** Пустая запасная вкладка - только если у проекта правда нет ни одной (решает главный). */
+      ensureConversation: (projectId: string) =>
+        run(invoke('agent:ensureConversation', { provider, projectId })),
       /** Закрыть вкладку; hasDraft - в поле что-то написано, вкладку стоит помнить. */
       closeConversation: (conversationId: string, hasDraft = false) =>
         run(invoke('agent:closeConversation', { provider, conversationId, hasDraft })),

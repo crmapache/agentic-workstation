@@ -1,16 +1,5 @@
 import type { Conversation } from '@shared/conversation'
-
-/**
- * Новый пустой разговор: ни хода, ни своего имени, ни очереди, не форк. Черновик в поле не в
- * счёт: он лежит под id вкладки и не теряется, а вкладка с ним - всё та же «New chat».
- */
-export const isBlankChat = (conversation: Conversation): boolean =>
-  conversation.title === '' &&
-  conversation.titleSource === 'default' &&
-  conversation.outcome === 'none' &&
-  conversation.status === 'idle' &&
-  conversation.queue.length === 0 &&
-  conversation.fork === null
+import { isBlankChat } from '@shared/conversation'
 
 /**
  * Можно ли закрыть вкладку - крестиком, средней кнопкой и ⌘W. Закреплённую - нет, пока её не

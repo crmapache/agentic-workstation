@@ -3,6 +3,8 @@ import clsx from 'clsx'
 import { ListTodo } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { tasksByProgress } from '@shared/conversation-feed'
+
 import { Disclosure } from '@agentic-workstation/ui/Disclosure'
 import { Spinner } from '@agentic-workstation/ui/Spinner'
 import { Tooltip } from '@agentic-workstation/ui/Tooltip'
@@ -15,7 +17,8 @@ import { taskText } from './TaskListPanel.utils'
 
 /**
  * Список задач, который ведёт модель, - над полем ввода: видно, где она сейчас и
- * сколько осталось. Свёрнутый - одна строка с текущей задачей. Идущая задача крутится,
+ * сколько осталось. Пункты - по ходу работы (сделанные, идущая, ждущие), а не вразнобой, как
+ * модель за них бралась. Свёрнутый - одна строка с текущей задачей. Идущая задача крутится,
  * только пока в разговоре что-то идёт; модель кончила ход, не закрыв её, - пауза: иначе
  * человек ждал бы работы, которой нет.
  */
@@ -47,7 +50,7 @@ export const TaskListPanel = ({ tasks, isWorking }: TaskListPanelProps) => {
       </Disclosure>
       {isOpen && (
         <ul className={styles.list}>
-          {tasks.map((task) => {
+          {tasksByProgress(tasks).map((task) => {
             const isCurrent = task.state === 'in_progress'
             const isPaused = isCurrent && !isWorking
             const Icon = task.state === 'in_progress' ? null : STATE_ICON[task.state]

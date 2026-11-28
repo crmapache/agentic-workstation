@@ -19,7 +19,8 @@ import type { BargeIn } from './call-ears'
 import { CallEars } from './call-ears'
 import type { SpokenAnswer } from './call-mouth'
 import { CallMouth } from './call-mouth'
-import type { Timer, Utterance } from './utterances'
+import { CallShow, type ShowHooks } from './call-show'
+import type { Timer } from './utterances'
 import type { VoiceEndpoint } from './voice-endpoint'
 import { phrasesOf } from './voice-phrases'
 import { isStopOnly } from './voice-words'
@@ -32,11 +33,6 @@ const GOODBYE_MS = 60_000
 const STILL_HERE_MS = 15_000
 /** Связь с телефоном потеряна - сессия ждёт его столько (spec: 60 с). */
 export const LINE_LOST_MS = 60_000
-/**
- * Сколько такт показа ждёт, пока лента покажет идущий инструмент (ADR 0134): вызов через шлюз
- * может обогнать ленту, но не на столько.
- */
-const TOOL_IN_FEED_MS = 400
 
 export type VoiceCallOptions = {
   id: string
@@ -54,11 +50,8 @@ export type VoiceCallOptions = {
   onEnded: (reason: VoiceCallEnd) => void
   /** Ответ прозвучал целиком: его звук - в запас «Прочитать вслух» (ADR 0106). */
   onSpoken?: ((spoken: SpokenAnswer) => void) | undefined
-  /**
-   * Реплика человека, которую забирает показ (ADR 0134): агент ждёт его действия (wait_for_user),
-   * и сказанное - ответ этого ожидания, а не новое сообщение в чат. Забрал - true.
-   */
-  intercept?: ((utterance: Utterance) => boolean) | undefined
+  /** Звонок показа Walkthrough: что показ забирает у реплик человека (ADR 0134, 0135). */
+  show?: ShowHooks | undefined
 }
 
 /**
@@ -81,6 +74,11 @@ export class VoiceCall {
   /** Настройки звонка: скорость и перебивание меняются на лету, остальное - с ним же до конца. */
   private settings: VoiceSettings
   private readonly alarms: CallAlarms
+  /**
+   * Голос показа Walkthrough (ADR 0135): фразы инструментов своим ходом голоса, отклик на реплику,
+   * ожидание ответа человека. Им пользуется показ (ide-features).
+   */
+  readonly show: CallShow
 
   constructor(private readonly options: VoiceCallOptions) {
     const { languageMode } = options.settings
@@ -99,6 +97,15 @@ export class VoiceCall {
         this.changed()
       },
       walkthrough: options.view.mode === 'walkthrough',
+      drawn: options.show?.drawn,
+    })
+    this.show = new CallShow({
+      mouth: () => this.mouth,
+      language: () => this.replyLanguage,
+      isLive: () => !this.paused && !this.ended,
+      hearing: () => this.heard !== '',
+      onChange: () => this.changed(),
+      toolStarted: (limitMs) => this.brain.toolStarted(limitMs, options.timer),
     })
   }
 
@@ -131,29 +138,12 @@ export class VoiceCall {
     this.brain.seed(items)
     this.ears.start()
 
-    const language = this.replyLanguage
-
     // Показ начинает IDE сама: человек нажал кнопку и ещё не сказал, что показать.
-    if (this.mode === 'walkthrough') {
-      this.mouth.say('walkthrough-hello', phrasesOf(language).walkthroughHello, language)
-    } else {
-      this.mouth.warm(language)
-    }
+    if (this.mode === 'walkthrough') this.show.hello()
+    else this.mouth.warm(this.replyLanguage)
 
     this.watchSilence()
     this.changed()
-  }
-
-  /**
-   * Такт показа (ADR 0134): прозвучит ли всё, что модель сказала до этой минуты. Сначала лента
-   * должна показать идущий инструмент - тогда текст перед ним уже во рту, - потом рот запоминает,
-   * что держит, и spoken сбывается, когда это дослушано (true) или оборвано (false). Обёртка, а не
-   * голое обещание: вызывающий ждёт только снятия мерки, а не самого голоса.
-   */
-  async speechSoFar(): Promise<{ spoken: Promise<boolean> }> {
-    if (!this.ended) await this.brain.toolStarted(TOOL_IN_FEED_MS, this.options.timer)
-
-    return { spoken: this.ended ? Promise.resolve(false) : this.mouth.drained() }
   }
 
   mic(pcm: Uint8Array): void {
@@ -269,7 +259,8 @@ export class VoiceCall {
     if (this.paused) return 'paused'
     if (this.troubled) return 'reconnecting'
     if (this.mouth.isSpeaking) return 'speaking'
-    if (this.work.state !== 'idle') return this.work.state
+    // Показ ждёт человека: агент работает инструментом, а звонок слушает.
+    if (this.work.state !== 'idle' && !this.show.listening) return this.work.state
 
     return 'listening'
   }
@@ -308,7 +299,7 @@ export class VoiceCall {
       now,
       isSpeaking: () => this.mouth.isSpeaking,
       recentlySaid: () => this.mouth.recentlySaid,
-      isAgentBusy: () => this.brain.isBusy,
+      isAgentBusy: () => !this.show.listening && this.brain.isBusy,
       onHeard: (text) => {
         this.heard = text
         if (text) this.watchSilence()
@@ -317,7 +308,9 @@ export class VoiceCall {
       onUtterance: (utterance) => {
         this.language = utterance.language
         // «Стоп» и сейчас останавливает работу; остальное может быть ответом ожидания показа.
-        if (!isStopOnly(utterance.text) && this.options.intercept?.(utterance)) return
+        if (isStopOnly(utterance.text)) return this.brain.utterance(utterance)
+        if (this.mode === 'walkthrough') this.show.acknowledge(utterance.language)
+        if (this.options.show?.intercept(utterance)) return
         this.brain.utterance(utterance)
       },
       onBargeIn: (action) => this.bargeIn(action),

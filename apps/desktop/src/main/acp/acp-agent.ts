@@ -1,4 +1,5 @@
-import type { CliNeed, EffortLevel, PermissionMode } from '@shared/conversation'
+import type { AccountUsage } from '@shared/account-usage'
+import type { CliNeed, ModelInfo, EffortLevel, PermissionMode } from '@shared/conversation'
 import type { ProviderId } from '@shared/providers'
 
 import type { Environment } from '../process/shell-env'
@@ -42,6 +43,11 @@ export type AcpAgent = {
   /** Уровень усилия IDE ↔ значение настройки размышления агента. */
   effortOf: (effort: EffortLevel, option: AcpConfigOption) => string | null
   effortsOf: (option: AcpConfigOption) => EffortLevel[]
+  /**
+   * Порядок меню моделей - новейшие первыми: меню показывает первые сразу, остальное прячет в
+   * свёрнутую группу. Нет - порядок агента (у `agy` модели разных семей, их не сравнить).
+   */
+  lineup?: (models: readonly ModelInfo[]) => ModelInfo[]
   /** Своё агента о вызовах: имя инструмента, коннектор, вопрос, артефакт. */
   lens: (servers: readonly string[]) => AcpToolLens
   /** Устойчивая часть id вызова (у Kimi номер до двоеточия меняется при повторе). */
@@ -70,4 +76,22 @@ export type AcpAgent = {
   forget?: (sessionId: string) => Promise<void>
   /** Новый разговор родился в папке: агенту, который сам её нигде не пишет (`agy`). */
   notePlace?: (sessionId: string, cwd: string) => Promise<void>
+  /**
+   * Сбой хода, который агент не говорит по ACP: ответ - обычный `end_turn`, а причина - только в
+   * его журнале (Kimi 2.7: кончился лимит подписки). since - когда ход отправлен (мс). Ответ -
+   * слова сбоя; null - ход кончился сам. Нет - агент говорит о сбоях ответом на `session/prompt`.
+   */
+  turnFailure?: (sessionId: string, since: number) => Promise<string | null>
+  /**
+   * Лимиты подписки (кольца под полем): по ACP их нет, драйвер спрашивает сервер агента сам. null
+   * - сейчас не узнать (токен истёк, сервер не ответил). Нет - агент лимитов не показывает.
+   */
+  usage?: () => Promise<AccountUsage | null>
+  /**
+   * Имя разговора от агента, который по ACP вместо имени шлёт начало сообщения (Kimi 2.7:
+   * `session_info_update` - первые 200 знаков, а имя от модели Kimi даёт только своему окну).
+   * prompts - слова человека по порядку. Есть - присланное по ACP имя вкладка не берёт. null -
+   * назвать не вышло, спросим на следующем сообщении.
+   */
+  title?: (prompts: readonly string[]) => Promise<string | null>
 }

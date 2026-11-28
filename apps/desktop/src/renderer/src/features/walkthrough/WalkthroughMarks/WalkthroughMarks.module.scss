@@ -1,4 +1,5 @@
-// Окно меток - во весь дисплей и прозрачное: видны только сами метки.
+// Окно меток - во весь дисплей и прозрачное: видны только сами метки. С инструментом в руке
+// человека окно ловит мышь (главный процесс снимает «сквозь»), и страница принимает нажатия.
 .stage {
   position: fixed;
   inset: 0;
@@ -7,24 +8,68 @@
   pointer-events: none;
 }
 
-// Петля маркером: штрих проявляется от начала к концу, как ведёт рука. Длина пути - 1
-// (pathLength), поэтому длина штриха и сдвиг - единицы, а не точки.
-.circle {
+// Перекрестие macOS у окна фонового приложения не покажет (connectors.md, курсор капсулы), но на
+// Windows и у ключевого окна оно подсказывает, что сейчас рисуют.
+.drawing {
+  cursor: crosshair;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+// Подсветка проступает и гаснет целиком; вырез и кайма переезжают к новому месту за
+// --duration-walkthrough-move. Появление - анимацией без заполнения вперёд: иначе её последний
+// кадр держал бы непрозрачность и .leaving не гасил бы затемнение.
+.spotlight {
+  opacity: 1;
+  transition: opacity var(--duration-slow) var(--easing-standard);
+  animation: walkthrough-fade var(--duration-slow) var(--easing-standard) backwards;
+}
+
+.leaving {
+  opacity: 0;
+}
+
+.dim {
+  fill: var(--color-backdrop);
+  transition: d var(--duration-walkthrough-move) var(--easing-out);
+}
+
+.ring {
   fill: none;
-  stroke: var(--color-walkthrough-ink);
-  stroke-dasharray: 1;
+  stroke: var(--color-walkthrough-ring);
+  transition:
+    x var(--duration-walkthrough-move) var(--easing-out),
+    y var(--duration-walkthrough-move) var(--easing-out),
+    width var(--duration-walkthrough-move) var(--easing-out),
+    height var(--duration-walkthrough-move) var(--easing-out);
+}
+
+// Пометка человека: тёмная подложка шире линии, поверх - оранжевая линия.
+.casing,
+.ink {
+  fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: var(--glow-walkthrough-ink);
-  animation: walkthrough-draw var(--duration-walkthrough-draw) var(--easing-out) both;
+}
+
+.casing {
+  stroke: var(--color-walkthrough-casing);
+  stroke-opacity: var(--opacity-muted);
+}
+
+.ink {
+  stroke: var(--color-walkthrough-ink);
+}
+
+.arrowCasing {
+  fill: none;
+  stroke: var(--color-walkthrough-casing);
+  stroke-linejoin: round;
+  stroke-opacity: var(--opacity-muted);
 }
 
 .arrow {
   fill: var(--color-walkthrough-ink);
-  filter: var(--glow-walkthrough-ink);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: walkthrough-appear var(--duration-slow) var(--easing-out) both;
 }
 
 // Наконечник обводится тем же цветом со скруглением - острые углы дротика смягчаются (Shotter).
@@ -34,31 +79,13 @@
   stroke-linejoin: round;
 }
 
-.spotlight {
-  fill: var(--color-backdrop);
-  animation: walkthrough-fade var(--duration-slow) var(--easing-standard) both;
+// Нарисованная пометка проступает; та, что человек ведёт сейчас, - сразу, без перехода.
+.shown {
+  animation: walkthrough-fade var(--duration-fast) var(--easing-standard) both;
 }
 
-@keyframes walkthrough-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes walkthrough-appear {
-  from {
-    opacity: 0;
-    scale: 0.85;
-  }
-
-  to {
-    opacity: 1;
-    scale: 1;
-  }
+.live {
+  opacity: 1;
 }
 
 @keyframes walkthrough-fade {

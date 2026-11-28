@@ -14,6 +14,9 @@
   color: var(--color-fg-subtle);
 }
 
+// Сворачиваемый заголовок нажимают, как пункт: он и ростом, и скруглением как пункт меню, поля
+// сверху и снизу равны. С полями подписи (сверху вдвое больше) подложка под курсором была тесной
+// капсулой с подписью у нижнего края.
 .toggle {
   @include button-reset;
   @include interactive-surface;
@@ -22,7 +25,9 @@
   align-items: center;
   gap: var(--space-1);
   width: 100%;
-  border-radius: var(--radius-sm);
+  min-height: var(--size-menu-item);
+  padding-block: var(--space-1);
+  border-radius: var(--radius-md);
   text-align: left;
 
   @media (hover: hover) {

@@ -1,7 +1,7 @@
 import type { Conversation } from '@shared/conversation'
+import { isBlankChat } from '@shared/conversation'
 
 import type { ChatHandoff } from '../../state/chat-handoff.store'
-import { isBlankChat } from './tab-close.utils'
 
 /**
  * Что панель делает с ждущими её кусками: ждать вкладку, завести новый разговор или положить

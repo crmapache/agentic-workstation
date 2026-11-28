@@ -69,6 +69,14 @@ export type AgentInvokeContract = {
     response: AgentPanelState
   }
   'agent:newConversation': { request: PanelRequest & ProjectRequest; response: AgentPanelState }
+  /**
+   * Человек смотрит на панель проекта без вкладок: пустая вкладка - только если их правда нет
+   * (разговор от агента мог встать раньше). Она запасная (Conversation.spare).
+   */
+  'agent:ensureConversation': {
+    request: PanelRequest & ProjectRequest
+    response: AgentPanelState
+  }
   'agent:activateConversation': {
     request: PanelRequest & ConversationRequest
     response: AgentPanelState
@@ -267,6 +275,7 @@ export const AGENT_CHANNELS = {
   'agent:feedItems': true,
   'agent:showSessionInfo': true,
   'agent:newConversation': true,
+  'agent:ensureConversation': true,
   'agent:activateConversation': true,
   'agent:send': true,
   'agent:enqueue': true,

@@ -109,6 +109,23 @@ describe('лимиты на экране', () => {
     expect(rings[1]?.pace).toBeNull()
   })
 
+  it('месяц Kimi Code - окно тарифа: своя подпись, тон по темпу месяца, держит доступность', () => {
+    const month = window({ group: 'monthly', percent: 100, resetsAt: NOW + 3 * DAY_MS })
+    const rings = usageRings(usage([window({ percent: 20 }), month]), NOW, t)
+
+    expect(rings.map((ring) => ring.label)).toEqual([
+      'agentPanel.usage.session',
+      'agentPanel.usage.monthly',
+    ])
+    expect(rings[1]?.pace).toBeNull()
+    expect(busiestWindow(usage([window({ percent: 20 }), month]), NOW)?.group).toBe('monthly')
+    expect(availableAgainAt(usage([month]), NOW)).toBe(NOW + 3 * DAY_MS)
+    // Четверть месяца за первые сутки из тридцати - быстрее ровного темпа.
+    const early = window({ group: 'monthly', percent: 25, resetsAt: NOW + 29 * DAY_MS })
+
+    expect(usageRings(usage([early]), NOW, t)[0]?.tone).not.toBe('success')
+  })
+
   it('упёршееся окно при доплате горит, остальные - нет', () => {
     const rings = usageRings(
       usage([window({ percent: 40 }), window({ group: 'weekly', percent: 100 })], {
